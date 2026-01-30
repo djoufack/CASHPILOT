@@ -152,6 +152,7 @@ export const useClients = () => {
     error,
     fetchClients,
     createClient,
+    addClient: createClient,  // alias for backward compatibility
     updateClient,
     deleteClient
   };
