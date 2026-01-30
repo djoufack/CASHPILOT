@@ -14,7 +14,7 @@ import {
   Home, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Archive, BarChart3, Calculator, PieChart, Settings,
   Map, QrCode, FileBarChart, Database, Bell, Menu,
-  Receipt, Building2, User
+  Receipt, Building2, User, ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -56,6 +56,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     { path: '/invoices', label: t('common.invoices'), icon: FileText },
     { path: '/quotes', label: t('common.quotes'), icon: FileSignature },
     { path: '/expenses', label: 'Dépenses', icon: Receipt },
+    { path: '/purchase-orders', label: 'Bons de commande', icon: ClipboardList },
     { type: 'separator', label: t('suppliers.title') },
     { path: '/suppliers', label: t('common.suppliers'), icon: Truck },
     { path: '/suppliers/stock', label: t('suppliers.stock'), icon: Archive },
@@ -169,6 +170,26 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
 
       {/* Footer */}
       <div className="border-t border-gray-800/50 p-2 space-y-1 shrink-0">
+        <Link to="/settings?tab=profil">
+          <div className={cn(
+            "flex items-center gap-3 rounded-lg transition-all text-gray-500 hover:bg-gray-800/50 hover:text-gray-200",
+            isCollapsed ? "h-10 w-10 mx-auto justify-center" : "px-3 py-2.5"
+          )}>
+            <User size={20} />
+            {!isCollapsed && <span className="text-sm font-medium">Mon Profil</span>}
+          </div>
+        </Link>
+
+        <Link to="/settings?tab=societe">
+          <div className={cn(
+            "flex items-center gap-3 rounded-lg transition-all text-gray-500 hover:bg-gray-800/50 hover:text-gray-200",
+            isCollapsed ? "h-10 w-10 mx-auto justify-center" : "px-3 py-2.5"
+          )}>
+            <Building2 size={20} />
+            {!isCollapsed && <span className="text-sm font-medium">Ma Société</span>}
+          </div>
+        </Link>
+
         <Link to="/notifications">
           <div className={cn(
             "flex items-center gap-3 rounded-lg transition-all text-gray-500 hover:bg-gray-800/50 hover:text-gray-200",

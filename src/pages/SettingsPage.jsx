@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Building2, Bell, CreditCard, Users, Fingerprint, Wifi } from 'lucide-react';
 import ProfileSettings from '@/components/settings/ProfileSettings';
@@ -11,7 +12,21 @@ import PushNotificationManager from '@/components/PushNotificationManager';
 import BiometricSettings from '@/components/BiometricSettings';
 import SyncManager from '@/components/SyncManager';
 
+const TAB_MAP = {
+  profil: 'profile',
+  societe: 'company',
+  facturation: 'billing',
+  equipe: 'team',
+  notifications: 'notifications',
+  securite: 'security',
+  sync: 'sync'
+};
+
 const SettingsPage = () => {
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const defaultTab = TAB_MAP[tabParam] || tabParam || 'profile';
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
       <div className="mb-6">
@@ -21,7 +36,7 @@ const SettingsPage = () => {
         <p className="text-gray-400 mt-2 text-sm">Gérez votre profil, votre société et vos préférences.</p>
       </div>
 
-      <Tabs defaultValue="profile" className="w-full">
+      <Tabs defaultValue={defaultTab} key={defaultTab} className="w-full">
         <TabsList className="bg-gray-900 border-gray-800 w-full justify-start overflow-x-auto flex-wrap h-auto gap-1 p-1">
           <TabsTrigger value="profile" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
             <User className="w-4 h-4 mr-2" /> Profil
