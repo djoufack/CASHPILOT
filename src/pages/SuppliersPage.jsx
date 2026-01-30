@@ -61,7 +61,7 @@ const SuppliersPage = () => {
     <div className="p-8 min-h-screen bg-gray-950 text-white space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-gradient">
             Supplier Management
           </h1>
           <p className="text-gray-400">Manage your vendor relationships, products, and orders.</p>
@@ -69,7 +69,7 @@ const SuppliersPage = () => {
         
         <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-orange-500 hover:bg-orange-600">
               <Plus className="mr-2 h-4 w-4" /> Add Supplier
             </Button>
           </DialogTrigger>
@@ -130,7 +130,7 @@ const SuppliersPage = () => {
                   </Select>
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">Create Supplier</Button>
+              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600">Create Supplier</Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -174,15 +174,15 @@ const SuppliersPage = () => {
               ) : (
                 filteredSuppliers.map((supplier) => (
                   <TableRow key={supplier.id} className="border-gray-800 hover:bg-gray-800/50">
-                    <TableCell className="font-medium text-white">{supplier.company_name}</TableCell>
+                    <TableCell className="font-medium text-gradient">{supplier.company_name}</TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="text-white">{supplier.contact_person}</span>
+                        <span className="text-gradient">{supplier.contact_person}</span>
                         <span className="text-xs text-gray-500">{supplier.email}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize border-blue-500/30 text-blue-400">
+                      <Badge variant="outline" className="capitalize border-orange-500/30 text-orange-400">
                         {supplier.supplier_type}
                       </Badge>
                     </TableCell>

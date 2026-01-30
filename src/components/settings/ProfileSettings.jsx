@@ -196,7 +196,7 @@ const ProfileSettings = () => {
   if (loading) {
     return (
       <div className="p-12 flex flex-col justify-center items-center h-full gap-4">
-        <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
+        <Loader2 className="w-12 h-12 animate-spin text-orange-400" />
         <p className="text-gray-400">Loading profile configuration...</p>
       </div>
     );
@@ -212,7 +212,7 @@ const ProfileSettings = () => {
                 <CardTitle>Personal Information</CardTitle>
                 <CardDescription className="text-gray-400">Manage your public profile and contact details.</CardDescription>
               </div>
-              <Badge variant={uploading ? "secondary" : "outline"} className={uploading ? "animate-pulse bg-blue-900/50 text-blue-200" : ""}>
+              <Badge variant={uploading ? "secondary" : "outline"} className={uploading ? "animate-pulse bg-orange-900/50 text-orange-200" : ""}>
                  {uploading ? (
                    <span className="flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /> Uploading Avatar...</span>
                  ) : saving ? (
@@ -226,9 +226,9 @@ const ProfileSettings = () => {
             {/* Avatar Section */}
             <div className="flex flex-col md:flex-row items-center md:items-start gap-8 border-b border-gray-800 pb-8">
               <div className="relative group">
-                <Avatar className="h-32 w-32 border-4 border-gray-800 shadow-lg cursor-pointer transition-all duration-300 group-hover:border-blue-500/50" onClick={triggerFileInput}>
+                <Avatar className="h-32 w-32 border-4 border-gray-800 shadow-lg cursor-pointer transition-all duration-300 group-hover:border-orange-500/50" onClick={triggerFileInput}>
                   <AvatarImage src={profile?.avatar_url} className={`object-cover ${uploading ? 'opacity-50' : ''}`} />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-4xl font-bold">
+                  <AvatarFallback className="bg-gradient-to-br from-yellow-500 to-lime-500 text-4xl font-bold">
                     {formData.full_name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
@@ -250,7 +250,7 @@ const ProfileSettings = () => {
               
               <div className="flex-1 space-y-4">
                 <div>
-                  <h3 className="text-lg font-medium text-white mb-1">Profile Picture</h3>
+                  <h3 className="text-lg font-medium text-gradient mb-1">Profile Picture</h3>
                   <p className="text-sm text-gray-400">Upload a professional photo. JPG, PNG or GIF. Max size 5MB.</p> {/* Updated description */}
                 </div>
                 <div className="flex gap-4">
@@ -258,7 +258,7 @@ const ProfileSettings = () => {
                     type="button"
                     onClick={triggerFileInput}
                     disabled={uploading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white min-w-[140px]"
+                    className="bg-orange-500 hover:bg-orange-600 text-white min-w-[140px]"
                    >
                       {uploading ? (
                         <>
@@ -309,7 +309,7 @@ const ProfileSettings = () => {
                   name="full_name" 
                   value={formData.full_name} 
                   onChange={handleChange} 
-                  className="bg-gray-800 border-gray-700 text-white focus:ring-blue-500" 
+                  className="bg-gray-800 border-gray-700 text-white focus:ring-orange-500" 
                   required
                 />
               </div>
@@ -343,7 +343,7 @@ const ProfileSettings = () => {
                   name="phone" 
                   value={formData.phone} 
                   onChange={handleChange} 
-                  className="bg-gray-800 border-gray-700 text-white focus:ring-blue-500" 
+                  className="bg-gray-800 border-gray-700 text-white focus:ring-orange-500" 
                   placeholder="+1 (555) 000-0000"
                 />
               </div>
@@ -355,7 +355,7 @@ const ProfileSettings = () => {
                   name="address" 
                   value={formData.address} 
                   onChange={handleChange} 
-                  className="bg-gray-800 border-gray-700 text-white focus:ring-blue-500" 
+                  className="bg-gray-800 border-gray-700 text-white focus:ring-orange-500" 
                 />
               </div>
 
@@ -367,7 +367,7 @@ const ProfileSettings = () => {
                     name="city" 
                     value={formData.city} 
                     onChange={handleChange} 
-                    className="bg-gray-800 border-gray-700 text-white focus:ring-blue-500" 
+                    className="bg-gray-800 border-gray-700 text-white focus:ring-orange-500" 
                   />
                 </div>
                 <div className="space-y-2">
@@ -377,7 +377,7 @@ const ProfileSettings = () => {
                     name="postal_code" 
                     value={formData.postal_code} 
                     onChange={handleChange} 
-                    className="bg-gray-800 border-gray-700 text-white focus:ring-blue-500" 
+                    className="bg-gray-800 border-gray-700 text-white focus:ring-orange-500" 
                   />
                 </div>
               </div>
@@ -431,7 +431,7 @@ const ProfileSettings = () => {
             {/* Digital Signature */}
             <div className="border-t border-gray-800 pt-8 mt-8">
               <h3 className="text-lg font-medium text-white mb-4 flex items-center">
-                <PenTool className="w-5 h-5 mr-2 text-blue-500" />
+                <PenTool className="w-5 h-5 mr-2 text-orange-400" />
                 Digital Signature
               </h3>
               <div className="bg-gray-950 p-6 rounded-lg border border-gray-800 dashed border-2 border-dashed border-gray-700 flex flex-col items-center justify-center min-h-[150px]">
@@ -440,7 +440,7 @@ const ProfileSettings = () => {
                      <img src={signaturePreview} alt="Signature" className="max-h-32 object-contain bg-white/5 p-2 rounded" />
                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded">
                         <Label htmlFor="sig-upload" className="cursor-pointer">
-                          <div className="p-2 bg-blue-600 hover:bg-blue-700 rounded-full text-white" title="Change">
+                          <div className="p-2 bg-orange-500 hover:bg-orange-600 rounded-full text-white" title="Change">
                              <Upload size={16} />
                           </div>
                         </Label>
@@ -482,7 +482,7 @@ const ProfileSettings = () => {
             <Button 
               type="submit" 
               disabled={saving || uploading} 
-              className="bg-blue-600 hover:bg-blue-700 text-white min-w-[150px] shadow-lg shadow-blue-900/20"
+              className="bg-orange-500 hover:bg-orange-600 text-white min-w-[150px] shadow-lg shadow-orange-900/20"
             >
               {saving ? (
                 <>
@@ -571,7 +571,7 @@ const ProfileSettings = () => {
                                   ${log.type === 'error' ? 'text-red-400 font-bold' : ''}
                                   ${log.type === 'warn' ? 'text-yellow-400' : ''}
                                   ${log.type === 'success' ? 'text-green-400' : ''}
-                                  ${log.type === 'info' ? 'text-blue-300' : ''}
+                                  ${log.type === 'info' ? 'text-orange-300' : ''}
                                 `}>
                                   {log.message}
                                 </span>

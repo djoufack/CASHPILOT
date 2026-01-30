@@ -10,7 +10,7 @@ const SettingsPage = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
       <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-200 to-gray-400 bg-clip-text text-transparent">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gradient">
           Settings
         </h1>
         <p className="text-gray-400 mt-2 text-sm">Configure your application preferences.</p>
@@ -18,13 +18,13 @@ const SettingsPage = () => {
 
       <Tabs defaultValue="notifications" className="w-full">
         <TabsList className="bg-gray-900 border-gray-800 w-full justify-start overflow-x-auto">
-          <TabsTrigger value="notifications" className="data-[state=active]:bg-gray-800">
+          <TabsTrigger value="notifications" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
              <Bell className="w-4 h-4 mr-2" /> Notifications
           </TabsTrigger>
-          <TabsTrigger value="security" className="data-[state=active]:bg-gray-800">
+          <TabsTrigger value="security" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
              <Fingerprint className="w-4 h-4 mr-2" /> Security
           </TabsTrigger>
-          <TabsTrigger value="sync" className="data-[state=active]:bg-gray-800">
+          <TabsTrigger value="sync" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
              <Wifi className="w-4 h-4 mr-2" /> Sync & Offline
           </TabsTrigger>
         </TabsList>

@@ -76,7 +76,7 @@ const TimesheetsPage = () => {
         <div className="container mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-white">
+                  <h1 className="text-3xl md:text-4xl font-bold text-gradient">
                       {t('timesheets.title')}
                   </h1>
                   <p className="text-gray-500 mt-1 text-sm">Manage your time entries and track billable hours</p>
@@ -111,7 +111,7 @@ const TimesheetsPage = () => {
             <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
               <DialogContent className="w-full sm:max-w-[90%] md:max-w-[600px] bg-gray-900 border-gray-800 text-white p-4 md:p-6 overflow-y-auto max-h-[90vh]">
                 <DialogHeader>
-                  <DialogTitle className="text-xl md:text-2xl font-bold text-white">Add Time Entry</DialogTitle>
+                  <DialogTitle className="text-xl md:text-2xl font-bold text-gradient">Add Time Entry</DialogTitle>
                 </DialogHeader>
                 <div className="mt-4">
                   <TimesheetForm 
@@ -172,7 +172,7 @@ const TimesheetsPage = () => {
 
               <div className={view === 'calendar' ? "mt-12" : ""}>
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl md:text-2xl font-bold text-white">
+                  <h2 className="text-xl md:text-2xl font-bold text-gradient">
                     {view === 'calendar' ? 'Recent Entries' : 'All Entries'}
                   </h2>
                   {view === 'calendar' && (

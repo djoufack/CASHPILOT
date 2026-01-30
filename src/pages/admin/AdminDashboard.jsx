@@ -23,10 +23,10 @@ const AdminDashboard = () => {
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">{t('admin.totalUsers')}</CardTitle>
-            <Users className="h-4 w-4 text-blue-500" />
+            <Users className="h-4 w-4 text-orange-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">1,234</div>
+            <div className="text-2xl font-bold text-gradient">1,234</div>
             <p className="text-xs text-gray-500">+12% from last month</p>
           </CardContent>
         </Card>
@@ -34,10 +34,10 @@ const AdminDashboard = () => {
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">Audit Events</CardTitle>
-            <Shield className="h-4 w-4 text-purple-500" />
+            <Shield className="h-4 w-4 text-orange-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">45.2k</div>
+            <div className="text-2xl font-bold text-gradient">45.2k</div>
             <p className="text-xs text-gray-500">Last 30 days</p>
           </CardContent>
         </Card>
@@ -48,7 +48,7 @@ const AdminDashboard = () => {
             <Activity className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">99.9%</div>
+            <div className="text-2xl font-bold text-gradient">99.9%</div>
             <p className="text-xs text-gray-500">Uptime</p>
           </CardContent>
         </Card>
@@ -59,7 +59,7 @@ const AdminDashboard = () => {
             <Database className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">2.1 GB</div>
+            <div className="text-2xl font-bold text-gradient">2.1 GB</div>
             <p className="text-xs text-gray-500">Storage used</p>
           </CardContent>
         </Card>
@@ -67,7 +67,7 @@ const AdminDashboard = () => {
 
       <Card className="bg-gray-900 border-gray-800">
         <CardHeader>
-          <CardTitle className="text-white">Activity Overview</CardTitle>
+          <CardTitle className="text-gradient">Activity Overview</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] w-full">
@@ -80,8 +80,8 @@ const AdminDashboard = () => {
                   contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
                   itemStyle={{ color: '#fff' }}
                 />
-                <Bar dataKey="users" fill="#3B82F6" name="New Users" />
-                <Bar dataKey="actions" fill="#8B5CF6" name="Actions" />
+                <Bar dataKey="users" fill="#F59E0B" name="New Users" />
+                <Bar dataKey="actions" fill="#84CC16" name="Actions" />
               </BarChart>
             </ResponsiveContainer>
           </div>

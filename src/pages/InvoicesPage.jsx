@@ -91,14 +91,14 @@ const InvoicesPage = () => {
           >
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-yellow-400 via-green-400 to-purple-400 bg-clip-text text-transparent mb-2">
+                <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">
                   {t('invoices.title')}
                 </h1>
                 <p className="text-gray-400 text-sm md:text-base">Create and manage professional invoices</p>
               </div>
               <Button
                 onClick={() => setShowGenerator(!showGenerator)}
-                className="w-full md:w-auto bg-gradient-to-r from-yellow-500 via-green-500 to-purple-600 hover:from-yellow-600 hover:via-green-600 hover:to-purple-700"
+                className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 {showGenerator ? 'View Invoices' : t('invoices.generateInvoice')}
@@ -126,7 +126,7 @@ const InvoicesPage = () => {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gradient-to-r from-yellow-600/20 via-green-600/20 to-purple-600/20">
+                    <thead className="bg-gray-800/50">
                       <tr>
                         <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                           {t('invoices.invoiceNumber')}
@@ -153,7 +153,7 @@ const InvoicesPage = () => {
                         const client = clients.find(c => c.id === invoice.clientId);
                         return (
                           <tr key={invoice.id} className="hover:bg-gray-700/50 transition-colors">
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
                               {invoice.invoiceNumber}
                             </td>
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
@@ -214,7 +214,7 @@ const InvoicesPage = () => {
       <Dialog open={!!viewingInvoice} onOpenChange={() => setViewingInvoice(null)}>
         <DialogContent className="w-full sm:max-w-[95%] md:max-w-4xl bg-gray-800 border-gray-700 text-white p-4 md:p-6 overflow-y-auto max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="text-xl md:text-2xl font-bold bg-gradient-to-r from-yellow-400 via-green-400 to-purple-400 bg-clip-text text-transparent">
+            <DialogTitle className="text-xl md:text-2xl font-bold text-gradient">
               {t('invoices.invoiceDetails')}
             </DialogTitle>
           </DialogHeader>

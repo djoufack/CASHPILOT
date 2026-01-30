@@ -42,7 +42,7 @@ const NotificationSettings = () => {
          <Card className="bg-gray-900 border-gray-800 text-white">
             <CardHeader>
                <div className="flex items-center gap-2">
-                  <Mail className="text-blue-400" />
+                  <Mail className="text-orange-400" />
                   <CardTitle>Email Notifications</CardTitle>
                </div>
                <CardDescription className="text-gray-400">Choose what you receive via email.</CardDescription>
@@ -61,7 +61,7 @@ const NotificationSettings = () => {
                         id={item.id} 
                         checked={localPrefs.email?.[item.id]} 
                         onCheckedChange={() => handleToggle('email', item.id)}
-                        className="data-[state=checked]:bg-blue-600"
+                        className="data-[state=checked]:bg-orange-500"
                      />
                   </div>
                ))}
@@ -116,15 +116,15 @@ const NotificationSettings = () => {
          <CardContent>
             <RadioGroup value={localPrefs.frequency} onValueChange={handleFrequencyChange} className="space-y-3">
                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="immediate" id="r1" className="border-gray-500 text-blue-500" />
+                  <RadioGroupItem value="immediate" id="r1" className="border-gray-500 text-orange-500" />
                   <Label htmlFor="r1">Immediate (As they happen)</Label>
                </div>
                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="daily" id="r2" className="border-gray-500 text-blue-500" />
+                  <RadioGroupItem value="daily" id="r2" className="border-gray-500 text-orange-500" />
                   <Label htmlFor="r2">Daily Digest (Once a day)</Label>
                </div>
                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="weekly" id="r3" className="border-gray-500 text-blue-500" />
+                  <RadioGroupItem value="weekly" id="r3" className="border-gray-500 text-orange-500" />
                   <Label htmlFor="r3">Weekly Summary (Every Monday)</Label>
                </div>
             </RadioGroup>
@@ -133,7 +133,7 @@ const NotificationSettings = () => {
 
       <div className="flex justify-end gap-4 pt-4">
          <Button variant="outline" onClick={resetToDefault} className="border-gray-700 text-gray-300">Reset to Default</Button>
-         <Button onClick={saveChanges} disabled={loading} className="bg-blue-600 hover:bg-blue-700 min-w-[120px]">
+         <Button onClick={saveChanges} disabled={loading} className="bg-orange-500 hover:bg-orange-600 min-w-[120px]">
             {loading ? 'Saving...' : 'Save Changes'}
          </Button>
       </div>

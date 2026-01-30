@@ -25,7 +25,7 @@ const SupplierReports = () => {
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+           <h1 className="text-2xl sm:text-3xl font-bold text-gradient">
              Supplier Reports
            </h1>
            <p className="text-gray-400 mt-2 text-sm">Analyze spending, performance, and trends.</p>
@@ -42,7 +42,7 @@ const SupplierReports = () => {
                <DollarSign className="w-4 h-4 text-green-500" />
             </CardHeader>
             <CardContent>
-               <div className="text-2xl font-bold text-white">{formatCurrency(reportData.totalSpent || 0)}</div>
+               <div className="text-2xl font-bold text-gradient">{formatCurrency(reportData.totalSpent || 0)}</div>
             </CardContent>
          </Card>
          <Card className="bg-gray-900 border-gray-800">
@@ -51,7 +51,7 @@ const SupplierReports = () => {
                <Package className="w-4 h-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-               <div className="text-2xl font-bold text-white">{reportData.ordersCount || 0}</div>
+               <div className="text-2xl font-bold text-gradient">{reportData.ordersCount || 0}</div>
             </CardContent>
          </Card>
          <Card className="bg-gray-900 border-gray-800">
@@ -60,7 +60,7 @@ const SupplierReports = () => {
                <Truck className="w-4 h-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
-               <div className="text-2xl font-bold text-white">92%</div>
+               <div className="text-2xl font-bold text-gradient">92%</div>
             </CardContent>
          </Card>
       </div>

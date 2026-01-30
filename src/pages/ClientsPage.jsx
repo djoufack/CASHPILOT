@@ -21,7 +21,7 @@ const ClientsPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-yellow-400 via-green-400 to-purple-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">
               {t('clients.title')}
             </h1>
             <p className="text-gray-400 text-sm md:text-base">Manage your client relationships and contacts</p>

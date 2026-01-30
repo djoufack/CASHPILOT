@@ -142,7 +142,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
   return (
     <div className="space-y-6">
       <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
-        <h3 className="text-lg md:text-xl font-bold bg-gradient-to-r from-yellow-400 via-green-400 to-purple-400 bg-clip-text text-transparent">
+        <h3 className="text-lg md:text-xl font-bold text-gradient">
           Step 1: {t('invoices.selectClient')}
         </h3>
         <Select value={selectedClientId} onValueChange={setSelectedClientId}>
@@ -162,7 +162,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
       {selectedClientId && (
         <>
           <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
-            <h3 className="text-lg md:text-xl font-bold bg-gradient-to-r from-yellow-400 via-green-400 to-purple-400 bg-clip-text text-transparent">
+            <h3 className="text-lg md:text-xl font-bold text-gradient">
               Step 2: {t('invoices.selectDateRange')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -189,7 +189,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
 
           {filteredTimesheets.length > 0 && (
             <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
-              <h3 className="text-lg md:text-xl font-bold bg-gradient-to-r from-yellow-400 via-green-400 to-purple-400 bg-clip-text text-transparent">
+              <h3 className="text-lg md:text-xl font-bold text-gradient">
                 Step 3: {t('invoices.selectTimesheets')}
               </h3>
               <div className="space-y-2">
@@ -213,7 +213,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
 
           <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <h3 className="text-lg md:text-xl font-bold bg-gradient-to-r from-yellow-400 via-green-400 to-purple-400 bg-clip-text text-transparent">
+              <h3 className="text-lg md:text-xl font-bold text-gradient">
                 Step 4: Manual Items
               </h3>
               <Button
@@ -283,7 +283,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
           </div>
 
           <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
-            <h3 className="text-lg md:text-xl font-bold bg-gradient-to-r from-yellow-400 via-green-400 to-purple-400 bg-clip-text text-transparent">
+            <h3 className="text-lg md:text-xl font-bold text-gradient">
               Invoice Details
             </h3>
 
@@ -333,21 +333,21 @@ const InvoiceGenerator = ({ onSuccess }) => {
             <div className="border-t border-gray-700 pt-4 space-y-2">
               <div className="flex justify-between text-base md:text-lg">
                 <span className="text-gray-300">{t('invoices.totalHT')}:</span>
-                <span className="text-white font-semibold">
+                <span className="text-gradient font-semibold">
                   {formatCurrency(totals.subtotal, selectedClient?.preferredCurrency)}
                 </span>
               </div>
               <div className="flex justify-between text-base md:text-lg">
                 <span className="text-gray-300">{t('invoices.taxAmount')} ({taxRate}%):</span>
-                <span className="text-white">
+                <span className="text-gradient">
                   {formatCurrency(totals.taxAmount, selectedClient?.preferredCurrency)}
                 </span>
               </div>
               <div className="flex justify-between text-lg md:text-xl font-bold border-t border-gray-700 pt-2">
-                <span className="bg-gradient-to-r from-yellow-400 via-green-400 to-purple-400 bg-clip-text text-transparent">
+                <span className="text-gradient">
                   {t('invoices.totalTTC')}:
                 </span>
-                <span className="text-white">
+                <span className="text-gradient">
                   {formatCurrency(totals.total, selectedClient?.preferredCurrency)}
                 </span>
               </div>
@@ -357,7 +357,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
               <Button
                 onClick={handleGenerateInvoice}
                 disabled={allItems.length === 0}
-                className="w-full bg-gradient-to-r from-yellow-500 via-green-500 to-purple-600 hover:from-yellow-600 hover:via-green-600 hover:to-purple-700 text-white shadow-lg"
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white shadow-lg"
               >
                 {t('invoices.generateInvoice')}
               </Button>

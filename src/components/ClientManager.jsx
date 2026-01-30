@@ -130,7 +130,7 @@ const ClientManager = () => {
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full md:w-auto">
           <Button
             onClick={() => handleOpenDialog()}
-            className="w-full md:w-auto bg-gradient-to-r from-yellow-500 via-green-500 to-purple-600 hover:from-yellow-600 hover:via-green-600 hover:to-purple-700 text-white shadow-lg"
+            className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white shadow-lg"
           >
             <Plus className="w-4 h-4 mr-2" />
             {t('clients.addClient')}
@@ -146,7 +146,7 @@ const ClientManager = () => {
         <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-yellow-600/20 via-green-600/20 to-purple-600/20">
+              <thead className="bg-gray-800/50">
                 <tr>
                   <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     {t('clients.companyName')}
@@ -174,7 +174,7 @@ const ClientManager = () => {
                     className="hover:bg-gray-700/50 transition-colors cursor-pointer"
                     onClick={() => handleOpenDialog(client)}
                   >
-                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
                       {client.companyName}
                       {/* Mobile Only Details */}
                       <div className="md:hidden text-xs text-gray-400 mt-1">
@@ -196,7 +196,7 @@ const ClientManager = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleOpenDialog(client)}
-                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
+                          className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -221,7 +221,7 @@ const ClientManager = () => {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="w-full sm:max-w-[90%] md:max-w-lg bg-gray-800 border-gray-700 text-white p-4 md:p-6 overflow-y-auto max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-yellow-400 via-green-400 to-purple-400 bg-clip-text text-transparent">
+            <DialogTitle className="text-xl font-bold text-gradient">
               {editingClient ? t('clients.editClient') : t('clients.addClient')}
             </DialogTitle>
           </DialogHeader>
@@ -303,7 +303,7 @@ const ClientManager = () => {
               </Button>
               <Button
                 type="submit"
-                className="bg-gradient-to-r from-yellow-500 via-green-500 to-purple-600 hover:from-yellow-600 hover:via-green-600 hover:to-purple-700 w-full sm:w-auto"
+                className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto"
               >
                 {t('buttons.save')}
               </Button>

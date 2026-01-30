@@ -73,13 +73,13 @@ const ProjectDetail = () => {
                 <motion.h1 
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-3xl md:text-4xl font-bold text-white mb-2"
+                  className="text-3xl md:text-4xl font-bold text-gradient mb-2"
                 >
                   {project.name}
                 </motion.h1>
                 <div className="flex flex-wrap gap-4 text-gray-400 text-sm">
-                  <span className="flex items-center"><Briefcase className="w-4 h-4 mr-1 text-blue-400" /> {project.client?.company_name}</span>
-                  <span className="flex items-center"><CalendarIcon className="w-4 h-4 mr-1 text-green-400" /> Created {format(parseISO(project.created_at), 'MMM d, yyyy')}</span>
+                  <span className="flex items-center"><Briefcase className="w-4 h-4 mr-1 text-orange-400" /> {project.client?.company_name}</span>
+                  <span className="flex items-center"><CalendarIcon className="w-4 h-4 mr-1 text-orange-400" /> Created {format(parseISO(project.created_at), 'MMM d, yyyy')}</span>
                   
                   {/* Status Badge */}
                   <span className={`px-3 py-0.5 rounded-full text-xs font-medium capitalize border ${
@@ -97,11 +97,11 @@ const ProjectDetail = () => {
               <div className="bg-gray-900 p-4 rounded-lg border border-gray-800 flex flex-wrap gap-6 text-sm w-full lg:w-auto">
                 <div>
                    <p className="text-gray-500 mb-1">Budget</p>
-                   <p className="text-white font-mono flex items-center gap-1"><Clock className="w-3 h-3" /> {project.budget_hours || 0}h</p>
+                   <p className="text-gradient font-mono flex items-center gap-1"><Clock className="w-3 h-3" /> {project.budget_hours || 0}h</p>
                 </div>
                 <div>
                    <p className="text-gray-500 mb-1">Progress</p>
-                   <p className="text-white font-mono flex items-center gap-1"><PieChart className="w-3 h-3" /> {stats.progress}%</p>
+                   <p className="text-gradient font-mono flex items-center gap-1"><PieChart className="w-3 h-3" /> {stats.progress}%</p>
                 </div>
               </div>
             </div>
@@ -111,11 +111,11 @@ const ProjectDetail = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <div className="overflow-x-auto pb-2">
               <TabsList className="bg-gray-900 border border-gray-800 p-1 min-w-[500px] md:min-w-0 md:w-full justify-start md:justify-start">
-                <TabsTrigger value="list" className="data-[state=active]:bg-gray-800 text-gray-400 data-[state=active]:text-white flex-1"><LayoutList className="w-4 h-4 mr-2" /> List</TabsTrigger>
-                <TabsTrigger value="kanban" className="data-[state=active]:bg-gray-800 text-gray-400 data-[state=active]:text-white flex-1"><Kanban className="w-4 h-4 mr-2" /> Kanban</TabsTrigger>
-                <TabsTrigger value="calendar" className="data-[state=active]:bg-gray-800 text-gray-400 data-[state=active]:text-white flex-1"><CalendarDays className="w-4 h-4 mr-2" /> Calendar</TabsTrigger>
-                <TabsTrigger value="agenda" className="data-[state=active]:bg-gray-800 text-gray-400 data-[state=active]:text-white flex-1"><List className="w-4 h-4 mr-2" /> Agenda</TabsTrigger>
-                <TabsTrigger value="stats" className="data-[state=active]:bg-gray-800 text-gray-400 data-[state=active]:text-white flex-1"><PieChart className="w-4 h-4 mr-2" /> Stats</TabsTrigger>
+                <TabsTrigger value="list" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><LayoutList className="w-4 h-4 mr-2" /> List</TabsTrigger>
+                <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><Kanban className="w-4 h-4 mr-2" /> Kanban</TabsTrigger>
+                <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><CalendarDays className="w-4 h-4 mr-2" /> Calendar</TabsTrigger>
+                <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><List className="w-4 h-4 mr-2" /> Agenda</TabsTrigger>
+                <TabsTrigger value="stats" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><PieChart className="w-4 h-4 mr-2" /> Stats</TabsTrigger>
               </TabsList>
             </div>
 
@@ -125,8 +125,8 @@ const ProjectDetail = () => {
 
             <TabsContent value="kanban" className="focus:outline-none overflow-x-auto">
               <div className="flex justify-between items-center mb-4">
-                 <h2 className="text-xl font-bold text-white">Board</h2>
-                 <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-blue-600 hover:bg-blue-700">Add Task</Button>
+                 <h2 className="text-xl font-bold text-gradient">Board</h2>
+                 <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-orange-500 hover:bg-orange-600">Add Task</Button>
               </div>
               <KanbanBoard 
                 tasks={tasks} 
@@ -138,8 +138,8 @@ const ProjectDetail = () => {
 
             <TabsContent value="calendar" className="focus:outline-none overflow-x-auto">
                <div className="flex justify-between items-center mb-4">
-                 <h2 className="text-xl font-bold text-white">Calendar</h2>
-                 <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-blue-600 hover:bg-blue-700">Add Task</Button>
+                 <h2 className="text-xl font-bold text-gradient">Calendar</h2>
+                 <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-orange-500 hover:bg-orange-600">Add Task</Button>
               </div>
               <div className="min-w-[700px]">
                 <CalendarView tasks={tasks} onEdit={handleEdit} />
@@ -148,8 +148,8 @@ const ProjectDetail = () => {
 
             <TabsContent value="agenda" className="focus:outline-none">
               <div className="flex justify-between items-center mb-4">
-                 <h2 className="text-xl font-bold text-white">Agenda</h2>
-                 <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-blue-600 hover:bg-blue-700">Add Task</Button>
+                 <h2 className="text-xl font-bold text-gradient">Agenda</h2>
+                 <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-orange-500 hover:bg-orange-600">Add Task</Button>
               </div>
               <AgendaView tasks={tasks} onEdit={handleEdit} onDelete={deleteTask} />
             </TabsContent>

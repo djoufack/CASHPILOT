@@ -20,7 +20,7 @@ const NotificationCenter = () => {
   return (
     <div className="p-8 min-h-screen bg-gray-950 text-white max-w-4xl mx-auto space-y-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Notification Center</h1>
+        <h1 className="text-3xl font-bold text-gradient">Notification Center</h1>
         <div className="flex gap-2">
             <Button variant="outline" size="sm" className="border-gray-700 text-gray-300">
                 Mark all read
@@ -40,7 +40,7 @@ const NotificationCenter = () => {
                       </div>
                       <div className="flex-1">
                           <div className="flex justify-between items-start">
-                              <h3 className={`font-semibold ${!notification.is_read ? 'text-white' : 'text-gray-400'}`}>
+                              <h3 className={`font-semibold ${!notification.is_read ? 'text-gradient' : 'text-gray-400'}`}>
                                   {notification.title}
                               </h3>
                               <span className="text-xs text-gray-500">
