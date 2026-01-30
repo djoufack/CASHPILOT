@@ -13,7 +13,8 @@ import {
   Shield,
   Home, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Archive, BarChart3, Calculator, PieChart, Settings,
-  Map, QrCode, FileBarChart, Database, Bell, Menu
+  Map, QrCode, FileBarChart, Database, Bell, Menu,
+  Receipt, Building2, User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     { path: '/timesheets', label: t('common.timesheets'), icon: Clock },
     { path: '/invoices', label: t('common.invoices'), icon: FileText },
     { path: '/quotes', label: t('common.quotes'), icon: FileSignature },
+    { path: '/expenses', label: 'Dépenses', icon: Receipt },
     { type: 'separator', label: t('suppliers.title') },
     { path: '/suppliers', label: t('common.suppliers'), icon: Truck },
     { path: '/suppliers/stock', label: t('suppliers.stock'), icon: Archive },
