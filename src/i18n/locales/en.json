@@ -1,0 +1,49 @@
+
+{
+  "common": {
+    "dashboard": "Dashboard",
+    "clients": "Clients",
+    "projects": "Projects",
+    "timesheets": "Timesheets",
+    "invoices": "Invoices",
+    "quotes": "Quotes",
+    "suppliers": "Suppliers",
+    "accounting": "Accounting",
+    "settings": "Settings",
+    "admin": "Admin",
+    "logout": "Logout",
+    "profile": "Profile",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "actions": "Actions",
+    "status": "Status",
+    "search": "Search..."
+  },
+  "admin": {
+    "users": "User Management",
+    "roles": "Roles & Permissions",
+    "audit": "Audit Trail",
+    "totalUsers": "Total Users",
+    "activeUsers": "Active Users",
+    "systemHealth": "System Health",
+    "addUser": "Add User",
+    "role": "Role",
+    "permissions": "Permissions",
+    "grant": "Grant",
+    "revoke": "Revoke"
+  },
+  "suppliers": {
+    "title": "Supplier Management",
+    "newSupplier": "New Supplier",
+    "stock": "Stock",
+    "reports": "Reports"
+  },
+  "errors": {
+    "unauthorized": "You do not have permission to access this resource.",
+    "notFound": "Resource not found.",
+    "general": "Something went wrong."
+  }
+}
