@@ -1,5 +1,8 @@
-
 {
+  "app": {
+    "name": "CashPilot",
+    "tagline": "Financial Management Platform"
+  },
   "common": {
     "dashboard": "Dashboard",
     "clients": "Clients",
@@ -20,7 +23,115 @@
     "create": "Create",
     "actions": "Actions",
     "status": "Status",
-    "search": "Search..."
+    "search": "Search...",
+    "success": "Success",
+    "error": "Error"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "clients": "Clients",
+    "timesheets": "Timesheets",
+    "invoices": "Invoices",
+    "quotes": "Quotes",
+    "analytics": "Analytics"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "quickActions": "Quick Actions",
+    "newTimesheet": "New Timesheet",
+    "newInvoice": "New Invoice",
+    "newClient": "New Client"
+  },
+  "clients": {
+    "title": "Client Management",
+    "search": "Search clients...",
+    "addClient": "Add Client",
+    "noClients": "No clients found",
+    "companyName": "Company Name",
+    "contactName": "Contact Name",
+    "email": "Email",
+    "preferredCurrency": "Preferred Currency",
+    "actions": "Actions",
+    "editClient": "Edit Client",
+    "address": "Address",
+    "vatNumber": "VAT Number",
+    "deleteClient": "Delete Client",
+    "confirmDelete": "Confirm Deletion",
+    "deleteWarning": "Are you sure you want to delete this client? This action cannot be undone."
+  },
+  "invoices": {
+    "title": "Invoices",
+    "exportPDF": "Export PDF",
+    "invoiceNumber": "Invoice Number",
+    "clientInfo": "Client Information",
+    "issueDate": "Issue Date",
+    "dueDate": "Due Date",
+    "description": "Description",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price",
+    "amount": "Amount",
+    "totalHT": "Total (excl. VAT)",
+    "taxAmount": "VAT Amount",
+    "totalTTC": "Total (incl. VAT)",
+    "selectClient": "Select a client",
+    "selectDateRange": "Select date range",
+    "fromDate": "From",
+    "toDate": "To",
+    "selectTimesheets": "Select timesheets",
+    "addManualLine": "Add manual line",
+    "taxRate": "Tax Rate",
+    "generateInvoice": "Generate Invoice",
+    "noInvoices": "No invoices found",
+    "total": "Total",
+    "status": "Status",
+    "invoiceDetails": "Invoice Details"
+  },
+  "timesheets": {
+    "title": "Timesheets",
+    "notes": "Notes",
+    "date": "Date",
+    "client": "Client",
+    "selectClient": "Select a client",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "calculatedDuration": "Calculated Duration"
+  },
+  "buttons": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete"
+  },
+  "currency": {
+    "EUR": "Euro (EUR)",
+    "USD": "US Dollar (USD)",
+    "GBP": "British Pound (GBP)"
+  },
+  "status": {
+    "draft": "Draft",
+    "sent": "Sent",
+    "paid": "Paid",
+    "overdue": "Overdue",
+    "cancelled": "Cancelled"
+  },
+  "messages": {
+    "success": {
+      "pdfExported": "PDF exported successfully",
+      "clientAdded": "Client added successfully",
+      "clientUpdated": "Client updated successfully",
+      "clientDeleted": "Client deleted successfully",
+      "invoiceGenerated": "Invoice generated successfully",
+      "invoiceUpdated": "Invoice updated successfully",
+      "invoiceDeleted": "Invoice deleted successfully",
+      "timesheetAdded": "Timesheet added successfully",
+      "timesheetUpdated": "Timesheet updated successfully",
+      "timesheetDeleted": "Timesheet deleted successfully"
+    },
+    "error": {
+      "pdfExportFailed": "PDF export failed"
+    }
+  },
+  "validation": {
+    "invalidEmail": "Invalid email address"
   },
   "admin": {
     "users": "User Management",

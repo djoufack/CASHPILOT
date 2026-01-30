@@ -1,5 +1,8 @@
-
 {
+  "app": {
+    "name": "CashPilot",
+    "tagline": "Plateforme de Gestion Financière"
+  },
   "common": {
     "dashboard": "Tableau de bord",
     "clients": "Clients",
@@ -20,7 +23,115 @@
     "create": "Créer",
     "actions": "Actions",
     "status": "Statut",
-    "search": "Rechercher..."
+    "search": "Rechercher...",
+    "success": "Succès",
+    "error": "Erreur"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "clients": "Clients",
+    "timesheets": "Feuilles de temps",
+    "invoices": "Factures",
+    "quotes": "Devis",
+    "analytics": "Analytique"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "quickActions": "Actions rapides",
+    "newTimesheet": "Nouvelle feuille de temps",
+    "newInvoice": "Nouvelle facture",
+    "newClient": "Nouveau client"
+  },
+  "clients": {
+    "title": "Gestion des clients",
+    "search": "Rechercher des clients...",
+    "addClient": "Ajouter un client",
+    "noClients": "Aucun client trouvé",
+    "companyName": "Nom de l'entreprise",
+    "contactName": "Nom du contact",
+    "email": "E-mail",
+    "preferredCurrency": "Devise préférée",
+    "actions": "Actions",
+    "editClient": "Modifier le client",
+    "address": "Adresse",
+    "vatNumber": "Numéro de TVA",
+    "deleteClient": "Supprimer le client",
+    "confirmDelete": "Confirmer la suppression",
+    "deleteWarning": "Êtes-vous sûr de vouloir supprimer ce client ? Cette action est irréversible."
+  },
+  "invoices": {
+    "title": "Factures",
+    "exportPDF": "Exporter en PDF",
+    "invoiceNumber": "Numéro de facture",
+    "clientInfo": "Informations client",
+    "issueDate": "Date d'émission",
+    "dueDate": "Date d'échéance",
+    "description": "Description",
+    "quantity": "Quantité",
+    "unitPrice": "Prix unitaire",
+    "amount": "Montant",
+    "totalHT": "Total HT",
+    "taxAmount": "Montant TVA",
+    "totalTTC": "Total TTC",
+    "selectClient": "Sélectionner un client",
+    "selectDateRange": "Sélectionner une période",
+    "fromDate": "Du",
+    "toDate": "Au",
+    "selectTimesheets": "Sélectionner les feuilles de temps",
+    "addManualLine": "Ajouter une ligne manuelle",
+    "taxRate": "Taux de TVA",
+    "generateInvoice": "Générer la facture",
+    "noInvoices": "Aucune facture trouvée",
+    "total": "Total",
+    "status": "Statut",
+    "invoiceDetails": "Détails de la facture"
+  },
+  "timesheets": {
+    "title": "Feuilles de temps",
+    "notes": "Notes",
+    "date": "Date",
+    "client": "Client",
+    "selectClient": "Sélectionner un client",
+    "startTime": "Heure de début",
+    "endTime": "Heure de fin",
+    "calculatedDuration": "Durée calculée"
+  },
+  "buttons": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer"
+  },
+  "currency": {
+    "EUR": "Euro (EUR)",
+    "USD": "Dollar US (USD)",
+    "GBP": "Livre Sterling (GBP)"
+  },
+  "status": {
+    "draft": "Brouillon",
+    "sent": "Envoyée",
+    "paid": "Payée",
+    "overdue": "En retard",
+    "cancelled": "Annulée"
+  },
+  "messages": {
+    "success": {
+      "pdfExported": "PDF exporté avec succès",
+      "clientAdded": "Client ajouté avec succès",
+      "clientUpdated": "Client mis à jour avec succès",
+      "clientDeleted": "Client supprimé avec succès",
+      "invoiceGenerated": "Facture générée avec succès",
+      "invoiceUpdated": "Facture mise à jour avec succès",
+      "invoiceDeleted": "Facture supprimée avec succès",
+      "timesheetAdded": "Feuille de temps ajoutée avec succès",
+      "timesheetUpdated": "Feuille de temps mise à jour avec succès",
+      "timesheetDeleted": "Feuille de temps supprimée avec succès"
+    },
+    "error": {
+      "pdfExportFailed": "Échec de l'export PDF"
+    }
+  },
+  "validation": {
+    "invalidEmail": "Adresse e-mail invalide"
   },
   "admin": {
     "users": "Gestion des utilisateurs",
