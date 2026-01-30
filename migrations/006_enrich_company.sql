@@ -66,11 +66,9 @@ BEGIN
     END IF;
 END $$;
 
--- Fix: If the column company_type exists but has no CHECK constraint or has a wrong one,
--- drop and re-add the constraint to ensure it accepts 'freelance' and 'company'
+-- Step 1: Drop the existing CHECK constraint
 DO $$
 BEGIN
-    -- Drop existing check constraint if it exists
     IF EXISTS (
         SELECT 1 FROM information_schema.table_constraints
         WHERE constraint_name = 'company_company_type_check'
@@ -78,11 +76,12 @@ BEGIN
     ) THEN
         ALTER TABLE public.company DROP CONSTRAINT company_company_type_check;
     END IF;
-
-    -- Re-add with correct values
-    ALTER TABLE public.company ADD CONSTRAINT company_company_type_check
-        CHECK (company_type IN ('freelance', 'company', ''));
 END $$;
 
--- Set default value for any NULL company_type rows
-UPDATE public.company SET company_type = 'freelance' WHERE company_type IS NULL OR company_type = '';
+-- Step 2: Clean up data FIRST (before re-adding constraint)
+UPDATE public.company SET company_type = 'freelance'
+WHERE company_type IS NULL OR company_type NOT IN ('freelance', 'company');
+
+-- Step 3: Re-add the CHECK constraint (now all data is clean)
+ALTER TABLE public.company ADD CONSTRAINT company_company_type_check
+    CHECK (company_type IN ('freelance', 'company'));
