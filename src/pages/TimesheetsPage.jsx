@@ -76,21 +76,21 @@ const TimesheetsPage = () => {
         <div className="container mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-yellow-400 via-green-400 to-purple-400 bg-clip-text text-transparent">
+                  <h1 className="text-3xl md:text-4xl font-bold text-white">
                       {t('timesheets.title')}
                   </h1>
-                  <p className="text-gray-400 mt-2 text-sm md:text-base">Manage your time entries and track billable hours</p>
+                  <p className="text-gray-500 mt-1 text-sm">Manage your time entries and track billable hours</p>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                   <Tabs value={view} onValueChange={setView} className="bg-gray-900 rounded-lg p-1 border border-gray-800 w-full sm:w-auto">
                     <TabsList className="bg-transparent border-0 w-full justify-between sm:justify-start">
                       {/* Hide Calendar view trigger on extremely small screens if unusable, but we'll leave it responsive */}
-                      <TabsTrigger value="calendar" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white text-gray-400 flex-1 sm:flex-none">
+                      <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none">
                         <CalendarIcon className="w-4 h-4 mr-2" />
                         <span className="hidden sm:inline">Calendar</span>
                       </TabsTrigger>
-                      <TabsTrigger value="list" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white text-gray-400 flex-1 sm:flex-none">
+                      <TabsTrigger value="list" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none">
                         <ListFilter className="w-4 h-4 mr-2" />
                         <span className="hidden sm:inline">List View</span>
                         <span className="sm:hidden">List</span>
@@ -98,9 +98,9 @@ const TimesheetsPage = () => {
                     </TabsList>
                   </Tabs>
 
-                  <Button 
+                  <Button
                     onClick={() => { setSelectedDate(null); setIsAddModalOpen(true); }}
-                    className="bg-gradient-to-r from-yellow-500 to-green-500 hover:from-yellow-600 hover:to-green-600 text-black font-semibold w-full sm:w-auto"
+                    className="bg-orange-500 hover:bg-orange-600 text-white font-semibold w-full sm:w-auto"
                   >
                       <Plus className="mr-2 h-4 w-4" /> New Entry
                   </Button>
@@ -127,24 +127,33 @@ const TimesheetsPage = () => {
               {view === 'calendar' ? (
                 <div className="bg-gray-900 p-2 md:p-6 rounded-xl border border-gray-800 shadow-xl h-[500px] md:h-[700px] calendar-dark-theme overflow-x-auto">
                   <style>{`
-                    .calendar-dark-theme .rbc-off-range-bg { background-color: #111827; }
-                    .calendar-dark-theme .rbc-calendar { color: #9ca3af; min-width: 600px; } /* Force width for scroll on mobile */
-                    .calendar-dark-theme .rbc-today { background-color: rgba(59, 130, 246, 0.1); }
-                    .calendar-dark-theme .rbc-event { background-color: #3b82f6; border-color: #2563eb; }
-                    .calendar-dark-theme .rbc-header { border-bottom: 1px solid #374151; padding: 10px; font-weight: 600; color: #e5e7eb; }
-                    .calendar-dark-theme .rbc-month-view, .calendar-dark-theme .rbc-time-view, .calendar-dark-theme .rbc-agenda-view { border: 1px solid #374151; }
-                    .calendar-dark-theme .rbc-day-bg + .rbc-day-bg { border-left: 1px solid #374151; }
-                    .calendar-dark-theme .rbc-month-row + .rbc-month-row { border-top: 1px solid #374151; }
-                    .calendar-dark-theme .rbc-day-slot .rbc-time-slot { border-top: 1px solid #374151; }
-                    .calendar-dark-theme .rbc-time-header-content { border-left: 1px solid #374151; }
-                    .calendar-dark-theme .rbc-timeslot-group { border-bottom: 1px solid #374151; }
-                    .calendar-dark-theme .rbc-time-content { border-top: 2px solid #374151; }
-                    .calendar-dark-theme .rbc-time-gutter .rbc-timeslot-group { border-bottom: 1px solid #374151; }
-                    .calendar-dark-theme .rbc-day-slot .rbc-events-container { margin-right: 0; }
-                    .calendar-dark-theme .rbc-day-slot .rbc-event { border: 1px solid #2563eb; background-color: rgba(37, 99, 235, 0.2); color: #fff; }
-                    .calendar-dark-theme .rbc-event-label { display: none; }
-                    .calendar-dark-theme .rbc-time-view .rbc-header { border-bottom: 1px solid #374151; }
+                    .calendar-dark-theme .rbc-off-range-bg { background-color: #0a0a0f; }
+                    .calendar-dark-theme .rbc-calendar { color: #9ca3af; min-width: 600px; }
+                    .calendar-dark-theme .rbc-today { background-color: rgba(245, 158, 11, 0.15); }
+                    .calendar-dark-theme .rbc-event { background-color: #F59E0B; border-color: #D97706; color: #000; font-weight: 500; }
+                    .calendar-dark-theme .rbc-header { border-bottom: 1px solid #1f2937; padding: 10px; font-weight: 600; color: #e5e7eb; background: #111827; }
+                    .calendar-dark-theme .rbc-month-view, .calendar-dark-theme .rbc-time-view, .calendar-dark-theme .rbc-agenda-view { border: 1px solid #1f2937; border-radius: 8px; overflow: hidden; }
+                    .calendar-dark-theme .rbc-day-bg + .rbc-day-bg { border-left: 1px solid #1f2937; }
+                    .calendar-dark-theme .rbc-month-row + .rbc-month-row { border-top: 1px solid #1f2937; }
                     .calendar-dark-theme .rbc-day-slot .rbc-time-slot { border-top: 1px solid #1f2937; }
+                    .calendar-dark-theme .rbc-time-header-content { border-left: 1px solid #1f2937; }
+                    .calendar-dark-theme .rbc-timeslot-group { border-bottom: 1px solid #1f2937; }
+                    .calendar-dark-theme .rbc-time-content { border-top: 2px solid #1f2937; }
+                    .calendar-dark-theme .rbc-time-gutter .rbc-timeslot-group { border-bottom: 1px solid #1f2937; }
+                    .calendar-dark-theme .rbc-day-slot .rbc-events-container { margin-right: 0; }
+                    .calendar-dark-theme .rbc-day-slot .rbc-event { border: 1px solid #D97706; background-color: rgba(245, 158, 11, 0.2); color: #fff; }
+                    .calendar-dark-theme .rbc-event-label { display: none; }
+                    .calendar-dark-theme .rbc-time-view .rbc-header { border-bottom: 1px solid #1f2937; }
+                    .calendar-dark-theme .rbc-day-slot .rbc-time-slot { border-top: 1px solid #111827; }
+                    .calendar-dark-theme .rbc-toolbar { margin-bottom: 16px; }
+                    .calendar-dark-theme .rbc-toolbar button { color: #e5e7eb; border: 1px solid #374151; background: #111827; border-radius: 8px; padding: 6px 16px; font-weight: 500; transition: all 0.2s; }
+                    .calendar-dark-theme .rbc-toolbar button:hover { background: #1f2937; border-color: #F59E0B; color: #F59E0B; }
+                    .calendar-dark-theme .rbc-toolbar button.rbc-active { background: #F59E0B; border-color: #F59E0B; color: #000; font-weight: 600; }
+                    .calendar-dark-theme .rbc-toolbar .rbc-toolbar-label { color: #fff; font-weight: 700; font-size: 1.25rem; }
+                    .calendar-dark-theme .rbc-show-more { color: #F59E0B; font-weight: 500; }
+                    .calendar-dark-theme .rbc-off-range { color: #374151; }
+                    .calendar-dark-theme .rbc-date-cell { color: #9ca3af; padding: 4px 8px; }
+                    .calendar-dark-theme .rbc-date-cell.rbc-now { color: #F59E0B; font-weight: 700; }
                   `}</style>
                   <Calendar
                       localizer={localizer}
@@ -167,7 +176,7 @@ const TimesheetsPage = () => {
                     {view === 'calendar' ? 'Recent Entries' : 'All Entries'}
                   </h2>
                   {view === 'calendar' && (
-                    <Button variant="link" onClick={() => setView('list')} className="text-blue-400">
+                    <Button variant="link" onClick={() => setView('list')} className="text-orange-400">
                       View All
                     </Button>
                   )}
