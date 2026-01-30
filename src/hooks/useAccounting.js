@@ -74,9 +74,35 @@ export const useAccounting = () => {
       const { error } = await supabase.from('accounting_chart_of_accounts').delete().eq('id', id);
       if (error) throw error;
       setAccounts(prev => prev.filter(a => a.id !== id));
-      toast({ title: "Success", description: "Account deleted" });
+      toast({ title: "Succès", description: "Compte supprimé" });
     } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const bulkCreateAccounts = async (accountsArray) => {
+    if (!user || !accountsArray?.length) return { count: 0 };
+    setLoading(true);
+    try {
+      const payload = accountsArray.map(a => ({
+        ...a,
+        user_id: user.id
+      }));
+
+      const { data, error } = await supabase
+        .from('accounting_chart_of_accounts')
+        .upsert(payload, { onConflict: 'user_id,account_code', ignoreDuplicates: false })
+        .select();
+
+      if (error) throw error;
+      await fetchAccounts();
+      toast({ title: "Succès", description: `${data?.length || 0} comptes importés` });
+      return { count: data?.length || 0 };
+    } catch (err) {
+      toast({ title: "Erreur d'import", description: err.message, variant: "destructive" });
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -116,14 +142,34 @@ export const useAccounting = () => {
     }
   };
 
+  const updateMapping = async (id, updates) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('accounting_mappings')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      setMappings(prev => prev.map(m => m.id === id ? data : m));
+      toast({ title: "Succès", description: "Mapping mis à jour" });
+      return data;
+    } catch (err) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const deleteMapping = async (id) => {
     try {
       const { error } = await supabase.from('accounting_mappings').delete().eq('id', id);
       if (error) throw error;
       setMappings(prev => prev.filter(m => m.id !== id));
-      toast({ title: "Success", description: "Mapping deleted" });
+      toast({ title: "Succès", description: "Mapping supprimé" });
     } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
     }
   };
 
@@ -163,14 +209,34 @@ export const useAccounting = () => {
     }
   };
 
+  const updateTaxRate = async (id, updates) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('accounting_tax_rates')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      setTaxRates(prev => prev.map(t => t.id === id ? data : t));
+      toast({ title: "Succès", description: "Taux mis à jour" });
+      return data;
+    } catch (err) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const deleteTaxRate = async (id) => {
     try {
       const { error } = await supabase.from('accounting_tax_rates').delete().eq('id', id);
       if (error) throw error;
       setTaxRates(prev => prev.filter(t => t.id !== id));
-      toast({ title: "Success", description: "Tax Rate deleted" });
+      toast({ title: "Succès", description: "Taux supprimé" });
     } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
     }
   };
 
@@ -194,9 +260,9 @@ export const useAccounting = () => {
 
   return {
     loading,
-    accounts, fetchAccounts, createAccount, updateAccount, deleteAccount,
-    mappings, fetchMappings, createMapping, deleteMapping,
-    taxRates, fetchTaxRates, createTaxRate, deleteTaxRate,
+    accounts, fetchAccounts, createAccount, updateAccount, deleteAccount, bulkCreateAccounts,
+    mappings, fetchMappings, createMapping, updateMapping, deleteMapping,
+    taxRates, fetchTaxRates, createTaxRate, updateTaxRate, deleteTaxRate,
     entries, fetchEntries
   };
 };
