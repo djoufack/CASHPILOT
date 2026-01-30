@@ -1,5 +1,8 @@
-
 {
+  "app": {
+    "name": "CashPilot",
+    "tagline": "Financieel Beheerplatform"
+  },
   "common": {
     "dashboard": "Dashboard",
     "clients": "Klanten",
@@ -20,7 +23,115 @@
     "create": "Aanmaken",
     "actions": "Acties",
     "status": "Status",
-    "search": "Zoeken..."
+    "search": "Zoeken...",
+    "success": "Gelukt",
+    "error": "Fout"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "clients": "Klanten",
+    "timesheets": "Urenstaten",
+    "invoices": "Facturen",
+    "quotes": "Offertes",
+    "analytics": "Analyses"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "quickActions": "Snelle acties",
+    "newTimesheet": "Nieuwe urenstaat",
+    "newInvoice": "Nieuwe factuur",
+    "newClient": "Nieuwe klant"
+  },
+  "clients": {
+    "title": "Klantenbeheer",
+    "search": "Klanten zoeken...",
+    "addClient": "Klant toevoegen",
+    "noClients": "Geen klanten gevonden",
+    "companyName": "Bedrijfsnaam",
+    "contactName": "Contactpersoon",
+    "email": "E-mail",
+    "preferredCurrency": "Voorkeurvaluta",
+    "actions": "Acties",
+    "editClient": "Klant bewerken",
+    "address": "Adres",
+    "vatNumber": "BTW-nummer",
+    "deleteClient": "Klant verwijderen",
+    "confirmDelete": "Verwijdering bevestigen",
+    "deleteWarning": "Weet u zeker dat u deze klant wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt."
+  },
+  "invoices": {
+    "title": "Facturen",
+    "exportPDF": "PDF exporteren",
+    "invoiceNumber": "Factuurnummer",
+    "clientInfo": "Klantinformatie",
+    "issueDate": "Factuurdatum",
+    "dueDate": "Vervaldatum",
+    "description": "Omschrijving",
+    "quantity": "Aantal",
+    "unitPrice": "Eenheidsprijs",
+    "amount": "Bedrag",
+    "totalHT": "Totaal (excl. BTW)",
+    "taxAmount": "BTW-bedrag",
+    "totalTTC": "Totaal (incl. BTW)",
+    "selectClient": "Selecteer een klant",
+    "selectDateRange": "Selecteer datumbereik",
+    "fromDate": "Van",
+    "toDate": "Tot",
+    "selectTimesheets": "Selecteer urenstaten",
+    "addManualLine": "Handmatige regel toevoegen",
+    "taxRate": "BTW-tarief",
+    "generateInvoice": "Factuur genereren",
+    "noInvoices": "Geen facturen gevonden",
+    "total": "Totaal",
+    "status": "Status",
+    "invoiceDetails": "Factuurdetails"
+  },
+  "timesheets": {
+    "title": "Urenstaten",
+    "notes": "Notities",
+    "date": "Datum",
+    "client": "Klant",
+    "selectClient": "Selecteer een klant",
+    "startTime": "Begintijd",
+    "endTime": "Eindtijd",
+    "calculatedDuration": "Berekende duur"
+  },
+  "buttons": {
+    "cancel": "Annuleren",
+    "save": "Opslaan",
+    "delete": "Verwijderen"
+  },
+  "currency": {
+    "EUR": "Euro (EUR)",
+    "USD": "Amerikaanse Dollar (USD)",
+    "GBP": "Brits Pond (GBP)"
+  },
+  "status": {
+    "draft": "Concept",
+    "sent": "Verzonden",
+    "paid": "Betaald",
+    "overdue": "Achterstallig",
+    "cancelled": "Geannuleerd"
+  },
+  "messages": {
+    "success": {
+      "pdfExported": "PDF succesvol geëxporteerd",
+      "clientAdded": "Klant succesvol toegevoegd",
+      "clientUpdated": "Klant succesvol bijgewerkt",
+      "clientDeleted": "Klant succesvol verwijderd",
+      "invoiceGenerated": "Factuur succesvol gegenereerd",
+      "invoiceUpdated": "Factuur succesvol bijgewerkt",
+      "invoiceDeleted": "Factuur succesvol verwijderd",
+      "timesheetAdded": "Urenstaat succesvol toegevoegd",
+      "timesheetUpdated": "Urenstaat succesvol bijgewerkt",
+      "timesheetDeleted": "Urenstaat succesvol verwijderd"
+    },
+    "error": {
+      "pdfExportFailed": "PDF-export mislukt"
+    }
+  },
+  "validation": {
+    "invalidEmail": "Ongeldig e-mailadres"
   },
   "admin": {
     "users": "Gebruikersbeheer",
