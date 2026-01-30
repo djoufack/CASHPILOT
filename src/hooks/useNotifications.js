@@ -48,6 +48,26 @@ export const useNotifications = () => {
     }
   };
 
+  const markAllAsRead = async () => {
+    try {
+      const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+      if (unreadIds.length === 0) return;
+
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+
+      if (error) throw error;
+
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const deleteNotification = async (id) => {
       try {
           await supabase.from('notifications').delete().eq('id', id);
@@ -90,6 +110,7 @@ export const useNotifications = () => {
     unreadCount,
     loading,
     markAsRead,
+    markAllAsRead,
     deleteNotification,
     fetchNotifications
   };
