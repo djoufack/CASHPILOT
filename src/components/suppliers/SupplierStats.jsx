@@ -55,7 +55,7 @@ const SupplierStats = () => {
   }, []);
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
+    <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6 md:mb-8">
       <StatCard 
         title="Total Suppliers" 
         value={stats.totalSuppliers} 

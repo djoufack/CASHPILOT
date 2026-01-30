@@ -5,7 +5,7 @@ import { useSuppliers } from '@/hooks/useSuppliers';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { MapPin, Phone, Mail, Globe, ArrowLeft } from 'lucide-react';
+import { MapPin, Phone, Mail, Globe, ArrowLeft, CreditCard, FileText, Building2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SupplierServices from '@/components/suppliers/SupplierServices';
 import SupplierProducts from '@/components/suppliers/SupplierProducts';
@@ -56,29 +56,82 @@ const SupplierProfile = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="grid md:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Contact</h4>
-            <div className="text-sm">
-              <p className="font-medium text-gradient">{supplier.contact_person}</p>
-              <p className="flex items-center gap-2 text-gray-400 mt-1"><Mail className="h-3 w-3" /> {supplier.email}</p>
-              <p className="flex items-center gap-2 text-gray-400 mt-1"><Phone className="h-3 w-3" /> {supplier.phone}</p>
+        <CardContent className="space-y-6">
+          {/* Row 1: Contact, Address, Business Details */}
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                <Mail className="h-3 w-3" /> Contact
+              </h4>
+              <div className="text-sm">
+                <p className="font-medium text-gradient">{supplier.contact_person || 'N/A'}</p>
+                <p className="flex items-center gap-2 text-gray-400 mt-1"><Mail className="h-3 w-3" /> {supplier.email || 'N/A'}</p>
+                <p className="flex items-center gap-2 text-gray-400 mt-1"><Phone className="h-3 w-3" /> {supplier.phone || 'N/A'}</p>
+                {supplier.website && (
+                  <p className="flex items-center gap-2 text-gray-400 mt-1">
+                    <Globe className="h-3 w-3" />
+                    <a href={supplier.website} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">
+                      {supplier.website}
+                    </a>
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                <MapPin className="h-3 w-3" /> Address
+              </h4>
+              <div className="text-sm text-gray-400">
+                {supplier.address ? (
+                  <>
+                    <p>{supplier.address}</p>
+                    <p>{supplier.postal_code} {supplier.city}</p>
+                    <p>{supplier.country}</p>
+                  </>
+                ) : (
+                  <p>N/A</p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                <FileText className="h-3 w-3" /> Business Details
+              </h4>
+              <div className="text-sm text-gray-400">
+                <p>Type: <span className="text-gradient capitalize">{supplier.supplier_type}</span></p>
+                <p>Payment Terms: <span className="text-white">{supplier.payment_terms || 'N/A'}</span></p>
+                <p>Tax ID / VAT: <span className="text-white">{supplier.tax_id || 'N/A'}</span></p>
+                <p>Currency: <span className="text-white">{supplier.currency || 'EUR'}</span></p>
+              </div>
             </div>
           </div>
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Business Details</h4>
-            <div className="text-sm text-gray-400">
-              <p>Type: <span className="text-gradient capitalize">{supplier.supplier_type}</span></p>
-              <p>Payment Terms: <span className="text-white">{supplier.payment_terms || 'N/A'}</span></p>
+
+          {/* Row 2: Bank Details & Notes */}
+          <div className="grid md:grid-cols-3 gap-6 pt-4 border-t border-gray-800">
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                <CreditCard className="h-3 w-3" /> Bank Details
+              </h4>
+              <div className="text-sm text-gray-400">
+                {supplier.bank_name || supplier.iban ? (
+                  <>
+                    <p>Bank: <span className="text-white">{supplier.bank_name || 'N/A'}</span></p>
+                    <p>IBAN: <span className="text-white font-mono text-xs">{supplier.iban || 'N/A'}</span></p>
+                    <p>BIC/SWIFT: <span className="text-white font-mono text-xs">{supplier.bic_swift || 'N/A'}</span></p>
+                  </>
+                ) : (
+                  <p>No bank details provided</p>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="space-y-2">
-             <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Address</h4>
-             <p className="text-sm text-gray-400">
-               {supplier.address}<br />
-               {supplier.postal_code} {supplier.city}<br />
-               {supplier.country}
-             </p>
+            {supplier.notes && (
+              <div className="space-y-2 md:col-span-2">
+                <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                  <FileText className="h-3 w-3" /> Notes
+                </h4>
+                <p className="text-sm text-gray-400 whitespace-pre-wrap">{supplier.notes}</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
