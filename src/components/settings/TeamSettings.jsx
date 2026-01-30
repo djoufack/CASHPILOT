@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import ResponsiveTable from '@/components/ui/ResponsiveTable';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Trash2, UserPlus, Shield, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -80,57 +80,77 @@ const TeamSettings = () => {
           </Dialog>
         </CardHeader>
         <CardContent>
-           <Table>
-              <TableHeader>
-                 <TableRow className="border-gray-800 hover:bg-transparent">
-                    <TableHead className="text-gray-400">Member</TableHead>
-                    <TableHead className="text-gray-400">Role</TableHead>
-                    <TableHead className="text-gray-400">Joined</TableHead>
-                    <TableHead className="text-right text-gray-400">Actions</TableHead>
-                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                 {members.map(member => (
-                    <TableRow key={member.id} className="border-gray-800 hover:bg-gray-800/50">
-                       <TableCell className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9 bg-gray-800">
-                             <AvatarFallback className="bg-gray-800 text-gray-300 border border-gray-700">{member.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                             <p className="font-medium text-gradient">{member.name}</p>
-                             <p className="text-xs text-gray-500 flex items-center gap-1"><Mail size={10}/> {member.email}</p>
-                          </div>
-                       </TableCell>
-                       <TableCell>
-                          <Badge variant="outline" className={`capitalize ${getRoleBadgeColor(member.role)}`}>
-                             {member.role}
-                          </Badge>
-                       </TableCell>
-                       <TableCell className="text-gray-400 text-sm">{member.joined_at}</TableCell>
-                       <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                             <Select 
-                                value={member.role} 
-                                onValueChange={(val) => updateMember(member.id, { role: val })}
-                             >
-                                <SelectTrigger className="w-[100px] h-8 bg-transparent border-gray-800 text-xs">
-                                   <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                                   <SelectItem value="admin">Admin</SelectItem>
-                                   <SelectItem value="manager">Manager</SelectItem>
-                                   <SelectItem value="viewer">Viewer</SelectItem>
-                                </SelectContent>
-                             </Select>
-                             <Button size="icon" variant="ghost" onClick={() => deleteMember(member.id)} className="h-8 w-8 hover:text-red-400">
-                                <Trash2 size={16} />
-                             </Button>
-                          </div>
-                       </TableCell>
-                    </TableRow>
-                 ))}
-              </TableBody>
-           </Table>
+           <ResponsiveTable
+             data={members}
+             columns={[
+               { header: 'Member', accessor: (member) => (
+                 <div className="flex items-center gap-3">
+                   <Avatar className="h-9 w-9 bg-gray-800">
+                     <AvatarFallback className="bg-gray-800 text-gray-300 border border-gray-700">{member.name.charAt(0)}</AvatarFallback>
+                   </Avatar>
+                   <div>
+                     <p className="font-medium text-gradient">{member.name}</p>
+                     <p className="text-xs text-gray-500 flex items-center gap-1"><Mail size={10}/> {member.email}</p>
+                   </div>
+                 </div>
+               )},
+               { header: 'Role', accessor: (member) => (
+                 <Badge variant="outline" className={`capitalize ${getRoleBadgeColor(member.role)}`}>{member.role}</Badge>
+               )},
+               { header: 'Joined', accessor: (member) => <span className="text-gray-400 text-sm">{member.joined_at}</span> },
+               { header: 'Actions', accessor: (member) => (
+                 <div className="flex items-center justify-end gap-2">
+                   <Select value={member.role} onValueChange={(val) => updateMember(member.id, { role: val })}>
+                     <SelectTrigger className="w-[100px] h-8 bg-transparent border-gray-800 text-xs"><SelectValue /></SelectTrigger>
+                     <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                       <SelectItem value="admin">Admin</SelectItem>
+                       <SelectItem value="manager">Manager</SelectItem>
+                       <SelectItem value="viewer">Viewer</SelectItem>
+                     </SelectContent>
+                   </Select>
+                   <Button size="icon" variant="ghost" onClick={() => deleteMember(member.id)} className="h-8 w-8 hover:text-red-400">
+                     <Trash2 size={16} />
+                   </Button>
+                 </div>
+               ), className: 'text-right' }
+             ]}
+             renderCard={(member) => (
+               <Card className="bg-gray-800 border-gray-700">
+                 <CardContent className="p-4">
+                   <div className="flex items-start justify-between mb-3">
+                     <div className="flex items-center gap-3">
+                       <Avatar className="h-10 w-10 bg-gray-800">
+                         <AvatarFallback className="bg-gray-800 text-gray-300 border border-gray-700">{member.name.charAt(0)}</AvatarFallback>
+                       </Avatar>
+                       <div>
+                         <p className="font-medium text-gradient">{member.name}</p>
+                         <p className="text-xs text-gray-500">{member.email}</p>
+                       </div>
+                     </div>
+                     <Badge variant="outline" className={`capitalize ${getRoleBadgeColor(member.role)}`}>{member.role}</Badge>
+                   </div>
+                   <div className="flex items-center justify-between pt-3 border-t border-gray-700">
+                     <span className="text-xs text-gray-500">Joined {member.joined_at}</span>
+                     <div className="flex items-center gap-2">
+                       <Select value={member.role} onValueChange={(val) => updateMember(member.id, { role: val })}>
+                         <SelectTrigger className="w-[100px] h-8 bg-transparent border-gray-700 text-xs"><SelectValue /></SelectTrigger>
+                         <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                           <SelectItem value="admin">Admin</SelectItem>
+                           <SelectItem value="manager">Manager</SelectItem>
+                           <SelectItem value="viewer">Viewer</SelectItem>
+                         </SelectContent>
+                       </Select>
+                       <Button size="icon" variant="ghost" onClick={() => deleteMember(member.id)} className="h-8 w-8 hover:text-red-400">
+                         <Trash2 size={16} />
+                       </Button>
+                     </div>
+                   </div>
+                 </CardContent>
+               </Card>
+             )}
+             loading={loading}
+             emptyMessage="No team members found."
+           />
         </CardContent>
       </Card>
     </div>

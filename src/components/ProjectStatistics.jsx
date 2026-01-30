@@ -15,7 +15,7 @@ const ProjectStatistics = ({ tasks }) => {
   return (
     <div className="space-y-6">
       {/* KPI Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
         <div className="bg-gray-900 p-4 rounded-xl border border-gray-800">
           <p className="text-gray-400 text-sm">Total Tasks</p>
           <p className="text-2xl font-bold text-gradient">{stats.total}</p>
@@ -51,7 +51,7 @@ const ProjectStatistics = ({ tasks }) => {
 
       {/* Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 h-[300px]">
+        <div className="bg-gray-900 p-3 md:p-4 rounded-xl border border-gray-800 h-[250px] md:h-[300px]">
           <h3 className="text-gradient font-semibold mb-4">Task Status Distribution</h3>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -76,7 +76,7 @@ const ProjectStatistics = ({ tasks }) => {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 h-[300px]">
+        <div className="bg-gray-900 p-3 md:p-4 rounded-xl border border-gray-800 h-[250px] md:h-[300px]">
           <h3 className="text-gradient font-semibold mb-4">Tasks by Priority</h3>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart

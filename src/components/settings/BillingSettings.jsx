@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import ResponsiveTable from '@/components/ui/ResponsiveTable';
 import { CreditCard, Download, Trash2, Check, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -170,37 +170,41 @@ const BillingSettings = () => {
            <CardTitle>Invoice History</CardTitle>
         </CardHeader>
         <CardContent>
-           <Table>
-              <TableHeader>
-                 <TableRow className="border-gray-800 hover:bg-transparent">
-                    <TableHead className="text-gray-400">Date</TableHead>
-                    <TableHead className="text-gray-400">Amount</TableHead>
-                    <TableHead className="text-gray-400">Status</TableHead>
-                    <TableHead className="text-right text-gray-400">Action</TableHead>
-                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                 {invoices.map(inv => (
-                    <TableRow key={inv.id} className="border-gray-800 hover:bg-gray-800/50">
-                       <TableCell className="text-gray-300">{inv.date}</TableCell>
-                       <TableCell className="text-gradient font-medium">${inv.amount.toFixed(2)}</TableCell>
-                       <TableCell>
-                          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 capitalize">{inv.status}</Badge>
-                       </TableCell>
-                       <TableCell className="text-right">
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                             <Download size={16} className="text-gray-400 hover:text-white" />
-                          </Button>
-                       </TableCell>
-                    </TableRow>
-                 ))}
-                 {invoices.length === 0 && (
-                    <TableRow>
-                       <TableCell colSpan={4} className="text-center text-gray-500 py-6">No invoices found.</TableCell>
-                    </TableRow>
-                 )}
-              </TableBody>
-           </Table>
+           <ResponsiveTable
+             data={invoices}
+             columns={[
+               { header: 'Date', accessor: 'date' },
+               { header: 'Amount', accessor: (inv) => <span className="text-gradient font-medium">${inv.amount.toFixed(2)}</span> },
+               { header: 'Status', accessor: (inv) => (
+                 <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 capitalize">{inv.status}</Badge>
+               )},
+               { header: 'Action', accessor: () => (
+                 <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                   <Download size={16} className="text-gray-400 hover:text-white" />
+                 </Button>
+               ), className: 'text-right' }
+             ]}
+             renderCard={(inv) => (
+               <Card className="bg-gray-800 border-gray-700">
+                 <CardContent className="p-4">
+                   <div className="flex justify-between items-center">
+                     <div>
+                       <p className="text-gray-400 text-sm">{inv.date}</p>
+                       <p className="text-gradient font-bold text-lg mt-1">${inv.amount.toFixed(2)}</p>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 capitalize">{inv.status}</Badge>
+                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                         <Download size={16} className="text-gray-400" />
+                       </Button>
+                     </div>
+                   </div>
+                 </CardContent>
+               </Card>
+             )}
+             loading={loading}
+             emptyMessage="No invoices found."
+           />
         </CardContent>
       </Card>
     </div>

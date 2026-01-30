@@ -56,13 +56,13 @@ const InvoicePreview = ({ invoice, client, items }) => {
         </motion.div>
       </div>
 
-      <div ref={invoiceRef} className="bg-white text-black p-8 rounded-lg shadow-xl">
-        <div className="flex justify-between items-start mb-8">
+      <div ref={invoiceRef} className="bg-white text-black p-4 md:p-8 rounded-lg shadow-xl">
+        <div className="flex flex-col sm:flex-row justify-between items-start mb-6 md:mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('app.name')}</h1>
             <p className="text-gray-600">{t('app.tagline')}</p>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <div className="text-2xl font-bold text-gray-900 mb-2">
               {t('invoices.invoiceNumber')}: {invoice.invoiceNumber}
             </div>
@@ -72,7 +72,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8 mb-6 md:mb-8">
           <div>
             <h3 className="font-semibold text-gray-700 mb-2">{t('invoices.clientInfo')}</h3>
             <div className="text-gray-900">
@@ -83,7 +83,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
               <p>{client.email}</p>
             </div>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <div className="space-y-1">
               <div>
                 <span className="text-gray-600">{t('invoices.issueDate')}: </span>
@@ -101,7 +101,8 @@ const InvoicePreview = ({ invoice, client, items }) => {
           </div>
         </div>
 
-        <table className="w-full mb-8">
+        <div className="overflow-x-auto mb-6 md:mb-8">
+        <table className="w-full min-w-[400px]">
           <thead>
             <tr className="border-b-2 border-gray-300">
               <th className="text-left py-3 text-gray-700">{t('invoices.description')}</th>
@@ -125,8 +126,9 @@ const InvoicePreview = ({ invoice, client, items }) => {
             ))}
           </tbody>
         </table>
+        </div>
 
-        <div className="flex justify-end mb-8">
+        <div className="flex justify-end mb-6 md:mb-8">
           <div className="w-64 space-y-2">
             <div className="flex justify-between text-gray-900">
               <span>{t('invoices.totalHT')}:</span>

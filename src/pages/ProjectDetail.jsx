@@ -110,12 +110,12 @@ const ProjectDetail = () => {
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <div className="overflow-x-auto pb-2">
-              <TabsList className="bg-gray-900 border border-gray-800 p-1 min-w-[500px] md:min-w-0 md:w-full justify-start md:justify-start">
-                <TabsTrigger value="list" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><LayoutList className="w-4 h-4 mr-2" /> List</TabsTrigger>
-                <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><Kanban className="w-4 h-4 mr-2" /> Kanban</TabsTrigger>
-                <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><CalendarDays className="w-4 h-4 mr-2" /> Calendar</TabsTrigger>
-                <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><List className="w-4 h-4 mr-2" /> Agenda</TabsTrigger>
-                <TabsTrigger value="stats" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><PieChart className="w-4 h-4 mr-2" /> Stats</TabsTrigger>
+              <TabsList className="bg-gray-900 border border-gray-800 p-1 w-full justify-start">
+                <TabsTrigger value="list" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><LayoutList className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">List</span></TabsTrigger>
+                <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><Kanban className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">Kanban</span></TabsTrigger>
+                <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><CalendarDays className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">Calendar</span></TabsTrigger>
+                <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><List className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">Agenda</span></TabsTrigger>
+                <TabsTrigger value="stats" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><PieChart className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">Stats</span></TabsTrigger>
               </TabsList>
             </div>
 
@@ -141,7 +141,7 @@ const ProjectDetail = () => {
                  <h2 className="text-xl font-bold text-gradient">Calendar</h2>
                  <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-orange-500 hover:bg-orange-600">Add Task</Button>
               </div>
-              <div className="min-w-[700px]">
+              <div className="min-w-0 md:min-w-[700px]">
                 <CalendarView tasks={tasks} onEdit={handleEdit} />
               </div>
             </TabsContent>

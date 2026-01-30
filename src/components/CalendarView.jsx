@@ -58,7 +58,7 @@ const CalendarView = ({ tasks, onEdit }) => {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="h-[600px] bg-gray-900 border border-gray-800 rounded-xl p-4"
+      className="h-[350px] md:h-[500px] lg:h-[600px] bg-gray-900 border border-gray-800 rounded-xl p-2 md:p-4"
     >
       {/* Custom Styles override for Calendar Dark Mode */}
       <style>{`
@@ -79,6 +79,12 @@ const CalendarView = ({ tasks, onEdit }) => {
         .rbc-show-more { color: #F59E0B; font-weight: 500; }
         .rbc-date-cell { color: #9ca3af; padding: 4px 8px; }
         .rbc-date-cell.rbc-now { color: #F59E0B; font-weight: 700; }
+        @media (max-width: 767px) {
+          .rbc-toolbar { flex-wrap: wrap; gap: 8px; justify-content: center; }
+          .rbc-toolbar .rbc-toolbar-label { width: 100%; text-align: center; font-size: 1rem; }
+          .rbc-toolbar button { padding: 4px 10px; font-size: 0.75rem; }
+          .rbc-header { padding: 6px 2px; font-size: 0.75rem; }
+        }
       `}</style>
       
       <Calendar

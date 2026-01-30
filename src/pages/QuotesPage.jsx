@@ -307,7 +307,7 @@ const QuotesPage = () => {
                       onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                       className="bg-gray-800 border-gray-700 text-white"
                     />
-                    <div className="grid grid-cols-4 gap-2 items-end">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                       <div>
                         <Label className="text-gray-500 text-xs">Qty</Label>
                         <Input
