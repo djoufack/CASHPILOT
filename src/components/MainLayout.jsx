@@ -57,15 +57,15 @@ const MainLayout = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-gray-950 flex flex-col md:flex-row">
       {/* Mobile Header */}
-      <div className="md:hidden bg-gray-900 border-b border-gray-800 p-4 flex items-center justify-between sticky top-0 z-30">
+      <div className="md:hidden bg-gray-950 border-b border-gray-800/50 p-4 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
             <Menu className="h-6 w-6 text-white" />
           </Button>
-          <span className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-blue-500 bg-clip-text text-transparent">
-            CashPilot
+          <span className="text-xl font-bold">
+            <span className="text-orange-400">Cash</span><span className="text-white">Pilot</span>
           </span>
         </div>
       </div>
@@ -88,7 +88,7 @@ const MainLayout = () => {
 
       <main 
         className={`flex-1 transition-all duration-300 ease-in-out 
-          ${isCollapsed ? 'md:ml-[80px]' : 'md:ml-[250px]'} 
+          ${isCollapsed ? 'md:ml-[68px]' : 'md:ml-[260px]'} 
           min-h-[calc(100vh-65px)] md:min-h-screen`}
       >
         <div className="w-full h-full">
