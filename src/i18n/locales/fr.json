@@ -1,0 +1,49 @@
+
+{
+  "common": {
+    "dashboard": "Tableau de bord",
+    "clients": "Clients",
+    "projects": "Projets",
+    "timesheets": "Feuilles de temps",
+    "invoices": "Factures",
+    "quotes": "Devis",
+    "suppliers": "Fournisseurs",
+    "accounting": "Comptabilité",
+    "settings": "Paramètres",
+    "admin": "Administration",
+    "logout": "Déconnexion",
+    "profile": "Profil",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "actions": "Actions",
+    "status": "Statut",
+    "search": "Rechercher..."
+  },
+  "admin": {
+    "users": "Gestion des utilisateurs",
+    "roles": "Rôles et permissions",
+    "audit": "Piste d'audit",
+    "totalUsers": "Utilisateurs totaux",
+    "activeUsers": "Utilisateurs actifs",
+    "systemHealth": "Santé du système",
+    "addUser": "Ajouter un utilisateur",
+    "role": "Rôle",
+    "permissions": "Permissions",
+    "grant": "Accorder",
+    "revoke": "Révoquer"
+  },
+  "suppliers": {
+    "title": "Gestion des fournisseurs",
+    "newSupplier": "Nouveau fournisseur",
+    "stock": "Stock",
+    "reports": "Rapports"
+  },
+  "errors": {
+    "unauthorized": "Vous n'avez pas la permission d'accéder à cette ressource.",
+    "notFound": "Ressource non trouvée.",
+    "general": "Une erreur est survenue."
+  }
+}

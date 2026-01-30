@@ -1,0 +1,49 @@
+
+{
+  "common": {
+    "dashboard": "Dashboard",
+    "clients": "Klanten",
+    "projects": "Projecten",
+    "timesheets": "Urenstaten",
+    "invoices": "Facturen",
+    "quotes": "Offertes",
+    "suppliers": "Leveranciers",
+    "accounting": "Boekhouding",
+    "settings": "Instellingen",
+    "admin": "Beheer",
+    "logout": "Uitloggen",
+    "profile": "Profiel",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "create": "Aanmaken",
+    "actions": "Acties",
+    "status": "Status",
+    "search": "Zoeken..."
+  },
+  "admin": {
+    "users": "Gebruikersbeheer",
+    "roles": "Rollen & Rechten",
+    "audit": "Audit Logboek",
+    "totalUsers": "Totaal Gebruikers",
+    "activeUsers": "Actieve Gebruikers",
+    "systemHealth": "Systeemstatus",
+    "addUser": "Gebruiker toevoegen",
+    "role": "Rol",
+    "permissions": "Rechten",
+    "grant": "Toekennen",
+    "revoke": "Intrekken"
+  },
+  "suppliers": {
+    "title": "Leveranciersbeheer",
+    "newSupplier": "Nieuwe leverancier",
+    "stock": "Voorraad",
+    "reports": "Rapporten"
+  },
+  "errors": {
+    "unauthorized": "U heeft geen toestemming om deze bron te openen.",
+    "notFound": "Bron niet gevonden.",
+    "general": "Er is iets misgegaan."
+  }
+}
