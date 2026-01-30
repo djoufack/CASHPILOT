@@ -9,6 +9,8 @@ import ProjectDetail from './pages/ProjectDetail';
 import TimesheetsPage from './pages/TimesheetsPage';
 import InvoicesPage from './pages/InvoicesPage';
 import QuotesPage from './pages/QuotesPage';
+import ExpensesPage from './pages/ExpensesPage';
+import ClientProfile from './pages/ClientProfile';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
@@ -73,12 +75,14 @@ const AuthWrapper = () => {
             }>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/clients" element={<ClientsPage />} />
+                <Route path="/clients/:id" element={<ClientProfile />} />
                 <Route path="/projects" element={<ProjectsPage />} />
                 <Route path="/projects/:projectId" element={<ProjectDetail />} />
                 <Route path="/timesheets" element={<TimesheetsPage />} />
                 <Route path="/invoices" element={<InvoicesPage />} />
                 <Route path="/quotes" element={<QuotesPage />} />
-                
+                <Route path="/expenses" element={<ExpensesPage />} />
+
                 {/* Supplier Routes */}
                 <Route path="/suppliers" element={<SuppliersPage />} />
                 <Route path="/suppliers/stock" element={<StockManagement />} />

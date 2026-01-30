@@ -9,11 +9,13 @@ import { Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { useToast } from '@/components/ui/use-toast';
+import { useCompany } from '@/hooks/useCompany';
 
 const InvoicePreview = ({ invoice, client, items }) => {
   const { t } = useTranslation();
   const invoiceRef = useRef();
   const { toast } = useToast();
+  const { company } = useCompany();
 
   const handleExportPDF = async () => {
     try {
@@ -57,10 +59,31 @@ const InvoicePreview = ({ invoice, client, items }) => {
       </div>
 
       <div ref={invoiceRef} className="bg-white text-black p-4 md:p-8 rounded-lg shadow-xl">
+        {/* Header: Company info + Invoice number */}
         <div className="flex flex-col sm:flex-row justify-between items-start mb-6 md:mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('app.name')}</h1>
-            <p className="text-gray-600">{t('app.tagline')}</p>
+            <div className="flex items-center gap-3 mb-2">
+              {company?.logo_url && (
+                <img src={company.logo_url} alt="Logo" className="h-12 w-auto object-contain" />
+              )}
+              <h1 className="text-3xl font-bold text-gray-900">
+                {company?.company_name || t('app.name')}
+              </h1>
+            </div>
+            {company ? (
+              <div className="text-sm text-gray-600 space-y-0.5">
+                {company.address && <p>{company.address}</p>}
+                {(company.postal_code || company.city) && (
+                  <p>{company.postal_code} {company.city}{company.country ? `, ${company.country}` : ''}</p>
+                )}
+                {company.phone && <p>Tél: {company.phone}</p>}
+                {company.email && <p>{company.email}</p>}
+                {company.registration_number && <p>SIRET: {company.registration_number}</p>}
+                {company.tax_id && <p>TVA: {company.tax_id}</p>}
+              </div>
+            ) : (
+              <p className="text-gray-600">{t('app.tagline')}</p>
+            )}
           </div>
           <div className="sm:text-right">
             <div className="text-2xl font-bold text-gray-900 mb-2">
@@ -72,6 +95,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
           </div>
         </div>
 
+        {/* Client + Dates */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8 mb-6 md:mb-8">
           <div>
             <h3 className="font-semibold text-gray-700 mb-2">{t('invoices.clientInfo')}</h3>
@@ -79,7 +103,10 @@ const InvoicePreview = ({ invoice, client, items }) => {
               <p className="font-bold">{client.companyName}</p>
               <p>{client.contactName}</p>
               <p className="whitespace-pre-line">{client.address}</p>
-              {client.vatNumber && <p>VAT: {client.vatNumber}</p>}
+              {(client.postal_code || client.city) && (
+                <p>{client.postal_code} {client.city}{client.country ? `, ${client.country}` : ''}</p>
+              )}
+              {client.vatNumber && <p>TVA: {client.vatNumber}</p>}
               <p>{client.email}</p>
             </div>
           </div>
@@ -152,8 +179,21 @@ const InvoicePreview = ({ invoice, client, items }) => {
           </div>
         )}
 
-        <div className="border-t border-gray-300 mt-8 pt-4 text-center text-sm text-gray-600">
-          <p>Thank you for your business!</p>
+        {/* Bank Details Footer */}
+        {company && (company.iban || company.bank_name) && (
+          <div className="border-t border-gray-300 mt-6 pt-4">
+            <h3 className="font-semibold text-gray-700 mb-2 text-sm">Coordonnées bancaires</h3>
+            <div className="text-sm text-gray-600 grid grid-cols-2 gap-x-4 gap-y-1">
+              {company.bank_name && <p>Banque: <span className="text-gray-900">{company.bank_name}</span></p>}
+              {company.iban && <p>IBAN: <span className="text-gray-900 font-mono text-xs">{company.iban}</span></p>}
+              {company.swift && <p>BIC: <span className="text-gray-900 font-mono text-xs">{company.swift}</span></p>}
+            </div>
+          </div>
+        )}
+
+        <div className="border-t border-gray-300 mt-6 pt-4 text-center text-sm text-gray-600">
+          <p>{company?.company_name || t('app.name')} — Merci pour votre confiance !</p>
+          {company?.registration_number && <p className="text-xs mt-1">SIRET: {company.registration_number} {company.tax_id ? `• TVA: ${company.tax_id}` : ''}</p>}
         </div>
       </div>
     </div>
