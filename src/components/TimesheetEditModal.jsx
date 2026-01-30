@@ -110,7 +110,7 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] bg-gray-900 border-gray-800 text-white">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <DialogTitle className="text-2xl font-bold text-gradient">
             Edit Timesheet Entry
           </DialogTitle>
         </DialogHeader>
@@ -197,9 +197,9 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
           </div>
 
           <div className="flex items-center space-x-2 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-            <Clock className="w-5 h-5 text-blue-400" />
+            <Clock className="w-5 h-5 text-orange-400" />
             <span className="text-sm text-gray-400">Duration:</span>
-            <span className="text-lg font-bold text-white">{calculatedDuration}</span>
+            <span className="text-lg font-bold text-gradient">{calculatedDuration}</span>
           </div>
 
           <div className="space-y-2">
@@ -258,7 +258,7 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
               <Button
                 type="submit"
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-orange-500 hover:bg-orange-600 text-white"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
               </Button>

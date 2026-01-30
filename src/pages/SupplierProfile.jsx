@@ -42,7 +42,7 @@ const SupplierProfile = () => {
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-3xl text-white mb-2">{supplier.company_name}</CardTitle>
+              <CardTitle className="text-3xl text-gradient mb-2">{supplier.company_name}</CardTitle>
               <CardDescription className="text-gray-400 flex items-center gap-4">
                 <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {supplier.city}, {supplier.country}</span>
                 {supplier.website && <span className="flex items-center gap-1"><Globe className="h-3 w-3" /> {supplier.website}</span>}
@@ -60,7 +60,7 @@ const SupplierProfile = () => {
           <div className="space-y-2">
             <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Contact</h4>
             <div className="text-sm">
-              <p className="font-medium text-white">{supplier.contact_person}</p>
+              <p className="font-medium text-gradient">{supplier.contact_person}</p>
               <p className="flex items-center gap-2 text-gray-400 mt-1"><Mail className="h-3 w-3" /> {supplier.email}</p>
               <p className="flex items-center gap-2 text-gray-400 mt-1"><Phone className="h-3 w-3" /> {supplier.phone}</p>
             </div>
@@ -68,7 +68,7 @@ const SupplierProfile = () => {
           <div className="space-y-2">
             <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Business Details</h4>
             <div className="text-sm text-gray-400">
-              <p>Type: <span className="text-white capitalize">{supplier.supplier_type}</span></p>
+              <p>Type: <span className="text-gradient capitalize">{supplier.supplier_type}</span></p>
               <p>Payment Terms: <span className="text-white">{supplier.payment_terms || 'N/A'}</span></p>
             </div>
           </div>

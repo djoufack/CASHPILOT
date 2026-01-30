@@ -54,7 +54,7 @@ const QuoteCard = ({ quote, onDelete }) => {
     >
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-lg font-bold text-white">{quote.quote_number}</h3>
+          <h3 className="text-lg font-bold text-gradient">{quote.quote_number}</h3>
           <p className="text-sm text-gray-400">{quote.client?.company_name || 'No client'}</p>
         </div>
         <span className={`text-xs px-2 py-1 rounded-full border capitalize ${statusColors[quote.status] || statusColors.draft}`}>
@@ -63,7 +63,7 @@ const QuoteCard = ({ quote, onDelete }) => {
       </div>
       <div className="flex justify-between items-center text-sm text-gray-400 mb-4">
         <span>{quote.date ? new Date(quote.date).toLocaleDateString() : '—'}</span>
-        <span className="text-white font-bold text-lg">{formatCurrency(quote.total || quote.total_ttc || 0)}</span>
+        <span className="text-gradient font-bold text-lg">{formatCurrency(quote.total || quote.total_ttc || 0)}</span>
       </div>
       {quote.notes && <p className="text-xs text-gray-500 mb-4 line-clamp-2">{quote.notes}</p>}
       <div className="flex justify-end gap-2 border-t border-gray-800 pt-3">
@@ -181,12 +181,12 @@ const QuotesPage = () => {
       <div className="container mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-yellow-400 via-blue-500 to-purple-500 bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">
               Quotes
             </h1>
             <p className="text-gray-400 text-sm md:text-base">Manage proposals and estimates</p>
           </div>
-          <Button onClick={handleOpenDialog} className="w-full md:w-auto bg-gradient-to-r from-yellow-500 via-blue-500 to-purple-500 text-white">
+          <Button onClick={handleOpenDialog} className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white">
             <Plus className="mr-2 h-4 w-4" /> Create Quote
           </Button>
         </div>
@@ -208,7 +208,7 @@ const QuotesPage = () => {
                   key={s}
                   variant={filterStatus === s ? 'default' : 'outline'}
                   onClick={() => setFilterStatus(s)}
-                  className={`capitalize flex-shrink-0 ${filterStatus === s ? 'bg-blue-600' : 'border-gray-800 text-gray-400'}`}
+                  className={`capitalize flex-shrink-0 ${filterStatus === s ? 'bg-orange-500' : 'border-gray-800 text-gray-400'}`}
                 >
                   {s}
                 </Button>
@@ -219,7 +219,7 @@ const QuotesPage = () => {
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
           </div>
         ) : filteredQuotes.length === 0 ? (
           <motion.div
@@ -229,10 +229,10 @@ const QuotesPage = () => {
           >
             <div className="flex justify-center mb-4">
               <div className="p-4 bg-gray-800 rounded-full">
-                <FileSignature className="w-12 h-12 text-blue-500" />
+                <FileSignature className="w-12 h-12 text-orange-400" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">No quotes yet</h3>
+            <h3 className="text-xl font-bold text-gradient mb-2">No quotes yet</h3>
             <p className="text-gray-400 mb-6">Create your first quote to send to a client.</p>
             <Button onClick={handleOpenDialog} variant="outline" className="border-gray-700 text-gray-300 w-full md:w-auto">
               Create Quote
@@ -251,7 +251,7 @@ const QuotesPage = () => {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white text-xl">Create Quote</DialogTitle>
+            <DialogTitle className="text-gradient text-xl">Create Quote</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Client & Dates */}
@@ -370,7 +370,7 @@ const QuotesPage = () => {
                 <span>VAT</span>
                 <span>{formatCurrency(totalTax)}</span>
               </div>
-              <div className="flex justify-between text-white font-bold text-base border-t border-gray-700 pt-2">
+              <div className="flex justify-between text-gradient font-bold text-base border-t border-gray-700 pt-2">
                 <span>Total (incl. VAT)</span>
                 <span>{formatCurrency(totalTTC)}</span>
               </div>
@@ -391,7 +391,7 @@ const QuotesPage = () => {
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting || !formData.client_id} className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Button type="submit" disabled={submitting || !formData.client_id} className="bg-orange-500 hover:bg-orange-600 text-white">
                 {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                 Create Quote
               </Button>

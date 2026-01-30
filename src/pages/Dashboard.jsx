@@ -114,7 +114,7 @@ const Dashboard = () => {
 
       <div className="container mx-auto p-6">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
+          <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-1">
             {t('dashboard.title')}
           </h1>
           <p className="text-gray-500 text-sm">{t('app.tagline')}</p>
@@ -133,7 +133,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{stat.label}</p>
-                  <p className="text-2xl md:text-3xl font-bold text-white">{stat.value}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-gradient">{stat.value}</p>
                   <div className="flex items-center gap-1 mt-2">
                     <ArrowUp className="w-3 h-3 text-orange-400" />
                     <span className="text-xs text-orange-400 font-medium">{stat.trend}</span>
@@ -155,7 +155,7 @@ const Dashboard = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <h2 className="text-lg font-semibold text-white mb-5">Revenue Overview</h2>
+            <h2 className="text-lg font-semibold text-gradient mb-5">Revenue Overview</h2>
             <div className="h-[280px] w-full">
               {revenueData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -190,7 +190,7 @@ const Dashboard = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <h2 className="text-lg font-semibold text-white mb-5">Revenue by Client</h2>
+            <h2 className="text-lg font-semibold text-gradient mb-5">Revenue by Client</h2>
             <div className="h-[280px] w-full">
               {clientRevenueData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -216,7 +216,7 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gradient mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-orange-400" />
             {t('dashboard.quickActions')}
           </h2>
@@ -226,7 +226,7 @@ const Dashboard = () => {
                 <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                   <div className="p-4 rounded-xl border border-gray-800/50 bg-gray-900 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all cursor-pointer flex items-center justify-center gap-3">
                     <action.icon className="w-5 h-5 text-orange-400" />
-                    <span className="text-white font-medium text-sm">{action.label}</span>
+                    <span className="text-gradient font-medium text-sm">{action.label}</span>
                   </div>
                 </motion.div>
               </Link>
@@ -242,7 +242,7 @@ const Dashboard = () => {
             transition={{ delay: 0.5 }}
             className="bg-gray-900 rounded-xl p-5 border border-gray-800/50"
           >
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gradient mb-4 flex items-center gap-2">
               <FileText className="w-5 h-5 text-orange-400" />
               Recent Invoices
             </h2>
@@ -251,11 +251,11 @@ const Dashboard = () => {
                 recentInvoices.map((inv) => (
                   <div key={inv.id} className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
                     <div>
-                      <p className="text-white font-medium text-sm">{inv.invoice_number}</p>
+                      <p className="text-gradient font-medium text-sm">{inv.invoice_number}</p>
                       <p className="text-xs text-gray-500">{inv.client?.company_name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-white font-semibold text-sm">{formatCurrency(inv.total)}</p>
+                      <p className="text-gradient font-semibold text-sm">{formatCurrency(inv.total)}</p>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                         inv.status === 'paid' ? 'bg-green-500/10 text-green-400' :
                         inv.status === 'sent' ? 'bg-blue-500/10 text-blue-400' :
@@ -278,7 +278,7 @@ const Dashboard = () => {
             transition={{ delay: 0.6 }}
             className="bg-gray-900 rounded-xl p-5 border border-gray-800/50"
           >
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gradient mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5 text-orange-400" />
               Recent Timesheets
             </h2>
@@ -287,11 +287,11 @@ const Dashboard = () => {
                 recentTimesheets.map((ts) => (
                   <div key={ts.id} className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
                     <div>
-                      <p className="text-white font-medium text-sm">{ts.task?.name || 'Untitled Task'}</p>
+                      <p className="text-gradient font-medium text-sm">{ts.task?.name || 'Untitled Task'}</p>
                       <p className="text-xs text-gray-500">{ts.project?.name || 'No Project'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-white font-semibold text-sm">
+                      <p className="text-gradient font-semibold text-sm">
                         {Math.floor(ts.duration_minutes / 60)}h {ts.duration_minutes % 60}m
                       </p>
                       <p className="text-[10px] text-gray-500">{new Date(ts.date).toLocaleDateString()}</p>

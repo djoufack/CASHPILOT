@@ -32,7 +32,7 @@ const SupplierProducts = ({ supplierId }) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-white">Products Catalog</h3>
+        <h3 className="text-lg font-semibold text-gradient">Products Catalog</h3>
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="bg-green-600 hover:bg-green-700">
@@ -131,7 +131,7 @@ const SupplierProducts = ({ supplierId }) => {
               const isLowStock = product.stock_quantity <= product.min_stock_level;
               return (
                 <TableRow key={product.id} className="border-gray-800">
-                  <TableCell className="font-medium text-white">{product.product_name}</TableCell>
+                  <TableCell className="font-medium text-gradient">{product.product_name}</TableCell>
                   <TableCell className="text-gray-400 text-xs">{product.sku}</TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="bg-gray-800 text-gray-300">

@@ -38,19 +38,19 @@ const ProjectCard = ({ project }) => {
       >
         <div>
           <div className="flex justify-between items-start mb-4">
-             <div className="p-3 bg-blue-900/20 rounded-lg border border-blue-900/50">
-               <Briefcase className="w-6 h-6 text-blue-400" />
+             <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+               <Briefcase className="w-6 h-6 text-orange-400" />
              </div>
              <span className={`text-[10px] md:text-xs px-2 py-1 rounded-full border capitalize ${
                project.status === 'completed' ? 'bg-green-900/20 text-green-400 border-green-800' :
-               project.status === 'active' || project.status === 'in_progress' ? 'bg-blue-900/20 text-blue-400 border-blue-800' :
+               project.status === 'active' || project.status === 'in_progress' ? 'bg-orange-500/10 text-orange-400 border-orange-800' :
                'bg-gray-800 text-gray-400 border-gray-700'
              }`}>
                {project.status || 'Active'}
              </span>
           </div>
 
-          <h3 className="text-lg md:text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">{project.name}</h3>
+          <h3 className="text-lg md:text-xl font-bold text-gradient mb-2 group-hover:text-orange-400 transition-colors">{project.name}</h3>
           <p className="text-xs md:text-sm text-gray-400 mb-4 line-clamp-2">{project.description || 'No description provided.'}</p>
 
           <div className="flex flex-col gap-2 text-xs md:text-sm text-gray-500 mb-6">
@@ -69,7 +69,7 @@ const ProjectCard = ({ project }) => {
 
         <div className="flex items-center justify-between border-t border-gray-800 pt-4 mt-auto">
           <span className="text-sm font-medium text-gray-400">View Details</span>
-          <ArrowRight className="w-4 h-4 text-blue-500 transform group-hover:translate-x-1 transition-transform" />
+          <ArrowRight className="w-4 h-4 text-orange-400 transform group-hover:translate-x-1 transition-transform" />
         </div>
       </motion.div>
     </Link>
@@ -140,11 +140,11 @@ const ProjectsPage = () => {
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Projects</h1>
+              <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">Projects</h1>
               <p className="text-gray-400 text-sm md:text-base">Manage and track your ongoing work.</p>
             </motion.div>
 
-             <Button onClick={handleOpenDialog} className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white">
+             <Button onClick={handleOpenDialog} className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white">
                <Plus className="w-4 h-4 mr-2" /> New Project
              </Button>
           </div>
@@ -165,7 +165,7 @@ const ProjectsPage = () => {
                   key={f}
                   variant={filter === f ? 'default' : 'outline'}
                   onClick={() => setFilter(f)}
-                  className={`capitalize flex-shrink-0 ${filter === f ? 'bg-blue-600' : 'border-gray-800 text-gray-400'}`}
+                  className={`capitalize flex-shrink-0 ${filter === f ? 'bg-orange-500' : 'border-gray-800 text-gray-400'}`}
                 >
                   {f}
                 </Button>
@@ -193,7 +193,7 @@ const ProjectsPage = () => {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-white text-xl">New Project</DialogTitle>
+            <DialogTitle className="text-gradient text-xl">New Project</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -288,7 +288,7 @@ const ProjectsPage = () => {
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting || !formData.name.trim()} className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Button type="submit" disabled={submitting || !formData.name.trim()} className="bg-orange-500 hover:bg-orange-600 text-white">
                 {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                 Create Project
               </Button>

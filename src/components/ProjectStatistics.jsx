@@ -18,7 +18,7 @@ const ProjectStatistics = ({ tasks }) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gray-900 p-4 rounded-xl border border-gray-800">
           <p className="text-gray-400 text-sm">Total Tasks</p>
-          <p className="text-2xl font-bold text-white">{stats.total}</p>
+          <p className="text-2xl font-bold text-gradient">{stats.total}</p>
         </div>
         <div className="bg-gray-900 p-4 rounded-xl border border-gray-800">
           <p className="text-gray-400 text-sm">Completed</p>
@@ -30,7 +30,7 @@ const ProjectStatistics = ({ tasks }) => {
         </div>
         <div className="bg-gray-900 p-4 rounded-xl border border-gray-800">
           <p className="text-gray-400 text-sm">Completion Rate</p>
-          <p className="text-2xl font-bold text-blue-500">{stats.completionPercentage}%</p>
+          <p className="text-2xl font-bold text-gradient">{stats.completionPercentage}%</p>
         </div>
       </div>
 
@@ -44,7 +44,7 @@ const ProjectStatistics = ({ tasks }) => {
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${stats.completionPercentage}%` }}
-            className="h-full bg-gradient-to-r from-blue-500 to-green-500"
+            className="h-full bg-gradient-to-r from-yellow-400 via-amber-300 to-lime-400"
           />
         </div>
       </div>
@@ -52,7 +52,7 @@ const ProjectStatistics = ({ tasks }) => {
       {/* Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 h-[300px]">
-          <h3 className="text-white font-semibold mb-4">Task Status Distribution</h3>
+          <h3 className="text-gradient font-semibold mb-4">Task Status Distribution</h3>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -77,7 +77,7 @@ const ProjectStatistics = ({ tasks }) => {
         </div>
 
         <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 h-[300px]">
-          <h3 className="text-white font-semibold mb-4">Tasks by Priority</h3>
+          <h3 className="text-gradient font-semibold mb-4">Tasks by Priority</h3>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={[

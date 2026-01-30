@@ -11,7 +11,7 @@ const StatCard = ({ title, value, icon: Icon, color, subtext }) => (
       <Icon className={`h-4 w-4 ${color}`} />
     </CardHeader>
     <CardContent>
-      <div className="text-2xl font-bold text-white">{value}</div>
+      <div className="text-2xl font-bold text-gradient">{value}</div>
       {subtext && <p className="text-xs text-gray-500 mt-1">{subtext}</p>}
     </CardContent>
   </Card>
@@ -60,7 +60,7 @@ const SupplierStats = () => {
         title="Total Suppliers" 
         value={stats.totalSuppliers} 
         icon={Users} 
-        color="text-blue-500" 
+        color="text-orange-400"
       />
       <StatCard 
         title="Total Products" 

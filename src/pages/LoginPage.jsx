@@ -73,9 +73,9 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-900/20 rounded-full blur-[100px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/20 rounded-full blur-[100px]" />
+    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-900/20 rounded-full blur-[100px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-900/20 rounded-full blur-[100px]" />
 
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
@@ -83,11 +83,11 @@ const LoginPage = () => {
         className="relative w-full max-w-md space-y-6"
       >
         <div className="bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-2xl p-1">
-          <div className="absolute inset-0 rounded-2xl p-[1px] bg-gradient-to-br from-yellow-500 via-blue-600 to-purple-600 opacity-50 pointer-events-none" />
+          <div className="absolute inset-0 rounded-2xl p-[1px] bg-gradient-to-br from-yellow-500 via-amber-400 to-lime-500 opacity-50 pointer-events-none" />
           
           <div className="bg-gray-950/90 rounded-xl p-8 relative z-10 h-full">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 via-blue-500 to-purple-500 bg-clip-text text-transparent mb-2 tracking-tight">
+              <h1 className="text-4xl font-bold text-gradient mb-2 tracking-tight">
                 {t('app.name')}
               </h1>
               <p className="text-gray-400 text-sm">Welcome back, Pilot!</p>
@@ -138,7 +138,7 @@ const LoginPage = () => {
                     type="email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="bg-gray-900/50 border-gray-700 text-white focus:border-blue-500"
+                    className="bg-gray-900/50 border-gray-700 text-white focus:border-orange-500"
                     placeholder="name@company.com"
                     disabled={loading}
                   />
@@ -148,7 +148,7 @@ const LoginPage = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="password" className="text-gray-300">Password</Label>
-                    <a href="#" className="text-xs text-blue-400 hover:text-blue-300">Mot de passe oublié?</a>
+                    <a href="#" className="text-xs text-orange-400 hover:text-orange-300">Mot de passe oublié?</a>
                   </div>
                   <div className="relative">
                     <Input 
@@ -156,7 +156,7 @@ const LoginPage = () => {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="bg-gray-900/50 border-gray-700 text-white pr-10 focus:border-blue-500"
+                      className="bg-gray-900/50 border-gray-700 text-white pr-10 focus:border-orange-500"
                       placeholder="••••••••"
                       disabled={loading}
                     />
@@ -175,7 +175,7 @@ const LoginPage = () => {
                 <Button 
                   type="submit" 
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-yellow-500 via-blue-600 to-purple-600 text-white font-bold py-2 mt-6"
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 mt-6"
                 >
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">

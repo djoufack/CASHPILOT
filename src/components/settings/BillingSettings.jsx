@@ -41,23 +41,23 @@ const BillingSettings = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center pb-4 border-b border-gray-800">
                    <div>
-                      <h3 className="text-2xl font-bold text-white">{subscription.plan} Plan</h3>
+                      <h3 className="text-2xl font-bold text-gradient">{subscription.plan} Plan</h3>
                       <p className="text-gray-400 text-sm">Next billing date: {subscription.next_billing}</p>
                    </div>
                    <div className="text-right">
-                      <div className="text-2xl font-bold text-blue-400">${subscription.price}<span className="text-sm text-gray-400 font-normal">/{subscription.interval}</span></div>
+                      <div className="text-2xl font-bold text-gradient">${subscription.price}<span className="text-sm text-gray-400 font-normal">/{subscription.interval}</span></div>
                       <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30 border-none mt-1">Active</Badge>
                    </div>
                 </div>
                 <div className="flex gap-3">
-                  <Button className="flex-1 bg-blue-600 hover:bg-blue-700">Upgrade Plan</Button>
+                  <Button className="flex-1 bg-orange-500 hover:bg-orange-600">Upgrade Plan</Button>
                   <Button variant="outline" onClick={cancelSubscription} className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">Cancel Subscription</Button>
                 </div>
               </div>
             ) : (
               <div className="text-center py-6">
                 <p className="text-gray-400 mb-4">You don't have an active subscription.</p>
-                <Button className="bg-blue-600 hover:bg-blue-700">View Plans</Button>
+                <Button className="bg-orange-500 hover:bg-orange-600">View Plans</Button>
               </div>
             )}
           </CardContent>
@@ -107,12 +107,12 @@ const BillingSettings = () => {
                            <CreditCard size={20} className="text-gray-400"/>
                         </div>
                         <div>
-                           <p className="font-medium text-sm text-white">{method.brand} ending in {method.last4}</p>
+                           <p className="font-medium text-sm text-gradient">{method.brand} ending in {method.last4}</p>
                            <p className="text-xs text-gray-500">Expires {method.exp_month}/{method.exp_year}</p>
                         </div>
                      </div>
                      <div className="flex items-center gap-2">
-                        {method.is_default && <Badge variant="secondary" className="bg-blue-900/30 text-blue-400 text-[10px]">Default</Badge>}
+                        {method.is_default && <Badge variant="secondary" className="bg-orange-900/30 text-orange-400 text-[10px]">Default</Badge>}
                         {!method.is_default && (
                            <Button size="icon" variant="ghost" onClick={() => setDefaultPaymentMethod(method.id)} title="Set Default">
                               <Check size={16} className="text-gray-500 hover:text-green-500"/>
@@ -158,7 +158,7 @@ const BillingSettings = () => {
                  <Input name="postal_code" value={formData.postal_code || ''} onChange={handleChange} className="bg-gray-800 border-gray-700 text-white" required />
               </div>
               <div className="md:col-span-2 flex justify-end">
-                 <Button type="submit" className="bg-blue-600 hover:bg-blue-700">Save Billing Info</Button>
+                 <Button type="submit" className="bg-orange-500 hover:bg-orange-600">Save Billing Info</Button>
               </div>
            </form>
         </CardContent>
@@ -183,7 +183,7 @@ const BillingSettings = () => {
                  {invoices.map(inv => (
                     <TableRow key={inv.id} className="border-gray-800 hover:bg-gray-800/50">
                        <TableCell className="text-gray-300">{inv.date}</TableCell>
-                       <TableCell className="text-white font-medium">${inv.amount.toFixed(2)}</TableCell>
+                       <TableCell className="text-gradient font-medium">${inv.amount.toFixed(2)}</TableCell>
                        <TableCell>
                           <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 capitalize">{inv.status}</Badge>
                        </TableCell>

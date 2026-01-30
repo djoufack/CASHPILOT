@@ -28,7 +28,7 @@ const TeamSettings = () => {
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case 'admin': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-      case 'manager': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'manager': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
   };
@@ -43,7 +43,7 @@ const TeamSettings = () => {
           </div>
           <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-orange-500 hover:bg-orange-600">
                  <UserPlus size={16} className="mr-2" /> Invite Member
               </Button>
             </DialogTrigger>
@@ -74,7 +74,7 @@ const TeamSettings = () => {
               </div>
               <DialogFooter>
                  <Button variant="outline" onClick={() => setIsInviteOpen(false)} className="border-gray-700 text-gray-300">Cancel</Button>
-                 <Button onClick={handleInvite} className="bg-blue-600 hover:bg-blue-700">Send Invitation</Button>
+                 <Button onClick={handleInvite} className="bg-orange-500 hover:bg-orange-600">Send Invitation</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -97,7 +97,7 @@ const TeamSettings = () => {
                              <AvatarFallback className="bg-gray-800 text-gray-300 border border-gray-700">{member.name.charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div>
-                             <p className="font-medium text-white">{member.name}</p>
+                             <p className="font-medium text-gradient">{member.name}</p>
                              <p className="text-xs text-gray-500 flex items-center gap-1"><Mail size={10}/> {member.email}</p>
                           </div>
                        </TableCell>

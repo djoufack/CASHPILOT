@@ -33,8 +33,8 @@ const ChartOfAccounts = () => {
   };
 
   const columns = [
-    { header: 'Code', accessor: 'account_code', className: 'font-mono text-blue-400' },
-    { header: 'Name', accessor: 'account_name', className: 'font-medium text-white' },
+    { header: 'Code', accessor: 'account_code', className: 'font-mono text-orange-400' },
+    { header: 'Name', accessor: 'account_name', className: 'font-medium text-gradient' },
     { header: 'Type', accessor: (row) => <span className="capitalize">{row.account_type}</span> },
     { header: 'Category', accessor: 'account_category' },
     { header: 'Actions', accessor: (row) => (
@@ -49,8 +49,8 @@ const ChartOfAccounts = () => {
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <span className="font-mono text-xs text-blue-400 bg-blue-900/20 px-2 py-1 rounded">{account.account_code}</span>
-            <h3 className="text-lg font-bold text-white mt-2">{account.account_name}</h3>
+            <span className="font-mono text-xs text-orange-400 bg-orange-900/20 px-2 py-1 rounded">{account.account_code}</span>
+            <h3 className="text-lg font-bold text-gradient mt-2">{account.account_name}</h3>
           </div>
           <Button variant="ghost" size="sm" onClick={() => deleteAccount(account.id)} className="text-red-400">
             <Trash2 className="h-4 w-4" />
@@ -68,12 +68,12 @@ const ChartOfAccounts = () => {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-           <h2 className="text-xl font-bold text-white">Chart of Accounts</h2>
+           <h2 className="text-xl font-bold text-gradient">Chart of Accounts</h2>
            <p className="text-gray-400 text-sm">Manage your general ledger accounts.</p>
         </div>
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
+            <Button className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" /> Add Account
             </Button>
           </DialogTrigger>
@@ -127,7 +127,7 @@ const ChartOfAccounts = () => {
                   className="bg-gray-700 border-gray-600"
                 />
               </div>
-              <Button type="submit" className="w-full bg-blue-600" disabled={loading}>Create Account</Button>
+              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600" disabled={loading}>Create Account</Button>
             </form>
           </DialogContent>
         </Dialog>

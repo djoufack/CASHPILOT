@@ -216,7 +216,7 @@ const TaskForm = ({ task, onSave, onCancel, loading }) => {
         <Button
           type="submit"
           disabled={loading}
-          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white w-full sm:w-auto"
+          className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (task ? 'Update Task' : 'Create Task')}
         </Button>

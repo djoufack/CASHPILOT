@@ -64,7 +64,7 @@ const ReportGenerator = () => {
     <Card className="bg-gray-900 border-gray-800 text-white max-w-md mx-auto mt-8">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <FileText className="text-blue-500" /> Report Generator
+          <FileText className="text-orange-400" /> Report Generator
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -82,7 +82,7 @@ const ReportGenerator = () => {
           </Select>
         </div>
 
-        <Button onClick={handleDownload} disabled={generating} className="w-full bg-blue-600 hover:bg-blue-700">
+        <Button onClick={handleDownload} disabled={generating} className="w-full bg-orange-500 hover:bg-orange-600">
           {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           Download PDF
         </Button>

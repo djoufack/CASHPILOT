@@ -23,7 +23,7 @@ const SeedDataManager = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-500" />
+              <Users className="h-5 w-5 text-orange-400" />
               Test Users
             </CardTitle>
             <CardDescription>
@@ -105,7 +105,7 @@ const SeedDataManager = () => {
                     <div className="mt-0.5">
                       {log.status === 'success' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
                       {log.status === 'error' && <AlertCircle className="h-4 w-4 text-red-600" />}
-                      {log.status === 'pending' && <Loader2 className="h-4 w-4 animate-spin text-blue-600" />}
+                      {log.status === 'pending' && <Loader2 className="h-4 w-4 animate-spin text-orange-500" />}
                       {log.status === 'info' && <div className="h-1.5 w-1.5 rounded-full bg-gray-400 mt-1.5 ml-1" />}
                     </div>
                     <div className="flex-1">

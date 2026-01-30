@@ -48,7 +48,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
             onClick={handleExportPDF}
-            className="bg-gradient-to-r from-yellow-500 via-green-500 to-purple-600 hover:from-yellow-600 hover:via-green-600 hover:to-purple-700"
+            className="bg-orange-500 hover:bg-orange-600"
           >
             <Download className="w-4 h-4 mr-2" />
             {t('invoices.exportPDF')}

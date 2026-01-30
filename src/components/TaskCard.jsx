@@ -110,7 +110,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <h3 className={`font-semibold text-lg text-white ${task.status === 'completed' || task.status === 'cancelled' ? 'line-through text-gray-500' : ''}`}>
+            <h3 className={`font-semibold text-lg text-gradient ${task.status === 'completed' || task.status === 'cancelled' ? 'line-through !text-gray-500' : ''}`}>
               {task.title}
             </h3>
           </div>
@@ -121,7 +121,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
           )}
         </div>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" onClick={() => onEdit(task)} className="h-8 w-8 text-gray-400 hover:text-blue-400">
+          <Button variant="ghost" size="icon" onClick={() => onEdit(task)} className="h-8 w-8 text-gray-400 hover:text-orange-400">
             <Edit2 className="w-4 h-4" />
           </Button>
           <Button variant="ghost" size="icon" onClick={() => onDelete(task.id)} className="h-8 w-8 text-gray-400 hover:text-red-400">

@@ -32,7 +32,7 @@ const StockManagement = () => {
     <div className="p-8 min-h-screen bg-gray-950 text-white space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-gradient">
             Stock Management
           </h1>
           <p className="text-gray-400">Monitor inventory levels, alerts, and movements.</p>
@@ -55,7 +55,7 @@ const StockManagement = () => {
                  <CardTitle className="text-sm font-medium text-gray-400">Total Alerts</CardTitle>
              </CardHeader>
              <CardContent>
-                 <div className="text-2xl font-bold text-white">{alerts.length}</div>
+                 <div className="text-2xl font-bold text-gradient">{alerts.length}</div>
              </CardContent>
          </Card>
          <Card className="bg-gray-900 border-gray-800">
@@ -99,7 +99,7 @@ const StockManagement = () => {
                           <div className="flex items-center gap-3">
                               <AlertTriangle className={`h-5 w-5 ${alert.alert_type === 'out_of_stock' ? 'text-red-500' : 'text-yellow-500'}`} />
                               <div>
-                                  <AlertTitle className="text-white">{alert.product?.product_name}</AlertTitle>
+                                  <AlertTitle className="text-gradient">{alert.product?.product_name}</AlertTitle>
                                   <AlertDescription className="text-gray-400">
                                       Current: {alert.product?.stock_quantity} | Min: {alert.product?.min_stock_level}
                                   </AlertDescription>
@@ -176,7 +176,7 @@ const StockManagement = () => {
                           <Label>Notes</Label>
                           <Input className="bg-gray-800 border-gray-700" placeholder="Optional notes..." />
                       </div>
-                      <Button className="w-full bg-blue-600">Update Stock</Button>
+                      <Button className="w-full bg-orange-500 hover:bg-orange-600">Update Stock</Button>
                   </CardContent>
               </Card>
           </TabsContent>

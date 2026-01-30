@@ -31,10 +31,10 @@ const SupplierServices = ({ supplierId }) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-white">Services Catalog</h3>
+        <h3 className="text-lg font-semibold text-gradient">Services Catalog</h3>
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+            <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
               <Plus className="mr-2 h-4 w-4" /> Add Service
             </Button>
           </DialogTrigger>
@@ -99,7 +99,7 @@ const SupplierServices = ({ supplierId }) => {
                  />
               </div>
 
-              <Button type="submit" className="w-full bg-blue-600">Save Service</Button>
+              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600">Save Service</Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -119,9 +119,9 @@ const SupplierServices = ({ supplierId }) => {
           <TableBody>
             {services.map((service) => (
               <TableRow key={service.id} className="border-gray-800">
-                <TableCell className="font-medium text-white">{service.service_name}</TableCell>
+                <TableCell className="font-medium text-gradient">{service.service_name}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="border-blue-500/30 text-blue-400 capitalize">
+                  <Badge variant="outline" className="border-orange-500/30 text-orange-400 capitalize">
                     {service.pricing_type}
                   </Badge>
                 </TableCell>
