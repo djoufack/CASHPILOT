@@ -61,11 +61,30 @@ export const useCompany = () => {
       setSaving(true);
       setError(null);
 
-      const payload = {
-        ...companyData,
-        user_id: user.id,
+      // Explicit field whitelist — only send columns that exist in the DB
+      const companyFields = {
+        company_name: companyData.company_name || '',
+        company_type: companyData.company_type || 'freelance',
+        registration_number: companyData.registration_number || '',
+        tax_id: companyData.tax_id || '',
+        address: companyData.address || '',
+        city: companyData.city || '',
+        postal_code: companyData.postal_code || '',
+        country: companyData.country || '',
+        phone: companyData.phone || '',
+        email: companyData.email || '',
+        website: companyData.website || '',
+        bank_name: companyData.bank_name || '',
+        bank_account: companyData.bank_account || '',
+        iban: companyData.iban || '',
+        swift: companyData.swift || '',
         updated_at: new Date().toISOString()
       };
+
+      // Ensure company_type is always a valid value
+      if (!['freelance', 'company'].includes(companyFields.company_type)) {
+        companyFields.company_type = 'freelance';
+      }
 
       let result;
 
@@ -73,7 +92,7 @@ export const useCompany = () => {
         // Update existing
         const { data, error } = await supabase
           .from('company')
-          .update(payload)
+          .update(companyFields)
           .eq('id', company.id)
           .select()
           .single();
@@ -82,10 +101,9 @@ export const useCompany = () => {
         result = data;
       } else {
         // Create new
-        payload.created_at = new Date().toISOString();
         const { data, error } = await supabase
           .from('company')
-          .insert([payload])
+          .insert([{ ...companyFields, user_id: user.id, created_at: new Date().toISOString() }])
           .select()
           .single();
 
