@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { COUNTRIES } from '@/constants/countries';
 import { Loader2, Upload, Trash2, Camera, Building2, MapPin, FileText, CreditCard, Globe } from 'lucide-react';
 
 const CompanySettings = () => {
@@ -229,14 +230,10 @@ const CompanySettings = () => {
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                     <SelectValue placeholder="Sélectionner" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                    <SelectItem value="FR">France</SelectItem>
-                    <SelectItem value="BE">Belgique</SelectItem>
-                    <SelectItem value="CH">Suisse</SelectItem>
-                    <SelectItem value="CA">Canada</SelectItem>
-                    <SelectItem value="US">États-Unis</SelectItem>
-                    <SelectItem value="DE">Allemagne</SelectItem>
-                    <SelectItem value="UK">Royaume-Uni</SelectItem>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
+                    {COUNTRIES.map(c => (
+                      <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

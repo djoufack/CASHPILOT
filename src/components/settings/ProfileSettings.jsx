@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { COUNTRIES } from '@/constants/countries';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, Upload, Trash2, PenTool, Bug, RefreshCw, CheckCircle2, XCircle, Camera, Lock } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
@@ -388,12 +389,10 @@ const ProfileSettings = () => {
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                     <SelectValue placeholder="Select Country" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                    <SelectItem value="US">United States</SelectItem>
-                    <SelectItem value="CA">Canada</SelectItem>
-                    <SelectItem value="FR">France</SelectItem>
-                    <SelectItem value="UK">United Kingdom</SelectItem>
-                    <SelectItem value="DE">Germany</SelectItem>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
+                    {COUNTRIES.map(c => (
+                      <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
