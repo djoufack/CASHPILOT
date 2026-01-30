@@ -1,42 +1,101 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 
-const MOCK_MEMBERS = [
-  { id: 1, name: 'Alice Admin', email: 'alice@example.com', role: 'admin', joined_at: '2023-01-15' },
-  { id: 2, name: 'Bob Builder', email: 'bob@example.com', role: 'manager', joined_at: '2023-03-20' },
-  { id: 3, name: 'Charlie Client', email: 'charlie@client.com', role: 'viewer', joined_at: '2023-06-10' }
-];
-
 export const useTeamSettings = () => {
-  const [members, setMembers] = useState(MOCK_MEMBERS);
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
 
-  const addMember = async (email, role) => {
+  useEffect(() => {
+    if (user) fetchMembers();
+  }, [user]);
+
+  const fetchMembers = async () => {
+    if (!supabase) return;
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setMembers(data || []);
+    } catch (err) {
+      console.warn('Error fetching team members:', err.message);
+      setMembers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addMember = async (email, role) => {
+    if (!user || !supabase) return;
+    setLoading(true);
+    try {
       const newMember = {
-        id: Date.now(),
-        name: email.split('@')[0], // Placeholder name
+        user_id: user.id,
+        name: email.split('@')[0],
         email,
         role,
         joined_at: new Date().toISOString().split('T')[0]
       };
-      setMembers([...members, newMember]);
+
+      const { data, error } = await supabase
+        .from('team_members')
+        .insert([newMember])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setMembers([...members, data]);
+      toast({ title: "Invitation envoyée", description: `Invitation envoyée à ${email}` });
+    } catch (err) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
       setLoading(false);
-      toast({ title: "Invitation Sent", description: `Invitation sent to ${email}` });
-    }, 1000);
+    }
   };
 
   const updateMember = async (id, updates) => {
-    setMembers(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
-    toast({ title: "Member Updated", description: "Team member role updated." });
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setMembers(prev => prev.map(m => m.id === id ? data : m));
+      toast({ title: "Membre mis à jour", description: "Le rôle du membre a été modifié." });
+    } catch (err) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    }
   };
 
   const deleteMember = async (id) => {
-    setMembers(prev => prev.filter(m => m.id !== id));
-    toast({ title: "Member Removed", description: "User removed from the team." });
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setMembers(prev => prev.filter(m => m.id !== id));
+      toast({ title: "Membre supprimé", description: "L'utilisateur a été retiré de l'équipe." });
+    } catch (err) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    }
   };
 
   return {

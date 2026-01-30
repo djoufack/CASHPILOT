@@ -4,8 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 
-// Mock data for initial UI dev since backend tables might not exist yet
-const MOCK_BILLING = {
+const EMPTY_BILLING = {
   company_name: '',
   address: '',
   city: '',
@@ -15,83 +14,120 @@ const MOCK_BILLING = {
   siret: ''
 };
 
-const MOCK_PAYMENT_METHODS = [
-  { id: 1, brand: 'Visa', last4: '4242', exp_month: 12, exp_year: 2024, is_default: true }
-];
-
-const MOCK_INVOICES = [
-  { id: 1, date: '2023-11-01', amount: 29.00, status: 'paid', pdf_url: '#' },
-  { id: 2, date: '2023-10-01', amount: 29.00, status: 'paid', pdf_url: '#' }
-];
-
 export const useBillingSettings = () => {
   const { user } = useAuth();
-  const [billingInfo, setBillingInfo] = useState(MOCK_BILLING);
-  const [paymentMethods, setPaymentMethods] = useState(MOCK_PAYMENT_METHODS);
-  const [invoices, setInvoices] = useState(MOCK_INVOICES);
-  const [subscription, setSubscription] = useState({ plan: 'Pro', price: 29.00, interval: 'month', next_billing: '2023-12-01' });
+  const [billingInfo, setBillingInfo] = useState(EMPTY_BILLING);
+  const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [dbRecord, setDbRecord] = useState(null);
   const { toast } = useToast();
 
-  // In a real app, use useEffect to fetch data from Supabase here
-  // For now, we simulate fetching
+  useEffect(() => {
+    if (user) fetchBilling();
+  }, [user]);
+
+  const fetchBilling = async () => {
+    if (!supabase) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('billing_info')
+        .select('*')
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setDbRecord(data);
+        setBillingInfo({
+          company_name: data.company_name || '',
+          address: data.address || '',
+          city: data.city || '',
+          postal_code: data.postal_code || '',
+          country: data.country || '',
+          vat_number: data.vat_number || '',
+          siret: data.siret || ''
+        });
+        if (data.plan && data.plan !== 'free') {
+          setSubscription({
+            plan: data.plan,
+            price: data.plan_price || 0,
+            interval: data.plan_interval || 'month',
+            next_billing: data.next_billing_date || ''
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Error fetching billing info:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const updateBilling = async (data) => {
+    if (!user || !supabase) return;
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const payload = { ...data, user_id: user.id };
+
+      if (dbRecord?.id) {
+        const { data: updated, error } = await supabase
+          .from('billing_info')
+          .update(payload)
+          .eq('id', dbRecord.id)
+          .select()
+          .single();
+        if (error) throw error;
+        setDbRecord(updated);
+      } else {
+        const { data: created, error } = await supabase
+          .from('billing_info')
+          .insert([payload])
+          .select()
+          .single();
+        if (error) throw error;
+        setDbRecord(created);
+      }
+
       setBillingInfo(data);
+      toast({ title: "Facturation mise à jour", description: "Vos informations de facturation ont été sauvegardées." });
+    } catch (err) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
       setLoading(false);
-      toast({ title: "Billing Updated", description: "Your billing information has been saved." });
-    }, 1000);
-  };
-
-  const addPaymentMethod = async (cardDetails) => {
-    setLoading(true);
-    setTimeout(() => {
-      const newCard = { 
-        id: Date.now(), 
-        brand: 'Mastercard', 
-        last4: cardDetails.number.slice(-4), 
-        exp_month: 12, 
-        exp_year: 2025, 
-        is_default: false 
-      };
-      setPaymentMethods([...paymentMethods, newCard]);
-      setLoading(false);
-      toast({ title: "Card Added", description: "New payment method added successfully." });
-    }, 1000);
-  };
-
-  const deletePaymentMethod = async (id) => {
-    setPaymentMethods(prev => prev.filter(pm => pm.id !== id));
-    toast({ title: "Card Removed", description: "Payment method has been removed." });
-  };
-
-  const setDefaultPaymentMethod = async (id) => {
-    setPaymentMethods(prev => prev.map(pm => ({ ...pm, is_default: pm.id === id })));
-    toast({ title: "Default Updated", description: "Default payment method updated." });
+    }
   };
 
   const cancelSubscription = async () => {
+    if (!dbRecord?.id || !supabase) return;
     setLoading(true);
-    setTimeout(() => {
-        setSubscription(null); // Or status: cancelled
-        setLoading(false);
-        toast({ title: "Subscription Cancelled", description: "Your subscription has been cancelled." });
-    }, 1000);
+    try {
+      const { error } = await supabase
+        .from('billing_info')
+        .update({ plan: 'free', plan_price: 0, next_billing_date: null })
+        .eq('id', dbRecord.id);
+
+      if (error) throw error;
+
+      setSubscription(null);
+      toast({ title: "Abonnement annulé", description: "Votre abonnement a été annulé." });
+    } catch (err) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {
     billingInfo,
-    paymentMethods,
-    invoices,
+    paymentMethods: [],
+    invoices: [],
     subscription,
     loading,
     updateBilling,
-    addPaymentMethod,
-    deletePaymentMethod,
-    setDefaultPaymentMethod,
+    addPaymentMethod: async () => { toast({ title: "Info", description: "L'intégration de paiement sera disponible prochainement." }); },
+    deletePaymentMethod: async () => {},
+    setDefaultPaymentMethod: async () => {},
     cancelSubscription
   };
 };

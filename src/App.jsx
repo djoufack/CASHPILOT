@@ -10,6 +10,7 @@ import TimesheetsPage from './pages/TimesheetsPage';
 import InvoicesPage from './pages/InvoicesPage';
 import QuotesPage from './pages/QuotesPage';
 import ExpensesPage from './pages/ExpensesPage';
+import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
 import ClientProfile from './pages/ClientProfile';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
@@ -82,6 +83,7 @@ const AuthWrapper = () => {
                 <Route path="/invoices" element={<InvoicesPage />} />
                 <Route path="/quotes" element={<QuotesPage />} />
                 <Route path="/expenses" element={<ExpensesPage />} />
+                <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
 
                 {/* Supplier Routes */}
                 <Route path="/suppliers" element={<SuppliersPage />} />
