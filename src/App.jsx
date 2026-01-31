@@ -85,9 +85,12 @@ const AuthWrapper = () => {
                 <Route path="/expenses" element={<ExpensesPage />} />
                 <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
 
+                {/* Stock (produits du User) */}
+                <Route path="/stock" element={<StockManagement />} />
+                <Route path="/suppliers/stock" element={<Navigate to="/stock" replace />} />
+
                 {/* Supplier Routes */}
                 <Route path="/suppliers" element={<SuppliersPage />} />
-                <Route path="/suppliers/stock" element={<StockManagement />} />
                 <Route path="/suppliers/reports" element={<SupplierReports />} />
                 <Route path="/suppliers/accounting" element={<AccountingIntegration />} />
                 <Route path="/suppliers/:id" element={<SupplierProfile />} />
