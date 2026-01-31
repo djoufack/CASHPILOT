@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, Download } from 'lucide-react';
+import { useProducts } from '@/hooks/useProducts';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const SupplierProducts = ({ supplierId }) => {
   const { products, categories, createProduct, deleteProduct } = useSupplierProducts(supplierId);
+  const { importFromSupplier } = useProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     product_name: '',
@@ -32,7 +34,7 @@ const SupplierProducts = ({ supplierId }) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gradient">Products Catalog</h3>
+        <h3 className="text-lg font-semibold text-gradient">Catalogue Fournisseur</h3>
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="bg-green-600 hover:bg-green-700">
@@ -147,10 +149,19 @@ const SupplierProducts = ({ supplierId }) => {
                       {isLowStock && <AlertTriangle className="h-3 w-3 text-red-500 animate-pulse" />}
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                  <TableCell className="text-right space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => importFromSupplier({ ...product, supplier_id: supplierId })}
+                      className="text-green-400 hover:text-green-300"
+                      title="Importer vers mon stock"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => deleteProduct(product.id)}
                       className="text-red-400 hover:text-red-300"
                     >

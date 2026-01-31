@@ -31,8 +31,8 @@ const SupplierStats = () => {
       // 1. Suppliers
       const { count: suppliersCount } = await supabase.from('suppliers').select('*', { count: 'exact', head: true });
       
-      // 2. Products & Low Stock
-      const { data: products } = await supabase.from('supplier_products').select('stock_quantity, min_stock_level');
+      // 2. Products & Low Stock (from user's own products table)
+      const { data: products } = await supabase.from('products').select('stock_quantity, min_stock_level');
       const totalProducts = products?.length || 0;
       const lowStock = products?.filter(p => p.stock_quantity <= p.min_stock_level).length || 0;
 
@@ -56,36 +56,36 @@ const SupplierStats = () => {
 
   return (
     <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6 md:mb-8">
-      <StatCard 
-        title="Total Suppliers" 
-        value={stats.totalSuppliers} 
-        icon={Users} 
+      <StatCard
+        title="Fournisseurs"
+        value={stats.totalSuppliers}
+        icon={Users}
         color="text-orange-400"
       />
-      <StatCard 
-        title="Total Products" 
-        value={stats.totalProducts} 
-        icon={Package} 
-        color="text-green-500" 
+      <StatCard
+        title="Mes Produits"
+        value={stats.totalProducts}
+        icon={Package}
+        color="text-green-500"
       />
-      <StatCard 
-        title="Low Stock Items" 
-        value={stats.lowStock} 
-        icon={AlertTriangle} 
-        color="text-red-500" 
-        subtext="Requires attention"
+      <StatCard
+        title="Stock bas"
+        value={stats.lowStock}
+        icon={AlertTriangle}
+        color="text-red-500"
+        subtext="Nécessite attention"
       />
-      <StatCard 
-        title="Pending Orders" 
-        value={stats.pendingOrders} 
-        icon={ShoppingCart} 
-        color="text-yellow-500" 
+      <StatCard
+        title="Commandes en cours"
+        value={stats.pendingOrders}
+        icon={ShoppingCart}
+        color="text-yellow-500"
       />
-      <StatCard 
-        title="Overdue Invoices" 
-        value={stats.overdueInvoices} 
-        icon={FileText} 
-        color="text-orange-500" 
+      <StatCard
+        title="Factures en retard"
+        value={stats.overdueInvoices}
+        icon={FileText}
+        color="text-orange-500"
       />
     </div>
   );

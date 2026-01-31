@@ -7,8 +7,8 @@ import { Menu } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import { useTranslation } from 'react-i18next';
 import {
-  LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature, 
-  Truck, Archive, BarChart3, Calculator, PieChart, Settings
+  LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
+  Truck, Package, BarChart3, Calculator, PieChart, Settings
 } from 'lucide-react';
 
 const MainLayout = () => {
@@ -46,11 +46,11 @@ const MainLayout = () => {
     { path: '/timesheets', label: t('nav.timesheets') || 'Timesheets', icon: Clock },
     { path: '/invoices', label: t('nav.invoices') || 'Invoices', icon: FileText },
     { path: '/quotes', label: t('nav.quotes') || 'Quotes', icon: FileSignature },
-    { type: 'separator', label: 'Supplier Management' },
-    { path: '/suppliers', label: 'Suppliers', icon: Truck },
-    { path: '/suppliers/stock', label: 'Stock', icon: Archive },
-    { path: '/suppliers/reports', label: 'Reports', icon: BarChart3 },
-    { path: '/suppliers/accounting', label: 'Accounting', icon: Calculator },
+    { path: '/stock', label: 'Stock', icon: Package },
+    { type: 'separator', label: 'Gestion Fournisseurs' },
+    { path: '/suppliers', label: 'Fournisseurs', icon: Truck },
+    { path: '/suppliers/reports', label: 'Rapports', icon: BarChart3 },
+    { path: '/suppliers/accounting', label: 'Comptabilité', icon: Calculator },
     { type: 'separator', label: 'System' },
     { path: '/analytics', label: t('nav.analytics') || 'Analytics', icon: PieChart },
     { path: '/settings', label: 'Settings', icon: Settings },
