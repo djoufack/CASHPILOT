@@ -7,10 +7,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Upload, Search, FileText } from 'lucide-react';
+import { Plus, Trash2, Upload, Search, FileText, BookOpen, Loader2 } from 'lucide-react';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
 import { Card, CardContent } from '@/components/ui/card';
 import CSVImportModal from './CSVImportModal';
+import pcgBelge from '@/data/pcg-belge.json';
 
 const TYPE_LABELS = {
   asset: { label: 'Actif', color: 'bg-blue-500/20 text-blue-400' },
@@ -24,6 +25,8 @@ const ChartOfAccounts = () => {
   const { accounts, fetchAccounts, createAccount, bulkCreateAccounts, deleteAccount, loading } = useAccounting();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showPresetConfirm, setShowPresetConfirm] = useState(false);
+  const [presetLoading, setPresetLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [formData, setFormData] = useState({
@@ -58,6 +61,18 @@ const ChartOfAccounts = () => {
   const handleCSVImport = async (accountsData) => {
     const result = await bulkCreateAccounts(accountsData);
     return result;
+  };
+
+  const handleLoadPreset = async () => {
+    setPresetLoading(true);
+    try {
+      await bulkCreateAccounts(pcgBelge);
+      setShowPresetConfirm(false);
+    } catch (err) {
+      console.error('Erreur chargement plan comptable:', err);
+    } finally {
+      setPresetLoading(false);
+    }
   };
 
   const columns = [
@@ -109,6 +124,9 @@ const ChartOfAccounts = () => {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => setShowPresetConfirm(true)} className="border-gray-700 text-gray-300 hover:text-white hover:border-purple-500">
+            <BookOpen className="w-4 h-4 mr-2" /> Plan comptable belge
+          </Button>
           <Button variant="outline" onClick={() => setShowImport(true)} className="border-gray-700 text-gray-300 hover:text-white hover:border-orange-500">
             <Upload className="w-4 h-4 mr-2" /> Importer CSV
           </Button>
@@ -223,6 +241,74 @@ const ChartOfAccounts = () => {
         onOpenChange={setShowImport}
         onImport={handleCSVImport}
       />
+
+      {/* Preset Confirmation Dialog */}
+      <Dialog open={showPresetConfirm} onOpenChange={setShowPresetConfirm}>
+        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-lg w-full">
+          <DialogHeader>
+            <DialogTitle className="text-gradient flex items-center gap-2">
+              <BookOpen className="w-5 h-5" />
+              Plan Comptable Général Belge
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-gray-300 text-sm">
+              Vous allez charger le <strong>Plan Comptable Général Belge 2021</strong> contenant <strong>993 comptes</strong> répartis en 7 classes :
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center gap-2 bg-purple-500/10 px-3 py-2 rounded">
+                <Badge className="bg-purple-500/20 text-purple-400 text-[10px]">Classe 1</Badge>
+                <span className="text-gray-300">Capitaux</span>
+              </div>
+              <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-2 rounded">
+                <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">Classe 2</Badge>
+                <span className="text-gray-300">Immobilisations</span>
+              </div>
+              <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-2 rounded">
+                <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">Classe 3</Badge>
+                <span className="text-gray-300">Stocks</span>
+              </div>
+              <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-2 rounded">
+                <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">Classe 4</Badge>
+                <span className="text-gray-300">Tiers</span>
+              </div>
+              <div className="flex items-center gap-2 bg-blue-500/10 px-3 py-2 rounded">
+                <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">Classe 5</Badge>
+                <span className="text-gray-300">Trésorerie</span>
+              </div>
+              <div className="flex items-center gap-2 bg-orange-500/10 px-3 py-2 rounded">
+                <Badge className="bg-orange-500/20 text-orange-400 text-[10px]">Classe 6</Badge>
+                <span className="text-gray-300">Charges</span>
+              </div>
+              <div className="flex items-center gap-2 bg-green-500/10 px-3 py-2 rounded">
+                <Badge className="bg-green-500/20 text-green-400 text-[10px]">Classe 7</Badge>
+                <span className="text-gray-300">Produits</span>
+              </div>
+            </div>
+            <p className="text-gray-400 text-xs">
+              Les comptes existants avec le même code seront mis à jour. Les nouveaux comptes seront ajoutés.
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setShowPresetConfirm(false)} className="border-gray-600 text-gray-300">
+                Annuler
+              </Button>
+              <Button onClick={handleLoadPreset} disabled={presetLoading} className="bg-purple-600 hover:bg-purple-700">
+                {presetLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Chargement...
+                  </>
+                ) : (
+                  <>
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Charger les 993 comptes
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
