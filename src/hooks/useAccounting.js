@@ -162,6 +162,32 @@ export const useAccounting = () => {
     }
   };
 
+  const bulkCreateMappings = async (mappingsArray) => {
+    if (!user || !mappingsArray?.length) return { count: 0 };
+    setLoading(true);
+    try {
+      const payload = mappingsArray.map(m => ({
+        ...m,
+        user_id: user.id
+      }));
+
+      const { data, error } = await supabase
+        .from('accounting_mappings')
+        .upsert(payload, { onConflict: 'user_id,source_type,source_category', ignoreDuplicates: false })
+        .select();
+
+      if (error) throw error;
+      await fetchMappings();
+      toast({ title: "Succès", description: `${data?.length || 0} mappings importés` });
+      return { count: data?.length || 0 };
+    } catch (err) {
+      toast({ title: "Erreur d'import", description: err.message, variant: "destructive" });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const deleteMapping = async (id) => {
     try {
       const { error } = await supabase.from('accounting_mappings').delete().eq('id', id);
@@ -261,7 +287,7 @@ export const useAccounting = () => {
   return {
     loading,
     accounts, fetchAccounts, createAccount, updateAccount, deleteAccount, bulkCreateAccounts,
-    mappings, fetchMappings, createMapping, updateMapping, deleteMapping,
+    mappings, fetchMappings, createMapping, updateMapping, deleteMapping, bulkCreateMappings,
     taxRates, fetchTaxRates, createTaxRate, updateTaxRate, deleteTaxRate,
     entries, fetchEntries
   };

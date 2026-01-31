@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, AlertTriangle, ArrowRight, Settings } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, ArrowRight, Settings, Zap, Loader2 } from 'lucide-react';
 
 const SOURCE_TYPES = [
   { value: 'invoice', label: 'Facture client (vente)' },
@@ -25,9 +25,40 @@ const EXPENSE_CATEGORIES = [
 const INVOICE_CATEGORIES = ['revenue', 'service', 'product'];
 const SUPPLIER_CATEGORIES = ['purchase', 'service', 'supply'];
 
+// Preset mappings Belgique — PCG belge
+const BELGIAN_MAPPINGS = [
+  // Factures clients (ventes) → Débit: Clients / Crédit: Produits
+  { source_type: 'invoice', source_category: 'revenue', debit_account_code: '400', credit_account_code: '700', description: 'Ventes de marchandises' },
+  { source_type: 'invoice', source_category: 'service', debit_account_code: '400', credit_account_code: '7061', description: 'Prestations de services' },
+  { source_type: 'invoice', source_category: 'product', debit_account_code: '400', credit_account_code: '701', description: 'Ventes de produits finis' },
+  // Dépenses → Débit: Charge / Crédit: Banque
+  { source_type: 'expense', source_category: 'general', debit_account_code: '6180', credit_account_code: '512', description: 'Frais généraux divers' },
+  { source_type: 'expense', source_category: 'office', debit_account_code: '6064', credit_account_code: '512', description: 'Fournitures administratives' },
+  { source_type: 'expense', source_category: 'travel', debit_account_code: '6251', credit_account_code: '512', description: 'Voyages et déplacements' },
+  { source_type: 'expense', source_category: 'meals', debit_account_code: '6257', credit_account_code: '512', description: 'Réceptions et frais de repas' },
+  { source_type: 'expense', source_category: 'transport', debit_account_code: '6241', credit_account_code: '512', description: 'Transport de biens et matériel' },
+  { source_type: 'expense', source_category: 'software', debit_account_code: '6116', credit_account_code: '512', description: 'Logiciels et abonnements numériques' },
+  { source_type: 'expense', source_category: 'hardware', debit_account_code: '6063', credit_account_code: '512', description: 'Matériel informatique (petit équipement)' },
+  { source_type: 'expense', source_category: 'marketing', debit_account_code: '6231', credit_account_code: '512', description: 'Publicité et marketing' },
+  { source_type: 'expense', source_category: 'legal', debit_account_code: '6226', credit_account_code: '512', description: 'Honoraires juridiques et comptables' },
+  { source_type: 'expense', source_category: 'insurance', debit_account_code: '616', credit_account_code: '512', description: 'Primes d\'assurance' },
+  { source_type: 'expense', source_category: 'rent', debit_account_code: '6132', credit_account_code: '512', description: 'Loyers immobiliers' },
+  { source_type: 'expense', source_category: 'utilities', debit_account_code: '6061', credit_account_code: '512', description: 'Énergie (eau, gaz, électricité)' },
+  { source_type: 'expense', source_category: 'telecom', debit_account_code: '626', credit_account_code: '512', description: 'Téléphone et Internet' },
+  { source_type: 'expense', source_category: 'training', debit_account_code: '6333', credit_account_code: '512', description: 'Formation professionnelle' },
+  { source_type: 'expense', source_category: 'consulting', debit_account_code: '6226', credit_account_code: '512', description: 'Honoraires de conseil' },
+  { source_type: 'expense', source_category: 'other', debit_account_code: '658', credit_account_code: '512', description: 'Charges diverses de gestion' },
+  // Factures fournisseurs → Débit: Charge / Crédit: Fournisseurs
+  { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '601', credit_account_code: '401', description: 'Achats de matières et marchandises' },
+  { source_type: 'supplier_invoice', source_category: 'service', debit_account_code: '604', credit_account_code: '401', description: 'Achats de prestations de services' },
+  { source_type: 'supplier_invoice', source_category: 'supply', debit_account_code: '6022', credit_account_code: '401', description: 'Achats de fournitures consommables' },
+];
+
 const AccountingMappings = () => {
-  const { accounts, mappings, fetchAccounts, fetchMappings, createMapping, deleteMapping } = useAccounting();
+  const { accounts, mappings, fetchAccounts, fetchMappings, createMapping, deleteMapping, bulkCreateMappings, loading } = useAccounting();
   const [showDialog, setShowDialog] = useState(false);
+  const [showPresetConfirm, setShowPresetConfirm] = useState(false);
+  const [presetLoading, setPresetLoading] = useState(false);
   const [form, setForm] = useState({
     source_type: '',
     source_category: '',
@@ -66,6 +97,18 @@ const AccountingMappings = () => {
     setForm({ source_type: '', source_category: '', debit_account_code: '', credit_account_code: '', description: '' });
   };
 
+  const handleLoadBelgianPreset = async () => {
+    setPresetLoading(true);
+    try {
+      await bulkCreateMappings(BELGIAN_MAPPINGS);
+      setShowPresetConfirm(false);
+    } catch (err) {
+      console.error('Erreur chargement preset mappings:', err);
+    } finally {
+      setPresetLoading(false);
+    }
+  };
+
   const unmappedCategories = () => {
     const mapped = new Set(mappings.map(m => `${m.source_type}:${m.source_category}`));
     const unmapped = [];
@@ -98,14 +141,19 @@ const AccountingMappings = () => {
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <h3 className="text-lg font-bold text-white">Mappings comptables</h3>
           <p className="text-sm text-gray-400">Associez chaque catégorie de transaction à un compte du plan comptable.</p>
         </div>
-        <Button onClick={() => setShowDialog(true)} className="bg-orange-500 hover:bg-orange-600">
-          <Plus className="w-4 h-4 mr-2" /> Ajouter un mapping
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowPresetConfirm(true)} className="border-gray-700 text-gray-300 hover:text-white hover:border-purple-500">
+            <Zap className="w-4 h-4 mr-2" /> Preset Belgique
+          </Button>
+          <Button onClick={() => setShowDialog(true)} className="bg-orange-500 hover:bg-orange-600">
+            <Plus className="w-4 h-4 mr-2" /> Ajouter un mapping
+          </Button>
+        </div>
       </div>
 
       {/* Mappings list */}
@@ -225,6 +273,59 @@ const AccountingMappings = () => {
               Créer le mapping
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Belgian Preset Confirmation Dialog */}
+      <Dialog open={showPresetConfirm} onOpenChange={setShowPresetConfirm}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-gradient flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              Mappings Belgique — PCG belge
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-gray-300 text-sm">
+              Chargement de <strong>{BELGIAN_MAPPINGS.length} mappings</strong> pré-configurés pour le Plan Comptable Général belge :
+            </p>
+            <div className="space-y-3 text-xs">
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                <p className="text-green-400 font-medium mb-1">Factures clients (ventes)</p>
+                <p className="text-gray-400">revenue → 400/700 · service → 400/7061 · product → 400/701</p>
+              </div>
+              <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
+                <p className="text-orange-400 font-medium mb-1">Dépenses (16 catégories)</p>
+                <p className="text-gray-400">Bureau, loyer, logiciels, déplacements, marketing, assurances, télécom, formation…</p>
+                <p className="text-gray-500 mt-1">Débit: compte de charge (classe 6) / Crédit: 512 Banque</p>
+              </div>
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                <p className="text-red-400 font-medium mb-1">Factures fournisseurs (achats)</p>
+                <p className="text-gray-400">purchase → 601/401 · service → 604/401 · supply → 6022/401</p>
+              </div>
+            </div>
+            <p className="text-gray-400 text-xs">
+              Les mappings existants avec la même catégorie seront mis à jour. Vous pouvez les modifier ensuite individuellement.
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setShowPresetConfirm(false)} className="border-gray-700">
+                Annuler
+              </Button>
+              <Button onClick={handleLoadBelgianPreset} disabled={presetLoading} className="bg-purple-600 hover:bg-purple-700">
+                {presetLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Chargement...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" />
+                    Charger les {BELGIAN_MAPPINGS.length} mappings
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
