@@ -20,10 +20,13 @@ const PRESETS = {
     { name: 'TVA déductible 10%', rate: 0.1, tax_type: 'input', account_code: '445660' },
   ],
   belgique: [
-    { name: 'TVA 21% (normal)', rate: 0.21, tax_type: 'output', account_code: '451000' },
-    { name: 'TVA 12% (intermédiaire)', rate: 0.12, tax_type: 'output', account_code: '451000' },
-    { name: 'TVA 6% (réduit)', rate: 0.06, tax_type: 'output', account_code: '451000' },
-    { name: 'TVA déductible 21%', rate: 0.21, tax_type: 'input', account_code: '411000' },
+    { name: 'TVA 21% collectée (normal)', rate: 0.21, tax_type: 'output', account_code: '4513' },
+    { name: 'TVA 12% collectée (intermédiaire)', rate: 0.12, tax_type: 'output', account_code: '4513' },
+    { name: 'TVA 6% collectée (réduit)', rate: 0.06, tax_type: 'output', account_code: '4513' },
+    { name: 'TVA 0% (exonéré)', rate: 0.0, tax_type: 'output', account_code: '4513' },
+    { name: 'TVA 21% déductible (achats)', rate: 0.21, tax_type: 'input', account_code: '4111' },
+    { name: 'TVA 12% déductible (achats)', rate: 0.12, tax_type: 'input', account_code: '4111' },
+    { name: 'TVA 6% déductible (achats)', rate: 0.06, tax_type: 'input', account_code: '4111' },
   ]
 };
 
