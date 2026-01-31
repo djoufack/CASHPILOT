@@ -50,6 +50,7 @@
     "jspdf": "^2.5.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.292.0",
+    "pdfjs-dist": "^5.4.530",
     "react": "^18.2.0",
     "react-big-calendar": "^1.8.5",
     "react-day-picker": "^8.9.1",
@@ -64,6 +65,7 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^9.0.1",
     "workbox-window": "^7.0.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.22.4"
   },
   "devDependencies": {
