@@ -36,13 +36,69 @@ CREATE TABLE IF NOT EXISTS public.products (
 ALTER TABLE public.invoice_items
     ADD COLUMN IF NOT EXISTS product_id UUID REFERENCES public.products(id) ON DELETE SET NULL;
 
--- 4. Ajouter user_product_id sur product_stock_history (nouveau FK vers products)
-ALTER TABLE public.product_stock_history
-    ADD COLUMN IF NOT EXISTS user_product_id UUID REFERENCES public.products(id) ON DELETE CASCADE;
+-- 4. Table historique des mouvements de stock
+CREATE TABLE IF NOT EXISTS public.product_stock_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    product_id UUID,
+    user_product_id UUID REFERENCES public.products(id) ON DELETE CASCADE,
+    previous_quantity DECIMAL(14,2) DEFAULT 0,
+    new_quantity DECIMAL(14,2) DEFAULT 0,
+    change_quantity DECIMAL(14,2) DEFAULT 0,
+    reason TEXT,
+    notes TEXT,
+    order_id UUID,
+    created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- 5. Ajouter user_product_id sur stock_alerts (nouveau FK vers products)
-ALTER TABLE public.stock_alerts
-    ADD COLUMN IF NOT EXISTS user_product_id UUID REFERENCES public.products(id) ON DELETE CASCADE;
+-- 5. Table des alertes de stock
+CREATE TABLE IF NOT EXISTS public.stock_alerts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    product_id UUID,
+    user_product_id UUID REFERENCES public.products(id) ON DELETE CASCADE,
+    alert_type TEXT CHECK (alert_type IN ('low_stock', 'out_of_stock', 'overstock')),
+    is_active BOOLEAN DEFAULT true,
+    resolved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS pour product_stock_history
+ALTER TABLE public.product_stock_history ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'product_stock_history' AND policyname = 'stock_history_select_own') THEN
+        CREATE POLICY "stock_history_select_own" ON public.product_stock_history
+            FOR SELECT USING (auth.uid() = created_by);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'product_stock_history' AND policyname = 'stock_history_insert_own') THEN
+        CREATE POLICY "stock_history_insert_own" ON public.product_stock_history
+            FOR INSERT WITH CHECK (auth.uid() = created_by);
+    END IF;
+END $$;
+
+-- RLS pour stock_alerts (via join products)
+ALTER TABLE public.stock_alerts ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'stock_alerts' AND policyname = 'stock_alerts_select_own') THEN
+        CREATE POLICY "stock_alerts_select_own" ON public.stock_alerts
+            FOR SELECT USING (
+                EXISTS (SELECT 1 FROM public.products WHERE products.id = stock_alerts.user_product_id AND products.user_id = auth.uid())
+            );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'stock_alerts' AND policyname = 'stock_alerts_insert_own') THEN
+        CREATE POLICY "stock_alerts_insert_own" ON public.stock_alerts
+            FOR INSERT WITH CHECK (
+                EXISTS (SELECT 1 FROM public.products WHERE products.id = stock_alerts.user_product_id AND products.user_id = auth.uid())
+            );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'stock_alerts' AND policyname = 'stock_alerts_update_own') THEN
+        CREATE POLICY "stock_alerts_update_own" ON public.stock_alerts
+            FOR UPDATE USING (
+                EXISTS (SELECT 1 FROM public.products WHERE products.id = stock_alerts.user_product_id AND products.user_id = auth.uid())
+            );
+    END IF;
+END $$;
 
 -- ============================================================
 -- RLS Policies
