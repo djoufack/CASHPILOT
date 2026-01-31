@@ -44,7 +44,7 @@ export const useAccountingData = (startDate, endDate) => {
       const [invRes, expRes, supRes, accRes, mapRes, taxRes] = await Promise.all([
         supabase.from('invoices').select('*').order('date', { ascending: false }),
         supabase.from('expenses').select('*').order('date', { ascending: false }),
-        supabase.from('supplier_invoices').select('*').order('created_at', { ascending: false }).catch(() => ({ data: [], error: null })),
+        (async () => { try { return await supabase.from('supplier_invoices').select('*').order('created_at', { ascending: false }); } catch { return { data: [], error: null }; } })(),
         supabase.from('accounting_chart_of_accounts').select('*').order('account_code', { ascending: true }),
         supabase.from('accounting_mappings').select('*'),
         supabase.from('accounting_tax_rates').select('*')
