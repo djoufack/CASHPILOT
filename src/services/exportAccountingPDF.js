@@ -199,3 +199,92 @@ export async function exportTaxEstimationPDF(taxData, companyInfo, period) {
   const el = createContainer(html);
   await generatePDF(el, `Estimation_Impot_${period?.endDate || 'export'}.pdf`);
 }
+
+// ============================================================================
+// BANK RECONCILIATION PDF
+// ============================================================================
+
+export async function exportReconciliationPDF(reconciliationData, companyInfo, period) {
+  const {
+    bankName, accountNumber,
+    openingBalance, closingBalance,
+    totalLines, matchedLines, unmatchedLines, ignoredLines,
+    totalCredits, totalDebits, matchedCredits, matchedDebits,
+    difference, unmatchedDetails = []
+  } = reconciliationData;
+
+  const matchRate = totalLines > 0 ? Math.round((matchedLines / totalLines) * 1000) / 10 : 0;
+
+  const unmatchedRows = unmatchedDetails.slice(0, 30).map(line => `
+    <tr>
+      <td style="padding:6px 5px;font-size:10px;">${line.transaction_date ? new Date(line.transaction_date).toLocaleDateString('fr-FR') : '—'}</td>
+      <td style="padding:6px 5px;font-size:10px;max-width:250px;overflow:hidden;text-overflow:ellipsis;">${line.description || '—'}</td>
+      <td style="padding:6px 5px;text-align:right;font-family:monospace;font-size:10px;color:${line.amount >= 0 ? '#16A34A' : '#DC2626'};">
+        ${formatAmount(line.amount)}
+      </td>
+    </tr>
+  `).join('');
+
+  const html = `
+    ${createHeader('Rapport de Rapprochement Bancaire', companyInfo, period)}
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:15px;">
+      <tr style="background:#F3F4F6;">
+        <td style="padding:10px;font-weight:bold;width:50%;">Banque</td>
+        <td style="padding:10px;">${bankName || '—'}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px;font-weight:bold;">Compte</td>
+        <td style="padding:10px;">${accountNumber || '—'}</td>
+      </tr>
+      ${openingBalance != null ? `<tr style="background:#F3F4F6;"><td style="padding:10px;font-weight:bold;">Solde initial</td><td style="padding:10px;font-family:monospace;">${formatAmount(openingBalance)}</td></tr>` : ''}
+      ${closingBalance != null ? `<tr><td style="padding:10px;font-weight:bold;">Solde final</td><td style="padding:10px;font-family:monospace;">${formatAmount(closingBalance)}</td></tr>` : ''}
+    </table>
+
+    <h2 style="font-size:14px;color:#F59E0B;margin:15px 0 8px;">Résumé du rapprochement</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:15px;">
+      <tr style="background:#F0FDF4;">
+        <td style="padding:8px;">Lignes rapprochées</td>
+        <td style="padding:8px;text-align:right;font-weight:bold;color:#16A34A;">${matchedLines} / ${totalLines} (${matchRate}%)</td>
+      </tr>
+      <tr style="background:#FFFBEB;">
+        <td style="padding:8px;">Lignes non rapprochées</td>
+        <td style="padding:8px;text-align:right;font-weight:bold;color:#D97706;">${unmatchedLines}</td>
+      </tr>
+      <tr style="background:#F3F4F6;">
+        <td style="padding:8px;">Lignes ignorées</td>
+        <td style="padding:8px;text-align:right;color:#6B7280;">${ignoredLines}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px;">Total crédits</td>
+        <td style="padding:8px;text-align:right;font-family:monospace;color:#16A34A;">${formatAmount(totalCredits)}</td>
+      </tr>
+      <tr style="background:#F3F4F6;">
+        <td style="padding:8px;">Total débits</td>
+        <td style="padding:8px;text-align:right;font-family:monospace;color:#DC2626;">${formatAmount(totalDebits)}</td>
+      </tr>
+      <tr style="border-top:2px solid #F59E0B;">
+        <td style="padding:10px;font-weight:bold;font-size:13px;">Écart non rapproché</td>
+        <td style="padding:10px;text-align:right;font-weight:bold;font-size:14px;font-family:monospace;color:${difference === 0 ? '#16A34A' : '#D97706'};">${formatAmount(difference)}</td>
+      </tr>
+    </table>
+
+    ${unmatchedDetails.length > 0 ? `
+      <h2 style="font-size:14px;color:#F59E0B;margin:15px 0 8px;">Détail des lignes non rapprochées</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:#F3F4F6;">
+            <th style="padding:6px 5px;text-align:left;font-size:10px;">Date</th>
+            <th style="padding:6px 5px;text-align:left;font-size:10px;">Libellé</th>
+            <th style="padding:6px 5px;text-align:right;font-size:10px;">Montant</th>
+          </tr>
+        </thead>
+        <tbody>${unmatchedRows}</tbody>
+      </table>
+      ${unmatchedDetails.length > 30 ? `<p style="font-size:9px;color:#9CA3AF;margin-top:5px;">... et ${unmatchedDetails.length - 30} autres lignes</p>` : ''}
+    ` : ''}
+  `;
+
+  const el = createContainer(html);
+  await generatePDF(el, `Rapprochement_Bancaire_${period?.endDate || 'export'}.pdf`);
+}

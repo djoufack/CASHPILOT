@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent } from 'lucide-react';
+import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark } from 'lucide-react';
 import { useAccountingData } from '@/hooks/useAccountingData';
 import { useCompany } from '@/hooks/useCompany';
 import PeriodSelector from '@/components/accounting/PeriodSelector';
@@ -13,6 +13,7 @@ import VATDeclaration from '@/components/accounting/VATDeclaration';
 import TaxEstimation from '@/components/accounting/TaxEstimation';
 import AccountingMappings from '@/components/accounting/AccountingMappings';
 import TaxRatesManager from '@/components/accounting/TaxRatesManager';
+import BankReconciliation from '@/components/accounting/BankReconciliation';
 import {
   exportBalanceSheetPDF,
   exportIncomeStatementPDF,
@@ -86,6 +87,7 @@ const AccountingIntegration = () => {
     { value: 'tax', label: 'Estimation impôt', icon: Calculator },
     { value: 'mappings', label: 'Mappings', icon: Settings },
     { value: 'rates', label: 'Taux de TVA', icon: Percent },
+    { value: 'reconciliation', label: 'Rapprochement', icon: Landmark },
   ];
 
   return (
@@ -206,6 +208,11 @@ const AccountingIntegration = () => {
           {/* Tax Rates */}
           <TabsContent value="rates" className="mt-6">
             <TaxRatesManager />
+          </TabsContent>
+
+          {/* Bank Reconciliation */}
+          <TabsContent value="reconciliation" className="mt-6">
+            <BankReconciliation period={period} />
           </TabsContent>
         </Tabs>
       )}
