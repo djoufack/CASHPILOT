@@ -562,6 +562,35 @@
       "cancelled": "Cancelled"
     }
   },
+  "creditsGuard": {
+    "insufficientCredits": "Insufficient Credits",
+    "description": "\"{{action}}\" requires {{required}} credits, but you only have {{available}} available.",
+    "thisAction": "This action",
+    "required": "Required",
+    "available": "Available",
+    "buyCredits": "Buy Credits"
+  },
+  "referrals": {
+    "shareTitle": "Invite Friends & Earn Credits",
+    "shareDescription": "Share your code — you both get 25 free credits!",
+    "copyLink": "Copy invitation link",
+    "codeCopied": "Referral code copied!",
+    "linkCopied": "Invitation link copied!",
+    "friendsReferred": "Friends referred",
+    "creditsEarned": "Credits earned",
+    "haveCode": "Have a referral code?",
+    "enterCode": "Enter code (e.g. CP-XXXXXXXX)",
+    "apply": "Apply",
+    "history": "Referral History",
+    "friendJoined": "Friend joined",
+    "pending": "Pending",
+    "bonusApplied": "+{{amount}} bonus credits applied!",
+    "selfReferral": "You cannot use your own referral code.",
+    "invalidCode": "Invalid referral code.",
+    "alreadyReferred": "You have already used a referral code.",
+    "showReferrals": "Referral Program",
+    "hideReferrals": "Hide Referrals"
+  },
   "errors": {
     "unauthorized": "You do not have permission to access this resource.",
     "notFound": "Resource not found.",

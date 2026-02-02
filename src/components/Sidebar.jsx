@@ -19,6 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import CreditsBalance from '@/components/CreditsBalance';
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const { t } = useTranslation();
@@ -169,6 +170,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           })}
         </TooltipProvider>
       </nav>
+
+      {/* Credits Balance */}
+      <div className="px-1 py-2 shrink-0">
+        <CreditsBalance isCollapsed={isCollapsed} />
+      </div>
 
       {/* Footer */}
       <div className="border-t border-gray-800/50 p-2 space-y-1 shrink-0">

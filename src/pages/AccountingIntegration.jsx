@@ -20,6 +20,8 @@ import {
   exportVATDeclarationPDF,
   exportTaxEstimationPDF
 } from '@/services/exportAccountingPDF';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
 
 const AccountingIntegration = () => {
   const now = new Date();
@@ -54,6 +56,8 @@ const AccountingIntegration = () => {
     refresh
   } = useAccountingData(period.startDate, period.endDate);
 
+  const { guardedAction, modalProps } = useCreditsGuard();
+
   const companyInfo = company ? {
     company_name: company.company_name || company.name || 'Ma Société',
     address: company.address,
@@ -61,21 +65,29 @@ const AccountingIntegration = () => {
     vat_number: company.vat_number
   } : { company_name: 'Ma Société' };
 
-  // PDF export handlers
+  // PDF export handlers — credit-guarded
   const handleExportBalanceSheetPDF = () => {
-    exportBalanceSheetPDF(balanceSheet, companyInfo, period);
+    guardedAction(CREDIT_COSTS.PDF_BALANCE_SHEET, 'Balance Sheet PDF', () =>
+      exportBalanceSheetPDF(balanceSheet, companyInfo, period)
+    );
   };
 
   const handleExportIncomeStatementPDF = () => {
-    exportIncomeStatementPDF(incomeStatement, companyInfo, period);
+    guardedAction(CREDIT_COSTS.PDF_INCOME_STATEMENT, 'Income Statement PDF', () =>
+      exportIncomeStatementPDF(incomeStatement, companyInfo, period)
+    );
   };
 
   const handleExportVATPDF = () => {
-    exportVATDeclarationPDF({ outputVAT, inputVAT, vatPayable }, companyInfo, period);
+    guardedAction(CREDIT_COSTS.PDF_VAT, 'VAT Declaration PDF', () =>
+      exportVATDeclarationPDF({ outputVAT, inputVAT, vatPayable }, companyInfo, period)
+    );
   };
 
   const handleExportTaxPDF = () => {
-    exportTaxEstimationPDF({ netIncome, taxEstimate }, companyInfo, period);
+    guardedAction(CREDIT_COSTS.PDF_TAX, 'Tax Estimation PDF', () =>
+      exportTaxEstimationPDF({ netIncome, taxEstimate }, companyInfo, period)
+    );
   };
 
   const tabs = [
@@ -92,6 +104,7 @@ const AccountingIntegration = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
+      <CreditsGuardModal {...modalProps} />
       {/* Header */}
       <div className="mb-2">
         <h1 className="text-2xl sm:text-3xl font-bold text-gradient">
