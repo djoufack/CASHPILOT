@@ -5,7 +5,7 @@
  * This client-side module provides the interface.
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/customSupabaseClient';
 
 /**
  * Export all user data as a JSON object
@@ -87,9 +87,6 @@ export const downloadBackup = (blob, fileName) => {
  * @returns {Promise<string>} OAuth URL to redirect to
  */
 export const initiateGoogleDriveAuth = async (userId) => {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
   if (!supabaseUrl) throw new Error('Supabase URL not configured');
 
   const response = await fetch(`${supabaseUrl}/functions/v1/backup-oauth-google`, {
@@ -119,9 +116,6 @@ export const initiateGoogleDriveAuth = async (userId) => {
  * @returns {Promise<string>} OAuth URL to redirect to
  */
 export const initiateDropboxAuth = async (userId) => {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
   if (!supabaseUrl) throw new Error('Supabase URL not configured');
 
   const response = await fetch(`${supabaseUrl}/functions/v1/backup-oauth-dropbox`, {
@@ -153,9 +147,6 @@ export const initiateDropboxAuth = async (userId) => {
  * @returns {Promise<Object>} Upload result
  */
 export const uploadToCloud = async (userId, provider, backupData) => {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
   if (!supabaseUrl) throw new Error('Supabase URL not configured');
 
   const { fileName } = createBackupFile(backupData);
