@@ -358,6 +358,35 @@
       "cancelled": "Geannuleerd"
     }
   },
+  "creditsGuard": {
+    "insufficientCredits": "Onvoldoende tegoeden",
+    "description": "\"{{action}}\" vereist {{required}} tegoeden, maar u heeft er slechts {{available}} beschikbaar.",
+    "thisAction": "Deze actie",
+    "required": "Vereist",
+    "available": "Beschikbaar",
+    "buyCredits": "Tegoeden kopen"
+  },
+  "referrals": {
+    "shareTitle": "Nodig vrienden uit en verdien tegoeden",
+    "shareDescription": "Deel uw code — u krijgt beiden 25 gratis tegoeden!",
+    "copyLink": "Uitnodigingslink kopiëren",
+    "codeCopied": "Verwijzingscode gekopieerd!",
+    "linkCopied": "Uitnodigingslink gekopieerd!",
+    "friendsReferred": "Doorverwezen vrienden",
+    "creditsEarned": "Verdiende tegoeden",
+    "haveCode": "Heeft u een verwijzingscode?",
+    "enterCode": "Voer code in (bijv. CP-XXXXXXXX)",
+    "apply": "Toepassen",
+    "history": "Verwijzingsgeschiedenis",
+    "friendJoined": "Vriend aangemeld",
+    "pending": "In afwachting",
+    "bonusApplied": "+{{amount}} bonustegoeden toegepast!",
+    "selfReferral": "U kunt uw eigen verwijzingscode niet gebruiken.",
+    "invalidCode": "Ongeldige verwijzingscode.",
+    "alreadyReferred": "U heeft al een verwijzingscode gebruikt.",
+    "showReferrals": "Verwijzingsprogramma",
+    "hideReferrals": "Verwijzingen verbergen"
+  },
   "errors": {
     "unauthorized": "U heeft geen toestemming om deze bron te openen.",
     "notFound": "Bron niet gevonden.",

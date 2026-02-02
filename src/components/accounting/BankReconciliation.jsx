@@ -15,6 +15,8 @@ import { normalizeTransactions, searchMatches, getReconciliationSummary } from '
 import { formatCurrency } from '@/utils/calculations';
 import { exportReconciliationPDF } from '@/services/exportAccountingPDF';
 import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
 import BankStatementUploadModal from './BankStatementUploadModal';
 
 const BankReconciliation = ({ period }) => {
@@ -27,6 +29,7 @@ const BankReconciliation = ({ period }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
 
   const {
     statements, lines, loading, uploading,
@@ -107,25 +110,27 @@ const BankReconciliation = ({ period }) => {
     }
   };
 
-  // PDF export
+  // PDF export — credit-guarded
   const handleExportPDF = () => {
     if (!selectedStatement) return;
-    const companyInfo = company ? {
-      company_name: company.company_name || company.name || 'Ma Société'
-    } : { company_name: 'Ma Société' };
+    guardedAction(CREDIT_COSTS.PDF_RECONCILIATION, 'Bank Reconciliation PDF', () => {
+      const companyInfo = company ? {
+        company_name: company.company_name || company.name || 'Ma Société'
+      } : { company_name: 'Ma Société' };
 
-    const data = {
-      bankName: selectedStatement.bank_name,
-      accountNumber: selectedStatement.account_number,
-      openingBalance: selectedStatement.opening_balance,
-      closingBalance: selectedStatement.closing_balance,
-      ...summary,
-      unmatchedDetails: lines.filter(l => l.reconciliation_status === 'unmatched')
-    };
+      const data = {
+        bankName: selectedStatement.bank_name,
+        accountNumber: selectedStatement.account_number,
+        openingBalance: selectedStatement.opening_balance,
+        closingBalance: selectedStatement.closing_balance,
+        ...summary,
+        unmatchedDetails: lines.filter(l => l.reconciliation_status === 'unmatched')
+      };
 
-    exportReconciliationPDF(data, companyInfo, {
-      startDate: selectedStatement.period_start,
-      endDate: selectedStatement.period_end
+      exportReconciliationPDF(data, companyInfo, {
+        startDate: selectedStatement.period_start,
+        endDate: selectedStatement.period_end
+      });
     });
   };
 
@@ -256,6 +261,7 @@ const BankReconciliation = ({ period }) => {
 
   return (
     <div className="space-y-4">
+      <CreditsGuardModal {...modalProps} />
       {/* Workspace Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">

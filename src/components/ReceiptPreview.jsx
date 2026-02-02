@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
 
 const ReceiptPreview = ({ payment, invoice, client, allocations = [] }) => {
   const { t } = useTranslation();
@@ -18,28 +20,32 @@ const ReceiptPreview = ({ payment, invoice, client, allocations = [] }) => {
   const { settings } = useInvoiceSettings();
   const { toast } = useToast();
   const theme = getTheme(settings?.color_theme);
+  const { guardedAction, modalProps } = useCreditsGuard();
 
   const currency = client?.preferredCurrency || client?.preferred_currency || 'EUR';
 
   const handleExportPDF = async () => {
-    try {
-      await exportReceiptToPDF(
-        receiptRef.current,
-        payment.receipt_number,
-        payment.payment_date
-      );
-      toast({ title: t('common.success'), description: t('receipts.exported') });
-    } catch (err) {
-      toast({ title: t('common.error'), description: t('receipts.exportError'), variant: 'destructive' });
-    }
+    await guardedAction(
+      CREDIT_COSTS.PDF_RECEIPT,
+      t('credits.costReceipt'),
+      async () => {
+        try {
+          await exportReceiptToPDF(receiptRef.current, payment.receipt_number, payment.payment_date);
+          toast({ title: t('common.success'), description: t('receipts.exported') });
+        } catch (err) {
+          toast({ title: t('common.error'), description: t('receipts.exportError'), variant: 'destructive' });
+        }
+      }
+    );
   };
 
   return (
     <div className="space-y-4">
+      <CreditsGuardModal {...modalProps} />
       <div className="flex justify-end">
         <Button onClick={handleExportPDF} className="bg-orange-500 hover:bg-orange-600">
           <Download className="w-4 h-4 mr-2" />
-          {t('receipts.exportPDF')}
+          {t('receipts.exportPDF')} ({CREDIT_COSTS.PDF_RECEIPT} {t('credits.credit')})
         </Button>
       </div>
 

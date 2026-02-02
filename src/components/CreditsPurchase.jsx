@@ -6,8 +6,10 @@ import { useAuth } from '@/context/AuthContext';
 import { createCheckoutSession, redirectToCheckout, formatPrice } from '@/services/stripeService';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { CreditCard, Coins, TrendingUp, Zap, Star } from 'lucide-react';
+import { CreditCard, Coins, TrendingUp, Zap, Star, Gift } from 'lucide-react';
 import { format } from 'date-fns';
+import { CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import ReferralSystem from '@/components/ReferralSystem';
 
 const PACKAGE_ICONS = [Coins, Zap, Star, TrendingUp];
 
@@ -18,6 +20,7 @@ const CreditsPurchase = () => {
   const { toast } = useToast();
   const [purchasing, setPurchasing] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [showReferrals, setShowReferrals] = useState(false);
 
   const handlePurchase = async (pkg) => {
     setPurchasing(pkg.id);
@@ -78,11 +81,17 @@ const CreditsPurchase = () => {
           {packages.map((pkg, index) => {
             const Icon = PACKAGE_ICONS[index % PACKAGE_ICONS.length];
             const pricePerCredit = (pkg.price_cents / pkg.credits / 100).toFixed(3);
+            const savings = index > 0 ? Math.round((1 - (pkg.price_cents / pkg.credits) / (packages[0]?.price_cents / packages[0]?.credits)) * 100) : 0;
             return (
-              <div key={pkg.id} className="bg-gray-800 rounded-lg border border-gray-700 p-5 flex flex-col">
+              <div key={pkg.id} className={`bg-gray-800 rounded-lg border p-5 flex flex-col ${index === 1 ? 'border-orange-500/50 ring-1 ring-orange-500/30' : 'border-gray-700'}`}>
                 <div className="flex items-center gap-2 mb-3">
                   <Icon className="w-5 h-5 text-orange-400" />
                   <h4 className="font-semibold text-white">{pkg.name}</h4>
+                  {savings > 0 && (
+                    <span className="ml-auto text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-semibold">
+                      -{savings}%
+                    </span>
+                  )}
                 </div>
                 <p className="text-3xl font-bold text-gradient mb-1">{pkg.credits}</p>
                 <p className="text-xs text-gray-500 mb-3">{t('credits.creditsLabel')}</p>
@@ -102,27 +111,40 @@ const CreditsPurchase = () => {
         </div>
       </div>
 
-      {/* What costs credits */}
+      {/* What costs credits — updated pricing */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-5">
         <h3 className="text-lg font-semibold mb-3">{t('credits.whatCosts')}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div className="flex justify-between p-2 bg-gray-700/50 rounded">
             <span className="text-gray-300">{t('credits.costPdfExport')}</span>
-            <span className="text-orange-400 font-semibold">1 {t('credits.credit')}</span>
-          </div>
-          <div className="flex justify-between p-2 bg-gray-700/50 rounded">
-            <span className="text-gray-300">{t('credits.costHtmlPreview')}</span>
-            <span className="text-orange-400 font-semibold">1 {t('credits.credit')}</span>
+            <span className="text-orange-400 font-semibold">{CREDIT_COSTS.PDF_INVOICE} {t('credits.creditsLabel')}</span>
           </div>
           <div className="flex justify-between p-2 bg-gray-700/50 rounded">
             <span className="text-gray-300">{t('credits.costReceipt')}</span>
-            <span className="text-orange-400 font-semibold">1 {t('credits.credit')}</span>
+            <span className="text-orange-400 font-semibold">{CREDIT_COSTS.PDF_RECEIPT} {t('credits.credit')}</span>
           </div>
           <div className="flex justify-between p-2 bg-gray-700/50 rounded">
             <span className="text-gray-300">{t('credits.costReport')}</span>
-            <span className="text-orange-400 font-semibold">2 {t('credits.credit')}s</span>
+            <span className="text-orange-400 font-semibold">{CREDIT_COSTS.PDF_REPORT} {t('credits.creditsLabel')}</span>
+          </div>
+          <div className="flex justify-between p-2 bg-gray-700/50 rounded">
+            <span className="text-gray-300">{t('credits.costHtmlPreview')}</span>
+            <span className="text-green-400 font-semibold">{t('credits.free')}</span>
           </div>
         </div>
+      </div>
+
+      {/* Referral system */}
+      <div>
+        <Button
+          variant="outline"
+          onClick={() => setShowReferrals(!showReferrals)}
+          className="border-purple-500/50 text-purple-400 hover:bg-purple-500/20 mb-3"
+        >
+          <Gift className="w-4 h-4 mr-2" />
+          {showReferrals ? t('referrals.hideReferrals') : t('referrals.showReferrals')}
+        </Button>
+        {showReferrals && <ReferralSystem />}
       </div>
 
       {/* Transaction history */}

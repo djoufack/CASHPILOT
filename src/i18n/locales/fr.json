@@ -562,6 +562,35 @@
       "cancelled": "Annulé"
     }
   },
+  "creditsGuard": {
+    "insufficientCredits": "Crédits insuffisants",
+    "description": "\"{{action}}\" nécessite {{required}} crédits, mais vous n'en avez que {{available}} disponibles.",
+    "thisAction": "Cette action",
+    "required": "Requis",
+    "available": "Disponibles",
+    "buyCredits": "Acheter des crédits"
+  },
+  "referrals": {
+    "shareTitle": "Invitez vos amis et gagnez des crédits",
+    "shareDescription": "Partagez votre code — vous recevez chacun 25 crédits gratuits !",
+    "copyLink": "Copier le lien d'invitation",
+    "codeCopied": "Code de parrainage copié !",
+    "linkCopied": "Lien d'invitation copié !",
+    "friendsReferred": "Amis parrainés",
+    "creditsEarned": "Crédits gagnés",
+    "haveCode": "Vous avez un code de parrainage ?",
+    "enterCode": "Entrez le code (ex : CP-XXXXXXXX)",
+    "apply": "Appliquer",
+    "history": "Historique des parrainages",
+    "friendJoined": "Ami inscrit",
+    "pending": "En attente",
+    "bonusApplied": "+{{amount}} crédits bonus appliqués !",
+    "selfReferral": "Vous ne pouvez pas utiliser votre propre code.",
+    "invalidCode": "Code de parrainage invalide.",
+    "alreadyReferred": "Vous avez déjà utilisé un code de parrainage.",
+    "showReferrals": "Programme de parrainage",
+    "hideReferrals": "Masquer le parrainage"
+  },
   "errors": {
     "unauthorized": "Vous n'avez pas la permission d'acceder a cette ressource.",
     "notFound": "Ressource non trouvee.",

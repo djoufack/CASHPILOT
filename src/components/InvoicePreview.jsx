@@ -10,6 +10,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useCompany } from '@/hooks/useCompany';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { getTheme } from '@/config/invoiceThemes';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
 
 import ClassicTemplate from '@/components/invoice-templates/ClassicTemplate';
 import ModernTemplate from '@/components/invoice-templates/ModernTemplate';
@@ -31,21 +33,28 @@ const InvoicePreview = ({ invoice, client, items }) => {
   const { toast } = useToast();
   const { company } = useCompany();
   const { settings } = useInvoiceSettings();
+  const { guardedAction, modalProps } = useCreditsGuard();
 
   const handleExportPDF = async () => {
-    try {
-      await exportInvoiceToPDF(invoiceRef.current, invoice.invoice_number || invoice.invoiceNumber);
-      toast({
-        title: "Success",
-        description: t('messages.success.pdfExported')
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: t('messages.error.pdfExportFailed'),
-        variant: "destructive"
-      });
-    }
+    await guardedAction(
+      CREDIT_COSTS.PDF_INVOICE,
+      t('credits.costPdfExport'),
+      async () => {
+        try {
+          await exportInvoiceToPDF(invoiceRef.current, invoice.invoice_number || invoice.invoiceNumber);
+          toast({
+            title: "Success",
+            description: t('messages.success.pdfExported')
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: t('messages.error.pdfExportFailed'),
+            variant: "destructive"
+          });
+        }
+      }
+    );
   };
 
   const theme = getTheme(settings.color_theme);
@@ -53,6 +62,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
 
   return (
     <div className="space-y-4">
+      <CreditsGuardModal {...modalProps} />
       <div className="flex justify-end">
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
@@ -60,7 +70,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
             className="bg-orange-500 hover:bg-orange-600"
           >
             <Download className="w-4 h-4 mr-2" />
-            {t('invoices.exportPDF')}
+            {t('invoices.exportPDF')} ({CREDIT_COSTS.PDF_INVOICE} {t('credits.creditsLabel')})
           </Button>
         </motion.div>
       </div>
