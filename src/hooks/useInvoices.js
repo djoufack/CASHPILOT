@@ -26,8 +26,9 @@ export const useInvoices = () => {
         .from('invoices')
         .select(`
           *,
-          client:clients(company_name, contact_name, email),
-          items:invoice_items(*)
+          client:clients(id, company_name, contact_name, email, preferred_currency),
+          items:invoice_items(*),
+          payments:payments(id, amount, payment_date, payment_method, receipt_number)
         `)
         .order('created_at', { ascending: false });
 
@@ -194,6 +195,46 @@ export const useInvoices = () => {
     }
   };
 
+  const updateInvoiceStatus = async (id, newStatus) => {
+    if (!supabase) throw new Error("Supabase not configured");
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .update({ status: newStatus })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setInvoices(invoices.map(i => i.id === id ? { ...i, ...data } : i));
+      toast({
+        title: "Success",
+        description: t('messages.success.invoiceUpdated')
+      });
+      return data;
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive"
+      });
+      throw err;
+    }
+  };
+
+  const getInvoiceItems = (invoiceId) => {
+    const invoice = invoices.find(i => i.id === invoiceId);
+    return invoice?.items || [];
+  };
+
+  const getPendingInvoicesByClient = (clientId) => {
+    return invoices.filter(
+      i => i.client_id === clientId &&
+      i.payment_status !== 'paid' &&
+      Number(i.balance_due || i.total_ttc || 0) > 0
+    );
+  };
+
   useEffect(() => {
     fetchInvoices();
   }, [user]);
@@ -208,6 +249,9 @@ export const useInvoices = () => {
     deleteInvoice,
     fetchInvoiceItems,
     createInvoiceItem,
-    deleteInvoiceItem
+    deleteInvoiceItem,
+    updateInvoiceStatus,
+    getInvoiceItems,
+    getPendingInvoicesByClient
   };
 };

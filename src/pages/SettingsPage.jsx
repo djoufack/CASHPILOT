@@ -2,12 +2,15 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Building2, Bell, CreditCard, Users, Fingerprint, Wifi } from 'lucide-react';
+import { User, Building2, Bell, CreditCard, Users, Fingerprint, Wifi, Palette, Coins, HardDrive } from 'lucide-react';
 import ProfileSettings from '@/components/settings/ProfileSettings';
 import CompanySettings from '@/components/settings/CompanySettings';
 import BillingSettings from '@/components/settings/BillingSettings';
 import TeamSettings from '@/components/settings/TeamSettings';
 import NotificationSettings from '@/components/settings/NotificationSettings';
+import InvoiceCustomization from '@/components/settings/InvoiceCustomization';
+import CreditsPurchase from '@/components/CreditsPurchase';
+import BackupSettings from '@/components/settings/BackupSettings';
 import PushNotificationManager from '@/components/PushNotificationManager';
 import BiometricSettings from '@/components/BiometricSettings';
 import SyncManager from '@/components/SyncManager';
@@ -19,7 +22,11 @@ const TAB_MAP = {
   equipe: 'team',
   notifications: 'notifications',
   securite: 'security',
-  sync: 'sync'
+  sync: 'sync',
+  factures: 'invoices',
+  credits: 'credits',
+  backup: 'backup',
+  sauvegarde: 'backup'
 };
 
 const SettingsPage = () => {
@@ -56,6 +63,15 @@ const SettingsPage = () => {
           <TabsTrigger value="security" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
             <Fingerprint className="w-4 h-4 mr-2" /> Sécurité
           </TabsTrigger>
+          <TabsTrigger value="invoices" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
+            <Palette className="w-4 h-4 mr-2" /> Factures
+          </TabsTrigger>
+          <TabsTrigger value="credits" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
+            <Coins className="w-4 h-4 mr-2" /> Credits
+          </TabsTrigger>
+          <TabsTrigger value="backup" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
+            <HardDrive className="w-4 h-4 mr-2" /> Backup
+          </TabsTrigger>
           <TabsTrigger value="sync" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
             <Wifi className="w-4 h-4 mr-2" /> Sync
           </TabsTrigger>
@@ -83,6 +99,18 @@ const SettingsPage = () => {
 
         <TabsContent value="security" className="mt-6">
           <BiometricSettings />
+        </TabsContent>
+
+        <TabsContent value="invoices" className="mt-6">
+          <InvoiceCustomization />
+        </TabsContent>
+
+        <TabsContent value="credits" className="mt-6">
+          <CreditsPurchase />
+        </TabsContent>
+
+        <TabsContent value="backup" className="mt-6">
+          <BackupSettings />
         </TabsContent>
 
         <TabsContent value="sync" className="mt-6">
