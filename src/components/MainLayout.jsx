@@ -8,7 +8,8 @@ import MobileMenu from './MobileMenu';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
-  Truck, Package, BarChart3, Calculator, PieChart, Settings
+  Truck, Package, BarChart3, Calculator, PieChart, Settings,
+  FileMinus, PackageCheck
 } from 'lucide-react';
 
 const MainLayout = () => {
@@ -45,6 +46,8 @@ const MainLayout = () => {
     { path: '/projects', label: 'Projects', icon: Briefcase },
     { path: '/timesheets', label: t('nav.timesheets') || 'Timesheets', icon: Clock },
     { path: '/invoices', label: t('nav.invoices') || 'Invoices', icon: FileText },
+    { path: '/credit-notes', label: t('creditNotes.title') || 'Credit Notes', icon: FileMinus },
+    { path: '/delivery-notes', label: t('deliveryNotes.title') || 'Delivery Notes', icon: PackageCheck },
     { path: '/quotes', label: t('nav.quotes') || 'Quotes', icon: FileSignature },
     { path: '/stock', label: 'Stock', icon: Package },
     { type: 'separator', label: 'Gestion Fournisseurs' },

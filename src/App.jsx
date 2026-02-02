@@ -36,6 +36,8 @@ import SupplierMap from '@/components/SupplierMap';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import ReportGenerator from '@/components/ReportGenerator';
 import SeedDataManager from '@/components/admin/SeedDataManager';
+import CreditNotesPage from './pages/CreditNotesPage';
+import DeliveryNotesPage from './pages/DeliveryNotesPage';
 
 // Wrapper to handle auth redirects
 const AuthWrapper = () => {
@@ -81,6 +83,8 @@ const AuthWrapper = () => {
                 <Route path="/projects/:projectId" element={<ProjectDetail />} />
                 <Route path="/timesheets" element={<TimesheetsPage />} />
                 <Route path="/invoices" element={<InvoicesPage />} />
+                <Route path="/credit-notes" element={<CreditNotesPage />} />
+                <Route path="/delivery-notes" element={<DeliveryNotesPage />} />
                 <Route path="/quotes" element={<QuotesPage />} />
                 <Route path="/expenses" element={<ExpensesPage />} />
                 <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
