@@ -7,11 +7,16 @@ import { useInvoices } from '@/hooks/useInvoices';
 import { useTimesheets } from '@/hooks/useTimesheets';
 import { useProjects } from '@/hooks/useProjects';
 import { useClients } from '@/hooks/useClients';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { formatCurrency } from '@/utils/calculations';
-import { Users, Clock, FileText, TrendingUp, DollarSign, Activity, Loader2, ArrowUp } from 'lucide-react';
+import { Users, Clock, FileText, TrendingUp, DollarSign, Activity, Loader2, ArrowUp, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { Button } from '@/components/ui/button';
+import { exportDashboardPDF, exportDashboardHTML } from '@/services/exportReports';
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -21,6 +26,8 @@ const Dashboard = () => {
   const { timesheets, fetchTimesheets, loading: timesheetsLoading } = useTimesheets();
   const { projects, fetchProjects, loading: projectsLoading } = useProjects();
   const { clients, fetchClients } = useClients();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
 
   useEffect(() => {
     if (user) {
@@ -84,6 +91,38 @@ const Dashboard = () => {
     };
   }, [invoices, timesheets, projects]);
 
+  const handleExportPDF = () => {
+    guardedAction(
+      CREDIT_COSTS.PDF_REPORT,
+      'Dashboard Report PDF',
+      async () => {
+        await exportDashboardPDF({
+          metrics,
+          revenueData,
+          clientRevenueData,
+          recentInvoices,
+          recentTimesheets
+        }, company);
+      }
+    );
+  };
+
+  const handleExportHTML = () => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      'Dashboard Report HTML',
+      () => {
+        exportDashboardHTML({
+          metrics,
+          revenueData,
+          clientRevenueData,
+          recentInvoices,
+          recentTimesheets
+        }, company);
+      }
+    );
+  };
+
   const isLoading = invoicesLoading || timesheetsLoading || projectsLoading;
 
   const stats = [
@@ -108,16 +147,40 @@ const Dashboard = () => {
 
   return (
     <>
+      <CreditsGuardModal {...modalProps} />
       <Helmet>
         <title>{t('dashboard.title')} - {t('app.name')}</title>
       </Helmet>
 
       <div className="container mx-auto p-6">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-1">
-            {t('dashboard.title')}
-          </h1>
-          <p className="text-gray-500 text-sm">{t('app.tagline')}</p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-1">
+                {t('dashboard.title')}
+              </h1>
+              <p className="text-gray-500 text-sm">{t('app.tagline')}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleExportPDF}
+                size="sm"
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                PDF ({CREDIT_COSTS.PDF_REPORT})
+              </Button>
+              <Button
+                onClick={handleExportHTML}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-700"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                HTML ({CREDIT_COSTS.EXPORT_HTML})
+              </Button>
+            </div>
+          </div>
         </motion.div>
 
         {/* Stats */}
@@ -156,7 +219,7 @@ const Dashboard = () => {
             transition={{ delay: 0.3 }}
           >
             <h2 className="text-lg font-semibold text-gradient mb-5">Revenue Overview</h2>
-            <div className="h-[280px] w-full">
+            <div id="dashboard-revenue-chart" className="h-[280px] w-full">
               {revenueData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={revenueData}>
@@ -191,7 +254,7 @@ const Dashboard = () => {
             transition={{ delay: 0.4 }}
           >
             <h2 className="text-lg font-semibold text-gradient mb-5">Revenue by Client</h2>
-            <div className="h-[280px] w-full">
+            <div id="dashboard-client-chart" className="h-[280px] w-full">
               {clientRevenueData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={clientRevenueData}>

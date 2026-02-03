@@ -10,6 +10,8 @@ import html2pdf from 'html2pdf.js';
 import { useToast } from '@/components/ui/use-toast';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { useCompany } from '@/hooks/useCompany';
+import { exportReportHTML } from '@/services/exportReports';
 
 const ReportGenerator = () => {
   const { t } = useTranslation();
@@ -17,6 +19,7 @@ const ReportGenerator = () => {
   const [generating, setGenerating] = useState(false);
   const { toast } = useToast();
   const { guardedAction, modalProps } = useCreditsGuard();
+  const { company } = useCompany();
 
   const handleDownload = async () => {
     await guardedAction(
@@ -70,6 +73,17 @@ const ReportGenerator = () => {
     );
   };
 
+  const handleDownloadHTML = () => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      t('credits.costs.exportHtml'),
+      () => {
+        exportReportHTML(reportType, company);
+        toast({ title: "Success", description: "HTML report downloaded successfully." });
+      }
+    );
+  };
+
   return (
     <>
       <CreditsGuardModal {...modalProps} />
@@ -94,10 +108,21 @@ const ReportGenerator = () => {
             </Select>
           </div>
 
-          <Button onClick={handleDownload} disabled={generating} className="w-full bg-orange-500 hover:bg-orange-600">
-            {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            Download PDF ({CREDIT_COSTS.PDF_REPORT} {t('credits.creditsLabel')})
-          </Button>
+          <div className="space-y-2">
+            <Button onClick={handleDownload} disabled={generating} className="w-full bg-orange-500 hover:bg-orange-600">
+              {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              Download PDF ({CREDIT_COSTS.PDF_REPORT} {t('credits.creditsLabel')})
+            </Button>
+            <Button
+              onClick={handleDownloadHTML}
+              disabled={generating}
+              variant="outline"
+              className="w-full border-gray-600 hover:bg-gray-700"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Download HTML ({CREDIT_COSTS.EXPORT_HTML} {t('credits.creditsLabel')})
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </>
