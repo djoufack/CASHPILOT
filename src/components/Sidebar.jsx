@@ -14,7 +14,7 @@ import {
   Home, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Archive, BarChart3, Calculator, PieChart, Settings,
   Map, QrCode, FileBarChart, Database, Bell, Menu,
-  Receipt, Building2, User, ClipboardList, FileMinus, PackageCheck
+  Receipt, Building2, User, ClipboardList, FileMinus, PackageCheck, Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -58,6 +58,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     { path: '/credit-notes', label: t('creditNotes.title'), icon: FileMinus },
     { path: '/delivery-notes', label: t('deliveryNotes.title'), icon: PackageCheck },
     { path: '/quotes', label: t('common.quotes'), icon: FileSignature },
+    { path: '/debt-manager', label: t('debtManager.title'), icon: Wallet },
     { path: '/expenses', label: 'Dépenses', icon: Receipt },
     { path: '/purchase-orders', label: 'Bons de commande', icon: ClipboardList },
     { type: 'separator', label: t('suppliers.title') },
