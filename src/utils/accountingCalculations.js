@@ -408,3 +408,234 @@ function distributeToAccount(account, mappings, sourceType, totalAmount, totalAc
 
   return mapping ? totalAmount : 0;
 }
+
+// ============================================================================
+// ENTRY-BASED CALCULATIONS (from real accounting_entries)
+// ============================================================================
+
+/**
+ * Build trial balance from real journal entries
+ * Groups entries by account_code, sums debits and credits
+ * @returns Array of { account_code, account_name, account_type, totalDebit, totalCredit, balance }
+ */
+export function buildTrialBalance(entries, accounts) {
+  if (!entries || entries.length === 0) return [];
+
+  const accountMap = {};
+  (accounts || []).forEach(a => {
+    accountMap[a.account_code] = a;
+  });
+
+  const balances = {};
+  entries.forEach(e => {
+    const code = e.account_code;
+    if (!balances[code]) {
+      const acc = accountMap[code] || {};
+      balances[code] = {
+        account_code: code,
+        account_name: acc.account_name || code,
+        account_type: acc.account_type || 'unknown',
+        account_category: acc.account_category || '',
+        totalDebit: 0,
+        totalCredit: 0,
+        balance: 0,
+      };
+    }
+    balances[code].totalDebit += parseFloat(e.debit) || 0;
+    balances[code].totalCredit += parseFloat(e.credit) || 0;
+  });
+
+  // Calculate balance: Debit - Credit for asset/expense, Credit - Debit for liability/equity/revenue
+  Object.values(balances).forEach(b => {
+    if (['asset', 'expense'].includes(b.account_type)) {
+      b.balance = b.totalDebit - b.totalCredit;
+    } else {
+      b.balance = b.totalCredit - b.totalDebit;
+    }
+  });
+
+  return Object.values(balances).sort((a, b) => a.account_code.localeCompare(b.account_code));
+}
+
+/**
+ * Build balance sheet from real journal entries
+ * Assets = accounts with debit balance (type asset)
+ * Liabilities + Equity = accounts with credit balance (type liability/equity)
+ */
+export function buildBalanceSheetFromEntries(accounts, entries, startDate, endDate) {
+  if (!entries || entries.length === 0 || !accounts || accounts.length === 0) {
+    return { assets: [], liabilities: [], equity: [], totalAssets: 0, totalLiabilities: 0, totalEquity: 0, totalPassif: 0, balanced: true };
+  }
+
+  const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+  const trial = buildTrialBalance(filtered, accounts);
+
+  const assetAccounts = trial.filter(t => t.account_type === 'asset' && Math.abs(t.balance) > 0.001);
+  const liabilityAccounts = trial.filter(t => t.account_type === 'liability' && Math.abs(t.balance) > 0.001);
+  const equityAccounts = trial.filter(t => t.account_type === 'equity' && Math.abs(t.balance) > 0.001);
+
+  // Add net income to equity (result of revenue - expense from entries)
+  const revenueTotal = trial.filter(t => t.account_type === 'revenue').reduce((s, t) => s + t.balance, 0);
+  const expenseTotal = trial.filter(t => t.account_type === 'expense').reduce((s, t) => s + t.balance, 0);
+  const netIncome = revenueTotal - expenseTotal;
+
+  const assets = groupTrialByCategory(assetAccounts);
+  const liabilities = groupTrialByCategory(liabilityAccounts);
+  const equity = groupTrialByCategory(equityAccounts);
+
+  // Add net income as a virtual equity entry
+  if (Math.abs(netIncome) > 0.001) {
+    equity.push({
+      category: 'Résultat de l\'exercice',
+      accounts: [{
+        account_code: '12',
+        account_name: 'Résultat net de l\'exercice',
+        account_type: 'equity',
+        balance: netIncome,
+      }]
+    });
+  }
+
+  const totalAssets = assets.reduce((s, g) => s + g.accounts.reduce((ss, a) => ss + a.balance, 0), 0);
+  const totalLiabilities = liabilities.reduce((s, g) => s + g.accounts.reduce((ss, a) => ss + a.balance, 0), 0);
+  const totalEquity = equity.reduce((s, g) => s + g.accounts.reduce((ss, a) => ss + a.balance, 0), 0);
+
+  return {
+    assets,
+    liabilities,
+    equity,
+    totalAssets,
+    totalLiabilities,
+    totalEquity,
+    totalPassif: totalLiabilities + totalEquity,
+    balanced: Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01,
+  };
+}
+
+/**
+ * Build income statement from real journal entries
+ */
+export function buildIncomeStatementFromEntries(accounts, entries, startDate, endDate) {
+  if (!entries || entries.length === 0 || !accounts || accounts.length === 0) {
+    return { revenueItems: [], expenseItems: [], totalRevenue: 0, totalExpenses: 0, netIncome: 0 };
+  }
+
+  const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+  const trial = buildTrialBalance(filtered, accounts);
+
+  const revenueAccounts = trial.filter(t => t.account_type === 'revenue' && Math.abs(t.balance) > 0.001);
+  const expenseAccounts = trial.filter(t => t.account_type === 'expense' && Math.abs(t.balance) > 0.001);
+
+  const revenueItems = groupTrialByCategory(revenueAccounts).map(g => ({
+    ...g,
+    accounts: g.accounts.map(a => ({ ...a, amount: a.balance })),
+  }));
+
+  const expenseItems = groupTrialByCategory(expenseAccounts).map(g => ({
+    ...g,
+    accounts: g.accounts.map(a => ({ ...a, amount: a.balance })),
+  }));
+
+  const totalRevenue = revenueAccounts.reduce((s, a) => s + a.balance, 0);
+  const totalExpenses = expenseAccounts.reduce((s, a) => s + a.balance, 0);
+
+  return {
+    revenueItems,
+    expenseItems,
+    totalRevenue,
+    totalExpenses,
+    netIncome: totalRevenue - totalExpenses,
+  };
+}
+
+/**
+ * Build General Ledger: all entries grouped by account
+ * @returns Array of { account_code, account_name, entries: [...], totalDebit, totalCredit, balance }
+ */
+export function buildGeneralLedger(entries, accounts, startDate, endDate) {
+  if (!entries || entries.length === 0) return [];
+
+  const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+  const accountMap = {};
+  (accounts || []).forEach(a => { accountMap[a.account_code] = a; });
+
+  const ledger = {};
+  filtered.forEach(e => {
+    const code = e.account_code;
+    if (!ledger[code]) {
+      const acc = accountMap[code] || {};
+      ledger[code] = {
+        account_code: code,
+        account_name: acc.account_name || code,
+        account_type: acc.account_type || 'unknown',
+        entries: [],
+        totalDebit: 0,
+        totalCredit: 0,
+        balance: 0,
+      };
+    }
+    ledger[code].entries.push(e);
+    ledger[code].totalDebit += parseFloat(e.debit) || 0;
+    ledger[code].totalCredit += parseFloat(e.credit) || 0;
+  });
+
+  Object.values(ledger).forEach(l => {
+    if (['asset', 'expense'].includes(l.account_type)) {
+      l.balance = l.totalDebit - l.totalCredit;
+    } else {
+      l.balance = l.totalCredit - l.totalDebit;
+    }
+    l.entries.sort((a, b) => new Date(a.transaction_date) - new Date(b.transaction_date));
+  });
+
+  return Object.values(ledger).sort((a, b) => a.account_code.localeCompare(b.account_code));
+}
+
+/**
+ * Build Journal Book: all entries sorted by date, grouped by entry_ref
+ * @returns Array of { date, entry_ref, journal, description, lines: [...] }
+ */
+export function buildJournalBook(entries, startDate, endDate) {
+  if (!entries || entries.length === 0) return [];
+
+  const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+  const sorted = [...filtered].sort((a, b) => {
+    const dateCompare = new Date(a.transaction_date) - new Date(b.transaction_date);
+    if (dateCompare !== 0) return dateCompare;
+    return (a.entry_ref || '').localeCompare(b.entry_ref || '');
+  });
+
+  const groups = {};
+  sorted.forEach(e => {
+    const key = e.entry_ref || e.id;
+    if (!groups[key]) {
+      groups[key] = {
+        date: e.transaction_date,
+        entry_ref: e.entry_ref || '-',
+        journal: e.journal || 'OD',
+        description: e.description || '',
+        is_auto: e.is_auto || false,
+        source_type: e.source_type || '',
+        lines: [],
+        totalDebit: 0,
+        totalCredit: 0,
+      };
+    }
+    groups[key].lines.push(e);
+    groups[key].totalDebit += parseFloat(e.debit) || 0;
+    groups[key].totalCredit += parseFloat(e.credit) || 0;
+  });
+
+  return Object.values(groups).sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+// Helper: group trial balance items by category
+function groupTrialByCategory(items) {
+  const groups = {};
+  items.forEach(a => {
+    const cat = a.account_category || 'Autres';
+    if (!groups[cat]) groups[cat] = { category: cat, accounts: [] };
+    groups[cat].accounts.push(a);
+  });
+  return Object.values(groups).sort((a, b) => a.category.localeCompare(b.category));
+}

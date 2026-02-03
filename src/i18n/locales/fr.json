@@ -357,7 +357,24 @@
       "to": "au"
     },
     "loading": "Chargement des données comptables...",
-    "error": "Erreur"
+    "error": "Erreur",
+    "autoAccounting": "Comptabilité automatique",
+    "initWizard": "Configuration initiale de la comptabilité",
+    "chooseCountry": "Choisissez votre pays pour configurer le plan comptable et les taux de TVA adaptés",
+    "belgiumPreset": "Belgique (PCG belge)",
+    "francePreset": "France (PCG français)",
+    "initializeBtn": "Initialiser ma comptabilité",
+    "initializing": "Initialisation en cours...",
+    "initialized": "Comptabilité initialisée avec succès",
+    "autoEnabled": "Écritures automatiques activées",
+    "autoDisabled": "Écritures automatiques désactivées",
+    "generalLedger": "Grand Livre",
+    "journalBook": "Journal",
+    "trialBalance": "Balance des comptes",
+    "entryRef": "Réf. écriture",
+    "isAutoEntry": "Écriture automatique",
+    "noEntries": "Aucune écriture comptable",
+    "entriesGenerated": "écritures générées automatiquement"
   },
   "payments": {
     "title": "Paiements",

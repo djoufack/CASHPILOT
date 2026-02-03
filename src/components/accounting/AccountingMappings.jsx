@@ -13,7 +13,10 @@ import { Plus, Trash2, AlertTriangle, ArrowRight, Settings, Zap, Loader2 } from 
 const SOURCE_TYPES = [
   { value: 'invoice', label: 'Facture client (vente)' },
   { value: 'expense', label: 'Dépense' },
-  { value: 'supplier_invoice', label: 'Facture fournisseur (achat)' }
+  { value: 'supplier_invoice', label: 'Facture fournisseur (achat)' },
+  { value: 'payment', label: 'Paiement client' },
+  { value: 'credit_note', label: 'Note de crédit' },
+  { value: 'supplier_payment', label: 'Paiement fournisseur' },
 ];
 
 const EXPENSE_CATEGORIES = [
@@ -24,6 +27,8 @@ const EXPENSE_CATEGORIES = [
 
 const INVOICE_CATEGORIES = ['revenue', 'service', 'product'];
 const SUPPLIER_CATEGORIES = ['purchase', 'service', 'supply'];
+const PAYMENT_CATEGORIES = ['cash', 'bank_transfer', 'card', 'check', 'paypal', 'other'];
+const CREDIT_NOTE_CATEGORIES = ['general'];
 
 // Preset mappings Belgique — PCG belge
 const BELGIAN_MAPPINGS = [
@@ -52,6 +57,48 @@ const BELGIAN_MAPPINGS = [
   { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '601', credit_account_code: '401', description: 'Achats de matières et marchandises' },
   { source_type: 'supplier_invoice', source_category: 'service', debit_account_code: '604', credit_account_code: '401', description: 'Achats de prestations de services' },
   { source_type: 'supplier_invoice', source_category: 'supply', debit_account_code: '6022', credit_account_code: '401', description: 'Achats de fournitures consommables' },
+  // Paiements clients
+  { source_type: 'payment', source_category: 'cash', debit_account_code: '550', credit_account_code: '400', description: 'Encaissement - espèces' },
+  { source_type: 'payment', source_category: 'bank_transfer', debit_account_code: '550', credit_account_code: '400', description: 'Encaissement - virement' },
+  { source_type: 'payment', source_category: 'card', debit_account_code: '550', credit_account_code: '400', description: 'Encaissement - carte' },
+  { source_type: 'payment', source_category: 'check', debit_account_code: '550', credit_account_code: '400', description: 'Encaissement - chèque' },
+  // Notes de crédit
+  { source_type: 'credit_note', source_category: 'general', debit_account_code: '700', credit_account_code: '400', description: 'Avoir client' },
+];
+
+const FRENCH_MAPPINGS = [
+  // Factures clients (ventes) → Débit: Clients / Crédit: Produits
+  { source_type: 'invoice', source_category: 'revenue', debit_account_code: '411', credit_account_code: '701', description: 'Ventes de marchandises' },
+  { source_type: 'invoice', source_category: 'service', debit_account_code: '411', credit_account_code: '706', description: 'Prestations de services' },
+  { source_type: 'invoice', source_category: 'product', debit_account_code: '411', credit_account_code: '701', description: 'Ventes de produits finis' },
+  // Paiements clients
+  { source_type: 'payment', source_category: 'cash', debit_account_code: '530', credit_account_code: '411', description: 'Encaissement - espèces' },
+  { source_type: 'payment', source_category: 'bank_transfer', debit_account_code: '512', credit_account_code: '411', description: 'Encaissement - virement' },
+  { source_type: 'payment', source_category: 'card', debit_account_code: '512', credit_account_code: '411', description: 'Encaissement - carte' },
+  { source_type: 'payment', source_category: 'check', debit_account_code: '514', credit_account_code: '411', description: 'Encaissement - chèque' },
+  // Notes de crédit
+  { source_type: 'credit_note', source_category: 'general', debit_account_code: '701', credit_account_code: '411', description: 'Avoir client' },
+  // Dépenses
+  { source_type: 'expense', source_category: 'general', debit_account_code: '618', credit_account_code: '512', description: 'Frais généraux divers' },
+  { source_type: 'expense', source_category: 'office', debit_account_code: '6064', credit_account_code: '512', description: 'Fournitures administratives' },
+  { source_type: 'expense', source_category: 'travel', debit_account_code: '6251', credit_account_code: '512', description: 'Voyages et déplacements' },
+  { source_type: 'expense', source_category: 'meals', debit_account_code: '6257', credit_account_code: '512', description: 'Réceptions et frais de repas' },
+  { source_type: 'expense', source_category: 'transport', debit_account_code: '6241', credit_account_code: '512', description: 'Transport de biens' },
+  { source_type: 'expense', source_category: 'software', debit_account_code: '6116', credit_account_code: '512', description: 'Logiciels et abonnements' },
+  { source_type: 'expense', source_category: 'hardware', debit_account_code: '6063', credit_account_code: '512', description: 'Matériel informatique' },
+  { source_type: 'expense', source_category: 'marketing', debit_account_code: '6231', credit_account_code: '512', description: 'Publicité et marketing' },
+  { source_type: 'expense', source_category: 'legal', debit_account_code: '6226', credit_account_code: '512', description: 'Honoraires juridiques' },
+  { source_type: 'expense', source_category: 'insurance', debit_account_code: '616', credit_account_code: '512', description: 'Primes d\'assurance' },
+  { source_type: 'expense', source_category: 'rent', debit_account_code: '6132', credit_account_code: '512', description: 'Loyers immobiliers' },
+  { source_type: 'expense', source_category: 'utilities', debit_account_code: '6061', credit_account_code: '512', description: 'Énergie' },
+  { source_type: 'expense', source_category: 'telecom', debit_account_code: '626', credit_account_code: '512', description: 'Téléphone et Internet' },
+  { source_type: 'expense', source_category: 'training', debit_account_code: '6333', credit_account_code: '512', description: 'Formation professionnelle' },
+  { source_type: 'expense', source_category: 'consulting', debit_account_code: '6226', credit_account_code: '512', description: 'Honoraires de conseil' },
+  { source_type: 'expense', source_category: 'other', debit_account_code: '658', credit_account_code: '512', description: 'Charges diverses' },
+  // Factures fournisseurs
+  { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '601', credit_account_code: '401', description: 'Achats marchandises' },
+  { source_type: 'supplier_invoice', source_category: 'service', debit_account_code: '604', credit_account_code: '401', description: 'Achats prestations services' },
+  { source_type: 'supplier_invoice', source_category: 'supply', debit_account_code: '6022', credit_account_code: '401', description: 'Achats fournitures' },
 ];
 
 const AccountingMappings = () => {
@@ -77,6 +124,9 @@ const AccountingMappings = () => {
       case 'invoice': return INVOICE_CATEGORIES;
       case 'expense': return EXPENSE_CATEGORIES;
       case 'supplier_invoice': return SUPPLIER_CATEGORIES;
+      case 'payment': return PAYMENT_CATEGORIES;
+      case 'credit_note': return CREDIT_NOTE_CATEGORIES;
+      case 'supplier_payment': return PAYMENT_CATEGORIES;
       default: return [];
     }
   };
@@ -149,6 +199,9 @@ const AccountingMappings = () => {
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setShowPresetConfirm(true)} className="border-gray-700 text-gray-300 hover:text-white hover:border-purple-500">
             <Zap className="w-4 h-4 mr-2" /> Preset Belgique
+          </Button>
+          <Button variant="outline" onClick={() => bulkCreateMappings(FRENCH_MAPPINGS)} className="border-gray-700 text-gray-300 hover:text-white hover:border-blue-500">
+            <Zap className="w-4 h-4 mr-2" /> Preset France
           </Button>
           <Button onClick={() => setShowDialog(true)} className="bg-orange-500 hover:bg-orange-600">
             <Plus className="w-4 h-4 mr-2" /> Ajouter un mapping
