@@ -2,10 +2,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Download, Scale } from 'lucide-react';
+import { AlertTriangle, Download, FileText, Scale } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 
-const BalanceSheet = ({ balanceSheet, period, onExportPDF }) => {
+const BalanceSheet = ({ balanceSheet, period, onExportPDF, onExportHTML }) => {
   if (!balanceSheet) return null;
 
   const { assets, liabilities, equity, totalAssets, totalLiabilities, totalEquity, totalPassif, balanced } = balanceSheet;
@@ -46,11 +46,18 @@ const BalanceSheet = ({ balanceSheet, period, onExportPDF }) => {
             <p className="text-sm text-gray-400">Au {new Date(period.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
           )}
         </div>
-        {onExportPDF && (
-          <Button variant="outline" size="sm" onClick={onExportPDF} className="border-gray-700 text-gray-300">
-            <Download className="w-4 h-4 mr-2" /> Exporter PDF
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {onExportPDF && (
+            <Button variant="outline" size="sm" onClick={onExportPDF} className="border-gray-700 text-gray-300">
+              <Download className="w-4 h-4 mr-2" /> Exporter PDF
+            </Button>
+          )}
+          {onExportHTML && (
+            <Button variant="outline" size="sm" onClick={onExportHTML} className="border-gray-700 text-gray-300">
+              <FileText className="w-4 h-4 mr-2" /> Exporter HTML
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Balance warning */}

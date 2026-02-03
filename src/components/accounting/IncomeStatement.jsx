@@ -2,10 +2,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, TrendingUp, TrendingDown } from 'lucide-react';
+import { Download, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 
-const IncomeStatement = ({ incomeStatement, period, onExportPDF }) => {
+const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML }) => {
   if (!incomeStatement) return null;
 
   const { revenueItems, expenseItems, totalRevenue, totalExpenses, netIncome } = incomeStatement;
@@ -43,11 +43,18 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF }) => {
             </p>
           )}
         </div>
-        {onExportPDF && (
-          <Button variant="outline" size="sm" onClick={onExportPDF} className="border-gray-700 text-gray-300">
-            <Download className="w-4 h-4 mr-2" /> Exporter PDF
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {onExportPDF && (
+            <Button variant="outline" size="sm" onClick={onExportPDF} className="border-gray-700 text-gray-300">
+              <Download className="w-4 h-4 mr-2" /> Exporter PDF
+            </Button>
+          )}
+          {onExportHTML && (
+            <Button variant="outline" size="sm" onClick={onExportHTML} className="border-gray-700 text-gray-300">
+              <FileText className="w-4 h-4 mr-2" /> Exporter HTML
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card className="bg-gray-900 border-gray-800">

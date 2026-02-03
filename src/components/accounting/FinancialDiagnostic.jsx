@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileDown, AlertTriangle, Calendar } from 'lucide-react';
+import { FileDown, FileText, AlertTriangle, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import MarginAnalysisSection from './MarginAnalysisSection';
@@ -12,7 +12,7 @@ import KeyRatiosSection from './KeyRatiosSection';
  * Composant principal de Diagnostic Financier
  * Affiche les 3 sections: Marges, Financement, Ratios Clés
  */
-const FinancialDiagnostic = ({ diagnostic, period, onExportPDF }) => {
+const FinancialDiagnostic = ({ diagnostic, period, onExportPDF, onExportHTML }) => {
   // Vérifier si le diagnostic est valide
   if (!diagnostic) {
     return (
@@ -102,16 +102,28 @@ const FinancialDiagnostic = ({ diagnostic, period, onExportPDF }) => {
               </div>
             </div>
 
-            {onExportPDF && (
-              <Button
-                onClick={onExportPDF}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <FileDown className="w-4 h-4" />
-                Exporter en PDF
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {onExportPDF && (
+                <Button
+                  onClick={onExportPDF}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <FileDown className="w-4 h-4" />
+                  Exporter en PDF
+                </Button>
+              )}
+              {onExportHTML && (
+                <Button
+                  onClick={onExportHTML}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  Exporter en HTML
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Résumé rapide */}
