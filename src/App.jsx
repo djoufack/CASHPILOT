@@ -38,6 +38,7 @@ import ReportGenerator from '@/components/ReportGenerator';
 import SeedDataManager from '@/components/admin/SeedDataManager';
 import CreditNotesPage from './pages/CreditNotesPage';
 import DeliveryNotesPage from './pages/DeliveryNotesPage';
+import DebtManagerPage from './pages/DebtManagerPage';
 
 // Wrapper to handle auth redirects
 const AuthWrapper = () => {
@@ -106,6 +107,7 @@ const AuthWrapper = () => {
                 
                 <Route path="/notifications" element={<NotificationCenter />} />
 
+                <Route path="/debt-manager" element={<DebtManagerPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
             </Route>
