@@ -288,3 +288,180 @@ export async function exportReconciliationPDF(reconciliationData, companyInfo, p
   const el = createContainer(html);
   await generatePDF(el, `Rapprochement_Bancaire_${period?.endDate || 'export'}.pdf`);
 }
+
+// ============================================================================
+// FINANCIAL DIAGNOSTIC PDF
+// ============================================================================
+
+export async function exportFinancialDiagnosticPDF(diagnostic, companyInfo, period) {
+  if (!diagnostic || !diagnostic.valid) {
+    console.error('Diagnostic invalide pour l\'export PDF');
+    return;
+  }
+
+  const { margins, financing, ratios } = diagnostic;
+
+  const html = `
+    ${createHeader('Diagnostic Financier', companyInfo, period)}
+
+    <!-- Section 1: Analyse des Marges -->
+    <h2 style="font-size:16px;color:#3B82F6;border-bottom:2px solid #3B82F6;padding-bottom:5px;margin:20px 0 10px;">
+      Analyse des Marges
+    </h2>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:15px;">
+      <thead>
+        <tr style="background:#F3F4F6;">
+          <th style="padding:8px;text-align:left;font-size:11px;">Indicateur</th>
+          <th style="padding:8px;text-align:right;font-size:11px;">Montant</th>
+          <th style="padding:8px;text-align:right;font-size:11px;">% du CA</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:8px;font-weight:bold;">Chiffre d'affaires</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;font-weight:bold;">${formatAmount(margins.revenue)}</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;">100.0%</td>
+        </tr>
+        <tr style="background:#F9FAFB;">
+          <td style="padding:8px;">Marge brute</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;color:${margins.grossMargin >= 0 ? '#10B981' : '#EF4444'};">${formatAmount(margins.grossMargin)}</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;">${margins.grossMarginPercent.toFixed(1)}%</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;">EBE / EBITDA</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;color:${margins.ebitda >= 0 ? '#10B981' : '#EF4444'};">${formatAmount(margins.ebitda)}</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;">${margins.ebitdaMargin.toFixed(1)}%</td>
+        </tr>
+        <tr style="background:#F9FAFB;">
+          <td style="padding:8px;">Résultat d'exploitation</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;color:${margins.operatingResult >= 0 ? '#10B981' : '#EF4444'};">${formatAmount(margins.operatingResult)}</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;">${margins.operatingMargin.toFixed(1)}%</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Section 2: Analyse du Financement -->
+    <h2 style="font-size:16px;color:#8B5CF6;border-bottom:2px solid #8B5CF6;padding-bottom:5px;margin:20px 0 10px;">
+      Analyse du Financement
+    </h2>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:15px;">
+      <tbody>
+        <tr>
+          <td style="padding:8px;font-weight:bold;">Capacité d'Autofinancement (CAF)</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;color:${financing.caf >= 0 ? '#10B981' : '#EF4444'};font-weight:bold;">${formatAmount(financing.caf)}</td>
+        </tr>
+        <tr style="background:#F9FAFB;">
+          <td style="padding:8px;">Fonds de Roulement</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;">${formatAmount(financing.workingCapital)}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;">Besoin en Fonds de Roulement (BFR)</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;color:${financing.bfr >= 0 ? '#F59E0B' : '#10B981'};">${formatAmount(financing.bfr)}</td>
+        </tr>
+        <tr style="background:#F9FAFB;">
+          <td style="padding:8px;padding-left:20px;font-size:10px;">Variation du BFR</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;font-size:10px;">${financing.bfrVariation >= 0 ? '+' : ''}${formatAmount(financing.bfrVariation)}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;font-weight:bold;">Flux de Trésorerie d'Exploitation</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;color:${financing.operatingCashFlow >= 0 ? '#10B981' : '#EF4444'};font-weight:bold;">${formatAmount(financing.operatingCashFlow)}</td>
+        </tr>
+        <tr style="background:#F9FAFB;">
+          <td style="padding:8px;">Endettement Net</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;color:${financing.netDebt >= 0 ? '#F59E0B' : '#10B981'};">${formatAmount(financing.netDebt)}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;padding-left:20px;font-size:10px;">Capitaux Propres</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;font-size:10px;">${formatAmount(financing.equity)}</td>
+        </tr>
+        <tr style="background:#F9FAFB;">
+          <td style="padding:8px;padding-left:20px;font-size:10px;">Dettes Totales</td>
+          <td style="padding:8px;text-align:right;font-family:monospace;font-size:10px;">${formatAmount(financing.totalDebt)}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Section 3: Ratios Clés -->
+    <h2 style="font-size:16px;color:#6366F1;border-bottom:2px solid #6366F1;padding-bottom:5px;margin:20px 0 10px;">
+      Ratios Clés
+    </h2>
+
+    <h3 style="font-size:13px;color:#10B981;margin:15px 0 8px;">Rentabilité</h3>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:15px;">
+      <tbody>
+        <tr>
+          <td style="padding:6px;">ROE (Return on Equity)</td>
+          <td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${ratios.profitability.roe.toFixed(2)}%</td>
+          <td style="padding:6px;text-align:right;font-size:10px;color:${ratios.profitability.roe >= 15 ? '#10B981' : ratios.profitability.roe >= 10 ? '#F59E0B' : '#EF4444'};">
+            ${ratios.profitability.roe >= 15 ? 'Excellent' : ratios.profitability.roe >= 10 ? 'Bon' : 'Moyen'}
+          </td>
+        </tr>
+        <tr style="background:#F9FAFB;">
+          <td style="padding:6px;">ROCE (Return on Capital Employed)</td>
+          <td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${ratios.profitability.roce.toFixed(2)}%</td>
+          <td style="padding:6px;text-align:right;font-size:10px;color:${ratios.profitability.roce >= 10 ? '#10B981' : ratios.profitability.roce >= 7 ? '#F59E0B' : '#EF4444'};">
+            ${ratios.profitability.roce >= 10 ? 'Bon' : ratios.profitability.roce >= 7 ? 'Moyen' : 'Faible'}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:13px;color:#3B82F6;margin:15px 0 8px;">Liquidité</h3>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:15px;">
+      <tbody>
+        <tr>
+          <td style="padding:6px;">Ratio de Liquidité Générale</td>
+          <td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${ratios.liquidity.currentRatio.toFixed(2)}</td>
+          <td style="padding:6px;text-align:right;font-size:10px;color:${ratios.liquidity.currentRatio >= 1.5 ? '#10B981' : ratios.liquidity.currentRatio >= 1.0 ? '#F59E0B' : '#EF4444'};">
+            ${ratios.liquidity.currentRatio >= 1.5 ? 'Bon' : ratios.liquidity.currentRatio >= 1.0 ? 'Acceptable' : 'Risque'}
+          </td>
+        </tr>
+        <tr style="background:#F9FAFB;">
+          <td style="padding:6px;">Ratio de Liquidité Réduite</td>
+          <td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${ratios.liquidity.quickRatio.toFixed(2)}</td>
+          <td style="padding:6px;text-align:right;font-size:10px;color:${ratios.liquidity.quickRatio >= 1.0 ? '#10B981' : ratios.liquidity.quickRatio >= 0.75 ? '#F59E0B' : '#EF4444'};">
+            ${ratios.liquidity.quickRatio >= 1.0 ? 'Bon' : ratios.liquidity.quickRatio >= 0.75 ? 'Correct' : 'Attention'}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:6px;">Ratio de Liquidité Immédiate</td>
+          <td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${ratios.liquidity.cashRatio.toFixed(2)}</td>
+          <td style="padding:6px;text-align:right;font-size:10px;color:${ratios.liquidity.cashRatio >= 0.3 ? '#10B981' : ratios.liquidity.cashRatio >= 0.2 ? '#F59E0B' : '#EF4444'};">
+            ${ratios.liquidity.cashRatio >= 0.3 ? 'Excellent' : ratios.liquidity.cashRatio >= 0.2 ? 'Suffisant' : 'Limité'}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:13px;color:#F59E0B;margin:15px 0 8px;">Structure Financière</h3>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:15px;">
+      <tbody>
+        <tr>
+          <td style="padding:6px;">Levier Financier (Dette/Capitaux Propres)</td>
+          <td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${ratios.leverage.financialLeverage.toFixed(2)}</td>
+          <td style="padding:6px;text-align:right;font-size:10px;color:${ratios.leverage.financialLeverage < 1.0 ? '#10B981' : ratios.leverage.financialLeverage < 2.0 ? '#F59E0B' : '#EF4444'};">
+            ${ratios.leverage.financialLeverage < 1.0 ? 'Faible' : ratios.leverage.financialLeverage < 2.0 ? 'Modéré' : 'Élevé'}
+          </td>
+        </tr>
+        <tr style="background:#F9FAFB;">
+          <td style="padding:6px;">Autonomie Financière</td>
+          <td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${(1 / (1 + ratios.leverage.financialLeverage) * 100).toFixed(1)}%</td>
+          <td style="padding:6px;text-align:right;font-size:10px;color:${ratios.leverage.financialLeverage < 1.0 ? '#10B981' : ratios.leverage.financialLeverage < 2.0 ? '#F59E0B' : '#EF4444'};">
+            ${ratios.leverage.financialLeverage < 1.0 ? 'Indépendant' : ratios.leverage.financialLeverage < 2.0 ? 'Acceptable' : 'Dépendant'}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Footer -->
+    <div style="margin-top:25px;padding-top:10px;border-top:1px solid #E5E7EB;font-size:9px;color:#9CA3AF;">
+      <p style="margin:0;"><strong>Note:</strong> Ce diagnostic financier est basé sur les données comptables selon les normes OHADA.
+      Les ratios et indicateurs sont calculés automatiquement et doivent être interprétés dans le contexte spécifique de votre activité.</p>
+    </div>
+  `;
+
+  const el = createContainer(html);
+  await generatePDF(el, `Diagnostic_Financier_${period?.endDate || 'export'}.pdf`);
+}

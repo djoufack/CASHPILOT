@@ -639,3 +639,142 @@ function groupTrialByCategory(items) {
   });
   return Object.values(groups).sort((a, b) => a.category.localeCompare(b.category));
 }
+
+// ============================================================================
+// HELPER FUNCTIONS FOR FINANCIAL ANALYSIS
+// ============================================================================
+
+/**
+ * Extraire les comptes d'un bilan par préfixe
+ */
+export function extractAccountsByPrefix(balanceSheet, prefix) {
+  if (!balanceSheet) return [];
+
+  const allAccounts = [
+    ...(balanceSheet.assets || []),
+    ...(balanceSheet.liabilities || []),
+    ...(balanceSheet.equity || [])
+  ];
+
+  return allAccounts.filter(acc =>
+    acc.account_code && acc.account_code.startsWith(prefix)
+  );
+}
+
+/**
+ * Obtenir le total des dettes
+ * OHADA: Classe 16 (Emprunts) + Classe 17 (Dettes rattachées à des participations)
+ */
+export function getTotalDebt(balanceSheet) {
+  if (!balanceSheet) return 0;
+
+  const allAccounts = [
+    ...(balanceSheet.liabilities || [])
+  ];
+
+  return allAccounts
+    .filter(acc => acc.account_code &&
+      (acc.account_code.startsWith('16') || acc.account_code.startsWith('17')))
+    .reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+}
+
+/**
+ * Obtenir la trésorerie
+ * OHADA: Classe 52 (Banques) + Classe 57 (Caisse)
+ */
+export function getCashAndEquivalents(balanceSheet) {
+  if (!balanceSheet) return 0;
+
+  const allAccounts = [
+    ...(balanceSheet.assets || [])
+  ];
+
+  return allAccounts
+    .filter(acc => acc.account_code &&
+      (acc.account_code.startsWith('52') || acc.account_code.startsWith('57')))
+    .reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+}
+
+/**
+ * Obtenir les actifs circulants
+ * OHADA: Classe 3 (Stocks) + Classe 4 (Créances) + Classe 5 (Trésorerie)
+ */
+export function getCurrentAssets(balanceSheet) {
+  if (!balanceSheet) return 0;
+
+  const allAccounts = [
+    ...(balanceSheet.assets || [])
+  ];
+
+  return allAccounts
+    .filter(acc => acc.account_code &&
+      (acc.account_code.startsWith('3') ||
+       acc.account_code.startsWith('4') ||
+       acc.account_code.startsWith('5')))
+    .reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+}
+
+/**
+ * Obtenir les dettes à court terme
+ * OHADA: Classe 40 (Fournisseurs) + Classe 44 (État et collectivités)
+ */
+export function getCurrentLiabilities(balanceSheet) {
+  if (!balanceSheet) return 0;
+
+  const allAccounts = [
+    ...(balanceSheet.liabilities || [])
+  ];
+
+  return allAccounts
+    .filter(acc => acc.account_code &&
+      (acc.account_code.startsWith('40') || acc.account_code.startsWith('44')))
+    .reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+}
+
+/**
+ * Obtenir les stocks
+ * OHADA: Classe 3
+ */
+export function getInventory(balanceSheet) {
+  if (!balanceSheet) return 0;
+
+  const allAccounts = [
+    ...(balanceSheet.assets || [])
+  ];
+
+  return allAccounts
+    .filter(acc => acc.account_code && acc.account_code.startsWith('3'))
+    .reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+}
+
+/**
+ * Obtenir les capitaux propres
+ * OHADA: Classe 10
+ */
+export function getEquity(balanceSheet) {
+  if (!balanceSheet) return 0;
+
+  const allAccounts = [
+    ...(balanceSheet.equity || [])
+  ];
+
+  return allAccounts
+    .filter(acc => acc.account_code && acc.account_code.startsWith('10'))
+    .reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+}
+
+/**
+ * Obtenir les dettes à long terme
+ * OHADA: Classe 16 (Emprunts)
+ */
+export function getLongTermDebt(balanceSheet) {
+  if (!balanceSheet) return 0;
+
+  const allAccounts = [
+    ...(balanceSheet.liabilities || [])
+  ];
+
+  return allAccounts
+    .filter(acc => acc.account_code && acc.account_code.startsWith('16'))
+    .reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+}

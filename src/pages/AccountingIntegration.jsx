@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark, Book, BookOpen, Zap } from 'lucide-react';
+import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark, Book, BookOpen, Zap, Activity } from 'lucide-react';
 import { useAccountingData } from '@/hooks/useAccountingData';
 import { useAccountingInit } from '@/hooks/useAccountingInit';
 import { useCompany } from '@/hooks/useCompany';
@@ -17,11 +17,13 @@ import TaxEstimation from '@/components/accounting/TaxEstimation';
 import AccountingMappings from '@/components/accounting/AccountingMappings';
 import TaxRatesManager from '@/components/accounting/TaxRatesManager';
 import BankReconciliation from '@/components/accounting/BankReconciliation';
+import FinancialDiagnostic from '@/components/accounting/FinancialDiagnostic';
 import {
   exportBalanceSheetPDF,
   exportIncomeStatementPDF,
   exportVATDeclarationPDF,
-  exportTaxEstimationPDF
+  exportTaxEstimationPDF,
+  exportFinancialDiagnosticPDF
 } from '@/services/exportAccountingPDF';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
@@ -63,6 +65,7 @@ const AccountingIntegration = () => {
     incomeStatement,
     taxEstimate,
     monthlyData,
+    financialDiagnostic,
     refresh
   } = useAccountingData(period.startDate, period.endDate);
 
@@ -100,11 +103,18 @@ const AccountingIntegration = () => {
     );
   };
 
+  const handleExportDiagnosticPDF = () => {
+    guardedAction(CREDIT_COSTS.PDF_BALANCE_SHEET, 'Financial Diagnostic PDF', () =>
+      exportFinancialDiagnosticPDF(financialDiagnostic, companyInfo, period)
+    );
+  };
+
   const tabs = [
     { value: 'dashboard', label: 'Tableau de bord', icon: BarChart3 },
     { value: 'coa', label: 'Plan comptable', icon: FileText },
     { value: 'balance', label: 'Bilan', icon: Scale },
     { value: 'income', label: 'Compte de résultat', icon: TrendingUp },
+    { value: 'diagnostic', label: 'Diagnostic Financier', icon: Activity },
     { value: 'vat', label: 'TVA', icon: Receipt },
     { value: 'tax', label: 'Estimation impôt', icon: Calculator },
     { value: 'mappings', label: 'Mappings', icon: Settings },
@@ -259,6 +269,15 @@ const AccountingIntegration = () => {
               incomeStatement={incomeStatement}
               period={period}
               onExportPDF={handleExportIncomeStatementPDF}
+            />
+          </TabsContent>
+
+          {/* Financial Diagnostic */}
+          <TabsContent value="diagnostic" className="mt-6">
+            <FinancialDiagnostic
+              diagnostic={financialDiagnostic}
+              period={period}
+              onExportPDF={handleExportDiagnosticPDF}
             />
           </TabsContent>
 
