@@ -4,21 +4,27 @@ import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Search, Receipt, Loader2, Trash2, List, CalendarDays, CalendarClock } from 'lucide-react';
+import { Plus, Search, Receipt, Loader2, Trash2, List, CalendarDays, CalendarClock, Download, FileText } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
+import { exportExpensesListPDF, exportExpensesListHTML } from '@/services/exportListsPDF';
 
 const ExpensesPage = () => {
   const { t } = useTranslation();
   const { expenses, loading, createExpense } = useExpenses();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
@@ -45,6 +51,26 @@ const ExpensesPage = () => {
     } catch (err) {
       console.error('Error creating expense:', err);
     }
+  };
+
+  const handleExportPDF = () => {
+    guardedAction(
+      CREDIT_COSTS.PDF_REPORT,
+      'Expenses List PDF',
+      async () => {
+        await exportExpensesListPDF(filteredExpenses, company, { searchTerm });
+      }
+    );
+  };
+
+  const handleExportHTML = () => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      'Expenses List HTML',
+      () => {
+        exportExpensesListHTML(filteredExpenses, company, { searchTerm });
+      }
+    );
   };
 
   const filteredExpenses = expenses.filter(exp =>
@@ -105,6 +131,7 @@ const ExpensesPage = () => {
 
   return (
     <>
+      <CreditsGuardModal {...modalProps} />
       <Helmet>
         <title>Dépenses - CashPilot</title>
       </Helmet>
@@ -116,9 +143,29 @@ const ExpensesPage = () => {
               <h1 className="text-2xl sm:text-3xl font-bold text-gradient">Dépenses</h1>
               <p className="text-gray-400 mt-1 text-sm">Gérez et suivez vos dépenses professionnelles.</p>
             </div>
-            <Button onClick={() => setIsDialogOpen(true)} className="bg-orange-500 hover:bg-orange-600">
-              <Plus className="w-4 h-4 mr-2" /> Nouvelle dépense
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                onClick={handleExportPDF}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-700"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                PDF ({CREDIT_COSTS.PDF_REPORT})
+              </Button>
+              <Button
+                onClick={handleExportHTML}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-700"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                HTML ({CREDIT_COSTS.EXPORT_HTML})
+              </Button>
+              <Button onClick={() => setIsDialogOpen(true)} className="bg-orange-500 hover:bg-orange-600">
+                <Plus className="w-4 h-4 mr-2" /> Nouvelle dépense
+              </Button>
+            </div>
           </div>
         </motion.div>
 
