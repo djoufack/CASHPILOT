@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import CreditsBalance from '@/components/CreditsBalance';
 
-const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
+const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -49,7 +49,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       });
   };
 
-  const navItems = [
+  // Use navItems from props if provided, otherwise fallback to default
+  const defaultNavItems = [
     { path: '/', label: t('common.dashboard'), icon: Home },
     { path: '/clients', label: t('common.clients'), icon: Users },
     { path: '/projects', label: t('common.projects'), icon: Briefcase },
@@ -73,6 +74,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     { path: '/analytics', label: 'Analytics', icon: PieChart },
     { path: '/settings', label: t('common.settings'), icon: Settings },
   ];
+
+  const navItems = navItemsProp || defaultNavItems;
 
   if (hasPermission('all', 'manage')) {
     navItems.push(

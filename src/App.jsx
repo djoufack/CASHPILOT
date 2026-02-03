@@ -41,6 +41,7 @@ import DeliveryNotesPage from './pages/DeliveryNotesPage';
 import DebtManagerPage from './pages/DebtManagerPage';
 import ScenarioBuilder from './pages/ScenarioBuilder';
 import ScenarioDetail from './pages/ScenarioDetail';
+import LandingPage from './pages/LandingPage';
 
 // Wrapper to handle auth redirects
 const AuthWrapper = () => {
@@ -52,9 +53,12 @@ const AuthWrapper = () => {
 
     return (
         <Routes>
-            {/* Public Routes - Redirect to dashboard if logged in */}
-            <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
-            <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignupPage />} />
+            {/* Public Landing Page */}
+            <Route path="/" element={user ? <Navigate to="/app" replace /> : <LandingPage />} />
+
+            {/* Public Routes - Redirect to /app if logged in */}
+            <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
+            <Route path="/signup" element={user ? <Navigate to="/app" replace /> : <SignupPage />} />
             
             {/* Client Portal */}
             <Route path="/client-portal/*" element={
@@ -74,46 +78,46 @@ const AuthWrapper = () => {
             </Route>
 
             {/* Main App Routes - Protected */}
-            <Route element={
+            <Route path="/app" element={
                 <ProtectedRoute>
                     <MainLayout />
                 </ProtectedRoute>
             }>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/clients" element={<ClientsPage />} />
-                <Route path="/clients/:id" element={<ClientProfile />} />
-                <Route path="/projects" element={<ProjectsPage />} />
-                <Route path="/projects/:projectId" element={<ProjectDetail />} />
-                <Route path="/timesheets" element={<TimesheetsPage />} />
-                <Route path="/invoices" element={<InvoicesPage />} />
-                <Route path="/credit-notes" element={<CreditNotesPage />} />
-                <Route path="/delivery-notes" element={<DeliveryNotesPage />} />
-                <Route path="/quotes" element={<QuotesPage />} />
-                <Route path="/expenses" element={<ExpensesPage />} />
-                <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
+                <Route index element={<Dashboard />} />
+                <Route path="clients" element={<ClientsPage />} />
+                <Route path="clients/:id" element={<ClientProfile />} />
+                <Route path="projects" element={<ProjectsPage />} />
+                <Route path="projects/:projectId" element={<ProjectDetail />} />
+                <Route path="timesheets" element={<TimesheetsPage />} />
+                <Route path="invoices" element={<InvoicesPage />} />
+                <Route path="credit-notes" element={<CreditNotesPage />} />
+                <Route path="delivery-notes" element={<DeliveryNotesPage />} />
+                <Route path="quotes" element={<QuotesPage />} />
+                <Route path="expenses" element={<ExpensesPage />} />
+                <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
 
                 {/* Stock (produits du User) */}
-                <Route path="/stock" element={<StockManagement />} />
-                <Route path="/suppliers/stock" element={<Navigate to="/stock" replace />} />
+                <Route path="stock" element={<StockManagement />} />
+                <Route path="suppliers/stock" element={<Navigate to="/app/stock" replace />} />
 
                 {/* Supplier Routes */}
-                <Route path="/suppliers" element={<SuppliersPage />} />
-                <Route path="/suppliers/reports" element={<SupplierReports />} />
-                <Route path="/suppliers/accounting" element={<AccountingIntegration />} />
-                <Route path="/suppliers/:id" element={<SupplierProfile />} />
-                
-                {/* New Feature Routes */}
-                <Route path="/suppliers/map" element={<div className="h-[calc(100vh-100px)] p-4"><SupplierMap /></div>} />
-                <Route path="/products/barcode" element={<div className="p-4"><BarcodeScanner /></div>} />
-                <Route path="/reports/generator" element={<div className="p-4"><ReportGenerator /></div>} />
-                
-                <Route path="/notifications" element={<NotificationCenter />} />
+                <Route path="suppliers" element={<SuppliersPage />} />
+                <Route path="suppliers/reports" element={<SupplierReports />} />
+                <Route path="suppliers/accounting" element={<AccountingIntegration />} />
+                <Route path="suppliers/:id" element={<SupplierProfile />} />
 
-                <Route path="/debt-manager" element={<DebtManagerPage />} />
-                <Route path="/scenarios" element={<ScenarioBuilder />} />
-                <Route path="/scenarios/:scenarioId" element={<ScenarioDetail />} />
-                <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                {/* New Feature Routes */}
+                <Route path="suppliers/map" element={<div className="h-[calc(100vh-100px)] p-4"><SupplierMap /></div>} />
+                <Route path="products/barcode" element={<div className="p-4"><BarcodeScanner /></div>} />
+                <Route path="reports/generator" element={<div className="p-4"><ReportGenerator /></div>} />
+
+                <Route path="notifications" element={<NotificationCenter />} />
+
+                <Route path="debt-manager" element={<DebtManagerPage />} />
+                <Route path="scenarios" element={<ScenarioBuilder />} />
+                <Route path="scenarios/:scenarioId" element={<ScenarioDetail />} />
+                <Route path="analytics" element={<AnalyticsPage />} />
+                <Route path="settings" element={<SettingsPage />} />
             </Route>
 
             {/* Fallback */}
