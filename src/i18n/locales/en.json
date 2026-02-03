@@ -470,7 +470,39 @@
     "costReport": "Financial Report",
     "showHistory": "Show Transaction History",
     "hideHistory": "Hide Transaction History",
-    "noTransactions": "No transactions yet"
+    "noTransactions": "No transactions yet",
+    "creditsConsumed": "credits consumed",
+    "creditsRefunded": "Credits have been refunded to your account",
+    "exportSuccess": "Export successful",
+    "exportFailed": "Export failed",
+    "categories": {
+      "financialStatements": "Financial Statements (OHADA)",
+      "commercialDocuments": "Commercial Documents",
+      "analyticalReports": "Analytical Reports",
+      "additionalExports": "Additional Exports",
+      "other": "Other Actions"
+    },
+    "costs": {
+      "balanceSheet": "Balance Sheet Generation",
+      "incomeStatement": "Income Statement Generation",
+      "vatDeclaration": "VAT Declaration Generation",
+      "taxEstimation": "Tax Estimation Generation",
+      "financialDiagnostic": "Financial Diagnostic Generation",
+      "pdfInvoice": "Invoice PDF Export",
+      "pdfQuote": "Quote PDF Export",
+      "pdfDeliveryNote": "Delivery Note PDF Export",
+      "pdfCreditNote": "Credit Note PDF Export",
+      "pdfPurchaseOrder": "Purchase Order PDF Export",
+      "pdfReport": "Generic Report",
+      "pdfAnalytics": "Analytics Dashboard Export",
+      "pdfSupplierReport": "Supplier Report",
+      "pdfReconciliation": "Bank Reconciliation Report",
+      "pdfScenario": "Financial Scenario Simulation",
+      "exportHtml": "HTML Export (Standalone File)",
+      "pdfReceipt": "Receipt PDF",
+      "cloudBackup": "Cloud Backup",
+      "htmlPreview": "HTML Preview (In Browser)"
+    }
   },
   "quickInvoice": {
     "title": "Quick Invoice",

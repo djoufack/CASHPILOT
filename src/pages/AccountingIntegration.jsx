@@ -25,6 +25,13 @@ import {
   exportTaxEstimationPDF,
   exportFinancialDiagnosticPDF
 } from '@/services/exportAccountingPDF';
+import {
+  exportBalanceSheetHTML,
+  exportIncomeStatementHTML,
+  exportVATDeclarationHTML,
+  exportTaxEstimationHTML,
+  exportFinancialDiagnosticHTML
+} from '@/services/exportHTML';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 
@@ -78,34 +85,65 @@ const AccountingIntegration = () => {
     vat_number: company.vat_number
   } : { company_name: 'Ma Société' };
 
-  // PDF export handlers — credit-guarded
+  // PDF export handlers — credit-guarded (5 crédits pour génération états comptables)
   const handleExportBalanceSheetPDF = () => {
-    guardedAction(CREDIT_COSTS.PDF_BALANCE_SHEET, 'Balance Sheet PDF', () =>
+    guardedAction(CREDIT_COSTS.GENERATE_BALANCE_SHEET, 'Balance Sheet PDF', () =>
       exportBalanceSheetPDF(balanceSheet, companyInfo, period)
     );
   };
 
   const handleExportIncomeStatementPDF = () => {
-    guardedAction(CREDIT_COSTS.PDF_INCOME_STATEMENT, 'Income Statement PDF', () =>
+    guardedAction(CREDIT_COSTS.GENERATE_INCOME_STATEMENT, 'Income Statement PDF', () =>
       exportIncomeStatementPDF(incomeStatement, companyInfo, period)
     );
   };
 
   const handleExportVATPDF = () => {
-    guardedAction(CREDIT_COSTS.PDF_VAT, 'VAT Declaration PDF', () =>
+    guardedAction(CREDIT_COSTS.GENERATE_VAT_DECLARATION, 'VAT Declaration PDF', () =>
       exportVATDeclarationPDF({ outputVAT, inputVAT, vatPayable }, companyInfo, period)
     );
   };
 
   const handleExportTaxPDF = () => {
-    guardedAction(CREDIT_COSTS.PDF_TAX, 'Tax Estimation PDF', () =>
+    guardedAction(CREDIT_COSTS.GENERATE_TAX_ESTIMATION, 'Tax Estimation PDF', () =>
       exportTaxEstimationPDF({ netIncome, taxEstimate }, companyInfo, period)
     );
   };
 
   const handleExportDiagnosticPDF = () => {
-    guardedAction(CREDIT_COSTS.PDF_BALANCE_SHEET, 'Financial Diagnostic PDF', () =>
+    guardedAction(CREDIT_COSTS.GENERATE_FINANCIAL_DIAGNOSTIC, 'Financial Diagnostic PDF', () =>
       exportFinancialDiagnosticPDF(financialDiagnostic, companyInfo, period)
+    );
+  };
+
+  // HTML export handlers — credit-guarded (2 crédits pour téléchargement fichier HTML)
+  const handleExportBalanceSheetHTML = () => {
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Balance Sheet HTML', () =>
+      exportBalanceSheetHTML(balanceSheet, companyInfo, `${period.startDate} - ${period.endDate}`)
+    );
+  };
+
+  const handleExportIncomeStatementHTML = () => {
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Income Statement HTML', () =>
+      exportIncomeStatementHTML(incomeStatement, companyInfo, `${period.startDate} - ${period.endDate}`)
+    );
+  };
+
+  const handleExportVATHTML = () => {
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, 'VAT Declaration HTML', () =>
+      exportVATDeclarationHTML({ outputVAT, inputVAT, vatPayable }, companyInfo, `${period.startDate} - ${period.endDate}`)
+    );
+  };
+
+  const handleExportTaxHTML = () => {
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Tax Estimation HTML', () =>
+      exportTaxEstimationHTML({ netIncome, taxEstimate }, companyInfo, `${period.startDate} - ${period.endDate}`)
+    );
+  };
+
+  const handleExportDiagnosticHTML = () => {
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Financial Diagnostic HTML', () =>
+      exportFinancialDiagnosticHTML(financialDiagnostic, companyInfo, `${period.startDate} - ${period.endDate}`)
     );
   };
 
@@ -260,6 +298,7 @@ const AccountingIntegration = () => {
               balanceSheet={balanceSheet}
               period={period}
               onExportPDF={handleExportBalanceSheetPDF}
+              onExportHTML={handleExportBalanceSheetHTML}
             />
           </TabsContent>
 
@@ -269,6 +308,7 @@ const AccountingIntegration = () => {
               incomeStatement={incomeStatement}
               period={period}
               onExportPDF={handleExportIncomeStatementPDF}
+              onExportHTML={handleExportIncomeStatementHTML}
             />
           </TabsContent>
 
@@ -278,6 +318,7 @@ const AccountingIntegration = () => {
               diagnostic={financialDiagnostic}
               period={period}
               onExportPDF={handleExportDiagnosticPDF}
+              onExportHTML={handleExportDiagnosticHTML}
             />
           </TabsContent>
 
@@ -291,6 +332,7 @@ const AccountingIntegration = () => {
               monthlyData={monthlyData}
               period={period}
               onExportPDF={handleExportVATPDF}
+              onExportHTML={handleExportVATHTML}
             />
           </TabsContent>
 
@@ -301,6 +343,7 @@ const AccountingIntegration = () => {
               taxEstimate={taxEstimate}
               period={period}
               onExportPDF={handleExportTaxPDF}
+              onExportHTML={handleExportTaxHTML}
             />
           </TabsContent>
 

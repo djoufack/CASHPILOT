@@ -470,7 +470,39 @@
     "costReport": "Rapport financier",
     "showHistory": "Afficher l'historique des transactions",
     "hideHistory": "Masquer l'historique des transactions",
-    "noTransactions": "Aucune transaction pour le moment"
+    "noTransactions": "Aucune transaction pour le moment",
+    "creditsConsumed": "crédits consommés",
+    "creditsRefunded": "Les crédits ont été remboursés sur votre compte",
+    "exportSuccess": "Export réussi",
+    "exportFailed": "Export échoué",
+    "categories": {
+      "financialStatements": "États Comptables (OHADA)",
+      "commercialDocuments": "Documents Commerciaux",
+      "analyticalReports": "Rapports Analytiques",
+      "additionalExports": "Exports Complémentaires",
+      "other": "Autres Actions"
+    },
+    "costs": {
+      "balanceSheet": "Génération du Bilan",
+      "incomeStatement": "Génération du Compte de Résultat",
+      "vatDeclaration": "Génération Déclaration TVA",
+      "taxEstimation": "Génération Estimation d'Impôt",
+      "financialDiagnostic": "Génération Diagnostic Financier",
+      "pdfInvoice": "Export PDF Facture",
+      "pdfQuote": "Export PDF Devis",
+      "pdfDeliveryNote": "Export PDF Bon de Livraison",
+      "pdfCreditNote": "Export PDF Note de Crédit",
+      "pdfPurchaseOrder": "Export PDF Commande Fournisseur",
+      "pdfReport": "Rapport Générique",
+      "pdfAnalytics": "Export Dashboard Analytics",
+      "pdfSupplierReport": "Rapport Fournisseurs",
+      "pdfReconciliation": "Rapport Rapprochement Bancaire",
+      "pdfScenario": "Simulation Scénario Financier",
+      "exportHtml": "Export HTML (Fichier Standalone)",
+      "pdfReceipt": "PDF Reçu",
+      "cloudBackup": "Sauvegarde Cloud",
+      "htmlPreview": "Prévisualisation HTML (Navigateur)"
+    }
   },
   "quickInvoice": {
     "title": "Facture rapide",

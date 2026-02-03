@@ -3,11 +3,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Receipt, ArrowDown, ArrowUp, Minus } from 'lucide-react';
+import { Download, FileText, Receipt, ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatCurrency } from '@/utils/calculations';
 
-const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthlyData, period, onExportPDF }) => {
+const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthlyData, period, onExportPDF, onExportHTML }) => {
 
   // Build monthly VAT data from monthlyData
   const monthlyVATData = (monthlyData || []).map(m => ({
@@ -30,11 +30,18 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
             </p>
           )}
         </div>
-        {onExportPDF && (
-          <Button variant="outline" size="sm" onClick={onExportPDF} className="border-gray-700 text-gray-300">
-            <Download className="w-4 h-4 mr-2" /> Exporter PDF
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {onExportPDF && (
+            <Button variant="outline" size="sm" onClick={onExportPDF} className="border-gray-700 text-gray-300">
+              <Download className="w-4 h-4 mr-2" /> Exporter PDF
+            </Button>
+          )}
+          {onExportHTML && (
+            <Button variant="outline" size="sm" onClick={onExportHTML} className="border-gray-700 text-gray-300">
+              <FileText className="w-4 h-4 mr-2" /> Exporter HTML
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Summary cards */}

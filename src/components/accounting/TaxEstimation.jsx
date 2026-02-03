@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Download, Calculator, TrendingUp, Banknote } from 'lucide-react';
+import { Download, FileText, Calculator, TrendingUp, Banknote } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 import { estimateTax, DEFAULT_TAX_BRACKETS } from '@/utils/accountingCalculations';
 
-const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExportPDF }) => {
+const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExportPDF, onExportHTML }) => {
   const [brackets, setBrackets] = useState(DEFAULT_TAX_BRACKETS);
   const [customMode, setCustomMode] = useState(false);
 
@@ -35,11 +35,18 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
             </p>
           )}
         </div>
-        {onExportPDF && (
-          <Button variant="outline" size="sm" onClick={onExportPDF} className="border-gray-700 text-gray-300">
-            <Download className="w-4 h-4 mr-2" /> Exporter PDF
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {onExportPDF && (
+            <Button variant="outline" size="sm" onClick={onExportPDF} className="border-gray-700 text-gray-300">
+              <Download className="w-4 h-4 mr-2" /> Exporter PDF
+            </Button>
+          )}
+          {onExportHTML && (
+            <Button variant="outline" size="sm" onClick={onExportHTML} className="border-gray-700 text-gray-300">
+              <FileText className="w-4 h-4 mr-2" /> Exporter HTML
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* KPI Cards */}

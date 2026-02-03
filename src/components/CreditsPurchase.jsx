@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { CreditCard, Coins, TrendingUp, Zap, Star, Gift } from 'lucide-react';
 import { format } from 'date-fns';
-import { CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import { CREDIT_COSTS, CREDIT_CATEGORIES, CREDIT_COST_LABELS } from '@/hooks/useCreditsGuard';
 import ReferralSystem from '@/components/ReferralSystem';
 
 const PACKAGE_ICONS = [Coins, Zap, Star, TrendingUp];
@@ -111,25 +111,95 @@ const CreditsPurchase = () => {
         </div>
       </div>
 
-      {/* What costs credits — updated pricing */}
+      {/* What costs credits — grouped by categories */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-5">
-        <h3 className="text-lg font-semibold mb-3">{t('credits.whatCosts')}</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-          <div className="flex justify-between p-2 bg-gray-700/50 rounded">
-            <span className="text-gray-300">{t('credits.costPdfExport')}</span>
-            <span className="text-orange-400 font-semibold">{CREDIT_COSTS.PDF_INVOICE} {t('credits.creditsLabel')}</span>
+        <h3 className="text-lg font-semibold mb-4">{t('credits.whatCosts')}</h3>
+
+        <div className="space-y-5">
+          {/* Financial Statements (OHADA) */}
+          <div>
+            <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              📊 {t('credits.categories.financialStatements')}
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              {CREDIT_CATEGORIES.FINANCIAL_STATEMENTS.map(key => (
+                <div key={key} className="flex justify-between p-2 bg-gray-700/50 rounded">
+                  <span className="text-gray-300">{t(CREDIT_COST_LABELS[key])}</span>
+                  <span className="text-orange-400 font-semibold">{CREDIT_COSTS[key]} {t('credits.creditsLabel')}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex justify-between p-2 bg-gray-700/50 rounded">
-            <span className="text-gray-300">{t('credits.costReceipt')}</span>
-            <span className="text-orange-400 font-semibold">{CREDIT_COSTS.PDF_RECEIPT} {t('credits.credit')}</span>
+
+          {/* Commercial Documents */}
+          <div>
+            <h4 className="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              📄 {t('credits.categories.commercialDocuments')}
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              {CREDIT_CATEGORIES.COMMERCIAL_DOCUMENTS.map(key => (
+                <div key={key} className="flex justify-between p-2 bg-gray-700/50 rounded">
+                  <span className="text-gray-300">{t(CREDIT_COST_LABELS[key])}</span>
+                  <span className="text-blue-400 font-semibold">{CREDIT_COSTS[key]} {t('credits.creditsLabel')}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex justify-between p-2 bg-gray-700/50 rounded">
-            <span className="text-gray-300">{t('credits.costReport')}</span>
-            <span className="text-orange-400 font-semibold">{CREDIT_COSTS.PDF_REPORT} {t('credits.creditsLabel')}</span>
+
+          {/* Analytical Reports */}
+          <div>
+            <h4 className="text-sm font-semibold text-purple-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              📈 {t('credits.categories.analyticalReports')}
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              {CREDIT_CATEGORIES.ANALYTICAL_REPORTS.map(key => (
+                <div key={key} className="flex justify-between p-2 bg-gray-700/50 rounded">
+                  <span className="text-gray-300">{t(CREDIT_COST_LABELS[key])}</span>
+                  <span className="text-purple-400 font-semibold">{CREDIT_COSTS[key]} {t('credits.creditsLabel')}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex justify-between p-2 bg-gray-700/50 rounded">
-            <span className="text-gray-300">{t('credits.costHtmlPreview')}</span>
-            <span className="text-green-400 font-semibold">{t('credits.free')}</span>
+
+          {/* Additional Exports */}
+          <div>
+            <h4 className="text-sm font-semibold text-cyan-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              💾 {t('credits.categories.additionalExports')}
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              {CREDIT_CATEGORIES.ADDITIONAL_EXPORTS.map(key => (
+                <div key={key} className="flex justify-between p-2 bg-gray-700/50 rounded">
+                  <span className="text-gray-300">{t(CREDIT_COST_LABELS[key])}</span>
+                  <span className="text-cyan-400 font-semibold">{CREDIT_COSTS[key]} {t('credits.creditsLabel')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Other Actions */}
+          <div>
+            <h4 className="text-sm font-semibold text-yellow-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              ⚡ {t('credits.categories.other')}
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              {CREDIT_CATEGORIES.OTHER.map(key => (
+                <div key={key} className="flex justify-between p-2 bg-gray-700/50 rounded">
+                  <span className="text-gray-300">{t(CREDIT_COST_LABELS[key])}</span>
+                  <span className="text-yellow-400 font-semibold">{CREDIT_COSTS[key]} {t('credits.credit')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Free section */}
+          <div className="pt-3 border-t border-gray-700">
+            <h4 className="text-sm font-semibold text-green-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              ✅ {t('credits.free')}
+            </h4>
+            <div className="flex justify-between p-2 bg-green-500/10 border border-green-500/30 rounded">
+              <span className="text-gray-300">{t('credits.costs.htmlPreview')}</span>
+              <span className="text-green-400 font-semibold">{t('credits.free')}</span>
+            </div>
           </div>
         </div>
       </div>
