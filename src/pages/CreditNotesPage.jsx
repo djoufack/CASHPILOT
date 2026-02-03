@@ -124,10 +124,10 @@ const CreditNotesPage = () => {
   };
 
   const cnCalendarLegend = [
-    { label: 'Draft', color: '#6b7280' },
-    { label: 'Issued', color: '#3b82f6' },
-    { label: 'Applied', color: '#22c55e' },
-    { label: 'Cancelled', color: '#ef4444' },
+    { label: t('creditNotes.status.draft'), color: '#6b7280' },
+    { label: t('creditNotes.status.issued'), color: '#3b82f6' },
+    { label: t('creditNotes.status.applied'), color: '#22c55e' },
+    { label: t('creditNotes.status.cancelled'), color: '#ef4444' },
   ];
 
   const cnCalendarEvents = creditNotes.map(cn => ({
@@ -179,13 +179,13 @@ const CreditNotesPage = () => {
       <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
         <TabsList className="bg-gray-800 border border-gray-700 mb-4">
           <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-            <List className="w-4 h-4 mr-2" /> List
+            <List className="w-4 h-4 mr-2" /> {t('common.list') || 'List'}
           </TabsTrigger>
           <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-            <CalendarDays className="w-4 h-4 mr-2" /> Calendar
+            <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar') || 'Calendar'}
           </TabsTrigger>
           <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-            <CalendarClock className="w-4 h-4 mr-2" /> Agenda
+            <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
           </TabsTrigger>
         </TabsList>
 
