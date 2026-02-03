@@ -4,11 +4,15 @@ import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useClients } from '@/hooks/useClients';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { exportPurchaseOrderPDF, exportPurchaseOrderHTML } from '@/services/exportDocuments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, ClipboardList, Trash2, Loader2, Search, List, CalendarDays, CalendarClock } from 'lucide-react';
+import { Plus, ClipboardList, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Download, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -40,7 +44,7 @@ const initialFormData = {
   items: [{ ...emptyItem }],
 };
 
-const POCard = ({ po, onDelete }) => {
+const POCard = ({ po, onDelete, onExportPDF, onExportHTML }) => {
   const statusColors = {
     draft: 'bg-gray-500/20 text-gray-400 border-gray-700',
     sent: 'bg-blue-500/20 text-blue-400 border-blue-800',
@@ -81,6 +85,24 @@ const POCard = ({ po, onDelete }) => {
         <Button
           variant="ghost"
           size="sm"
+          onClick={() => onExportPDF(po)}
+          className="text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
+          title="Export PDF (2 crédits)"
+        >
+          <Download className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onExportHTML(po)}
+          className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20"
+          title="Export HTML (2 crédits)"
+        >
+          <FileText className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => onDelete(po.id)}
           className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
         >
@@ -95,6 +117,8 @@ const PurchaseOrdersPage = () => {
   const { t } = useTranslation();
   const { purchaseOrders, loading, createPurchaseOrder, deletePurchaseOrder } = usePurchaseOrders();
   const { clients } = useClients();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
   const [submitting, setSubmitting] = useState(false);
@@ -231,6 +255,34 @@ const PurchaseOrdersPage = () => {
     }
   };
 
+  const handleExportPurchaseOrderPDF = (po) => {
+    guardedAction(
+      CREDIT_COSTS.PDF_PURCHASE_ORDER,
+      t('credits.costs.pdfPurchaseOrder'),
+      async () => {
+        const enrichedPO = {
+          ...po,
+          supplier: clients.find(c => c.id === po.client_id)
+        };
+        await exportPurchaseOrderPDF(enrichedPO, company);
+      }
+    );
+  };
+
+  const handleExportPurchaseOrderHTML = (po) => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      t('credits.costs.exportHtml'),
+      () => {
+        const enrichedPO = {
+          ...po,
+          supplier: clients.find(c => c.id === po.client_id)
+        };
+        exportPurchaseOrderHTML(enrichedPO, company);
+      }
+    );
+  };
+
   const { totalHT, totalTax, totalTTC } = calculateTotals();
 
   return (
@@ -238,6 +290,7 @@ const PurchaseOrdersPage = () => {
       <Helmet>
         <title>Bons de commande - {t('app.name')}</title>
       </Helmet>
+      <CreditsGuardModal {...modalProps} />
 
       <div className="container mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -322,7 +375,7 @@ const PurchaseOrdersPage = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredPOs.map(po => (
-                  <POCard key={po.id} po={po} onDelete={handleDelete} />
+                  <POCard key={po.id} po={po} onDelete={handleDelete} onExportPDF={handleExportPurchaseOrderPDF} onExportHTML={handleExportPurchaseOrderHTML} />
                 ))}
               </div>
             )}

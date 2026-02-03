@@ -4,11 +4,15 @@ import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useQuotes } from '@/hooks/useQuotes';
 import { useClients } from '@/hooks/useClients';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { exportQuotePDF, exportQuoteHTML } from '@/services/exportDocuments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, FileSignature, Trash2, Loader2, Search, List, CalendarDays, CalendarClock } from 'lucide-react';
+import { Plus, FileSignature, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Download, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -40,7 +44,7 @@ const initialFormData = {
   items: [{ ...emptyItem }],
 };
 
-const QuoteCard = ({ quote, onDelete }) => {
+const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML }) => {
   const statusColors = {
     draft: 'bg-gray-500/20 text-gray-400 border-gray-700',
     sent: 'bg-blue-500/20 text-blue-400 border-blue-800',
@@ -73,6 +77,24 @@ const QuoteCard = ({ quote, onDelete }) => {
         <Button
           variant="ghost"
           size="sm"
+          onClick={() => onExportPDF(quote)}
+          className="text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
+          title="Export PDF (2 crédits)"
+        >
+          <Download className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onExportHTML(quote)}
+          className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20"
+          title="Export HTML (2 crédits)"
+        >
+          <FileText className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => onDelete(quote.id)}
           className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
         >
@@ -87,6 +109,8 @@ const QuotesPage = () => {
   const { t } = useTranslation();
   const { quotes, loading, createQuote, deleteQuote } = useQuotes();
   const { clients } = useClients();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
   const [submitting, setSubmitting] = useState(false);
@@ -218,10 +242,39 @@ const QuotesPage = () => {
     }
   };
 
-  const { totalHT, totalTax, totalTTC } = calculateTotals();
+  const handleExportQuotePDF = (quote) => {
+    guardedAction(
+      CREDIT_COSTS.PDF_QUOTE,
+      t('credits.costs.pdfQuote'),
+      async () => {
+        const enrichedQuote = {
+          ...quote,
+          client: clients.find(c => c.id === quote.client_id)
+        };
+        await exportQuotePDF(enrichedQuote, company);
+      }
+    );
+  };
+
+  const handleExportQuoteHTML = (quote) => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      t('credits.costs.exportHtml'),
+      () => {
+        const enrichedQuote = {
+          ...quote,
+          client: clients.find(c => c.id === quote.client_id)
+        };
+        exportQuoteHTML(enrichedQuote, company);
+      }
+    );
+  };
+
+  const { totalHT, totalTax, totalTTC} = calculateTotals();
 
   return (
     <>
+      <CreditsGuardModal {...modalProps} />
       <Helmet>
         <title>Quotes - {t('app.name')}</title>
       </Helmet>
@@ -303,7 +356,7 @@ const QuotesPage = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredQuotes.map(quote => (
-                  <QuoteCard key={quote.id} quote={quote} onDelete={handleDelete} />
+                  <QuoteCard key={quote.id} quote={quote} onDelete={handleDelete} onExportPDF={handleExportQuotePDF} onExportHTML={handleExportQuoteHTML} />
                 ))}
               </div>
             )}

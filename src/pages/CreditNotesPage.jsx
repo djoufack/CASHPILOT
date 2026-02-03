@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useCreditNotes } from '@/hooks/useCreditNotes';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useClients } from '@/hooks/useClients';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { exportCreditNotePDF, exportCreditNoteHTML } from '@/services/exportDocuments';
 import { formatCurrency } from '@/utils/calculations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +18,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Trash2, FileText, Search, List, CalendarDays, CalendarClock } from 'lucide-react';
+import { Plus, Trash2, FileText, Search, List, CalendarDays, CalendarClock, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -26,6 +30,8 @@ const CreditNotesPage = () => {
   const { creditNotes, loading, createCreditNote, deleteCreditNote, updateCreditNote } = useCreditNotes();
   const { invoices } = useInvoices();
   const { clients } = useClients();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
 
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState('');
@@ -75,6 +81,36 @@ const CreditNotesPage = () => {
   const resetForm = () => {
     setFormData({ invoice_id: '', client_id: '', date: new Date().toISOString().split('T')[0], reason: '', tax_rate: 20, status: 'draft' });
     setItems([{ id: '1', description: '', quantity: 1, unitPrice: 0 }]);
+  };
+
+  const handleExportCreditNotePDF = (cn) => {
+    guardedAction(
+      CREDIT_COSTS.PDF_CREDIT_NOTE,
+      t('credits.costs.pdfCreditNote'),
+      async () => {
+        const enrichedCN = {
+          ...cn,
+          items,
+          client: clients.find(c => c.id === cn.client_id)
+        };
+        await exportCreditNotePDF(enrichedCN, company);
+      }
+    );
+  };
+
+  const handleExportCreditNoteHTML = (cn) => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      t('credits.costs.exportHtml'),
+      () => {
+        const enrichedCN = {
+          ...cn,
+          items,
+          client: clients.find(c => c.id === cn.client_id)
+        };
+        exportCreditNoteHTML(enrichedCN, company);
+      }
+    );
   };
 
   // When invoice is selected, auto-fill client
@@ -159,10 +195,12 @@ const CreditNotesPage = () => {
   });
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gradient">{t('creditNotes.title')}</h1>
+    <>
+      <CreditsGuardModal {...modalProps} />
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gradient">{t('creditNotes.title')}</h1>
           <p className="text-gray-400 text-sm mt-1">{t('creditNotes.subtitle')}</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="bg-orange-500 hover:bg-orange-600">
@@ -231,6 +269,14 @@ const CreditNotesPage = () => {
                                 {t('creditNotes.issue')}
                               </Button>
                             )}
+                            <Button size="sm" variant="ghost" className="text-purple-400 hover:text-purple-300 h-8" title="Export PDF (2 crédits)"
+                              onClick={() => handleExportCreditNotePDF(cn)}>
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="text-cyan-400 hover:text-cyan-300 h-8" title="Export HTML (2 crédits)"
+                              onClick={() => handleExportCreditNoteHTML(cn)}>
+                              <FileText className="w-4 h-4" />
+                            </Button>
                             <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 h-8"
                               onClick={() => deleteCreditNote(cn.id)}>
                               <Trash2 className="w-4 h-4" />
@@ -361,7 +407,8 @@ const CreditNotesPage = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 };
 

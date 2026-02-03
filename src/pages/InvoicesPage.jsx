@@ -10,8 +10,12 @@ import PaymentRecorder from '@/components/PaymentRecorder';
 import PaymentHistory from '@/components/PaymentHistory';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useClients } from '@/hooks/useClients';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { exportInvoicePDF, exportInvoiceHTML } from '@/services/exportDocuments';
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List } from 'lucide-react';
+import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
@@ -46,6 +50,8 @@ const InvoicesPage = () => {
   const { t } = useTranslation();
   const { invoices, deleteInvoice, updateInvoiceStatus, getInvoiceItems, fetchInvoices } = useInvoices();
   const { clients } = useClients();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
   const [viewingInvoice, setViewingInvoice] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
@@ -139,6 +145,36 @@ const InvoicesPage = () => {
     setIsLumpSumOpen(true);
   };
 
+  const handleExportInvoicePDF = (invoice) => {
+    guardedAction(
+      CREDIT_COSTS.PDF_INVOICE,
+      t('credits.costs.pdfInvoice'),
+      async () => {
+        const enrichedInvoice = {
+          ...invoice,
+          items: getInvoiceItems(invoice.id),
+          client: clients.find(c => c.id === (invoice.client_id || invoice.clientId))
+        };
+        await exportInvoicePDF(enrichedInvoice, company);
+      }
+    );
+  };
+
+  const handleExportInvoiceHTML = (invoice) => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      t('credits.costs.exportHtml'),
+      () => {
+        const enrichedInvoice = {
+          ...invoice,
+          items: getInvoiceItems(invoice.id),
+          client: clients.find(c => c.id === (invoice.client_id || invoice.clientId))
+        };
+        exportInvoiceHTML(enrichedInvoice, company);
+      }
+    );
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'paid':
@@ -169,6 +205,7 @@ const InvoicesPage = () => {
         <title>{t('invoices.title')} - {t('app.name')}</title>
         <meta name="description" content="Generate and manage invoices" />
       </Helmet>
+      <CreditsGuardModal {...modalProps} />
 
         <div className="container mx-auto">
           <motion.div
@@ -341,6 +378,24 @@ const InvoicesPage = () => {
                                       title={t('payments.history')}
                                     >
                                       <History className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleExportInvoicePDF(invoice)}
+                                      className="text-purple-400 hover:text-purple-300 hover:bg-purple-900/20 h-8 w-8 p-0"
+                                      title="Export PDF (2 crédits)"
+                                    >
+                                      <Download className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleExportInvoiceHTML(invoice)}
+                                      className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20 h-8 w-8 p-0"
+                                      title="Export HTML (2 crédits)"
+                                    >
+                                      <FileText className="w-4 h-4" />
                                     </Button>
                                     <Button
                                       variant="ghost"
