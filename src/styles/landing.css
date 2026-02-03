@@ -1424,11 +1424,11 @@ body:hover .cursor-dot {
     -webkit-text-fill-color: transparent;
 }
 
-.hidden {
+.landing-page .hidden {
     display: none !important;
 }
 
-.visible {
+.landing-page .visible {
     opacity: 1 !important;
     transform: translateY(0) !important;
 }
