@@ -9,13 +9,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Search, Receipt, Loader2, Trash2 } from 'lucide-react';
+import { Plus, Search, Receipt, Loader2, Trash2, List, CalendarDays, CalendarClock } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import GenericCalendarView from '@/components/GenericCalendarView';
+import GenericAgendaView from '@/components/GenericAgendaView';
 
 const ExpensesPage = () => {
   const { expenses, loading, createExpense } = useExpenses();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState('list');
 
   const emptyForm = {
     description: '',
@@ -48,6 +52,46 @@ const ExpensesPage = () => {
   );
 
   const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+
+  const expenseCategoryColors = {
+    general: { bg: '#6b7280', border: '#4b5563', text: '#fff' },
+    office: { bg: '#3b82f6', border: '#2563eb', text: '#fff' },
+    travel: { bg: '#8b5cf6', border: '#7c3aed', text: '#fff' },
+    software: { bg: '#06b6d4', border: '#0891b2', text: '#fff' },
+    hardware: { bg: '#f97316', border: '#ea580c', text: '#fff' },
+    marketing: { bg: '#ec4899', border: '#db2777', text: '#fff' },
+    meals: { bg: '#eab308', border: '#ca8a04', text: '#000' },
+    telecom: { bg: '#14b8a6', border: '#0d9488', text: '#fff' },
+    insurance: { bg: '#ef4444', border: '#dc2626', text: '#fff' },
+    other: { bg: '#a855f7', border: '#9333ea', text: '#fff' },
+  };
+
+  const expenseCalendarLegend = [
+    { label: 'General', color: '#6b7280' },
+    { label: 'Office', color: '#3b82f6' },
+    { label: 'Travel', color: '#8b5cf6' },
+    { label: 'Software', color: '#06b6d4' },
+    { label: 'Marketing', color: '#ec4899' },
+  ];
+
+  const expenseCalendarEvents = filteredExpenses.map(exp => ({
+    id: exp.id,
+    title: exp.description || exp.category || 'Expense',
+    date: exp.date,
+    status: exp.category || 'general',
+    resource: exp,
+  }));
+
+  const expenseAgendaItems = filteredExpenses.map(exp => ({
+    id: exp.id,
+    title: exp.description || 'Expense',
+    subtitle: exp.supplier_name || exp.category || '',
+    date: exp.date,
+    status: exp.category || 'general',
+    statusLabel: (exp.category || 'general').charAt(0).toUpperCase() + (exp.category || 'general').slice(1),
+    statusColor: 'bg-orange-500/20 text-orange-400',
+    amount: formatCurrency(exp.amount || 0),
+  }));
 
   if (loading && expenses.length === 0) {
     return (
@@ -105,45 +149,76 @@ const ExpensesPage = () => {
           />
         </div>
 
-        {/* Table */}
-        {filteredExpenses.length === 0 ? (
-          <div className="text-center py-16">
-            <Receipt className="w-16 h-16 mx-auto text-gray-700 mb-4" />
-            <p className="text-gray-500">Aucune dépense trouvée</p>
-            <Button onClick={() => setIsDialogOpen(true)} className="mt-4 bg-orange-500 hover:bg-orange-600">
-              <Plus className="w-4 h-4 mr-2" /> Ajouter une dépense
-            </Button>
-          </div>
-        ) : (
-          <div className="bg-gray-900 rounded-xl border border-gray-800/50 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-800">
-                    <th className="text-left p-4 text-gray-400 font-medium">Date</th>
-                    <th className="text-left p-4 text-gray-400 font-medium">Description</th>
-                    <th className="text-left p-4 text-gray-400 font-medium hidden md:table-cell">Catégorie</th>
-                    <th className="text-left p-4 text-gray-400 font-medium hidden lg:table-cell">Fournisseur</th>
-                    <th className="text-right p-4 text-gray-400 font-medium">Montant</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredExpenses.map((exp) => (
-                    <tr key={exp.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                      <td className="p-4 text-gray-400 text-sm">
-                        {exp.date ? new Date(exp.date).toLocaleDateString('fr-FR') : '—'}
-                      </td>
-                      <td className="p-4 text-gradient font-medium">{exp.description || '—'}</td>
-                      <td className="p-4 text-gray-400 hidden md:table-cell capitalize">{exp.category || '—'}</td>
-                      <td className="p-4 text-gray-400 hidden lg:table-cell">{exp.supplier_name || '—'}</td>
-                      <td className="p-4 text-right text-gradient font-semibold">{formatCurrency(exp.amount || 0)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
+          <TabsList className="bg-gray-800 border border-gray-700 mb-4">
+            <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <List className="w-4 h-4 mr-2" /> Liste
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <CalendarDays className="w-4 h-4 mr-2" /> Calendrier
+            </TabsTrigger>
+            <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <CalendarClock className="w-4 h-4 mr-2" /> Agenda
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="list">
+            {filteredExpenses.length === 0 ? (
+              <div className="text-center py-16">
+                <Receipt className="w-16 h-16 mx-auto text-gray-700 mb-4" />
+                <p className="text-gray-500">Aucune dépense trouvée</p>
+                <Button onClick={() => setIsDialogOpen(true)} className="mt-4 bg-orange-500 hover:bg-orange-600">
+                  <Plus className="w-4 h-4 mr-2" /> Ajouter une dépense
+                </Button>
+              </div>
+            ) : (
+              <div className="bg-gray-900 rounded-xl border border-gray-800/50 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-800">
+                        <th className="text-left p-4 text-gray-400 font-medium">Date</th>
+                        <th className="text-left p-4 text-gray-400 font-medium">Description</th>
+                        <th className="text-left p-4 text-gray-400 font-medium hidden md:table-cell">Catégorie</th>
+                        <th className="text-left p-4 text-gray-400 font-medium hidden lg:table-cell">Fournisseur</th>
+                        <th className="text-right p-4 text-gray-400 font-medium">Montant</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredExpenses.map((exp) => (
+                        <tr key={exp.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                          <td className="p-4 text-gray-400 text-sm">
+                            {exp.date ? new Date(exp.date).toLocaleDateString('fr-FR') : '—'}
+                          </td>
+                          <td className="p-4 text-gradient font-medium">{exp.description || '—'}</td>
+                          <td className="p-4 text-gray-400 hidden md:table-cell capitalize">{exp.category || '—'}</td>
+                          <td className="p-4 text-gray-400 hidden lg:table-cell">{exp.supplier_name || '—'}</td>
+                          <td className="p-4 text-right text-gradient font-semibold">{formatCurrency(exp.amount || 0)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <GenericCalendarView
+              events={expenseCalendarEvents}
+              statusColors={expenseCategoryColors}
+              legend={expenseCalendarLegend}
+            />
+          </TabsContent>
+
+          <TabsContent value="agenda">
+            <GenericAgendaView
+              items={expenseAgendaItems}
+              dateField="date"
+              paidStatuses={[]}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Add Expense Dialog */}

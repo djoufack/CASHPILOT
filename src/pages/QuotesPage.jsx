@@ -8,9 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, FileSignature, Trash2, Loader2, Search } from 'lucide-react';
+import { Plus, FileSignature, Trash2, Loader2, Search, List, CalendarDays, CalendarClock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import GenericCalendarView from '@/components/GenericCalendarView';
+import GenericAgendaView from '@/components/GenericAgendaView';
 import {
   Dialog,
   DialogContent,
@@ -89,6 +92,51 @@ const QuotesPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [viewMode, setViewMode] = useState('list');
+
+  const quoteCalendarStatusColors = {
+    draft: { bg: '#6b7280', border: '#4b5563', text: '#fff' },
+    sent: { bg: '#3b82f6', border: '#2563eb', text: '#fff' },
+    accepted: { bg: '#22c55e', border: '#16a34a', text: '#fff' },
+    rejected: { bg: '#ef4444', border: '#dc2626', text: '#fff' },
+    expired: { bg: '#eab308', border: '#ca8a04', text: '#000' },
+  };
+
+  const quoteCalendarLegend = [
+    { label: 'Draft', color: '#6b7280' },
+    { label: 'Sent', color: '#3b82f6' },
+    { label: 'Accepted', color: '#22c55e' },
+    { label: 'Rejected', color: '#ef4444' },
+    { label: 'Expired', color: '#eab308' },
+  ];
+
+  const quoteCalendarEvents = quotes.map(q => ({
+    id: q.id,
+    title: `${q.quote_number || ''} - ${q.client?.company_name || 'No client'}`,
+    date: q.date,
+    status: q.status || 'draft',
+    resource: q,
+  }));
+
+  const quoteAgendaItems = quotes.map(q => {
+    const statusColorMap = {
+      draft: 'bg-gray-500/20 text-gray-400',
+      sent: 'bg-blue-500/20 text-blue-400',
+      accepted: 'bg-green-500/20 text-green-400',
+      rejected: 'bg-red-500/20 text-red-400',
+      expired: 'bg-yellow-500/20 text-yellow-400',
+    };
+    return {
+      id: q.id,
+      title: q.quote_number || '',
+      subtitle: q.client?.company_name || 'No client',
+      date: q.date,
+      status: q.status || 'draft',
+      statusLabel: (q.status || 'draft').charAt(0).toUpperCase() + (q.status || 'draft').slice(1),
+      statusColor: statusColorMap[q.status] || 'bg-gray-500/20 text-gray-400',
+      amount: formatCurrency(q.total || q.total_ttc || 0),
+    };
+  });
 
   const filteredQuotes = quotes.filter(q => {
     const matchesSearch =
@@ -217,34 +265,67 @@ const QuotesPage = () => {
           </div>
         )}
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
-          </div>
-        ) : filteredQuotes.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="col-span-full bg-gray-900 border border-gray-800 rounded-xl p-8 md:p-12 text-center"
-          >
-            <div className="flex justify-center mb-4">
-              <div className="p-4 bg-gray-800 rounded-full">
-                <FileSignature className="w-12 h-12 text-orange-400" />
+        <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
+          <TabsList className="bg-gray-800 border border-gray-700 mb-4">
+            <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <List className="w-4 h-4 mr-2" /> List
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <CalendarDays className="w-4 h-4 mr-2" /> Calendar
+            </TabsTrigger>
+            <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <CalendarClock className="w-4 h-4 mr-2" /> Agenda
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="list">
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
               </div>
-            </div>
-            <h3 className="text-xl font-bold text-gradient mb-2">No quotes yet</h3>
-            <p className="text-gray-400 mb-6">Create your first quote to send to a client.</p>
-            <Button onClick={handleOpenDialog} variant="outline" className="border-gray-700 text-gray-300 w-full md:w-auto">
-              Create Quote
-            </Button>
-          </motion.div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredQuotes.map(quote => (
-              <QuoteCard key={quote.id} quote={quote} onDelete={handleDelete} />
-            ))}
-          </div>
-        )}
+            ) : filteredQuotes.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="col-span-full bg-gray-900 border border-gray-800 rounded-xl p-8 md:p-12 text-center"
+              >
+                <div className="flex justify-center mb-4">
+                  <div className="p-4 bg-gray-800 rounded-full">
+                    <FileSignature className="w-12 h-12 text-orange-400" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-gradient mb-2">No quotes yet</h3>
+                <p className="text-gray-400 mb-6">Create your first quote to send to a client.</p>
+                <Button onClick={handleOpenDialog} variant="outline" className="border-gray-700 text-gray-300 w-full md:w-auto">
+                  Create Quote
+                </Button>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredQuotes.map(quote => (
+                  <QuoteCard key={quote.id} quote={quote} onDelete={handleDelete} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <GenericCalendarView
+              events={quoteCalendarEvents}
+              statusColors={quoteCalendarStatusColors}
+              legend={quoteCalendarLegend}
+            />
+          </TabsContent>
+
+          <TabsContent value="agenda">
+            <GenericAgendaView
+              items={quoteAgendaItems}
+              dateField="date"
+              onDelete={(item) => handleDelete(item.id)}
+              paidStatuses={['accepted', 'rejected', 'expired', 'cancelled']}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Create Quote Dialog */}

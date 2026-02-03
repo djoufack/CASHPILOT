@@ -9,8 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Briefcase, ArrowRight, Loader2, Calendar } from 'lucide-react';
+import { Plus, Search, Briefcase, ArrowRight, Loader2, Calendar, List, CalendarDays, CalendarClock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import GenericCalendarView from '@/components/GenericCalendarView';
+import GenericAgendaView from '@/components/GenericAgendaView';
 import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
@@ -93,6 +96,49 @@ const ProjectsPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
   const [submitting, setSubmitting] = useState(false);
+  const [viewMode, setViewMode] = useState('list');
+
+  const projectCalendarStatusColors = {
+    active: { bg: '#f97316', border: '#ea580c', text: '#fff' },
+    in_progress: { bg: '#f97316', border: '#ea580c', text: '#fff' },
+    completed: { bg: '#22c55e', border: '#16a34a', text: '#fff' },
+    on_hold: { bg: '#eab308', border: '#ca8a04', text: '#000' },
+    cancelled: { bg: '#ef4444', border: '#dc2626', text: '#fff' },
+  };
+
+  const projectCalendarLegend = [
+    { label: 'Active', color: '#f97316' },
+    { label: 'Completed', color: '#22c55e' },
+    { label: 'On Hold', color: '#eab308' },
+    { label: 'Cancelled', color: '#ef4444' },
+  ];
+
+  const projectCalendarEvents = projects.map(p => ({
+    id: p.id,
+    title: p.name,
+    date: p.created_at,
+    status: p.status || 'active',
+    resource: p,
+  }));
+
+  const projectAgendaItems = projects.map(p => {
+    const statusColorMap = {
+      active: 'bg-orange-500/20 text-orange-400',
+      in_progress: 'bg-orange-500/20 text-orange-400',
+      completed: 'bg-green-500/20 text-green-400',
+      on_hold: 'bg-yellow-500/20 text-yellow-400',
+      cancelled: 'bg-red-500/20 text-red-400',
+    };
+    return {
+      id: p.id,
+      title: p.name,
+      subtitle: p.client?.company_name || '',
+      date: p.created_at,
+      status: p.status || 'active',
+      statusLabel: (p.status || 'active').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      statusColor: statusColorMap[p.status] || 'bg-gray-500/20 text-gray-400',
+    };
+  });
 
   const filteredProjects = projects.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -173,21 +219,53 @@ const ProjectsPage = () => {
             </div>
           </div>
 
-          {loading ? (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {[1, 2, 3].map(i => <div key={i} className="h-64 bg-gray-900 rounded-xl animate-pulse" />)}
-             </div>
-          ) : filteredProjects.length === 0 ? (
-            <div className="text-center py-20 bg-gray-900/30 rounded-xl border border-gray-800 border-dashed">
-              <p className="text-gray-400 text-lg">No projects found.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProjects.map(project => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          )}
+          <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
+            <TabsList className="bg-gray-800 border border-gray-700 mb-4">
+              <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+                <List className="w-4 h-4 mr-2" /> List
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+                <CalendarDays className="w-4 h-4 mr-2" /> Calendar
+              </TabsTrigger>
+              <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+                <CalendarClock className="w-4 h-4 mr-2" /> Agenda
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="list">
+              {loading ? (
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                   {[1, 2, 3].map(i => <div key={i} className="h-64 bg-gray-900 rounded-xl animate-pulse" />)}
+                 </div>
+              ) : filteredProjects.length === 0 ? (
+                <div className="text-center py-20 bg-gray-900/30 rounded-xl border border-gray-800 border-dashed">
+                  <p className="text-gray-400 text-lg">No projects found.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredProjects.map(project => (
+                    <ProjectCard key={project.id} project={project} />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="calendar">
+              <GenericCalendarView
+                events={projectCalendarEvents}
+                statusColors={projectCalendarStatusColors}
+                legend={projectCalendarLegend}
+              />
+            </TabsContent>
+
+            <TabsContent value="agenda">
+              <GenericAgendaView
+                items={projectAgendaItems}
+                dateField="date"
+                paidStatuses={['completed', 'cancelled']}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

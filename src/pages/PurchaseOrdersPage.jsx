@@ -8,9 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, ClipboardList, Trash2, Loader2, Search } from 'lucide-react';
+import { Plus, ClipboardList, Trash2, Loader2, Search, List, CalendarDays, CalendarClock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import GenericCalendarView from '@/components/GenericCalendarView';
+import GenericAgendaView from '@/components/GenericAgendaView';
 import {
   Dialog,
   DialogContent,
@@ -97,6 +100,59 @@ const PurchaseOrdersPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [viewMode, setViewMode] = useState('list');
+
+  const poCalendarStatusColors = {
+    draft: { bg: '#6b7280', border: '#4b5563', text: '#fff' },
+    sent: { bg: '#3b82f6', border: '#2563eb', text: '#fff' },
+    partial: { bg: '#eab308', border: '#ca8a04', text: '#000' },
+    confirmed: { bg: '#22c55e', border: '#16a34a', text: '#fff' },
+    received: { bg: '#22c55e', border: '#16a34a', text: '#fff' },
+    completed: { bg: '#10b981', border: '#059669', text: '#fff' },
+    cancelled: { bg: '#ef4444', border: '#dc2626', text: '#fff' },
+  };
+
+  const poCalendarLegend = [
+    { label: 'Draft', color: '#6b7280' },
+    { label: 'Sent', color: '#3b82f6' },
+    { label: 'Partial', color: '#eab308' },
+    { label: 'Confirmed', color: '#22c55e' },
+    { label: 'Cancelled', color: '#ef4444' },
+  ];
+
+  const poCalendarEvents = purchaseOrders.map(po => ({
+    id: po.id,
+    title: `${po.po_number || ''} - ${po.client?.company_name || 'No client'}`,
+    date: po.date,
+    status: po.status || 'draft',
+    resource: po,
+  }));
+
+  const poAgendaItems = purchaseOrders.map(po => {
+    const statusColorMap = {
+      draft: 'bg-gray-500/20 text-gray-400',
+      sent: 'bg-blue-500/20 text-blue-400',
+      partial: 'bg-yellow-500/20 text-yellow-400',
+      confirmed: 'bg-green-500/20 text-green-400',
+      received: 'bg-green-500/20 text-green-400',
+      completed: 'bg-emerald-500/20 text-emerald-400',
+      cancelled: 'bg-red-500/20 text-red-400',
+    };
+    const statusLabels = {
+      draft: 'Brouillon', sent: 'Envoy\u00e9', partial: 'Partiel', confirmed: 'Confirm\u00e9',
+      received: 'Re\u00e7u', completed: 'Termin\u00e9', cancelled: 'Annul\u00e9',
+    };
+    return {
+      id: po.id,
+      title: po.po_number || '',
+      subtitle: po.client?.company_name || 'No client',
+      date: po.date,
+      status: po.status || 'draft',
+      statusLabel: statusLabels[po.status] || po.status,
+      statusColor: statusColorMap[po.status] || 'bg-gray-500/20 text-gray-400',
+      amount: formatCurrency(po.total || 0),
+    };
+  });
 
   const filteredPOs = purchaseOrders.filter(po => {
     const matchesSearch =
@@ -228,34 +284,67 @@ const PurchaseOrdersPage = () => {
           </div>
         )}
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
-          </div>
-        ) : filteredPOs.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="col-span-full bg-gray-900 border border-gray-800 rounded-xl p-8 md:p-12 text-center"
-          >
-            <div className="flex justify-center mb-4">
-              <div className="p-4 bg-gray-800 rounded-full">
-                <ClipboardList className="w-12 h-12 text-orange-400" />
+        <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
+          <TabsList className="bg-gray-800 border border-gray-700 mb-4">
+            <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <List className="w-4 h-4 mr-2" /> Liste
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <CalendarDays className="w-4 h-4 mr-2" /> Calendrier
+            </TabsTrigger>
+            <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <CalendarClock className="w-4 h-4 mr-2" /> Agenda
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="list">
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
               </div>
-            </div>
-            <h3 className="text-xl font-bold text-gradient mb-2">Aucun bon de commande</h3>
-            <p className="text-gray-400 mb-6">Créez votre premier bon de commande.</p>
-            <Button onClick={handleOpenDialog} variant="outline" className="border-gray-700 text-gray-300 w-full md:w-auto">
-              Créer un bon de commande
-            </Button>
-          </motion.div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPOs.map(po => (
-              <POCard key={po.id} po={po} onDelete={handleDelete} />
-            ))}
-          </div>
-        )}
+            ) : filteredPOs.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="col-span-full bg-gray-900 border border-gray-800 rounded-xl p-8 md:p-12 text-center"
+              >
+                <div className="flex justify-center mb-4">
+                  <div className="p-4 bg-gray-800 rounded-full">
+                    <ClipboardList className="w-12 h-12 text-orange-400" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-gradient mb-2">Aucun bon de commande</h3>
+                <p className="text-gray-400 mb-6">Créez votre premier bon de commande.</p>
+                <Button onClick={handleOpenDialog} variant="outline" className="border-gray-700 text-gray-300 w-full md:w-auto">
+                  Créer un bon de commande
+                </Button>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredPOs.map(po => (
+                  <POCard key={po.id} po={po} onDelete={handleDelete} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <GenericCalendarView
+              events={poCalendarEvents}
+              statusColors={poCalendarStatusColors}
+              legend={poCalendarLegend}
+            />
+          </TabsContent>
+
+          <TabsContent value="agenda">
+            <GenericAgendaView
+              items={poAgendaItems}
+              dateField="date"
+              onDelete={(item) => handleDelete(item.id)}
+              paidStatuses={['completed', 'received', 'cancelled']}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Create PO Dialog */}
