@@ -25,7 +25,10 @@
     "status": "Status",
     "search": "Zoeken...",
     "success": "Gelukt",
-    "error": "Fout"
+    "error": "Fout",
+    "list": "Lijst",
+    "calendar": "Kalender",
+    "agenda": "Agenda"
   },
   "nav": {
     "dashboard": "Dashboard",

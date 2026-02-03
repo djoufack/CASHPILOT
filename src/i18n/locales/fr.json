@@ -25,7 +25,10 @@
     "status": "Statut",
     "search": "Rechercher...",
     "success": "Succès",
-    "error": "Erreur"
+    "error": "Erreur",
+    "list": "Liste",
+    "calendar": "Calendrier",
+    "agenda": "Agenda"
   },
   "nav": {
     "dashboard": "Tableau de bord",
@@ -511,20 +514,20 @@
     "shipping": "Livraison"
   },
   "creditNotes": {
-    "title": "Avoirs",
-    "subtitle": "Gérez les avoirs liés à vos factures",
-    "create": "Nouvel avoir",
+    "title": "Notes de Crédit",
+    "subtitle": "Gérez les notes de crédit liées à vos factures",
+    "create": "Nouvelle note de crédit",
     "number": "Numéro",
     "linkedInvoice": "Facture liée",
     "selectInvoice": "Sélectionner une facture",
     "reason": "Motif",
-    "reasonPlaceholder": "Motif de l'avoir...",
+    "reasonPlaceholder": "Motif de la note de crédit...",
     "items": "Articles",
-    "noNotes": "Aucun avoir trouvé",
-    "created": "Avoir créé avec succès",
-    "updated": "Avoir mis à jour avec succès",
-    "deleted": "Avoir supprimé avec succès",
-    "generate": "Générer l'avoir",
+    "noNotes": "Aucune note de crédit trouvée",
+    "created": "Note de crédit créée avec succès",
+    "updated": "Note de crédit mise à jour avec succès",
+    "deleted": "Note de crédit supprimée avec succès",
+    "generate": "Générer la note de crédit",
     "issue": "Émettre",
     "status": {
       "draft": "Brouillon",

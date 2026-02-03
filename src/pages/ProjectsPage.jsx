@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
+import { useTranslation } from 'react-i18next';
 import { useProjects } from '@/hooks/useProjects';
 import { useClients } from '@/hooks/useClients';
 import { Button } from '@/components/ui/button';
@@ -89,6 +90,7 @@ const initialFormData = {
 };
 
 const ProjectsPage = () => {
+  const { t } = useTranslation();
   const { projects, loading, createProject } = useProjects();
   const { clients } = useClients();
   const [search, setSearch] = useState('');
@@ -222,13 +224,13 @@ const ProjectsPage = () => {
           <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
             <TabsList className="bg-gray-800 border border-gray-700 mb-4">
               <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-                <List className="w-4 h-4 mr-2" /> List
+                <List className="w-4 h-4 mr-2" /> {t('common.list') || 'List'}
               </TabsTrigger>
               <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-                <CalendarDays className="w-4 h-4 mr-2" /> Calendar
+                <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar') || 'Calendar'}
               </TabsTrigger>
               <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
-                <CalendarClock className="w-4 h-4 mr-2" /> Agenda
+                <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
               </TabsTrigger>
             </TabsList>
 

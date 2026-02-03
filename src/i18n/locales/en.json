@@ -25,7 +25,10 @@
     "status": "Status",
     "search": "Search...",
     "success": "Success",
-    "error": "Error"
+    "error": "Error",
+    "list": "List",
+    "calendar": "Calendar",
+    "agenda": "Agenda"
   },
   "nav": {
     "dashboard": "Dashboard",
