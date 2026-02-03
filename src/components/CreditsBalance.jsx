@@ -21,7 +21,7 @@ const CreditsBalance = ({ isCollapsed }) => {
 
   if (isCollapsed) {
     return (
-      <Link to="/settings?tab=credits">
+      <Link to="/app/settings?tab=credits">
         <div className={cn(
           "h-10 w-10 mx-auto flex items-center justify-center rounded-lg transition-all",
           isEmpty
@@ -42,7 +42,7 @@ const CreditsBalance = ({ isCollapsed }) => {
   }
 
   return (
-    <Link to="/settings?tab=credits">
+    <Link to="/app/settings?tab=credits">
       <div className={cn(
         "mx-2 px-3 py-2 rounded-lg transition-all flex items-center justify-between",
         isEmpty
