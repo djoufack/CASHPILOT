@@ -1,0 +1,1899 @@
+[
+  {
+    "account_code": "10",
+    "account_name": "Capital et réserves",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": null
+  },
+  {
+    "account_code": "101",
+    "account_name": "Capital social",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": "10"
+  },
+  {
+    "account_code": "106",
+    "account_name": "Réserves",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": "10"
+  },
+  {
+    "account_code": "1061",
+    "account_name": "Réserve légale",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": "106"
+  },
+  {
+    "account_code": "1063",
+    "account_name": "Réserves statutaires ou contractuelles",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": "106"
+  },
+  {
+    "account_code": "1068",
+    "account_name": "Autres réserves",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": "106"
+  },
+  {
+    "account_code": "108",
+    "account_name": "Compte de l'exploitant",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": "10"
+  },
+  {
+    "account_code": "110",
+    "account_name": "Report à nouveau (solde créditeur)",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": null
+  },
+  {
+    "account_code": "119",
+    "account_name": "Report à nouveau (solde débiteur)",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": null
+  },
+  {
+    "account_code": "12",
+    "account_name": "Résultat de l'exercice",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": null
+  },
+  {
+    "account_code": "120",
+    "account_name": "Résultat de l'exercice (bénéfice)",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": "12"
+  },
+  {
+    "account_code": "129",
+    "account_name": "Résultat de l'exercice (perte)",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": "12"
+  },
+  {
+    "account_code": "13",
+    "account_name": "Subventions d'investissement",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": null
+  },
+  {
+    "account_code": "131",
+    "account_name": "Subventions d'équipement",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": "13"
+  },
+  {
+    "account_code": "138",
+    "account_name": "Autres subventions d'investissement",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": "13"
+  },
+  {
+    "account_code": "139",
+    "account_name": "Subventions d'investissement inscrites au compte de résultat",
+    "account_type": "equity",
+    "account_category": "capital",
+    "parent_code": "13"
+  },
+  {
+    "account_code": "15",
+    "account_name": "Provisions pour risques et charges",
+    "account_type": "equity",
+    "account_category": "provisions",
+    "parent_code": null
+  },
+  {
+    "account_code": "151",
+    "account_name": "Provisions pour risques",
+    "account_type": "equity",
+    "account_category": "provisions",
+    "parent_code": "15"
+  },
+  {
+    "account_code": "153",
+    "account_name": "Provisions pour pensions et obligations similaires",
+    "account_type": "equity",
+    "account_category": "provisions",
+    "parent_code": "15"
+  },
+  {
+    "account_code": "155",
+    "account_name": "Provisions pour impôts",
+    "account_type": "equity",
+    "account_category": "provisions",
+    "parent_code": "15"
+  },
+  {
+    "account_code": "158",
+    "account_name": "Autres provisions pour charges",
+    "account_type": "equity",
+    "account_category": "provisions",
+    "parent_code": "15"
+  },
+  {
+    "account_code": "16",
+    "account_name": "Emprunts et dettes assimilées",
+    "account_type": "liability",
+    "account_category": "emprunts",
+    "parent_code": null
+  },
+  {
+    "account_code": "164",
+    "account_name": "Emprunts auprès des établissements de crédit",
+    "account_type": "liability",
+    "account_category": "emprunts",
+    "parent_code": "16"
+  },
+  {
+    "account_code": "165",
+    "account_name": "Dépôts et cautionnements reçus",
+    "account_type": "liability",
+    "account_category": "emprunts",
+    "parent_code": "16"
+  },
+  {
+    "account_code": "168",
+    "account_name": "Autres emprunts et dettes assimilées",
+    "account_type": "liability",
+    "account_category": "emprunts",
+    "parent_code": "16"
+  },
+  {
+    "account_code": "1688",
+    "account_name": "Intérêts courus sur emprunts",
+    "account_type": "liability",
+    "account_category": "emprunts",
+    "parent_code": "168"
+  },
+  {
+    "account_code": "20",
+    "account_name": "Immobilisations incorporelles",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": null
+  },
+  {
+    "account_code": "201",
+    "account_name": "Frais d'établissement",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "20"
+  },
+  {
+    "account_code": "205",
+    "account_name": "Concessions et droits similaires, brevets, licences",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "20"
+  },
+  {
+    "account_code": "206",
+    "account_name": "Droit au bail",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "20"
+  },
+  {
+    "account_code": "207",
+    "account_name": "Fonds commercial",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "20"
+  },
+  {
+    "account_code": "208",
+    "account_name": "Autres immobilisations incorporelles",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "20"
+  },
+  {
+    "account_code": "21",
+    "account_name": "Immobilisations corporelles",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": null
+  },
+  {
+    "account_code": "211",
+    "account_name": "Terrains",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "21"
+  },
+  {
+    "account_code": "213",
+    "account_name": "Constructions",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "21"
+  },
+  {
+    "account_code": "215",
+    "account_name": "Installations techniques, matériel et outillage industriels",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "21"
+  },
+  {
+    "account_code": "2154",
+    "account_name": "Matériel industriel",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "215"
+  },
+  {
+    "account_code": "2155",
+    "account_name": "Outillage industriel",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "215"
+  },
+  {
+    "account_code": "218",
+    "account_name": "Autres immobilisations corporelles",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "21"
+  },
+  {
+    "account_code": "2181",
+    "account_name": "Installations générales, agencements, aménagements divers",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "218"
+  },
+  {
+    "account_code": "2182",
+    "account_name": "Matériel de transport",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "218"
+  },
+  {
+    "account_code": "2183",
+    "account_name": "Matériel de bureau et informatique",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "218"
+  },
+  {
+    "account_code": "2184",
+    "account_name": "Mobilier",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "218"
+  },
+  {
+    "account_code": "23",
+    "account_name": "Immobilisations en cours",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": null
+  },
+  {
+    "account_code": "231",
+    "account_name": "Immobilisations corporelles en cours",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "23"
+  },
+  {
+    "account_code": "232",
+    "account_name": "Immobilisations incorporelles en cours",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "23"
+  },
+  {
+    "account_code": "237",
+    "account_name": "Avances et acomptes versés sur immobilisations",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "23"
+  },
+  {
+    "account_code": "26",
+    "account_name": "Participations et créances rattachées à des participations",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": null
+  },
+  {
+    "account_code": "261",
+    "account_name": "Titres de participation",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "26"
+  },
+  {
+    "account_code": "267",
+    "account_name": "Créances rattachées à des participations",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "26"
+  },
+  {
+    "account_code": "27",
+    "account_name": "Autres immobilisations financières",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": null
+  },
+  {
+    "account_code": "271",
+    "account_name": "Titres immobilisés autres que les titres immobilisés de l'activité de portefeuille",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "27"
+  },
+  {
+    "account_code": "274",
+    "account_name": "Prêts",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "27"
+  },
+  {
+    "account_code": "275",
+    "account_name": "Dépôts et cautionnements versés",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "27"
+  },
+  {
+    "account_code": "28",
+    "account_name": "Amortissements des immobilisations",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": null
+  },
+  {
+    "account_code": "280",
+    "account_name": "Amortissements des immobilisations incorporelles",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "28"
+  },
+  {
+    "account_code": "2801",
+    "account_name": "Amortissements des frais d'établissement",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "280"
+  },
+  {
+    "account_code": "2805",
+    "account_name": "Amortissements des concessions et droits similaires",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "280"
+  },
+  {
+    "account_code": "281",
+    "account_name": "Amortissements des immobilisations corporelles",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "28"
+  },
+  {
+    "account_code": "2811",
+    "account_name": "Amortissements des terrains",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "281"
+  },
+  {
+    "account_code": "2813",
+    "account_name": "Amortissements des constructions",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "281"
+  },
+  {
+    "account_code": "2815",
+    "account_name": "Amortissements des installations techniques",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "281"
+  },
+  {
+    "account_code": "2818",
+    "account_name": "Amortissements des autres immobilisations corporelles",
+    "account_type": "asset",
+    "account_category": "immobilisations",
+    "parent_code": "281"
+  },
+  {
+    "account_code": "31",
+    "account_name": "Matières premières et fournitures",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": null
+  },
+  {
+    "account_code": "311",
+    "account_name": "Matières premières",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": "31"
+  },
+  {
+    "account_code": "317",
+    "account_name": "Fournitures",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": "31"
+  },
+  {
+    "account_code": "32",
+    "account_name": "Autres approvisionnements",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": null
+  },
+  {
+    "account_code": "321",
+    "account_name": "Matières consommables",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": "32"
+  },
+  {
+    "account_code": "326",
+    "account_name": "Emballages",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": "32"
+  },
+  {
+    "account_code": "33",
+    "account_name": "En-cours de production de biens",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": null
+  },
+  {
+    "account_code": "331",
+    "account_name": "Produits en cours",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": "33"
+  },
+  {
+    "account_code": "335",
+    "account_name": "Travaux en cours",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": "33"
+  },
+  {
+    "account_code": "34",
+    "account_name": "En-cours de production de services",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": null
+  },
+  {
+    "account_code": "35",
+    "account_name": "Stocks de produits",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": null
+  },
+  {
+    "account_code": "351",
+    "account_name": "Produits intermédiaires",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": "35"
+  },
+  {
+    "account_code": "355",
+    "account_name": "Produits finis",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": "35"
+  },
+  {
+    "account_code": "37",
+    "account_name": "Stocks de marchandises",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": null
+  },
+  {
+    "account_code": "371",
+    "account_name": "Marchandises",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": "37"
+  },
+  {
+    "account_code": "39",
+    "account_name": "Dépréciations des stocks et en-cours",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": null
+  },
+  {
+    "account_code": "391",
+    "account_name": "Dépréciations des matières premières",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": "39"
+  },
+  {
+    "account_code": "397",
+    "account_name": "Dépréciations des stocks de marchandises",
+    "account_type": "asset",
+    "account_category": "stocks",
+    "parent_code": "39"
+  },
+  {
+    "account_code": "40",
+    "account_name": "Fournisseurs et comptes rattachés",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": null
+  },
+  {
+    "account_code": "401",
+    "account_name": "Fournisseurs",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "40"
+  },
+  {
+    "account_code": "403",
+    "account_name": "Fournisseurs - Effets à payer",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "40"
+  },
+  {
+    "account_code": "404",
+    "account_name": "Fournisseurs d'immobilisations",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "40"
+  },
+  {
+    "account_code": "408",
+    "account_name": "Fournisseurs - Factures non parvenues",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "40"
+  },
+  {
+    "account_code": "409",
+    "account_name": "Fournisseurs débiteurs",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "40"
+  },
+  {
+    "account_code": "41",
+    "account_name": "Clients et comptes rattachés",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": null
+  },
+  {
+    "account_code": "411",
+    "account_name": "Clients",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "41"
+  },
+  {
+    "account_code": "413",
+    "account_name": "Clients - Effets à recevoir",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "41"
+  },
+  {
+    "account_code": "416",
+    "account_name": "Clients douteux ou litigieux",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "41"
+  },
+  {
+    "account_code": "418",
+    "account_name": "Clients - Produits non encore facturés",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "41"
+  },
+  {
+    "account_code": "419",
+    "account_name": "Clients créditeurs",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "41"
+  },
+  {
+    "account_code": "42",
+    "account_name": "Personnel et comptes rattachés",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": null
+  },
+  {
+    "account_code": "421",
+    "account_name": "Personnel - Rémunérations dues",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "42"
+  },
+  {
+    "account_code": "425",
+    "account_name": "Personnel - Avances et acomptes",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "42"
+  },
+  {
+    "account_code": "427",
+    "account_name": "Personnel - Oppositions",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "42"
+  },
+  {
+    "account_code": "428",
+    "account_name": "Personnel - Charges à payer et produits à recevoir",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "42"
+  },
+  {
+    "account_code": "43",
+    "account_name": "Sécurité sociale et autres organismes sociaux",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": null
+  },
+  {
+    "account_code": "431",
+    "account_name": "Sécurité sociale",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "43"
+  },
+  {
+    "account_code": "437",
+    "account_name": "Autres organismes sociaux",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "43"
+  },
+  {
+    "account_code": "438",
+    "account_name": "Organismes sociaux - Charges à payer et produits à recevoir",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "43"
+  },
+  {
+    "account_code": "44",
+    "account_name": "État et autres collectivités publiques",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": null
+  },
+  {
+    "account_code": "441",
+    "account_name": "État - Subventions à recevoir",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "44"
+  },
+  {
+    "account_code": "4411",
+    "account_name": "État - Subventions à recevoir",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "441"
+  },
+  {
+    "account_code": "4417",
+    "account_name": "État - Autres subventions à recevoir",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "441"
+  },
+  {
+    "account_code": "444",
+    "account_name": "État - Impôts sur les bénéfices",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "44"
+  },
+  {
+    "account_code": "445",
+    "account_name": "État - Taxes sur le chiffre d'affaires",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "44"
+  },
+  {
+    "account_code": "4455",
+    "account_name": "Taxes sur le chiffre d'affaires à décaisser",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "445"
+  },
+  {
+    "account_code": "44551",
+    "account_name": "TVA à décaisser",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "4455"
+  },
+  {
+    "account_code": "4456",
+    "account_name": "Taxes sur le chiffre d'affaires déductibles",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "445"
+  },
+  {
+    "account_code": "44562",
+    "account_name": "TVA sur immobilisations",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "4456"
+  },
+  {
+    "account_code": "44566",
+    "account_name": "TVA sur autres biens et services",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "4456"
+  },
+  {
+    "account_code": "44567",
+    "account_name": "Crédit de TVA",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "4456"
+  },
+  {
+    "account_code": "4457",
+    "account_name": "Taxes sur le chiffre d'affaires collectées par l'entreprise",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "445"
+  },
+  {
+    "account_code": "44571",
+    "account_name": "TVA collectée",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "4457"
+  },
+  {
+    "account_code": "4458",
+    "account_name": "Taxes sur le chiffre d'affaires à régulariser ou en attente",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "445"
+  },
+  {
+    "account_code": "44580",
+    "account_name": "TVA à régulariser",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "4458"
+  },
+  {
+    "account_code": "44586",
+    "account_name": "Taxes sur le chiffre d'affaires sur factures non parvenues",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "4458"
+  },
+  {
+    "account_code": "447",
+    "account_name": "Autres impôts, taxes et versements assimilés",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "44"
+  },
+  {
+    "account_code": "448",
+    "account_name": "État - Charges à payer et produits à recevoir",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "44"
+  },
+  {
+    "account_code": "45",
+    "account_name": "Groupe et associés",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": null
+  },
+  {
+    "account_code": "455",
+    "account_name": "Associés - Comptes courants",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "45"
+  },
+  {
+    "account_code": "456",
+    "account_name": "Associés - Opérations sur le capital",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "45"
+  },
+  {
+    "account_code": "457",
+    "account_name": "Associés - Dividendes à payer",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "45"
+  },
+  {
+    "account_code": "46",
+    "account_name": "Débiteurs divers et créditeurs divers",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": null
+  },
+  {
+    "account_code": "462",
+    "account_name": "Créances sur cessions d'immobilisations",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "46"
+  },
+  {
+    "account_code": "467",
+    "account_name": "Autres comptes débiteurs ou créditeurs",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": "46"
+  },
+  {
+    "account_code": "468",
+    "account_name": "Divers - Charges à payer et produits à recevoir",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": "46"
+  },
+  {
+    "account_code": "486",
+    "account_name": "Charges constatées d'avance",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": null
+  },
+  {
+    "account_code": "487",
+    "account_name": "Produits constatés d'avance",
+    "account_type": "liability",
+    "account_category": "tiers",
+    "parent_code": null
+  },
+  {
+    "account_code": "491",
+    "account_name": "Dépréciations des comptes de clients",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": null
+  },
+  {
+    "account_code": "496",
+    "account_name": "Dépréciations des comptes de débiteurs divers",
+    "account_type": "asset",
+    "account_category": "tiers",
+    "parent_code": null
+  },
+  {
+    "account_code": "50",
+    "account_name": "Valeurs mobilières de placement",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": null
+  },
+  {
+    "account_code": "503",
+    "account_name": "Actions",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": "50"
+  },
+  {
+    "account_code": "506",
+    "account_name": "Obligations",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": "50"
+  },
+  {
+    "account_code": "508",
+    "account_name": "Autres valeurs mobilières de placement",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": "50"
+  },
+  {
+    "account_code": "51",
+    "account_name": "Banques, établissements financiers et assimilés",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": null
+  },
+  {
+    "account_code": "512",
+    "account_name": "Banques",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": "51"
+  },
+  {
+    "account_code": "514",
+    "account_name": "Chèques postaux",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": "51"
+  },
+  {
+    "account_code": "517",
+    "account_name": "Autres organismes financiers",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": "51"
+  },
+  {
+    "account_code": "519",
+    "account_name": "Concours bancaires courants",
+    "account_type": "liability",
+    "account_category": "tresorerie",
+    "parent_code": "51"
+  },
+  {
+    "account_code": "53",
+    "account_name": "Caisse",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": null
+  },
+  {
+    "account_code": "530",
+    "account_name": "Caisse",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": "53"
+  },
+  {
+    "account_code": "531",
+    "account_name": "Caisse siège social",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": "53"
+  },
+  {
+    "account_code": "58",
+    "account_name": "Virements internes",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": null
+  },
+  {
+    "account_code": "580",
+    "account_name": "Virements internes",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": "58"
+  },
+  {
+    "account_code": "590",
+    "account_name": "Dépréciations des valeurs mobilières de placement",
+    "account_type": "asset",
+    "account_category": "tresorerie",
+    "parent_code": null
+  },
+  {
+    "account_code": "60",
+    "account_name": "Achats",
+    "account_type": "expense",
+    "account_category": "achats",
+    "parent_code": null
+  },
+  {
+    "account_code": "601",
+    "account_name": "Achats stockés - Matières premières et fournitures",
+    "account_type": "expense",
+    "account_category": "achats",
+    "parent_code": "60"
+  },
+  {
+    "account_code": "602",
+    "account_name": "Achats stockés - Autres approvisionnements",
+    "account_type": "expense",
+    "account_category": "achats",
+    "parent_code": "60"
+  },
+  {
+    "account_code": "604",
+    "account_name": "Achats d'études et prestations de services",
+    "account_type": "expense",
+    "account_category": "achats",
+    "parent_code": "60"
+  },
+  {
+    "account_code": "606",
+    "account_name": "Achats non stockés de matières et fournitures",
+    "account_type": "expense",
+    "account_category": "achats",
+    "parent_code": "60"
+  },
+  {
+    "account_code": "6061",
+    "account_name": "Fournitures non stockables (eau, énergie)",
+    "account_type": "expense",
+    "account_category": "achats",
+    "parent_code": "606"
+  },
+  {
+    "account_code": "6063",
+    "account_name": "Fournitures d'entretien et de petit équipement",
+    "account_type": "expense",
+    "account_category": "achats",
+    "parent_code": "606"
+  },
+  {
+    "account_code": "6064",
+    "account_name": "Fournitures administratives",
+    "account_type": "expense",
+    "account_category": "achats",
+    "parent_code": "606"
+  },
+  {
+    "account_code": "607",
+    "account_name": "Achats de marchandises",
+    "account_type": "expense",
+    "account_category": "achats",
+    "parent_code": "60"
+  },
+  {
+    "account_code": "609",
+    "account_name": "Rabais, remises et ristournes obtenus sur achats",
+    "account_type": "expense",
+    "account_category": "achats",
+    "parent_code": "60"
+  },
+  {
+    "account_code": "61",
+    "account_name": "Services extérieurs",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": null
+  },
+  {
+    "account_code": "611",
+    "account_name": "Sous-traitance générale",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "61"
+  },
+  {
+    "account_code": "613",
+    "account_name": "Locations",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "61"
+  },
+  {
+    "account_code": "6132",
+    "account_name": "Locations immobilières",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "613"
+  },
+  {
+    "account_code": "6135",
+    "account_name": "Locations mobilières",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "613"
+  },
+  {
+    "account_code": "615",
+    "account_name": "Entretien et réparations",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "61"
+  },
+  {
+    "account_code": "6152",
+    "account_name": "Entretien et réparations sur biens immobiliers",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "615"
+  },
+  {
+    "account_code": "6155",
+    "account_name": "Entretien et réparations sur biens mobiliers",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "615"
+  },
+  {
+    "account_code": "616",
+    "account_name": "Primes d'assurance",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "61"
+  },
+  {
+    "account_code": "617",
+    "account_name": "Études et recherches",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "61"
+  },
+  {
+    "account_code": "618",
+    "account_name": "Divers services extérieurs",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "61"
+  },
+  {
+    "account_code": "62",
+    "account_name": "Autres services extérieurs",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": null
+  },
+  {
+    "account_code": "621",
+    "account_name": "Personnel extérieur à l'entreprise",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "62"
+  },
+  {
+    "account_code": "622",
+    "account_name": "Rémunérations d'intermédiaires et honoraires",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "62"
+  },
+  {
+    "account_code": "6226",
+    "account_name": "Honoraires",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "622"
+  },
+  {
+    "account_code": "623",
+    "account_name": "Publicité, publications, relations publiques",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "62"
+  },
+  {
+    "account_code": "6231",
+    "account_name": "Annonces et insertions",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "623"
+  },
+  {
+    "account_code": "6233",
+    "account_name": "Foires et expositions",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "623"
+  },
+  {
+    "account_code": "6236",
+    "account_name": "Catalogues et imprimés",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "623"
+  },
+  {
+    "account_code": "624",
+    "account_name": "Transports de biens et transports collectifs du personnel",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "62"
+  },
+  {
+    "account_code": "6241",
+    "account_name": "Transports sur achats",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "624"
+  },
+  {
+    "account_code": "6242",
+    "account_name": "Transports sur ventes",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "624"
+  },
+  {
+    "account_code": "625",
+    "account_name": "Déplacements, missions et réceptions",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "62"
+  },
+  {
+    "account_code": "6251",
+    "account_name": "Voyages et déplacements",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "625"
+  },
+  {
+    "account_code": "6256",
+    "account_name": "Missions",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "625"
+  },
+  {
+    "account_code": "6257",
+    "account_name": "Réceptions",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "625"
+  },
+  {
+    "account_code": "626",
+    "account_name": "Frais postaux et de télécommunications",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "62"
+  },
+  {
+    "account_code": "627",
+    "account_name": "Services bancaires et assimilés",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "62"
+  },
+  {
+    "account_code": "628",
+    "account_name": "Divers autres services extérieurs",
+    "account_type": "expense",
+    "account_category": "services_exterieurs",
+    "parent_code": "62"
+  },
+  {
+    "account_code": "63",
+    "account_name": "Impôts, taxes et versements assimilés",
+    "account_type": "expense",
+    "account_category": "impots_taxes",
+    "parent_code": null
+  },
+  {
+    "account_code": "631",
+    "account_name": "Impôts, taxes et versements assimilés sur rémunérations",
+    "account_type": "expense",
+    "account_category": "impots_taxes",
+    "parent_code": "63"
+  },
+  {
+    "account_code": "6333",
+    "account_name": "Participation des employeurs à la formation professionnelle continue",
+    "account_type": "expense",
+    "account_category": "impots_taxes",
+    "parent_code": "63"
+  },
+  {
+    "account_code": "635",
+    "account_name": "Autres impôts, taxes et versements assimilés",
+    "account_type": "expense",
+    "account_category": "impots_taxes",
+    "parent_code": "63"
+  },
+  {
+    "account_code": "6351",
+    "account_name": "Impôts directs (sauf impôt sur les bénéfices)",
+    "account_type": "expense",
+    "account_category": "impots_taxes",
+    "parent_code": "635"
+  },
+  {
+    "account_code": "6354",
+    "account_name": "Droits d'enregistrement et de timbre",
+    "account_type": "expense",
+    "account_category": "impots_taxes",
+    "parent_code": "635"
+  },
+  {
+    "account_code": "64",
+    "account_name": "Charges de personnel",
+    "account_type": "expense",
+    "account_category": "charges_personnel",
+    "parent_code": null
+  },
+  {
+    "account_code": "641",
+    "account_name": "Rémunérations du personnel",
+    "account_type": "expense",
+    "account_category": "charges_personnel",
+    "parent_code": "64"
+  },
+  {
+    "account_code": "6411",
+    "account_name": "Salaires, appointements",
+    "account_type": "expense",
+    "account_category": "charges_personnel",
+    "parent_code": "641"
+  },
+  {
+    "account_code": "6413",
+    "account_name": "Primes et gratifications",
+    "account_type": "expense",
+    "account_category": "charges_personnel",
+    "parent_code": "641"
+  },
+  {
+    "account_code": "644",
+    "account_name": "Rémunération du travail de l'exploitant",
+    "account_type": "expense",
+    "account_category": "charges_personnel",
+    "parent_code": "64"
+  },
+  {
+    "account_code": "645",
+    "account_name": "Charges de sécurité sociale et de prévoyance",
+    "account_type": "expense",
+    "account_category": "charges_personnel",
+    "parent_code": "64"
+  },
+  {
+    "account_code": "6451",
+    "account_name": "Cotisations à l'URSSAF",
+    "account_type": "expense",
+    "account_category": "charges_personnel",
+    "parent_code": "645"
+  },
+  {
+    "account_code": "6453",
+    "account_name": "Cotisations aux caisses de retraite",
+    "account_type": "expense",
+    "account_category": "charges_personnel",
+    "parent_code": "645"
+  },
+  {
+    "account_code": "6458",
+    "account_name": "Cotisations aux autres organismes sociaux",
+    "account_type": "expense",
+    "account_category": "charges_personnel",
+    "parent_code": "645"
+  },
+  {
+    "account_code": "647",
+    "account_name": "Autres charges sociales",
+    "account_type": "expense",
+    "account_category": "charges_personnel",
+    "parent_code": "64"
+  },
+  {
+    "account_code": "648",
+    "account_name": "Autres charges de personnel",
+    "account_type": "expense",
+    "account_category": "charges_personnel",
+    "parent_code": "64"
+  },
+  {
+    "account_code": "65",
+    "account_name": "Autres charges de gestion courante",
+    "account_type": "expense",
+    "account_category": "autres_charges",
+    "parent_code": null
+  },
+  {
+    "account_code": "651",
+    "account_name": "Redevances pour concessions, brevets, licences, marques",
+    "account_type": "expense",
+    "account_category": "autres_charges",
+    "parent_code": "65"
+  },
+  {
+    "account_code": "654",
+    "account_name": "Pertes sur créances irrécouvrables",
+    "account_type": "expense",
+    "account_category": "autres_charges",
+    "parent_code": "65"
+  },
+  {
+    "account_code": "658",
+    "account_name": "Charges diverses de gestion courante",
+    "account_type": "expense",
+    "account_category": "autres_charges",
+    "parent_code": "65"
+  },
+  {
+    "account_code": "66",
+    "account_name": "Charges financières",
+    "account_type": "expense",
+    "account_category": "charges_financieres",
+    "parent_code": null
+  },
+  {
+    "account_code": "661",
+    "account_name": "Charges d'intérêts",
+    "account_type": "expense",
+    "account_category": "charges_financieres",
+    "parent_code": "66"
+  },
+  {
+    "account_code": "6611",
+    "account_name": "Intérêts des emprunts et dettes",
+    "account_type": "expense",
+    "account_category": "charges_financieres",
+    "parent_code": "661"
+  },
+  {
+    "account_code": "6615",
+    "account_name": "Intérêts des comptes courants et des dépôts",
+    "account_type": "expense",
+    "account_category": "charges_financieres",
+    "parent_code": "661"
+  },
+  {
+    "account_code": "6616",
+    "account_name": "Intérêts bancaires et sur opérations de financement",
+    "account_type": "expense",
+    "account_category": "charges_financieres",
+    "parent_code": "661"
+  },
+  {
+    "account_code": "664",
+    "account_name": "Pertes sur créances liées à des participations",
+    "account_type": "expense",
+    "account_category": "charges_financieres",
+    "parent_code": "66"
+  },
+  {
+    "account_code": "665",
+    "account_name": "Escomptes accordés",
+    "account_type": "expense",
+    "account_category": "charges_financieres",
+    "parent_code": "66"
+  },
+  {
+    "account_code": "666",
+    "account_name": "Pertes de change",
+    "account_type": "expense",
+    "account_category": "charges_financieres",
+    "parent_code": "66"
+  },
+  {
+    "account_code": "667",
+    "account_name": "Charges nettes sur cessions de valeurs mobilières de placement",
+    "account_type": "expense",
+    "account_category": "charges_financieres",
+    "parent_code": "66"
+  },
+  {
+    "account_code": "67",
+    "account_name": "Charges exceptionnelles",
+    "account_type": "expense",
+    "account_category": "charges_exceptionnelles",
+    "parent_code": null
+  },
+  {
+    "account_code": "671",
+    "account_name": "Charges exceptionnelles sur opérations de gestion",
+    "account_type": "expense",
+    "account_category": "charges_exceptionnelles",
+    "parent_code": "67"
+  },
+  {
+    "account_code": "675",
+    "account_name": "Valeurs comptables des éléments d'actif cédés",
+    "account_type": "expense",
+    "account_category": "charges_exceptionnelles",
+    "parent_code": "67"
+  },
+  {
+    "account_code": "678",
+    "account_name": "Autres charges exceptionnelles",
+    "account_type": "expense",
+    "account_category": "charges_exceptionnelles",
+    "parent_code": "67"
+  },
+  {
+    "account_code": "68",
+    "account_name": "Dotations aux amortissements, dépréciations et provisions",
+    "account_type": "expense",
+    "account_category": "dotations",
+    "parent_code": null
+  },
+  {
+    "account_code": "681",
+    "account_name": "Dotations aux amortissements, dépréciations et provisions - Charges d'exploitation",
+    "account_type": "expense",
+    "account_category": "dotations",
+    "parent_code": "68"
+  },
+  {
+    "account_code": "6811",
+    "account_name": "Dotations aux amortissements des immobilisations incorporelles et corporelles",
+    "account_type": "expense",
+    "account_category": "dotations",
+    "parent_code": "681"
+  },
+  {
+    "account_code": "6812",
+    "account_name": "Dotations aux amortissements des charges d'exploitation à répartir",
+    "account_type": "expense",
+    "account_category": "dotations",
+    "parent_code": "681"
+  },
+  {
+    "account_code": "6815",
+    "account_name": "Dotations aux provisions d'exploitation",
+    "account_type": "expense",
+    "account_category": "dotations",
+    "parent_code": "681"
+  },
+  {
+    "account_code": "6816",
+    "account_name": "Dotations aux dépréciations des immobilisations incorporelles et corporelles",
+    "account_type": "expense",
+    "account_category": "dotations",
+    "parent_code": "681"
+  },
+  {
+    "account_code": "6817",
+    "account_name": "Dotations aux dépréciations des actifs circulants",
+    "account_type": "expense",
+    "account_category": "dotations",
+    "parent_code": "681"
+  },
+  {
+    "account_code": "686",
+    "account_name": "Dotations aux amortissements, dépréciations et provisions - Charges financières",
+    "account_type": "expense",
+    "account_category": "dotations",
+    "parent_code": "68"
+  },
+  {
+    "account_code": "687",
+    "account_name": "Dotations aux amortissements, dépréciations et provisions - Charges exceptionnelles",
+    "account_type": "expense",
+    "account_category": "dotations",
+    "parent_code": "68"
+  },
+  {
+    "account_code": "695",
+    "account_name": "Impôts sur les bénéfices",
+    "account_type": "expense",
+    "account_category": "impots_benefices",
+    "parent_code": null
+  },
+  {
+    "account_code": "6951",
+    "account_name": "Impôts dus en France",
+    "account_type": "expense",
+    "account_category": "impots_benefices",
+    "parent_code": "695"
+  },
+  {
+    "account_code": "70",
+    "account_name": "Ventes de produits fabriqués, prestations de services, marchandises",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": null
+  },
+  {
+    "account_code": "701",
+    "account_name": "Ventes de produits finis",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": "70"
+  },
+  {
+    "account_code": "702",
+    "account_name": "Ventes de produits intermédiaires",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": "70"
+  },
+  {
+    "account_code": "706",
+    "account_name": "Prestations de services",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": "70"
+  },
+  {
+    "account_code": "707",
+    "account_name": "Ventes de marchandises",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": "70"
+  },
+  {
+    "account_code": "708",
+    "account_name": "Produits des activités annexes",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": "70"
+  },
+  {
+    "account_code": "7081",
+    "account_name": "Produits des services exploités dans l'intérêt du personnel",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": "708"
+  },
+  {
+    "account_code": "7083",
+    "account_name": "Locations diverses",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": "708"
+  },
+  {
+    "account_code": "7084",
+    "account_name": "Mise à disposition de personnel facturée",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": "708"
+  },
+  {
+    "account_code": "7085",
+    "account_name": "Ports et frais accessoires facturés",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": "708"
+  },
+  {
+    "account_code": "709",
+    "account_name": "Rabais, remises et ristournes accordés par l'entreprise",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": "70"
+  },
+  {
+    "account_code": "713",
+    "account_name": "Variation des stocks (en-cours de production, produits)",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": null
+  },
+  {
+    "account_code": "7133",
+    "account_name": "Variation des en-cours de production de biens",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": "713"
+  },
+  {
+    "account_code": "7135",
+    "account_name": "Variation des stocks de produits finis",
+    "account_type": "revenue",
+    "account_category": "ventes",
+    "parent_code": "713"
+  },
+  {
+    "account_code": "74",
+    "account_name": "Subventions d'exploitation",
+    "account_type": "revenue",
+    "account_category": "subventions",
+    "parent_code": null
+  },
+  {
+    "account_code": "741",
+    "account_name": "Subventions d'exploitation reçues",
+    "account_type": "revenue",
+    "account_category": "subventions",
+    "parent_code": "74"
+  },
+  {
+    "account_code": "75",
+    "account_name": "Autres produits de gestion courante",
+    "account_type": "revenue",
+    "account_category": "autres_produits",
+    "parent_code": null
+  },
+  {
+    "account_code": "751",
+    "account_name": "Redevances pour concessions, brevets, licences, marques",
+    "account_type": "revenue",
+    "account_category": "autres_produits",
+    "parent_code": "75"
+  },
+  {
+    "account_code": "755",
+    "account_name": "Quotes-parts de résultat sur opérations faites en commun",
+    "account_type": "revenue",
+    "account_category": "autres_produits",
+    "parent_code": "75"
+  },
+  {
+    "account_code": "758",
+    "account_name": "Produits divers de gestion courante",
+    "account_type": "revenue",
+    "account_category": "autres_produits",
+    "parent_code": "75"
+  },
+  {
+    "account_code": "76",
+    "account_name": "Produits financiers",
+    "account_type": "revenue",
+    "account_category": "produits_financiers",
+    "parent_code": null
+  },
+  {
+    "account_code": "761",
+    "account_name": "Produits de participations",
+    "account_type": "revenue",
+    "account_category": "produits_financiers",
+    "parent_code": "76"
+  },
+  {
+    "account_code": "762",
+    "account_name": "Produits des autres immobilisations financières",
+    "account_type": "revenue",
+    "account_category": "produits_financiers",
+    "parent_code": "76"
+  },
+  {
+    "account_code": "764",
+    "account_name": "Revenus des valeurs mobilières de placement",
+    "account_type": "revenue",
+    "account_category": "produits_financiers",
+    "parent_code": "76"
+  },
+  {
+    "account_code": "765",
+    "account_name": "Escomptes obtenus",
+    "account_type": "revenue",
+    "account_category": "produits_financiers",
+    "parent_code": "76"
+  },
+  {
+    "account_code": "766",
+    "account_name": "Gains de change",
+    "account_type": "revenue",
+    "account_category": "produits_financiers",
+    "parent_code": "76"
+  },
+  {
+    "account_code": "767",
+    "account_name": "Produits nets sur cessions de valeurs mobilières de placement",
+    "account_type": "revenue",
+    "account_category": "produits_financiers",
+    "parent_code": "76"
+  },
+  {
+    "account_code": "768",
+    "account_name": "Autres produits financiers",
+    "account_type": "revenue",
+    "account_category": "produits_financiers",
+    "parent_code": "76"
+  },
+  {
+    "account_code": "77",
+    "account_name": "Produits exceptionnels",
+    "account_type": "revenue",
+    "account_category": "produits_exceptionnels",
+    "parent_code": null
+  },
+  {
+    "account_code": "771",
+    "account_name": "Produits exceptionnels sur opérations de gestion",
+    "account_type": "revenue",
+    "account_category": "produits_exceptionnels",
+    "parent_code": "77"
+  },
+  {
+    "account_code": "775",
+    "account_name": "Produits des cessions d'éléments d'actif",
+    "account_type": "revenue",
+    "account_category": "produits_exceptionnels",
+    "parent_code": "77"
+  },
+  {
+    "account_code": "778",
+    "account_name": "Autres produits exceptionnels",
+    "account_type": "revenue",
+    "account_category": "produits_exceptionnels",
+    "parent_code": "77"
+  },
+  {
+    "account_code": "78",
+    "account_name": "Reprises sur amortissements, dépréciations et provisions",
+    "account_type": "revenue",
+    "account_category": "reprises",
+    "parent_code": null
+  },
+  {
+    "account_code": "781",
+    "account_name": "Reprises sur amortissements, dépréciations et provisions - Produits d'exploitation",
+    "account_type": "revenue",
+    "account_category": "reprises",
+    "parent_code": "78"
+  },
+  {
+    "account_code": "7811",
+    "account_name": "Reprises sur amortissements des immobilisations incorporelles et corporelles",
+    "account_type": "revenue",
+    "account_category": "reprises",
+    "parent_code": "781"
+  },
+  {
+    "account_code": "7815",
+    "account_name": "Reprises sur provisions d'exploitation",
+    "account_type": "revenue",
+    "account_category": "reprises",
+    "parent_code": "781"
+  },
+  {
+    "account_code": "7817",
+    "account_name": "Reprises sur dépréciations des actifs circulants",
+    "account_type": "revenue",
+    "account_category": "reprises",
+    "parent_code": "781"
+  },
+  {
+    "account_code": "786",
+    "account_name": "Reprises sur dépréciations et provisions - Produits financiers",
+    "account_type": "revenue",
+    "account_category": "reprises",
+    "parent_code": "78"
+  },
+  {
+    "account_code": "787",
+    "account_name": "Reprises sur dépréciations et provisions - Produits exceptionnels",
+    "account_type": "revenue",
+    "account_category": "reprises",
+    "parent_code": "78"
+  }
+]

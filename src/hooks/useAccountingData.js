@@ -15,7 +15,13 @@ import {
   buildIncomeStatement,
   estimateTax,
   buildMonthlyChartData,
-  DEFAULT_TAX_BRACKETS
+  DEFAULT_TAX_BRACKETS,
+  // New entry-based functions
+  buildTrialBalance,
+  buildBalanceSheetFromEntries,
+  buildIncomeStatementFromEntries,
+  buildGeneralLedger,
+  buildJournalBook,
 } from '@/utils/accountingCalculations';
 
 export const useAccountingData = (startDate, endDate) => {
@@ -30,6 +36,7 @@ export const useAccountingData = (startDate, endDate) => {
   const [accounts, setAccounts] = useState([]);
   const [mappings, setMappings] = useState([]);
   const [taxRates, setTaxRates] = useState([]);
+  const [entries, setEntries] = useState([]);
 
   const fetchAll = useCallback(async () => {
     if (!user || !supabase) {
@@ -41,13 +48,15 @@ export const useAccountingData = (startDate, endDate) => {
       setLoading(true);
       setError(null);
 
-      const [invRes, expRes, supRes, accRes, mapRes, taxRes] = await Promise.all([
+      const [invRes, expRes, supRes, accRes, mapRes, taxRes, entRes] = await Promise.all([
         supabase.from('invoices').select('*').order('date', { ascending: false }),
         supabase.from('expenses').select('*').order('date', { ascending: false }),
         (async () => { try { return await supabase.from('supplier_invoices').select('*').order('created_at', { ascending: false }); } catch { return { data: [], error: null }; } })(),
         supabase.from('accounting_chart_of_accounts').select('*').order('account_code', { ascending: true }),
         supabase.from('accounting_mappings').select('*'),
-        supabase.from('accounting_tax_rates').select('*')
+        supabase.from('accounting_tax_rates').select('*'),
+        // Fetch accounting entries
+        supabase.from('accounting_entries').select('*').order('transaction_date', { ascending: false }),
       ]);
 
       setInvoices(invRes.data || []);
@@ -56,6 +65,7 @@ export const useAccountingData = (startDate, endDate) => {
       setAccounts(accRes.data || []);
       setMappings(mapRes.data || []);
       setTaxRates(taxRes.data || []);
+      setEntries(entRes.data || []);
     } catch (err) {
       console.error('Error fetching accounting data:', err);
       setError(err.message);
@@ -68,10 +78,16 @@ export const useAccountingData = (startDate, endDate) => {
     fetchAll();
   }, [fetchAll]);
 
+  // Determine if we have auto-generated entries
+  const hasAutoEntries = useMemo(() => {
+    return entries.some(e => e.is_auto === true);
+  }, [entries]);
+
   // Computed values (memoized)
   const computed = useMemo(() => {
     if (!startDate || !endDate) return null;
 
+    // Always compute these from raw data (they're used for dashboard KPIs)
     const revenue = calculateRevenue(invoices, startDate, endDate);
     const revenueTTC = calculateRevenueTTC(invoices, startDate, endDate);
     const totalExpenses = calculateExpenses(expenses, supplierInvoices, startDate, endDate);
@@ -82,12 +98,23 @@ export const useAccountingData = (startDate, endDate) => {
     const vatPayable = calculateVATPayable(outputVAT, inputVAT);
     const vatBreakdown = calculateVATBreakdown(invoices, expenses, startDate, endDate);
 
-    const balanceSheet = buildBalanceSheet(accounts, invoices, expenses, supplierInvoices, mappings, startDate, endDate);
-    const incomeStatement = buildIncomeStatement(accounts, invoices, expenses, supplierInvoices, mappings, startDate, endDate);
-
     const taxEstimate = estimateTax(netIncome > 0 ? netIncome : 0);
-
     const monthlyData = buildMonthlyChartData(invoices, expenses, startDate, endDate);
+
+    // Use entry-based calculations if auto entries exist, otherwise fallback to heuristic
+    let balanceSheet, incomeStatement;
+    if (hasAutoEntries && entries.length > 0) {
+      balanceSheet = buildBalanceSheetFromEntries(accounts, entries, startDate, endDate);
+      incomeStatement = buildIncomeStatementFromEntries(accounts, entries, startDate, endDate);
+    } else {
+      balanceSheet = buildBalanceSheet(accounts, invoices, expenses, supplierInvoices, mappings, startDate, endDate);
+      incomeStatement = buildIncomeStatement(accounts, invoices, expenses, supplierInvoices, mappings, startDate, endDate);
+    }
+
+    // New: entry-based reports
+    const trialBalance = buildTrialBalance(entries, accounts);
+    const generalLedger = buildGeneralLedger(entries, accounts, startDate, endDate);
+    const journalBook = buildJournalBook(entries, startDate, endDate);
 
     return {
       revenue,
@@ -101,9 +128,13 @@ export const useAccountingData = (startDate, endDate) => {
       balanceSheet,
       incomeStatement,
       taxEstimate,
-      monthlyData
+      monthlyData,
+      // New
+      trialBalance,
+      generalLedger,
+      journalBook,
     };
-  }, [invoices, expenses, supplierInvoices, accounts, mappings, startDate, endDate]);
+  }, [invoices, expenses, supplierInvoices, accounts, mappings, entries, hasAutoEntries, startDate, endDate]);
 
   return {
     loading,
@@ -115,6 +146,8 @@ export const useAccountingData = (startDate, endDate) => {
     accounts,
     mappings,
     taxRates,
+    entries,
+    hasAutoEntries,
     // Computed values
     ...(computed || {
       revenue: 0,
@@ -128,7 +161,10 @@ export const useAccountingData = (startDate, endDate) => {
       balanceSheet: { assets: [], liabilities: [], equity: [], totalAssets: 0, totalLiabilities: 0, totalEquity: 0, balanced: true },
       incomeStatement: { revenueItems: [], expenseItems: [], totalRevenue: 0, totalExpenses: 0, netIncome: 0 },
       taxEstimate: { totalTax: 0, effectiveRate: 0, details: [], quarterlyPayment: 0 },
-      monthlyData: []
+      monthlyData: [],
+      trialBalance: [],
+      generalLedger: [],
+      journalBook: [],
     }),
     refresh: fetchAll
   };

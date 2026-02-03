@@ -357,7 +357,24 @@
       "to": "to"
     },
     "loading": "Loading accounting data...",
-    "error": "Error"
+    "error": "Error",
+    "autoAccounting": "Automatic Accounting",
+    "initWizard": "Initial Accounting Setup",
+    "chooseCountry": "Choose your country to configure the chart of accounts and VAT rates",
+    "belgiumPreset": "Belgium (Belgian PCG)",
+    "francePreset": "France (French PCG)",
+    "initializeBtn": "Initialize my accounting",
+    "initializing": "Initializing...",
+    "initialized": "Accounting initialized successfully",
+    "autoEnabled": "Automatic journal entries enabled",
+    "autoDisabled": "Automatic journal entries disabled",
+    "generalLedger": "General Ledger",
+    "journalBook": "Journal",
+    "trialBalance": "Trial Balance",
+    "entryRef": "Entry Ref.",
+    "isAutoEntry": "Auto Entry",
+    "noEntries": "No journal entries",
+    "entriesGenerated": "auto-generated entries"
   },
   "payments": {
     "title": "Payments",

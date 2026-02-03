@@ -155,6 +155,25 @@
     "stock": "Voorraad",
     "reports": "Rapporten"
   },
+  "accounting": {
+    "autoAccounting": "Automatische Boekhouding",
+    "initWizard": "Initiële Boekhoudconfiguratie",
+    "chooseCountry": "Kies uw land om het rekeningschema en BTW-tarieven te configureren",
+    "belgiumPreset": "België (Belgisch rekeningschema)",
+    "francePreset": "Frankrijk (Frans rekeningschema)",
+    "initializeBtn": "Mijn boekhouding initialiseren",
+    "initializing": "Initialisatie bezig...",
+    "initialized": "Boekhouding succesvol geïnitialiseerd",
+    "autoEnabled": "Automatische boekingen ingeschakeld",
+    "autoDisabled": "Automatische boekingen uitgeschakeld",
+    "generalLedger": "Grootboek",
+    "journalBook": "Journaal",
+    "trialBalance": "Proefbalans",
+    "entryRef": "Boekingsref.",
+    "isAutoEntry": "Auto boeking",
+    "noEntries": "Geen boekingen",
+    "entriesGenerated": "automatisch gegenereerde boekingen"
+  },
   "payments": {
     "title": "Betalingen",
     "recordPayment": "Betaling registreren",
