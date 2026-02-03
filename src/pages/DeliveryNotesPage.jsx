@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useDeliveryNotes } from '@/hooks/useDeliveryNotes';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useClients } from '@/hooks/useClients';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { exportDeliveryNotePDF, exportDeliveryNoteHTML } from '@/services/exportDocuments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +17,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Trash2, Truck, Search, List, CalendarDays, CalendarClock } from 'lucide-react';
+import { Plus, Trash2, Truck, Search, List, CalendarDays, CalendarClock, Download, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -25,6 +29,8 @@ const DeliveryNotesPage = () => {
   const { deliveryNotes, loading, createDeliveryNote, deleteDeliveryNote, updateDeliveryNote } = useDeliveryNotes();
   const { invoices } = useInvoices();
   const { clients } = useClients();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
 
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState('');
@@ -67,6 +73,36 @@ const DeliveryNotesPage = () => {
   const resetForm = () => {
     setFormData({ invoice_id: '', client_id: '', date: new Date().toISOString().split('T')[0], delivery_address: '', carrier: '', tracking_number: '', notes: '', status: 'pending' });
     setItems([{ id: '1', description: '', quantity: 1, unit: 'pcs' }]);
+  };
+
+  const handleExportDeliveryNotePDF = (dn) => {
+    guardedAction(
+      CREDIT_COSTS.PDF_DELIVERY_NOTE,
+      t('credits.costs.pdfDeliveryNote'),
+      async () => {
+        const enrichedDN = {
+          ...dn,
+          items,
+          client: clients.find(c => c.id === dn.client_id)
+        };
+        await exportDeliveryNotePDF(enrichedDN, company);
+      }
+    );
+  };
+
+  const handleExportDeliveryNoteHTML = (dn) => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      t('credits.costs.exportHtml'),
+      () => {
+        const enrichedDN = {
+          ...dn,
+          items,
+          client: clients.find(c => c.id === dn.client_id)
+        };
+        exportDeliveryNoteHTML(enrichedDN, company);
+      }
+    );
   };
 
   const handleInvoiceSelect = (invoiceId) => {
@@ -149,10 +185,12 @@ const DeliveryNotesPage = () => {
   });
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gradient">{t('deliveryNotes.title')}</h1>
+    <>
+      <CreditsGuardModal {...modalProps} />
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gradient">{t('deliveryNotes.title')}</h1>
           <p className="text-gray-400 text-sm mt-1">{t('deliveryNotes.subtitle')}</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="bg-orange-500 hover:bg-orange-600">
@@ -227,6 +265,14 @@ const DeliveryNotesPage = () => {
                               {t('deliveryNotes.markDelivered')}
                             </Button>
                           )}
+                          <Button size="sm" variant="ghost" className="text-purple-400 hover:text-purple-300 h-8" title="Export PDF (2 crédits)"
+                            onClick={() => handleExportDeliveryNotePDF(dn)}>
+                            <Download className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-cyan-400 hover:text-cyan-300 h-8" title="Export HTML (2 crédits)"
+                            onClick={() => handleExportDeliveryNoteHTML(dn)}>
+                            <FileText className="w-4 h-4" />
+                          </Button>
                           <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 h-8"
                             onClick={() => deleteDeliveryNote(dn.id)}>
                             <Trash2 className="w-4 h-4" />
@@ -359,7 +405,8 @@ const DeliveryNotesPage = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 };
 
