@@ -12,10 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus, Search, Trash2, ArrowDownCircle, ArrowUpCircle, Wallet,
   AlertTriangle, CheckCircle2, Clock, TrendingUp, TrendingDown,
-  Phone, Mail, CreditCard, DollarSign, Calendar, Eye
+  Phone, Mail, CreditCard, DollarSign, Calendar, Eye,
+  CalendarDays, CalendarClock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
+import DebtCalendarView from '@/components/DebtCalendarView';
+import DebtAgendaView from '@/components/DebtAgendaView';
 
 const statusColors = {
   pending: 'bg-yellow-500/20 text-yellow-400',
@@ -60,6 +63,7 @@ const DebtManagerPage = () => {
   const [showPayment, setShowPayment] = useState(null);
   const [showPayments, setShowPayments] = useState(null);
   const [paymentHistory, setPaymentHistory] = useState([]);
+  const [showTypeChooser, setShowTypeChooser] = useState(null); // date for new record from calendar
   const [receivableForm, setReceivableForm] = useState(emptyReceivableForm);
   const [payableForm, setPayableForm] = useState(emptyPayableForm);
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: 'cash', notes: '' });
@@ -406,6 +410,12 @@ const DebtManagerPage = () => {
           <TabsTrigger value="payables" className="data-[state=active]:bg-red-500/10 data-[state=active]:text-red-400">
             <ArrowUpCircle className="w-4 h-4 mr-2" />{t('debtManager.payables')} ({payables.length})
           </TabsTrigger>
+          <TabsTrigger value="calendar" className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400">
+            <CalendarDays className="w-4 h-4 mr-2" />{t('debtManager.calendar')}
+          </TabsTrigger>
+          <TabsTrigger value="agenda" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400">
+            <CalendarClock className="w-4 h-4 mr-2" />{t('debtManager.agenda')}
+          </TabsTrigger>
         </TabsList>
 
         {/* Dashboard */}
@@ -444,7 +454,74 @@ const DebtManagerPage = () => {
           </div>
           <RecordTable data={filterList(payables, 'creditor_name')} type="payable" nameField="creditor_name" dateField="date_borrowed" loading={pLoading} />
         </TabsContent>
+
+        {/* Calendar */}
+        <TabsContent value="calendar" className="mt-6">
+          <DebtCalendarView
+            receivables={receivables}
+            payables={payables}
+            onSelectDate={(date) => {
+              const dateStr = format(date, 'yyyy-MM-dd');
+              setShowTypeChooser(dateStr);
+            }}
+            onSelectRecord={(record) => {
+              if (record.status !== 'paid' && record.status !== 'cancelled') {
+                setShowPayment({ type: record.type, record });
+                setPaymentForm({ amount: '', payment_method: 'cash', notes: '' });
+              } else {
+                handleViewPayments(record.type, record);
+              }
+            }}
+          />
+        </TabsContent>
+
+        {/* Agenda */}
+        <TabsContent value="agenda" className="mt-6">
+          <DebtAgendaView
+            receivables={receivables}
+            payables={payables}
+            onPay={(type, record) => {
+              setShowPayment({ type, record });
+              setPaymentForm({ amount: '', payment_method: 'cash', notes: '' });
+            }}
+            onView={(type, record) => handleViewPayments(type, record)}
+            onDelete={(type, record) => type === 'receivable' ? deleteReceivable(record.id) : deletePayable(record.id)}
+          />
+        </TabsContent>
       </Tabs>
+
+      {/* Type Chooser Dialog (from calendar click) */}
+      <Dialog open={!!showTypeChooser} onOpenChange={() => setShowTypeChooser(null)}>
+        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-orange-400 flex items-center gap-2">
+              <CalendarDays className="w-5 h-5" />{t('debtManager.createOnDate')} {showTypeChooser}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Button
+              className="w-full bg-green-600 hover:bg-green-700 text-white justify-start"
+              onClick={() => {
+                setReceivableForm({ ...emptyReceivableForm, due_date: showTypeChooser });
+                setShowCreateReceivable(true);
+                setShowTypeChooser(null);
+              }}
+            >
+              <ArrowDownCircle className="w-4 h-4 mr-2" />{t('debtManager.chooseReceivable')}
+            </Button>
+            <Button
+              className="w-full bg-red-600 hover:bg-red-700 text-white justify-start"
+              onClick={() => {
+                setPayableForm({ ...emptyPayableForm, due_date: showTypeChooser });
+                setShowCreatePayable(true);
+                setShowTypeChooser(null);
+              }}
+            >
+              <ArrowUpCircle className="w-4 h-4 mr-2" />{t('debtManager.choosePayable')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Receivable Dialog */}
       <Dialog open={showCreateReceivable} onOpenChange={setShowCreateReceivable}>

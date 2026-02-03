@@ -664,7 +664,22 @@
       "mobile_money": "Mobile Money",
       "cheque": "Ch\u00e8que",
       "other": "Autre"
-    }
+    },
+    "calendar": "Calendrier",
+    "agenda": "Agenda",
+    "createOnDate": "Cr\u00e9er pour le",
+    "selectType": "Choisir le type",
+    "chooseReceivable": "Nouvelle cr\u00e9ance (on me doit)",
+    "choosePayable": "Nouvelle dette (je dois)",
+    "calendarToday": "Aujourd'hui",
+    "calendarMonth": "Mois",
+    "calendarWeek": "Semaine",
+    "calendarDay": "Jour",
+    "agendaOverdue": "En retard",
+    "agendaToday": "Aujourd'hui",
+    "agendaTomorrow": "Demain",
+    "agendaThisWeek": "Cette semaine",
+    "agendaLater": "Plus tard / Sans date"
   },
   "errors": {
     "unauthorized": "Vous n'avez pas la permission d'acceder a cette ressource.",

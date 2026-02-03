@@ -460,7 +460,22 @@
       "mobile_money": "Mobiel geld",
       "cheque": "Cheque",
       "other": "Anders"
-    }
+    },
+    "calendar": "Kalender",
+    "agenda": "Agenda",
+    "createOnDate": "Aanmaken voor",
+    "selectType": "Kies type",
+    "chooseReceivable": "Nieuwe vordering (aan mij verschuldigd)",
+    "choosePayable": "Nieuwe schuld (ik ben verschuldigd)",
+    "calendarToday": "Vandaag",
+    "calendarMonth": "Maand",
+    "calendarWeek": "Week",
+    "calendarDay": "Dag",
+    "agendaOverdue": "Achterstallig",
+    "agendaToday": "Vandaag",
+    "agendaTomorrow": "Morgen",
+    "agendaThisWeek": "Deze week",
+    "agendaLater": "Later / Geen datum"
   },
   "errors": {
     "unauthorized": "U heeft geen toestemming om deze bron te openen.",
