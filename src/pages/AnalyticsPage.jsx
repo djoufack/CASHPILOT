@@ -6,9 +6,13 @@ import { useAuth } from '@/context/AuthContext';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useTimesheets } from '@/hooks/useTimesheets';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { exportAnalyticsPDF, exportAnalyticsHTML } from '@/services/exportReports';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw, TrendingUp, PieChart as PieChartIcon, BarChart3 } from 'lucide-react';
+import { Loader2, RefreshCw, TrendingUp, PieChart as PieChartIcon, BarChart3, Download, FileText } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   BarChart, Bar, Legend, PieChart, Pie, Cell 
@@ -26,11 +30,13 @@ const AnalyticsPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
 
-  const { 
-    invoices, 
-    fetchInvoices, 
-    loading: loadingInvoices 
+  const {
+    invoices,
+    fetchInvoices,
+    loading: loadingInvoices
   } = useInvoices();
 
   const { 
@@ -89,11 +95,27 @@ const AnalyticsPage = () => {
   const isLoading = loadingInvoices || loadingTimesheets || loadingExpenses;
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
+  const totalRevenue = useMemo(() => invoices.reduce((sum, inv) => sum + Number(inv.total_ttc || inv.total || 0), 0), [invoices]);
+  const totalExpenses = useMemo(() => expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0), [expenses]);
+
+  const handleExportPDF = () => {
+    guardedAction(CREDIT_COSTS.PDF_ANALYTICS, 'Analytics PDF', async () => {
+      await exportAnalyticsPDF({ totalRevenue, totalExpenses }, company);
+    });
+  };
+
+  const handleExportHTML = () => {
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Analytics HTML', () => {
+      exportAnalyticsHTML({ totalRevenue, totalExpenses }, company);
+    });
+  };
+
   return (
     <>
       <Helmet>
         <title>Analytics - {t('app.name')}</title>
       </Helmet>
+      <CreditsGuardModal {...modalProps} />
       
         <div className="container mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -103,14 +125,22 @@ const AnalyticsPage = () => {
                     </h1>
                     <p className="text-gray-400 text-sm md:text-base">Financial insights and performance metrics</p>
                 </div>
-                <Button 
-                  onClick={handleRefresh} 
-                  disabled={isLoading}
-                  className="w-full md:w-auto bg-gray-800 hover:bg-gray-700 text-white border border-gray-700"
-                >
-                  {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-                  Refresh Data
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleRefresh}
+                    disabled={isLoading}
+                    className="w-full md:w-auto bg-gray-800 hover:bg-gray-700 text-white border border-gray-700"
+                  >
+                    {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                    Refresh Data
+                  </Button>
+                  <Button onClick={handleExportPDF} variant="outline" className="border-gray-700">
+                    <Download className="w-4 h-4 mr-2" /> PDF (3)
+                  </Button>
+                  <Button onClick={handleExportHTML} variant="outline" className="border-gray-700">
+                    <FileText className="w-4 h-4 mr-2" /> HTML (2)
+                  </Button>
+                </div>
             </div>
 
             {/* Revenue vs Expenses Chart */}

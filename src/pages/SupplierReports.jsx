@@ -1,19 +1,45 @@
 
 import React, { useEffect } from 'react';
 import { useSupplierReports } from '@/hooks/useSupplierReports';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { exportSupplierReportPDF, exportSupplierReportHTML } from '@/services/exportReports';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Loader2, DollarSign, Package, Truck, Download } from 'lucide-react';
+import { Loader2, DollarSign, Package, Truck, Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/utils/calculations';
 
 const SupplierReports = () => {
   const { reportData, loading, generateReports } = useSupplierReports();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
 
   useEffect(() => {
     generateReports();
   }, []);
+
+  const handleExportPDF = () => {
+    guardedAction(
+      CREDIT_COSTS.PDF_SUPPLIER_REPORT,
+      'Supplier Report PDF',
+      async () => {
+        await exportSupplierReportPDF(reportData, company);
+      }
+    );
+  };
+
+  const handleExportHTML = () => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      'Supplier Report HTML',
+      () => {
+        exportSupplierReportHTML(reportData, company);
+      }
+    );
+  };
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -22,7 +48,9 @@ const SupplierReports = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
+    <>
+      <CreditsGuardModal {...modalProps} />
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
            <h1 className="text-2xl sm:text-3xl font-bold text-gradient">
@@ -30,9 +58,14 @@ const SupplierReports = () => {
            </h1>
            <p className="text-gray-400 mt-2 text-sm">Analyze spending, performance, and trends.</p>
         </div>
-        <Button variant="outline" className="border-gray-700 text-gray-300">
-           <Download className="w-4 h-4 mr-2" /> Export Report
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="border-gray-700 text-gray-300" onClick={handleExportPDF}>
+            <Download className="w-4 h-4 mr-2" /> PDF (3 crédits)
+          </Button>
+          <Button variant="outline" className="border-gray-700 text-gray-300" onClick={handleExportHTML}>
+            <FileText className="w-4 h-4 mr-2" /> HTML (2 crédits)
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -102,7 +135,8 @@ const SupplierReports = () => {
              </div>
          </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </>
   );
 };
 
