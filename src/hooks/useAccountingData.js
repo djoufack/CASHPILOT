@@ -23,6 +23,7 @@ import {
   buildGeneralLedger,
   buildJournalBook,
 } from '@/utils/accountingCalculations';
+import { buildFinancialDiagnostic } from '@/utils/financialAnalysisCalculations';
 
 export const useAccountingData = (startDate, endDate) => {
   const { user } = useAuth();
@@ -116,6 +117,17 @@ export const useAccountingData = (startDate, endDate) => {
     const generalLedger = buildGeneralLedger(entries, accounts, startDate, endDate);
     const journalBook = buildJournalBook(entries, startDate, endDate);
 
+    // Financial diagnostic
+    const financialDiagnostic = buildFinancialDiagnostic(
+      entries,
+      accounts,
+      balanceSheet,
+      incomeStatement,
+      startDate,
+      endDate,
+      null // previousPeriodData pour comparaisons futures
+    );
+
     return {
       revenue,
       revenueTTC,
@@ -133,6 +145,7 @@ export const useAccountingData = (startDate, endDate) => {
       trialBalance,
       generalLedger,
       journalBook,
+      financialDiagnostic,
     };
   }, [invoices, expenses, supplierInvoices, accounts, mappings, entries, hasAutoEntries, startDate, endDate]);
 
@@ -165,6 +178,7 @@ export const useAccountingData = (startDate, endDate) => {
       trialBalance: [],
       generalLedger: [],
       journalBook: [],
+      financialDiagnostic: null,
     }),
     refresh: fetchAll
   };
