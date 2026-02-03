@@ -39,6 +39,8 @@ import SeedDataManager from '@/components/admin/SeedDataManager';
 import CreditNotesPage from './pages/CreditNotesPage';
 import DeliveryNotesPage from './pages/DeliveryNotesPage';
 import DebtManagerPage from './pages/DebtManagerPage';
+import ScenarioBuilder from './pages/ScenarioBuilder';
+import ScenarioDetail from './pages/ScenarioDetail';
 
 // Wrapper to handle auth redirects
 const AuthWrapper = () => {
@@ -108,6 +110,8 @@ const AuthWrapper = () => {
                 <Route path="/notifications" element={<NotificationCenter />} />
 
                 <Route path="/debt-manager" element={<DebtManagerPage />} />
+                <Route path="/scenarios" element={<ScenarioBuilder />} />
+                <Route path="/scenarios/:scenarioId" element={<ScenarioDetail />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
             </Route>
