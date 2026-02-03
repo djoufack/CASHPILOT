@@ -41,24 +41,17 @@
     --radius-full: 9999px;
 }
 
-/* Reset & Base */
-*, *::before, *::after {
+/* Reset & Base - Scoped to landing page only */
+.landing-page * {
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
 }
 
-html {
-    scroll-behavior: smooth;
-    font-size: 16px;
-}
-
-body {
+.landing-page {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--primary-dark);
     color: var(--text-primary);
     line-height: 1.6;
-    overflow-x: hidden;
 }
 
 /* Custom Scrollbar */
