@@ -14,9 +14,12 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Trash2, FileText, Search } from 'lucide-react';
+import { Plus, Trash2, FileText, Search, List, CalendarDays, CalendarClock } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import GenericCalendarView from '@/components/GenericCalendarView';
+import GenericAgendaView from '@/components/GenericAgendaView';
 
 const CreditNotesPage = () => {
   const { t } = useTranslation();
@@ -104,12 +107,56 @@ const CreditNotesPage = () => {
     );
   });
 
+  const [viewMode, setViewMode] = useState('list');
+
   const statusColors = {
     draft: 'bg-gray-500',
     issued: 'bg-blue-500',
     applied: 'bg-green-500',
     cancelled: 'bg-red-500'
   };
+
+  const cnCalendarStatusColors = {
+    draft: { bg: '#6b7280', border: '#4b5563', text: '#fff' },
+    issued: { bg: '#3b82f6', border: '#2563eb', text: '#fff' },
+    applied: { bg: '#22c55e', border: '#16a34a', text: '#fff' },
+    cancelled: { bg: '#ef4444', border: '#dc2626', text: '#fff' },
+  };
+
+  const cnCalendarLegend = [
+    { label: 'Draft', color: '#6b7280' },
+    { label: 'Issued', color: '#3b82f6' },
+    { label: 'Applied', color: '#22c55e' },
+    { label: 'Cancelled', color: '#ef4444' },
+  ];
+
+  const cnCalendarEvents = creditNotes.map(cn => ({
+    id: cn.id,
+    title: `${cn.credit_note_number || ''} - ${cn.client?.company_name || '-'}`,
+    date: cn.date,
+    status: cn.status || 'draft',
+    resource: cn,
+  }));
+
+  const cnAgendaItems = creditNotes.map(cn => {
+    const currency = cn.client?.preferred_currency || 'EUR';
+    const statusColorMap = {
+      draft: 'bg-gray-500/20 text-gray-400',
+      issued: 'bg-blue-500/20 text-blue-400',
+      applied: 'bg-green-500/20 text-green-400',
+      cancelled: 'bg-red-500/20 text-red-400',
+    };
+    return {
+      id: cn.id,
+      title: cn.credit_note_number || '',
+      subtitle: cn.client?.company_name || '-',
+      date: cn.date,
+      status: cn.status || 'draft',
+      statusLabel: t(`creditNotes.status.${cn.status}`) || cn.status,
+      statusColor: statusColorMap[cn.status] || 'bg-gray-500/20 text-gray-400',
+      amount: formatCurrency(Number(cn.total_ttc || 0), currency),
+    };
+  });
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
@@ -129,61 +176,93 @@ const CreditNotesPage = () => {
         <Input value={search} onChange={(e) => setSearch(e.target.value)} className="bg-gray-800 border-gray-700 text-white pl-10" placeholder={t('common.search')} />
       </div>
 
-      {/* Table */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase">
-                <th className="text-left p-4">{t('creditNotes.number')}</th>
-                <th className="text-left p-4">{t('timesheets.client')}</th>
-                <th className="text-left p-4">{t('creditNotes.linkedInvoice')}</th>
-                <th className="text-left p-4">{t('timesheets.date')}</th>
-                <th className="text-right p-4">{t('invoices.totalTTC')}</th>
-                <th className="text-center p-4">{t('common.status')}</th>
-                <th className="text-center p-4">{t('common.actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={7} className="text-center p-8 text-gray-400">Loading...</td></tr>
-              ) : filteredNotes.length === 0 ? (
-                <tr><td colSpan={7} className="text-center p-8 text-gray-400">{t('creditNotes.noNotes')}</td></tr>
-              ) : filteredNotes.map((cn) => {
-                const currency = cn.client?.preferred_currency || 'EUR';
-                return (
-                  <motion.tr key={cn.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
-                    <td className="p-4 font-mono text-sm">{cn.credit_note_number}</td>
-                    <td className="p-4">{cn.client?.company_name || '-'}</td>
-                    <td className="p-4 text-sm text-gray-400">{cn.invoice?.invoice_number || '-'}</td>
-                    <td className="p-4 text-sm">{cn.date ? format(new Date(cn.date), 'dd/MM/yyyy') : '-'}</td>
-                    <td className="p-4 text-right font-semibold">{formatCurrency(Number(cn.total_ttc || 0), currency)}</td>
-                    <td className="p-4 text-center">
-                      <span className={`px-2 py-1 rounded text-xs text-white ${statusColors[cn.status] || 'bg-gray-500'}`}>
-                        {t(`creditNotes.status.${cn.status}`)}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <div className="flex justify-center gap-2">
-                        {cn.status === 'draft' && (
-                          <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 h-8 text-xs"
-                            onClick={() => updateCreditNote(cn.id, { status: 'issued' })}>
-                            {t('creditNotes.issue')}
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 h-8"
-                          onClick={() => deleteCreditNote(cn.id)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
+        <TabsList className="bg-gray-800 border border-gray-700 mb-4">
+          <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <List className="w-4 h-4 mr-2" /> List
+          </TabsTrigger>
+          <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <CalendarDays className="w-4 h-4 mr-2" /> Calendar
+          </TabsTrigger>
+          <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <CalendarClock className="w-4 h-4 mr-2" /> Agenda
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase">
+                    <th className="text-left p-4">{t('creditNotes.number')}</th>
+                    <th className="text-left p-4">{t('timesheets.client')}</th>
+                    <th className="text-left p-4">{t('creditNotes.linkedInvoice')}</th>
+                    <th className="text-left p-4">{t('timesheets.date')}</th>
+                    <th className="text-right p-4">{t('invoices.totalTTC')}</th>
+                    <th className="text-center p-4">{t('common.status')}</th>
+                    <th className="text-center p-4">{t('common.actions')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={7} className="text-center p-8 text-gray-400">Loading...</td></tr>
+                  ) : filteredNotes.length === 0 ? (
+                    <tr><td colSpan={7} className="text-center p-8 text-gray-400">{t('creditNotes.noNotes')}</td></tr>
+                  ) : filteredNotes.map((cn) => {
+                    const currency = cn.client?.preferred_currency || 'EUR';
+                    return (
+                      <motion.tr key={cn.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
+                        <td className="p-4 font-mono text-sm">{cn.credit_note_number}</td>
+                        <td className="p-4">{cn.client?.company_name || '-'}</td>
+                        <td className="p-4 text-sm text-gray-400">{cn.invoice?.invoice_number || '-'}</td>
+                        <td className="p-4 text-sm">{cn.date ? format(new Date(cn.date), 'dd/MM/yyyy') : '-'}</td>
+                        <td className="p-4 text-right font-semibold">{formatCurrency(Number(cn.total_ttc || 0), currency)}</td>
+                        <td className="p-4 text-center">
+                          <span className={`px-2 py-1 rounded text-xs text-white ${statusColors[cn.status] || 'bg-gray-500'}`}>
+                            {t(`creditNotes.status.${cn.status}`)}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="flex justify-center gap-2">
+                            {cn.status === 'draft' && (
+                              <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 h-8 text-xs"
+                                onClick={() => updateCreditNote(cn.id, { status: 'issued' })}>
+                                {t('creditNotes.issue')}
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 h-8"
+                              onClick={() => deleteCreditNote(cn.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="calendar">
+          <GenericCalendarView
+            events={cnCalendarEvents}
+            statusColors={cnCalendarStatusColors}
+            legend={cnCalendarLegend}
+          />
+        </TabsContent>
+
+        <TabsContent value="agenda">
+          <GenericAgendaView
+            items={cnAgendaItems}
+            dateField="date"
+            onDelete={(item) => deleteCreditNote(item.id)}
+            paidStatuses={['applied', 'cancelled']}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>

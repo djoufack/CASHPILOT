@@ -13,9 +13,12 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Trash2, Truck, Search } from 'lucide-react';
+import { Plus, Trash2, Truck, Search, List, CalendarDays, CalendarClock } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import GenericCalendarView from '@/components/GenericCalendarView';
+import GenericAgendaView from '@/components/GenericAgendaView';
 
 const DeliveryNotesPage = () => {
   const { t } = useTranslation();
@@ -94,12 +97,56 @@ const DeliveryNotesPage = () => {
     );
   });
 
+  const [viewMode, setViewMode] = useState('list');
+
   const statusColors = {
     pending: 'bg-yellow-500',
     shipped: 'bg-blue-500',
     delivered: 'bg-green-500',
     cancelled: 'bg-red-500'
   };
+
+  const dnCalendarStatusColors = {
+    pending: { bg: '#eab308', border: '#ca8a04', text: '#000' },
+    draft: { bg: '#6b7280', border: '#4b5563', text: '#fff' },
+    shipped: { bg: '#3b82f6', border: '#2563eb', text: '#fff' },
+    delivered: { bg: '#22c55e', border: '#16a34a', text: '#fff' },
+    cancelled: { bg: '#ef4444', border: '#dc2626', text: '#fff' },
+  };
+
+  const dnCalendarLegend = [
+    { label: 'Pending', color: '#eab308' },
+    { label: 'Shipped', color: '#3b82f6' },
+    { label: 'Delivered', color: '#22c55e' },
+    { label: 'Cancelled', color: '#ef4444' },
+  ];
+
+  const dnCalendarEvents = deliveryNotes.map(dn => ({
+    id: dn.id,
+    title: `${dn.delivery_note_number || ''} - ${dn.client?.company_name || '-'}`,
+    date: dn.date,
+    status: dn.status || 'pending',
+    resource: dn,
+  }));
+
+  const dnAgendaItems = deliveryNotes.map(dn => {
+    const statusColorMap = {
+      pending: 'bg-yellow-500/20 text-yellow-400',
+      draft: 'bg-gray-500/20 text-gray-400',
+      shipped: 'bg-blue-500/20 text-blue-400',
+      delivered: 'bg-green-500/20 text-green-400',
+      cancelled: 'bg-red-500/20 text-red-400',
+    };
+    return {
+      id: dn.id,
+      title: dn.delivery_note_number || '',
+      subtitle: dn.client?.company_name || '-',
+      date: dn.date,
+      status: dn.status || 'pending',
+      statusLabel: t(`deliveryNotes.status.${dn.status}`) || dn.status,
+      statusColor: statusColorMap[dn.status] || 'bg-gray-500/20 text-gray-400',
+    };
+  });
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
@@ -119,66 +166,98 @@ const DeliveryNotesPage = () => {
         <Input value={search} onChange={(e) => setSearch(e.target.value)} className="bg-gray-800 border-gray-700 text-white pl-10" placeholder={t('common.search')} />
       </div>
 
-      {/* Table */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase">
-                <th className="text-left p-4">{t('deliveryNotes.number')}</th>
-                <th className="text-left p-4">{t('timesheets.client')}</th>
-                <th className="text-left p-4">{t('deliveryNotes.linkedInvoice')}</th>
-                <th className="text-left p-4">{t('timesheets.date')}</th>
-                <th className="text-left p-4">{t('deliveryNotes.carrier')}</th>
-                <th className="text-left p-4">{t('deliveryNotes.tracking')}</th>
-                <th className="text-center p-4">{t('common.status')}</th>
-                <th className="text-center p-4">{t('common.actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={8} className="text-center p-8 text-gray-400">Loading...</td></tr>
-              ) : filteredNotes.length === 0 ? (
-                <tr><td colSpan={8} className="text-center p-8 text-gray-400">{t('deliveryNotes.noNotes')}</td></tr>
-              ) : filteredNotes.map((dn) => (
-                <motion.tr key={dn.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
-                  <td className="p-4 font-mono text-sm">{dn.delivery_note_number}</td>
-                  <td className="p-4">{dn.client?.company_name || '-'}</td>
-                  <td className="p-4 text-sm text-gray-400">{dn.invoice?.invoice_number || '-'}</td>
-                  <td className="p-4 text-sm">{dn.date ? format(new Date(dn.date), 'dd/MM/yyyy') : '-'}</td>
-                  <td className="p-4 text-sm">{dn.carrier || '-'}</td>
-                  <td className="p-4 text-sm font-mono">{dn.tracking_number || '-'}</td>
-                  <td className="p-4 text-center">
-                    <span className={`px-2 py-1 rounded text-xs text-white ${statusColors[dn.status] || 'bg-gray-500'}`}>
-                      {t(`deliveryNotes.status.${dn.status}`)}
-                    </span>
-                  </td>
-                  <td className="p-4 text-center">
-                    <div className="flex justify-center gap-2">
-                      {dn.status === 'pending' && (
-                        <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 h-8 text-xs"
-                          onClick={() => updateDeliveryNote(dn.id, { status: 'shipped' })}>
-                          {t('deliveryNotes.markShipped')}
-                        </Button>
-                      )}
-                      {dn.status === 'shipped' && (
-                        <Button size="sm" variant="outline" className="border-green-600 text-green-400 hover:bg-green-900/20 h-8 text-xs"
-                          onClick={() => updateDeliveryNote(dn.id, { status: 'delivered' })}>
-                          {t('deliveryNotes.markDelivered')}
-                        </Button>
-                      )}
-                      <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 h-8"
-                        onClick={() => deleteDeliveryNote(dn.id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
+        <TabsList className="bg-gray-800 border border-gray-700 mb-4">
+          <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <List className="w-4 h-4 mr-2" /> List
+          </TabsTrigger>
+          <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <CalendarDays className="w-4 h-4 mr-2" /> Calendar
+          </TabsTrigger>
+          <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <CalendarClock className="w-4 h-4 mr-2" /> Agenda
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase">
+                    <th className="text-left p-4">{t('deliveryNotes.number')}</th>
+                    <th className="text-left p-4">{t('timesheets.client')}</th>
+                    <th className="text-left p-4">{t('deliveryNotes.linkedInvoice')}</th>
+                    <th className="text-left p-4">{t('timesheets.date')}</th>
+                    <th className="text-left p-4">{t('deliveryNotes.carrier')}</th>
+                    <th className="text-left p-4">{t('deliveryNotes.tracking')}</th>
+                    <th className="text-center p-4">{t('common.status')}</th>
+                    <th className="text-center p-4">{t('common.actions')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={8} className="text-center p-8 text-gray-400">Loading...</td></tr>
+                  ) : filteredNotes.length === 0 ? (
+                    <tr><td colSpan={8} className="text-center p-8 text-gray-400">{t('deliveryNotes.noNotes')}</td></tr>
+                  ) : filteredNotes.map((dn) => (
+                    <motion.tr key={dn.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
+                      <td className="p-4 font-mono text-sm">{dn.delivery_note_number}</td>
+                      <td className="p-4">{dn.client?.company_name || '-'}</td>
+                      <td className="p-4 text-sm text-gray-400">{dn.invoice?.invoice_number || '-'}</td>
+                      <td className="p-4 text-sm">{dn.date ? format(new Date(dn.date), 'dd/MM/yyyy') : '-'}</td>
+                      <td className="p-4 text-sm">{dn.carrier || '-'}</td>
+                      <td className="p-4 text-sm font-mono">{dn.tracking_number || '-'}</td>
+                      <td className="p-4 text-center">
+                        <span className={`px-2 py-1 rounded text-xs text-white ${statusColors[dn.status] || 'bg-gray-500'}`}>
+                          {t(`deliveryNotes.status.${dn.status}`)}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <div className="flex justify-center gap-2">
+                          {dn.status === 'pending' && (
+                            <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 h-8 text-xs"
+                              onClick={() => updateDeliveryNote(dn.id, { status: 'shipped' })}>
+                              {t('deliveryNotes.markShipped')}
+                            </Button>
+                          )}
+                          {dn.status === 'shipped' && (
+                            <Button size="sm" variant="outline" className="border-green-600 text-green-400 hover:bg-green-900/20 h-8 text-xs"
+                              onClick={() => updateDeliveryNote(dn.id, { status: 'delivered' })}>
+                              {t('deliveryNotes.markDelivered')}
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 h-8"
+                            onClick={() => deleteDeliveryNote(dn.id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="calendar">
+          <GenericCalendarView
+            events={dnCalendarEvents}
+            statusColors={dnCalendarStatusColors}
+            legend={dnCalendarLegend}
+          />
+        </TabsContent>
+
+        <TabsContent value="agenda">
+          <GenericAgendaView
+            items={dnAgendaItems}
+            dateField="date"
+            onDelete={(item) => deleteDeliveryNote(item.id)}
+            paidStatuses={['delivered', 'cancelled']}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
