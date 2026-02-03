@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useStockAlerts, useStockHistory } from '@/hooks/useStockHistory';
 import { useProducts, useProductCategories } from '@/hooks/useProducts';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -10,16 +13,19 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Package, Search, Plus, Trash2, Edit2 } from 'lucide-react';
+import { AlertTriangle, Package, Search, Plus, Trash2, Edit2, Download, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { exportStockListPDF, exportStockListHTML } from '@/services/exportListsPDF';
 
 const StockManagement = () => {
   const { alerts, fetchAlerts, resolveAlert } = useStockAlerts();
   const { getProductHistory, addHistoryEntry, loading: historyLoading } = useStockHistory();
   const { products, loading, createProduct, updateProduct, deleteProduct, fetchProducts } = useProducts();
   const { categories } = useProductCategories();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -121,12 +127,45 @@ const StockManagement = () => {
     return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">OK</Badge>;
   };
 
+  const handleExportPDF = () => {
+    guardedAction(
+      CREDIT_COSTS.PDF_REPORT,
+      'Stock List PDF',
+      async () => {
+        await exportStockListPDF(filteredProducts, company);
+      }
+    );
+  };
+
+  const handleExportHTML = () => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      'Stock List HTML',
+      () => {
+        exportStockListHTML(filteredProducts, company);
+      }
+    );
+  };
+
   return (
-    <div className="p-8 min-h-screen bg-gray-950 text-white space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gradient">Gestion du Stock</h1>
-          <p className="text-gray-400">Gérez votre inventaire, alertes et mouvements de stock.</p>
+    <>
+      <CreditsGuardModal {...modalProps} />
+      <div className="p-8 min-h-screen bg-gray-950 text-white space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gradient">Gestion du Stock</h1>
+            <p className="text-gray-400">Gérez votre inventaire, alertes et mouvements de stock.</p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={handleExportPDF} size="sm" variant="outline" className="border-gray-600 hover:bg-gray-700">
+              <Download className="w-4 h-4 mr-2" />
+              PDF ({CREDIT_COSTS.PDF_REPORT})
+            </Button>
+            <Button onClick={handleExportHTML} size="sm" variant="outline" className="border-gray-600 hover:bg-gray-700">
+              <FileText className="w-4 h-4 mr-2" />
+              HTML ({CREDIT_COSTS.EXPORT_HTML})
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -462,7 +501,8 @@ const StockManagement = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </>
   );
 };
 
