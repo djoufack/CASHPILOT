@@ -363,6 +363,7 @@
     "chooseCountry": "Choisissez votre pays pour configurer le plan comptable et les taux de TVA adaptés",
     "belgiumPreset": "Belgique (PCG belge)",
     "francePreset": "France (PCG français)",
+    "ohadaPreset": "OHADA (SYSCOHADA révisé)",
     "initializeBtn": "Initialiser ma comptabilité",
     "initializing": "Initialisation en cours...",
     "initialized": "Comptabilité initialisée avec succès",

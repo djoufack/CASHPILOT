@@ -127,7 +127,7 @@ const AccountingIntegration = () => {
               <p className="text-gray-400">{t('accounting.initializing')}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <button
                 onClick={() => initializeForCountry('BE')}
                 className="bg-gray-800 border-2 border-gray-700 hover:border-orange-500 rounded-xl p-8 transition-all group"
@@ -143,6 +143,14 @@ const AccountingIntegration = () => {
                 <span className="text-5xl mb-4 block">🇫🇷</span>
                 <h3 className="text-lg font-bold text-white group-hover:text-orange-400">{t('accounting.francePreset')}</h3>
                 <p className="text-sm text-gray-500 mt-2">PCG français · TVA 20%, 10%, 5.5%</p>
+              </button>
+              <button
+                onClick={() => initializeForCountry('OHADA')}
+                className="bg-gray-800 border-2 border-gray-700 hover:border-orange-500 rounded-xl p-8 transition-all group"
+              >
+                <span className="text-5xl mb-4 block">🌍</span>
+                <h3 className="text-lg font-bold text-white group-hover:text-orange-400">{t('accounting.ohadaPreset')}</h3>
+                <p className="text-sm text-gray-500 mt-2">SYSCOHADA révisé · TVA 18%</p>
               </button>
             </div>
           )}
@@ -169,7 +177,7 @@ const AccountingIntegration = () => {
         <div className="flex items-center gap-2 mb-4 px-2">
           <Zap className="w-4 h-4 text-yellow-400" />
           <span className="text-xs text-yellow-400 font-medium">{t('accounting.autoEnabled')}</span>
-          <span className="text-xs text-gray-500">({country === 'BE' ? '🇧🇪 Belgique' : '🇫🇷 France'})</span>
+          <span className="text-xs text-gray-500">({country === 'BE' ? '🇧🇪 Belgique' : country === 'OHADA' ? '🌍 OHADA' : '🇫🇷 France'})</span>
         </div>
       )}
 

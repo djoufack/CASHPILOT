@@ -12,6 +12,7 @@
 import { supabase } from '@/lib/supabase';
 import pcgBelge from '@/data/pcg-belge.json';
 import pcgFrance from '@/data/pcg-france.json';
+import pcgOhada from '@/data/pcg-ohada.json';
 
 // ---------------------------------------------------------------------------
 // Check initialization status
@@ -83,7 +84,7 @@ export async function initializeAccounting(userId, country) {
     }
 
     // 2. Load the appropriate chart of accounts
-    const accounts = country === 'BE' ? pcgBelge : pcgFrance;
+    const accounts = country === 'BE' ? pcgBelge : country === 'OHADA' ? pcgOhada : pcgFrance;
 
     // 3. Bulk-insert accounts
     const accountsCount = await bulkInsertAccounts(userId, accounts);
@@ -258,6 +259,47 @@ async function insertDefaultTaxRates(userId, country) {
  * @returns {Array<object>}
  */
 export function getDefaultMappings(country) {
+  if (country === 'OHADA') {
+    return [
+      // ---- Factures clients (ventes) ----
+      { source_type: 'invoice', source_category: 'revenue',  debit_account_code: '411',  credit_account_code: '701',  description: 'Ventes de marchandises' },
+      { source_type: 'invoice', source_category: 'service',  debit_account_code: '411',  credit_account_code: '706',  description: 'Services vendus' },
+      { source_type: 'invoice', source_category: 'product',  debit_account_code: '411',  credit_account_code: '702',  description: 'Ventes de produits finis' },
+
+      // ---- Paiements ----
+      { source_type: 'payment', source_category: 'cash',          debit_account_code: '571', credit_account_code: '411', description: 'Encaissement client - espèces' },
+      { source_type: 'payment', source_category: 'bank_transfer', debit_account_code: '521', credit_account_code: '411', description: 'Encaissement client - virement' },
+      { source_type: 'payment', source_category: 'card',          debit_account_code: '521', credit_account_code: '411', description: 'Encaissement client - carte' },
+      { source_type: 'payment', source_category: 'check',         debit_account_code: '513', credit_account_code: '411', description: 'Encaissement client - chèque' },
+
+      // ---- Avoirs ----
+      { source_type: 'credit_note', source_category: 'general', debit_account_code: '701', credit_account_code: '411', description: 'Avoir client' },
+
+      // ---- Dépenses ----
+      { source_type: 'expense', source_category: 'general',    debit_account_code: '638',  credit_account_code: '521', description: 'Autres charges externes' },
+      { source_type: 'expense', source_category: 'office',     debit_account_code: '6053', credit_account_code: '521', description: 'Fournitures de bureau' },
+      { source_type: 'expense', source_category: 'travel',     debit_account_code: '6371', credit_account_code: '521', description: 'Voyages et déplacements' },
+      { source_type: 'expense', source_category: 'meals',      debit_account_code: '636',  credit_account_code: '521', description: 'Frais de réceptions' },
+      { source_type: 'expense', source_category: 'transport',  debit_account_code: '618',  credit_account_code: '521', description: 'Autres frais de transport' },
+      { source_type: 'expense', source_category: 'software',   debit_account_code: '634',  credit_account_code: '521', description: 'Redevances pour logiciels' },
+      { source_type: 'expense', source_category: 'hardware',   debit_account_code: '6054', credit_account_code: '521', description: 'Fournitures informatiques' },
+      { source_type: 'expense', source_category: 'marketing',  debit_account_code: '627',  credit_account_code: '521', description: 'Publicité et relations publiques' },
+      { source_type: 'expense', source_category: 'legal',      debit_account_code: '6324', credit_account_code: '521', description: 'Honoraires' },
+      { source_type: 'expense', source_category: 'insurance',  debit_account_code: '625',  credit_account_code: '521', description: "Primes d'assurance" },
+      { source_type: 'expense', source_category: 'rent',       debit_account_code: '6222', credit_account_code: '521', description: 'Locations de bâtiments' },
+      { source_type: 'expense', source_category: 'utilities',  debit_account_code: '6051', credit_account_code: '521', description: 'Eau, énergie' },
+      { source_type: 'expense', source_category: 'telecom',    debit_account_code: '628',  credit_account_code: '521', description: 'Frais de télécommunications' },
+      { source_type: 'expense', source_category: 'training',   debit_account_code: '633',  credit_account_code: '521', description: 'Formation du personnel' },
+      { source_type: 'expense', source_category: 'consulting', debit_account_code: '6324', credit_account_code: '521', description: 'Honoraires de conseil' },
+      { source_type: 'expense', source_category: 'other',      debit_account_code: '658',  credit_account_code: '521', description: 'Charges diverses' },
+
+      // ---- Factures fournisseurs ----
+      { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '601',  credit_account_code: '401', description: 'Achats de marchandises' },
+      { source_type: 'supplier_invoice', source_category: 'service',  debit_account_code: '604',  credit_account_code: '401', description: 'Achats de matières et fournitures' },
+      { source_type: 'supplier_invoice', source_category: 'supply',   debit_account_code: '605',  credit_account_code: '401', description: 'Autres achats' },
+    ];
+  }
+
   if (country === 'FR') {
     return [
       // ---- Factures clients (ventes) ----
@@ -351,6 +393,18 @@ export function getDefaultMappings(country) {
  * @returns {Array<object>}
  */
 export function getDefaultTaxRates(country) {
+  if (country === 'OHADA') {
+    return [
+      // TVA collectée (output) — taux le plus courant zone OHADA : 18%
+      { name: 'TVA 18%',   rate: 0.18,  tax_type: 'output', account_code: '4431', is_default: true },
+      { name: 'TVA 19.25%', rate: 0.1925, tax_type: 'output', account_code: '4431', is_default: false },
+      { name: 'TVA 0% (exonéré)', rate: 0, tax_type: 'output', account_code: '4431', is_default: false },
+      // TVA déductible (input)
+      { name: 'TVA récupérable 18%',    rate: 0.18,   tax_type: 'input', account_code: '4452', is_default: true },
+      { name: 'TVA récupérable 19.25%', rate: 0.1925, tax_type: 'input', account_code: '4452', is_default: false },
+    ];
+  }
+
   if (country === 'FR') {
     return [
       // TVA collectée (output)
