@@ -16,6 +16,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import LandingPage from './pages/LandingPage';
 import ClientPortal from './pages/ClientPortal';
 import SuppliersPage from './pages/SuppliersPage';
 import SupplierProfile from './pages/SupplierProfile';
@@ -47,14 +48,18 @@ const AuthWrapper = () => {
 
     return (
         <Routes>
-            {/* Public Routes - Redirect to dashboard if logged in */}
-            <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
-            <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignupPage />} />
-            
+            {/* Landing Page - Public entry point */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/landing" element={<LandingPage />} />
+
+            {/* Auth Routes - Redirect to /app if logged in */}
+            <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
+            <Route path="/signup" element={user ? <Navigate to="/app" replace /> : <SignupPage />} />
+
             {/* Client Portal */}
             <Route path="/client-portal/*" element={
-                user && (user.role === 'client' || user.role === 'admin') 
-                ? <ClientPortal /> 
+                user && (user.role === 'client' || user.role === 'admin')
+                ? <ClientPortal />
                 : <Navigate to="/login" replace />
             } />
 
@@ -74,7 +79,8 @@ const AuthWrapper = () => {
                     <MainLayout />
                 </ProtectedRoute>
             }>
-                <Route path="/" element={<Dashboard />} />
+                <Route path="/app" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/clients" element={<ClientsPage />} />
                 <Route path="/clients/:id" element={<ClientProfile />} />
                 <Route path="/projects" element={<ProjectsPage />} />
@@ -106,7 +112,7 @@ const AuthWrapper = () => {
                 <Route path="/settings" element={<SettingsPage />} />
             </Route>
 
-            {/* Fallback */}
+            {/* Fallback - Redirect unknown routes to landing page */}
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );
