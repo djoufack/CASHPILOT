@@ -161,6 +161,7 @@
     "chooseCountry": "Kies uw land om het rekeningschema en BTW-tarieven te configureren",
     "belgiumPreset": "België (Belgisch rekeningschema)",
     "francePreset": "Frankrijk (Frans rekeningschema)",
+    "ohadaPreset": "OHADA (SYSCOHADA herzien)",
     "initializeBtn": "Mijn boekhouding initialiseren",
     "initializing": "Initialisatie bezig...",
     "initialized": "Boekhouding succesvol geïnitialiseerd",

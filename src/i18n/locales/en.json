@@ -363,6 +363,7 @@
     "chooseCountry": "Choose your country to configure the chart of accounts and VAT rates",
     "belgiumPreset": "Belgium (Belgian PCG)",
     "francePreset": "France (French PCG)",
+    "ohadaPreset": "OHADA (SYSCOHADA revised)",
     "initializeBtn": "Initialize my accounting",
     "initializing": "Initializing...",
     "initialized": "Accounting initialized successfully",

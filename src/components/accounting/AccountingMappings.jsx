@@ -101,6 +101,42 @@ const FRENCH_MAPPINGS = [
   { source_type: 'supplier_invoice', source_category: 'supply', debit_account_code: '6022', credit_account_code: '401', description: 'Achats fournitures' },
 ];
 
+// Preset mappings OHADA — SYSCOHADA révisé
+const OHADA_MAPPINGS = [
+  // Factures clients (ventes) → Débit: Clients / Crédit: Produits
+  { source_type: 'invoice', source_category: 'revenue', debit_account_code: '411', credit_account_code: '701', description: 'Ventes de marchandises' },
+  { source_type: 'invoice', source_category: 'service', debit_account_code: '411', credit_account_code: '706', description: 'Services vendus' },
+  { source_type: 'invoice', source_category: 'product', debit_account_code: '411', credit_account_code: '702', description: 'Ventes de produits finis' },
+  // Paiements clients
+  { source_type: 'payment', source_category: 'cash', debit_account_code: '571', credit_account_code: '411', description: 'Encaissement - espèces' },
+  { source_type: 'payment', source_category: 'bank_transfer', debit_account_code: '521', credit_account_code: '411', description: 'Encaissement - virement' },
+  { source_type: 'payment', source_category: 'card', debit_account_code: '521', credit_account_code: '411', description: 'Encaissement - carte' },
+  { source_type: 'payment', source_category: 'check', debit_account_code: '513', credit_account_code: '411', description: 'Encaissement - chèque' },
+  // Notes de crédit
+  { source_type: 'credit_note', source_category: 'general', debit_account_code: '701', credit_account_code: '411', description: 'Avoir client' },
+  // Dépenses
+  { source_type: 'expense', source_category: 'general', debit_account_code: '638', credit_account_code: '521', description: 'Autres charges externes' },
+  { source_type: 'expense', source_category: 'office', debit_account_code: '6053', credit_account_code: '521', description: 'Fournitures de bureau' },
+  { source_type: 'expense', source_category: 'travel', debit_account_code: '6371', credit_account_code: '521', description: 'Voyages et déplacements' },
+  { source_type: 'expense', source_category: 'meals', debit_account_code: '636', credit_account_code: '521', description: 'Frais de réceptions' },
+  { source_type: 'expense', source_category: 'transport', debit_account_code: '618', credit_account_code: '521', description: 'Autres frais de transport' },
+  { source_type: 'expense', source_category: 'software', debit_account_code: '634', credit_account_code: '521', description: 'Redevances pour logiciels' },
+  { source_type: 'expense', source_category: 'hardware', debit_account_code: '6054', credit_account_code: '521', description: 'Fournitures informatiques' },
+  { source_type: 'expense', source_category: 'marketing', debit_account_code: '627', credit_account_code: '521', description: 'Publicité et relations publiques' },
+  { source_type: 'expense', source_category: 'legal', debit_account_code: '6324', credit_account_code: '521', description: 'Honoraires' },
+  { source_type: 'expense', source_category: 'insurance', debit_account_code: '625', credit_account_code: '521', description: 'Primes d\'assurance' },
+  { source_type: 'expense', source_category: 'rent', debit_account_code: '6222', credit_account_code: '521', description: 'Locations de bâtiments' },
+  { source_type: 'expense', source_category: 'utilities', debit_account_code: '6051', credit_account_code: '521', description: 'Eau, énergie' },
+  { source_type: 'expense', source_category: 'telecom', debit_account_code: '628', credit_account_code: '521', description: 'Frais de télécommunications' },
+  { source_type: 'expense', source_category: 'training', debit_account_code: '633', credit_account_code: '521', description: 'Formation du personnel' },
+  { source_type: 'expense', source_category: 'consulting', debit_account_code: '6324', credit_account_code: '521', description: 'Honoraires de conseil' },
+  { source_type: 'expense', source_category: 'other', debit_account_code: '658', credit_account_code: '521', description: 'Charges diverses' },
+  // Factures fournisseurs
+  { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '601', credit_account_code: '401', description: 'Achats de marchandises' },
+  { source_type: 'supplier_invoice', source_category: 'service', debit_account_code: '604', credit_account_code: '401', description: 'Achats de matières et fournitures' },
+  { source_type: 'supplier_invoice', source_category: 'supply', debit_account_code: '605', credit_account_code: '401', description: 'Autres achats' },
+];
+
 const AccountingMappings = () => {
   const { accounts, mappings, fetchAccounts, fetchMappings, createMapping, deleteMapping, bulkCreateMappings, loading } = useAccounting();
   const [showDialog, setShowDialog] = useState(false);
@@ -202,6 +238,9 @@ const AccountingMappings = () => {
           </Button>
           <Button variant="outline" onClick={() => bulkCreateMappings(FRENCH_MAPPINGS)} className="border-gray-700 text-gray-300 hover:text-white hover:border-blue-500">
             <Zap className="w-4 h-4 mr-2" /> Preset France
+          </Button>
+          <Button variant="outline" onClick={() => bulkCreateMappings(OHADA_MAPPINGS)} className="border-gray-700 text-gray-300 hover:text-white hover:border-green-500">
+            <Zap className="w-4 h-4 mr-2" /> Preset OHADA
           </Button>
           <Button onClick={() => setShowDialog(true)} className="bg-orange-500 hover:bg-orange-600">
             <Plus className="w-4 h-4 mr-2" /> Ajouter un mapping
