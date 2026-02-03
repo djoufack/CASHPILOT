@@ -664,7 +664,22 @@
       "mobile_money": "Mobile Money",
       "cheque": "Cheque",
       "other": "Other"
-    }
+    },
+    "calendar": "Calendar",
+    "agenda": "Agenda",
+    "createOnDate": "Create for",
+    "selectType": "Choose type",
+    "chooseReceivable": "New receivable (owed to me)",
+    "choosePayable": "New debt (I owe)",
+    "calendarToday": "Today",
+    "calendarMonth": "Month",
+    "calendarWeek": "Week",
+    "calendarDay": "Day",
+    "agendaOverdue": "Overdue",
+    "agendaToday": "Today",
+    "agendaTomorrow": "Tomorrow",
+    "agendaThisWeek": "This Week",
+    "agendaLater": "Later / No Date"
   },
   "errors": {
     "unauthorized": "You do not have permission to access this resource.",
