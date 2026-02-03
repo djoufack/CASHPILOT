@@ -51,28 +51,28 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
 
   // Use navItems from props if provided, otherwise fallback to default
   const defaultNavItems = [
-    { path: '/', label: t('common.dashboard'), icon: Home },
-    { path: '/clients', label: t('common.clients'), icon: Users },
-    { path: '/projects', label: t('common.projects'), icon: Briefcase },
-    { path: '/timesheets', label: t('common.timesheets'), icon: Clock },
-    { path: '/invoices', label: t('common.invoices'), icon: FileText },
-    { path: '/credit-notes', label: t('creditNotes.title'), icon: FileMinus },
-    { path: '/delivery-notes', label: t('deliveryNotes.title'), icon: PackageCheck },
-    { path: '/quotes', label: t('common.quotes'), icon: FileSignature },
-    { path: '/debt-manager', label: t('debtManager.title'), icon: Wallet },
-    { path: '/expenses', label: 'Dépenses', icon: Receipt },
-    { path: '/purchase-orders', label: 'Bons de commande', icon: ClipboardList },
+    { path: '/app', label: t('common.dashboard'), icon: Home },
+    { path: '/app/clients', label: t('common.clients'), icon: Users },
+    { path: '/app/projects', label: t('common.projects'), icon: Briefcase },
+    { path: '/app/timesheets', label: t('common.timesheets'), icon: Clock },
+    { path: '/app/invoices', label: t('common.invoices'), icon: FileText },
+    { path: '/app/credit-notes', label: t('creditNotes.title'), icon: FileMinus },
+    { path: '/app/delivery-notes', label: t('deliveryNotes.title'), icon: PackageCheck },
+    { path: '/app/quotes', label: t('common.quotes'), icon: FileSignature },
+    { path: '/app/debt-manager', label: t('debtManager.title'), icon: Wallet },
+    { path: '/app/expenses', label: 'Dépenses', icon: Receipt },
+    { path: '/app/purchase-orders', label: 'Bons de commande', icon: ClipboardList },
     { type: 'separator', label: t('suppliers.title') },
-    { path: '/suppliers', label: t('common.suppliers'), icon: Truck },
-    { path: '/suppliers/stock', label: t('suppliers.stock'), icon: Archive },
-    { path: '/suppliers/map', label: 'Map View', icon: Map },
-    { path: '/products/barcode', label: 'Scanner', icon: QrCode },
-    { path: '/suppliers/reports', label: t('suppliers.reports'), icon: BarChart3 },
-    { path: '/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
+    { path: '/app/suppliers', label: t('common.suppliers'), icon: Truck },
+    { path: '/app/suppliers/stock', label: t('suppliers.stock'), icon: Archive },
+    { path: '/app/suppliers/map', label: 'Map View', icon: Map },
+    { path: '/app/products/barcode', label: 'Scanner', icon: QrCode },
+    { path: '/app/suppliers/reports', label: t('suppliers.reports'), icon: BarChart3 },
+    { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
     { type: 'separator', label: 'System' },
-    { path: '/reports/generator', label: 'Reports', icon: FileBarChart },
-    { path: '/analytics', label: 'Analytics', icon: PieChart },
-    { path: '/settings', label: t('common.settings'), icon: Settings },
+    { path: '/app/reports/generator', label: 'Reports', icon: FileBarChart },
+    { path: '/app/analytics', label: 'Analytics', icon: PieChart },
+    { path: '/app/settings', label: t('common.settings'), icon: Settings },
   ];
 
   const navItems = navItemsProp || defaultNavItems;
@@ -182,7 +182,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
 
       {/* Footer */}
       <div className="border-t border-gray-800/50 p-2 space-y-1 shrink-0">
-        <Link to="/settings?tab=profil">
+        <Link to="/app/settings?tab=profil">
           <div className={cn(
             "flex items-center gap-3 rounded-lg transition-all text-gray-500 hover:bg-gray-800/50 hover:text-gray-200",
             isCollapsed ? "h-10 w-10 mx-auto justify-center" : "px-3 py-2.5"
@@ -192,7 +192,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           </div>
         </Link>
 
-        <Link to="/settings?tab=societe">
+        <Link to="/app/settings?tab=societe">
           <div className={cn(
             "flex items-center gap-3 rounded-lg transition-all text-gray-500 hover:bg-gray-800/50 hover:text-gray-200",
             isCollapsed ? "h-10 w-10 mx-auto justify-center" : "px-3 py-2.5"
@@ -202,7 +202,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           </div>
         </Link>
 
-        <Link to="/notifications">
+        <Link to="/app/notifications">
           <div className={cn(
             "flex items-center gap-3 rounded-lg transition-all text-gray-500 hover:bg-gray-800/50 hover:text-gray-200",
             isCollapsed ? "h-10 w-10 mx-auto justify-center" : "px-3 py-2.5"
