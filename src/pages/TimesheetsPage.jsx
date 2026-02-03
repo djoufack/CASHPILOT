@@ -10,8 +10,12 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useTranslation } from 'react-i18next';
-import { Plus, ListFilter, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, ListFilter, Calendar as CalendarIcon, Download, FileText } from 'lucide-react';
 import { useTimesheets } from '@/hooks/useTimesheets';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { exportTimesheetsListPDF, exportTimesheetsListHTML } from '@/services/exportListsPDF';
 import TimesheetForm from '@/components/TimesheetForm';
 import TimesheetsList from '@/components/TimesheetsList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,6 +36,8 @@ const localizer = dateFnsLocalizer({
 const TimesheetsPage = () => {
   const { t } = useTranslation();
   const { timesheets, loading, fetchTimesheets } = useTimesheets();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [view, setView] = useState('list'); // Default to list for mobile safety
@@ -67,12 +73,33 @@ const TimesheetsPage = () => {
     fetchTimesheets();
   };
 
+  const handleExportPDF = () => {
+    guardedAction(
+      CREDIT_COSTS.PDF_REPORT,
+      'Timesheets List PDF',
+      async () => {
+        await exportTimesheetsListPDF(timesheets, company);
+      }
+    );
+  };
+
+  const handleExportHTML = () => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      'Timesheets List HTML',
+      () => {
+        exportTimesheetsListHTML(timesheets, company);
+      }
+    );
+  };
+
   return (
     <>
+      <CreditsGuardModal {...modalProps} />
       <Helmet>
         <title>{t('timesheets.title')} - {t('app.name')}</title>
       </Helmet>
-      
+
         <div className="container mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
@@ -97,6 +124,29 @@ const TimesheetsPage = () => {
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>
+
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <Button
+                      onClick={handleExportPDF}
+                      size="sm"
+                      variant="outline"
+                      className="border-gray-600 hover:bg-gray-700 flex-1 sm:flex-none"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      <span className="hidden sm:inline">PDF ({CREDIT_COSTS.PDF_REPORT})</span>
+                      <span className="sm:hidden">PDF</span>
+                    </Button>
+                    <Button
+                      onClick={handleExportHTML}
+                      size="sm"
+                      variant="outline"
+                      className="border-gray-600 hover:bg-gray-700 flex-1 sm:flex-none"
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
+                      <span className="sm:hidden">HTML</span>
+                    </Button>
+                  </div>
 
                   <Button
                     onClick={() => { setSelectedDate(null); setIsAddModalOpen(true); }}
