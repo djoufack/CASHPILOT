@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Package, BarChart3, Calculator, PieChart, Settings,
-  FileMinus, PackageCheck, Wallet
+  FileMinus, PackageCheck, Wallet, TrendingUp
 } from 'lucide-react';
 
 const MainLayout = () => {
@@ -55,6 +55,7 @@ const MainLayout = () => {
     { path: '/suppliers', label: 'Fournisseurs', icon: Truck },
     { path: '/suppliers/reports', label: 'Rapports', icon: BarChart3 },
     { path: '/suppliers/accounting', label: 'Comptabilité', icon: Calculator },
+    { path: '/scenarios', label: 'Simulations Financières', icon: TrendingUp },
     { type: 'separator', label: 'System' },
     { path: '/analytics', label: t('nav.analytics') || 'Analytics', icon: PieChart },
     { path: '/settings', label: 'Settings', icon: Settings },
