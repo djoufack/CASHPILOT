@@ -15,10 +15,11 @@ import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportInvoicePDF, exportInvoiceHTML } from '@/services/exportDocuments';
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download } from 'lucide-react';
+import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download, Kanban } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
+import GenericKanbanView from '@/components/GenericKanbanView';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/utils/calculations';
@@ -112,6 +113,13 @@ const InvoicesPage = () => {
       amount: formatCurrency(Number(inv.total_ttc || inv.total || 0), currency),
     };
   });
+
+  const invoiceKanbanColumns = [
+    { id: 'unpaid', title: t('status.unpaid') || 'Unpaid', color: 'bg-red-500/20 text-red-400' },
+    { id: 'partial', title: t('status.partial') || 'Partial', color: 'bg-yellow-500/20 text-yellow-400' },
+    { id: 'paid', title: t('status.paid') || 'Paid', color: 'bg-green-500/20 text-green-400' },
+    { id: 'overpaid', title: t('status.overpaid') || 'Overpaid', color: 'bg-blue-500/20 text-blue-400' },
+  ];
 
   const handleViewInvoice = (invoice) => {
     setViewingInvoice(invoice);
@@ -274,6 +282,9 @@ const InvoicesPage = () => {
                 </TabsTrigger>
                 <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
                   <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
+                </TabsTrigger>
+                <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+                  <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban') || 'Kanban'}
                 </TabsTrigger>
               </TabsList>
 
@@ -441,6 +452,16 @@ const InvoicesPage = () => {
                   onView={(item) => handleViewInvoice(invoices.find(i => i.id === item.id))}
                   onDelete={(item) => handleDeleteClick(invoices.find(i => i.id === item.id))}
                   paidStatuses={['paid', 'overpaid', 'cancelled']}
+                />
+              </TabsContent>
+
+              <TabsContent value="kanban">
+                <GenericKanbanView
+                  columns={invoiceKanbanColumns}
+                  items={invoiceAgendaItems}
+                  onStatusChange={(id, status) => updateInvoiceStatus(id, status)}
+                  onView={(item) => handleViewInvoice(invoices.find(i => i.id === item.id))}
+                  onDelete={(item) => handleDeleteClick(invoices.find(i => i.id === item.id))}
                 />
               </TabsContent>
             </Tabs>

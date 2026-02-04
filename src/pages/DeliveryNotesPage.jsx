@@ -17,12 +17,13 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Trash2, Truck, Search, List, CalendarDays, CalendarClock, Download, FileText } from 'lucide-react';
+import { Plus, Trash2, Truck, Search, List, CalendarDays, CalendarClock, Download, FileText, Kanban } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
+import GenericKanbanView from '@/components/GenericKanbanView';
 
 const DeliveryNotesPage = () => {
   const { t } = useTranslation();
@@ -165,6 +166,12 @@ const DeliveryNotesPage = () => {
     resource: dn,
   }));
 
+  const dnKanbanColumns = [
+    { id: 'pending', title: t('status.pending') || 'Pending', color: 'bg-yellow-500/20 text-yellow-400' },
+    { id: 'shipped', title: t('status.shipped') || 'Shipped', color: 'bg-blue-500/20 text-blue-400' },
+    { id: 'delivered', title: t('status.delivered') || 'Delivered', color: 'bg-green-500/20 text-green-400' },
+  ];
+
   const dnAgendaItems = deliveryNotes.map(dn => {
     const statusColorMap = {
       pending: 'bg-yellow-500/20 text-yellow-400',
@@ -214,6 +221,9 @@ const DeliveryNotesPage = () => {
           </TabsTrigger>
           <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
             <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
+          </TabsTrigger>
+          <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban') || 'Kanban'}
           </TabsTrigger>
         </TabsList>
 
@@ -301,6 +311,17 @@ const DeliveryNotesPage = () => {
             dateField="date"
             onDelete={(item) => deleteDeliveryNote(item.id)}
             paidStatuses={['delivered', 'cancelled']}
+          />
+        </TabsContent>
+
+        <TabsContent value="kanban">
+          <GenericKanbanView
+            columns={dnKanbanColumns}
+            items={dnAgendaItems}
+            onStatusChange={async (itemId, newStatus) => {
+              await updateDeliveryNote(itemId, { status: newStatus });
+            }}
+            onDelete={(item) => deleteDeliveryNote(item.id)}
           />
         </TabsContent>
       </Tabs>

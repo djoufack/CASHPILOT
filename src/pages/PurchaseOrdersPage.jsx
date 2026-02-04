@@ -12,12 +12,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, ClipboardList, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Download, FileText } from 'lucide-react';
+import { Plus, ClipboardList, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Kanban, Download, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
+import GenericKanbanView from '@/components/GenericKanbanView';
 import {
   Dialog,
   DialogContent,
@@ -115,7 +116,7 @@ const POCard = ({ po, onDelete, onExportPDF, onExportHTML }) => {
 
 const PurchaseOrdersPage = () => {
   const { t } = useTranslation();
-  const { purchaseOrders, loading, createPurchaseOrder, deletePurchaseOrder } = usePurchaseOrders();
+  const { purchaseOrders, loading, createPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder } = usePurchaseOrders();
   const { clients } = useClients();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
@@ -177,6 +178,14 @@ const PurchaseOrdersPage = () => {
       amount: formatCurrency(po.total || 0),
     };
   });
+
+  const poKanbanColumns = [
+    { id: 'draft', title: t('status.draft') || 'Draft', color: 'bg-gray-500/20 text-gray-400' },
+    { id: 'sent', title: t('status.sent') || 'Sent', color: 'bg-blue-500/20 text-blue-400' },
+    { id: 'confirmed', title: t('status.confirmed') || 'Confirmed', color: 'bg-green-500/20 text-green-400' },
+    { id: 'completed', title: t('status.completed') || 'Completed', color: 'bg-emerald-500/20 text-emerald-400' },
+    { id: 'cancelled', title: t('status.cancelled') || 'Cancelled', color: 'bg-red-500/20 text-red-400' },
+  ];
 
   const filteredPOs = purchaseOrders.filter(po => {
     const matchesSearch =
@@ -348,6 +357,9 @@ const PurchaseOrdersPage = () => {
             <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
               <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
             </TabsTrigger>
+            <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban') || 'Kanban'}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="list">
@@ -395,6 +407,15 @@ const PurchaseOrdersPage = () => {
               dateField="date"
               onDelete={(item) => handleDelete(item.id)}
               paidStatuses={['completed', 'received', 'cancelled']}
+            />
+          </TabsContent>
+
+          <TabsContent value="kanban">
+            <GenericKanbanView
+              columns={poKanbanColumns}
+              items={poAgendaItems}
+              onStatusChange={async (id, status) => await updatePurchaseOrder(id, { status })}
+              onDelete={(item) => handleDelete(item.id)}
             />
           </TabsContent>
         </Tabs>

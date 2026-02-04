@@ -13,11 +13,12 @@ import {
   Plus, Search, Trash2, ArrowDownCircle, ArrowUpCircle, Wallet,
   AlertTriangle, CheckCircle2, Clock, TrendingUp, TrendingDown,
   Phone, Mail, CreditCard, DollarSign, Calendar, Eye,
-  CalendarDays, CalendarClock, Download, FileText
+  CalendarDays, CalendarClock, Download, FileText, Kanban
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import DebtCalendarView from '@/components/DebtCalendarView';
+import GenericKanbanView from '@/components/GenericKanbanView';
 import DebtAgendaView from '@/components/DebtAgendaView';
 import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
@@ -75,6 +76,37 @@ const DebtManagerPage = () => {
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: 'cash', notes: '' });
 
   const netBalance = rStats.totalPending - pStats.totalOwed;
+
+  // ─── KANBAN CONFIG ─────────────────────────
+  const debtKanbanColumns = [
+    { id: 'pending', title: t('debtManager.status.pending') || 'Pending', color: 'bg-yellow-500/20 text-yellow-400' },
+    { id: 'partial', title: t('debtManager.status.partial') || 'Partial', color: 'bg-blue-500/20 text-blue-400' },
+    { id: 'paid', title: t('debtManager.status.paid') || 'Paid', color: 'bg-green-500/20 text-green-400' },
+    { id: 'overdue', title: t('debtManager.status.overdue') || 'Overdue', color: 'bg-red-500/20 text-red-400' },
+    { id: 'cancelled', title: t('debtManager.status.cancelled') || 'Cancelled', color: 'bg-gray-500/20 text-gray-400' },
+  ];
+
+  const receivableKanbanItems = receivables.map(r => ({
+    id: r.id,
+    title: r.debtor_name || r.description,
+    subtitle: r.description || r.category || '',
+    date: r.due_date || r.date_lent,
+    status: r.status || 'pending',
+    statusLabel: t(`debtManager.status.${r.status}`) || r.status,
+    statusColor: statusColors[r.status] || 'bg-gray-500/20 text-gray-400',
+    amount: `${parseFloat(r.amount || 0).toFixed(2)} ${r.currency || 'EUR'}`,
+  }));
+
+  const payableKanbanItems = payables.map(p => ({
+    id: p.id,
+    title: p.creditor_name || p.description,
+    subtitle: p.description || p.category || '',
+    date: p.due_date || p.date_borrowed,
+    status: p.status || 'pending',
+    statusLabel: t(`debtManager.status.${p.status}`) || p.status,
+    statusColor: statusColors[p.status] || 'bg-gray-500/20 text-gray-400',
+    amount: `${parseFloat(p.amount || 0).toFixed(2)} ${p.currency || 'EUR'}`,
+  }));
 
   // Handlers
   const handleCreateReceivable = async () => {
@@ -464,6 +496,9 @@ const DebtManagerPage = () => {
           <TabsTrigger value="agenda" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400">
             <CalendarClock className="w-4 h-4 mr-2" />{t('debtManager.agenda')}
           </TabsTrigger>
+          <TabsTrigger value="kanban" className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400 text-gray-500">
+            <Kanban className="w-4 h-4 mr-1" />{t('common.kanban') || 'Kanban'}
+          </TabsTrigger>
         </TabsList>
 
         {/* Dashboard */}
@@ -579,6 +614,26 @@ const DebtManagerPage = () => {
             onView={(type, record) => handleViewPayments(type, record)}
             onDelete={(type, record) => type === 'receivable' ? deleteReceivable(record.id) : deletePayable(record.id)}
           />
+        </TabsContent>
+
+        {/* Kanban */}
+        <TabsContent value="kanban" className="mt-6 space-y-8">
+          <div>
+            <h3 className="text-lg font-bold text-green-400 mb-4">{t('debtManager.receivables') || 'Receivables'}</h3>
+            <GenericKanbanView
+              columns={debtKanbanColumns}
+              items={receivableKanbanItems}
+              onStatusChange={async (id, status) => await updateReceivable(id, { status })}
+            />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-red-400 mb-4">{t('debtManager.payables') || 'Payables'}</h3>
+            <GenericKanbanView
+              columns={debtKanbanColumns}
+              items={payableKanbanItems}
+              onStatusChange={async (id, status) => await updatePayable(id, { status })}
+            />
+          </div>
         </TabsContent>
       </Tabs>
 

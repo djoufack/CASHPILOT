@@ -28,7 +28,9 @@
     "error": "Error",
     "list": "List",
     "calendar": "Calendar",
-    "agenda": "Agenda"
+    "agenda": "Agenda",
+    "kanban": "Kanban",
+    "kanbanDropHere": "Drop items here"
   },
   "nav": {
     "dashboard": "Dashboard",
