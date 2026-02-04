@@ -496,7 +496,8 @@ const ProfileSettings = () => {
         </Card>
       </form>
 
-      {/* Debug Panel Accordion */}
+      {/* Debug Panel - Only visible in development */}
+      {import.meta.env.DEV && (
       <Accordion type="single" collapsible className="w-full bg-gray-900 border border-gray-800 rounded-lg">
         <AccordionItem value="debug-panel" className="border-none">
           <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-gray-800/50 rounded-t-lg">
@@ -589,6 +590,7 @@ const ProfileSettings = () => {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+      )}
     </div>
   );
 };

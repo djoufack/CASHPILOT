@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { openDB } from 'idb';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -7,16 +7,18 @@ export const useOfflineSync = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [queueSize, setQueueSize] = useState(0);
   const { toast } = useToast();
+  const toastRef = useRef(toast);
+  useEffect(() => { toastRef.current = toast; }, [toast]);
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
       processQueue();
-      toast({ title: 'Online', description: 'Connection restored. Syncing data...' });
+      toastRef.current({ title: 'Online', description: 'Connection restored. Syncing data...' });
     };
     const handleOffline = () => {
       setIsOnline(false);
-      toast({ title: 'Offline', description: 'You are offline. Changes saved locally.' });
+      toastRef.current({ title: 'Offline', description: 'You are offline. Changes saved locally.' });
     };
 
     window.addEventListener('online', handleOnline);

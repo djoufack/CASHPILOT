@@ -43,7 +43,7 @@ export const usePushNotifications = () => {
       const registration = await navigator.serviceWorker.ready;
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U' // VAPID Public Key (Example)
+        applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY
       });
 
       setSubscription(sub);

@@ -111,17 +111,17 @@ export const useSubtasks = (taskId) => {
   };
 
   useEffect(() => {
-    fetchSubtasks();
-
     if (!taskId || !supabase) return;
 
-    const subscription = supabase
+    fetchSubtasks();
+
+    const channel = supabase
       .channel(`subtasks:task_id=eq.${taskId}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'subtasks', 
-        filter: `task_id=eq.${taskId}` 
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'subtasks',
+        filter: `task_id=eq.${taskId}`
       }, (payload) => {
         if (payload.eventType === 'INSERT') {
           setSubtasks(prev => [...prev, payload.new]);
@@ -134,9 +134,10 @@ export const useSubtasks = (taskId) => {
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, [taskId, fetchSubtasks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskId]);
 
   return {
     subtasks,

@@ -1,13 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-export const supabaseUrl = 'https://rfzvrezrcigzmldgvntz.supabase.co';
-export const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmenZyZXpyY2lnem1sZGd2bnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MjcxODIsImV4cCI6MjA4NTIwMzE4Mn0.glzebP-k0AqNHdoru-bY83mJqyS19gVSEH-hgQhuXTA';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const customSupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+const customSupabaseClient = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 export default customSupabaseClient;
 
-export { 
+export {
     customSupabaseClient,
     customSupabaseClient as supabase,
+    supabaseUrl,
+    supabaseAnonKey,
 };
