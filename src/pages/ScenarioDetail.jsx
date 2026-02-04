@@ -17,11 +17,19 @@ import {
   Save,
   Calendar,
   AlertCircle,
+  Download,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import useFinancialScenarios from '@/hooks/useFinancialScenarios';
 import { useAccountingData } from '@/hooks/useAccountingData';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import {
+  exportScenarioSimulationPDF,
+  exportScenarioSimulationHTML,
+} from '@/services/exportScenarioPDF';
 import AssumptionsBuilder from '@/components/scenarios/AssumptionsBuilder';
 import SimulationResults from '@/components/scenarios/SimulationResults';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +49,8 @@ const ScenarioDetail = () => {
 
   // Get current financial state from accounting data
   const { financialDiagnostic, balanceSheet } = useAccountingData();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
 
   const [scenario, setScenario] = useState(null);
   const [assumptions, setAssumptions] = useState([]);
@@ -136,6 +146,37 @@ const ScenarioDetail = () => {
     }
   };
 
+  // Export handlers
+  const handleExportPDF = () => {
+    if (!scenario || !results) return;
+    guardedAction(
+      CREDIT_COSTS.PDF_SCENARIO,
+      'Scenario Simulation PDF',
+      async () => {
+        await exportScenarioSimulationPDF(scenario, results, assumptions);
+        toast({
+          title: 'Export réussi',
+          description: 'Le rapport PDF a été téléchargé',
+        });
+      }
+    );
+  };
+
+  const handleExportHTML = () => {
+    if (!scenario || !results) return;
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      'Scenario Simulation HTML',
+      () => {
+        exportScenarioSimulationHTML(scenario, results, assumptions);
+        toast({
+          title: 'Export réussi',
+          description: 'Le rapport HTML a été téléchargé',
+        });
+      }
+    );
+  };
+
   // Status colors
   const statusColors = {
     draft: 'bg-gray-100 text-gray-800',
@@ -185,8 +226,10 @@ const ScenarioDetail = () => {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
-      {/* Header */}
+    <>
+      <CreditsGuardModal {...modalProps} />
+      <div className="container mx-auto py-8 px-4 max-w-7xl">
+        {/* Header */}
       <div className="mb-6">
         <Button
           variant="ghost"
@@ -231,23 +274,45 @@ const ScenarioDetail = () => {
             </div>
           </div>
 
-          <Button
-            onClick={handleRunSimulation}
-            disabled={isRunningSimulation || assumptions.length === 0}
-            size="lg"
-          >
-            {isRunningSimulation ? (
+          <div className="flex gap-2">
+            {results && (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                Simulation en cours...
-              </>
-            ) : (
-              <>
-                <PlayCircle className="w-5 h-5 mr-2" />
-                Lancer la simulation
+                <Button
+                  onClick={handleExportPDF}
+                  variant="outline"
+                  size="lg"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  PDF ({CREDIT_COSTS.PDF_SCENARIO})
+                </Button>
+                <Button
+                  onClick={handleExportHTML}
+                  variant="outline"
+                  size="lg"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  HTML ({CREDIT_COSTS.EXPORT_HTML})
+                </Button>
               </>
             )}
-          </Button>
+            <Button
+              onClick={handleRunSimulation}
+              disabled={isRunningSimulation || assumptions.length === 0}
+              size="lg"
+            >
+              {isRunningSimulation ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Simulation en cours...
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="w-5 h-5 mr-2" />
+                  Lancer la simulation
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -371,7 +436,8 @@ const ScenarioDetail = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </>
   );
 };
 
