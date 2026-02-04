@@ -10,8 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Briefcase, ArrowRight, Loader2, Calendar, List, CalendarDays, CalendarClock } from 'lucide-react';
+import { Plus, Search, Briefcase, ArrowRight, Loader2, Calendar, List, CalendarDays, CalendarClock, Download, FileText } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { exportProjectsListPDF, exportProjectsListHTML } from '@/services/exportListsPDF';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
@@ -93,6 +97,8 @@ const ProjectsPage = () => {
   const { t } = useTranslation();
   const { projects, loading, createProject } = useProjects();
   const { clients } = useClients();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -179,8 +185,29 @@ const ProjectsPage = () => {
     }
   };
 
+  const handleExportPDF = () => {
+    guardedAction(
+      CREDIT_COSTS.PDF_REPORT,
+      'Projects List PDF',
+      async () => {
+        await exportProjectsListPDF(filteredProjects, company);
+      }
+    );
+  };
+
+  const handleExportHTML = () => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      'Projects List HTML',
+      () => {
+        exportProjectsListHTML(filteredProjects, company);
+      }
+    );
+  };
+
   return (
     <>
+      <CreditsGuardModal {...modalProps} />
       <Helmet>
         <title>Projects - CashPilot</title>
       </Helmet>
@@ -192,9 +219,31 @@ const ProjectsPage = () => {
               <p className="text-gray-400 text-sm md:text-base">Manage and track your ongoing work.</p>
             </motion.div>
 
-             <Button onClick={handleOpenDialog} className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white">
-               <Plus className="w-4 h-4 mr-2" /> New Project
-             </Button>
+            <div className="flex gap-2 w-full md:w-auto">
+              <Button
+                onClick={handleExportPDF}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-700 flex-1 md:flex-none"
+              >
+                <Download className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">PDF ({CREDIT_COSTS.PDF_REPORT})</span>
+                <span className="sm:hidden">PDF</span>
+              </Button>
+              <Button
+                onClick={handleExportHTML}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-700 flex-1 md:flex-none"
+              >
+                <FileText className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
+                <span className="sm:hidden">HTML</span>
+              </Button>
+              <Button onClick={handleOpenDialog} className="flex-1 md:flex-none bg-orange-500 hover:bg-orange-600 text-white">
+                <Plus className="w-4 h-4 mr-2" /> New Project
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-col md:flex-row gap-4 mb-8">
