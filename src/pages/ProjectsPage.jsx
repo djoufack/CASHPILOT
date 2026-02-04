@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Briefcase, ArrowRight, Loader2, Calendar, List, CalendarDays, CalendarClock, Download, FileText } from 'lucide-react';
+import { Plus, Search, Briefcase, ArrowRight, Loader2, Calendar, List, CalendarDays, CalendarClock, Download, FileText, Kanban } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
@@ -19,6 +19,7 @@ import { exportProjectsListPDF, exportProjectsListHTML } from '@/services/export
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
+import GenericKanbanView from '@/components/GenericKanbanView';
 import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
@@ -95,7 +96,7 @@ const initialFormData = {
 
 const ProjectsPage = () => {
   const { t } = useTranslation();
-  const { projects, loading, createProject } = useProjects();
+  const { projects, loading, createProject, updateProject } = useProjects();
   const { clients } = useClients();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
@@ -147,6 +148,14 @@ const ProjectsPage = () => {
       statusColor: statusColorMap[p.status] || 'bg-gray-500/20 text-gray-400',
     };
   });
+
+  const projectKanbanColumns = [
+    { id: 'active', title: t('status.active') || 'Active', color: 'bg-orange-500/20 text-orange-400' },
+    { id: 'in_progress', title: t('status.inProgress') || 'In Progress', color: 'bg-blue-500/20 text-blue-400' },
+    { id: 'on_hold', title: t('status.onHold') || 'On Hold', color: 'bg-yellow-500/20 text-yellow-400' },
+    { id: 'completed', title: t('status.completed') || 'Completed', color: 'bg-green-500/20 text-green-400' },
+    { id: 'cancelled', title: t('status.cancelled') || 'Cancelled', color: 'bg-red-500/20 text-red-400' },
+  ];
 
   const filteredProjects = projects.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -281,6 +290,9 @@ const ProjectsPage = () => {
               <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
                 <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
               </TabsTrigger>
+              <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+                <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban') || 'Kanban'}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="list">
@@ -314,6 +326,14 @@ const ProjectsPage = () => {
                 items={projectAgendaItems}
                 dateField="date"
                 paidStatuses={['completed', 'cancelled']}
+              />
+            </TabsContent>
+
+            <TabsContent value="kanban">
+              <GenericKanbanView
+                columns={projectKanbanColumns}
+                items={projectAgendaItems}
+                onStatusChange={async (id, status) => await updateProject(id, { status })}
               />
             </TabsContent>
           </Tabs>

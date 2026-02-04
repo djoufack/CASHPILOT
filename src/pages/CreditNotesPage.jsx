@@ -18,12 +18,13 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Trash2, FileText, Search, List, CalendarDays, CalendarClock, Download } from 'lucide-react';
+import { Plus, Trash2, FileText, Search, List, CalendarDays, CalendarClock, Download, Kanban } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
+import GenericKanbanView from '@/components/GenericKanbanView';
 
 const CreditNotesPage = () => {
   const { t } = useTranslation();
@@ -174,6 +175,12 @@ const CreditNotesPage = () => {
     resource: cn,
   }));
 
+  const cnKanbanColumns = [
+    { id: 'draft', title: t('status.draft') || 'Draft', color: 'bg-gray-500/20 text-gray-400' },
+    { id: 'issued', title: t('status.issued') || 'Issued', color: 'bg-blue-500/20 text-blue-400' },
+    { id: 'applied', title: t('status.applied') || 'Applied', color: 'bg-green-500/20 text-green-400' },
+  ];
+
   const cnAgendaItems = creditNotes.map(cn => {
     const currency = cn.client?.preferred_currency || 'EUR';
     const statusColorMap = {
@@ -224,6 +231,9 @@ const CreditNotesPage = () => {
           </TabsTrigger>
           <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
             <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
+          </TabsTrigger>
+          <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban') || 'Kanban'}
           </TabsTrigger>
         </TabsList>
 
@@ -306,6 +316,17 @@ const CreditNotesPage = () => {
             dateField="date"
             onDelete={(item) => deleteCreditNote(item.id)}
             paidStatuses={['applied', 'cancelled']}
+          />
+        </TabsContent>
+
+        <TabsContent value="kanban">
+          <GenericKanbanView
+            columns={cnKanbanColumns}
+            items={cnAgendaItems}
+            onStatusChange={async (itemId, newStatus) => {
+              await updateCreditNote(itemId, { status: newStatus });
+            }}
+            onDelete={(item) => deleteCreditNote(item.id)}
           />
         </TabsContent>
       </Tabs>

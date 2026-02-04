@@ -12,12 +12,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, FileSignature, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Download, FileText } from 'lucide-react';
+import { Plus, FileSignature, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Download, FileText, Kanban } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
+import GenericKanbanView from '@/components/GenericKanbanView';
 import {
   Dialog,
   DialogContent,
@@ -107,7 +108,7 @@ const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML }) => {
 
 const QuotesPage = () => {
   const { t } = useTranslation();
-  const { quotes, loading, createQuote, deleteQuote } = useQuotes();
+  const { quotes, loading, createQuote, updateQuote, deleteQuote } = useQuotes();
   const { clients } = useClients();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
@@ -161,6 +162,14 @@ const QuotesPage = () => {
       amount: formatCurrency(q.total || q.total_ttc || 0),
     };
   });
+
+  const quoteKanbanColumns = [
+    { id: 'draft', title: t('status.draft') || 'Draft', color: 'bg-gray-500/20 text-gray-400' },
+    { id: 'sent', title: t('status.sent') || 'Sent', color: 'bg-blue-500/20 text-blue-400' },
+    { id: 'accepted', title: t('status.accepted') || 'Accepted', color: 'bg-green-500/20 text-green-400' },
+    { id: 'rejected', title: t('status.rejected') || 'Rejected', color: 'bg-red-500/20 text-red-400' },
+    { id: 'expired', title: t('status.expired') || 'Expired', color: 'bg-yellow-500/20 text-yellow-400' },
+  ];
 
   const filteredQuotes = quotes.filter(q => {
     const matchesSearch =
@@ -329,6 +338,9 @@ const QuotesPage = () => {
             <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
               <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
             </TabsTrigger>
+            <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban') || 'Kanban'}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="list">
@@ -376,6 +388,15 @@ const QuotesPage = () => {
               dateField="date"
               onDelete={(item) => handleDelete(item.id)}
               paidStatuses={['accepted', 'rejected', 'expired', 'cancelled']}
+            />
+          </TabsContent>
+
+          <TabsContent value="kanban">
+            <GenericKanbanView
+              columns={quoteKanbanColumns}
+              items={quoteAgendaItems}
+              onStatusChange={async (id, status) => await updateQuote(id, { status })}
+              onDelete={(item) => handleDelete(item.id)}
             />
           </TabsContent>
         </Tabs>
