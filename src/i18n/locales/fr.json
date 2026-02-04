@@ -501,7 +501,8 @@
       "exportHtml": "Export HTML (Fichier Standalone)",
       "pdfReceipt": "PDF Reçu",
       "cloudBackup": "Sauvegarde Cloud",
-      "htmlPreview": "Prévisualisation HTML (Navigateur)"
+      "htmlPreview": "Prévisualisation HTML (Navigateur)",
+      "aiInvoiceExtraction": "Extraction IA de facture"
     }
   },
   "quickInvoice": {
@@ -801,6 +802,31 @@
     "passwordRequired": "Le mot de passe est requis",
     "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères",
     "passwordsDoNotMatch": "Les mots de passe ne correspondent pas"
+  },
+  "invoiceExtraction": {
+    "extractWithAI": "Extraire avec l'IA",
+    "extracting": "Analyse de la facture...",
+    "extractionComplete": "Extraction terminee",
+    "extractionFailed": "Echec de l'extraction",
+    "extractionFailedDesc": "Impossible d'extraire les donnees de ce document. Veuillez remplir les champs manuellement.",
+    "confidence": "Confiance IA",
+    "confidenceHigh": "Confiance elevee",
+    "confidenceMedium": "Confiance moyenne",
+    "confidenceLow": "Confiance faible - veuillez verifier",
+    "aiExtracted": "Extrait par IA",
+    "reviewData": "Verifiez les donnees extraites et corrigez les erreurs avant de sauvegarder.",
+    "lineItems": "Lignes de facture",
+    "advancedDetails": "Details avances",
+    "preTaxAmount": "Montant HT",
+    "taxAmount": "Montant TVA",
+    "totalWithTax": "Montant TTC",
+    "currency": "Devise",
+    "paymentTerms": "Conditions de paiement",
+    "supplierVatNumber": "N° TVA fournisseur",
+    "ibanLabel": "IBAN",
+    "bicLabel": "BIC/SWIFT",
+    "supportedFormats": "PDF, JPG, PNG - max 10 Mo",
+    "creditsCost": "credits"
   },
   "errors": {
     "unauthorized": "Vous n'avez pas la permission d'accéder à cette ressource.",

@@ -501,7 +501,8 @@
       "exportHtml": "HTML-export (zelfstandig bestand)",
       "pdfReceipt": "Ontvangstbewijs PDF",
       "cloudBackup": "Cloud back-up",
-      "htmlPreview": "HTML-voorvertoning (in browser)"
+      "htmlPreview": "HTML-voorvertoning (in browser)",
+      "aiInvoiceExtraction": "AI-factuurextractie"
     }
   },
   "quickInvoice": {
@@ -801,6 +802,31 @@
     "passwordRequired": "Wachtwoord is verplicht",
     "passwordTooShort": "Wachtwoord moet minimaal 6 tekens bevatten",
     "passwordsDoNotMatch": "Wachtwoorden komen niet overeen"
+  },
+  "invoiceExtraction": {
+    "extractWithAI": "Extraheren met AI",
+    "extracting": "Factuur analyseren...",
+    "extractionComplete": "Extractie voltooid",
+    "extractionFailed": "Extractie mislukt",
+    "extractionFailedDesc": "Kan geen gegevens uit dit document extraheren. Vul de velden handmatig in.",
+    "confidence": "AI-betrouwbaarheid",
+    "confidenceHigh": "Hoge betrouwbaarheid",
+    "confidenceMedium": "Gemiddelde betrouwbaarheid",
+    "confidenceLow": "Lage betrouwbaarheid - controleer alstublieft",
+    "aiExtracted": "AI-geextraheerd",
+    "reviewData": "Controleer de geextraheerde gegevens en corrigeer eventuele fouten voor het opslaan.",
+    "lineItems": "Factuurregels",
+    "advancedDetails": "Geavanceerde details",
+    "preTaxAmount": "Bedrag excl. BTW",
+    "taxAmount": "BTW-bedrag",
+    "totalWithTax": "Bedrag incl. BTW",
+    "currency": "Valuta",
+    "paymentTerms": "Betalingsvoorwaarden",
+    "supplierVatNumber": "BTW-nummer leverancier",
+    "ibanLabel": "IBAN",
+    "bicLabel": "BIC/SWIFT",
+    "supportedFormats": "PDF, JPG, PNG - max 10MB",
+    "creditsCost": "credits"
   },
   "errors": {
     "unauthorized": "U heeft geen toestemming om deze bron te openen.",

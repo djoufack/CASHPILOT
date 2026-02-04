@@ -109,6 +109,28 @@ export const useSupplierInvoices = (supplierId) => {
       }
   };
 
+  const createLineItems = async (invoiceId, items) => {
+    if (!items || items.length === 0) return;
+    try {
+      const lineItems = items.map((item, index) => ({
+        invoice_id: invoiceId,
+        description: item.description || '',
+        quantity: item.quantity || 1,
+        unit_price: item.unit_price || 0,
+        total: item.total || 0,
+        sort_order: index,
+      }));
+
+      const { error } = await supabase
+        .from('supplier_invoice_line_items')
+        .insert(lineItems);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error creating line items:', err);
+    }
+  };
+
   useEffect(() => {
     if(supplierId) fetchInvoices();
   }, [supplierId]);
@@ -118,6 +140,7 @@ export const useSupplierInvoices = (supplierId) => {
     loading,
     fetchInvoices,
     createInvoice,
+    createLineItems,
     deleteInvoice,
     updateStatus
   };

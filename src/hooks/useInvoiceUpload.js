@@ -12,10 +12,11 @@ export const useInvoiceUpload = () => {
   const { user } = useAuth();
 
   const validateFile = (file) => {
-    const isPDF = file.type === 'application/pdf';
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    const isTypeValid = allowedTypes.includes(file.type);
     const isSizeValid = file.size <= 10 * 1024 * 1024; // 10MB
 
-    if (!isPDF) throw new Error("Only PDF files are allowed");
+    if (!isTypeValid) throw new Error("Only PDF, JPG and PNG files are allowed");
     if (!isSizeValid) throw new Error("File size must be less than 10MB");
   };
 

@@ -33,6 +33,9 @@ export const CREDIT_COSTS = {
   // AUTRES (1 crédit)
   PDF_RECEIPT: 1,
   CLOUD_BACKUP: 1,
+
+  // IA
+  AI_INVOICE_EXTRACTION: 3,
 };
 
 /**
@@ -66,6 +69,9 @@ export const CREDIT_COST_LABELS = {
   // Autres
   PDF_RECEIPT: 'credits.costs.pdfReceipt',
   CLOUD_BACKUP: 'credits.costs.cloudBackup',
+
+  // IA
+  AI_INVOICE_EXTRACTION: 'credits.costs.aiInvoiceExtraction',
 };
 
 /**
@@ -99,6 +105,9 @@ export const CREDIT_CATEGORIES = {
   OTHER: [
     'PDF_RECEIPT',
     'CLOUD_BACKUP',
+  ],
+  AI_FEATURES: [
+    'AI_INVOICE_EXTRACTION',
   ],
 };
 
