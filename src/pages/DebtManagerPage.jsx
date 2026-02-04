@@ -13,12 +13,16 @@ import {
   Plus, Search, Trash2, ArrowDownCircle, ArrowUpCircle, Wallet,
   AlertTriangle, CheckCircle2, Clock, TrendingUp, TrendingDown,
   Phone, Mail, CreditCard, DollarSign, Calendar, Eye,
-  CalendarDays, CalendarClock
+  CalendarDays, CalendarClock, Download, FileText
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import DebtCalendarView from '@/components/DebtCalendarView';
 import DebtAgendaView from '@/components/DebtAgendaView';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { exportDebtListPDF, exportDebtListHTML } from '@/services/exportListsPDF';
 
 const statusColors = {
   pending: 'bg-yellow-500/20 text-yellow-400',
@@ -55,6 +59,8 @@ const DebtManagerPage = () => {
     createPayable, updatePayable, deletePayable,
     addPayment: addPayablePayment, fetchPayments: fetchPayablePayments,
   } = usePayables();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [search, setSearch] = useState('');
@@ -103,6 +109,46 @@ const DebtManagerPage = () => {
       : await fetchPayablePayments(record.id);
     setPaymentHistory(payments);
     setShowPayments({ type, record });
+  };
+
+  const handleExportReceivablesPDF = () => {
+    guardedAction(
+      CREDIT_COSTS.PDF_REPORT,
+      'Receivables List PDF',
+      async () => {
+        await exportDebtListPDF(receivables, company, 'receivables');
+      }
+    );
+  };
+
+  const handleExportReceivablesHTML = () => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      'Receivables List HTML',
+      () => {
+        exportDebtListHTML(receivables, company, 'receivables');
+      }
+    );
+  };
+
+  const handleExportPayablesPDF = () => {
+    guardedAction(
+      CREDIT_COSTS.PDF_REPORT,
+      'Payables List PDF',
+      async () => {
+        await exportDebtListPDF(payables, company, 'payables');
+      }
+    );
+  };
+
+  const handleExportPayablesHTML = () => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      'Payables List HTML',
+      () => {
+        exportDebtListHTML(payables, company, 'payables');
+      }
+    );
   };
 
   const filterList = (list, nameField) => {
@@ -389,8 +435,10 @@ const DebtManagerPage = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
-      {/* Header */}
+    <>
+      <CreditsGuardModal {...modalProps} />
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
+        {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gradient">{t('debtManager.title')}</h1>
@@ -431,10 +479,32 @@ const DebtManagerPage = () => {
               <Input value={search} onChange={e => setSearch(e.target.value)}
                 className="bg-gray-800 border-gray-700 text-white pl-10" placeholder={t('common.search')} />
             </div>
-            <Button onClick={() => { setReceivableForm(emptyReceivableForm); setShowCreateReceivable(true); }}
-              className="bg-green-600 hover:bg-green-700 text-white">
-              <Plus className="w-4 h-4 mr-2" />{t('debtManager.newReceivable')}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleExportReceivablesPDF}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-700"
+              >
+                <Download className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">PDF ({CREDIT_COSTS.PDF_REPORT})</span>
+                <span className="sm:hidden">PDF</span>
+              </Button>
+              <Button
+                onClick={handleExportReceivablesHTML}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-700"
+              >
+                <FileText className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
+                <span className="sm:hidden">HTML</span>
+              </Button>
+              <Button onClick={() => { setReceivableForm(emptyReceivableForm); setShowCreateReceivable(true); }}
+                className="bg-green-600 hover:bg-green-700 text-white">
+                <Plus className="w-4 h-4 mr-2" />{t('debtManager.newReceivable')}
+              </Button>
+            </div>
           </div>
           <RecordTable data={filterList(receivables, 'debtor_name')} type="receivable" nameField="debtor_name" dateField="date_lent" loading={rLoading} />
         </TabsContent>
@@ -447,10 +517,32 @@ const DebtManagerPage = () => {
               <Input value={search} onChange={e => setSearch(e.target.value)}
                 className="bg-gray-800 border-gray-700 text-white pl-10" placeholder={t('common.search')} />
             </div>
-            <Button onClick={() => { setPayableForm(emptyPayableForm); setShowCreatePayable(true); }}
-              className="bg-red-600 hover:bg-red-700 text-white">
-              <Plus className="w-4 h-4 mr-2" />{t('debtManager.newPayable')}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleExportPayablesPDF}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-700"
+              >
+                <Download className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">PDF ({CREDIT_COSTS.PDF_REPORT})</span>
+                <span className="sm:hidden">PDF</span>
+              </Button>
+              <Button
+                onClick={handleExportPayablesHTML}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 hover:bg-gray-700"
+              >
+                <FileText className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
+                <span className="sm:hidden">HTML</span>
+              </Button>
+              <Button onClick={() => { setPayableForm(emptyPayableForm); setShowCreatePayable(true); }}
+                className="bg-red-600 hover:bg-red-700 text-white">
+                <Plus className="w-4 h-4 mr-2" />{t('debtManager.newPayable')}
+              </Button>
+            </div>
           </div>
           <RecordTable data={filterList(payables, 'creditor_name')} type="payable" nameField="creditor_name" dateField="date_borrowed" loading={pLoading} />
         </TabsContent>
@@ -626,7 +718,8 @@ const DebtManagerPage = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 };
 
