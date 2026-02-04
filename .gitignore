@@ -40,3 +40,5 @@ pnpm-debug.log*
 # OS files
 .DS_Store
 Desktop.ini
+.vercel
+.env*.local

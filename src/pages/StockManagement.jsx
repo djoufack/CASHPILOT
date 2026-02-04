@@ -501,7 +501,6 @@ const StockManagement = () => {
           </Card>
         </TabsContent>
       </Tabs>
-      </div>
     </>
   );
 };
