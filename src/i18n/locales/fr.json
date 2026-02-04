@@ -773,9 +773,38 @@
     "create_entries": "Créé des écritures comptables (manuelles ou automatiques)",
     "balanced_sheet": "Un bilan équilibré avec des données cohérentes"
   },
+  "auth": {
+    "forgotPassword": "Mot de passe oublié ?",
+    "forgotPasswordDescription": "Entrez votre email pour recevoir un lien de réinitialisation",
+    "enterYourEmail": "votre@email.com",
+    "sendResetLink": "Envoyer le lien",
+    "passwordResetEmailSent": "Email envoyé",
+    "checkYourEmail": "Vérifiez votre boîte mail pour le lien de réinitialisation",
+    "passwordResetError": "Impossible d'envoyer l'email",
+    "emailSent": "Email envoyé !",
+    "checkYourInbox": "Vérifiez votre boîte mail et suivez les instructions",
+    "backToLogin": "Retour à la connexion",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "resetPasswordDescription": "Choisissez un nouveau mot de passe sécurisé",
+    "newPassword": "Nouveau mot de passe",
+    "enterNewPassword": "Entrez votre nouveau mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "confirmYourPassword": "Confirmez votre mot de passe",
+    "updatePassword": "Mettre à jour le mot de passe",
+    "passwordResetSuccess": "Mot de passe réinitialisé",
+    "redirectingToLogin": "Redirection vers la connexion...",
+    "passwordUpdateError": "Impossible de mettre à jour le mot de passe",
+    "passwordChanged": "Mot de passe changé !",
+    "redirecting": "Redirection en cours...",
+    "invalidResetLink": "Lien invalide",
+    "requestNewResetLink": "Veuillez demander un nouveau lien de réinitialisation",
+    "passwordRequired": "Le mot de passe est requis",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères",
+    "passwordsDoNotMatch": "Les mots de passe ne correspondent pas"
+  },
   "errors": {
-    "unauthorized": "Vous n'avez pas la permission d'acceder a cette ressource.",
-    "notFound": "Ressource non trouvee.",
+    "unauthorized": "Vous n'avez pas la permission d'accéder à cette ressource.",
+    "notFound": "Ressource non trouvée.",
     "general": "Une erreur est survenue."
   }
 }

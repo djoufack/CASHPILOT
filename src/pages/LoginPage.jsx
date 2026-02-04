@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -148,7 +148,9 @@ const LoginPage = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="password" className="text-gray-300">Password</Label>
-                    <a href="#" className="text-xs text-orange-400 hover:text-orange-300">Mot de passe oublié?</a>
+                    <Link to="/forgot-password" className="text-xs text-orange-400 hover:text-orange-300">
+                      {t('auth.forgotPassword') || 'Mot de passe oublié?'}
+                    </Link>
                   </div>
                   <div className="relative">
                     <Input 
