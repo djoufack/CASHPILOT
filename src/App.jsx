@@ -16,6 +16,8 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import ClientPortal from './pages/ClientPortal';
 import SuppliersPage from './pages/SuppliersPage';
 import SupplierProfile from './pages/SupplierProfile';
@@ -59,7 +61,9 @@ const AuthWrapper = () => {
             {/* Public Routes - Redirect to /app if logged in */}
             <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
             <Route path="/signup" element={user ? <Navigate to="/app" replace /> : <SignupPage />} />
-            
+            <Route path="/forgot-password" element={user ? <Navigate to="/app" replace /> : <ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+
             {/* Client Portal */}
             <Route path="/client-portal/*" element={
                 user && (user.role === 'client' || user.role === 'admin') 
