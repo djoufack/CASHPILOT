@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CashPilot - La révolution de la comptabilité automatisée</title>
+    <meta name="description" content="CashPilot - Solution de gestion d'entreprise complète avec comptabilité automatisée pour France, Belgique et OHADA.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <!-- Three.js for 3D effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Preloader -->
+    <div id="preloader">
+        <div class="loader-container">
+            <div class="logo-loader">
+                <span class="logo-text">CashPilot</span>
+                <div class="loader-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cursor follower -->
+    <div class="cursor-follower"></div>
+    <div class="cursor-dot"></div>
+
+    <!-- Navigation -->
+    <nav id="navbar" class="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <i data-lucide="wallet" class="logo-icon"></i>
+                <span>CashPilot</span>
+            </a>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Fonctionnalités</a>
+                <a href="#simulation" class="nav-link">Simulations</a>
+                <a href="#audience" class="nav-link">Pour qui ?</a>
+                <a href="#advantages" class="nav-link">Avantages</a>
+            </div>
+            <div class="nav-actions">
+                <button class="btn btn-ghost" onclick="navigateTo('/login')">Connexion</button>
+                <button class="btn btn-primary" onclick="navigateTo('/signup')">
+                    Démarrer
+                    <i data-lucide="arrow-right"></i>
+                </button>
+            </div>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i data-lucide="menu"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="mobile-menu">
+        <div class="mobile-menu-content">
+            <a href="#features" class="mobile-link" onclick="closeMobileMenu()">Fonctionnalités</a>
+            <a href="#simulation" class="mobile-link" onclick="closeMobileMenu()">Simulations</a>
+            <a href="#audience" class="mobile-link" onclick="closeMobileMenu()">Pour qui ?</a>
+            <a href="#advantages" class="mobile-link" onclick="closeMobileMenu()">Avantages</a>
+            <div class="mobile-actions">
+                <button class="btn btn-ghost" onclick="navigateTo('/login')">Connexion</button>
+                <button class="btn btn-primary" onclick="navigateTo('/signup')">Démarrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero-section">
+        <!-- 3D Background Canvas -->
+        <canvas id="hero-canvas"></canvas>
+        
+        <!-- Floating Elements -->
+        <div class="floating-elements">
+            <div class="floating-shape shape-1"></div>
+            <div class="floating-shape shape-2"></div>
+            <div class="floating-shape shape-3"></div>
+            <div class="floating-shape shape-4"></div>
+            <div class="floating-shape shape-5"></div>
+        </div>
+
+        <!-- Gradient Orbs -->
+        <div class="gradient-orbs">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
+
+        <div class="hero-container">
+            <div class="hero-content">
+                <!-- Badge -->
+                <div class="hero-badge animate-in" data-delay="0">
+                    <i data-lucide="sparkles"></i>
+                    <span>Solution de Gestion d'Entreprise Complète</span>
+                </div>
+
+                <!-- Main Title -->
+                <h1 class="hero-title animate-in" data-delay="100">
+                    <span class="title-main">CashPilot</span>
+                </h1>
+
+                <!-- Subtitle with typing effect -->
+                <h2 class="hero-subtitle animate-in" data-delay="200">
+                    <span class="typing-text">La révolution de la comptabilité automatisée</span>
+                </h2>
+
+                <!-- Description -->
+                <p class="hero-description animate-in" data-delay="300">
+                    <span class="highlight">Vous introduisez les données, CashPilot fait le reste.</span>
+                    <br>
+                    Gestion financière et comptabilité 100% automatisée pour la France, la Belgique et l'Afrique (OHADA).
+                </p>
+
+                <!-- Feature Tags -->
+                <div class="feature-tags animate-in" data-delay="400">
+                    <div class="tag tag-green">
+                        <i data-lucide="zap"></i>
+                        <span>Temps Réel (&lt; 1 seconde)</span>
+                    </div>
+                    <div class="tag tag-purple">
+                        <i data-lucide="globe"></i>
+                        <span>France • Belgique • OHADA</span>
+                    </div>
+                    <div class="tag tag-amber">
+                        <i data-lucide="lightbulb"></i>
+                        <span>Simulations What-If</span>
+                    </div>
+                    <div class="tag tag-blue">
+                        <i data-lucide="shield"></i>
+                        <span>Reverse Accounting</span>
+                    </div>
+                    <div class="tag tag-yellow">
+                        <i data-lucide="sparkles"></i>
+                        <span>100% Automatisé</span>
+                    </div>
+                </div>
+
+                <!-- CTA Buttons -->
+                <div class="hero-cta animate-in" data-delay="500">
+                    <button class="btn btn-hero-primary magnetic-btn" onclick="navigateTo('/signup')">
+                        <span class="btn-text">Démarrer Gratuitement</span>
+                        <span class="btn-icon"><i data-lucide="arrow-right"></i></span>
+                        <span class="btn-shine"></span>
+                    </button>
+                    <button class="btn btn-hero-secondary magnetic-btn" onclick="navigateTo('/login')">
+                        <span class="btn-text">Voir la Démo</span>
+                        <span class="btn-play"><i data-lucide="play"></i></span>
+                    </button>
+                </div>
+
+                <!-- Stats -->
+                <div class="hero-stats animate-in" data-delay="600">
+                    <div class="stat-item">
+                        <span class="stat-number" data-count="1">&lt; 1s</span>
+                        <span class="stat-label">Génération Écritures</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-count="100">100%</span>
+                        <span class="stat-label">Auto-Comptabilité</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-count="3">3 Pays</span>
+                        <span class="stat-label">FR • BE • OHADA</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-number" data-count="0">0</span>
+                        <span class="stat-label">Saisie Manuelle</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scroll Indicator -->
+            <div class="scroll-indicator animate-in" data-delay="700">
+                <div class="mouse">
+                    <div class="wheel"></div>
+                </div>
+                <span>Découvrir</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Auto-Accounting Section -->
+    <section id="auto-accounting" class="section section-accounting">
+        <div class="section-bg">
+            <div class="bg-gradient"></div>
+            <div class="bg-pattern"></div>
+        </div>
+        
+        <div class="container">
+            <!-- Section Header -->
+            <div class="section-header">
+                <div class="section-badge">
+                    <i data-lucide="zap"></i>
+                    <span>Solution Tout-en-Un Multi-Pays</span>
+                </div>
+                <h2 class="section-title">Gestion Financière & Comptable Automatisée</h2>
+                <p class="section-description">
+                    <span class="highlight">Vous introduisez les données, CashPilot fait le reste.</span>
+                    <br>
+                    Comptabilité France 🇫🇷 • Belgique 🇧🇪 • OHADA 🌍
+                </p>
+            </div>
+
+            <!-- Cards Grid -->
+            <div class="accounting-cards">
+                <!-- Card 1: Génération Automatique -->
+                <div class="accounting-card card-green">
+                    <div class="card-glow"></div>
+                    <div class="card-content">
+                        <div class="card-icon">
+                            <i data-lucide="zap"></i>
+                        </div>
+                        <h3 class="card-title">Génération Automatique</h3>
+                        <ul class="card-list">
+                            <li>
+                                <i data-lucide="check-circle-2"></i>
+                                <span>Créez une facture → Écritures générées instantanément</span>
+                            </li>
+                            <li>
+                                <i data-lucide="check-circle-2"></i>
+                                <span>Enregistrez une dépense → Écritures créées automatiquement</span>
+                            </li>
+                            <li>
+                                <i data-lucide="check-circle-2"></i>
+                                <span>Recevez un paiement → Écriture bancaire automatique</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-particles"></div>
+                </div>
+
+                <!-- Card 2: Temps Réel -->
+                <div class="accounting-card card-purple">
+                    <div class="card-glow"></div>
+                    <div class="card-content">
+                        <div class="card-icon">
+                            <i data-lucide="trending-up"></i>
+                        </div>
+                        <h3 class="card-title">Mises à Jour Temps Réel</h3>
+                        <ul class="card-list">
+                            <li>
+                                <i data-lucide="check-circle-2"></i>
+                                <span>Diagnostic financier actualisé automatiquement</span>
+                            </li>
+                            <li>
+                                <i data-lucide="check-circle-2"></i>
+                                <span>Bilan et compte de résultat en direct (&lt; 1 seconde)</span>
+                            </li>
+                            <li>
+                                <i data-lucide="check-circle-2"></i>
+                                <span>Synchronisation multi-onglets et multi-utilisateurs</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-particles"></div>
+                </div>
+
+                <!-- Card 3: Reverse Accounting -->
+                <div class="accounting-card card-blue">
+                    <div class="card-glow"></div>
+                    <div class="card-content">
+                        <div class="card-icon">
+                            <i data-lucide="shield"></i>
+                        </div>
+                        <h3 class="card-title">Reverse Accounting</h3>
+                        <ul class="card-list">
+                            <li>
+                                <i data-lucide="check-circle-2"></i>
+                                <span>Supprimez un paiement → Écriture d'annulation (OD)</span>
+                            </li>
+                            <li>
+                                <i data-lucide="check-circle-2"></i>
+                                <span>Supprimez une dépense → Écritures inversées automatiquement</span>
+                            </li>
+                            <li>
+                                <i data-lucide="check-circle-2"></i>
+                                <span>Annulez une facture → Contrepassation automatique</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-particles"></div>
+                </div>
+            </div>
+
+            <!-- Multi-Country Card -->
+            <div class="country-card">
+                <div class="country-card-glow"></div>
+                <div class="country-header">
+                    <h3>Multi-Pays & Conformité Totale</h3>
+                    <p>Un système qui s'adapte aux normes comptables de votre pays</p>
+                </div>
+                <div class="country-grid">
+                    <div class="country-item" data-country="france">
+                        <span class="country-flag">🇫🇷</span>
+                        <span class="country-name">France</span>
+                        <span class="country-detail">PCG • Liasse fiscale</span>
+                    </div>
+                    <div class="country-item" data-country="belgium">
+                        <span class="country-flag">🇧🇪</span>
+                        <span class="country-name">Belgique</span>
+                        <span class="country-detail">PCMN • Déclaration TVA</span>
+                    </div>
+                    <div class="country-item" data-country="ohada">
+                        <span class="country-flag">🌍</span>
+                        <span class="country-name">OHADA</span>
+                        <span class="country-detail">17 pays africains</span>
+                    </div>
+                </div>
+                <div class="country-stats">
+                    <div class="country-stat">
+                        <span class="country-stat-number">&lt; 1s</span>
+                        <span class="country-stat-label">Génération</span>
+                    </div>
+                    <div class="country-stat">
+                        <span class="country-stat-number">100%</span>
+                        <span class="country-stat-label">Traçabilité</span>
+                    </div>
+                    <div class="country-stat">
+                        <span class="country-stat-number">0</span>
+                        <span class="country-stat-label">Saisie manuelle</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Financial Simulation Section -->
+    <section id="simulation" class="section section-simulation">
+        <div class="section-bg">
+            <div class="bg-gradient simulation-gradient"></div>
+            <div class="bg-particles" id="simulation-particles"></div>
+        </div>
+
+        <div class="container">
+            <!-- Section Header -->
+            <div class="section-header">
+                <div class="section-badge badge-amber">
+                    <i data-lucide="lightbulb"></i>
+                    <span>Simulations & Projections Financières</span>
+                </div>
+                <h2 class="section-title">Anticipez l'Avenir de Votre Entreprise</h2>
+                <p class="section-description">
+                    Testez vos décisions avant de les prendre. Scénarios "What-if", projections et aide à la décision.
+                </p>
+            </div>
+
+            <!-- Use Cases Grid -->
+            <div class="simulation-grid">
+                <!-- Use Case 1 -->
+                <div class="simulation-card">
+                    <div class="sim-icon sim-green">
+                        <i data-lucide="trending-up"></i>
+                    </div>
+                    <h4 class="sim-title">Simulation de Croissance</h4>
+                    <p class="sim-question">"Si j'augmente mes prix de 10%, quel sera l'impact sur ma trésorerie dans 6 mois ?"</p>
+                </div>
+
+                <!-- Use Case 2 -->
+                <div class="simulation-card">
+                    <div class="sim-icon sim-blue">
+                        <i data-lucide="user-plus"></i>
+                    </div>
+                    <h4 class="sim-title">Planification d'Embauche</h4>
+                    <p class="sim-question">"Si j'embauche 2 personnes à 3000€/mois, puis-je tenir financièrement ?"</p>
+                </div>
+
+                <!-- Use Case 3 -->
+                <div class="simulation-card">
+                    <div class="sim-icon sim-purple">
+                        <i data-lucide="dollar-sign"></i>
+                    </div>
+                    <h4 class="sim-title">Investissement</h4>
+                    <p class="sim-question">"Si j'achète un équipement à 50 000€, comment évoluera mon BFR ?"</p>
+                </div>
+
+                <!-- Use Case 4 -->
+                <div class="simulation-card">
+                    <div class="sim-icon sim-orange">
+                        <i data-lucide="wallet"></i>
+                    </div>
+                    <h4 class="sim-title">Optimisation Trésorerie</h4>
+                    <p class="sim-question">"Si je négocie 60 jours de délai fournisseur au lieu de 30, quel impact sur le BFR ?"</p>
+                </div>
+
+                <!-- Use Case 5 -->
+                <div class="simulation-card">
+                    <div class="sim-icon sim-indigo">
+                        <i data-lucide="target"></i>
+                    </div>
+                    <h4 class="sim-title">Budget Prévisionnel</h4>
+                    <p class="sim-question">"Créer un budget pour l'année prochaine et comparer avec le réel"</p>
+                </div>
+            </div>
+
+            <!-- Simulation Features Card -->
+            <div class="simulation-features-card">
+                <h3 class="features-card-title">Fonctionnalités de Simulation</h3>
+                <div class="features-grid">
+                    <div class="feature-item feature-amber">
+                        <div class="feature-icon">
+                            <i data-lucide="trending-up"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Projections Financières</h4>
+                            <p>Prédisez l'évolution de votre trésorerie, CA et rentabilité sur 3, 6, 12 mois</p>
+                        </div>
+                    </div>
+                    <div class="feature-item feature-purple">
+                        <div class="feature-icon">
+                            <i data-lucide="lightbulb"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Scénarios What-If</h4>
+                            <p>Testez l'impact de vos décisions : embauches, investissements, prix...</p>
+                        </div>
+                    </div>
+                    <div class="feature-item feature-blue">
+                        <div class="feature-icon">
+                            <i data-lucide="target"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Budget Prévisionnel vs Réel</h4>
+                            <p>Créez des budgets prévisionnels et comparez automatiquement avec le réel</p>
+                        </div>
+                    </div>
+                    <div class="feature-item feature-green">
+                        <div class="feature-icon">
+                            <i data-lucide="bar-chart-3"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Aide à la Décision</h4>
+                            <p>Comparez plusieurs options et choisissez la meilleure stratégie</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Target Audience Section -->
+    <section id="audience" class="section section-audience">
+        <div class="section-bg">
+            <div class="bg-gradient audience-gradient"></div>
+        </div>
+
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Conçu Pour Vous</h2>
+                <p class="section-description">
+                    Quelle que soit votre activité, CashPilot s'adapte à vos besoins
+                </p>
+            </div>
+
+            <div class="audience-grid">
+                <div class="audience-card">
+                    <div class="audience-icon">
+                        <i data-lucide="user-check"></i>
+                    </div>
+                    <h3>Freelances</h3>
+                    <p>Gestion complète de votre activité</p>
+                    <div class="audience-glow"></div>
+                </div>
+
+                <div class="audience-card">
+                    <div class="audience-icon">
+                        <i data-lucide="building-2"></i>
+                    </div>
+                    <h3>PME/TPE</h3>
+                    <p>Suite de gestion d'entreprise</p>
+                    <div class="audience-glow"></div>
+                </div>
+
+                <div class="audience-card">
+                    <div class="audience-icon">
+                        <i data-lucide="briefcase"></i>
+                    </div>
+                    <h3>Agences</h3>
+                    <p>Gestion projets et clients</p>
+                    <div class="audience-glow"></div>
+                </div>
+
+                <div class="audience-card">
+                    <div class="audience-icon">
+                        <i data-lucide="users"></i>
+                    </div>
+                    <h3>Consultants</h3>
+                    <p>Suivi temps et facturation</p>
+                    <div class="audience-glow"></div>
+                </div>
+
+                <div class="audience-card">
+                    <div class="audience-icon">
+                        <i data-lucide="store"></i>
+                    </div>
+                    <h3>Commerçants</h3>
+                    <p>Gestion stock et fournisseurs</p>
+                    <div class="audience-glow"></div>
+                </div>
+
+                <div class="audience-card">
+                    <div class="audience-icon">
+                        <i data-lucide="sparkles"></i>
+                    </div>
+                    <h3>Services</h3>
+                    <p>Facturation et projets</p>
+                    <div class="audience-glow"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="section section-features">
+        <div class="section-bg">
+            <div class="bg-gradient features-gradient"></div>
+            <div class="bg-mesh"></div>
+        </div>
+
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Fonctionnalités Principales</h2>
+                <p class="section-description">
+                    Une suite complète d'outils pour gérer tous les aspects de votre entreprise
+                </p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card" data-color="blue-cyan">
+                    <div class="feature-card-icon">
+                        <i data-lucide="users"></i>
+                    </div>
+                    <h3>Gestion Clients</h3>
+                    <p>CRM complet pour suivre vos relations commerciales</p>
+                </div>
+
+                <div class="feature-card" data-color="purple-pink">
+                    <div class="feature-card-icon">
+                        <i data-lucide="bar-chart-3"></i>
+                    </div>
+                    <h3>Projets & Tâches</h3>
+                    <p>Organisez et suivez vos projets avec Kanban</p>
+                </div>
+
+                <div class="feature-card" data-color="green-emerald">
+                    <div class="feature-card-icon">
+                        <i data-lucide="clock"></i>
+                    </div>
+                    <h3>Suivi du Temps</h3>
+                    <p>Feuilles de temps et chronomètre intégré</p>
+                </div>
+
+                <div class="feature-card" data-color="yellow-orange">
+                    <div class="feature-card-icon">
+                        <i data-lucide="file-text"></i>
+                    </div>
+                    <h3>Facturation</h3>
+                    <p>Factures et devis professionnels en PDF</p>
+                </div>
+
+                <div class="feature-card" data-color="red-rose">
+                    <div class="feature-card-icon">
+                        <i data-lucide="calculator"></i>
+                    </div>
+                    <h3>Comptabilité Multi-Pays</h3>
+                    <p>France, Belgique, OHADA - Écritures automatiques en temps réel</p>
+                </div>
+
+                <div class="feature-card" data-color="indigo-blue">
+                    <div class="feature-card-icon">
+                        <i data-lucide="package"></i>
+                    </div>
+                    <h3>Gestion Stock</h3>
+                    <p>Inventaire avec scanner de codes-barres</p>
+                </div>
+
+                <div class="feature-card" data-color="teal-cyan">
+                    <div class="feature-card-icon">
+                        <i data-lucide="receipt"></i>
+                    </div>
+                    <h3>Dépenses</h3>
+                    <p>Suivi et catégorisation des dépenses</p>
+                </div>
+
+                <div class="feature-card" data-color="violet-purple">
+                    <div class="feature-card-icon">
+                        <i data-lucide="trending-up"></i>
+                    </div>
+                    <h3>Fournisseurs</h3>
+                    <p>Géolocalisation et analytics fournisseurs</p>
+                </div>
+
+                <div class="feature-card" data-color="lime-green">
+                    <div class="feature-card-icon">
+                        <i data-lucide="pie-chart"></i>
+                    </div>
+                    <h3>Rapports & Analytics</h3>
+                    <p>Visualisations et exports PDF personnalisés</p>
+                </div>
+
+                <div class="feature-card" data-color="amber-yellow">
+                    <div class="feature-card-icon">
+                        <i data-lucide="lightbulb"></i>
+                    </div>
+                    <h3>Simulations Financières</h3>
+                    <p>Scénarios what-if et projections pour anticiper l'avenir</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Advantages Section -->
+    <section id="advantages" class="section section-advantages">
+        <div class="section-bg">
+            <div class="bg-gradient advantages-gradient"></div>
+        </div>
+
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Pourquoi Choisir CashPilot ?</h2>
+                <p class="section-description">
+                    Des avantages qui font la différence
+                </p>
+            </div>
+
+            <div class="advantages-grid">
+                <div class="advantage-item">
+                    <div class="advantage-icon">
+                        <i data-lucide="sparkles"></i>
+                    </div>
+                    <p>Vous introduisez les données, CashPilot fait tout le reste automatiquement</p>
+                    <div class="advantage-check">
+                        <i data-lucide="check-circle-2"></i>
+                    </div>
+                </div>
+
+                <div class="advantage-item">
+                    <div class="advantage-icon">
+                        <i data-lucide="globe"></i>
+                    </div>
+                    <p>Multi-Pays : France (PCG), Belgique (PCMN), OHADA (17 pays)</p>
+                    <div class="advantage-check">
+                        <i data-lucide="check-circle-2"></i>
+                    </div>
+                </div>
+
+                <div class="advantage-item">
+                    <div class="advantage-icon">
+                        <i data-lucide="lightbulb"></i>
+                    </div>
+                    <p>Simulations financières : Testez vos décisions avant de les prendre</p>
+                    <div class="advantage-check">
+                        <i data-lucide="check-circle-2"></i>
+                    </div>
+                </div>
+
+                <div class="advantage-item">
+                    <div class="advantage-icon">
+                        <i data-lucide="zap"></i>
+                    </div>
+                    <p>Génération instantanée des écritures comptables (&lt; 1 seconde)</p>
+                    <div class="advantage-check">
+                        <i data-lucide="check-circle-2"></i>
+                    </div>
+                </div>
+
+                <div class="advantage-item">
+                    <div class="advantage-icon">
+                        <i data-lucide="shield"></i>
+                    </div>
+                    <p>Reverse accounting : Annulations et corrections automatiques</p>
+                    <div class="advantage-check">
+                        <i data-lucide="check-circle-2"></i>
+                    </div>
+                </div>
+
+                <div class="advantage-item">
+                    <div class="advantage-icon">
+                        <i data-lucide="star"></i>
+                    </div>
+                    <p>Tout-en-un : Gestion, Facturation, Comptabilité, Simulations</p>
+                    <div class="advantage-check">
+                        <i data-lucide="check-circle-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="cta" class="section section-cta">
+        <div class="cta-bg">
+            <div class="cta-gradient"></div>
+            <div class="cta-particles" id="cta-particles"></div>
+            <div class="cta-orbs">
+                <div class="cta-orb cta-orb-1"></div>
+                <div class="cta-orb cta-orb-2"></div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">Prêt à transformer votre gestion d'entreprise ?</h2>
+                <p class="cta-description">
+                    Rejoignez des milliers d'entrepreneurs qui ont déjà choisi CashPilot
+                </p>
+                <div class="cta-buttons">
+                    <button class="btn btn-cta-primary magnetic-btn" onclick="navigateTo('/signup')">
+                        <span class="btn-text">Commencer Maintenant</span>
+                        <span class="btn-icon"><i data-lucide="arrow-right"></i></span>
+                        <span class="btn-shine"></span>
+                    </button>
+                    <button class="btn btn-cta-secondary magnetic-btn" onclick="navigateTo('/login')">
+                        <span class="btn-text">Contactez-nous</span>
+                    </button>
+                </div>
+                <p class="cta-note">
+                    ✨ Essai gratuit • Sans carte de crédit • Installation en 2 minutes
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-gradient"></div>
+        <div class="container">
+            <div class="footer-grid">
+                <!-- Brand -->
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <i data-lucide="wallet"></i>
+                        <span>CashPilot</span>
+                    </div>
+                    <p class="footer-tagline">La solution complète pour votre entreprise</p>
+                    <p class="footer-powered">Propulsé par DMG Management</p>
+                </div>
+
+                <!-- Contact -->
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <div class="footer-links">
+                        <a href="https://www.dmgmanagement.tech" target="_blank" rel="noopener noreferrer">
+                            <i data-lucide="globe"></i>
+                            <span>www.dmgmanagement.tech</span>
+                        </a>
+                        <a href="mailto:info@dmgmanagement.tech">
+                            <i data-lucide="mail"></i>
+                            <span>info@dmgmanagement.tech</span>
+                        </a>
+                        <a href="tel:+32472544765">
+                            <i data-lucide="smartphone"></i>
+                            <span>+32.472.544.765</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="footer-section">
+                    <h4>Liens Rapides</h4>
+                    <div class="footer-links">
+                        <a href="#">À propos</a>
+                        <a href="#features">Fonctionnalités</a>
+                        <a href="#">Tarifs</a>
+                        <a href="#">Support</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>© 2024 CashPilot. Tous droits réservés.</p>
+                <p>
+                    Développé avec ❤️ par 
+                    <a href="https://www.dmgmanagement.tech" target="_blank" rel="noopener noreferrer">
+                        DMG Management
+                    </a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
