@@ -31,6 +31,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import { Toaster } from '@/components/ui/toaster';
 import { useAuth } from '@/context/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import './i18n/config';
 
 // New Features
@@ -133,9 +134,11 @@ const AuthWrapper = () => {
 function App() {
     return (
         <Router>
-            <ScrollToTop />
-            <AuthWrapper />
-            <Toaster />
+            <ErrorBoundary>
+                <ScrollToTop />
+                <AuthWrapper />
+                <Toaster />
+            </ErrorBoundary>
         </Router>
     );
 }

@@ -34,7 +34,10 @@ export const useClients = () => {
       if (err.code === '42P17' || err.code === '42501') {
         console.warn('RLS policy error fetching clients:', err.message);
         setClients([]);
-        // Do not throw or show toast to avoid UI disruption
+        toast({
+          title: "Access restricted",
+          description: "Some data may not be visible due to permission settings.",
+        });
         return;
       }
 
@@ -143,7 +146,8 @@ export const useClients = () => {
   };
 
   useEffect(() => {
-    fetchClients();
+    if (user) fetchClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   return {

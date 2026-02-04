@@ -10,45 +10,42 @@ export const useAuthSource = () => {
 
   // Define logout first so it can be used by handleInvalidSession
   const logout = async () => {
-    console.log("🔒 Logging out...");
     setLoading(true);
     try {
       // Only attempt Supabase signout if client exists
       if (supabase) {
         const { error } = await supabase.auth.signOut();
         if (error) {
-           console.error("❌ Supabase signOut error:", error);
+           console.error("Supabase signOut error:", error);
            // Don't throw here, we want to clear local state regardless
-        } else {
-           console.log("✅ Supabase signOut successful");
         }
       }
     } catch (err) {
-      console.warn("⚠️ Logout warning (local cleanup will proceed):", err.message);
+      // Local cleanup will proceed regardless
     } finally {
-      localStorage.clear();
+      // Clear only auth-related storage, preserve UI preferences (language, sidebar, etc.)
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-') || key.startsWith('supabase.')) {
+          localStorage.removeItem(key);
+        }
+      });
       setUser(null);
       setSession(null);
       setError(null);
       setLoading(false);
-      console.log("🧹 Local state cleared");
     }
     return { success: true };
   };
 
   // Helper to handle invalid sessions
   const handleInvalidSession = async () => {
-    console.warn("🚫 Invalid session detected. Initiating cleanup...");
     await logout();
   };
 
   const fetchUserProfile = async (authUser) => {
     if (!authUser || !authUser.id) return null;
-    
-    console.log("👤 Fetching user profile for:", authUser.id);
-    
+
     if (!supabase) {
-      console.log("⚠️ Cannot fetch profile: Missing supabase client");
       return null;
     }
 
@@ -57,12 +54,12 @@ export const useAuthSource = () => {
         .from('profiles')
         .select('*')
         .eq('user_id', authUser.id)
-        .maybeSingle(); 
+        .maybeSingle();
 
       if (error) {
-        console.error("❌ Profile fetch error:", error);
+        console.error("Profile fetch error:", error);
         if (
-          error.message?.includes("User from sub claim in JWT does not exist") || 
+          error.message?.includes("User from sub claim in JWT does not exist") ||
           error.code === "user_not_found"
         ) {
            await handleInvalidSession();
@@ -71,33 +68,32 @@ export const useAuthSource = () => {
 
         // RLS or other errors shouldn't log the user out, just degrade gracefully
         if (error.code === '42P17' || error.code === '42501') {
-          console.warn('⚠️ Profile fetch skipped due to RLS permissions:', error.message);
+          console.warn('Profile fetch skipped (RLS):', error.message);
         }
-        
+
         // Return basic user info if profile fetch fails
-        const basicUser = { 
-            ...authUser, 
+        const basicUser = {
+            ...authUser,
             role: 'freelance' // Default role
         };
         setUser(basicUser);
         return basicUser;
       }
 
-      console.log("✅ Profile fetched successfully");
       const profile = data || {};
-      
-      const fullUser = { 
-        ...authUser, 
+
+      const fullUser = {
+        ...authUser,
         ...profile,
         id: authUser.id,
-        profile_id: profile.id || null, 
+        profile_id: profile.id || null,
         role: profile.role || 'freelance'
       };
-      
+
       setUser(fullUser);
       return fullUser;
     } catch (err) {
-      console.error('❌ Exception in fetchUserProfile:', err);
+      console.error('fetchUserProfile error:', err);
       // Fallback
       setUser({ ...authUser, role: 'freelance' });
       return null;
@@ -108,11 +104,9 @@ export const useAuthSource = () => {
     let mounted = true;
 
     const initAuth = async () => {
-      console.log("🔄 Initializing Auth...");
-      
       const config = validateSupabaseConfig();
       if (!config.valid || !supabase) {
-        console.error("❌ Auth Init Failed: Supabase not configured.", config.missing);
+        console.error("Auth init failed: Supabase not configured.", config.missing);
         if (mounted) {
           setLoading(false);
           setError("Supabase configuration missing");
@@ -123,7 +117,7 @@ export const useAuthSource = () => {
       try {
         // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           throw error;
         }
@@ -131,22 +125,20 @@ export const useAuthSource = () => {
         if (mounted) {
           setSession(session);
           if (session?.user) {
-            console.log("✅ Valid session found. User ID:", session.user.id);
             await fetchUserProfile(session.user);
           } else {
-            console.log("ℹ️ No active session found.");
             setUser(null);
           }
         }
       } catch (err) {
-        console.error("❌ Auth Initialization Exception:", err);
+        console.error("Auth initialization error:", err);
         if (mounted) {
           if (err.message && (err.message.includes("fetch failed") || err.message.includes("Network request failed"))) {
              setError("Network Error: Failed to connect to authentication server.");
           } else {
              setError(`Auth Error: ${err.message}`);
           }
-          
+
           if (err.message?.includes("User from sub claim in JWT does not exist")) {
             await handleInvalidSession();
           }
@@ -159,12 +151,11 @@ export const useAuthSource = () => {
     initAuth();
 
     let subscription = null;
-    
+
     if (supabase) {
       const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (!mounted) return;
-        console.log(`📣 Auth State Change: ${event}`);
-        
+
         if (event === 'SIGNED_OUT') {
           setUser(null);
           setSession(null);
@@ -188,7 +179,7 @@ export const useAuthSource = () => {
 
   const signUp = async (email, password, fullName, companyName, role) => {
     if (!supabase) throw new Error("Supabase is not configured.");
-    
+
     setLoading(true);
     setError(null);
 
@@ -202,13 +193,13 @@ export const useAuthSource = () => {
           }
         }
       });
-      
+
       if (error) throw error;
 
       if (data.user) {
         // Create profile
-        const profileData = { 
-          user_id: data.user.id, 
+        const profileData = {
+          user_id: data.user.id,
           full_name: fullName,
           company_name: companyName || null,
           role: role || 'freelance',
@@ -219,18 +210,18 @@ export const useAuthSource = () => {
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([profileData]);
-        
+
         if (profileError) {
-          console.error("❌ Profile creation failed:", profileError);
+          console.error("Profile creation failed:", profileError);
           // We don't throw here to allow the user to at least exist in Auth
         } else {
           await fetchUserProfile(data.user);
         }
       }
-      
+
       return data;
     } catch (err) {
-      console.error("❌ SignUp Exception:", err);
+      console.error("SignUp error:", err);
       setError(err.message);
       throw err;
     } finally {
@@ -249,16 +240,16 @@ export const useAuthSource = () => {
         email,
         password,
       });
-      
+
       if (error) throw error;
-      
+
       if (data.user) {
         await fetchUserProfile(data.user);
       }
-      
+
       return data;
     } catch (err) {
-      console.error("❌ SignIn Exception:", err);
+      console.error("SignIn error:", err);
       setError(err.message);
       throw err;
     } finally {
@@ -280,10 +271,10 @@ export const useAuthSource = () => {
         .eq('user_id', user.id);
 
       if (error) throw error;
-      
+
       setUser(prev => ({ ...prev, ...updates }));
     } catch (err) {
-      console.error("❌ Update Profile Error:", err);
+      console.error("Update profile error:", err);
       setError(err.message);
       throw err;
     } finally {

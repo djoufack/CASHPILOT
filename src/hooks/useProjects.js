@@ -33,6 +33,10 @@ export const useProjects = () => {
       if (err.code === '42P17' || err.code === '42501') {
         console.warn('RLS policy error fetching projects:', err.message);
         setProjects([]);
+        toast({
+          title: "Access restricted",
+          description: "Some data may not be visible due to permission settings.",
+        });
         return;
       }
 
@@ -153,7 +157,8 @@ export const useProjects = () => {
   };
 
   useEffect(() => {
-    fetchProjects();
+    if (user) fetchProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   return {

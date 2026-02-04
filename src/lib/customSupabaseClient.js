@@ -1,13 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-export const supabaseUrl = 'https://rfzvrezrcigzmldgvntz.supabase.co';
-export const supabaseAnonKey = '[SUPABASE_ANON_KEY_REDACTED]';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const customSupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+const customSupabaseClient = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 export default customSupabaseClient;
 
-export { 
+export {
     customSupabaseClient,
     customSupabaseClient as supabase,
+    supabaseUrl,
+    supabaseAnonKey,
 };
