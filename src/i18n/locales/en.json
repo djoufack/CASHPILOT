@@ -501,7 +501,8 @@
       "exportHtml": "HTML Export (Standalone File)",
       "pdfReceipt": "Receipt PDF",
       "cloudBackup": "Cloud Backup",
-      "htmlPreview": "HTML Preview (In Browser)"
+      "htmlPreview": "HTML Preview (In Browser)",
+      "aiInvoiceExtraction": "AI Invoice Extraction"
     }
   },
   "quickInvoice": {
@@ -801,6 +802,31 @@
     "passwordRequired": "Password is required",
     "passwordTooShort": "Password must be at least 6 characters",
     "passwordsDoNotMatch": "Passwords do not match"
+  },
+  "invoiceExtraction": {
+    "extractWithAI": "Extract with AI",
+    "extracting": "Analyzing invoice...",
+    "extractionComplete": "Extraction complete",
+    "extractionFailed": "Extraction failed",
+    "extractionFailedDesc": "Could not extract data from this document. Please fill in the fields manually.",
+    "confidence": "AI Confidence",
+    "confidenceHigh": "High confidence",
+    "confidenceMedium": "Medium confidence",
+    "confidenceLow": "Low confidence - please verify",
+    "aiExtracted": "AI Extracted",
+    "reviewData": "Review the extracted data and correct any errors before saving.",
+    "lineItems": "Line Items",
+    "advancedDetails": "Advanced Details",
+    "preTaxAmount": "Pre-tax Amount (HT)",
+    "taxAmount": "Tax Amount (TVA)",
+    "totalWithTax": "Total with Tax (TTC)",
+    "currency": "Currency",
+    "paymentTerms": "Payment Terms",
+    "supplierVatNumber": "Supplier VAT Number",
+    "ibanLabel": "IBAN",
+    "bicLabel": "BIC/SWIFT",
+    "supportedFormats": "PDF, JPG, PNG - max 10MB",
+    "creditsCost": "credits"
   },
   "errors": {
     "unauthorized": "You do not have permission to access this resource.",
