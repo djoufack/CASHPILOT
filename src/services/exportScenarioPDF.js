@@ -348,7 +348,275 @@ export async function exportScenarioComparisonPDF(scenario1, scenario2, results1
   await generatePDF(el, `Comparaison_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
+// ============================================================================
+// HTML EXPORT FUNCTIONS
+// ============================================================================
+
+/**
+ * Generate HTML document and trigger download
+ */
+function downloadHTML(content, filename) {
+  const htmlDocument = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${filename}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      color: #1F2937;
+      padding: 15px;
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #fff;
+    }
+    h1 { font-size: 22px; color: #1F2937; margin: 0; }
+    h2 { font-size: 16px; color: #1F2937; margin: 20px 0 10px; border-bottom: 2px solid #E5E7EB; padding-bottom: 5px; }
+    h3 { font-size: 12px; color: #6B7280; margin: 0 0 8px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th, td { padding: 8px 4px; text-align: left; border-bottom: 1px solid #E5E7EB; }
+    th { background: #F9FAFB; font-size: 11px; color: #6B7280; font-weight: 600; }
+    td { font-size: 11px; }
+    .header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #3B82F6; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .stat-card { padding: 12px; border-left: 4px solid; }
+    .stat-label { margin: 0; font-size: 10px; font-weight: 600; }
+    .stat-value { margin: 5px 0 0; font-size: 18px; font-weight: bold; }
+    .stat-subtitle { margin: 3px 0 0; font-size: 9px; color: #6B7280; }
+    .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #E5E7EB; text-align: center; font-size: 9px; color: #9CA3AF; }
+  </style>
+</head>
+<body>
+  ${content}
+</body>
+</html>`;
+
+  const blob = new Blob([htmlDocument], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export function exportScenarioSimulationHTML(scenario, results, assumptions) {
+  if (!results || results.length === 0) {
+    throw new Error('Aucun résultat de simulation disponible');
+  }
+
+  const firstPeriod = results[0];
+  const lastPeriod = results[results.length - 1];
+  const revenueGrowth = ((lastPeriod.revenue - firstPeriod.revenue) / firstPeriod.revenue) * 100;
+  const cashChange = lastPeriod.cashBalance - firstPeriod.cashBalance;
+
+  const content = `
+    ${createHeader('Rapport de Simulation Financière', scenario.name, scenario)}
+
+    ${scenario.description ? `
+      <div style="margin-bottom:20px;padding:10px;background:#F3F4F6;border-left:4px solid #3B82F6;">
+        <p style="margin:0;font-size:12px;color:#4B5563;">${scenario.description}</p>
+      </div>
+    ` : ''}
+
+    <h2>Résumé Exécutif</h2>
+    <div class="stat-grid">
+      <div class="stat-card" style="background:#EFF6FF;border-color:#3B82F6;">
+        <p class="stat-label" style="color:#1E40AF;">CROISSANCE DU CA</p>
+        <p class="stat-value" style="color:${revenueGrowth >= 0 ? '#10B981' : '#EF4444'};">
+          ${revenueGrowth >= 0 ? '+' : ''}${revenueGrowth.toFixed(1)}%
+        </p>
+        <p class="stat-subtitle">
+          ${formatCurrency(firstPeriod.revenue)} → ${formatCurrency(lastPeriod.revenue)}
+        </p>
+      </div>
+      <div class="stat-card" style="background:#F0FDF4;border-color:#10B981;">
+        <p class="stat-label" style="color:#15803D;">TRÉSORERIE FINALE</p>
+        <p class="stat-value">${formatCurrency(lastPeriod.cashBalance)}</p>
+        <p class="stat-subtitle" style="color:${cashChange >= 0 ? '#10B981' : '#EF4444'};">
+          ${cashChange >= 0 ? '+' : ''}${formatCurrency(cashChange)}
+        </p>
+      </div>
+      <div class="stat-card" style="background:#FEF3C7;border-color:#F59E0B;">
+        <p class="stat-label" style="color:#92400E;">MARGE EBITDA</p>
+        <p class="stat-value">${formatPercent(lastPeriod.ebitdaMargin)}</p>
+        <p class="stat-subtitle">${formatPercent(lastPeriod.netMargin)} marge nette</p>
+      </div>
+    </div>
+
+    ${assumptions && assumptions.length > 0 ? `
+      <h2>Hypothèses Appliquées</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Hypothèse</th>
+            <th>Catégorie</th>
+            <th>Type</th>
+            <th>Paramètres</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${assumptions.map(assumption => `
+            <tr>
+              <td>${assumption.name}</td>
+              <td>${assumption.category}</td>
+              <td>${assumption.assumption_type}</td>
+              <td style="font-family:monospace;font-size:10px;">${JSON.stringify(assumption.parameters)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    ` : ''}
+
+    <h2>Projection Mois par Mois</h2>
+    <table>
+      <thead>
+        <tr style="background:#1F2937;color:#FFF;">
+          <th>Période</th>
+          <th style="text-align:right;">CA</th>
+          <th style="text-align:right;">Dépenses</th>
+          <th style="text-align:right;">EBITDA</th>
+          <th style="text-align:right;">Marge %</th>
+          <th style="text-align:right;">Résultat Net</th>
+          <th style="text-align:right;">Trésorerie</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${results.map((period, index) => `
+          <tr>
+            <td style="font-weight:${index === results.length - 1 ? 'bold' : 'normal'};">${period.period_label}</td>
+            <td style="text-align:right;font-family:monospace;">${formatCurrency(period.revenue)}</td>
+            <td style="text-align:right;font-family:monospace;">${formatCurrency(period.expenses)}</td>
+            <td style="text-align:right;font-family:monospace;color:${period.ebitda >= 0 ? '#10B981' : '#EF4444'};">
+              ${formatCurrency(period.ebitda)}
+            </td>
+            <td style="text-align:right;font-family:monospace;">${formatPercent(period.ebitdaMargin)}</td>
+            <td style="text-align:right;font-family:monospace;color:${period.netIncome >= 0 ? '#10B981' : '#EF4444'};">
+              ${formatCurrency(period.netIncome)}
+            </td>
+            <td style="text-align:right;font-family:monospace;font-weight:${index === results.length - 1 ? 'bold' : 'normal'};">
+              ${formatCurrency(period.cashBalance)}
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+
+    <h2>Ratios Clés (Période Finale)</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
+      <div>
+        <h3>Rentabilité</h3>
+        <table>
+          <tr><td>ROE</td><td style="text-align:right;font-weight:bold;">${formatPercent(lastPeriod.roe)}</td></tr>
+          <tr><td>ROCE</td><td style="text-align:right;font-weight:bold;">${formatPercent(lastPeriod.roce)}</td></tr>
+          <tr><td>Marge Opérationnelle</td><td style="text-align:right;font-weight:bold;">${formatPercent(lastPeriod.operatingMargin)}</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3>Liquidité</h3>
+        <table>
+          <tr><td>Ratio de liquidité générale</td><td style="text-align:right;font-weight:bold;">${lastPeriod.currentRatio.toFixed(2)}</td></tr>
+          <tr><td>Ratio de liquidité réduite</td><td style="text-align:right;font-weight:bold;">${lastPeriod.quickRatio.toFixed(2)}</td></tr>
+          <tr><td>Dette / Capitaux Propres</td><td style="text-align:right;font-weight:bold;">${lastPeriod.debtToEquity.toFixed(2)}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Ce rapport de simulation financière a été généré automatiquement par CashPilot<br/>
+      Les projections sont basées sur les hypothèses définies et ne constituent pas des garanties de performance future</p>
+    </div>
+  `;
+
+  const filename = `Simulation_${scenario.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`;
+  downloadHTML(content, filename);
+}
+
+export function exportScenarioComparisonHTML(scenario1, scenario2, results1, results2, comparison) {
+  if (!comparison) {
+    throw new Error('Données de comparaison manquantes');
+  }
+
+  const content = `
+    ${createHeader('Comparaison de Scénarios', `${scenario1.name} vs ${scenario2.name}`, null)}
+
+    <h2>Résumé de la Comparaison</h2>
+    <div class="stat-grid">
+      <div class="stat-card" style="background:#EFF6FF;border-color:#3B82F6;">
+        <p class="stat-label" style="color:#1E40AF;">DIFF. CA FINAL</p>
+        <p class="stat-value" style="color:${comparison.summary.finalRevenueDiff >= 0 ? '#10B981' : '#EF4444'};">
+          ${comparison.summary.finalRevenueDiff >= 0 ? '+' : ''}${formatCurrency(comparison.summary.finalRevenueDiff)}
+        </p>
+      </div>
+      <div class="stat-card" style="background:#F0FDF4;border-color:#10B981;">
+        <p class="stat-label" style="color:#15803D;">DIFF. TRÉSORERIE</p>
+        <p class="stat-value" style="color:${comparison.summary.finalCashDiff >= 0 ? '#10B981' : '#EF4444'};">
+          ${comparison.summary.finalCashDiff >= 0 ? '+' : ''}${formatCurrency(comparison.summary.finalCashDiff)}
+        </p>
+      </div>
+      <div class="stat-card" style="background:#FEF3C7;border-color:#F59E0B;">
+        <p class="stat-label" style="color:#92400E;">DIFF. RÉSULTAT NET</p>
+        <p class="stat-value" style="color:${comparison.summary.finalProfitDiff >= 0 ? '#10B981' : '#EF4444'};">
+          ${comparison.summary.finalProfitDiff >= 0 ? '+' : ''}${formatCurrency(comparison.summary.finalProfitDiff)}
+        </p>
+      </div>
+    </div>
+
+    <h2>Comparaison Détaillée</h2>
+    <table>
+      <thead>
+        <tr style="background:#1F2937;color:#FFF;">
+          <th>Période</th>
+          <th style="text-align:right;" colspan="2">Chiffre d'Affaires</th>
+          <th style="text-align:right;" colspan="2">Trésorerie</th>
+          <th style="text-align:right;" colspan="2">Résultat Net</th>
+        </tr>
+        <tr style="background:#374151;color:#FFF;">
+          <th></th>
+          <th style="text-align:right;">${scenario1.name}</th>
+          <th style="text-align:right;">${scenario2.name}</th>
+          <th style="text-align:right;">${scenario1.name}</th>
+          <th style="text-align:right;">${scenario2.name}</th>
+          <th style="text-align:right;">${scenario1.name}</th>
+          <th style="text-align:right;">${scenario2.name}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${results1.map((r1, index) => {
+          const r2 = results2[index];
+          return `
+            <tr>
+              <td>${r1.period_label}</td>
+              <td style="text-align:right;font-family:monospace;">${formatCurrency(r1.revenue)}</td>
+              <td style="text-align:right;font-family:monospace;">${formatCurrency(r2.revenue)}</td>
+              <td style="text-align:right;font-family:monospace;">${formatCurrency(r1.cashBalance)}</td>
+              <td style="text-align:right;font-family:monospace;">${formatCurrency(r2.cashBalance)}</td>
+              <td style="text-align:right;font-family:monospace;">${formatCurrency(r1.netIncome)}</td>
+              <td style="text-align:right;font-family:monospace;">${formatCurrency(r2.netIncome)}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <p>Ce rapport de comparaison a été généré automatiquement par CashPilot<br/>
+      Les différences sont calculées comme ${scenario1.name} moins ${scenario2.name}</p>
+    </div>
+  `;
+
+  const filename = `Comparaison_${new Date().toISOString().split('T')[0]}.html`;
+  downloadHTML(content, filename);
+}
+
 export default {
   exportScenarioSimulationPDF,
   exportScenarioComparisonPDF,
+  exportScenarioSimulationHTML,
+  exportScenarioComparisonHTML,
 };
