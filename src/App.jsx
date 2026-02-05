@@ -52,6 +52,13 @@ const RecurringInvoicesPage = lazy(() => import('@/pages/RecurringInvoicesPage')
 const BankConnectionsPage = lazy(() => import('@/pages/BankConnectionsPage'));
 const CashFlowPage = lazy(() => import('@/pages/CashFlowPage'));
 
+// Wrapper for AI Chat Widget - only shows when authenticated
+const AuthenticatedChatWidget = () => {
+    const { user } = useAuth();
+    if (!user) return null;
+    return <AIChatWidget />;
+};
+
 // Wrapper to handle auth redirects
 const AuthWrapper = () => {
     const { user, loading } = useAuth();
@@ -148,7 +155,7 @@ function App() {
             <ErrorBoundary>
                 <ScrollToTop />
                 <AuthWrapper />
-                <AIChatWidget />
+                <AuthenticatedChatWidget />
                 <Toaster />
             </ErrorBoundary>
         </Router>
