@@ -35,10 +35,23 @@
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Klanten",
+    "projects": "Projecten",
     "timesheets": "Urenstaten",
     "invoices": "Facturen",
     "quotes": "Offertes",
-    "analytics": "Analyses"
+    "analytics": "Analyses",
+    "recurringInvoices": "Terugkerende Facturen",
+    "bankConnections": "Bankverbindingen",
+    "cashFlow": "Kasstroom",
+    "security": "Beveiliging",
+    "settings": "Instellingen",
+    "expenses": "Uitgaven",
+    "purchaseOrders": "Inkooporders",
+    "stock": "Voorraad",
+    "suppliers": "Leveranciers",
+    "reports": "Rapporten",
+    "accounting": "Boekhouding",
+    "scenarios": "Financiële Simulaties"
   },
   "dashboard": {
     "title": "Dashboard",

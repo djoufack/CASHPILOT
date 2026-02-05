@@ -35,10 +35,23 @@
   "nav": {
     "dashboard": "Tableau de bord",
     "clients": "Clients",
+    "projects": "Projets",
     "timesheets": "Feuilles de temps",
     "invoices": "Factures",
     "quotes": "Devis",
-    "analytics": "Analytique"
+    "analytics": "Analytique",
+    "recurringInvoices": "Factures Récurrentes",
+    "bankConnections": "Connexions Bancaires",
+    "cashFlow": "Trésorerie",
+    "security": "Sécurité",
+    "settings": "Paramètres",
+    "expenses": "Dépenses",
+    "purchaseOrders": "Bons de commande",
+    "stock": "Stock",
+    "suppliers": "Fournisseurs",
+    "reports": "Rapports",
+    "accounting": "Comptabilité",
+    "scenarios": "Simulations Financières"
   },
   "dashboard": {
     "title": "Tableau de bord",
