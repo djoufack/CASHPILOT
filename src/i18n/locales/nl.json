@@ -89,7 +89,10 @@
     "noInvoices": "Geen facturen gevonden",
     "total": "Totaal",
     "status": "Status",
-    "invoiceDetails": "Factuurdetails"
+    "invoiceDetails": "Factuurdetails",
+    "sendByEmail": "Versturen per e-mail",
+    "noClientEmail": "Deze klant heeft geen e-mailadres",
+    "emailSentTo": "Factuur verzonden naar {{email}}"
   },
   "timesheets": {
     "title": "Urenstaten",
@@ -829,6 +832,80 @@
     "bicLabel": "BIC/SWIFT",
     "supportedFormats": "PDF, JPG, PNG - max 10MB",
     "creditsCost": "credits"
+  },
+  "gdpr": {
+    "exportTitle": "Gegevensexport (AVG)",
+    "exportDescription": "Download een kopie van al uw persoonlijke gegevens opgeslagen in CashPilot.",
+    "exportInfo": "Op grond van artikel 20 van de AVG heeft u het recht om uw persoonsgegevens te ontvangen in een gestructureerd, gangbaar formaat. Klik hieronder om een JSON-bestand met al uw gegevens te downloaden.",
+    "exportButton": "Mijn gegevens downloaden",
+    "exporting": "Exporteren...",
+    "exportSuccess": "Gegevens ge\u00ebxporteerd",
+    "exportSuccessDesc": "Uw gegevens zijn succesvol gedownload.",
+    "exportError": "Exporteren van gegevens mislukt. Probeer het opnieuw.",
+    "dangerZone": "Gevarenzone",
+    "dangerZoneDescription": "Onomkeerbare acties die uw account permanent be\u00efnvloeden.",
+    "deleteWarningTitle": "Het verwijderen van uw account zal permanent:",
+    "deleteWarning1": "Al uw persoonlijke gegevens, facturen, klanten, projecten en bestanden verwijderen",
+    "deleteWarning2": "Alle actieve abonnementen annuleren",
+    "deleteWarning3": "Toegang tot alle gedeelde gegevens intrekken",
+    "deleteWarning4": "Deze actie kan niet ongedaan worden gemaakt",
+    "deleteAccountButton": "Mijn account verwijderen",
+    "deleteConfirmTitle": "Weet u het absoluut zeker?",
+    "deleteConfirmDescription": "Deze actie is permanent en kan niet worden teruggedraaid. Al uw gegevens, facturen, klanten, projecten en ge\u00fcploade bestanden worden permanent verwijderd van onze servers in overeenstemming met de AVG.",
+    "deleteConfirmType": "Typ \"{{phrase}}\" hieronder om te bevestigen:",
+    "typeConfirmation": "Bevestiging",
+    "confirmDeleteButton": "Account permanent verwijderen",
+    "deleting": "Verwijderen...",
+    "accountDeleted": "Account verwijderd",
+    "accountDeletedDesc": "Uw account en alle bijbehorende gegevens zijn permanent verwijderd.",
+    "deleteError": "Account verwijderen mislukt. Probeer het opnieuw of neem contact op met support."
+  },
+  "recurringInvoices": {
+    "title": "Terugkerende Facturen",
+    "subtitle": "Automatiseer uw factuurgeneratie met terugkerende sjablonen",
+    "create": "Nieuwe Terugkerende Factuur",
+    "createTitle": "Terugkerende Factuur Aanmaken",
+    "editTitle": "Terugkerende Factuur Bewerken",
+    "deleteTitle": "Terugkerende Factuur Verwijderen",
+    "deleteConfirm": "Weet u zeker dat u deze terugkerende factuur wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
+    "noItems": "Geen terugkerende facturen gevonden",
+    "loading": "Terugkerende facturen laden...",
+    "addLine": "Regel toevoegen",
+    "fields": {
+      "title": "Titel",
+      "titlePlaceholder": "bijv. Maandelijkse hostingkosten",
+      "description": "Beschrijving",
+      "descriptionPlaceholder": "Optionele beschrijving...",
+      "client": "Klant",
+      "currency": "Valuta",
+      "frequency": "Frequentie",
+      "interval": "Interval",
+      "dayOfMonth": "Dag van de maand",
+      "startDate": "Startdatum",
+      "endDate": "Einddatum (optioneel)",
+      "nextGeneration": "Volgende generatie",
+      "amountTTC": "Bedrag (incl. BTW)",
+      "tvaRate": "BTW-tarief (%)",
+      "autoSend": "Automatisch verzenden bij generatie",
+      "lineItems": "Factuurregels",
+      "status": "Status"
+    },
+    "frequencies": {
+      "weekly": "Wekelijks",
+      "monthly": "Maandelijks",
+      "quarterly": "Driemaandelijks",
+      "yearly": "Jaarlijks"
+    },
+    "status": {
+      "active": "Actief",
+      "paused": "Gepauzeerd",
+      "completed": "Voltooid",
+      "cancelled": "Geannuleerd"
+    },
+    "actions": {
+      "pause": "Pauzeren",
+      "activate": "Activeren"
+    }
   },
   "errors": {
     "unauthorized": "U heeft geen toestemming om deze bron te openen.",

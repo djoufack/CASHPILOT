@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import InvoiceGenerator from '@/components/InvoiceGenerator';
@@ -12,10 +12,13 @@ import { useInvoices } from '@/hooks/useInvoices';
 import { useClients } from '@/hooks/useClients';
 import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import { useEmailService } from '@/hooks/useEmailService';
+import { useToast } from '@/components/ui/use-toast';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportInvoicePDF, exportInvoiceHTML } from '@/services/exportDocuments';
+import { exportToCSV, exportToExcel } from '@/utils/exportService';
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download, Kanban } from 'lucide-react';
+import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download, Kanban, Mail } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
@@ -23,6 +26,8 @@ import GenericKanbanView from '@/components/GenericKanbanView';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/utils/calculations';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationControls from '@/components/PaginationControls';
 import {
   Dialog,
   DialogContent,
@@ -53,6 +58,8 @@ const InvoicesPage = () => {
   const { clients } = useClients();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
+  const { sendInvoiceEmail, sending: emailSending } = useEmailService();
+  const { toast } = useToast();
   const [viewingInvoice, setViewingInvoice] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
@@ -65,6 +72,17 @@ const InvoicesPage = () => {
   const [historyInvoice, setHistoryInvoice] = useState(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  const pagination = usePagination({ pageSize: 20 });
+
+  // Update pagination total count when invoices change
+  useEffect(() => {
+    if (invoices) {
+      pagination.setTotalCount(invoices.length);
+    }
+  }, [invoices]);
+
+  // Client-side paginated data for the list/table view
+  const paginatedInvoices = invoices.slice(pagination.from, pagination.to + 1);
 
   const invoiceCalendarStatusColors = {
     unpaid: { bg: '#ef4444', border: '#dc2626', text: '#fff' },
@@ -183,6 +201,55 @@ const InvoicesPage = () => {
     );
   };
 
+  const handleSendEmail = async (invoice) => {
+    try {
+      // Client may come from the nested relation or from the clients array
+      const client = invoice.client || clients.find(c => c.id === (invoice.client_id || invoice.clientId)) || {};
+      if (!client.email) {
+        toast({
+          title: t('common.error'),
+          description: t('invoices.noClientEmail'),
+          variant: "destructive",
+        });
+        return;
+      }
+      await sendInvoiceEmail(invoice, client);
+      toast({
+        title: t('common.success'),
+        description: t('invoices.emailSentTo', { email: client.email }),
+      });
+    } catch (err) {
+      toast({
+        title: t('common.error'),
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportList = (format) => {
+    if (!invoices || invoices.length === 0) return;
+    const exportData = invoices.map(inv => {
+      const client = clients.find(c => c.id === (inv.client_id || inv.clientId));
+      return {
+        'Invoice Number': inv.invoice_number || inv.invoiceNumber || '',
+        'Client': client?.company_name || client?.companyName || '',
+        'Total HT': inv.total_ht || '',
+        'Total TVA': inv.total_tva || '',
+        'Total TTC': inv.total_ttc || inv.total || '',
+        'Status': inv.status || '',
+        'Payment Status': inv.payment_status || '',
+        'Invoice Date': inv.date || inv.issueDate || '',
+        'Due Date': inv.due_date || inv.dueDate || '',
+      };
+    });
+    if (format === 'csv') {
+      exportToCSV(exportData, 'invoices');
+    } else {
+      exportToExcel(exportData, 'invoices');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'paid':
@@ -229,6 +296,30 @@ const InvoicesPage = () => {
                 <p className="text-gray-400 text-sm md:text-base">Create and manage professional invoices</p>
               </div>
               <div className="flex gap-2 w-full md:w-auto flex-wrap">
+                {!showGenerator && invoices.length > 0 && (
+                  <>
+                    <Button
+                      onClick={() => handleExportList('csv')}
+                      size="sm"
+                      variant="outline"
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      title="Export CSV"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      CSV
+                    </Button>
+                    <Button
+                      onClick={() => handleExportList('xlsx')}
+                      size="sm"
+                      variant="outline"
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      title="Export Excel"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Excel
+                    </Button>
+                  </>
+                )}
                 <Button
                   onClick={() => setShowGenerator(!showGenerator)}
                   className="flex-1 md:flex-none bg-orange-500 hover:bg-orange-600 text-white"
@@ -330,7 +421,7 @@ const InvoicesPage = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-700">
-                          {invoices.map((invoice) => {
+                          {paginatedInvoices.map((invoice) => {
                             const client = clients.find(c => c.id === (invoice.client_id || invoice.clientId));
                             const currency = client?.preferred_currency || client?.preferredCurrency || 'EUR';
                             return (
@@ -411,6 +502,16 @@ const InvoicesPage = () => {
                                     <Button
                                       variant="ghost"
                                       size="sm"
+                                      onClick={() => handleSendEmail(invoice)}
+                                      disabled={emailSending}
+                                      className="text-sky-400 hover:text-sky-300 hover:bg-sky-900/20 h-8 w-8 p-0"
+                                      title={t('invoices.sendByEmail')}
+                                    >
+                                      <Mail className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() => handleViewInvoice(invoice)}
                                       className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 h-8 w-8 p-0"
                                     >
@@ -433,6 +534,19 @@ const InvoicesPage = () => {
                       </table>
                     </div>
                   )}
+                  <PaginationControls
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalCount={pagination.totalCount}
+                    pageSize={pagination.pageSize}
+                    pageSizeOptions={pagination.pageSizeOptions}
+                    hasNextPage={pagination.hasNextPage}
+                    hasPrevPage={pagination.hasPrevPage}
+                    onNextPage={pagination.nextPage}
+                    onPrevPage={pagination.prevPage}
+                    onGoToPage={pagination.goToPage}
+                    onChangePageSize={pagination.changePageSize}
+                  />
                 </motion.div>
               </TabsContent>
 

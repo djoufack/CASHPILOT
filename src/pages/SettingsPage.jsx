@@ -2,7 +2,7 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Building2, Bell, CreditCard, Users, Fingerprint, Wifi, Palette, Coins, HardDrive } from 'lucide-react';
+import { User, Building2, Bell, CreditCard, Users, Fingerprint, Wifi, Palette, Coins, HardDrive, ShieldAlert } from 'lucide-react';
 import ProfileSettings from '@/components/settings/ProfileSettings';
 import CompanySettings from '@/components/settings/CompanySettings';
 import BillingSettings from '@/components/settings/BillingSettings';
@@ -14,6 +14,7 @@ import BackupSettings from '@/components/settings/BackupSettings';
 import PushNotificationManager from '@/components/PushNotificationManager';
 import BiometricSettings from '@/components/BiometricSettings';
 import SyncManager from '@/components/SyncManager';
+import DangerZoneSettings from '@/components/settings/DangerZoneSettings';
 
 const TAB_MAP = {
   profil: 'profile',
@@ -26,7 +27,9 @@ const TAB_MAP = {
   factures: 'invoices',
   credits: 'credits',
   backup: 'backup',
-  sauvegarde: 'backup'
+  sauvegarde: 'backup',
+  gdpr: 'danger',
+  danger: 'danger'
 };
 
 const SettingsPage = () => {
@@ -75,6 +78,9 @@ const SettingsPage = () => {
           <TabsTrigger value="sync" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
             <Wifi className="w-4 h-4 mr-2" /> Sync
           </TabsTrigger>
+          <TabsTrigger value="danger" className="data-[state=active]:bg-red-500/10 data-[state=active]:text-red-400">
+            <ShieldAlert className="w-4 h-4 mr-2" /> GDPR
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-6">
@@ -115,6 +121,10 @@ const SettingsPage = () => {
 
         <TabsContent value="sync" className="mt-6">
           <SyncManager />
+        </TabsContent>
+
+        <TabsContent value="danger" className="mt-6">
+          <DangerZoneSettings />
         </TabsContent>
       </Tabs>
     </div>

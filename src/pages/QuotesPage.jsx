@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useQuotes } from '@/hooks/useQuotes';
@@ -8,6 +8,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportQuotePDF, exportQuoteHTML } from '@/services/exportDocuments';
+import { exportToCSV, exportToExcel } from '@/utils/exportService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +16,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, FileSignature, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Download, FileText, Kanban } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationControls from '@/components/PaginationControls';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
@@ -179,6 +182,16 @@ const QuotesPage = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const pagination = usePagination({ pageSize: 20 });
+
+  // Update pagination total count when filtered quotes change
+  useEffect(() => {
+    pagination.setTotalCount(filteredQuotes.length);
+  }, [filteredQuotes.length]);
+
+  // Client-side paginated data for the list view
+  const paginatedQuotes = filteredQuotes.slice(pagination.from, pagination.to + 1);
+
   const handleOpenDialog = () => {
     setFormData({ ...initialFormData, items: [{ ...emptyItem }] });
     setIsDialogOpen(true);
@@ -279,6 +292,22 @@ const QuotesPage = () => {
     );
   };
 
+  const handleExportList = (format) => {
+    if (!quotes || quotes.length === 0) return;
+    const exportData = quotes.map(q => ({
+      'Quote Number': q.quote_number || '',
+      'Client': q.client?.company_name || '',
+      'Total TTC': q.total || q.total_ttc || '',
+      'Status': q.status || '',
+      'Date': q.date || '',
+    }));
+    if (format === 'csv') {
+      exportToCSV(exportData, 'quotes');
+    } else {
+      exportToExcel(exportData, 'quotes');
+    }
+  };
+
   const { totalHT, totalTax, totalTTC} = calculateTotals();
 
   return (
@@ -296,9 +325,35 @@ const QuotesPage = () => {
             </h1>
             <p className="text-gray-400 text-sm md:text-base">Manage proposals and estimates</p>
           </div>
-          <Button onClick={handleOpenDialog} className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white">
-            <Plus className="mr-2 h-4 w-4" /> Create Quote
-          </Button>
+          <div className="flex gap-2 w-full md:w-auto">
+            {quotes.length > 0 && (
+              <>
+                <Button
+                  onClick={() => handleExportList('csv')}
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  title="Export CSV"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  CSV
+                </Button>
+                <Button
+                  onClick={() => handleExportList('xlsx')}
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  title="Export Excel"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Excel
+                </Button>
+              </>
+            )}
+            <Button onClick={handleOpenDialog} className="flex-1 md:flex-none bg-orange-500 hover:bg-orange-600 text-white">
+              <Plus className="mr-2 h-4 w-4" /> Create Quote
+            </Button>
+          </div>
         </div>
 
         {quotes.length > 0 && (
@@ -366,11 +421,26 @@ const QuotesPage = () => {
                 </Button>
               </motion.div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredQuotes.map(quote => (
-                  <QuoteCard key={quote.id} quote={quote} onDelete={handleDelete} onExportPDF={handleExportQuotePDF} onExportHTML={handleExportQuoteHTML} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {paginatedQuotes.map(quote => (
+                    <QuoteCard key={quote.id} quote={quote} onDelete={handleDelete} onExportPDF={handleExportQuotePDF} onExportHTML={handleExportQuoteHTML} />
+                  ))}
+                </div>
+                <PaginationControls
+                  currentPage={pagination.currentPage}
+                  totalPages={pagination.totalPages}
+                  totalCount={pagination.totalCount}
+                  pageSize={pagination.pageSize}
+                  pageSizeOptions={pagination.pageSizeOptions}
+                  hasNextPage={pagination.hasNextPage}
+                  hasPrevPage={pagination.hasPrevPage}
+                  onNextPage={pagination.nextPage}
+                  onPrevPage={pagination.prevPage}
+                  onGoToPage={pagination.goToPage}
+                  onChangePageSize={pagination.changePageSize}
+                />
+              </>
             )}
           </TabsContent>
 

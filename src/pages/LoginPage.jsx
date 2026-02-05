@@ -10,6 +10,8 @@ import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { validateEmail } from '@/utils/validation';
 import { useToast } from '@/components/ui/use-toast';
+import MFAVerifyStep from '@/components/MFAVerifyStep';
+import { supabase } from '@/lib/supabase';
 
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
@@ -23,6 +25,8 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState(null);
 
   const validateForm = () => {
     const newErrors = {};
@@ -42,16 +46,29 @@ const LoginPage = () => {
 
     try {
       await signIn(email, password);
-      
+
+      // Check if user has MFA enabled
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const totpFactors = (factorsData?.totp || []).filter(f => f.status === 'verified');
+
+      if (totpFactors.length > 0) {
+        // MFA required - show verification step
+        setMfaRequired(true);
+        setMfaFactorId(totpFactors[0].id);
+        setLoading(false);
+        return;
+      }
+
+      // No MFA - proceed normally
       setSuccess(true);
       toast({
         title: "Connexion réussie ✅",
         description: "Redirection vers le tableau de bord...",
         className: "bg-green-500 border-none text-white"
       });
-      
+
       setTimeout(() => {
-         navigate('/');
+        navigate('/');
       }, 1500);
 
     } catch (error) {
@@ -68,8 +85,46 @@ const LoginPage = () => {
       }
       
       setErrors({ form: errorMessage });
-      setLoading(false); 
+      setLoading(false);
     }
+  };
+
+  const handleMFAVerify = async (code) => {
+    setLoading(true);
+    try {
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: mfaFactorId
+      });
+      if (challengeError) throw challengeError;
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.id,
+        code
+      });
+      if (verifyError) throw verifyError;
+
+      setSuccess(true);
+      toast({
+        title: "Connexion réussie ✅",
+        description: "Redirection vers le tableau de bord...",
+        className: "bg-green-500 border-none text-white"
+      });
+
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+    } catch (err) {
+      setLoading(false);
+      throw err;
+    }
+  };
+
+  const handleMFACancel = async () => {
+    setMfaRequired(false);
+    setMfaFactorId(null);
+    // Sign out since we passed password but didn't complete MFA
+    await supabase.auth.signOut();
   };
 
   return (
@@ -107,7 +162,7 @@ const LoginPage = () => {
             </div>
 
             {success ? (
-               <motion.div 
+               <motion.div
                  initial={{ opacity: 0, y: 10 }}
                  animate={{ opacity: 1, y: 0 }}
                  className="flex flex-col items-center justify-center py-8 space-y-4"
@@ -116,6 +171,12 @@ const LoginPage = () => {
                  <h3 className="text-xl font-bold text-white">Connexion réussie ✅</h3>
                  <p className="text-gray-400 text-sm">Redirection en cours...</p>
                </motion.div>
+            ) : mfaRequired ? (
+              <MFAVerifyStep
+                onVerify={handleMFAVerify}
+                onCancel={handleMFACancel}
+                isLoading={loading}
+              />
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
                 <AnimatePresence>

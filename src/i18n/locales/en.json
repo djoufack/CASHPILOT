@@ -89,7 +89,10 @@
     "noInvoices": "No invoices found",
     "total": "Total",
     "status": "Status",
-    "invoiceDetails": "Invoice Details"
+    "invoiceDetails": "Invoice Details",
+    "sendByEmail": "Send by Email",
+    "noClientEmail": "This client does not have an email address",
+    "emailSentTo": "Invoice sent to {{email}}"
   },
   "timesheets": {
     "title": "Timesheets",
@@ -829,6 +832,80 @@
     "bicLabel": "BIC/SWIFT",
     "supportedFormats": "PDF, JPG, PNG - max 10MB",
     "creditsCost": "credits"
+  },
+  "gdpr": {
+    "exportTitle": "Data Export (GDPR)",
+    "exportDescription": "Download a copy of all your personal data stored in CashPilot.",
+    "exportInfo": "Under GDPR Article 20, you have the right to receive your personal data in a structured, commonly used format. Click below to download a JSON file containing all your data.",
+    "exportButton": "Download My Data",
+    "exporting": "Exporting...",
+    "exportSuccess": "Data exported",
+    "exportSuccessDesc": "Your data has been downloaded successfully.",
+    "exportError": "Failed to export data. Please try again.",
+    "dangerZone": "Danger Zone",
+    "dangerZoneDescription": "Irreversible actions that affect your account permanently.",
+    "deleteWarningTitle": "Deleting your account will permanently:",
+    "deleteWarning1": "Remove all your personal data, invoices, clients, projects, and files",
+    "deleteWarning2": "Cancel any active subscriptions",
+    "deleteWarning3": "Revoke access to all shared data",
+    "deleteWarning4": "This action cannot be undone",
+    "deleteAccountButton": "Delete My Account",
+    "deleteConfirmTitle": "Are you absolutely sure?",
+    "deleteConfirmDescription": "This action is permanent and cannot be reversed. All your data, invoices, clients, projects, and uploaded files will be permanently deleted from our servers in compliance with GDPR.",
+    "deleteConfirmType": "Type \"{{phrase}}\" below to confirm:",
+    "typeConfirmation": "Confirmation",
+    "confirmDeleteButton": "Permanently Delete Account",
+    "deleting": "Deleting...",
+    "accountDeleted": "Account deleted",
+    "accountDeletedDesc": "Your account and all associated data have been permanently deleted.",
+    "deleteError": "Failed to delete account. Please try again or contact support."
+  },
+  "recurringInvoices": {
+    "title": "Recurring Invoices",
+    "subtitle": "Automate your invoice generation with recurring templates",
+    "create": "New Recurring Invoice",
+    "createTitle": "Create Recurring Invoice",
+    "editTitle": "Edit Recurring Invoice",
+    "deleteTitle": "Delete Recurring Invoice",
+    "deleteConfirm": "Are you sure you want to delete this recurring invoice? This action cannot be undone.",
+    "noItems": "No recurring invoices found",
+    "loading": "Loading recurring invoices...",
+    "addLine": "Add Line",
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "e.g. Monthly hosting fee",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional description...",
+      "client": "Client",
+      "currency": "Currency",
+      "frequency": "Frequency",
+      "interval": "Interval",
+      "dayOfMonth": "Day of Month",
+      "startDate": "Start Date",
+      "endDate": "End Date (optional)",
+      "nextGeneration": "Next Generation",
+      "amountTTC": "Amount (TTC)",
+      "tvaRate": "VAT Rate (%)",
+      "autoSend": "Auto-send when generated",
+      "lineItems": "Line Items",
+      "status": "Status"
+    },
+    "frequencies": {
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly"
+    },
+    "status": {
+      "active": "Active",
+      "paused": "Paused",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "actions": {
+      "pause": "Pause",
+      "activate": "Activate"
+    }
   },
   "errors": {
     "unauthorized": "You do not have permission to access this resource.",

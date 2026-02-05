@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { exportStockListPDF, exportStockListHTML } from '@/services/exportListsPDF';
+import { exportToCSV, exportToExcel } from '@/utils/exportService';
 
 const StockManagement = () => {
   const { alerts, fetchAlerts, resolveAlert } = useStockAlerts();
@@ -147,6 +148,25 @@ const StockManagement = () => {
     );
   };
 
+  const handleExportList = (format) => {
+    if (!filteredProducts || filteredProducts.length === 0) return;
+    const exportData = filteredProducts.map(p => ({
+      'Product Name': p.product_name || '',
+      'SKU': p.sku || '',
+      'Category': p.category?.name || '',
+      'Unit Price': p.unit_price || '',
+      'Purchase Price': p.purchase_price || '',
+      'Unit': p.unit || '',
+      'Stock Quantity': p.stock_quantity || 0,
+      'Min Stock Level': p.min_stock_level || 0,
+    }));
+    if (format === 'csv') {
+      exportToCSV(exportData, 'products');
+    } else {
+      exportToExcel(exportData, 'products');
+    }
+  };
+
   return (
     <>
       <CreditsGuardModal {...modalProps} />
@@ -157,6 +177,30 @@ const StockManagement = () => {
             <p className="text-gray-400">Gérez votre inventaire, alertes et mouvements de stock.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
+            {filteredProducts.length > 0 && (
+              <>
+                <Button
+                  onClick={() => handleExportList('csv')}
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  title="Export CSV"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  CSV
+                </Button>
+                <Button
+                  onClick={() => handleExportList('xlsx')}
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  title="Export Excel"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Excel
+                </Button>
+              </>
+            )}
             <Button onClick={handleExportPDF} size="sm" variant="outline" className="border-gray-600 hover:bg-gray-700">
               <Download className="w-4 h-4 mr-2" />
               PDF ({CREDIT_COSTS.PDF_REPORT})

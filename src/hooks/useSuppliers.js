@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 export const useSuppliers = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -10,6 +11,7 @@ export const useSuppliers = () => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { logAction } = useAuditLog();
 
   const fetchSuppliers = async () => {
     if (!user) return;
@@ -62,7 +64,9 @@ export const useSuppliers = () => {
         .single();
 
       if (error) throw error;
-      
+
+      logAction('create', 'supplier', null, data);
+
       setSuppliers([data, ...suppliers]);
       toast({
         title: "Success",
@@ -94,6 +98,9 @@ export const useSuppliers = () => {
 
       if (error) throw error;
 
+      const oldSupplier = suppliers.find(s => s.id === id);
+      logAction('update', 'supplier', oldSupplier || null, data);
+
       setSuppliers(suppliers.map(s => s.id === id ? data : s));
       toast({
         title: "Success",
@@ -122,6 +129,9 @@ export const useSuppliers = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      const deletedSupplier = suppliers.find(s => s.id === id);
+      logAction('delete', 'supplier', deletedSupplier || { id }, null);
 
       setSuppliers(suppliers.filter(s => s.id !== id));
       toast({

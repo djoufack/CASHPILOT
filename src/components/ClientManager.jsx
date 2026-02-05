@@ -32,7 +32,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard, Download } from 'lucide-react';
+import { exportToCSV, exportToExcel } from '@/utils/exportService';
 import { motion } from 'framer-motion';
 import { validateEmail } from '@/utils/validation';
 import { Currency } from '@/types';
@@ -136,6 +137,26 @@ const ClientManager = () => {
     client.contactName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleExportList = (format) => {
+    if (!filteredClients || filteredClients.length === 0) return;
+    const exportData = filteredClients.map(c => ({
+      'Company Name': c.companyName || c.company_name || '',
+      'Contact Name': c.contactName || c.contact_name || '',
+      'Email': c.email || '',
+      'Phone': c.phone || '',
+      'Address': c.address || '',
+      'City': c.city || '',
+      'Country': c.country || '',
+      'VAT Number': c.vatNumber || c.vat_number || '',
+      'Currency': c.preferredCurrency || c.preferred_currency || '',
+    }));
+    if (format === 'csv') {
+      exportToCSV(exportData, 'clients');
+    } else {
+      exportToExcel(exportData, 'clients');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -149,15 +170,41 @@ const ClientManager = () => {
             className="pl-10 bg-gray-800 border-gray-700 text-white w-full"
           />
         </div>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full md:w-auto">
-          <Button
-            onClick={() => handleOpenDialog()}
-            className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white shadow-lg"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            {t('clients.addClient')}
-          </Button>
-        </motion.div>
+        <div className="flex gap-2 w-full md:w-auto">
+          {filteredClients.length > 0 && (
+            <>
+              <Button
+                onClick={() => handleExportList('csv')}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                title="Export CSV"
+              >
+                <Download className="w-4 h-4 mr-1" />
+                CSV
+              </Button>
+              <Button
+                onClick={() => handleExportList('xlsx')}
+                size="sm"
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                title="Export Excel"
+              >
+                <Download className="w-4 h-4 mr-1" />
+                Excel
+              </Button>
+            </>
+          )}
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              onClick={() => handleOpenDialog()}
+              className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white shadow-lg"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {t('clients.addClient')}
+            </Button>
+          </motion.div>
+        </div>
       </div>
 
       {loading ? (

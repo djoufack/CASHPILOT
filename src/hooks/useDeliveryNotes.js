@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 export const useDeliveryNotes = () => {
   const [deliveryNotes, setDeliveryNotes] = useState([]);
@@ -11,6 +12,7 @@ export const useDeliveryNotes = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { logAction } = useAuditLog();
 
   const fetchDeliveryNotes = async () => {
     if (!user || !supabase) return;
@@ -69,6 +71,8 @@ export const useDeliveryNotes = () => {
         if (itemError) throw itemError;
       }
 
+      logAction('create', 'delivery_note', null, data);
+
       setDeliveryNotes([{ ...data, items }, ...deliveryNotes]);
       toast({ title: t('common.success'), description: t('deliveryNotes.created') });
       return data;
@@ -93,6 +97,10 @@ export const useDeliveryNotes = () => {
         .single();
 
       if (error) throw error;
+
+      const oldDeliveryNote = deliveryNotes.find(dn => dn.id === id);
+      logAction('update', 'delivery_note', oldDeliveryNote || null, updated);
+
       setDeliveryNotes(deliveryNotes.map(dn => dn.id === id ? { ...dn, ...updated } : dn));
       toast({ title: t('common.success'), description: t('deliveryNotes.updated') });
       return updated;
@@ -111,6 +119,9 @@ export const useDeliveryNotes = () => {
       await supabase.from('delivery_note_items').delete().eq('delivery_note_id', id);
       const { error } = await supabase.from('delivery_notes').delete().eq('id', id);
       if (error) throw error;
+
+      const deletedDeliveryNote = deliveryNotes.find(dn => dn.id === id);
+      logAction('delete', 'delivery_note', deletedDeliveryNote || { id }, null);
 
       setDeliveryNotes(deliveryNotes.filter(dn => dn.id !== id));
       toast({ title: t('common.success'), description: t('deliveryNotes.deleted') });

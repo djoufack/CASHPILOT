@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCreditNotes } from '@/hooks/useCreditNotes';
 import { useInvoices } from '@/hooks/useInvoices';
@@ -21,6 +21,8 @@ import {
 import { Plus, Trash2, FileText, Search, List, CalendarDays, CalendarClock, Download, Kanban } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationControls from '@/components/PaginationControls';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
@@ -144,6 +146,16 @@ const CreditNotesPage = () => {
     );
   });
 
+  const pagination = usePagination({ pageSize: 20 });
+
+  // Update pagination total count when filtered notes change
+  useEffect(() => {
+    pagination.setTotalCount(filteredNotes.length);
+  }, [filteredNotes.length]);
+
+  // Client-side paginated data for the list view
+  const paginatedNotes = filteredNotes.slice(pagination.from, pagination.to + 1);
+
   const [viewMode, setViewMode] = useState('list');
 
   const statusColors = {
@@ -257,7 +269,7 @@ const CreditNotesPage = () => {
                     <tr><td colSpan={7} className="text-center p-8 text-gray-400">Loading...</td></tr>
                   ) : filteredNotes.length === 0 ? (
                     <tr><td colSpan={7} className="text-center p-8 text-gray-400">{t('creditNotes.noNotes')}</td></tr>
-                  ) : filteredNotes.map((cn) => {
+                  ) : paginatedNotes.map((cn) => {
                     const currency = cn.client?.preferred_currency || 'EUR';
                     return (
                       <motion.tr key={cn.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
@@ -300,6 +312,19 @@ const CreditNotesPage = () => {
               </table>
             </div>
           </div>
+          <PaginationControls
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalCount={pagination.totalCount}
+            pageSize={pagination.pageSize}
+            pageSizeOptions={pagination.pageSizeOptions}
+            hasNextPage={pagination.hasNextPage}
+            hasPrevPage={pagination.hasPrevPage}
+            onNextPage={pagination.nextPage}
+            onPrevPage={pagination.prevPage}
+            onGoToPage={pagination.goToPage}
+            onChangePageSize={pagination.changePageSize}
+          />
         </TabsContent>
 
         <TabsContent value="calendar">

@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { getPaymentStatus, calculateBalanceDue } from '@/utils/calculations';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 export const usePayments = () => {
   const [payments, setPayments] = useState([]);
@@ -13,6 +14,7 @@ export const usePayments = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { logAction } = useAuditLog();
 
   const fetchPayments = async (filters = {}) => {
     if (!user) return;
@@ -180,6 +182,8 @@ export const usePayments = () => {
         await updateInvoicePaymentData(paymentData.invoice_id);
       }
 
+      logAction('create', 'payment', null, data);
+
       setPayments([data, ...payments]);
       toast({
         title: t('common.success'),
@@ -246,6 +250,8 @@ export const usePayments = () => {
         }
       }
 
+      logAction('create', 'payment', null, { ...payment, is_lump_sum: true, allocations });
+
       setPayments([payment, ...payments]);
       toast({
         title: t('common.success'),
@@ -294,6 +300,8 @@ export const usePayments = () => {
           }
         }
       }
+
+      logAction('delete', 'payment', payment || { id: paymentId }, null);
 
       setPayments(payments.filter(p => p.id !== paymentId));
       toast({

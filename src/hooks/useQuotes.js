@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 export const useQuotes = () => {
   const [quotes, setQuotes] = useState([]);
@@ -10,6 +11,7 @@ export const useQuotes = () => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { logAction } = useAuditLog();
 
   const fetchQuotes = async (filters = {}) => {
     if (!user) return;
@@ -63,6 +65,8 @@ export const useQuotes = () => {
 
       if (error) throw error;
 
+      logAction('create', 'quote', null, data);
+
       setQuotes([data, ...quotes]);
       toast({
         title: "Success",
@@ -95,6 +99,9 @@ export const useQuotes = () => {
 
       if (error) throw error;
 
+      const oldQuote = quotes.find(q => q.id === id);
+      logAction('update', 'quote', oldQuote || null, data);
+
       setQuotes(quotes.map(q => q.id === id ? data : q));
       toast({
         title: "Success",
@@ -124,6 +131,9 @@ export const useQuotes = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      const deletedQuote = quotes.find(q => q.id === id);
+      logAction('delete', 'quote', deletedQuote || { id }, null);
 
       setQuotes(quotes.filter(q => q.id !== id));
       toast({

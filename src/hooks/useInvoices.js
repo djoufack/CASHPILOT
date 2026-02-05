@@ -4,7 +4,9 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { generateInvoiceNumber } from '@/utils/calculations';
+import { sanitizeText } from '@/utils/sanitize';
 
 export const useInvoices = () => {
   const [invoices, setInvoices] = useState([]);
@@ -13,6 +15,7 @@ export const useInvoices = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { logAction } = useAuditLog();
 
   const fetchInvoices = async (filters = {}) => {
     if (!user) return;
@@ -64,13 +67,24 @@ export const useInvoices = () => {
       // If invoice_number is not provided, generate one (basic)
       const invoiceNumber = invoiceData.invoice_number || `INV-${Date.now()}`;
 
+      // Sanitize user-facing text fields to prevent XSS
+      const sanitizedData = { ...invoiceData };
+      if (sanitizedData.notes) sanitizedData.notes = sanitizeText(sanitizedData.notes);
+      if (sanitizedData.header_note) sanitizedData.header_note = sanitizeText(sanitizedData.header_note);
+      if (sanitizedData.footer_note) sanitizedData.footer_note = sanitizeText(sanitizedData.footer_note);
+      if (sanitizedData.terms_and_conditions) sanitizedData.terms_and_conditions = sanitizeText(sanitizedData.terms_and_conditions);
+      if (sanitizedData.internal_remark) sanitizedData.internal_remark = sanitizeText(sanitizedData.internal_remark);
+      if (sanitizedData.adjustment_label) sanitizedData.adjustment_label = sanitizeText(sanitizedData.adjustment_label);
+
       const { data, error } = await supabase
         .from('invoices')
-        .insert([{ ...invoiceData, invoice_number: invoiceNumber, user_id: user.id }])
+        .insert([{ ...sanitizedData, invoice_number: invoiceNumber, user_id: user.id }])
         .select()
         .single();
 
       if (error) throw error;
+
+      logAction('create', 'invoice', null, data);
 
       setInvoices([data, ...invoices]);
       toast({
@@ -104,6 +118,9 @@ export const useInvoices = () => {
 
       if (error) throw error;
 
+      const oldInvoice = invoices.find(i => i.id === id);
+      logAction('update', 'invoice', oldInvoice || null, data);
+
       setInvoices(invoices.map(i => i.id === id ? data : i));
       toast({
         title: "Success",
@@ -133,6 +150,9 @@ export const useInvoices = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      const deletedInvoice = invoices.find(i => i.id === id);
+      logAction('delete', 'invoice', deletedInvoice || { id }, null);
 
       setInvoices(invoices.filter(i => i.id !== id));
       toast({
@@ -170,9 +190,13 @@ export const useInvoices = () => {
   const createInvoiceItem = async (itemData) => {
     if (!supabase) throw new Error("Supabase not configured");
     try {
+      // Sanitize user-facing text fields to prevent XSS
+      const sanitizedItem = { ...itemData };
+      if (sanitizedItem.description) sanitizedItem.description = sanitizeText(sanitizedItem.description);
+
       const { data, error } = await supabase
         .from('invoice_items')
-        .insert([itemData])
+        .insert([sanitizedItem])
         .select()
         .single();
       if (error) throw error;
@@ -206,6 +230,10 @@ export const useInvoices = () => {
         .single();
 
       if (error) throw error;
+
+      const oldInvoice = invoices.find(i => i.id === id);
+      logAction('update', 'invoice', oldInvoice || null, { ...data, status: newStatus });
+
       setInvoices(invoices.map(i => i.id === id ? { ...i, ...data } : i));
       toast({
         title: "Success",

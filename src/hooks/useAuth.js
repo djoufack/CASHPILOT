@@ -282,6 +282,49 @@ export const useAuthSource = () => {
     }
   };
 
+  // --- MFA TOTP Functions ---
+  const getMFAStatus = async () => {
+    if (!supabase) return { enabled: false, factors: [] };
+    try {
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      if (error) throw error;
+      const totpFactors = (data?.totp || []).filter(f => f.status === 'verified');
+      return { enabled: totpFactors.length > 0, factors: totpFactors };
+    } catch (err) {
+      console.error('getMFAStatus error:', err);
+      return { enabled: false, factors: [] };
+    }
+  };
+
+  const enrollMFA = async () => {
+    if (!supabase) throw new Error('Supabase not configured');
+    const { data, error } = await supabase.auth.mfa.enroll({
+      factorType: 'totp',
+      friendlyName: 'CashPilot Authenticator'
+    });
+    if (error) throw error;
+    return data; // { id, type, totp: { qr_code, secret, uri } }
+  };
+
+  const verifyMFA = async (factorId, code) => {
+    if (!supabase) throw new Error('Supabase not configured');
+    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId });
+    if (challengeError) throw challengeError;
+    const { data, error } = await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challenge.id,
+      code
+    });
+    if (error) throw error;
+    return data;
+  };
+
+  const unenrollMFA = async (factorId) => {
+    if (!supabase) throw new Error('Supabase not configured');
+    const { error } = await supabase.auth.mfa.unenroll({ factorId });
+    if (error) throw error;
+  };
+
   return {
     user,
     session,
@@ -291,6 +334,10 @@ export const useAuthSource = () => {
     signIn,
     logout,
     updateProfile,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    getMFAStatus,
+    enrollMFA,
+    verifyMFA,
+    unenrollMFA
   };
 };
