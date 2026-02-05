@@ -1,54 +1,29 @@
-
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/context/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
-import { useToast } from "@/components/ui/use-toast";
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 import {
-  LogOut,
   ChevronLeft,
   ChevronRight,
   Shield,
   Home, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Archive, BarChart3, Calculator, PieChart, Settings,
-  Map, QrCode, FileBarChart, Database, Bell, Menu,
-  Receipt, Building2, User, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp
+  Map, QrCode, FileBarChart, Database, Menu,
+  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import CreditsBalance from '@/components/CreditsBalance';
-import ThemeToggle from '@/components/ThemeToggle';
-import NotificationCenterComponent from '@/components/NotificationCenter';
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
   const { t } = useTranslation();
   const location = useLocation();
-  const navigate = useNavigate();
-  const { logout } = useAuth();
   const { hasPermission } = useUserRole();
-  const { toast } = useToast();
 
   const toggleSidebar = () => {
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
-  };
-
-  const handleLogout = () => {
-    logout()
-      .then(() => {
-        navigate('/');
-        toast({
-          title: t('common.logout'),
-          description: t('auth.logoutSuccess') || "You have been successfully logged out.",
-        });
-      })
-      .catch((error) => {
-        console.error("Logout failed:", error);
-      });
   };
 
   // Use navItems from props if provided, otherwise fallback to default
@@ -181,67 +156,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           })}
         </TooltipProvider>
       </nav>
-
-      {/* Credits Balance */}
-      <div className="px-1 py-2 shrink-0">
-        <CreditsBalance isCollapsed={isCollapsed} />
-      </div>
-
-      {/* Footer */}
-      <div className="border-t border-gray-800/50 p-2 space-y-1 shrink-0">
-        <Link to="/app/settings?tab=profil">
-          <div className={cn(
-            "flex items-center gap-3 rounded-lg transition-all text-gray-500 hover:bg-gray-800/50 hover:text-gray-200",
-            isCollapsed ? "h-10 w-10 mx-auto justify-center" : "px-3 py-2.5"
-          )}>
-            <User size={20} />
-            {!isCollapsed && <span className="text-sm font-medium">Mon Profil</span>}
-          </div>
-        </Link>
-
-        <Link to="/app/settings?tab=societe">
-          <div className={cn(
-            "flex items-center gap-3 rounded-lg transition-all text-gray-500 hover:bg-gray-800/50 hover:text-gray-200",
-            isCollapsed ? "h-10 w-10 mx-auto justify-center" : "px-3 py-2.5"
-          )}>
-            <Building2 size={20} />
-            {!isCollapsed && <span className="text-sm font-medium">Ma Société</span>}
-          </div>
-        </Link>
-
-        <Link to="/app/notifications">
-          <div className={cn(
-            "flex items-center gap-3 rounded-lg transition-all text-gray-500 hover:bg-gray-800/50 hover:text-gray-200",
-            isCollapsed ? "h-10 w-10 mx-auto justify-center" : "px-3 py-2.5"
-          )}>
-            <Bell size={20} />
-            {!isCollapsed && <span className="text-sm font-medium">Notifications</span>}
-          </div>
-        </Link>
-
-        <div className={cn(
-          "flex items-center gap-2",
-          isCollapsed ? "justify-center" : "px-3 py-1"
-        )}>
-          <ThemeToggle />
-          {!isCollapsed && <NotificationCenterComponent />}
-        </div>
-
-        <div className={cn(isCollapsed ? "flex justify-center" : "px-1")}>
-          <LanguageSwitcher />
-        </div>
-
-        <button
-          onClick={handleLogout}
-          className={cn(
-            "flex items-center gap-3 rounded-lg transition-all text-gray-500 hover:bg-red-950/30 hover:text-red-400 w-full",
-            isCollapsed ? "h-10 w-10 mx-auto justify-center" : "px-3 py-2.5"
-          )}
-        >
-          <LogOut size={20} />
-          {!isCollapsed && <span className="text-sm font-medium">{t('common.logout')}</span>}
-        </button>
-      </div>
     </aside>
   );
 };
