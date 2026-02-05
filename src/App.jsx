@@ -3,30 +3,6 @@ import React, { lazy, Suspense } from 'react';
 import { Route, Routes, BrowserRouter as Router, Navigate } from 'react-router-dom';
 import AIChatWidget from '@/components/AIChatWidget';
 import ScrollToTop from './components/ScrollToTop';
-import Dashboard from './pages/Dashboard';
-import ClientsPage from './pages/ClientsPage';
-import ProjectsPage from './pages/ProjectsPage';
-import ProjectDetail from './pages/ProjectDetail';
-import TimesheetsPage from './pages/TimesheetsPage';
-import InvoicesPage from './pages/InvoicesPage';
-import QuotesPage from './pages/QuotesPage';
-import ExpensesPage from './pages/ExpensesPage';
-import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
-import ClientProfile from './pages/ClientProfile';
-import AnalyticsPage from './pages/AnalyticsPage';
-import SettingsPage from './pages/SettingsPage';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import ClientPortal from './pages/ClientPortal';
-import SuppliersPage from './pages/SuppliersPage';
-import SupplierProfile from './pages/SupplierProfile';
-import StockManagement from './pages/StockManagement';
-import NotificationCenter from './pages/NotificationCenter';
-import SupplierReports from './pages/SupplierReports';
-import AccountingIntegration from './pages/AccountingIntegration';
-import AdminPage from './pages/admin/AdminPage';
 import MainLayout from './components/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
@@ -35,22 +11,54 @@ import { useAuth } from '@/context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import './i18n/config';
 
-// New Features
-import SupplierMap from '@/components/SupplierMap';
-import BarcodeScanner from '@/components/BarcodeScanner';
-import ReportGenerator from '@/components/ReportGenerator';
-import SeedDataManager from '@/components/admin/SeedDataManager';
-import CreditNotesPage from './pages/CreditNotesPage';
-import DeliveryNotesPage from './pages/DeliveryNotesPage';
-import DebtManagerPage from './pages/DebtManagerPage';
-import ScenarioBuilder from './pages/ScenarioBuilder';
-import ScenarioDetail from './pages/ScenarioDetail';
-import LandingPage from './pages/LandingPage';
+// Loading component for Suspense fallbacks
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+  </div>
+);
+
 // Lazy-loaded pages (code splitting)
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ClientsPage = lazy(() => import('./pages/ClientsPage'));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
+const TimesheetsPage = lazy(() => import('./pages/TimesheetsPage'));
+const InvoicesPage = lazy(() => import('./pages/InvoicesPage'));
+const QuotesPage = lazy(() => import('./pages/QuotesPage'));
+const ExpensesPage = lazy(() => import('./pages/ExpensesPage'));
+const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrdersPage'));
+const ClientProfile = lazy(() => import('./pages/ClientProfile'));
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const SignupPage = lazy(() => import('./pages/SignupPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const ClientPortal = lazy(() => import('./pages/ClientPortal'));
+const SuppliersPage = lazy(() => import('./pages/SuppliersPage'));
+const SupplierProfile = lazy(() => import('./pages/SupplierProfile'));
+const StockManagement = lazy(() => import('./pages/StockManagement'));
+const NotificationCenter = lazy(() => import('./pages/NotificationCenter'));
+const SupplierReports = lazy(() => import('./pages/SupplierReports'));
+const AccountingIntegration = lazy(() => import('./pages/AccountingIntegration'));
+const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
+const CreditNotesPage = lazy(() => import('./pages/CreditNotesPage'));
+const DeliveryNotesPage = lazy(() => import('./pages/DeliveryNotesPage'));
+const DebtManagerPage = lazy(() => import('./pages/DebtManagerPage'));
+const ScenarioBuilder = lazy(() => import('./pages/ScenarioBuilder'));
+const ScenarioDetail = lazy(() => import('./pages/ScenarioDetail'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const SecuritySettings = lazy(() => import('@/pages/SecuritySettings'));
 const RecurringInvoicesPage = lazy(() => import('@/pages/RecurringInvoicesPage'));
 const BankConnectionsPage = lazy(() => import('@/pages/BankConnectionsPage'));
 const CashFlowPage = lazy(() => import('@/pages/CashFlowPage'));
+
+// Lazy-loaded feature components
+const SupplierMap = lazy(() => import('@/components/SupplierMap'));
+const BarcodeScanner = lazy(() => import('@/components/BarcodeScanner'));
+const ReportGenerator = lazy(() => import('@/components/ReportGenerator'));
+const SeedDataManager = lazy(() => import('@/components/admin/SeedDataManager'));
 
 // Wrapper for AI Chat Widget - only shows when authenticated
 const AuthenticatedChatWidget = () => {
@@ -70,18 +78,18 @@ const AuthWrapper = () => {
     return (
         <Routes>
             {/* Public Landing Page */}
-            <Route path="/" element={user ? <Navigate to="/app" replace /> : <LandingPage />} />
+            <Route path="/" element={user ? <Navigate to="/app" replace /> : <Suspense fallback={<PageLoader />}><LandingPage /></Suspense>} />
 
             {/* Public Routes - Redirect to /app if logged in */}
-            <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
-            <Route path="/signup" element={user ? <Navigate to="/app" replace /> : <SignupPage />} />
-            <Route path="/forgot-password" element={user ? <Navigate to="/app" replace /> : <ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/login" element={user ? <Navigate to="/app" replace /> : <Suspense fallback={<PageLoader />}><LoginPage /></Suspense>} />
+            <Route path="/signup" element={user ? <Navigate to="/app" replace /> : <Suspense fallback={<PageLoader />}><SignupPage /></Suspense>} />
+            <Route path="/forgot-password" element={user ? <Navigate to="/app" replace /> : <Suspense fallback={<PageLoader />}><ForgotPasswordPage /></Suspense>} />
+            <Route path="/reset-password" element={<Suspense fallback={<PageLoader />}><ResetPasswordPage /></Suspense>} />
 
             {/* Client Portal */}
             <Route path="/client-portal/*" element={
-                user && (user.role === 'client' || user.role === 'admin') 
-                ? <ClientPortal /> 
+                user && (user.role === 'client' || user.role === 'admin')
+                ? <Suspense fallback={<PageLoader />}><ClientPortal /></Suspense>
                 : <Navigate to="/login" replace />
             } />
 
@@ -91,8 +99,8 @@ const AuthWrapper = () => {
                    <MainLayout />
                 </AdminRoute>
             }>
-                <Route index element={<AdminPage />} />
-                <Route path="seed-data" element={<SeedDataManager />} />
+                <Route index element={<Suspense fallback={<PageLoader />}><AdminPage /></Suspense>} />
+                <Route path="seed-data" element={<Suspense fallback={<PageLoader />}><SeedDataManager /></Suspense>} />
             </Route>
 
             {/* Main App Routes - Protected */}
@@ -101,46 +109,46 @@ const AuthWrapper = () => {
                     <MainLayout />
                 </ProtectedRoute>
             }>
-                <Route index element={<Dashboard />} />
-                <Route path="clients" element={<ClientsPage />} />
-                <Route path="clients/:id" element={<ClientProfile />} />
-                <Route path="projects" element={<ProjectsPage />} />
-                <Route path="projects/:projectId" element={<ProjectDetail />} />
-                <Route path="timesheets" element={<TimesheetsPage />} />
-                <Route path="invoices" element={<InvoicesPage />} />
-                <Route path="recurring-invoices" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}><RecurringInvoicesPage /></Suspense>} />
-                <Route path="credit-notes" element={<CreditNotesPage />} />
-                <Route path="delivery-notes" element={<DeliveryNotesPage />} />
-                <Route path="quotes" element={<QuotesPage />} />
-                <Route path="expenses" element={<ExpensesPage />} />
-                <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
+                <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+                <Route path="clients" element={<Suspense fallback={<PageLoader />}><ClientsPage /></Suspense>} />
+                <Route path="clients/:id" element={<Suspense fallback={<PageLoader />}><ClientProfile /></Suspense>} />
+                <Route path="projects" element={<Suspense fallback={<PageLoader />}><ProjectsPage /></Suspense>} />
+                <Route path="projects/:projectId" element={<Suspense fallback={<PageLoader />}><ProjectDetail /></Suspense>} />
+                <Route path="timesheets" element={<Suspense fallback={<PageLoader />}><TimesheetsPage /></Suspense>} />
+                <Route path="invoices" element={<Suspense fallback={<PageLoader />}><InvoicesPage /></Suspense>} />
+                <Route path="recurring-invoices" element={<Suspense fallback={<PageLoader />}><RecurringInvoicesPage /></Suspense>} />
+                <Route path="credit-notes" element={<Suspense fallback={<PageLoader />}><CreditNotesPage /></Suspense>} />
+                <Route path="delivery-notes" element={<Suspense fallback={<PageLoader />}><DeliveryNotesPage /></Suspense>} />
+                <Route path="quotes" element={<Suspense fallback={<PageLoader />}><QuotesPage /></Suspense>} />
+                <Route path="expenses" element={<Suspense fallback={<PageLoader />}><ExpensesPage /></Suspense>} />
+                <Route path="purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrdersPage /></Suspense>} />
 
                 {/* Stock (produits du User) */}
-                <Route path="stock" element={<StockManagement />} />
+                <Route path="stock" element={<Suspense fallback={<PageLoader />}><StockManagement /></Suspense>} />
                 <Route path="suppliers/stock" element={<Navigate to="/app/stock" replace />} />
 
                 {/* Supplier Routes */}
-                <Route path="suppliers" element={<SuppliersPage />} />
-                <Route path="suppliers/reports" element={<SupplierReports />} />
-                <Route path="suppliers/accounting" element={<AccountingIntegration />} />
-                <Route path="suppliers/:id" element={<SupplierProfile />} />
+                <Route path="suppliers" element={<Suspense fallback={<PageLoader />}><SuppliersPage /></Suspense>} />
+                <Route path="suppliers/reports" element={<Suspense fallback={<PageLoader />}><SupplierReports /></Suspense>} />
+                <Route path="suppliers/accounting" element={<Suspense fallback={<PageLoader />}><AccountingIntegration /></Suspense>} />
+                <Route path="suppliers/:id" element={<Suspense fallback={<PageLoader />}><SupplierProfile /></Suspense>} />
 
                 {/* New Feature Routes */}
-                <Route path="suppliers/map" element={<div className="h-[calc(100vh-100px)] p-4"><SupplierMap /></div>} />
-                <Route path="products/barcode" element={<div className="p-4"><BarcodeScanner /></div>} />
-                <Route path="reports/generator" element={<div className="p-4"><ReportGenerator /></div>} />
+                <Route path="suppliers/map" element={<div className="h-[calc(100vh-100px)] p-4"><Suspense fallback={<PageLoader />}><SupplierMap /></Suspense></div>} />
+                <Route path="products/barcode" element={<div className="p-4"><Suspense fallback={<PageLoader />}><BarcodeScanner /></Suspense></div>} />
+                <Route path="reports/generator" element={<div className="p-4"><Suspense fallback={<PageLoader />}><ReportGenerator /></Suspense></div>} />
 
-                <Route path="notifications" element={<NotificationCenter />} />
+                <Route path="notifications" element={<Suspense fallback={<PageLoader />}><NotificationCenter /></Suspense>} />
 
-                <Route path="debt-manager" element={<DebtManagerPage />} />
-                <Route path="scenarios" element={<ScenarioBuilder />} />
-                <Route path="scenarios/:scenarioId" element={<ScenarioDetail />} />
-                <Route path="cash-flow" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}><CashFlowPage /></Suspense>} />
-                <Route path="bank-connections" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}><BankConnectionsPage /></Suspense>} />
-                <Route path="bank-callback" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}><BankConnectionsPage /></Suspense>} />
-                <Route path="analytics" element={<AnalyticsPage />} />
-                <Route path="security" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}><SecuritySettings /></Suspense>} />
-                <Route path="settings" element={<SettingsPage />} />
+                <Route path="debt-manager" element={<Suspense fallback={<PageLoader />}><DebtManagerPage /></Suspense>} />
+                <Route path="scenarios" element={<Suspense fallback={<PageLoader />}><ScenarioBuilder /></Suspense>} />
+                <Route path="scenarios/:scenarioId" element={<Suspense fallback={<PageLoader />}><ScenarioDetail /></Suspense>} />
+                <Route path="cash-flow" element={<Suspense fallback={<PageLoader />}><CashFlowPage /></Suspense>} />
+                <Route path="bank-connections" element={<Suspense fallback={<PageLoader />}><BankConnectionsPage /></Suspense>} />
+                <Route path="bank-callback" element={<Suspense fallback={<PageLoader />}><BankConnectionsPage /></Suspense>} />
+                <Route path="analytics" element={<Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>} />
+                <Route path="security" element={<Suspense fallback={<PageLoader />}><SecuritySettings /></Suspense>} />
+                <Route path="settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
             </Route>
 
             {/* Fallback */}
