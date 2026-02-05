@@ -34,10 +34,16 @@ serve(async (req) => {
     // Deduct credits (from free first, then paid)
     const freeDeduction = Math.min(credits.free_credits, CREDIT_COST);
     const paidDeduction = CREDIT_COST - freeDeduction;
-    await supabase.from('user_credits').update({
+    const { error: updateError } = await supabase.from('user_credits').update({
       free_credits: credits.free_credits - freeDeduction,
-      paid_credits: credits.paid_credits - paidDeduction
+      paid_credits: credits.paid_credits - paidDeduction,
+      updated_at: new Date().toISOString()
     }).eq('user_id', userId);
+
+    if (updateError) {
+      console.error('Credit update error:', updateError);
+    }
+
     await supabase.from('credit_transactions').insert([{ user_id: userId, amount: -CREDIT_COST, type: 'usage', description: 'AI Chatbot' }]);
 
     // Fetch user financial context
