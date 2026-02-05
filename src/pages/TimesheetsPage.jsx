@@ -10,7 +10,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useTranslation } from 'react-i18next';
-import { Plus, ListFilter, Calendar as CalendarIcon, Download, FileText } from 'lucide-react';
+import { Plus, ListFilter, Calendar as CalendarIcon, Download, FileText, LayoutGrid, CalendarRange } from 'lucide-react';
 import { useTimesheets } from '@/hooks/useTimesheets';
 import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
@@ -18,6 +18,8 @@ import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportTimesheetsListPDF, exportTimesheetsListHTML } from '@/services/exportListsPDF';
 import TimesheetForm from '@/components/TimesheetForm';
 import TimesheetsList from '@/components/TimesheetsList';
+import TimesheetKanbanView from '@/components/TimesheetKanbanView';
+import TimesheetAgendaView from '@/components/TimesheetAgendaView';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const locales = {
@@ -112,15 +114,21 @@ const TimesheetsPage = () => {
                 <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                   <Tabs value={view} onValueChange={setView} className="bg-gray-900 rounded-lg p-1 border border-gray-800 w-full sm:w-auto">
                     <TabsList className="bg-transparent border-0 w-full justify-between sm:justify-start">
-                      {/* Hide Calendar view trigger on extremely small screens if unusable, but we'll leave it responsive */}
                       <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none">
-                        <CalendarIcon className="w-4 h-4 mr-2" />
-                        <span className="hidden sm:inline">Calendar</span>
+                        <CalendarIcon className="w-4 h-4 sm:mr-2" />
+                        <span className="hidden sm:inline">{t('timesheets.views.calendar')}</span>
                       </TabsTrigger>
                       <TabsTrigger value="list" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none">
-                        <ListFilter className="w-4 h-4 mr-2" />
-                        <span className="hidden sm:inline">List View</span>
-                        <span className="sm:hidden">List</span>
+                        <ListFilter className="w-4 h-4 sm:mr-2" />
+                        <span className="hidden sm:inline">{t('timesheets.views.list')}</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none">
+                        <LayoutGrid className="w-4 h-4 sm:mr-2" />
+                        <span className="hidden sm:inline">{t('timesheets.views.kanban')}</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 text-gray-400 flex-1 sm:flex-none">
+                        <CalendarRange className="w-4 h-4 sm:mr-2" />
+                        <span className="hidden sm:inline">{t('timesheets.views.agenda')}</span>
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>
@@ -174,65 +182,83 @@ const TimesheetsPage = () => {
             </Dialog>
 
             <div className="space-y-8">
-              {view === 'calendar' ? (
-                <div className="bg-gray-900 p-2 md:p-6 rounded-xl border border-gray-800 shadow-xl h-[500px] md:h-[700px] calendar-dark-theme overflow-x-auto">
-                  <style>{`
-                    .calendar-dark-theme .rbc-off-range-bg { background-color: #0a0a0f; }
-                    .calendar-dark-theme .rbc-calendar { color: #9ca3af; min-width: 600px; }
-                    .calendar-dark-theme .rbc-today { background-color: rgba(245, 158, 11, 0.15); }
-                    .calendar-dark-theme .rbc-event { background-color: #F59E0B; border-color: #D97706; color: #000; font-weight: 500; }
-                    .calendar-dark-theme .rbc-header { border-bottom: 1px solid #1f2937; padding: 10px; font-weight: 600; color: #e5e7eb; background: #111827; }
-                    .calendar-dark-theme .rbc-month-view, .calendar-dark-theme .rbc-time-view, .calendar-dark-theme .rbc-agenda-view { border: 1px solid #1f2937; border-radius: 8px; overflow: hidden; }
-                    .calendar-dark-theme .rbc-day-bg + .rbc-day-bg { border-left: 1px solid #1f2937; }
-                    .calendar-dark-theme .rbc-month-row + .rbc-month-row { border-top: 1px solid #1f2937; }
-                    .calendar-dark-theme .rbc-day-slot .rbc-time-slot { border-top: 1px solid #1f2937; }
-                    .calendar-dark-theme .rbc-time-header-content { border-left: 1px solid #1f2937; }
-                    .calendar-dark-theme .rbc-timeslot-group { border-bottom: 1px solid #1f2937; }
-                    .calendar-dark-theme .rbc-time-content { border-top: 2px solid #1f2937; }
-                    .calendar-dark-theme .rbc-time-gutter .rbc-timeslot-group { border-bottom: 1px solid #1f2937; }
-                    .calendar-dark-theme .rbc-day-slot .rbc-events-container { margin-right: 0; }
-                    .calendar-dark-theme .rbc-day-slot .rbc-event { border: 1px solid #D97706; background-color: rgba(245, 158, 11, 0.2); color: #fff; }
-                    .calendar-dark-theme .rbc-event-label { display: none; }
-                    .calendar-dark-theme .rbc-time-view .rbc-header { border-bottom: 1px solid #1f2937; }
-                    .calendar-dark-theme .rbc-day-slot .rbc-time-slot { border-top: 1px solid #111827; }
-                    .calendar-dark-theme .rbc-toolbar { margin-bottom: 16px; }
-                    .calendar-dark-theme .rbc-toolbar button { color: #e5e7eb; border: 1px solid #374151; background: #111827; border-radius: 8px; padding: 6px 16px; font-weight: 500; transition: all 0.2s; }
-                    .calendar-dark-theme .rbc-toolbar button:hover { background: #1f2937; border-color: #F59E0B; color: #F59E0B; }
-                    .calendar-dark-theme .rbc-toolbar button.rbc-active { background: #F59E0B; border-color: #F59E0B; color: #000; font-weight: 600; }
-                    .calendar-dark-theme .rbc-toolbar .rbc-toolbar-label { color: #fff; font-weight: 700; font-size: 1.25rem; }
-                    .calendar-dark-theme .rbc-show-more { color: #F59E0B; font-weight: 500; }
-                    .calendar-dark-theme .rbc-off-range { color: #374151; }
-                    .calendar-dark-theme .rbc-date-cell { color: #9ca3af; padding: 4px 8px; }
-                    .calendar-dark-theme .rbc-date-cell.rbc-now { color: #F59E0B; font-weight: 700; }
-                  `}</style>
-                  <Calendar
-                      localizer={localizer}
-                      events={events}
-                      startAccessor="start"
-                      endAccessor="end"
-                      style={{ height: '100%' }}
-                      selectable
-                      onSelectSlot={handleSelectSlot}
-                      onSelectEvent={handleSelectEvent}
-                      className="text-gray-200"
-                      views={['month', 'week', 'day', 'agenda']}
-                  />
-                </div>
-              ) : null}
+              {/* Calendar View */}
+              {view === 'calendar' && (
+                <>
+                  <div className="bg-gray-900 p-2 md:p-6 rounded-xl border border-gray-800 shadow-xl h-[500px] md:h-[700px] calendar-dark-theme overflow-x-auto">
+                    <style>{`
+                      .calendar-dark-theme .rbc-off-range-bg { background-color: #0a0a0f; }
+                      .calendar-dark-theme .rbc-calendar { color: #9ca3af; min-width: 600px; }
+                      .calendar-dark-theme .rbc-today { background-color: rgba(245, 158, 11, 0.15); }
+                      .calendar-dark-theme .rbc-event { background-color: #F59E0B; border-color: #D97706; color: #000; font-weight: 500; }
+                      .calendar-dark-theme .rbc-header { border-bottom: 1px solid #1f2937; padding: 10px; font-weight: 600; color: #e5e7eb; background: #111827; }
+                      .calendar-dark-theme .rbc-month-view, .calendar-dark-theme .rbc-time-view, .calendar-dark-theme .rbc-agenda-view { border: 1px solid #1f2937; border-radius: 8px; overflow: hidden; }
+                      .calendar-dark-theme .rbc-day-bg + .rbc-day-bg { border-left: 1px solid #1f2937; }
+                      .calendar-dark-theme .rbc-month-row + .rbc-month-row { border-top: 1px solid #1f2937; }
+                      .calendar-dark-theme .rbc-day-slot .rbc-time-slot { border-top: 1px solid #1f2937; }
+                      .calendar-dark-theme .rbc-time-header-content { border-left: 1px solid #1f2937; }
+                      .calendar-dark-theme .rbc-timeslot-group { border-bottom: 1px solid #1f2937; }
+                      .calendar-dark-theme .rbc-time-content { border-top: 2px solid #1f2937; }
+                      .calendar-dark-theme .rbc-time-gutter .rbc-timeslot-group { border-bottom: 1px solid #1f2937; }
+                      .calendar-dark-theme .rbc-day-slot .rbc-events-container { margin-right: 0; }
+                      .calendar-dark-theme .rbc-day-slot .rbc-event { border: 1px solid #D97706; background-color: rgba(245, 158, 11, 0.2); color: #fff; }
+                      .calendar-dark-theme .rbc-event-label { display: none; }
+                      .calendar-dark-theme .rbc-time-view .rbc-header { border-bottom: 1px solid #1f2937; }
+                      .calendar-dark-theme .rbc-day-slot .rbc-time-slot { border-top: 1px solid #111827; }
+                      .calendar-dark-theme .rbc-toolbar { margin-bottom: 16px; }
+                      .calendar-dark-theme .rbc-toolbar button { color: #e5e7eb; border: 1px solid #374151; background: #111827; border-radius: 8px; padding: 6px 16px; font-weight: 500; transition: all 0.2s; }
+                      .calendar-dark-theme .rbc-toolbar button:hover { background: #1f2937; border-color: #F59E0B; color: #F59E0B; }
+                      .calendar-dark-theme .rbc-toolbar button.rbc-active { background: #F59E0B; border-color: #F59E0B; color: #000; font-weight: 600; }
+                      .calendar-dark-theme .rbc-toolbar .rbc-toolbar-label { color: #fff; font-weight: 700; font-size: 1.25rem; }
+                      .calendar-dark-theme .rbc-show-more { color: #F59E0B; font-weight: 500; }
+                      .calendar-dark-theme .rbc-off-range { color: #374151; }
+                      .calendar-dark-theme .rbc-date-cell { color: #9ca3af; padding: 4px 8px; }
+                      .calendar-dark-theme .rbc-date-cell.rbc-now { color: #F59E0B; font-weight: 700; }
+                    `}</style>
+                    <Calendar
+                        localizer={localizer}
+                        events={events}
+                        startAccessor="start"
+                        endAccessor="end"
+                        style={{ height: '100%' }}
+                        selectable
+                        onSelectSlot={handleSelectSlot}
+                        onSelectEvent={handleSelectEvent}
+                        className="text-gray-200"
+                        views={['month', 'week', 'day', 'agenda']}
+                    />
+                  </div>
+                  <div className="mt-12">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-xl md:text-2xl font-bold text-gradient">Recent Entries</h2>
+                      <Button variant="link" onClick={() => setView('list')} className="text-orange-400">
+                        View All
+                      </Button>
+                    </div>
+                    <TimesheetsList timesheets={timesheets} loading={loading} />
+                  </div>
+                </>
+              )}
 
-              <div className={view === 'calendar' ? "mt-12" : ""}>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl md:text-2xl font-bold text-gradient">
-                    {view === 'calendar' ? 'Recent Entries' : 'All Entries'}
-                  </h2>
-                  {view === 'calendar' && (
-                    <Button variant="link" onClick={() => setView('list')} className="text-orange-400">
-                      View All
-                    </Button>
-                  )}
-                </div>
+              {/* List View */}
+              {view === 'list' && (
                 <TimesheetsList timesheets={timesheets} loading={loading} />
-              </div>
+              )}
+
+              {/* Kanban View */}
+              {view === 'kanban' && (
+                <TimesheetKanbanView
+                  timesheets={timesheets}
+                  onRefresh={fetchTimesheets}
+                />
+              )}
+
+              {/* Agenda View */}
+              {view === 'agenda' && (
+                <TimesheetAgendaView
+                  timesheets={timesheets}
+                />
+              )}
             </div>
         </div>
     </>

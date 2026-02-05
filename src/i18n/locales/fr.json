@@ -115,7 +115,32 @@
     "selectClient": "Sélectionner un client",
     "startTime": "Heure de début",
     "endTime": "Heure de fin",
-    "calculatedDuration": "Durée calculée"
+    "calculatedDuration": "Durée calculée",
+    "duration": "Durée",
+    "timeRange": "Horaire",
+    "project": "Projet",
+    "noProject": "Aucun projet",
+    "noClient": "Aucun client",
+    "noEntries": "Aucune entrée de temps",
+    "status": {
+      "draft": "Brouillon",
+      "in_progress": "En cours",
+      "approved": "Validé",
+      "invoiced": "Facturé"
+    },
+    "views": {
+      "calendar": "Calendrier",
+      "list": "Liste",
+      "kanban": "Kanban",
+      "agenda": "Agenda"
+    },
+    "agenda": {
+      "overdue": "En retard",
+      "today": "Aujourd'hui",
+      "tomorrow": "Demain",
+      "thisWeek": "Cette semaine",
+      "later": "Plus tard"
+    }
   },
   "buttons": {
     "cancel": "Annuler",
