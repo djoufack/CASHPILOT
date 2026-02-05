@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import { exportExpensesListPDF, exportExpensesListHTML } from '@/services/exportListsPDF';
+import { exportToCSV, exportToExcel } from '@/utils/exportService';
 
 const ExpensesPage = () => {
   const { t } = useTranslation();
@@ -78,6 +79,23 @@ const ExpensesPage = () => {
     (exp.supplier_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (exp.category || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleExportList = (format) => {
+    if (!filteredExpenses || filteredExpenses.length === 0) return;
+    const exportData = filteredExpenses.map(exp => ({
+      'Description': exp.description || '',
+      'Amount': exp.amount || '',
+      'Category': exp.category || '',
+      'Date': exp.date || '',
+      'Supplier': exp.supplier_name || '',
+      'Notes': exp.notes || '',
+    }));
+    if (format === 'csv') {
+      exportToCSV(exportData, 'expenses');
+    } else {
+      exportToExcel(exportData, 'expenses');
+    }
+  };
 
   const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
@@ -144,6 +162,30 @@ const ExpensesPage = () => {
               <p className="text-gray-400 mt-1 text-sm">Gérez et suivez vos dépenses professionnelles.</p>
             </div>
             <div className="flex gap-2 flex-wrap">
+              {filteredExpenses.length > 0 && (
+                <>
+                  <Button
+                    onClick={() => handleExportList('csv')}
+                    size="sm"
+                    variant="outline"
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    title="Export CSV"
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    CSV
+                  </Button>
+                  <Button
+                    onClick={() => handleExportList('xlsx')}
+                    size="sm"
+                    variant="outline"
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    title="Export Excel"
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    Excel
+                  </Button>
+                </>
+              )}
               <Button
                 onClick={handleExportPDF}
                 size="sm"

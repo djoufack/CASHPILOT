@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDeliveryNotes } from '@/hooks/useDeliveryNotes';
 import { useInvoices } from '@/hooks/useInvoices';
@@ -20,6 +20,8 @@ import {
 import { Plus, Trash2, Truck, Search, List, CalendarDays, CalendarClock, Download, FileText, Kanban } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationControls from '@/components/PaginationControls';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
@@ -133,6 +135,16 @@ const DeliveryNotesPage = () => {
       dn.tracking_number?.toLowerCase().includes(s)
     );
   });
+
+  const pagination = usePagination({ pageSize: 20 });
+
+  // Update pagination total count when filtered notes change
+  useEffect(() => {
+    pagination.setTotalCount(filteredNotes.length);
+  }, [filteredNotes.length]);
+
+  // Client-side paginated data for the list view
+  const paginatedNotes = filteredNotes.slice(pagination.from, pagination.to + 1);
 
   const [viewMode, setViewMode] = useState('list');
 
@@ -248,7 +260,7 @@ const DeliveryNotesPage = () => {
                     <tr><td colSpan={8} className="text-center p-8 text-gray-400">Loading...</td></tr>
                   ) : filteredNotes.length === 0 ? (
                     <tr><td colSpan={8} className="text-center p-8 text-gray-400">{t('deliveryNotes.noNotes')}</td></tr>
-                  ) : filteredNotes.map((dn) => (
+                  ) : paginatedNotes.map((dn) => (
                     <motion.tr key={dn.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
                       <td className="p-4 font-mono text-sm">{dn.delivery_note_number}</td>
                       <td className="p-4">{dn.client?.company_name || '-'}</td>
@@ -295,6 +307,19 @@ const DeliveryNotesPage = () => {
               </table>
             </div>
           </div>
+          <PaginationControls
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalCount={pagination.totalCount}
+            pageSize={pagination.pageSize}
+            pageSizeOptions={pagination.pageSizeOptions}
+            hasNextPage={pagination.hasNextPage}
+            hasPrevPage={pagination.hasPrevPage}
+            onNextPage={pagination.nextPage}
+            onPrevPage={pagination.prevPage}
+            onGoToPage={pagination.goToPage}
+            onChangePageSize={pagination.changePageSize}
+          />
         </TabsContent>
 
         <TabsContent value="calendar">

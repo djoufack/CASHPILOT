@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 export const useCreditNotes = () => {
   const [creditNotes, setCreditNotes] = useState([]);
@@ -11,6 +12,7 @@ export const useCreditNotes = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { logAction } = useAuditLog();
 
   const fetchCreditNotes = async () => {
     if (!user || !supabase) return;
@@ -71,6 +73,8 @@ export const useCreditNotes = () => {
         if (itemError) throw itemError;
       }
 
+      logAction('create', 'credit_note', null, data);
+
       setCreditNotes([{ ...data, items }, ...creditNotes]);
       toast({ title: t('common.success'), description: t('creditNotes.created') });
       return data;
@@ -95,6 +99,10 @@ export const useCreditNotes = () => {
         .single();
 
       if (error) throw error;
+
+      const oldCreditNote = creditNotes.find(cn => cn.id === id);
+      logAction('update', 'credit_note', oldCreditNote || null, updated);
+
       setCreditNotes(creditNotes.map(cn => cn.id === id ? { ...cn, ...updated } : cn));
       toast({ title: t('common.success'), description: t('creditNotes.updated') });
       return updated;
@@ -114,6 +122,9 @@ export const useCreditNotes = () => {
       await supabase.from('credit_note_items').delete().eq('credit_note_id', id);
       const { error } = await supabase.from('credit_notes').delete().eq('id', id);
       if (error) throw error;
+
+      const deletedCreditNote = creditNotes.find(cn => cn.id === id);
+      logAction('delete', 'credit_note', deletedCreditNote || { id }, null);
 
       setCreditNotes(creditNotes.filter(cn => cn.id !== id));
       toast({ title: t('common.success'), description: t('creditNotes.deleted') });

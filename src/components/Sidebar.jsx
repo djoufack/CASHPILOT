@@ -14,12 +14,14 @@ import {
   Home, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Archive, BarChart3, Calculator, PieChart, Settings,
   Map, QrCode, FileBarChart, Database, Bell, Menu,
-  Receipt, Building2, User, ClipboardList, FileMinus, PackageCheck, Wallet
+  Receipt, Building2, User, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import CreditsBalance from '@/components/CreditsBalance';
+import ThemeToggle from '@/components/ThemeToggle';
+import NotificationCenterComponent from '@/components/NotificationCenter';
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
   const { t } = useTranslation();
@@ -56,6 +58,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
     { path: '/app/projects', label: t('common.projects'), icon: Briefcase },
     { path: '/app/timesheets', label: t('common.timesheets'), icon: Clock },
     { path: '/app/invoices', label: t('common.invoices'), icon: FileText },
+    { path: '/app/recurring-invoices', label: t('recurringInvoices.title'), icon: RefreshCw },
     { path: '/app/credit-notes', label: t('creditNotes.title'), icon: FileMinus },
     { path: '/app/delivery-notes', label: t('deliveryNotes.title'), icon: PackageCheck },
     { path: '/app/quotes', label: t('common.quotes'), icon: FileSignature },
@@ -69,9 +72,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
     { path: '/app/products/barcode', label: 'Scanner', icon: QrCode },
     { path: '/app/suppliers/reports', label: t('suppliers.reports'), icon: BarChart3 },
     { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
+    { type: 'separator', label: 'Finance' },
+    { path: '/app/bank-connections', label: t('nav.bankConnections') || 'Bank Connections', icon: Building2 },
+    { path: '/app/cash-flow', label: t('nav.cashFlow') || 'Cash Flow', icon: TrendingUp },
     { type: 'separator', label: 'System' },
     { path: '/app/reports/generator', label: 'Reports', icon: FileBarChart },
     { path: '/app/analytics', label: 'Analytics', icon: PieChart },
+    { path: '/app/security', label: t('nav.security') || 'Security', icon: Shield },
     { path: '/app/settings', label: t('common.settings'), icon: Settings },
   ];
 
@@ -211,6 +218,14 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
             {!isCollapsed && <span className="text-sm font-medium">Notifications</span>}
           </div>
         </Link>
+
+        <div className={cn(
+          "flex items-center gap-2",
+          isCollapsed ? "justify-center" : "px-3 py-1"
+        )}>
+          <ThemeToggle />
+          {!isCollapsed && <NotificationCenterComponent />}
+        </div>
 
         <div className={cn(isCollapsed ? "flex justify-center" : "px-1")}>
           <LanguageSwitcher />

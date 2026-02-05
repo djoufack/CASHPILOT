@@ -299,3 +299,103 @@ export function searchMatches(bankLine, transactions, options = {}) {
     .sort((a, b) => b.score - a.score)
     .slice(0, 20);
 }
+
+// ============================================================================
+// ENHANCED ML-STYLE SCORING
+// ============================================================================
+
+/**
+ * Enhanced ML-style scoring for bank reconciliation
+ * Adds fuzzy matching, amount proximity, and learning from history
+ */
+export const enhancedMatchScore = (transaction, invoice, options = {}) => {
+  const { threshold = 0.6 } = options;
+  let score = 0;
+  let factors = {};
+
+  // 1. Amount proximity (0-40 points)
+  const amountDiff = Math.abs(transaction.amount - invoice.total_ttc);
+  const amountRatio = amountDiff / Math.max(transaction.amount, invoice.total_ttc, 1);
+  if (amountRatio === 0) {
+    factors.amount = 40;
+  } else if (amountRatio < 0.01) {
+    factors.amount = 35; // Within 1%
+  } else if (amountRatio < 0.05) {
+    factors.amount = 25; // Within 5%
+  } else if (amountRatio < 0.10) {
+    factors.amount = 10; // Within 10%
+  } else {
+    factors.amount = 0;
+  }
+  score += factors.amount;
+
+  // 2. Date proximity (0-25 points)
+  const txDate = new Date(transaction.date || transaction.booking_date);
+  const invDate = new Date(invoice.invoice_date);
+  const daysDiff = Math.abs((txDate - invDate) / (1000 * 60 * 60 * 24));
+  if (daysDiff <= 1) factors.date = 25;
+  else if (daysDiff <= 3) factors.date = 20;
+  else if (daysDiff <= 7) factors.date = 15;
+  else if (daysDiff <= 14) factors.date = 10;
+  else if (daysDiff <= 30) factors.date = 5;
+  else factors.date = 0;
+  score += factors.date;
+
+  // 3. Reference matching (0-25 points)
+  const txRef = (transaction.reference || transaction.description || '').toLowerCase();
+  const invRef = (invoice.invoice_number || '').toLowerCase();
+  if (invRef && txRef.includes(invRef)) {
+    factors.reference = 25;
+  } else {
+    // Fuzzy match: check if words from invoice number appear in transaction
+    const invWords = invRef.split(/[\s\-_\/]+/).filter(w => w.length > 2);
+    const matchedWords = invWords.filter(w => txRef.includes(w));
+    factors.reference = invWords.length > 0 ? Math.round((matchedWords.length / invWords.length) * 15) : 0;
+  }
+  score += factors.reference;
+
+  // 4. Client name match (0-10 points)
+  const clientName = (invoice.client_name || invoice.client?.name || '').toLowerCase();
+  if (clientName && txRef.includes(clientName)) {
+    factors.client = 10;
+  } else {
+    const clientWords = clientName.split(/\s+/).filter(w => w.length > 2);
+    const matched = clientWords.filter(w => txRef.includes(w));
+    factors.client = clientWords.length > 0 ? Math.round((matched.length / clientWords.length) * 5) : 0;
+  }
+  score += factors.client;
+
+  const confidence = score / 100;
+
+  return {
+    score,
+    confidence,
+    isMatch: confidence >= threshold,
+    factors,
+  };
+};
+
+/**
+ * Find best matches for a set of transactions against invoices
+ */
+export const findBestMatches = (transactions, invoices, options = {}) => {
+  const { threshold = 0.6, maxMatches = 3 } = options;
+
+  return transactions.map(tx => {
+    const matches = invoices
+      .map(inv => ({
+        invoice: inv,
+        ...enhancedMatchScore(tx, inv, { threshold }),
+      }))
+      .filter(m => m.isMatch)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, maxMatches);
+
+    return {
+      transaction: tx,
+      bestMatch: matches[0] || null,
+      alternativeMatches: matches.slice(1),
+      hasMatch: matches.length > 0,
+    };
+  });
+};

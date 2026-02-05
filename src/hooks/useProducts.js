@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 export const useProducts = () => {
   const [products, setProducts] = useState([]);
@@ -10,6 +11,7 @@ export const useProducts = () => {
   const [error, setError] = useState(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { logAction } = useAuditLog();
 
   const fetchProducts = async () => {
     if (!user || !supabase) return;
@@ -47,6 +49,9 @@ export const useProducts = () => {
         .single();
 
       if (error) throw error;
+
+      logAction('create', 'product', null, data);
+
       setProducts(prev => [data, ...prev]);
       toast({ title: "Succès", description: "Produit créé avec succès." });
       return data;
@@ -71,6 +76,10 @@ export const useProducts = () => {
         .single();
 
       if (error) throw error;
+
+      const oldProduct = products.find(p => p.id === id);
+      logAction('update', 'product', oldProduct || null, data);
+
       setProducts(prev => prev.map(p => p.id === id ? data : p));
       toast({ title: "Succès", description: "Produit mis à jour." });
       return data;
@@ -93,6 +102,10 @@ export const useProducts = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      const deletedProduct = products.find(p => p.id === id);
+      logAction('delete', 'product', deletedProduct || { id }, null);
+
       setProducts(prev => prev.filter(p => p.id !== id));
       toast({ title: "Succès", description: "Produit supprimé." });
     } catch (err) {
@@ -126,6 +139,9 @@ export const useProducts = () => {
         .single();
 
       if (error) throw error;
+
+      logAction('create', 'product', null, data);
+
       setProducts(prev => [data, ...prev]);
       toast({ title: "Succès", description: `"${supplierProduct.product_name}" importé dans votre stock.` });
       return data;

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 export const useExpenses = () => {
   const [expenses, setExpenses] = useState([]);
@@ -10,6 +11,7 @@ export const useExpenses = () => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { logAction } = useAuditLog();
 
   const fetchExpenses = async () => {
     if (!user) return;
@@ -56,6 +58,8 @@ export const useExpenses = () => {
         .single();
 
       if (error) throw error;
+
+      logAction('create', 'expense', null, data);
 
       setExpenses([data, ...expenses]);
       return data;

@@ -1,0 +1,106 @@
+/* Light Theme for CashPilot */
+/* Applied when <html class="light"> */
+
+.light {
+  /* Background colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-input: #ffffff;
+  --bg-sidebar: #f8fafc;
+
+  /* Text colors */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  --text-muted: #cbd5e1;
+
+  /* Border colors */
+  --border-primary: #e2e8f0;
+  --border-secondary: #f1f5f9;
+
+  /* Brand colors stay the same */
+  --color-orange: #f59e0b;
+  --color-orange-hover: #d97706;
+}
+
+/* Override Tailwind dark classes for light mode */
+.light .bg-gray-950 { background-color: #ffffff !important; }
+.light .bg-gray-900 { background-color: #f8fafc !important; }
+.light .bg-gray-900\/50 { background-color: rgba(248, 250, 252, 0.5) !important; }
+.light .bg-gray-900\/80 { background-color: rgba(248, 250, 252, 0.8) !important; }
+.light .bg-gray-800 { background-color: #f1f5f9 !important; }
+.light .bg-gray-800\/50 { background-color: rgba(241, 245, 249, 0.5) !important; }
+
+.light .text-white { color: #0f172a !important; }
+.light .text-gray-100 { color: #1e293b !important; }
+.light .text-gray-200 { color: #334155 !important; }
+.light .text-gray-300 { color: #475569 !important; }
+.light .text-gray-400 { color: #64748b !important; }
+.light .text-gray-500 { color: #94a3b8 !important; }
+
+.light .border-gray-700 { border-color: #e2e8f0 !important; }
+.light .border-gray-800 { border-color: #f1f5f9 !important; }
+
+/* Card styles */
+.light .bg-gradient-to-br.from-gray-800 {
+  background: linear-gradient(to bottom right, #ffffff, #f8fafc) !important;
+}
+
+/* Sidebar */
+.light [class*="sidebar"] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Input fields */
+.light input,
+.light select,
+.light textarea {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #1e293b !important;
+}
+
+.light input::placeholder,
+.light textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Buttons */
+.light .bg-orange-500 { background-color: #f59e0b !important; }
+.light .hover\:bg-gray-800:hover { background-color: #e2e8f0 !important; }
+
+/* Tables */
+.light table thead { background-color: #f1f5f9 !important; }
+.light table tbody tr { border-color: #e2e8f0 !important; }
+.light table tbody tr:hover { background-color: #f8fafc !important; }
+
+/* Scrollbar */
+.light ::-webkit-scrollbar-track { background: #f1f5f9; }
+.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+.light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Dialogs & modals */
+.light [role="dialog"] { background-color: #ffffff !important; }
+
+/* Dropdown menus */
+.light [role="menu"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+.light [role="menuitem"]:hover { background-color: #f1f5f9 !important; }
+
+/* Status badges */
+.light .bg-green-500\/10 { background-color: rgba(34, 197, 94, 0.1) !important; }
+.light .bg-red-500\/10 { background-color: rgba(239, 68, 68, 0.1) !important; }
+.light .bg-yellow-500\/10 { background-color: rgba(234, 179, 8, 0.1) !important; }
+.light .bg-blue-500\/10 { background-color: rgba(59, 130, 246, 0.1) !important; }
+
+/* Shadow for light mode cards */
+.light .shadow-lg,
+.light .shadow-xl {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1) !important;
+}

@@ -9,8 +9,10 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Package, BarChart3, Calculator, PieChart, Settings,
-  FileMinus, PackageCheck, Wallet, TrendingUp
+  FileMinus, PackageCheck, Wallet, TrendingUp, Building2, RefreshCw, Shield
 } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
+import NotificationCenter from '@/components/NotificationCenter';
 
 const MainLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -56,8 +58,12 @@ const MainLayout = () => {
     { path: '/app/suppliers/reports', label: 'Rapports', icon: BarChart3 },
     { path: '/app/suppliers/accounting', label: 'Comptabilité', icon: Calculator },
     { path: '/app/scenarios', label: 'Simulations Financières', icon: TrendingUp },
+    { path: '/app/recurring-invoices', label: t('nav.recurringInvoices') || 'Recurring Invoices', icon: RefreshCw },
+    { path: '/app/bank-connections', label: t('nav.bankConnections') || 'Bank Connections', icon: Building2 },
+    { path: '/app/cash-flow', label: t('nav.cashFlow') || 'Cash Flow', icon: TrendingUp },
     { type: 'separator', label: 'System' },
     { path: '/app/analytics', label: t('nav.analytics') || 'Analytics', icon: PieChart },
+    { path: '/app/security', label: t('nav.security') || 'Security', icon: Shield },
     { path: '/app/settings', label: 'Settings', icon: Settings },
   ];
 
@@ -72,6 +78,10 @@ const MainLayout = () => {
           <span className="text-xl font-bold">
             <span className="text-orange-400">Cash</span><span className="text-white">Pilot</span>
           </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <NotificationCenter />
         </div>
       </div>
 

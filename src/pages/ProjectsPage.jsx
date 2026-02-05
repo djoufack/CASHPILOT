@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '@/hooks/useProjects';
@@ -11,11 +11,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Plus, Search, Briefcase, ArrowRight, Loader2, Calendar, List, CalendarDays, CalendarClock, Download, FileText, Kanban } from 'lucide-react';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationControls from '@/components/PaginationControls';
 import { format, parseISO } from 'date-fns';
 import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportProjectsListPDF, exportProjectsListHTML } from '@/services/exportListsPDF';
+import { exportToCSV, exportToExcel } from '@/utils/exportService';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
@@ -166,6 +169,16 @@ const ProjectsPage = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const pagination = usePagination({ pageSize: 20 });
+
+  // Update pagination total count when filtered projects change
+  useEffect(() => {
+    pagination.setTotalCount(filteredProjects.length);
+  }, [filteredProjects.length]);
+
+  // Client-side paginated data for the list view
+  const paginatedProjects = filteredProjects.slice(pagination.from, pagination.to + 1);
+
   const handleOpenDialog = () => {
     setFormData(initialFormData);
     setIsDialogOpen(true);
@@ -214,6 +227,24 @@ const ProjectsPage = () => {
     );
   };
 
+  const handleExportList = (exportFormat) => {
+    if (!filteredProjects || filteredProjects.length === 0) return;
+    const exportData = filteredProjects.map(p => ({
+      'Name': p.name || '',
+      'Client': p.client?.company_name || '',
+      'Status': p.status || '',
+      'Budget (hours)': p.budget_hours || '',
+      'Hourly Rate': p.hourly_rate || '',
+      'Progress': p.progress || 0,
+      'Start Date': p.created_at ? format(parseISO(p.created_at), 'yyyy-MM-dd') : '',
+    }));
+    if (exportFormat === 'csv') {
+      exportToCSV(exportData, 'projects');
+    } else {
+      exportToExcel(exportData, 'projects');
+    }
+  };
+
   return (
     <>
       <CreditsGuardModal {...modalProps} />
@@ -228,7 +259,31 @@ const ProjectsPage = () => {
               <p className="text-gray-400 text-sm md:text-base">Manage and track your ongoing work.</p>
             </motion.div>
 
-            <div className="flex gap-2 w-full md:w-auto">
+            <div className="flex gap-2 w-full md:w-auto flex-wrap">
+              {filteredProjects.length > 0 && (
+                <>
+                  <Button
+                    onClick={() => handleExportList('csv')}
+                    size="sm"
+                    variant="outline"
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700 flex-1 md:flex-none"
+                    title="Export CSV"
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    CSV
+                  </Button>
+                  <Button
+                    onClick={() => handleExportList('xlsx')}
+                    size="sm"
+                    variant="outline"
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700 flex-1 md:flex-none"
+                    title="Export Excel"
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    Excel
+                  </Button>
+                </>
+              )}
               <Button
                 onClick={handleExportPDF}
                 size="sm"
@@ -305,11 +360,26 @@ const ProjectsPage = () => {
                   <p className="text-gray-400 text-lg">No projects found.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredProjects.map(project => (
-                    <ProjectCard key={project.id} project={project} />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {paginatedProjects.map(project => (
+                      <ProjectCard key={project.id} project={project} />
+                    ))}
+                  </div>
+                  <PaginationControls
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalCount={pagination.totalCount}
+                    pageSize={pagination.pageSize}
+                    pageSizeOptions={pagination.pageSizeOptions}
+                    hasNextPage={pagination.hasNextPage}
+                    hasPrevPage={pagination.hasPrevPage}
+                    onNextPage={pagination.nextPage}
+                    onPrevPage={pagination.prevPage}
+                    onGoToPage={pagination.goToPage}
+                    onChangePageSize={pagination.changePageSize}
+                  />
+                </>
               )}
             </TabsContent>
 

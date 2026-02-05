@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 export const useProjects = () => {
   const [projects, setProjects] = useState([]);
@@ -10,6 +11,7 @@ export const useProjects = () => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { logAction } = useAuditLog();
 
   const fetchProjects = async (filters = {}) => {
     if (!user) return;
@@ -64,6 +66,8 @@ export const useProjects = () => {
 
       if (error) throw error;
 
+      logAction('create', 'project', null, data);
+
       setProjects([data, ...projects]);
       toast({
         title: "Success",
@@ -95,6 +99,9 @@ export const useProjects = () => {
         .single();
 
       if (error) throw error;
+
+      const oldProject = projects.find(p => p.id === id);
+      logAction('update', 'project', oldProject || null, data);
 
       setProjects(projects.map(p => p.id === id ? data : p));
       toast({
@@ -137,6 +144,9 @@ export const useProjects = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      const deletedProject = projects.find(p => p.id === id);
+      logAction('delete', 'project', deletedProject || { id }, null);
 
       setProjects(projects.filter(p => p.id !== id));
       toast({

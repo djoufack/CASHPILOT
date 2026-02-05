@@ -3,6 +3,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,6 +51,17 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { filePath, fileType, userId } = await req.json();
+
+    // Rate limiting: 10 extractions per 15 minutes per user
+    const rateLimit = checkRateLimit(userId || 'anonymous', {
+      maxRequests: 10,
+      windowMs: 15 * 60 * 1000,
+      keyPrefix: 'extract-invoice',
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit, corsHeaders);
+    }
 
     if (!filePath || !fileType || !userId) {
       return new Response(

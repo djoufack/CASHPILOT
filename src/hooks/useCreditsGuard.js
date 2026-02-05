@@ -36,6 +36,12 @@ export const CREDIT_COSTS = {
 
   // IA
   AI_INVOICE_EXTRACTION: 3,
+  AI_CHATBOT: 2,
+  AI_CATEGORIZE: 1,
+  AI_ANOMALY_DETECT: 3,
+  AI_FORECAST: 3,
+  AI_REMINDER_SUGGEST: 1,
+  AI_REPORT: 5,
 };
 
 /**
@@ -72,6 +78,12 @@ export const CREDIT_COST_LABELS = {
 
   // IA
   AI_INVOICE_EXTRACTION: 'credits.costs.aiInvoiceExtraction',
+  AI_CHATBOT: 'credits.costs.aiChatbot',
+  AI_CATEGORIZE: 'credits.costs.aiCategorize',
+  AI_ANOMALY_DETECT: 'credits.costs.aiAnomalyDetect',
+  AI_FORECAST: 'credits.costs.aiForecast',
+  AI_REMINDER_SUGGEST: 'credits.costs.aiReminderSuggest',
+  AI_REPORT: 'credits.costs.aiReport',
 };
 
 /**
@@ -108,6 +120,12 @@ export const CREDIT_CATEGORIES = {
   ],
   AI_FEATURES: [
     'AI_INVOICE_EXTRACTION',
+    'AI_CHATBOT',
+    'AI_CATEGORIZE',
+    'AI_ANOMALY_DETECT',
+    'AI_FORECAST',
+    'AI_REMINDER_SUGGEST',
+    'AI_REPORT',
   ],
 };
 

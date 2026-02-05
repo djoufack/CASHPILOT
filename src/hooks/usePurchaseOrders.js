@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 export const usePurchaseOrders = () => {
   const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -10,6 +11,7 @@ export const usePurchaseOrders = () => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { logAction } = useAuditLog();
 
   const fetchPurchaseOrders = async (filters = {}) => {
     if (!user) return;
@@ -61,6 +63,8 @@ export const usePurchaseOrders = () => {
 
       if (error) throw error;
 
+      logAction('create', 'purchase_order', null, data);
+
       setPurchaseOrders([data, ...purchaseOrders]);
       toast({
         title: "Succès",
@@ -93,6 +97,9 @@ export const usePurchaseOrders = () => {
 
       if (error) throw error;
 
+      const oldPO = purchaseOrders.find(po => po.id === id);
+      logAction('update', 'purchase_order', oldPO || null, data);
+
       setPurchaseOrders(purchaseOrders.map(po => po.id === id ? data : po));
       toast({
         title: "Succès",
@@ -122,6 +129,9 @@ export const usePurchaseOrders = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      const deletedPO = purchaseOrders.find(po => po.id === id);
+      logAction('delete', 'purchase_order', deletedPO || { id }, null);
 
       setPurchaseOrders(purchaseOrders.filter(po => po.id !== id));
       toast({

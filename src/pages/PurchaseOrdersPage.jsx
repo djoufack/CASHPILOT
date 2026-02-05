@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
@@ -15,6 +15,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, ClipboardList, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Kanban, Download, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationControls from '@/components/PaginationControls';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
@@ -194,6 +196,16 @@ const PurchaseOrdersPage = () => {
     const matchesFilter = filterStatus === 'all' || po.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
+
+  const pagination = usePagination({ pageSize: 20 });
+
+  // Update pagination total count when filtered POs change
+  useEffect(() => {
+    pagination.setTotalCount(filteredPOs.length);
+  }, [filteredPOs.length]);
+
+  // Client-side paginated data for the list view
+  const paginatedPOs = filteredPOs.slice(pagination.from, pagination.to + 1);
 
   const handleOpenDialog = () => {
     setFormData({ ...initialFormData, items: [{ ...emptyItem }] });
@@ -385,11 +397,26 @@ const PurchaseOrdersPage = () => {
                 </Button>
               </motion.div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredPOs.map(po => (
-                  <POCard key={po.id} po={po} onDelete={handleDelete} onExportPDF={handleExportPurchaseOrderPDF} onExportHTML={handleExportPurchaseOrderHTML} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {paginatedPOs.map(po => (
+                    <POCard key={po.id} po={po} onDelete={handleDelete} onExportPDF={handleExportPurchaseOrderPDF} onExportHTML={handleExportPurchaseOrderHTML} />
+                  ))}
+                </div>
+                <PaginationControls
+                  currentPage={pagination.currentPage}
+                  totalPages={pagination.totalPages}
+                  totalCount={pagination.totalCount}
+                  pageSize={pagination.pageSize}
+                  pageSizeOptions={pagination.pageSizeOptions}
+                  hasNextPage={pagination.hasNextPage}
+                  hasPrevPage={pagination.hasPrevPage}
+                  onNextPage={pagination.nextPage}
+                  onPrevPage={pagination.prevPage}
+                  onGoToPage={pagination.goToPage}
+                  onChangePageSize={pagination.changePageSize}
+                />
+              </>
             )}
           </TabsContent>
 

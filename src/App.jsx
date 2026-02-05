@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Route, Routes, BrowserRouter as Router, Navigate } from 'react-router-dom';
+import AIChatWidget from '@/components/AIChatWidget';
 import ScrollToTop from './components/ScrollToTop';
 import Dashboard from './pages/Dashboard';
 import ClientsPage from './pages/ClientsPage';
@@ -45,6 +46,11 @@ import DebtManagerPage from './pages/DebtManagerPage';
 import ScenarioBuilder from './pages/ScenarioBuilder';
 import ScenarioDetail from './pages/ScenarioDetail';
 import LandingPage from './pages/LandingPage';
+// Lazy-loaded pages (code splitting)
+const SecuritySettings = lazy(() => import('@/pages/SecuritySettings'));
+const RecurringInvoicesPage = lazy(() => import('@/pages/RecurringInvoicesPage'));
+const BankConnectionsPage = lazy(() => import('@/pages/BankConnectionsPage'));
+const CashFlowPage = lazy(() => import('@/pages/CashFlowPage'));
 
 // Wrapper to handle auth redirects
 const AuthWrapper = () => {
@@ -95,6 +101,7 @@ const AuthWrapper = () => {
                 <Route path="projects/:projectId" element={<ProjectDetail />} />
                 <Route path="timesheets" element={<TimesheetsPage />} />
                 <Route path="invoices" element={<InvoicesPage />} />
+                <Route path="recurring-invoices" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}><RecurringInvoicesPage /></Suspense>} />
                 <Route path="credit-notes" element={<CreditNotesPage />} />
                 <Route path="delivery-notes" element={<DeliveryNotesPage />} />
                 <Route path="quotes" element={<QuotesPage />} />
@@ -121,7 +128,11 @@ const AuthWrapper = () => {
                 <Route path="debt-manager" element={<DebtManagerPage />} />
                 <Route path="scenarios" element={<ScenarioBuilder />} />
                 <Route path="scenarios/:scenarioId" element={<ScenarioDetail />} />
+                <Route path="cash-flow" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}><CashFlowPage /></Suspense>} />
+                <Route path="bank-connections" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}><BankConnectionsPage /></Suspense>} />
+                <Route path="bank-callback" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}><BankConnectionsPage /></Suspense>} />
                 <Route path="analytics" element={<AnalyticsPage />} />
+                <Route path="security" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}><SecuritySettings /></Suspense>} />
                 <Route path="settings" element={<SettingsPage />} />
             </Route>
 
@@ -137,6 +148,7 @@ function App() {
             <ErrorBoundary>
                 <ScrollToTop />
                 <AuthWrapper />
+                <AIChatWidget />
                 <Toaster />
             </ErrorBoundary>
         </Router>

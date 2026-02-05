@@ -89,7 +89,10 @@
     "noInvoices": "Aucune facture trouvée",
     "total": "Total",
     "status": "Statut",
-    "invoiceDetails": "Détails de la facture"
+    "invoiceDetails": "Détails de la facture",
+    "sendByEmail": "Envoyer par email",
+    "noClientEmail": "Ce client n'a pas d'adresse email",
+    "emailSentTo": "Facture envoyée à {{email}}"
   },
   "timesheets": {
     "title": "Feuilles de temps",
@@ -830,9 +833,83 @@
     "supportedFormats": "PDF, JPG, PNG - max 10 Mo",
     "creditsCost": "credits"
   },
+  "gdpr": {
+    "exportTitle": "Export de donn\u00e9es (RGPD)",
+    "exportDescription": "T\u00e9l\u00e9chargez une copie de toutes vos donn\u00e9es personnelles stock\u00e9es dans CashPilot.",
+    "exportInfo": "Conform\u00e9ment \u00e0 l'article 20 du RGPD, vous avez le droit de recevoir vos donn\u00e9es personnelles dans un format structur\u00e9 et couramment utilis\u00e9. Cliquez ci-dessous pour t\u00e9l\u00e9charger un fichier JSON contenant toutes vos donn\u00e9es.",
+    "exportButton": "T\u00e9l\u00e9charger mes donn\u00e9es",
+    "exporting": "Exportation en cours...",
+    "exportSuccess": "Donn\u00e9es export\u00e9es",
+    "exportSuccessDesc": "Vos donn\u00e9es ont \u00e9t\u00e9 t\u00e9l\u00e9charg\u00e9es avec succ\u00e8s.",
+    "exportError": "\u00c9chec de l'exportation des donn\u00e9es. Veuillez r\u00e9essayer.",
+    "dangerZone": "Zone de danger",
+    "dangerZoneDescription": "Actions irr\u00e9versibles qui affectent votre compte de mani\u00e8re permanente.",
+    "deleteWarningTitle": "La suppression de votre compte entra\u00eenera de mani\u00e8re permanente :",
+    "deleteWarning1": "La suppression de toutes vos donn\u00e9es personnelles, factures, clients, projets et fichiers",
+    "deleteWarning2": "L'annulation de tout abonnement actif",
+    "deleteWarning3": "La r\u00e9vocation de l'acc\u00e8s \u00e0 toutes les donn\u00e9es partag\u00e9es",
+    "deleteWarning4": "Cette action ne peut pas \u00eatre annul\u00e9e",
+    "deleteAccountButton": "Supprimer mon compte",
+    "deleteConfirmTitle": "\u00cates-vous absolument s\u00fbr ?",
+    "deleteConfirmDescription": "Cette action est permanente et irr\u00e9versible. Toutes vos donn\u00e9es, factures, clients, projets et fichiers t\u00e9l\u00e9charg\u00e9s seront d\u00e9finitivement supprim\u00e9s de nos serveurs conform\u00e9ment au RGPD.",
+    "deleteConfirmType": "Tapez \"{{phrase}}\" ci-dessous pour confirmer :",
+    "typeConfirmation": "Confirmation",
+    "confirmDeleteButton": "Supprimer d\u00e9finitivement le compte",
+    "deleting": "Suppression en cours...",
+    "accountDeleted": "Compte supprim\u00e9",
+    "accountDeletedDesc": "Votre compte et toutes les donn\u00e9es associ\u00e9es ont \u00e9t\u00e9 supprim\u00e9s d\u00e9finitivement.",
+    "deleteError": "\u00c9chec de la suppression du compte. Veuillez r\u00e9essayer ou contacter le support."
+  },
+  "recurringInvoices": {
+    "title": "Factures R\u00e9currentes",
+    "subtitle": "Automatisez la g\u00e9n\u00e9ration de vos factures avec des mod\u00e8les r\u00e9currents",
+    "create": "Nouvelle Facture R\u00e9currente",
+    "createTitle": "Cr\u00e9er une Facture R\u00e9currente",
+    "editTitle": "Modifier la Facture R\u00e9currente",
+    "deleteTitle": "Supprimer la Facture R\u00e9currente",
+    "deleteConfirm": "\u00cates-vous s\u00fbr de vouloir supprimer cette facture r\u00e9currente ? Cette action est irr\u00e9versible.",
+    "noItems": "Aucune facture r\u00e9currente trouv\u00e9e",
+    "loading": "Chargement des factures r\u00e9currentes...",
+    "addLine": "Ajouter une ligne",
+    "fields": {
+      "title": "Titre",
+      "titlePlaceholder": "ex. Frais d'h\u00e9bergement mensuel",
+      "description": "Description",
+      "descriptionPlaceholder": "Description optionnelle...",
+      "client": "Client",
+      "currency": "Devise",
+      "frequency": "Fr\u00e9quence",
+      "interval": "Intervalle",
+      "dayOfMonth": "Jour du mois",
+      "startDate": "Date de d\u00e9but",
+      "endDate": "Date de fin (optionnel)",
+      "nextGeneration": "Prochaine g\u00e9n\u00e9ration",
+      "amountTTC": "Montant (TTC)",
+      "tvaRate": "Taux TVA (%)",
+      "autoSend": "Envoi automatique \u00e0 la g\u00e9n\u00e9ration",
+      "lineItems": "Lignes de facture",
+      "status": "Statut"
+    },
+    "frequencies": {
+      "weekly": "Hebdomadaire",
+      "monthly": "Mensuel",
+      "quarterly": "Trimestriel",
+      "yearly": "Annuel"
+    },
+    "status": {
+      "active": "Actif",
+      "paused": "En pause",
+      "completed": "Termin\u00e9",
+      "cancelled": "Annul\u00e9"
+    },
+    "actions": {
+      "pause": "Mettre en pause",
+      "activate": "Activer"
+    }
+  },
   "errors": {
-    "unauthorized": "Vous n'avez pas la permission d'accéder à cette ressource.",
-    "notFound": "Ressource non trouvée.",
+    "unauthorized": "Vous n'avez pas la permission d'acc\u00e9der \u00e0 cette ressource.",
+    "notFound": "Ressource non trouv\u00e9e.",
     "general": "Une erreur est survenue."
   }
 }
