@@ -29,13 +29,16 @@ Securite    →    Features     →    Bancaire     →    IA           →    E
   OUI NON          OUI NON           OUI NON           OUI NON           OUI NON
    │   │            │   │             │   │             │   │             │   │
    ▼   ▼            ▼   ▼             ▼   ▼             ▼   ▼             ▼   ▼
-  S2  RETRY        S3  RETRY         S4  RETRY         S5  RETRY        FIN RETRY
+  S2  RECADRER     S3  RECADRER      S4  RECADRER      S5  RECADRER     FIN RECADRER
        │                │                 │                 │                 │
-      2x max           2x max            2x max            2x max            2x max
+      BOUCLE           BOUCLE            BOUCLE            BOUCLE            BOUCLE
+      SANS             SANS              SANS              SANS              SANS
+      LIMITE           LIMITE            LIMITE            LIMITE            LIMITE
        │                │                 │                 │                 │
-      FAIL             FAIL              FAIL              FAIL              FAIL
-       │                │                 │                 │                 │
-    ESCALADE         ESCALADE          ESCALADE          ESCALADE          ESCALADE
+      100%             100%              100%              100%              100%
+      PASS →           PASS →            PASS →            PASS →            PASS →
+      SPRINT           SPRINT            SPRINT            SPRINT            RAPPORT
+      SUIVANT          SUIVANT           SUIVANT           SUIVANT           FINAL
 ```
 
 ---
@@ -108,23 +111,41 @@ Pour chaque Sprint N (de 1 a 5) :
 2. Afficher : "Sprint N - {nom} : DEMARRAGE"
 3. Invoquer l'agent orchestrateur du Sprint N
    - Passer le contexte : working directory, prerequis valide
+   - Rappeler : "Tu dois atteindre 100% PASS. Persiste jusqu'a reussite."
 4. Attendre la completion de l'agent
 5. Lire le rapport de l'agent
-6. Evaluer le resultat :
-   - Si PASS :
+
+6. VERIFICATION ACTIVE par le Master (ne PAS faire confiance au rapport) :
+   a. Re-lire INDEPENDAMMENT les fichiers modifies par le sprint
+   b. Verifier que CHAQUE tache listee dans le rapport est REELLEMENT implementee
+   c. Executer independamment : npm run build + npm run lint + npm run test
+   d. Comparer les resultats avec le rapport de l'orchestrateur
+
+7. Evaluer le resultat :
+   - Si PASS CONFIRME (verification active coherente avec le rapport) :
      a. Marquer Sprint N comme "completed"
      b. Stocker le rapport
-     c. Afficher : "Sprint N : PASS (X/Y taches, build OK, lint OK)"
+     c. Afficher : "Sprint N : PASS CONFIRME (X/Y taches, build OK, tests OK)"
      d. Passer au Sprint N+1
-   - Si FAIL :
-     a. Incrementer attempts
-     b. Si attempts < 2 :
-        - Afficher : "Sprint N : FAIL - Tentative {attempts+1}"
-        - Relancer l'agent avec le feedback d'erreur
-     c. Si attempts >= 2 :
-        - Marquer Sprint N comme "failed"
-        - ESCALADE a l'utilisateur
-        - STOP
+
+   - Si FAIL ou INCOHERENCE detectee :
+     a. Diagnostiquer les ecarts entre le rapport et la realite
+     b. Construire un feedback precis contenant :
+        - Les taches reellement en echec (avec fichier + critere non respecte)
+        - Les erreurs de build/lint/tests
+        - La specification exacte des taches echouees (relire les task-to-do/)
+     c. RELANCER l'orchestrateur du sprint avec ce feedback detaille
+     d. L'orchestrateur doit corriger en boucle (sans limite interne)
+     e. Attendre la nouvelle completion
+     f. RECOMMENCER la verification active (etape 6)
+
+   CETTE BOUCLE N'A PAS DE LIMITE DE TENTATIVES.
+   Le Master PERSISTE jusqu'a ce que le sprint soit REELLEMENT 100% PASS.
+   Il recadre, re-contextualise, et relance l'orchestrateur autant que necessaire.
+
+   ESCALADE UTILISATEUR : uniquement si aucun progres constate apres
+   plusieurs iterations (l'orchestrateur tourne en rond sur la meme erreur).
+   Dans ce cas, presenter un rapport detaille et demander correction manuelle.
 ```
 
 ### Invocation d'un agent de sprint
@@ -139,11 +160,18 @@ Prerequis : Sprint {N-1} PASS (ou Aucun pour Sprint 1)
 Execute le skill docs/skill-sprint-{N}-{slug}.md integralement.
 Suivre les 6 phases : Audit → Decomposition → Execution → Verification → Validation → Commit.
 
-IMPORTANT :
+REGLES IMPERATIVES :
 - Lire chaque fichier avant de le modifier
+- Si un sous-agent est perdu ou ne complete pas sa tache : le recadrer
+  en lui fournissant la specification exacte + le contenu actuel du fichier
+  + des instructions explicites, et le relancer. PERSISTER sans limite
+  jusqu'a ce qu'il termine correctement.
 - Executer build + lint + tests apres toutes les modifications
-- Retourner un rapport structure PASS/FAIL par tache
-- Ne pas committer : retourner le rapport au Master pour consolidation"
+- BOUCLER la verification jusqu'a obtenir 100% PASS sur TOUTES les taches
+  + 0 erreurs build + 0 erreurs lint + 0 echecs tests
+- Ne JAMAIS retourner un rapport PASS si des taches sont encore en echec
+- Ne pas committer : retourner le rapport au Master pour consolidation
+- Tu n'as PAS le droit d'abandonner une tache. Tu PERSISTES jusqu'a reussite."
 ```
 
 ---
@@ -292,22 +320,58 @@ git push -u origin {branche}
 
 ## Gestion des erreurs
 
-### Sprint FAIL apres 2 retries
+### Orchestrateur de sprint perdu ou desoriente
+
+Si un orchestrateur de sprint ne complete pas correctement son travail
+(rapport incoherent, taches manquantes, build en echec malgre un rapport PASS) :
 
 ```
-ESCALADE A L'UTILISATEUR :
+BOUCLE DE RECADRAGE (aucune limite de tentatives) :
 
-## Sprint {N} : ECHEC apres 2 tentatives
+1. DIAGNOSTIQUER le probleme via la verification active :
+   - Quelles taches sont reellement implementees vs. rapportees PASS ?
+   - Le build passe-t-il reellement ?
+   - Les tests passent-ils ?
 
-### Taches en echec :
-| # | Tache | Erreur |
-|---|-------|--------|
-| {i} | {titre} | {message d'erreur} |
+2. CONSTRUIRE un feedback de recadrage precis :
+   - Liste exacte des taches reellement en echec
+   - Erreurs de build/lint/tests avec fichier + ligne + message
+   - Rappel de la specification de chaque tache echouee
+   - Instructions explicites : "Tu dois corriger CES taches specifiques"
+
+3. RELANCER l'orchestrateur avec ce feedback
+   - Lui rappeler : "Persiste jusqu'a 100% PASS reel, pas rapporte"
+
+4. ATTENDRE la completion
+
+5. RE-VERIFIER activement (etape 1)
+   - Si toujours en echec → retourner a l'etape 2
+   - Si 100% PASS confirme → marquer le sprint comme complete
+
+Le Master ne PASSE JAMAIS au sprint suivant tant que la verification
+active ne confirme pas 100% PASS. Il recadre et relance sans limite.
+```
+
+### Escalade utilisateur (dernier recours)
+
+```
+UNIQUEMENT si l'orchestrateur tourne en rond sur la meme erreur
+sans progres apres plusieurs iterations :
+
+## Sprint {N} : ESCALADE — Assistance requise
+
+### Probleme persistant :
+| # | Tache | Erreur | Tentatives |
+|---|-------|--------|------------|
+| {i} | {titre} | {message d'erreur} | {N} |
+
+### Diagnostic du Master :
+{description de pourquoi l'orchestrateur n'arrive pas a resoudre}
 
 ### Actions possibles :
-1. Corriger manuellement et relancer
-2. Desactiver les taches en echec et continuer
-3. Abandonner le plan
+1. Corriger manuellement les fichiers concernes et relancer le sprint
+2. Fournir des instructions supplementaires au Master
+3. Desactiver les taches en echec et continuer (non recommande)
 
 Quelle action souhaitez-vous ?
 ```
@@ -316,11 +380,12 @@ Quelle action souhaitez-vous ?
 
 ```
 Si le build global echoue apres les 5 sprints :
-1. Identifier les erreurs de build
-2. Tracer les erreurs aux taches/fichiers responsables
-3. Lancer un agent correctif cible
-4. Re-verifier build + lint + tests
-5. Si echec persistant : escalader
+1. Identifier les erreurs exactes (fichier, ligne, message)
+2. Tracer les erreurs aux sprint(s) et tache(s) responsables
+3. Relancer l'orchestrateur du sprint concerne avec les erreurs
+4. L'orchestrateur corrige en boucle interne
+5. Re-verifier build + lint + tests globalement
+6. BOUCLER jusqu'a 0 erreurs
 ```
 
 ---
@@ -329,13 +394,15 @@ Si le build global echoue apres les 5 sprints :
 
 | # | Principe | Application |
 |---|----------|-------------|
-| 1 | **Sequentialite stricte** | Sprint N+1 uniquement apres Sprint N PASS |
-| 2 | **Fiabilite 100%** | Chaque sprint doit etre PASS avant de continuer |
-| 3 | **Retry intelligent** | Max 2 retries avec feedback d'erreur, puis escalade |
-| 4 | **Rapport exhaustif** | Chaque tache, fichier, metrique documente |
-| 5 | **Consentement humain** | Validation utilisateur avant tout commit |
-| 6 | **Non-regression** | Build + lint + tests clean a chaque etape |
-| 7 | **Escalade explicite** | En cas de doute, demander a l'utilisateur |
-| 8 | **Tracabilite** | Registre d'execution avec timestamps et status |
-| 9 | **Idempotence** | Relancer un sprint ne cree pas d'effets de bord |
-| 10 | **Isolation** | Chaque sprint est autonome et ne depend que du precedent |
+| 1 | **Sequentialite stricte** | Sprint N+1 uniquement apres Sprint N PASS CONFIRME |
+| 2 | **Fiabilite 100% reelle** | Verification active independante, ne pas faire confiance aux rapports |
+| 3 | **Persistence sans limite** | Pas de max retries — recadrer et relancer jusqu'a reussite |
+| 4 | **Verification active** | Le Master re-verifie independamment chaque sprint (build + lint + tests) |
+| 5 | **Recadrage des agents perdus** | Si un orchestrateur devie, lui fournir le contexte exact et relancer |
+| 6 | **Rapport exhaustif** | Chaque tache, fichier, metrique documente |
+| 7 | **Consentement humain** | Validation utilisateur avant tout commit |
+| 8 | **Non-regression** | Build + lint + tests clean a chaque etape |
+| 9 | **Escalade en dernier recours** | Seulement si zero progres apres plusieurs iterations |
+| 10 | **Tracabilite** | Registre d'execution avec timestamps et status |
+| 11 | **Idempotence** | Relancer un sprint ne cree pas d'effets de bord |
+| 12 | **Objectif final** | Le plan complet est implemente a 100%, correctement et de maniere fiable |

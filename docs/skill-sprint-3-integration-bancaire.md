@@ -168,13 +168,48 @@ Wave 3 : 1 agent (3.8)
 
 ---
 
-## PHASE 4 — Verification
+## PHASE 4 — Verification (boucle jusqu'a 100%)
 
-Agent READ-ONLY : relire, build, lint, tests. Rapport PASS/FAIL.
+Lancer un agent de verification READ-ONLY. **BOUCLER jusqu'a 100% PASS** :
+
+```
+BOUCLE DE VERIFICATION :
+1. Relire CHAQUE fichier modifie et verifier les criteres de chaque tache
+2. Executer `npm run build`
+3. Executer `npm run lint` (si configure)
+4. Executer `npm run test`
+5. Produire rapport PASS/FAIL par tache
+
+SI une ou plusieurs taches sont FAIL :
+   a. Pour chaque tache FAIL :
+      - Identifier le critere non respecte
+      - Relire la specification dans task-to-do/
+      - Relancer le sous-agent avec le feedback precis
+      - Attendre completion
+   b. RECOMMENCER la verification depuis l'etape 1
+
+SI build ou lint ou tests echouent :
+   a. Lire les erreurs exactes (fichier, ligne, message)
+   b. Identifier le(s) sous-agent(s) responsable(s)
+   c. Relancer avec les erreurs comme contexte
+   d. RECOMMENCER la verification depuis l'etape 1
+
+CONDITION DE SORTIE (obligatoire) :
+   - 100% des taches = PASS
+   - Build = 0 erreurs
+   - Lint = 0 nouvelles erreurs
+   - Tests = 0 echecs
+   → Seulement alors, passer a la Phase 5
+```
+
+**L'orchestrateur ne passe JAMAIS a la Phase 5 tant que le resultat n'est pas 100% PASS.**
 
 ---
 
 ## PHASE 5 — Validation humaine
+
+Presenter le bilan au Master Orchestrateur ou a l'utilisateur.
+Demander autorisation pour commit.
 
 ---
 
@@ -202,7 +237,64 @@ EOF
 
 ## Gestion des erreurs
 
-Meme procedure que skill-orchestration-multi-agents.md.
+### Sous-agent perdu ou desoriente
+
+Si un sous-agent ne complete pas sa tache correctement (output incomplet, fichiers non modifies,
+erreur de comprehension, ou deviation par rapport a la specification) :
+
+```
+BOUCLE DE RECOVERY (aucune limite de tentatives) :
+
+1. LIRE l'output du sous-agent pour diagnostiquer le probleme
+2. RELIRE le fichier task-to-do/ correspondant (specification de reference)
+3. RELIRE le(s) fichier(s) cible(s) pour constater l'etat actuel du code
+4. CONSTRUIRE un nouveau prompt corrige contenant :
+   - Le diagnostic precis de ce qui a echoue ou devie
+   - La specification EXACTE de la tache (copie integrale du task-to-do)
+   - Le contenu ACTUEL du/des fichier(s) a modifier
+   - Des instructions explicites, non ambigues, etape par etape
+5. RELANCER le sous-agent avec ce prompt corrige
+6. ATTENDRE sa completion
+7. VERIFIER si la tache est maintenant correctement implementee
+8. Si NON → retourner a l'etape 1
+9. Si OUI → marquer la tache comme completee
+
+L'orchestrateur ne PASSE JAMAIS a la tache suivante tant que la tache
+courante n'est pas correctement implementee.
+Il n'y a PAS de limite de tentatives.
+L'orchestrateur PERSISTE jusqu'a la reussite.
+```
+
+### Echec de verification (Phase 4)
+
+```
+Si la verification retourne des taches en FAIL :
+    Pour chaque tache FAIL :
+        1. Lire le detail de l'echec
+        2. Relire la specification dans task-to-do/
+        3. Relancer le sous-agent avec le feedback precis
+        4. Re-verifier individuellement
+    BOUCLER jusqu'a ce que TOUTES les taches soient PASS (0 exception)
+```
+
+### Echec build / lint / tests
+
+```
+Si build, lint ou tests echouent :
+    1. Lire les erreurs exactes (fichier, ligne, message)
+    2. Identifier la/les tache(s) responsable(s)
+    3. Relancer le(s) sous-agent(s) avec les erreurs comme contexte
+    4. Re-executer build + lint + tests
+    BOUCLER jusqu'a 0 erreurs
+    Ne JAMAIS passer a la Phase 5 avec des erreurs restantes
+```
+
+### Regle absolue
+
+**L'orchestrateur de sprint ne rend JAMAIS la main au Master Orchestrateur
+tant que 100% des taches ne sont pas PASS et que build + lint + tests
+ne retournent pas 0 erreurs. Il persiste, corrige, relance, et re-verifie
+en boucle jusqu'a atteindre ce resultat.**
 
 ---
 
@@ -218,3 +310,5 @@ Meme procedure que skill-orchestration-multi-agents.md.
 | 6 | Gate build + lint + tests |
 | 7 | Consentement humain |
 | 8 | Tracabilite complete |
+| 9 | **Persistence sans limite** : un agent perdu est recadre et relance jusqu'a reussite |
+| 10 | **100% obligatoire** : aucun sprint ne se termine sans 100% PASS sur taches + build + tests |
