@@ -6,28 +6,28 @@ import { Button } from '@/components/ui/button';
 const STEPS = [
   {
     title: 'Bienvenue sur CashPilot !',
-    description: 'Votre solution compl\u00e8te de gestion financi\u00e8re et comptable. Suivez ce guide rapide pour d\u00e9couvrir les fonctionnalit\u00e9s principales.',
-    icon: '\u{1F680}',
+    description: 'Votre solution complète de gestion financière et comptable. Suivez ce guide rapide pour découvrir les fonctionnalités principales.',
+    icon: '🚀',
   },
   {
     title: 'Tableau de bord',
-    description: 'Visualisez vos KPIs en temps r\u00e9el : chiffre d\'affaires, d\u00e9penses, factures impay\u00e9es et tr\u00e9sorerie.',
-    icon: '\u{1F4CA}',
+    description: 'Visualisez vos KPIs en temps réel : chiffre d\'affaires, dépenses, factures impayées et trésorerie.',
+    icon: '📊',
   },
   {
     title: 'Factures & Devis',
-    description: 'Cr\u00e9ez et g\u00e9rez vos factures et devis. Export PDF, envoi par email, et suivi des paiements automatique.',
-    icon: '\u{1F4C4}',
+    description: 'Créez et gérez vos factures et devis. Export PDF, envoi par email, et suivi des paiements automatique.',
+    icon: '📄',
   },
   {
     title: 'Intelligence Artificielle',
-    description: 'Extraction automatique de factures, cat\u00e9gorisation des d\u00e9penses, d\u00e9tection d\'anomalies et chatbot comptable.',
-    icon: '\u{1F916}',
+    description: 'Extraction automatique de factures, catégorisation des dépenses, détection d\'anomalies et chatbot comptable.',
+    icon: '🤖',
   },
   {
     title: 'C\'est parti !',
-    description: 'Commencez par ajouter vos premiers clients et cr\u00e9ez votre premi\u00e8re facture. Bon pilotage !',
-    icon: '\u2728',
+    description: 'Commencez par ajouter vos premiers clients et créez votre première facture. Bon pilotage !',
+    icon: '✨',
   },
 ];
 
@@ -111,7 +111,7 @@ const OnboardingTour = () => {
               className="text-gray-400 hover:text-white"
             >
               <ChevronLeft className="w-4 h-4 mr-1" />
-              Pr\u00e9c\u00e9dent
+              Précédent
             </Button>
 
             <button

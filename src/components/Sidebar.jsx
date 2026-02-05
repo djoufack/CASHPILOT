@@ -40,10 +40,10 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
   const handleLogout = () => {
     logout()
       .then(() => {
-        navigate('/login');
+        navigate('/');
         toast({
           title: t('common.logout'),
-          description: "You have been successfully logged out.",
+          description: t('auth.logoutSuccess') || "You have been successfully logged out.",
         });
       })
       .catch((error) => {

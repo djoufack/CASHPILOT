@@ -35,10 +35,23 @@
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Clients",
+    "projects": "Projects",
     "timesheets": "Timesheets",
     "invoices": "Invoices",
     "quotes": "Quotes",
-    "analytics": "Analytics"
+    "analytics": "Analytics",
+    "recurringInvoices": "Recurring Invoices",
+    "bankConnections": "Bank Connections",
+    "cashFlow": "Cash Flow",
+    "security": "Security",
+    "settings": "Settings",
+    "expenses": "Expenses",
+    "purchaseOrders": "Purchase Orders",
+    "stock": "Stock",
+    "suppliers": "Suppliers",
+    "reports": "Reports",
+    "accounting": "Accounting",
+    "scenarios": "Financial Simulations"
   },
   "dashboard": {
     "title": "Dashboard",
