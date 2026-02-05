@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
+import TopNavBar from './TopNavBar';
 import { Outlet } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
@@ -11,8 +11,6 @@ import {
   Truck, Package, BarChart3, Calculator, PieChart, Settings,
   FileMinus, PackageCheck, Wallet, TrendingUp, Building2, RefreshCw, Shield
 } from 'lucide-react';
-import ThemeToggle from '@/components/ThemeToggle';
-import NotificationCenter from '@/components/NotificationCenter';
 
 const MainLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -80,31 +78,31 @@ const MainLayout = () => {
             <span className="text-orange-400">Cash</span><span className="text-white">Pilot</span>
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <NotificationCenter />
-        </div>
       </div>
 
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
-        <Sidebar 
-          isCollapsed={isCollapsed} 
-          setIsCollapsed={setIsCollapsed} 
+        <Sidebar
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsed}
           navItems={navItems}
         />
       </div>
-      
+
+      {/* Desktop Top Navigation Bar */}
+      <TopNavBar isCollapsed={isCollapsed} />
+
       {/* Mobile Menu Overlay */}
-      <MobileMenu 
-        isOpen={isMobileMenuOpen} 
-        onClose={() => setIsMobileMenuOpen(false)} 
+      <MobileMenu
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
         menuItems={navItems}
       />
 
-      <main 
-        className={`flex-1 transition-all duration-300 ease-in-out 
-          ${isCollapsed ? 'md:ml-[68px]' : 'md:ml-[260px]'} 
+      <main
+        className={`flex-1 transition-all duration-300 ease-in-out
+          ${isCollapsed ? 'md:ml-[68px]' : 'md:ml-[260px]'}
+          md:pt-14
           min-h-[calc(100vh-65px)] md:min-h-screen`}
       >
         <div className="w-full h-full">
