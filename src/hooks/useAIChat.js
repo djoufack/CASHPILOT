@@ -44,11 +44,25 @@ export const useAIChat = () => {
           timestamp: new Date().toISOString(),
           isError: true,
         }]);
+      } else if (data.error) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `Erreur: ${data.error}`,
+          timestamp: new Date().toISOString(),
+          isError: true,
+        }]);
       } else if (data.reply) {
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: data.reply,
           timestamp: new Date().toISOString(),
+        }]);
+      } else {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'Réponse inattendue du serveur.',
+          timestamp: new Date().toISOString(),
+          isError: true,
         }]);
       }
     } catch (err) {
