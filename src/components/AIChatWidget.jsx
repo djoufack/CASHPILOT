@@ -2,12 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2, Trash2, Bot, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAIChat } from '@/hooks/useAIChat';
+import { useCredits } from '@/hooks/useCredits';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AIChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const { messages, isLoading, sendMessage, clearChat } = useAIChat();
+  const { fetchCredits } = useCredits();
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -24,6 +26,8 @@ const AIChatWidget = () => {
     const text = input;
     setInput('');
     await sendMessage(text);
+    // Refresh credits after message sent
+    fetchCredits();
   };
 
   const handleKeyDown = (e) => {
