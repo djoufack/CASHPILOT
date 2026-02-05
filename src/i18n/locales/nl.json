@@ -115,7 +115,32 @@
     "selectClient": "Selecteer een klant",
     "startTime": "Begintijd",
     "endTime": "Eindtijd",
-    "calculatedDuration": "Berekende duur"
+    "calculatedDuration": "Berekende duur",
+    "duration": "Duur",
+    "timeRange": "Tijd",
+    "project": "Project",
+    "noProject": "Geen project",
+    "noClient": "Geen klant",
+    "noEntries": "Geen uren geregistreerd",
+    "status": {
+      "draft": "Concept",
+      "in_progress": "In uitvoering",
+      "approved": "Goedgekeurd",
+      "invoiced": "Gefactureerd"
+    },
+    "views": {
+      "calendar": "Kalender",
+      "list": "Lijst",
+      "kanban": "Kanban",
+      "agenda": "Agenda"
+    },
+    "agenda": {
+      "overdue": "Achterstallig",
+      "today": "Vandaag",
+      "tomorrow": "Morgen",
+      "thisWeek": "Deze week",
+      "later": "Later"
+    }
   },
   "buttons": {
     "cancel": "Annuleren",
