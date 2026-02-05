@@ -24,14 +24,20 @@ serve(async (req) => {
     }
 
     // Check credits
-    const { data: credits } = await supabase.from('user_credits').select('balance').eq('user_id', userId).single();
-    if (!credits || credits.balance < CREDIT_COST) {
+    const { data: credits } = await supabase.from('user_credits').select('free_credits, paid_credits').eq('user_id', userId).single();
+    const availableCredits = (credits?.free_credits || 0) + (credits?.paid_credits || 0);
+    if (!credits || availableCredits < CREDIT_COST) {
       return new Response(JSON.stringify({ error: 'insufficient_credits' }),
         { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Deduct credits
-    await supabase.from('user_credits').update({ balance: credits.balance - CREDIT_COST }).eq('user_id', userId);
+    // Deduct credits (from free first, then paid)
+    const freeDeduction = Math.min(credits.free_credits, CREDIT_COST);
+    const paidDeduction = CREDIT_COST - freeDeduction;
+    await supabase.from('user_credits').update({
+      free_credits: credits.free_credits - freeDeduction,
+      paid_credits: credits.paid_credits - paidDeduction
+    }).eq('user_id', userId);
     await supabase.from('credit_transactions').insert([{ user_id: userId, amount: -CREDIT_COST, type: 'usage', description: 'AI Chatbot' }]);
 
     // Fetch user financial context
@@ -65,7 +71,11 @@ Réponds de manière concise et professionnelle en français. Si on te demande d
     });
 
     if (!geminiRes.ok) {
-      await supabase.from('user_credits').update({ balance: credits.balance }).eq('user_id', userId);
+      // Refund credits on error
+      await supabase.from('user_credits').update({
+        free_credits: credits.free_credits,
+        paid_credits: credits.paid_credits
+      }).eq('user_id', userId);
       await supabase.from('credit_transactions').insert([{ user_id: userId, amount: CREDIT_COST, type: 'refund', description: 'AI Chatbot - error' }]);
       throw new Error('Gemini API error');
     }
