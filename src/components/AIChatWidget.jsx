@@ -2,11 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2, Trash2, Bot, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAIChat } from '@/hooks/useAIChat';
-import { useAuth } from '@/context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AIChatWidget = () => {
-  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const { messages, isLoading, sendMessage, clearChat } = useAIChat();
@@ -20,9 +18,6 @@ const AIChatWidget = () => {
   useEffect(() => {
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
-
-  // Hide chatbot for non-authenticated users (placed AFTER all hooks to comply with React rules)
-  if (!user) return null;
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
