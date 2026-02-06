@@ -1,0 +1,176 @@
+/**
+ * Opening Balance Service
+ * Creates OD journal entries for balance sheet initialization
+ */
+
+import { supabase } from '@/lib/supabase';
+
+/**
+ * Account used as counterpart for opening balance entries
+ * 890 - Bilan d'ouverture (standard PCG)
+ */
+const OPENING_BALANCE_ACCOUNT = '890';
+const OPENING_BALANCE_JOURNAL = 'OD';
+
+/**
+ * Generate unique entry reference for opening balances
+ */
+const generateEntryRef = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `OUV-${year}${month}-${Date.now().toString(36).toUpperCase()}`;
+};
+
+/**
+ * Delete existing opening balance entries for a user
+ */
+export const deleteOpeningBalanceEntries = async (userId) => {
+  const { error } = await supabase
+    .from('accounting_entries')
+    .delete()
+    .eq('user_id', userId)
+    .eq('journal', OPENING_BALANCE_JOURNAL)
+    .like('description', '%Solde d\'ouverture%');
+
+  if (error) throw error;
+  return { success: true };
+};
+
+/**
+ * Create opening balance entries from account balances
+ * @param {string} userId - User ID
+ * @param {Date} openingDate - Opening balance date
+ * @param {Array} balances - Array of { account_code, account_name, amount, type }
+ * @returns {Object} Result with created entries count
+ */
+export const createOpeningBalanceEntries = async (userId, openingDate, balances) => {
+  if (!userId || !openingDate || !balances?.length) {
+    throw new Error('Missing required parameters');
+  }
+
+  const entryRef = generateEntryRef(openingDate);
+  const dateStr = new Date(openingDate).toISOString().split('T')[0];
+
+  // Filter out zero balances
+  const nonZeroBalances = balances.filter(b => b.amount && b.amount !== 0);
+
+  if (nonZeroBalances.length === 0) {
+    return { success: true, entriesCreated: 0 };
+  }
+
+  // Create entries array
+  const entries = [];
+
+  for (const balance of nonZeroBalances) {
+    const isDebit = ['asset', 'expense'].includes(balance.type) ? balance.amount > 0 : balance.amount < 0;
+    const absAmount = Math.abs(balance.amount);
+
+    // Main account entry
+    entries.push({
+      user_id: userId,
+      transaction_date: dateStr,
+      account_code: balance.account_code,
+      debit: isDebit ? absAmount : 0,
+      credit: isDebit ? 0 : absAmount,
+      entry_ref: entryRef,
+      journal: OPENING_BALANCE_JOURNAL,
+      source_type: 'opening_balance',
+      source_id: null,
+      is_auto: false,
+      description: `Solde d'ouverture - ${balance.account_name}`
+    });
+
+    // Counterpart entry (890 - Bilan d'ouverture)
+    entries.push({
+      user_id: userId,
+      transaction_date: dateStr,
+      account_code: OPENING_BALANCE_ACCOUNT,
+      debit: isDebit ? 0 : absAmount,
+      credit: isDebit ? absAmount : 0,
+      entry_ref: entryRef,
+      journal: OPENING_BALANCE_JOURNAL,
+      source_type: 'opening_balance',
+      source_id: null,
+      is_auto: false,
+      description: `Solde d'ouverture - Contrepartie ${balance.account_code}`
+    });
+  }
+
+  // Insert all entries
+  const { data, error } = await supabase
+    .from('accounting_entries')
+    .insert(entries)
+    .select();
+
+  if (error) throw error;
+
+  return {
+    success: true,
+    entriesCreated: data.length,
+    entryRef
+  };
+};
+
+/**
+ * Get existing opening balance entries for a user
+ */
+export const getOpeningBalanceEntries = async (userId) => {
+  const { data, error } = await supabase
+    .from('accounting_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('source_type', 'opening_balance')
+    .order('account_code');
+
+  if (error) throw error;
+  return data || [];
+};
+
+/**
+ * Reinitialize balance sheet with new opening balances
+ * Deletes existing opening entries and creates new ones
+ */
+export const reinitializeOpeningBalances = async (userId, openingDate, balances) => {
+  // Delete existing opening balance entries
+  await deleteOpeningBalanceEntries(userId);
+
+  // Create new opening balance entries
+  return createOpeningBalanceEntries(userId, openingDate, balances);
+};
+
+/**
+ * Validate that opening balances are balanced (Assets = Liabilities + Equity)
+ */
+export const validateOpeningBalances = (balances) => {
+  let totalAssets = 0;
+  let totalLiabilitiesEquity = 0;
+
+  for (const balance of balances) {
+    const amount = balance.amount || 0;
+    if (balance.type === 'asset') {
+      totalAssets += amount;
+    } else if (['liability', 'equity'].includes(balance.type)) {
+      totalLiabilitiesEquity += amount;
+    }
+  }
+
+  const isBalanced = Math.abs(totalAssets - totalLiabilitiesEquity) < 0.01;
+
+  return {
+    isBalanced,
+    totalAssets,
+    totalLiabilitiesEquity,
+    difference: totalAssets - totalLiabilitiesEquity
+  };
+};
+
+export default {
+  createOpeningBalanceEntries,
+  deleteOpeningBalanceEntries,
+  getOpeningBalanceEntries,
+  reinitializeOpeningBalances,
+  validateOpeningBalances,
+  OPENING_BALANCE_ACCOUNT,
+  OPENING_BALANCE_JOURNAL
+};
