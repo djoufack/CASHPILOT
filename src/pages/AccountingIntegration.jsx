@@ -182,7 +182,12 @@ const AccountingIntegration = () => {
                 onClick={() => initializeForCountry('BE')}
                 className="bg-gray-800 border-2 border-gray-700 hover:border-orange-500 rounded-xl p-8 transition-all group"
               >
-                <span className="text-5xl mb-4 block">🇧🇪</span>
+                {/* Belgium Flag SVG */}
+                <svg className="w-16 h-12 mb-4 mx-auto rounded shadow-lg" viewBox="0 0 3 2">
+                  <rect width="1" height="2" x="0" fill="#000000"/>
+                  <rect width="1" height="2" x="1" fill="#FDDA24"/>
+                  <rect width="1" height="2" x="2" fill="#EF3340"/>
+                </svg>
                 <h3 className="text-lg font-bold text-white group-hover:text-orange-400">{t('accounting.belgiumPreset')}</h3>
                 <p className="text-sm text-gray-500 mt-2">PCG belge · TVA 21%, 12%, 6%</p>
               </button>
@@ -190,7 +195,12 @@ const AccountingIntegration = () => {
                 onClick={() => initializeForCountry('FR')}
                 className="bg-gray-800 border-2 border-gray-700 hover:border-orange-500 rounded-xl p-8 transition-all group"
               >
-                <span className="text-5xl mb-4 block">🇫🇷</span>
+                {/* France Flag SVG */}
+                <svg className="w-16 h-12 mb-4 mx-auto rounded shadow-lg" viewBox="0 0 3 2">
+                  <rect width="1" height="2" x="0" fill="#002654"/>
+                  <rect width="1" height="2" x="1" fill="#FFFFFF"/>
+                  <rect width="1" height="2" x="2" fill="#CE1126"/>
+                </svg>
                 <h3 className="text-lg font-bold text-white group-hover:text-orange-400">{t('accounting.francePreset')}</h3>
                 <p className="text-sm text-gray-500 mt-2">PCG français · TVA 20%, 10%, 5.5%</p>
               </button>
@@ -198,7 +208,11 @@ const AccountingIntegration = () => {
                 onClick={() => initializeForCountry('OHADA')}
                 className="bg-gray-800 border-2 border-gray-700 hover:border-orange-500 rounded-xl p-8 transition-all group"
               >
-                <span className="text-5xl mb-4 block">🌍</span>
+                {/* OHADA Globe SVG */}
+                <svg className="w-16 h-16 mb-4 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="10" className="stroke-emerald-400"/>
+                  <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" className="stroke-emerald-400"/>
+                </svg>
                 <h3 className="text-lg font-bold text-white group-hover:text-orange-400">{t('accounting.ohadaPreset')}</h3>
                 <p className="text-sm text-gray-500 mt-2">SYSCOHADA révisé · TVA 18%</p>
               </button>
@@ -227,7 +241,7 @@ const AccountingIntegration = () => {
         <div className="flex items-center gap-2 mb-4 px-2">
           <Zap className="w-4 h-4 text-yellow-400" />
           <span className="text-xs text-yellow-400 font-medium">{t('accounting.autoEnabled')}</span>
-          <span className="text-xs text-gray-500">({country === 'BE' ? '🇧🇪 Belgique' : country === 'OHADA' ? '🌍 OHADA' : '🇫🇷 France'})</span>
+          <span className="text-xs text-gray-500">({country === 'BE' ? 'Belgique' : country === 'OHADA' ? 'OHADA' : 'France'})</span>
         </div>
       )}
 
