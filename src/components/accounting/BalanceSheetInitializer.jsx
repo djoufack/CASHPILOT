@@ -1,0 +1,294 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { Calendar, Upload, RotateCcw, Check, AlertTriangle, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAccounting } from '@/hooks/useAccounting';
+import { useAuth } from '@/context/AuthContext';
+import {
+  createOpeningBalanceEntries,
+  deleteOpeningBalanceEntries,
+  getOpeningBalanceEntries,
+  validateOpeningBalances
+} from '@/services/openingBalanceService';
+
+const BalanceSheetInitializer = ({ onComplete }) => {
+  const { user } = useAuth();
+  const { accounts, loading: accountsLoading } = useAccounting();
+  const [openingDate, setOpeningDate] = useState(new Date().toISOString().split('T')[0]);
+  const [balances, setBalances] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [existingEntries, setExistingEntries] = useState([]);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  // Filter accounts for balance sheet (assets, liabilities, equity)
+  const balanceSheetAccounts = useMemo(() => {
+    if (!accounts) return { assets: [], liabilities: [], equity: [] };
+
+    const assets = accounts.filter(a => a.account_type === 'asset').sort((a, b) => a.account_code.localeCompare(b.account_code));
+    const liabilities = accounts.filter(a => a.account_type === 'liability').sort((a, b) => a.account_code.localeCompare(b.account_code));
+    const equity = accounts.filter(a => a.account_type === 'equity').sort((a, b) => a.account_code.localeCompare(b.account_code));
+
+    return { assets, liabilities, equity };
+  }, [accounts]);
+
+  // Load existing opening balance entries
+  useEffect(() => {
+    const loadExisting = async () => {
+      if (!user) return;
+      try {
+        const entries = await getOpeningBalanceEntries(user.id);
+        setExistingEntries(entries);
+
+        // Pre-fill balances from existing entries
+        const existingBalances = {};
+        entries.forEach(entry => {
+          if (entry.account_code !== '890') {
+            const amount = entry.debit > 0 ? entry.debit : -entry.credit;
+            existingBalances[entry.account_code] = amount;
+          }
+        });
+        setBalances(existingBalances);
+      } catch (err) {
+        console.error('Error loading existing entries:', err);
+      }
+    };
+    loadExisting();
+  }, [user]);
+
+  // Calculate totals and validation
+  const validation = useMemo(() => {
+    const balanceArray = Object.entries(balances).map(([code, amount]) => {
+      const account = accounts?.find(a => a.account_code === code);
+      return {
+        account_code: code,
+        account_name: account?.account_name || code,
+        amount: parseFloat(amount) || 0,
+        type: account?.account_type || 'asset'
+      };
+    }).filter(b => b.amount !== 0);
+
+    return validateOpeningBalances(balanceArray);
+  }, [balances, accounts]);
+
+  const handleBalanceChange = (accountCode, value) => {
+    setBalances(prev => ({
+      ...prev,
+      [accountCode]: value
+    }));
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleSave = async () => {
+    if (!validation.isBalanced) {
+      setError(`Le bilan n'est pas equilibre. Difference: ${validation.difference.toFixed(2)} EUR`);
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      // Prepare balances array
+      const balanceArray = Object.entries(balances)
+        .map(([code, amount]) => {
+          const account = accounts?.find(a => a.account_code === code);
+          return {
+            account_code: code,
+            account_name: account?.account_name || code,
+            amount: parseFloat(amount) || 0,
+            type: account?.account_type || 'asset'
+          };
+        })
+        .filter(b => b.amount !== 0);
+
+      // Delete existing and create new
+      await deleteOpeningBalanceEntries(user.id);
+      const result = await createOpeningBalanceEntries(user.id, openingDate, balanceArray);
+
+      setSuccess(`${result.entriesCreated} ecritures d'ouverture creees avec succes.`);
+      if (onComplete) onComplete(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!confirm('Supprimer toutes les ecritures d\'ouverture existantes ?')) return;
+
+    setSaving(true);
+    try {
+      await deleteOpeningBalanceEntries(user.id);
+      setBalances({});
+      setExistingEntries([]);
+      setSuccess('Ecritures d\'ouverture supprimees.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImportCSV = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(l => l.trim());
+        const newBalances = {};
+
+        lines.forEach((line, index) => {
+          if (index === 0) return; // Skip header
+          const [code, amount] = line.split(/[,;]/);
+          if (code && amount) {
+            newBalances[code.trim()] = parseFloat(amount.replace(',', '.')) || 0;
+          }
+        });
+
+        setBalances(prev => ({ ...prev, ...newBalances }));
+        setSuccess('Import CSV reussi.');
+      } catch (err) {
+        setError('Erreur lors de l\'import CSV.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const renderAccountSection = (title, accountList, icon) => (
+    <div className="space-y-3">
+      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+        {icon}
+        {title}
+      </h3>
+      <div className="space-y-2">
+        {accountList.map(account => (
+          <div key={account.account_code} className="flex items-center gap-3 bg-gray-800 p-2 rounded">
+            <span className="text-sm text-gray-400 w-16">{account.account_code}</span>
+            <span className="text-sm text-white flex-1 truncate">{account.account_name}</span>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              value={balances[account.account_code] || ''}
+              onChange={(e) => handleBalanceChange(account.account_code, e.target.value)}
+              className="w-32 text-right bg-gray-900 border-gray-700"
+            />
+            <span className="text-sm text-gray-500 w-8">EUR</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (accountsLoading) {
+    return <div className="text-center py-8 text-gray-400">Chargement des comptes...</div>;
+  }
+
+  return (
+    <Card className="bg-gray-900 border-gray-800">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>Initialisation du Bilan</span>
+          {existingEntries.length > 0 && (
+            <span className="text-sm font-normal text-orange-400">
+              {existingEntries.length / 2} comptes initialises
+            </span>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Date and Actions */}
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="openingDate">Date d'ouverture</Label>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              <Input
+                id="openingDate"
+                type="date"
+                value={openingDate}
+                onChange={(e) => setOpeningDate(e.target.value)}
+                className="w-40 bg-gray-800 border-gray-700"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <label className="cursor-pointer">
+              <input type="file" accept=".csv" onChange={handleImportCSV} className="hidden" />
+              <Button variant="outline" size="sm" asChild>
+                <span><Upload className="w-4 h-4 mr-1" /> Importer CSV</span>
+              </Button>
+            </label>
+
+            <Button variant="outline" size="sm" onClick={handleReset} disabled={saving}>
+              <RotateCcw className="w-4 h-4 mr-1" /> Reinitialiser
+            </Button>
+          </div>
+        </div>
+
+        {/* Validation Status */}
+        <div className={`p-3 rounded-lg flex items-center gap-3 ${validation.isBalanced ? 'bg-green-500/10 border border-green-500/30' : 'bg-yellow-500/10 border border-yellow-500/30'}`}>
+          {validation.isBalanced ? (
+            <Check className="w-5 h-5 text-green-400" />
+          ) : (
+            <AlertTriangle className="w-5 h-5 text-yellow-400" />
+          )}
+          <div className="flex-1">
+            <div className="text-sm font-medium text-white">
+              {validation.isBalanced ? 'Bilan equilibre' : 'Bilan non equilibre'}
+            </div>
+            <div className="text-xs text-gray-400">
+              Actif: {validation.totalAssets.toFixed(2)} EUR | Passif: {validation.totalLiabilitiesEquity.toFixed(2)} EUR
+              {!validation.isBalanced && ` | Difference: ${validation.difference.toFixed(2)} EUR`}
+            </div>
+          </div>
+        </div>
+
+        {/* Error/Success Messages */}
+        {error && (
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm">
+            {success}
+          </div>
+        )}
+
+        {/* Account Sections */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            {renderAccountSection('ACTIF', balanceSheetAccounts.assets, <span className="text-blue-400">A</span>)}
+          </div>
+          <div className="space-y-6">
+            {renderAccountSection('PASSIF', balanceSheetAccounts.liabilities, <span className="text-red-400">P</span>)}
+            {renderAccountSection('CAPITAUX PROPRES', balanceSheetAccounts.equity, <span className="text-purple-400">C</span>)}
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end pt-4 border-t border-gray-800">
+          <Button
+            onClick={handleSave}
+            disabled={saving || !validation.isBalanced}
+            className="bg-orange-500 hover:bg-orange-600"
+          >
+            {saving ? 'Enregistrement...' : 'Valider les soldes d\'ouverture'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default BalanceSheetInitializer;

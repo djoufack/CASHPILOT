@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark, Book, BookOpen, Zap, Activity } from 'lucide-react';
+import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark, Book, BookOpen, Zap, Activity, Settings2 } from 'lucide-react';
 import { useAccountingData } from '@/hooks/useAccountingData';
 import { useAccountingInit } from '@/hooks/useAccountingInit';
 import { useCompany } from '@/hooks/useCompany';
@@ -18,6 +18,7 @@ import AccountingMappings from '@/components/accounting/AccountingMappings';
 import TaxRatesManager from '@/components/accounting/TaxRatesManager';
 import BankReconciliation from '@/components/accounting/BankReconciliation';
 import FinancialDiagnostic from '@/components/accounting/FinancialDiagnostic';
+import BalanceSheetInitializer from '@/components/accounting/BalanceSheetInitializer';
 import {
   exportBalanceSheetPDF,
   exportIncomeStatementPDF,
@@ -158,6 +159,7 @@ const AccountingIntegration = () => {
     { value: 'mappings', label: 'Mappings', icon: Settings },
     { value: 'rates', label: 'Taux de TVA', icon: Percent },
     { value: 'reconciliation', label: 'Rapprochement', icon: Landmark },
+    { value: 'init', label: 'Initialisation', icon: Settings2 },
   ];
 
   // ─── Initialization Wizard ─────────────────────────────────────────
@@ -360,6 +362,11 @@ const AccountingIntegration = () => {
           {/* Bank Reconciliation */}
           <TabsContent value="reconciliation" className="mt-6">
             <BankReconciliation period={period} />
+          </TabsContent>
+
+          {/* Balance Sheet Initializer */}
+          <TabsContent value="init" className="mt-6">
+            <BalanceSheetInitializer onComplete={refresh} />
           </TabsContent>
 
           {/* General Ledger (Grand Livre) */}
