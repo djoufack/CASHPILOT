@@ -1,0 +1,297 @@
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
+
+/**
+ * Hook for realtime collaboration features
+ * Uses Supabase Realtime for presence and broadcast
+ */
+export const useRealtimeCollaboration = (documentType, documentId) => {
+  const { user } = useAuth();
+  const [collaborators, setCollaborators] = useState([]);
+  const [cursors, setCursors] = useState({});
+  const [selections, setSelections] = useState({});
+  const [isConnected, setIsConnected] = useState(false);
+  const channelRef = useRef(null);
+
+  // Generate a color for user
+  const getUserColor = useCallback((userId) => {
+    const colors = [
+      '#f97316', '#22c55e', '#3b82f6', '#a855f7',
+      '#ec4899', '#14b8a6', '#eab308', '#ef4444'
+    ];
+    const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+  }, []);
+
+  useEffect(() => {
+    if (!user || !documentType || !documentId) return;
+
+    const channelName = `collab:${documentType}:${documentId}`;
+
+    const channel = supabase.channel(channelName, {
+      config: {
+        presence: { key: user.id },
+        broadcast: { self: false }
+      }
+    });
+
+    // Handle presence sync
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      const users = Object.values(state).flat().map((presence) => ({
+        ...presence,
+        color: getUserColor(presence.user_id)
+      }));
+      setCollaborators(users);
+    });
+
+    // Handle presence join
+    channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
+      console.log('User joined:', key, newPresences);
+    });
+
+    // Handle presence leave
+    channel.on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+      console.log('User left:', key, leftPresences);
+      // Clean up cursor and selection
+      setCursors((prev) => {
+        const updated = { ...prev };
+        delete updated[key];
+        return updated;
+      });
+      setSelections((prev) => {
+        const updated = { ...prev };
+        delete updated[key];
+        return updated;
+      });
+    });
+
+    // Handle cursor broadcasts
+    channel.on('broadcast', { event: 'cursor' }, ({ payload }) => {
+      setCursors((prev) => ({
+        ...prev,
+        [payload.userId]: {
+          x: payload.x,
+          y: payload.y,
+          color: getUserColor(payload.userId),
+          name: payload.userName,
+          timestamp: Date.now()
+        }
+      }));
+    });
+
+    // Handle selection broadcasts
+    channel.on('broadcast', { event: 'selection' }, ({ payload }) => {
+      setSelections((prev) => ({
+        ...prev,
+        [payload.userId]: {
+          field: payload.field,
+          range: payload.range,
+          color: getUserColor(payload.userId),
+          name: payload.userName,
+          timestamp: Date.now()
+        }
+      }));
+    });
+
+    // Handle document changes
+    channel.on('broadcast', { event: 'change' }, ({ payload }) => {
+      // This can be handled by parent component
+      console.log('Document change:', payload);
+    });
+
+    // Subscribe and track presence
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        setIsConnected(true);
+        await channel.track({
+          user_id: user.id,
+          user_name: user.user_metadata?.full_name || user.email,
+          user_email: user.email,
+          joined_at: new Date().toISOString(),
+          color: getUserColor(user.id)
+        });
+      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+        setIsConnected(false);
+      }
+    });
+
+    channelRef.current = channel;
+
+    // Cleanup
+    return () => {
+      channel.unsubscribe();
+      channelRef.current = null;
+      setIsConnected(false);
+    };
+  }, [user, documentType, documentId, getUserColor]);
+
+  // Clean up stale cursors (older than 5 seconds)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setCursors((prev) => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach((key) => {
+          if (now - updated[key].timestamp > 5000) {
+            delete updated[key];
+          }
+        });
+        return updated;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  /**
+   * Broadcast cursor position
+   */
+  const broadcastCursor = useCallback((x, y) => {
+    if (!channelRef.current || !user) return;
+
+    channelRef.current.send({
+      type: 'broadcast',
+      event: 'cursor',
+      payload: {
+        userId: user.id,
+        userName: user.user_metadata?.full_name || user.email,
+        x,
+        y
+      }
+    });
+  }, [user]);
+
+  /**
+   * Broadcast selection
+   */
+  const broadcastSelection = useCallback((field, range = null) => {
+    if (!channelRef.current || !user) return;
+
+    channelRef.current.send({
+      type: 'broadcast',
+      event: 'selection',
+      payload: {
+        userId: user.id,
+        userName: user.user_metadata?.full_name || user.email,
+        field,
+        range
+      }
+    });
+  }, [user]);
+
+  /**
+   * Broadcast document change
+   */
+  const broadcastChange = useCallback((changeType, data) => {
+    if (!channelRef.current || !user) return;
+
+    channelRef.current.send({
+      type: 'broadcast',
+      event: 'change',
+      payload: {
+        userId: user.id,
+        userName: user.user_metadata?.full_name || user.email,
+        changeType,
+        data,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }, [user]);
+
+  /**
+   * Clear own selection
+   */
+  const clearSelection = useCallback(() => {
+    broadcastSelection(null, null);
+  }, [broadcastSelection]);
+
+  return {
+    // State
+    collaborators,
+    cursors,
+    selections,
+    isConnected,
+    collaboratorCount: collaborators.length,
+
+    // Actions
+    broadcastCursor,
+    broadcastSelection,
+    broadcastChange,
+    clearSelection,
+
+    // Helpers
+    getUserColor,
+    isCollaborating: collaborators.length > 1
+  };
+};
+
+/**
+ * Component to render collaborator cursors
+ */
+export const CollaboratorCursors = ({ cursors }) => {
+  return (
+    <>
+      {Object.entries(cursors).map(([userId, cursor]) => (
+        <div
+          key={userId}
+          className="fixed pointer-events-none z-50 transition-all duration-75"
+          style={{
+            left: cursor.x,
+            top: cursor.y,
+            transform: 'translate(-2px, -2px)'
+          }}
+        >
+          {/* Cursor pointer */}
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill={cursor.color}
+            style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}
+          >
+            <path d="M5.5 3.21V20.8c0 .45.54.67.86.35l4.86-4.86h7.88c.55 0 1-.45 1-1v-.01c0-.26-.1-.5-.28-.68L5.89 2.87c-.39-.39-1.02-.11-1.02.47z" />
+          </svg>
+          {/* Name label */}
+          <div
+            className="absolute left-4 top-4 px-2 py-0.5 rounded text-xs text-white whitespace-nowrap"
+            style={{ backgroundColor: cursor.color }}
+          >
+            {cursor.name?.split('@')[0] || 'Collaborateur'}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+};
+
+/**
+ * Component to show collaborator avatars
+ */
+export const CollaboratorAvatars = ({ collaborators, maxVisible = 4 }) => {
+  const visible = collaborators.slice(0, maxVisible);
+  const remaining = collaborators.length - maxVisible;
+
+  return (
+    <div className="flex items-center -space-x-2">
+      {visible.map((collab) => (
+        <div
+          key={collab.user_id}
+          className="w-8 h-8 rounded-full border-2 border-gray-900 flex items-center justify-center text-xs font-medium text-white"
+          style={{ backgroundColor: collab.color }}
+          title={collab.user_name || collab.user_email}
+        >
+          {(collab.user_name || collab.user_email || '?')[0].toUpperCase()}
+        </div>
+      ))}
+      {remaining > 0 && (
+        <div className="w-8 h-8 rounded-full border-2 border-gray-900 bg-gray-700 flex items-center justify-center text-xs font-medium text-white">
+          +{remaining}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default useRealtimeCollaboration;
