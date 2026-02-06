@@ -1,0 +1,290 @@
+import React, { useState, useCallback } from 'react';
+import { Mic, MicOff, Loader2, Check, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
+
+// Check browser support (outside component to avoid re-creation)
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+/**
+ * Local fallback extraction using regex patterns
+ */
+const extractExpenseLocally = (text) => {
+  const lowerText = text.toLowerCase();
+
+  // Extract amount
+  const amountMatch = text.match(/(\d+(?:[,.]\d{1,2})?)\s*(?:euros?|€|eur)/i) ||
+                     text.match(/(\d+(?:[,.]\d{1,2})?)/);
+  const amount = amountMatch
+    ? parseFloat(amountMatch[1].replace(',', '.'))
+    : null;
+
+  // Detect category
+  let category = 'other';
+  const categoryKeywords = {
+    'transport': ['taxi', 'uber', 'train', 'avion', 'essence', 'parking', 'peage', 'metro', 'bus'],
+    'restaurant': ['restaurant', 'dejeuner', 'diner', 'repas', 'cafe', 'bar'],
+    'hotel': ['hotel', 'hebergement', 'nuit', 'airbnb'],
+    'fournitures': ['fournitures', 'bureau', 'papier', 'stylos', 'materiel'],
+    'telecom': ['telephone', 'internet', 'mobile', 'abonnement'],
+    'services': ['service', 'consultant', 'avocat', 'comptable', 'prestation']
+  };
+
+  for (const [cat, keywords] of Object.entries(categoryKeywords)) {
+    if (keywords.some(kw => lowerText.includes(kw))) {
+      category = cat;
+      break;
+    }
+  }
+
+  // Extract date if mentioned
+  let date = new Date().toISOString().split('T')[0];
+  if (lowerText.includes('hier')) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    date = yesterday.toISOString().split('T')[0];
+  } else if (lowerText.includes('avant-hier') || lowerText.includes('avant hier')) {
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    date = twoDaysAgo.toISOString().split('T')[0];
+  }
+
+  return {
+    amount,
+    category,
+    date,
+    description: text,
+    confidence: amount ? 0.7 : 0.3
+  };
+};
+
+/**
+ * Voice Expense Input Component
+ * Uses Web Speech API to transcribe voice and AI to extract expense data
+ */
+const VoiceExpenseInput = ({ onExpenseDetected, onCancel }) => {
+  const { user } = useAuth();
+  const [isListening, setIsListening] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [detectedExpense, setDetectedExpense] = useState(null);
+  const [error, setError] = useState(null);
+
+  const isSupported = !!SpeechRecognitionAPI;
+
+  const parseExpenseFromText = useCallback(async (text) => {
+    setIsProcessing(true);
+
+    try {
+      // Call AI to extract expense data
+      const { data, error: apiError } = await supabase.functions.invoke('ai-voice-expense', {
+        body: { userId: user?.id, text }
+      });
+
+      if (apiError) throw apiError;
+
+      if (data.expense) {
+        setDetectedExpense(data.expense);
+      } else {
+        // Fallback: try to extract locally
+        const localExpense = extractExpenseLocally(text);
+        setDetectedExpense(localExpense);
+      }
+    } catch (err) {
+      console.error('Error parsing expense:', err);
+      // Fallback to local extraction
+      const localExpense = extractExpenseLocally(text);
+      setDetectedExpense(localExpense);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [user?.id]);
+
+  const startListening = useCallback(() => {
+    if (!SpeechRecognitionAPI) {
+      setError('La reconnaissance vocale n\'est pas supportee par votre navigateur');
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setError(null);
+      setTranscript('');
+      setDetectedExpense(null);
+    };
+
+    recognition.onresult = (event) => {
+      const current = event.resultIndex;
+      const result = event.results[current];
+      const text = result[0].transcript;
+      setTranscript(text);
+
+      if (result.isFinal) {
+        setIsListening(false);
+        parseExpenseFromText(text);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      setIsListening(false);
+      if (event.error === 'no-speech') {
+        setError('Aucune parole detectee. Reessayez.');
+      } else if (event.error === 'audio-capture') {
+        setError('Microphone non disponible. Verifiez les permissions.');
+      } else {
+        setError(`Erreur: ${event.error}`);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  }, [parseExpenseFromText]);
+
+  const handleConfirm = () => {
+    if (detectedExpense && onExpenseDetected) {
+      onExpenseDetected(detectedExpense);
+    }
+  };
+
+  const handleRetry = () => {
+    setTranscript('');
+    setDetectedExpense(null);
+    setError(null);
+    startListening();
+  };
+
+  if (!isSupported) {
+    return (
+      <Card className="bg-gray-800 border-gray-700">
+        <CardContent className="p-4 text-center">
+          <MicOff className="w-8 h-8 mx-auto mb-2 text-gray-500" />
+          <p className="text-sm text-gray-400">
+            La reconnaissance vocale n'est pas supportee par votre navigateur.
+            Utilisez Chrome, Edge ou Safari.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-gray-800 border-gray-700">
+      <CardContent className="p-4">
+        {/* Microphone button */}
+        <div className="flex flex-col items-center gap-4">
+          <button
+            onClick={isListening ? undefined : startListening}
+            disabled={isProcessing}
+            className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
+              isListening
+                ? 'bg-red-500 animate-pulse'
+                : isProcessing
+                ? 'bg-gray-600'
+                : 'bg-orange-500 hover:bg-orange-600'
+            }`}
+          >
+            {isProcessing ? (
+              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            ) : isListening ? (
+              <Mic className="w-8 h-8 text-white" />
+            ) : (
+              <Mic className="w-8 h-8 text-white" />
+            )}
+          </button>
+
+          <p className="text-sm text-gray-400 text-center">
+            {isListening
+              ? 'Parlez maintenant...'
+              : isProcessing
+              ? 'Analyse en cours...'
+              : 'Cliquez pour dicter une depense'}
+          </p>
+        </div>
+
+        {/* Transcript */}
+        {transcript && (
+          <div className="mt-4 p-3 bg-gray-900 rounded-lg">
+            <p className="text-sm text-gray-300 italic">"{transcript}"</p>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+
+        {/* Detected expense */}
+        {detectedExpense && (
+          <div className="mt-4 p-4 bg-gray-900 rounded-lg space-y-3">
+            <h4 className="text-sm font-medium text-white">Depense detectee:</h4>
+
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="text-gray-500">Montant:</span>
+                <span className="ml-2 text-white font-medium">
+                  {detectedExpense.amount ? `${detectedExpense.amount.toFixed(2)} €` : 'Non detecte'}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500">Categorie:</span>
+                <span className="ml-2 text-white">{detectedExpense.category}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Date:</span>
+                <span className="ml-2 text-white">{detectedExpense.date}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Confiance:</span>
+                <span className={`ml-2 ${detectedExpense.confidence > 0.6 ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {Math.round(detectedExpense.confidence * 100)}%
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={handleConfirm}
+                size="sm"
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                <Check className="w-4 h-4 mr-1" />
+                Confirmer
+              </Button>
+              <Button
+                onClick={handleRetry}
+                size="sm"
+                variant="outline"
+                className="flex-1"
+              >
+                Reessayer
+              </Button>
+              {onCancel && (
+                <Button
+                  onClick={onCancel}
+                  size="sm"
+                  variant="ghost"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default VoiceExpenseInput;

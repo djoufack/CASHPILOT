@@ -1,0 +1,276 @@
+/**
+ * Tax Jurisdictions Configuration
+ * Centralized configuration for multi-country tax compliance
+ */
+
+export const TAX_JURISDICTIONS = {
+  FR: {
+    name: 'France',
+    code: 'FR',
+    currency: 'EUR',
+    vatRates: [
+      { rate: 20, label: 'Taux normal', default: true },
+      { rate: 10, label: 'Taux intermediaire' },
+      { rate: 5.5, label: 'Taux reduit' },
+      { rate: 2.1, label: 'Taux super-reduit' },
+      { rate: 0, label: 'Exonere' }
+    ],
+    defaultVatRate: 20,
+    vatLabel: 'TVA',
+    vatNumberFormat: /^FR[0-9A-Z]{2}[0-9]{9}$/,
+    vatNumberPrefix: 'FR',
+    fiscalYear: { start: '01-01', end: '12-31' },
+    exportFormats: ['FEC', 'CA3'],
+    declarationPeriods: ['monthly', 'quarterly', 'yearly'],
+    invoiceRequirements: {
+      vatNumber: true,
+      siret: true,
+      legalMentions: true
+    }
+  },
+  BE: {
+    name: 'Belgique',
+    code: 'BE',
+    currency: 'EUR',
+    vatRates: [
+      { rate: 21, label: 'Taux normal', default: true },
+      { rate: 12, label: 'Taux reduit' },
+      { rate: 6, label: 'Taux super-reduit' },
+      { rate: 0, label: 'Exonere' }
+    ],
+    defaultVatRate: 21,
+    vatLabel: 'BTW/TVA',
+    vatNumberFormat: /^BE[0-9]{10}$/,
+    vatNumberPrefix: 'BE',
+    fiscalYear: { start: '01-01', end: '12-31' },
+    exportFormats: ['SAF-T', 'Intervat'],
+    declarationPeriods: ['monthly', 'quarterly'],
+    invoiceRequirements: {
+      vatNumber: true,
+      enterpriseNumber: true
+    }
+  },
+  DE: {
+    name: 'Allemagne',
+    code: 'DE',
+    currency: 'EUR',
+    vatRates: [
+      { rate: 19, label: 'Regelsteuersatz', default: true },
+      { rate: 7, label: 'Ermassigter Steuersatz' },
+      { rate: 0, label: 'Steuerfrei' }
+    ],
+    defaultVatRate: 19,
+    vatLabel: 'MwSt',
+    vatNumberFormat: /^DE[0-9]{9}$/,
+    vatNumberPrefix: 'DE',
+    fiscalYear: { start: '01-01', end: '12-31' },
+    exportFormats: ['SAF-T', 'ELSTER'],
+    declarationPeriods: ['monthly', 'quarterly', 'yearly'],
+    invoiceRequirements: {
+      vatNumber: true,
+      taxNumber: true
+    }
+  },
+  NL: {
+    name: 'Pays-Bas',
+    code: 'NL',
+    currency: 'EUR',
+    vatRates: [
+      { rate: 21, label: 'Standaardtarief', default: true },
+      { rate: 9, label: 'Verlaagd tarief' },
+      { rate: 0, label: 'Vrijgesteld' }
+    ],
+    defaultVatRate: 21,
+    vatLabel: 'BTW',
+    vatNumberFormat: /^NL[0-9]{9}B[0-9]{2}$/,
+    vatNumberPrefix: 'NL',
+    fiscalYear: { start: '01-01', end: '12-31' },
+    exportFormats: ['SAF-T', 'SBR'],
+    declarationPeriods: ['monthly', 'quarterly'],
+    invoiceRequirements: {
+      vatNumber: true,
+      kvkNumber: true
+    }
+  },
+  LU: {
+    name: 'Luxembourg',
+    code: 'LU',
+    currency: 'EUR',
+    vatRates: [
+      { rate: 17, label: 'Taux normal', default: true },
+      { rate: 14, label: 'Taux intermediaire' },
+      { rate: 8, label: 'Taux reduit' },
+      { rate: 3, label: 'Taux super-reduit' },
+      { rate: 0, label: 'Exonere' }
+    ],
+    defaultVatRate: 17,
+    vatLabel: 'TVA',
+    vatNumberFormat: /^LU[0-9]{8}$/,
+    vatNumberPrefix: 'LU',
+    fiscalYear: { start: '01-01', end: '12-31' },
+    exportFormats: ['SAF-T', 'eCDF'],
+    declarationPeriods: ['monthly', 'quarterly', 'yearly'],
+    invoiceRequirements: {
+      vatNumber: true
+    }
+  },
+  CH: {
+    name: 'Suisse',
+    code: 'CH',
+    currency: 'CHF',
+    vatRates: [
+      { rate: 8.1, label: 'Taux normal', default: true },
+      { rate: 2.6, label: 'Taux reduit' },
+      { rate: 3.8, label: 'Taux hebergement' },
+      { rate: 0, label: 'Exonere' }
+    ],
+    defaultVatRate: 8.1,
+    vatLabel: 'TVA/MwSt/IVA',
+    vatNumberFormat: /^CHE-[0-9]{3}\.[0-9]{3}\.[0-9]{3}$/,
+    vatNumberPrefix: 'CHE',
+    fiscalYear: { start: '01-01', end: '12-31' },
+    exportFormats: ['SAF-T'],
+    declarationPeriods: ['quarterly', 'yearly'],
+    invoiceRequirements: {
+      vatNumber: true,
+      uid: true
+    }
+  },
+  ES: {
+    name: 'Espagne',
+    code: 'ES',
+    currency: 'EUR',
+    vatRates: [
+      { rate: 21, label: 'Tipo general', default: true },
+      { rate: 10, label: 'Tipo reducido' },
+      { rate: 4, label: 'Tipo superreducido' },
+      { rate: 0, label: 'Exento' }
+    ],
+    defaultVatRate: 21,
+    vatLabel: 'IVA',
+    vatNumberFormat: /^ES[A-Z0-9][0-9]{7}[A-Z0-9]$/,
+    vatNumberPrefix: 'ES',
+    fiscalYear: { start: '01-01', end: '12-31' },
+    exportFormats: ['SAF-T', 'SII'],
+    declarationPeriods: ['monthly', 'quarterly'],
+    invoiceRequirements: {
+      vatNumber: true,
+      nif: true
+    }
+  },
+  IT: {
+    name: 'Italie',
+    code: 'IT',
+    currency: 'EUR',
+    vatRates: [
+      { rate: 22, label: 'Aliquota ordinaria', default: true },
+      { rate: 10, label: 'Aliquota ridotta' },
+      { rate: 5, label: 'Aliquota ridotta' },
+      { rate: 4, label: 'Aliquota minima' },
+      { rate: 0, label: 'Esente' }
+    ],
+    defaultVatRate: 22,
+    vatLabel: 'IVA',
+    vatNumberFormat: /^IT[0-9]{11}$/,
+    vatNumberPrefix: 'IT',
+    fiscalYear: { start: '01-01', end: '12-31' },
+    exportFormats: ['SAF-T', 'FatturaPA'],
+    declarationPeriods: ['monthly', 'quarterly'],
+    invoiceRequirements: {
+      vatNumber: true,
+      codiceFiscale: true,
+      sdi: true
+    }
+  },
+  PT: {
+    name: 'Portugal',
+    code: 'PT',
+    currency: 'EUR',
+    vatRates: [
+      { rate: 23, label: 'Taxa normal', default: true },
+      { rate: 13, label: 'Taxa intermedia' },
+      { rate: 6, label: 'Taxa reduzida' },
+      { rate: 0, label: 'Isento' }
+    ],
+    defaultVatRate: 23,
+    vatLabel: 'IVA',
+    vatNumberFormat: /^PT[0-9]{9}$/,
+    vatNumberPrefix: 'PT',
+    fiscalYear: { start: '01-01', end: '12-31' },
+    exportFormats: ['SAF-T'],
+    declarationPeriods: ['monthly', 'quarterly'],
+    invoiceRequirements: {
+      vatNumber: true,
+      nif: true,
+      atcud: true
+    }
+  },
+  GB: {
+    name: 'Royaume-Uni',
+    code: 'GB',
+    currency: 'GBP',
+    vatRates: [
+      { rate: 20, label: 'Standard rate', default: true },
+      { rate: 5, label: 'Reduced rate' },
+      { rate: 0, label: 'Zero rate' }
+    ],
+    defaultVatRate: 20,
+    vatLabel: 'VAT',
+    vatNumberFormat: /^GB[0-9]{9}$|^GB[0-9]{12}$|^GBGD[0-9]{3}$|^GBHA[0-9]{3}$/,
+    vatNumberPrefix: 'GB',
+    fiscalYear: { start: '04-06', end: '04-05' },
+    exportFormats: ['SAF-T', 'MTD'],
+    declarationPeriods: ['quarterly'],
+    invoiceRequirements: {
+      vatNumber: true,
+      companyNumber: true
+    }
+  }
+};
+
+/**
+ * Get jurisdiction by code
+ */
+export const getJurisdiction = (code) => {
+  return TAX_JURISDICTIONS[code?.toUpperCase()] || TAX_JURISDICTIONS.FR;
+};
+
+/**
+ * Get all jurisdiction codes
+ */
+export const getJurisdictionCodes = () => Object.keys(TAX_JURISDICTIONS);
+
+/**
+ * Get VAT rates for a jurisdiction
+ */
+export const getVatRates = (jurisdictionCode) => {
+  const jurisdiction = getJurisdiction(jurisdictionCode);
+  return jurisdiction.vatRates;
+};
+
+/**
+ * Get default VAT rate for a jurisdiction
+ */
+export const getDefaultVatRate = (jurisdictionCode) => {
+  const jurisdiction = getJurisdiction(jurisdictionCode);
+  return jurisdiction.defaultVatRate;
+};
+
+/**
+ * Validate VAT number format
+ */
+export const validateVatNumber = (vatNumber, jurisdictionCode) => {
+  const jurisdiction = getJurisdiction(jurisdictionCode);
+  if (!jurisdiction.vatNumberFormat) return true;
+  return jurisdiction.vatNumberFormat.test(vatNumber);
+};
+
+/**
+ * Get export formats for a jurisdiction
+ */
+export const getExportFormats = (jurisdictionCode) => {
+  const jurisdiction = getJurisdiction(jurisdictionCode);
+  return jurisdiction.exportFormats;
+};
+
+export default TAX_JURISDICTIONS;
