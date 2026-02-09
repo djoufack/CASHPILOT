@@ -495,7 +495,7 @@ const LandingPage = () => {
                 <span className="btn-icon"><ArrowRight /></span>
                 <span className="btn-shine"></span>
               </button>
-              <button className="btn btn-hero-secondary magnetic-btn" onClick={() => handleNavigate('/login')}>
+              <button className="btn btn-hero-secondary magnetic-btn" onClick={() => window.open('/guide/', '_blank')}>
                 <span className="btn-text">Voir la Démo</span>
                 <span className="btn-play"><Play /></span>
               </button>
