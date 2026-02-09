@@ -31,7 +31,11 @@ import {
   Menu,
   Play,
   Star,
-  Smartphone
+  Smartphone,
+  Bot,
+  Mic,
+  Workflow,
+  Plug
 } from 'lucide-react';
 import '../styles/landing.css';
 
@@ -478,6 +482,10 @@ const LandingPage = () => {
               <div className="tag tag-yellow">
                 <Sparkles />
                 <span>100% Automatisé</span>
+              </div>
+              <div className="tag tag-cyan">
+                <Bot />
+                <span>Serveur MCP &bull; Compatible IA</span>
               </div>
             </div>
 
@@ -936,6 +944,129 @@ const LandingPage = () => {
               <h3>Simulations Financières</h3>
               <p>Scénarios what-if et projections pour anticiper l'avenir</p>
             </div>
+
+            <div className="feature-card" data-color="cyan-blue">
+              <div className="feature-card-icon">
+                <Bot />
+              </div>
+              <h3>Serveur MCP & API</h3>
+              <p>29 outils MCP + API REST pour tous les agents IA et automations</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* MCP & AI Agents Section */}
+      <section id="mcp" className="section section-mcp">
+        <div className="section-bg">
+          <div className="bg-gradient mcp-gradient"></div>
+          <div className="bg-mesh"></div>
+        </div>
+
+        <div className="container">
+          <div className="section-header">
+            <div className="section-badge badge-cyan">
+              <Bot />
+              <span>Serveur MCP Natif</span>
+            </div>
+            <h2 className="section-title">Connecté à Tous Vos Agents IA</h2>
+            <p className="section-description">
+              CashPilot est un <strong>serveur MCP (Model Context Protocol)</strong> avec 29 outils intégrés.
+              <br />
+              Pilotez votre gestion financière par la voix ou le texte, depuis n'importe quel agent IA.
+            </p>
+          </div>
+
+          <div className="mcp-agents-grid">
+            <div className="mcp-agent-badge">
+              <span className="mcp-agent-icon" style={{background: 'rgba(139,92,246,0.15)', color: '#a78bfa'}}>C</span>
+              <span className="mcp-agent-name">Claude</span>
+              <span className="mcp-agent-company">Anthropic</span>
+            </div>
+            <div className="mcp-agent-badge">
+              <span className="mcp-agent-icon" style={{background: 'rgba(16,185,129,0.15)', color: '#34d399'}}>G</span>
+              <span className="mcp-agent-name">ChatGPT</span>
+              <span className="mcp-agent-company">OpenAI</span>
+            </div>
+            <div className="mcp-agent-badge">
+              <span className="mcp-agent-icon" style={{background: 'rgba(59,130,246,0.15)', color: '#60a5fa'}}>G</span>
+              <span className="mcp-agent-name">Gemini</span>
+              <span className="mcp-agent-company">Google</span>
+            </div>
+            <div className="mcp-agent-badge">
+              <span className="mcp-agent-icon" style={{background: 'rgba(245,158,11,0.15)', color: '#fbbf24'}}>M</span>
+              <span className="mcp-agent-name">Mistral</span>
+              <span className="mcp-agent-company">Mistral AI</span>
+            </div>
+            <div className="mcp-agent-badge">
+              <span className="mcp-agent-icon" style={{background: 'rgba(236,72,153,0.15)', color: '#f472b6'}}>R</span>
+              <span className="mcp-agent-name">Rube.app</span>
+              <span className="mcp-agent-company">Automation</span>
+            </div>
+            <div className="mcp-agent-badge">
+              <span className="mcp-agent-icon" style={{background: 'rgba(239,68,68,0.15)', color: '#f87171'}}>n</span>
+              <span className="mcp-agent-name">n8n</span>
+              <span className="mcp-agent-company">Workflow</span>
+            </div>
+            <div className="mcp-agent-badge">
+              <span className="mcp-agent-icon" style={{background: 'rgba(6,182,212,0.15)', color: '#22d3ee'}}>G</span>
+              <span className="mcp-agent-name">Gunloop</span>
+              <span className="mcp-agent-company">Automation</span>
+            </div>
+            <div className="mcp-agent-badge">
+              <span className="mcp-agent-icon" style={{background: 'rgba(255,255,255,0.08)', color: '#a1a1aa'}}>+</span>
+              <span className="mcp-agent-name">Tout Client MCP</span>
+              <span className="mcp-agent-company">Universel</span>
+            </div>
+          </div>
+
+          <div className="mcp-cards">
+            <div className="mcp-card">
+              <div className="mcp-card-glow"></div>
+              <div className="mcp-card-icon">
+                <Mic />
+              </div>
+              <h3 className="mcp-card-title">Contrôle Vocal & Texte</h3>
+              <p className="mcp-card-description">
+                Pilotez CashPilot depuis Claude, ChatGPT, Gemini ou Mistral par la voix ou le texte.
+                Créez des factures, consultez vos finances, générez des rapports — en langage naturel.
+              </p>
+            </div>
+
+            <div className="mcp-card">
+              <div className="mcp-card-glow"></div>
+              <div className="mcp-card-icon">
+                <Plug />
+              </div>
+              <h3 className="mcp-card-title">29 Outils MCP</h3>
+              <p className="mcp-card-description">
+                Création de factures, recherche de clients, export comptable, résumé financier, gestion de stock
+                — 29 outils accessibles via le protocole MCP standard.
+              </p>
+            </div>
+
+            <div className="mcp-card">
+              <div className="mcp-card-glow"></div>
+              <div className="mcp-card-icon">
+                <Workflow />
+              </div>
+              <h3 className="mcp-card-title">Brique d'Automatisation</h3>
+              <p className="mcp-card-description">
+                Intégrez CashPilot dans vos pipelines : Rube.app, n8n, Gunloop, Zapier, Make.
+                Votre gestion financière devient un composant de votre écosystème automatisé.
+              </p>
+            </div>
+          </div>
+
+          <div className="mcp-example">
+            <div className="mcp-example-label">Exemple depuis un agent IA</div>
+            <p className="mcp-example-text">
+              &laquo; Crée une facture pour Acme Corp de 3 200&euro; avec 20% de TVA &raquo;
+            </p>
+            <p className="mcp-example-result">
+              <CheckCircle2 />
+              <span>Facture FAC-2026-043 créée, écritures comptables générées automatiquement.</span>
+            </p>
           </div>
         </div>
       </section>
@@ -1010,6 +1141,16 @@ const LandingPage = () => {
                 <Star />
               </div>
               <p>Tout-en-un : Gestion, Facturation, Comptabilité, Simulations</p>
+              <div className="advantage-check">
+                <CheckCircle2 />
+              </div>
+            </div>
+
+            <div className="advantage-item">
+              <div className="advantage-icon">
+                <Bot />
+              </div>
+              <p>Serveur MCP : Pilotez CashPilot depuis ChatGPT, Claude, Gemini, Mistral ou tout agent IA</p>
               <div className="advantage-check">
                 <CheckCircle2 />
               </div>
@@ -1096,7 +1237,7 @@ const LandingPage = () => {
           </div>
 
           <div className="footer-bottom">
-            <p>© 2024 CashPilot. Tous droits réservés.</p>
+            <p>© 2026 CashPilot. Tous droits réservés.</p>
             <p>
               Développé avec ❤️ par{' '}
               <a href="https://www.dmgmanagement.tech" target="_blank" rel="noopener noreferrer">
