@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
@@ -9,13 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
-  Loader2, Copy, Check, Plus, Trash2, Key, Terminal, Globe, Eye, EyeOff,
+  Loader2, Copy, Check, Plus, Trash2, Key, Terminal, Globe,
   AlertTriangle, RefreshCw, Code2, MessageSquare, Zap, Cloud, Cpu
 } from 'lucide-react';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const API_BASE_URL = 'https://cashpilot.tech/api/v1';
+const MCP_SERVER_URL = 'https://cashpilot.tech/mcp';
 
 // ---------------------------------------------------------------------------
 // Clipboard helper
@@ -59,19 +58,20 @@ function CodeBlock({ code, language }) {
 }
 
 // ---------------------------------------------------------------------------
-// MCP Config Section
+// MCP Config Section (URL-based, uses API key)
 // ---------------------------------------------------------------------------
-function McpConfigSection() {
+function McpConfigSection({ apiKeys }) {
   const [activeClient, setActiveClient] = useState('claude-code');
+
+  const activeKey = apiKeys?.find(k => k.is_active);
+  const keyPlaceholder = activeKey ? `${activeKey.key_prefix}...` : 'cpk_votre_cle_ici';
 
   const mcpConfig = JSON.stringify({
     mcpServers: {
       cashpilot: {
-        command: 'npx',
-        args: ['tsx', '<CHEMIN_ABSOLU>/mcp-server/src/index.ts'],
-        env: {
-          SUPABASE_URL: SUPABASE_URL,
-          SUPABASE_ANON_KEY: SUPABASE_ANON_KEY
+        url: MCP_SERVER_URL,
+        headers: {
+          'X-API-Key': keyPlaceholder
         }
       }
     }
@@ -82,24 +82,21 @@ function McpConfigSection() {
       id: 'claude-code',
       name: 'Claude Code',
       icon: <Terminal className="w-4 h-4" />,
-      file: '~/.claude/settings.local.json',
-      description: 'Terminal / CLI'
+      file: '~/.claude/settings.local.json'
     },
     {
       id: 'claude-desktop',
       name: 'Claude Desktop',
       icon: <MessageSquare className="w-4 h-4" />,
-      file: window.navigator.platform.includes('Win')
+      file: /Win/.test(navigator.userAgent)
         ? '%APPDATA%\\Claude\\claude_desktop_config.json'
-        : '~/Library/Application Support/Claude/claude_desktop_config.json',
-      description: 'Application native'
+        : '~/Library/Application Support/Claude/claude_desktop_config.json'
     },
     {
       id: 'vscode',
       name: 'VS Code (Cline)',
       icon: <Code2 className="w-4 h-4" />,
-      file: 'Parametres Cline > MCP Servers',
-      description: 'Extension Cline'
+      file: 'Parametres Cline > MCP Servers'
     }
   ];
 
@@ -116,7 +113,7 @@ function McpConfigSection() {
             <CardTitle className="text-lg">Connexion MCP (Claude, VS Code, Cursor...)</CardTitle>
             <CardDescription className="text-gray-400">
               Pilotez CashPilot en langage naturel depuis votre assistant IA.
-              Authentification par email/mot de passe dans la conversation.
+              Aucune installation locale requise — connexion distante via votre cle API.
             </CardDescription>
           </div>
         </div>
@@ -127,12 +124,22 @@ function McpConfigSection() {
         <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4">
           <p className="text-sm text-blue-300 font-medium mb-2">Comment ca marche :</p>
           <ol className="text-sm text-gray-400 space-y-1 list-decimal list-inside">
+            <li>Generez une <strong className="text-white">cle API</strong> dans la section <em>"REST API"</em> ci-dessus</li>
             <li>Copiez la configuration ci-dessous dans votre client MCP</li>
-            <li>Remplacez <code className="text-orange-400 bg-gray-800 px-1 rounded">&lt;CHEMIN_ABSOLU&gt;</code> par le chemin vers votre dossier CashPilot</li>
-            <li>Relancez votre client</li>
-            <li>Dites : <em className="text-white">"Connecte-moi a CashPilot avec mon-email@exemple.fr"</em></li>
+            <li>Remplacez <code className="text-blue-400 bg-gray-800 px-1 rounded">{keyPlaceholder}</code> par votre vraie cle API</li>
+            <li>Relancez votre client — les 29 outils CashPilot sont disponibles</li>
           </ol>
         </div>
+
+        {/* No key warning */}
+        {!activeKey && (
+          <div className="bg-yellow-500/5 border border-yellow-500/30 rounded-lg p-3 flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+            <p className="text-sm text-yellow-300">
+              Vous n'avez pas encore de cle API. Creez-en une dans la section <strong>"REST API"</strong> ci-dessus pour commencer.
+            </p>
+          </div>
+        )}
 
         {/* Client selector */}
         <div className="flex gap-2 flex-wrap">
@@ -142,7 +149,7 @@ function McpConfigSection() {
               onClick={() => setActiveClient(c.id)}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                 activeClient === c.id
-                  ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                  ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
                   : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600'
               }`}
             >
@@ -155,33 +162,31 @@ function McpConfigSection() {
         {/* Config file location */}
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <span>Fichier :</span>
-          <code className="bg-gray-800 px-2 py-0.5 rounded text-orange-300 text-xs">{active?.file}</code>
+          <code className="bg-gray-800 px-2 py-0.5 rounded text-blue-300 text-xs">{active?.file}</code>
           <CopyButton text={active?.file || ''} label="le chemin" />
         </div>
 
         {/* Config JSON */}
         <CodeBlock code={mcpConfig} language="json" />
 
-        {/* Variables explanation */}
+        {/* Key info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-gray-800/50 rounded-lg p-3 space-y-1">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-gray-500 uppercase tracking-wider">Supabase URL</Label>
-              <CopyButton text={SUPABASE_URL} />
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">URL du serveur</Label>
+              <CopyButton text={MCP_SERVER_URL} />
             </div>
-            <p className="text-xs text-gray-300 font-mono break-all">{SUPABASE_URL}</p>
+            <code className="text-sm text-blue-300 font-mono">{MCP_SERVER_URL}</code>
           </div>
           <div className="bg-gray-800/50 rounded-lg p-3 space-y-1">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs text-gray-500 uppercase tracking-wider">Anon Key (publique)</Label>
-              <CopyButton text={SUPABASE_ANON_KEY} />
-            </div>
-            <p className="text-xs text-gray-300 font-mono truncate">{SUPABASE_ANON_KEY?.slice(0, 30)}...</p>
+            <Label className="text-xs text-gray-500 uppercase tracking-wider">Authentification</Label>
+            <p className="text-sm text-gray-300">Cle API personnelle (header <code className="text-blue-400">X-API-Key</code>)</p>
           </div>
         </div>
 
         <p className="text-xs text-gray-500">
-          La cle anon est publique et identique pour tous les utilisateurs. Votre securite repose sur votre email/mot de passe + les politiques RLS de Supabase.
+          Chaque utilisateur utilise sa propre cle API. Les permissions (lecture, ecriture, suppression) sont definies lors de la creation de la cle.
+          Transport : Streamable HTTP + SSE.
         </p>
       </CardContent>
     </Card>
@@ -536,26 +541,8 @@ function ApiKeysList({ keys, loading, onRevoke }) {
 // ---------------------------------------------------------------------------
 // REST API Section
 // ---------------------------------------------------------------------------
-function RestApiSection() {
-  const { user } = useAuth();
+function RestApiSection({ keys, onKeysChanged }) {
   const { toast } = useToast();
-  const [keys, setKeys] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchKeys = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('api_keys')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (!error) setKeys(data || []);
-    setLoading(false);
-  }, [user]);
-
-  useEffect(() => { fetchKeys(); }, [fetchKeys]);
 
   const handleRevoke = async (id, name) => {
     const { error } = await supabase
@@ -567,7 +554,7 @@ function RestApiSection() {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Cle revoquee', description: `"${name}" ne peut plus acceder a l'API.` });
-      fetchKeys();
+      onKeysChanged();
     }
   };
 
@@ -623,17 +610,17 @@ function RestApiSection() {
         </div>
 
         {/* Create key form */}
-        <CreateApiKeyForm onCreated={fetchKeys} />
+        <CreateApiKeyForm onCreated={onKeysChanged} />
 
         {/* Existing keys */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <Label className="text-sm text-gray-300">Vos cles API</Label>
-            <Button variant="ghost" size="sm" onClick={fetchKeys} className="text-gray-400 hover:text-white h-7">
+            <Button variant="ghost" size="sm" onClick={onKeysChanged} className="text-gray-400 hover:text-white h-7">
               <RefreshCw className="w-3.5 h-3.5" />
             </Button>
           </div>
-          <ApiKeysList keys={keys} loading={loading} onRevoke={handleRevoke} />
+          <ApiKeysList keys={keys} loading={!keys} onRevoke={handleRevoke} />
         </div>
 
         {/* cURL example */}
@@ -650,11 +637,26 @@ function RestApiSection() {
 // Main Component
 // ---------------------------------------------------------------------------
 const ConnectionSettings = () => {
+  const { user } = useAuth();
+  const [apiKeys, setApiKeys] = useState([]);
+
+  const fetchKeys = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('api_keys')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    setApiKeys(data || []);
+  }, [user]);
+
+  useEffect(() => { fetchKeys(); }, [fetchKeys]);
+
   return (
     <div className="space-y-6">
-      <McpConfigSection />
+      <RestApiSection keys={apiKeys} onKeysChanged={fetchKeys} />
+      <McpConfigSection apiKeys={apiKeys} />
       <McpConnectorSection />
-      <RestApiSection />
     </div>
   );
 };

@@ -10,8 +10,8 @@ Le serveur MCP (Model Context Protocol) de CashPilot vous permet de gerer vos fi
 
 | Mode | Pour qui | Auth |
 |------|----------|------|
-| MCP stdio | Claude Code, VS Code (Cline/Continue/Copilot), Antigravity, Cursor, Windsurf | email/mot de passe via outil `login` |
-| MCP HTTP | Tout agent compatible MCP via HTTP | email/mot de passe via outil `login` |
+| MCP distant (URL) | Claude Code, Claude Desktop, VS Code (Cline/Continue/Copilot), Antigravity, Cursor, Windsurf | cle API personnelle (`X-API-Key`) |
+| MCP Connector | Applications utilisant l'API Anthropic Messages | cle API personnelle |
 | API REST | ChatGPT, agents custom, scripts, apps | cle API (header `X-API-Key`) |
 
 ---
@@ -19,36 +19,25 @@ Le serveur MCP (Model Context Protocol) de CashPilot vous permet de gerer vos fi
 ## Prerequis
 
 - Un compte CashPilot actif (email + mot de passe)
+- Une **cle API CashPilot** (generee dans Parametres > Connexions > REST API sur [cashpilot.tech](https://cashpilot.tech/settings?tab=connections))
 - Un client MCP compatible : [Claude Code](https://claude.com/claude-code), [VS Code](https://code.visualstudio.com/) (avec Cline, Continue ou Copilot Chat), [Antigravity](https://antigravity.google/), Cursor, Windsurf, etc.
-- Node.js 18+ installe
+
+> **Aucune installation locale requise.** CashPilot fonctionne en mode distant — il suffit de copier la configuration ci-dessous dans votre client.
 
 ---
 
-## Installation
+## Configuration
 
-### Installation automatique (recommandee)
+### Etape 1 : Generer votre cle API
 
-Si vous utilisez Claude Code, donnez-lui simplement ce fichier et demandez :
-> "Configure le serveur MCP CashPilot pour moi"
+1. Connectez-vous a [cashpilot.tech](https://cashpilot.tech)
+2. Allez dans **Parametres > Connexions**
+3. Dans la section **REST API**, cliquez sur **"Generer la cle API"**
+4. Copiez votre cle (format `cpk_...`) — elle ne sera affichee qu'une seule fois
 
-Claude executera automatiquement les etapes ci-dessous.
+### Etape 2 : Configurer votre client
 
-### Installation manuelle
-
-#### 1. Installer les dependances
-
-Depuis la racine du projet CashPilot :
-
-```bash
-cd mcp-server
-npm install
-```
-
-#### 2. Configurer votre client
-
-Choisissez la configuration correspondant a votre outil. Dans tous les cas, remplacez `<CHEMIN_ABSOLU>` par le chemin absolu vers votre dossier CashPilot (par ex. `c:\Github-Desktop\CASHPILOT` sur Windows ou `/home/user/CASHPILOT` sur Linux/Mac).
-
-> **Note :** La `SUPABASE_ANON_KEY` ci-dessous est une cle publique, identique pour tous les utilisateurs. Votre securite repose sur votre email/mot de passe, pas sur cette cle.
+Choisissez la configuration correspondant a votre outil. Remplacez `cpk_votre_cle_ici` par votre vraie cle API.
 
 ---
 
@@ -60,11 +49,9 @@ Ajouter dans `~/.claude/settings.local.json` :
 {
   "mcpServers": {
     "cashpilot": {
-      "command": "npx",
-      "args": ["tsx", "<CHEMIN_ABSOLU>/mcp-server/src/index.ts"],
-      "env": {
-        "SUPABASE_URL": "https://rfzvrezrcigzmldgvntz.supabase.co",
-        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmenZyZXpyY2lnem1sZGd2bnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MjcxODIsImV4cCI6MjA4NTIwMzE4Mn0.glzebP-k0AqNHdoru-bY83mJqyS19gVSEH-hgQhuXTA"
+      "url": "https://cashpilot.tech/mcp",
+      "headers": {
+        "X-API-Key": "cpk_votre_cle_ici"
       }
     }
   }
@@ -84,11 +71,9 @@ Si vous utilisez l'application Claude Desktop (et non Claude Code en ligne de co
 {
   "mcpServers": {
     "cashpilot": {
-      "command": "npx",
-      "args": ["tsx", "<CHEMIN_ABSOLU>/mcp-server/src/index.ts"],
-      "env": {
-        "SUPABASE_URL": "https://rfzvrezrcigzmldgvntz.supabase.co",
-        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmenZyZXpyY2lnem1sZGd2bnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MjcxODIsImV4cCI6MjA4NTIwMzE4Mn0.glzebP-k0AqNHdoru-bY83mJqyS19gVSEH-hgQhuXTA"
+      "url": "https://cashpilot.tech/mcp",
+      "headers": {
+        "X-API-Key": "cpk_votre_cle_ici"
       }
     }
   }
@@ -111,11 +96,9 @@ Ouvrir les parametres Cline (icone engrenage) → "MCP Servers" → "Edit MCP Se
 {
   "mcpServers": {
     "cashpilot": {
-      "command": "npx",
-      "args": ["tsx", "<CHEMIN_ABSOLU>/mcp-server/src/index.ts"],
-      "env": {
-        "SUPABASE_URL": "https://rfzvrezrcigzmldgvntz.supabase.co",
-        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmenZyZXpyY2lnem1sZGd2bnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MjcxODIsImV4cCI6MjA4NTIwMzE4Mn0.glzebP-k0AqNHdoru-bY83mJqyS19gVSEH-hgQhuXTA"
+      "url": "https://cashpilot.tech/mcp",
+      "headers": {
+        "X-API-Key": "cpk_votre_cle_ici"
       }
     }
   }
@@ -129,13 +112,9 @@ Ouvrir `~/.continue/config.yaml` (ou via la palette de commandes : "Continue: Op
 ```yaml
 mcpServers:
   - name: cashpilot
-    command: npx
-    args:
-      - tsx
-      - <CHEMIN_ABSOLU>/mcp-server/src/index.ts
-    env:
-      SUPABASE_URL: https://rfzvrezrcigzmldgvntz.supabase.co
-      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmenZyZXpyY2lnem1sZGd2bnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MjcxODIsImV4cCI6MjA4NTIwMzE4Mn0.glzebP-k0AqNHdoru-bY83mJqyS19gVSEH-hgQhuXTA
+    url: https://cashpilot.tech/mcp
+    headers:
+      X-API-Key: cpk_votre_cle_ici
 ```
 
 **GitHub Copilot Chat** (MCP natif dans VS Code 1.99+) :
@@ -147,11 +126,9 @@ Ouvrir les settings VS Code (`Ctrl+,`) → chercher `mcp` → "Edit in settings.
   "mcp": {
     "servers": {
       "cashpilot": {
-        "command": "npx",
-        "args": ["tsx", "<CHEMIN_ABSOLU>/mcp-server/src/index.ts"],
-        "env": {
-          "SUPABASE_URL": "https://rfzvrezrcigzmldgvntz.supabase.co",
-          "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmenZyZXpyY2lnem1sZGd2bnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MjcxODIsImV4cCI6MjA4NTIwMzE4Mn0.glzebP-k0AqNHdoru-bY83mJqyS19gVSEH-hgQhuXTA"
+        "url": "https://cashpilot.tech/mcp",
+        "headers": {
+          "X-API-Key": "cpk_votre_cle_ici"
         }
       }
     }
@@ -177,11 +154,9 @@ Contenu du fichier :
 {
   "mcpServers": {
     "cashpilot": {
-      "command": "npx",
-      "args": ["tsx", "<CHEMIN_ABSOLU>/mcp-server/src/index.ts"],
-      "env": {
-        "SUPABASE_URL": "https://rfzvrezrcigzmldgvntz.supabase.co",
-        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmenZyZXpyY2lnem1sZGd2bnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MjcxODIsImV4cCI6MjA4NTIwMzE4Mn0.glzebP-k0AqNHdoru-bY83mJqyS19gVSEH-hgQhuXTA"
+      "url": "https://cashpilot.tech/mcp",
+      "headers": {
+        "X-API-Key": "cpk_votre_cle_ici"
       }
     }
   }
@@ -198,14 +173,13 @@ La plupart des clients MCP utilisent le meme format de configuration. Consultez 
 
 | Parametre | Valeur |
 |-----------|--------|
-| Commande | `npx` |
-| Arguments | `tsx <CHEMIN_ABSOLU>/mcp-server/src/index.ts` |
-| Variable `SUPABASE_URL` | `https://rfzvrezrcigzmldgvntz.supabase.co` |
-| Variable `SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` (voir cle complete ci-dessus) |
+| URL | `https://cashpilot.tech/mcp` |
+| Header `X-API-Key` | Votre cle API personnelle (format `cpk_...`) |
+| Transport | Streamable HTTP / SSE |
 
 ---
 
-#### 3. Relancer votre client
+#### Etape 3 : Relancer votre client
 
 Fermez et rouvrez votre client (Claude Code, VS Code, Antigravity, etc.) pour charger le serveur MCP.
 
@@ -213,30 +187,21 @@ Fermez et rouvrez votre client (Claude Code, VS Code, Antigravity, etc.) pour ch
 
 Si un utilisateur demande a Claude Code de configurer le serveur MCP CashPilot, voici les etapes a suivre :
 
-1. Localiser le dossier `mcp-server/` dans le projet CashPilot (il se trouve a la racine du projet)
-2. Executer `npm install` dans le dossier `mcp-server/`
-3. Determiner le chemin absolu du fichier `mcp-server/src/index.ts`
-4. Lire le fichier `~/.claude/settings.local.json` (le creer s'il n'existe pas)
-5. Ajouter ou mettre a jour l'entree `mcpServers.cashpilot` avec :
-   - `command`: `"npx"`
-   - `args`: `["tsx", "<chemin_absolu>/mcp-server/src/index.ts"]`
-   - `env.SUPABASE_URL`: `"https://rfzvrezrcigzmldgvntz.supabase.co"`
-   - `env.SUPABASE_ANON_KEY`: `"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmenZyZXpyY2lnem1sZGd2bnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MjcxODIsImV4cCI6MjA4NTIwMzE4Mn0.glzebP-k0AqNHdoru-bY83mJqyS19gVSEH-hgQhuXTA"`
-6. Demander a l'utilisateur de relancer Claude Code
+1. Demander a l'utilisateur sa cle API CashPilot (format `cpk_...`). S'il n'en a pas, lui indiquer d'en creer une sur [cashpilot.tech/settings?tab=connections](https://cashpilot.tech/settings?tab=connections)
+2. Lire le fichier `~/.claude/settings.local.json` (le creer s'il n'existe pas)
+3. Ajouter ou mettre a jour l'entree `mcpServers.cashpilot` avec :
+   - `url`: `"https://cashpilot.tech/mcp"`
+   - `headers.X-API-Key`: la cle API de l'utilisateur
+4. Demander a l'utilisateur de relancer Claude Code
 
 ---
 
 ## Connexion
 
-Avant toute operation, vous devez vous connecter avec vos identifiants CashPilot.
+Avec le mode distant (URL), l'authentification est automatique via votre cle API. Des que vous utilisez un outil, CashPilot identifie votre compte grace a la cle dans le header `X-API-Key`. Toutes les operations sont filtrees par vos propres donnees grace aux politiques de securite (RLS) de Supabase.
 
-**Dites simplement :**
-> "Connecte-moi a CashPilot avec mon email john@exemple.fr et mon mot de passe"
-
-Claude appellera automatiquement l'outil `login`. Une fois connecte, toutes les operations sont filtrees par vos propres donnees grace aux politiques de securite (RLS) de Supabase. Vous ne voyez que vos donnees.
-
-**Autres commandes d'authentification :**
-- "Suis-je connecte ?" → appelle `whoami`
+**Commandes utiles :**
+- "Suis-je connecte ?" → appelle `whoami` (verifie que la cle est valide)
 - "Deconnecte-moi" → appelle `logout`
 
 ---
@@ -529,11 +494,9 @@ Thomas ouvre les parametres Cline (icone engrenage → "MCP Servers" → "Edit M
 {
   "mcpServers": {
     "cashpilot": {
-      "command": "npx",
-      "args": ["tsx", "C:/Projects/CASHPILOT/mcp-server/src/index.ts"],
-      "env": {
-        "SUPABASE_URL": "https://rfzvrezrcigzmldgvntz.supabase.co",
-        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      "url": "https://cashpilot.tech/mcp",
+      "headers": {
+        "X-API-Key": "cpk_abc123def456..."
       }
     }
   }
@@ -1154,10 +1117,9 @@ curl -H "X-API-Key: votre-cle" \
 
 | Probleme | Solution |
 |----------|----------|
-| "Not authenticated" | Appelez `login` d'abord. La session expire apres inactivite. |
-| "Login failed" | Verifiez vos identifiants. Utilisez les memes que sur l'app web CashPilot. |
-| Les outils n'apparaissent pas | Verifiez `settings.local.json` et relancez Claude Code. |
-| "Missing SUPABASE_URL" | Verifiez les variables d'environnement dans la config MCP. |
+| "Not authenticated" / "Invalid API key" | Verifiez que votre cle API (`cpk_...`) est correcte et active dans Parametres > Connexions. |
+| Les outils n'apparaissent pas | Verifiez la configuration MCP et relancez votre client. |
+| "Connection refused" | Verifiez l'URL : `https://cashpilot.tech/mcp`. |
 | Resultats vides | Vous n'avez peut-etre pas encore de donnees, ou le filtre est trop restrictif. |
 
 ---
