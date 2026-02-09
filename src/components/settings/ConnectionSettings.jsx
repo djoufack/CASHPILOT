@@ -434,15 +434,18 @@ function CreateApiKeyForm({ onCreated }) {
     );
   }
 
+  const scopeBorderColor = { read: 'border-blue-500/40', write: 'border-orange-500/40', delete: 'border-red-500/40' };
+
   return (
     <div className="space-y-4 bg-gray-800/30 border border-gray-700/50 rounded-lg p-4">
       <div className="space-y-2">
-        <Label className="text-sm text-gray-300">Nom de la cle</Label>
-        <Input
+        <Label className="text-sm text-gray-300">Nom de la cle <span className="text-red-400">*</span></Label>
+        <input
+          type="text"
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="Ex: ChatGPT, Zapier, Script Python, n8n..."
-          className="bg-gray-800 border-gray-700 text-white focus:ring-orange-500"
+          className="flex h-10 w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900"
         />
       </div>
 
@@ -450,14 +453,15 @@ function CreateApiKeyForm({ onCreated }) {
         <Label className="text-sm text-gray-300">Permissions</Label>
         <div className="flex flex-wrap gap-4">
           {[
-            { key: 'read', label: 'Lecture', desc: 'GET — consulter factures, clients, KPIs...', color: 'blue' },
-            { key: 'write', label: 'Ecriture', desc: 'POST/PUT — creer factures, clients, paiements...', color: 'orange' },
-            { key: 'delete', label: 'Suppression', desc: 'DELETE — supprimer des enregistrements', color: 'red' },
+            { key: 'read', label: 'Lecture', desc: 'GET — consulter factures, clients, KPIs...' },
+            { key: 'write', label: 'Ecriture', desc: 'POST/PUT — creer factures, clients, paiements...' },
+            { key: 'delete', label: 'Suppression', desc: 'DELETE — supprimer des enregistrements' },
           ].map(scope => (
-            <label
+            <div
               key={scope.key}
+              onClick={() => scope.key !== 'read' && setScopes(s => ({ ...s, [scope.key]: !s[scope.key] }))}
               className={`flex items-center gap-3 bg-gray-800 rounded-lg p-3 cursor-pointer border transition-colors ${
-                scopes[scope.key] ? `border-${scope.color}-500/40` : 'border-gray-700'
+                scopes[scope.key] ? scopeBorderColor[scope.key] : 'border-gray-700'
               }`}
             >
               <Switch
@@ -469,15 +473,15 @@ function CreateApiKeyForm({ onCreated }) {
                 <p className="text-sm text-white font-medium">{scope.label}</p>
                 <p className="text-xs text-gray-500">{scope.desc}</p>
               </div>
-            </label>
+            </div>
           ))}
         </div>
       </div>
 
       <Button
         onClick={generateKey}
-        disabled={creating || !name.trim()}
-        className="bg-orange-500 hover:bg-orange-600 text-white"
+        disabled={creating}
+        className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
       >
         {creating ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
         Generer la cle API
