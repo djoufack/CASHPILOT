@@ -2,7 +2,7 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Building2, Bell, CreditCard, Users, Fingerprint, Wifi, Palette, Coins, HardDrive, ShieldAlert } from 'lucide-react';
+import { User, Building2, Bell, CreditCard, Users, Fingerprint, Wifi, Palette, Coins, HardDrive, ShieldAlert, Plug } from 'lucide-react';
 import ProfileSettings from '@/components/settings/ProfileSettings';
 import CompanySettings from '@/components/settings/CompanySettings';
 import BillingSettings from '@/components/settings/BillingSettings';
@@ -15,6 +15,7 @@ import PushNotificationManager from '@/components/PushNotificationManager';
 import BiometricSettings from '@/components/BiometricSettings';
 import SyncManager from '@/components/SyncManager';
 import DangerZoneSettings from '@/components/settings/DangerZoneSettings';
+import ConnectionSettings from '@/components/settings/ConnectionSettings';
 
 const TAB_MAP = {
   profil: 'profile',
@@ -28,6 +29,9 @@ const TAB_MAP = {
   credits: 'credits',
   backup: 'backup',
   sauvegarde: 'backup',
+  connexions: 'connections',
+  api: 'connections',
+  mcp: 'connections',
   gdpr: 'danger',
   danger: 'danger'
 };
@@ -78,6 +82,9 @@ const SettingsPage = () => {
           <TabsTrigger value="sync" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
             <Wifi className="w-4 h-4 mr-2" /> Sync
           </TabsTrigger>
+          <TabsTrigger value="connections" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
+            <Plug className="w-4 h-4 mr-2" /> Connexions
+          </TabsTrigger>
           <TabsTrigger value="danger" className="data-[state=active]:bg-red-500/10 data-[state=active]:text-red-400">
             <ShieldAlert className="w-4 h-4 mr-2" /> GDPR
           </TabsTrigger>
@@ -121,6 +128,10 @@ const SettingsPage = () => {
 
         <TabsContent value="sync" className="mt-6">
           <SyncManager />
+        </TabsContent>
+
+        <TabsContent value="connections" className="mt-6">
+          <ConnectionSettings />
         </TabsContent>
 
         <TabsContent value="danger" className="mt-6">
