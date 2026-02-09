@@ -165,7 +165,7 @@ ${entriesXml}
     <ram:ID>${escapeXml(inv.invoice_number)}</ram:ID>
     <ram:TypeCode>380</ram:TypeCode>
     <ram:IssueDateTime>
-      <udt:DateTimeString format="102">${formatDateFacturX(inv.invoice_date)}</udt:DateTimeString>
+      <udt:DateTimeString format="102">${formatDateFacturX(inv.date)}</udt:DateTimeString>
     </ram:IssueDateTime>
   </rsm:ExchangedDocument>
   <rsm:SupplyChainTradeTransaction>
@@ -182,7 +182,7 @@ ${entriesXml}
     <ram:ApplicableHeaderTradeDelivery>
       <ram:ActualDeliverySupplyChainEvent>
         <ram:OccurrenceDateTime>
-          <udt:DateTimeString format="102">${formatDateFacturX(inv.invoice_date)}</udt:DateTimeString>
+          <udt:DateTimeString format="102">${formatDateFacturX(inv.date)}</udt:DateTimeString>
         </ram:OccurrenceDateTime>
       </ram:ActualDeliverySupplyChainEvent>
     </ram:ApplicableHeaderTradeDelivery>
@@ -190,7 +190,7 @@ ${entriesXml}
       <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
       ${seller.iban ? `<ram:SpecifiedTradeSettlementPaymentMeans><ram:TypeCode>58</ram:TypeCode><ram:PayeePartyCreditorFinancialAccount><ram:IBANID>${escapeXml(seller.iban)}</ram:IBANID></ram:PayeePartyCreditorFinancialAccount></ram:SpecifiedTradeSettlementPaymentMeans>` : ''}
       <ram:ApplicableTradeTax>
-        <ram:CalculatedAmount>${formatAmount(inv.total_vat)}</ram:CalculatedAmount>
+        <ram:CalculatedAmount>${formatAmount((parseFloat(inv.total_ttc || '0') - parseFloat(inv.total_ht || '0')))}</ram:CalculatedAmount>
         <ram:TypeCode>VAT</ram:TypeCode>
         <ram:BasisAmount>${formatAmount(inv.total_ht)}</ram:BasisAmount>
         <ram:CategoryCode>S</ram:CategoryCode>
@@ -204,7 +204,7 @@ ${entriesXml}
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
         <ram:LineTotalAmount>${formatAmount(inv.total_ht)}</ram:LineTotalAmount>
         <ram:TaxBasisTotalAmount>${formatAmount(inv.total_ht)}</ram:TaxBasisTotalAmount>
-        <ram:TaxTotalAmount currencyID="EUR">${formatAmount(inv.total_vat)}</ram:TaxTotalAmount>
+        <ram:TaxTotalAmount currencyID="EUR">${formatAmount((parseFloat(inv.total_ttc || '0') - parseFloat(inv.total_ht || '0')))}</ram:TaxTotalAmount>
         <ram:GrandTotalAmount>${formatAmount(inv.total_ttc)}</ram:GrandTotalAmount>
         <ram:DuePayableAmount>${formatAmount(inv.total_ttc)}</ram:DuePayableAmount>
       </ram:SpecifiedTradeSettlementHeaderMonetarySummation>

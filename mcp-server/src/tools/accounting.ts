@@ -108,14 +108,14 @@ export function registerAccountingTools(server: McpServer) {
     },
     async ({ start_date, end_date }) => {
       const [invoicesRes, expensesRes, taxRatesRes] = await Promise.all([
-        supabase.from('invoices').select('total_vat, total_ht, total_ttc, tax_rate, invoice_date')
-          .eq('user_id', getUserId()).gte('invoice_date', start_date).lte('invoice_date', end_date),
+        supabase.from('invoices').select('total_ht, total_ttc, tax_rate, date')
+          .eq('user_id', getUserId()).gte('date', start_date).lte('date', end_date),
         supabase.from('expenses').select('amount, date, category')
           .eq('user_id', getUserId()).gte('date', start_date).lte('date', end_date),
         supabase.from('accounting_tax_rates').select('*').eq('user_id', getUserId())
       ]);
 
-      const outputVat = (invoicesRes.data ?? []).reduce((s, i) => s + parseFloat(i.total_vat || '0'), 0);
+      const outputVat = (invoicesRes.data ?? []).reduce((s, i) => s + (parseFloat(i.total_ttc || '0') - parseFloat(i.total_ht || '0')), 0);
       const totalRevenue = (invoicesRes.data ?? []).reduce((s, i) => s + parseFloat(i.total_ht || '0'), 0);
       const totalExpenses = (expensesRes.data ?? []).reduce((s, e) => s + parseFloat(e.amount || '0'), 0);
       // Estimate input VAT (simplified: assume 20% average on expenses)

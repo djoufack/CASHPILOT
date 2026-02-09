@@ -90,7 +90,7 @@ serve(async (req) => {
 
     const userId = keyData.user_id;
     const url = new URL(req.url);
-    const path = url.pathname.replace(/^\/api-v1\/?/, '').replace(/^functions\/v1\/api-v1\/?/, '');
+    const path = url.pathname.replace(/^\/?(functions\/v1\/)?api-v1\/?/, '');
     const method = req.method;
 
     // Route handling
@@ -356,7 +356,7 @@ async function handlePaymentsUnpaid(supabase: ReturnType<typeof createClient>, u
 
   let query = supabase
     .from('invoices')
-    .select('id, invoice_number, invoice_date, due_date, total_ttc, payment_status, balance_due, client:clients(id, company_name)')
+    .select('id, invoice_number, date, due_date, total_ttc, payment_status, balance_due, client:clients(id, company_name)')
     .eq('user_id', userId)
     .in('payment_status', ['unpaid', 'partial'])
     .order('due_date', { ascending: true });
@@ -468,20 +468,29 @@ async function handleAccountingEntries(supabase: ReturnType<typeof createClient>
 async function handleTrialBalance(supabase: ReturnType<typeof createClient>, userId: string, url: URL) {
   const cutoff = url.searchParams.get('date') ?? new Date().toISOString().split('T')[0];
 
-  const { data, error } = await supabase
-    .from('accounting_entries')
-    .select('account_code, account_name, debit, credit')
-    .eq('user_id', userId)
-    .lte('transaction_date', cutoff);
+  const [entriesRes, chartRes] = await Promise.all([
+    supabase.from('accounting_entries')
+      .select('account_code, debit, credit')
+      .eq('user_id', userId)
+      .lte('transaction_date', cutoff),
+    supabase.from('accounting_chart_of_accounts')
+      .select('account_code, account_name')
+      .eq('user_id', userId),
+  ]);
 
-  if (error) return jsonResponse({ error: error.message }, 500);
+  if (entriesRes.error) return jsonResponse({ error: entriesRes.error.message }, 500);
+
+  const chartMap: Record<string, string> = {};
+  for (const c of chartRes.data ?? []) {
+    chartMap[c.account_code] = c.account_name || '';
+  }
 
   const balances: Record<string, { account_code: string; account_name: string; total_debit: number; total_credit: number; balance: number }> = {};
 
-  for (const entry of data ?? []) {
+  for (const entry of entriesRes.data ?? []) {
     const code = entry.account_code;
     if (!balances[code]) {
-      balances[code] = { account_code: code, account_name: entry.account_name || '', total_debit: 0, total_credit: 0, balance: 0 };
+      balances[code] = { account_code: code, account_name: chartMap[code] || '', total_debit: 0, total_credit: 0, balance: 0 };
     }
     balances[code].total_debit += parseFloat(entry.debit || '0');
     balances[code].total_credit += parseFloat(entry.credit || '0');
@@ -519,14 +528,14 @@ async function handleTaxSummary(supabase: ReturnType<typeof createClient>, userI
   }
 
   const [invoicesRes, expensesRes, taxRatesRes] = await Promise.all([
-    supabase.from('invoices').select('total_vat, total_ht, total_ttc, tax_rate, invoice_date')
-      .eq('user_id', userId).gte('invoice_date', startDate).lte('invoice_date', endDate),
-    supabase.from('expenses').select('amount, date, category')
+    supabase.from('invoices').select('total_ht, total_ttc, tax_rate, date')
       .eq('user_id', userId).gte('date', startDate).lte('date', endDate),
+    supabase.from('expenses').select('amount, created_at, category')
+      .eq('user_id', userId).gte('created_at', startDate).lte('created_at', endDate),
     supabase.from('accounting_tax_rates').select('*').eq('user_id', userId),
   ]);
 
-  const outputVat = (invoicesRes.data ?? []).reduce((s: number, i: { total_vat: string | number }) => s + parseFloat(String(i.total_vat || '0')), 0);
+  const outputVat = (invoicesRes.data ?? []).reduce((s: number, i: { total_ttc: string | number; total_ht: string | number }) => s + (parseFloat(String(i.total_ttc || '0')) - parseFloat(String(i.total_ht || '0'))), 0);
   const totalRevenue = (invoicesRes.data ?? []).reduce((s: number, i: { total_ht: string | number }) => s + parseFloat(String(i.total_ht || '0')), 0);
   const totalExpenses = (expensesRes.data ?? []).reduce((s: number, e: { amount: string | number }) => s + parseFloat(String(e.amount || '0')), 0);
 
@@ -602,10 +611,10 @@ async function handleCashFlow(supabase: ReturnType<typeof createClient>, userId:
   const startStr = startDate.toISOString().split('T')[0];
 
   const [invoicesRes, expensesRes] = await Promise.all([
-    supabase.from('invoices').select('total_ttc, invoice_date, status')
-      .eq('user_id', userId).in('status', ['paid', 'sent']).gte('invoice_date', startStr),
-    supabase.from('expenses').select('amount, date, category')
-      .eq('user_id', userId).gte('date', startStr),
+    supabase.from('invoices').select('total_ttc, date, status')
+      .eq('user_id', userId).in('status', ['paid', 'sent']).gte('date', startStr),
+    supabase.from('expenses').select('amount, created_at, category')
+      .eq('user_id', userId).gte('created_at', startStr),
   ]);
 
   // Group by month
@@ -618,12 +627,12 @@ async function handleCashFlow(supabase: ReturnType<typeof createClient>, userId:
   }
 
   for (const inv of invoicesRes.data ?? []) {
-    const key = inv.invoice_date?.substring(0, 7);
+    const key = inv.date?.substring(0, 7);
     if (key && monthlyData[key]) monthlyData[key].income += parseFloat(inv.total_ttc || '0');
   }
 
   for (const exp of expensesRes.data ?? []) {
-    const key = exp.date?.substring(0, 7);
+    const key = exp.created_at?.substring(0, 7);
     if (key && monthlyData[key]) monthlyData[key].expenses += parseFloat(exp.amount || '0');
   }
 
@@ -656,11 +665,11 @@ async function handleKpis(supabase: ReturnType<typeof createClient>, userId: str
 
   const [invoicesRes, paidRes, expensesRes, pendingRes] = await Promise.all([
     supabase.from('invoices').select('total_ttc')
-      .eq('user_id', userId).gte('invoice_date', monthStart).lte('invoice_date', today),
-    supabase.from('invoices').select('total_ttc')
-      .eq('user_id', userId).gte('invoice_date', monthStart).in('status', ['paid']),
-    supabase.from('expenses').select('amount')
       .eq('user_id', userId).gte('date', monthStart).lte('date', today),
+    supabase.from('invoices').select('total_ttc')
+      .eq('user_id', userId).gte('date', monthStart).in('status', ['paid']),
+    supabase.from('expenses').select('amount')
+      .eq('user_id', userId).gte('created_at', monthStart).lte('created_at', today),
     supabase.from('invoices').select('total_ttc')
       .eq('user_id', userId).in('payment_status', ['unpaid', 'partial']),
   ]);
@@ -736,7 +745,18 @@ async function handleExportFec(supabase: ReturnType<typeof createClient>, userId
     .order('transaction_date', { ascending: true });
 
   if (error) return jsonResponse({ error: error.message }, 500);
-  if (!entries?.length) return jsonResponse({ error: 'No entries found for the given period' }, 404);
+
+  if (!entries?.length) {
+    const headerOnly = '\uFEFF' + 'JournalCode|JournalLib|EcritureNum|EcritureDate|CompteNum|CompteLib|CompAuxNum|CompAuxLib|PieceRef|PieceDate|EcritureLib|Debit|Credit|EcritureLet|DateLet|ValidDate|Montantdevise|Idevise';
+    return new Response(headerOnly, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Disposition': `attachment; filename="FEC_${startDate}_${endDate}.txt"`,
+      },
+    });
+  }
 
   // FEC header
   const header = 'JournalCode|JournalLib|EcritureNum|EcritureDate|CompteNum|CompteLib|CompAuxNum|CompAuxLib|PieceRef|PieceDate|EcritureLib|Debit|Credit|EcritureLet|DateLet|ValidDate|Montantdevise|Idevise';
@@ -882,7 +902,7 @@ async function handleExportFacturx(supabase: ReturnType<typeof createClient>, us
     <ram:ID>${escapeXml(inv.invoice_number)}</ram:ID>
     <ram:TypeCode>380</ram:TypeCode>
     <ram:IssueDateTime>
-      <udt:DateTimeString format="102">${formatDateFacturX(inv.invoice_date)}</udt:DateTimeString>
+      <udt:DateTimeString format="102">${formatDateFacturX(inv.date)}</udt:DateTimeString>
     </ram:IssueDateTime>
   </rsm:ExchangedDocument>
   <rsm:SupplyChainTradeTransaction>
@@ -899,7 +919,7 @@ async function handleExportFacturx(supabase: ReturnType<typeof createClient>, us
     <ram:ApplicableHeaderTradeDelivery>
       <ram:ActualDeliverySupplyChainEvent>
         <ram:OccurrenceDateTime>
-          <udt:DateTimeString format="102">${formatDateFacturX(inv.invoice_date)}</udt:DateTimeString>
+          <udt:DateTimeString format="102">${formatDateFacturX(inv.date)}</udt:DateTimeString>
         </ram:OccurrenceDateTime>
       </ram:ActualDeliverySupplyChainEvent>
     </ram:ApplicableHeaderTradeDelivery>
@@ -907,7 +927,7 @@ async function handleExportFacturx(supabase: ReturnType<typeof createClient>, us
       <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
       ${seller.iban ? `<ram:SpecifiedTradeSettlementPaymentMeans><ram:TypeCode>58</ram:TypeCode><ram:PayeePartyCreditorFinancialAccount><ram:IBANID>${escapeXml(seller.iban)}</ram:IBANID></ram:PayeePartyCreditorFinancialAccount></ram:SpecifiedTradeSettlementPaymentMeans>` : ''}
       <ram:ApplicableTradeTax>
-        <ram:CalculatedAmount>${formatAmount(inv.total_vat)}</ram:CalculatedAmount>
+        <ram:CalculatedAmount>${formatAmount((parseFloat(inv.total_ttc || '0') - parseFloat(inv.total_ht || '0')))}</ram:CalculatedAmount>
         <ram:TypeCode>VAT</ram:TypeCode>
         <ram:BasisAmount>${formatAmount(inv.total_ht)}</ram:BasisAmount>
         <ram:CategoryCode>S</ram:CategoryCode>
@@ -921,7 +941,7 @@ async function handleExportFacturx(supabase: ReturnType<typeof createClient>, us
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
         <ram:LineTotalAmount>${formatAmount(inv.total_ht)}</ram:LineTotalAmount>
         <ram:TaxBasisTotalAmount>${formatAmount(inv.total_ht)}</ram:TaxBasisTotalAmount>
-        <ram:TaxTotalAmount currencyID="EUR">${formatAmount(inv.total_vat)}</ram:TaxTotalAmount>
+        <ram:TaxTotalAmount currencyID="EUR">${formatAmount((parseFloat(inv.total_ttc || '0') - parseFloat(inv.total_ht || '0')))}</ram:TaxTotalAmount>
         <ram:GrandTotalAmount>${formatAmount(inv.total_ttc)}</ram:GrandTotalAmount>
         <ram:DuePayableAmount>${formatAmount(inv.total_ttc)}</ram:DuePayableAmount>
       </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
