@@ -8,7 +8,7 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://rfzvrezrcigzmldgvntz.supabase.co/functions/v1/api-v1
+  - url: https://cashpilot.tech/api/v1
     description: Production
 
 security:

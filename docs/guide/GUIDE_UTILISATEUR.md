@@ -23,6 +23,7 @@
 19. [Paramètres](#paramètres)
 20. [Administration](#administration)
 21. [Système de Crédits et Exports](#système-de-crédits-et-exports)
+22. [Connexions IA et API](#connexions-ia-et-api)
 
 ---
 
@@ -2092,6 +2093,54 @@ Activez/Désactivez :
 #### Forcer la Synchronisation
 - Cliquez sur **"Synchroniser maintenant"**
 
+### 10. Connexions IA et API (`?tab=connections`)
+
+L'onglet **Connexions** centralise tout ce dont vous avez besoin pour connecter CashPilot a vos assistants IA et outils externes.
+
+#### Section 1 : MCP Local (Claude Code, Desktop, VS Code)
+
+Pilotez CashPilot en langage naturel depuis votre client IA favori via le protocole MCP (Model Context Protocol).
+
+1. Selectionnez votre client : **Claude Code**, **Claude Desktop** ou **VS Code (Cline)**
+2. Copiez la configuration JSON affichee
+3. Collez-la dans le fichier de configuration de votre client
+4. Relancez votre client
+5. Dites : *"Connecte-moi a CashPilot avec mon-email@exemple.fr"*
+
+**Authentification :** email/mot de passe, directement dans la conversation. Les variables `SUPABASE_URL` et `SUPABASE_ANON_KEY` sont fournies automatiquement.
+
+#### Section 2 : MCP Connector — API Anthropic (distant)
+
+Connectez-vous a CashPilot depuis l'API Anthropic Messages, sans installation locale. Ideal pour les agents IA en production, applications SaaS et workflows cloud.
+
+1. Generez une **cle API CashPilot** (section REST API ci-dessous)
+2. Ajoutez le serveur MCP dans votre appel API avec `mcp_servers`
+3. Utilisez `mcp_toolset` pour que Claude accede aux 29 outils CashPilot
+
+**Variables a copier :**
+- **URL du serveur MCP :** `https://cashpilot.tech/mcp`
+- **Beta header :** `anthropic-beta: mcp-client-2025-11-20`
+- **authorization_token :** votre cle API CashPilot (`cpk_...`)
+
+Des exemples en Python SDK et cURL sont fournis directement dans l'interface.
+
+#### Section 3 : REST API (ChatGPT, Zapier, scripts)
+
+Generez des cles API pour connecter des logiciels externes (ChatGPT Custom GPT, Zapier, Make, n8n, scripts Python/Node.js).
+
+**Creer une cle API :**
+1. Donnez un nom a votre cle (ex: `ChatGPT`, `Zapier`, `Script Python`)
+2. Choisissez les permissions : **Lecture** (GET), **Ecriture** (POST/PUT), **Suppression** (DELETE)
+3. Cliquez sur **"Generer la cle API"**
+4. **Copiez la cle immediatement** — elle ne sera plus jamais affichee
+
+**Utilisation :** envoyez vos requetes HTTP vers `https://cashpilot.tech/api/v1` avec le header `X-API-Key: cpk_votre_cle`.
+
+**Gestion des cles :**
+- Consultez la liste de vos cles actives
+- Revoquez une cle a tout moment si elle est compromise
+- Chaque cle affiche son prefixe, ses scopes, sa date de creation et de derniere utilisation
+
 ---
 
 ## Administration
@@ -2439,6 +2488,7 @@ Si vous rencontrez des problèmes :
 
 ## Glossaire
 
+- **API Key** : Cle d'authentification pour l'API REST (format `cpk_...`)
 - **Avoir** : Note de crédit pour rembourser un client
 - **Bon de commande** : Document d'achat fournisseur
 - **Créance** : Argent qui vous est dû
@@ -2446,6 +2496,8 @@ Si vous rencontrez des problèmes :
 - **Échéance** : Date limite de paiement
 - **HT** : Hors Taxes
 - **Mapping** : Correspondance entre catégories et comptes comptables
+- **MCP** : Model Context Protocol — protocole de communication entre assistants IA et outils
+- **MCP Connector** : Fonctionnalite beta d'Anthropic pour connecter Claude a des serveurs MCP distants via l'API Messages
 - **Rapprochement** : Vérification concordance banque/comptabilité
 - **SKU** : Stock Keeping Unit (code article)
 - **TTC** : Toutes Taxes Comprises
@@ -2461,6 +2513,6 @@ Consultez régulièrement pour les nouvelles fonctionnalités et améliorations.
 
 **Fin du Guide Utilisateur CashPilot**
 
-*Version 1.0 - Février 2026*
+*Version 1.1 - Février 2026 — Ajout de l'onglet Connexions (MCP, MCP Connector, REST API)*
 
 Pour toute question ou suggestion, n'hésitez pas à contacter notre équipe de support.
