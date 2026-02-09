@@ -1,5 +1,5 @@
 {
-  "buildCommand": "vite build",
+  "buildCommand": "vite build && cp -r docs/guide dist/guide",
   "outputDirectory": "dist",
   "framework": "vite",
   "headers": [
