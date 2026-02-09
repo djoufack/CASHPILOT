@@ -350,24 +350,37 @@ function CreateApiKeyForm({ onCreated }) {
   const [scopes, setScopes] = useState({ read: true, write: false, delete: false });
   const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState(null);
+  const [formError, setFormError] = useState(null);
 
   const generateKey = async () => {
+    setFormError(null);
+
     if (!name.trim()) {
-      toast({ title: 'Nom requis', description: 'Donnez un nom a votre cle (ex: ChatGPT, Zapier, Script)', variant: 'destructive' });
+      setFormError('Donnez un nom a votre cle (ex: ChatGPT, Zapier, Script)');
+      return;
+    }
+
+    if (!user?.id) {
+      setFormError('Vous devez etre connecte pour generer une cle API. Rechargez la page.');
+      return;
+    }
+
+    if (!supabase) {
+      setFormError('Client Supabase non initialise. Verifiez la configuration.');
       return;
     }
 
     setCreating(true);
     try {
-      // Generate random key: cpk_ + 32 random hex chars
+      // Generate random key: cpk_ + 48 random hex chars
       const randomBytes = new Uint8Array(24);
       crypto.getRandomValues(randomBytes);
       const rawKey = 'cpk_' + Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
       // Hash with SHA-256 (same as Edge Function api-v1)
       const encoder = new TextEncoder();
-      const data = encoder.encode(rawKey);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const encoded = encoder.encode(rawKey);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
       const keyHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
       const selectedScopes = Object.entries(scopes).filter(([, v]) => v).map(([k]) => k);
@@ -390,7 +403,10 @@ function CreateApiKeyForm({ onCreated }) {
 
       toast({ title: 'Cle API creee', description: 'Copiez-la maintenant — elle ne sera plus affichee.' });
     } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      console.error('[CashPilot] API key generation error:', err);
+      const msg = err?.message || String(err);
+      setFormError(msg);
+      toast({ title: 'Erreur', description: msg, variant: 'destructive' });
     } finally {
       setCreating(false);
     }
@@ -466,6 +482,13 @@ function CreateApiKeyForm({ onCreated }) {
         {creating ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
         Generer la cle API
       </Button>
+
+      {formError && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-red-300">{formError}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -541,7 +564,7 @@ function ApiKeysList({ keys, loading, onRevoke }) {
 // ---------------------------------------------------------------------------
 // REST API Section
 // ---------------------------------------------------------------------------
-function RestApiSection({ keys, onKeysChanged }) {
+function RestApiSection({ keys, keysLoading, onKeysChanged }) {
   const { toast } = useToast();
 
   const handleRevoke = async (id, name) => {
@@ -620,7 +643,7 @@ function RestApiSection({ keys, onKeysChanged }) {
               <RefreshCw className="w-3.5 h-3.5" />
             </Button>
           </div>
-          <ApiKeysList keys={keys} loading={!keys} onRevoke={handleRevoke} />
+          <ApiKeysList keys={keys} loading={keysLoading} onRevoke={handleRevoke} />
         </div>
 
         {/* cURL example */}
@@ -637,24 +660,33 @@ function RestApiSection({ keys, onKeysChanged }) {
 // Main Component
 // ---------------------------------------------------------------------------
 const ConnectionSettings = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [apiKeys, setApiKeys] = useState([]);
+  const [keysLoading, setKeysLoading] = useState(true);
 
   const fetchKeys = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('api_keys')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    setApiKeys(data || []);
+    if (!user) { setKeysLoading(false); return; }
+    setKeysLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) console.error('[CashPilot] fetchKeys error:', error);
+      setApiKeys(data || []);
+    } catch (err) {
+      console.error('[CashPilot] fetchKeys exception:', err);
+    } finally {
+      setKeysLoading(false);
+    }
   }, [user]);
 
   useEffect(() => { fetchKeys(); }, [fetchKeys]);
 
   return (
     <div className="space-y-6">
-      <RestApiSection keys={apiKeys} onKeysChanged={fetchKeys} />
+      <RestApiSection keys={apiKeys} keysLoading={keysLoading} onKeysChanged={fetchKeys} />
       <McpConfigSection apiKeys={apiKeys} />
       <McpConnectorSection />
     </div>
