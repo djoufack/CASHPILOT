@@ -2097,17 +2097,17 @@ Activez/Désactivez :
 
 L'onglet **Connexions** centralise tout ce dont vous avez besoin pour connecter CashPilot a vos assistants IA et outils externes.
 
-#### Section 1 : MCP Local (Claude Code, Desktop, VS Code)
+#### Section 1 : MCP distant (Claude Code, Desktop, VS Code)
 
-Pilotez CashPilot en langage naturel depuis votre client IA favori via le protocole MCP (Model Context Protocol).
+Pilotez CashPilot en langage naturel depuis votre client IA favori via le protocole MCP (Model Context Protocol). Connexion distante — aucune installation locale requise.
 
-1. Selectionnez votre client : **Claude Code**, **Claude Desktop** ou **VS Code (Cline)**
-2. Copiez la configuration JSON affichee
-3. Collez-la dans le fichier de configuration de votre client
-4. Relancez votre client
-5. Dites : *"Connecte-moi a CashPilot avec mon-email@exemple.fr"*
+1. Generez une **cle API** dans la section REST API ci-dessous
+2. Selectionnez votre client : **Claude Code**, **Claude Desktop** ou **VS Code (Cline)**
+3. Copiez la configuration JSON affichee (contient l'URL `https://cashpilot.tech/mcp`)
+4. Remplacez `cpk_votre_cle_ici` par votre vraie cle API
+5. Relancez votre client — les 29 outils sont disponibles
 
-**Authentification :** email/mot de passe, directement dans la conversation. Les variables `SUPABASE_URL` et `SUPABASE_ANON_KEY` sont fournies automatiquement.
+**Authentification :** cle API personnelle (header `X-API-Key`). Chaque utilisateur genere sa propre cle dans Parametres > Connexions.
 
 #### Section 2 : MCP Connector — API Anthropic (distant)
 
