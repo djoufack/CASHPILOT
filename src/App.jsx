@@ -18,47 +18,64 @@ const PageLoader = () => (
   </div>
 );
 
+// Retry wrapper for lazy imports - handles chunk load failures after deployments
+function lazyRetry(importFn) {
+  return lazy(() =>
+    importFn().catch(() => {
+      // Chunk failed to load (likely a new deploy changed the hash) — reload once
+      const reloaded = sessionStorage.getItem('chunk_reload');
+      if (!reloaded) {
+        sessionStorage.setItem('chunk_reload', '1');
+        window.location.reload();
+        return new Promise(() => {}); // keep suspense spinning while reloading
+      }
+      sessionStorage.removeItem('chunk_reload');
+      return importFn(); // second attempt after reload
+    })
+  );
+}
+
 // Lazy-loaded pages (code splitting)
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const ClientsPage = lazy(() => import('./pages/ClientsPage'));
-const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
-const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
-const TimesheetsPage = lazy(() => import('./pages/TimesheetsPage'));
-const InvoicesPage = lazy(() => import('./pages/InvoicesPage'));
-const QuotesPage = lazy(() => import('./pages/QuotesPage'));
-const ExpensesPage = lazy(() => import('./pages/ExpensesPage'));
-const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrdersPage'));
-const ClientProfile = lazy(() => import('./pages/ClientProfile'));
-const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
-const LoginPage = lazy(() => import('./pages/LoginPage'));
-const SignupPage = lazy(() => import('./pages/SignupPage'));
-const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
-const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
-const ClientPortal = lazy(() => import('./pages/ClientPortal'));
-const SuppliersPage = lazy(() => import('./pages/SuppliersPage'));
-const SupplierProfile = lazy(() => import('./pages/SupplierProfile'));
-const StockManagement = lazy(() => import('./pages/StockManagement'));
-const NotificationCenter = lazy(() => import('./pages/NotificationCenter'));
-const SupplierReports = lazy(() => import('./pages/SupplierReports'));
-const AccountingIntegration = lazy(() => import('./pages/AccountingIntegration'));
-const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
-const CreditNotesPage = lazy(() => import('./pages/CreditNotesPage'));
-const DeliveryNotesPage = lazy(() => import('./pages/DeliveryNotesPage'));
-const DebtManagerPage = lazy(() => import('./pages/DebtManagerPage'));
-const ScenarioBuilder = lazy(() => import('./pages/ScenarioBuilder'));
-const ScenarioDetail = lazy(() => import('./pages/ScenarioDetail'));
-const LandingPage = lazy(() => import('./pages/LandingPage'));
-const SecuritySettings = lazy(() => import('@/pages/SecuritySettings'));
-const RecurringInvoicesPage = lazy(() => import('@/pages/RecurringInvoicesPage'));
-const BankConnectionsPage = lazy(() => import('@/pages/BankConnectionsPage'));
-const CashFlowPage = lazy(() => import('@/pages/CashFlowPage'));
+const Dashboard = lazyRetry(() => import('./pages/Dashboard'));
+const ClientsPage = lazyRetry(() => import('./pages/ClientsPage'));
+const ProjectsPage = lazyRetry(() => import('./pages/ProjectsPage'));
+const ProjectDetail = lazyRetry(() => import('./pages/ProjectDetail'));
+const TimesheetsPage = lazyRetry(() => import('./pages/TimesheetsPage'));
+const InvoicesPage = lazyRetry(() => import('./pages/InvoicesPage'));
+const QuotesPage = lazyRetry(() => import('./pages/QuotesPage'));
+const ExpensesPage = lazyRetry(() => import('./pages/ExpensesPage'));
+const PurchaseOrdersPage = lazyRetry(() => import('./pages/PurchaseOrdersPage'));
+const ClientProfile = lazyRetry(() => import('./pages/ClientProfile'));
+const AnalyticsPage = lazyRetry(() => import('./pages/AnalyticsPage'));
+const SettingsPage = lazyRetry(() => import('./pages/SettingsPage'));
+const LoginPage = lazyRetry(() => import('./pages/LoginPage'));
+const SignupPage = lazyRetry(() => import('./pages/SignupPage'));
+const ForgotPasswordPage = lazyRetry(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazyRetry(() => import('./pages/ResetPasswordPage'));
+const ClientPortal = lazyRetry(() => import('./pages/ClientPortal'));
+const SuppliersPage = lazyRetry(() => import('./pages/SuppliersPage'));
+const SupplierProfile = lazyRetry(() => import('./pages/SupplierProfile'));
+const StockManagement = lazyRetry(() => import('./pages/StockManagement'));
+const NotificationCenter = lazyRetry(() => import('./pages/NotificationCenter'));
+const SupplierReports = lazyRetry(() => import('./pages/SupplierReports'));
+const AccountingIntegration = lazyRetry(() => import('./pages/AccountingIntegration'));
+const AdminPage = lazyRetry(() => import('./pages/admin/AdminPage'));
+const CreditNotesPage = lazyRetry(() => import('./pages/CreditNotesPage'));
+const DeliveryNotesPage = lazyRetry(() => import('./pages/DeliveryNotesPage'));
+const DebtManagerPage = lazyRetry(() => import('./pages/DebtManagerPage'));
+const ScenarioBuilder = lazyRetry(() => import('./pages/ScenarioBuilder'));
+const ScenarioDetail = lazyRetry(() => import('./pages/ScenarioDetail'));
+const LandingPage = lazyRetry(() => import('./pages/LandingPage'));
+const SecuritySettings = lazyRetry(() => import('@/pages/SecuritySettings'));
+const RecurringInvoicesPage = lazyRetry(() => import('@/pages/RecurringInvoicesPage'));
+const BankConnectionsPage = lazyRetry(() => import('@/pages/BankConnectionsPage'));
+const CashFlowPage = lazyRetry(() => import('@/pages/CashFlowPage'));
 
 // Lazy-loaded feature components
-const SupplierMap = lazy(() => import('@/components/SupplierMap'));
-const BarcodeScanner = lazy(() => import('@/components/BarcodeScanner'));
-const ReportGenerator = lazy(() => import('@/components/ReportGenerator'));
-const SeedDataManager = lazy(() => import('@/components/admin/SeedDataManager'));
+const SupplierMap = lazyRetry(() => import('@/components/SupplierMap'));
+const BarcodeScanner = lazyRetry(() => import('@/components/BarcodeScanner'));
+const ReportGenerator = lazyRetry(() => import('@/components/ReportGenerator'));
+const SeedDataManager = lazyRetry(() => import('@/components/admin/SeedDataManager'));
 
 // Wrapper for AI Chat Widget - only shows when authenticated
 const AuthenticatedChatWidget = () => {

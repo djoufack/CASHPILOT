@@ -1,0 +1,2051 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CashPilot - Guide Utilisateur</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CASHPILOT USER GUIDE - Award-Worthy Interactive Guide
+   ============================================================ */
+
+/* === RESET & VARIABLES === */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-primary: #030712;
+  --bg-secondary: #0f172a;
+  --bg-card: #111827;
+  --bg-elevated: #1e293b;
+  --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(245,158,11,0.3);
+  --amber: #f59e0b;
+  --amber-light: #fbbf24;
+  --amber-dim: rgba(245,158,11,0.1);
+  --green: #10b981;
+  --blue: #3b82f6;
+  --purple: #8b5cf6;
+  --red: #ef4444;
+  --cyan: #06b6d4;
+  --pink: #ec4899;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-xs: 8px;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection { background: rgba(245,158,11,0.3); color: #fff; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: rgba(245,158,11,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--amber); }
+
+/* === GRADIENT TEXT === */
+.gradient-text {
+  background: linear-gradient(135deg, #facc15 0%, #fbbf24 40%, #a3e635 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.gradient-text-warm {
+  background: linear-gradient(135deg, var(--amber) 0%, var(--pink) 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* === FIXED NAVBAR === */
+.navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(3,7,18,0.85); backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  height: 64px; display: flex; align-items: center;
+  padding: 0 32px; gap: 24px;
+  transition: transform var(--transition);
+}
+.navbar.hidden { transform: translateY(-100%); }
+.navbar-logo { font-family: var(--font-heading); font-weight: 800; font-size: 20px; white-space: nowrap; }
+.navbar-logo .c-amber { color: var(--amber); }
+.navbar-logo .c-white { color: #fff; }
+.navbar-nav { display: flex; gap: 4px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.navbar-nav::-webkit-scrollbar { display: none; }
+.navbar-link {
+  padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 500;
+  color: var(--text-muted); white-space: nowrap; text-decoration: none;
+  transition: all var(--transition); letter-spacing: 0.02em;
+}
+.navbar-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+.navbar-link.active { color: var(--amber); background: var(--amber-dim); }
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 2px;
+  background: linear-gradient(90deg, var(--amber), var(--green));
+  transition: width 0.2s ease; width: 0%;
+}
+
+/* === LAYOUT === */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+.section {
+  padding: 120px 0 80px; position: relative;
+  border-bottom: 1px solid var(--border);
+}
+.section:last-of-type { border-bottom: none; }
+
+/* === SECTION HEADERS === */
+.section-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 16px; border-radius: 999px; font-size: 11px;
+  font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  border: 1px solid rgba(245,158,11,0.2); background: var(--amber-dim);
+  color: var(--amber); margin-bottom: 20px;
+}
+.section-title {
+  font-family: var(--font-heading); font-weight: 800;
+  font-size: clamp(32px, 5vw, 52px); line-height: 1.1;
+  color: #fff; margin-bottom: 16px;
+}
+.section-subtitle {
+  font-size: 18px; color: var(--text-secondary);
+  max-width: 640px; margin-bottom: 48px;
+}
+
+/* === FEATURE CARDS === */
+.features-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px; margin-top: 40px;
+}
+.feature-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px;
+  transition: all var(--transition); position: relative; overflow: hidden;
+}
+.feature-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--amber), var(--green));
+  opacity: 0; transition: opacity var(--transition);
+}
+.feature-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+.feature-card:hover::before { opacity: 1; }
+.feature-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; margin-bottom: 16px;
+}
+.feature-card h3 {
+  font-family: var(--font-heading); font-size: 17px; font-weight: 700;
+  color: #fff; margin-bottom: 8px;
+}
+.feature-card p { font-size: 14px; line-height: 1.6; color: var(--text-secondary); }
+
+/* === PRO TIP === */
+.pro-tip {
+  background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.15);
+  border-radius: var(--radius); padding: 20px 24px;
+  margin-top: 32px; display: flex; gap: 14px; align-items: flex-start;
+}
+.pro-tip-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--amber-dim); color: var(--amber);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0; font-weight: 700;
+}
+.pro-tip-text { font-size: 14px; color: var(--text-secondary); }
+.pro-tip-text strong { color: var(--amber); }
+
+/* === STEPS === */
+.steps { margin-top: 32px; display: flex; flex-direction: column; gap: 16px; }
+.step {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 20px;
+}
+.step-number {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--amber), var(--green));
+  color: #000; font-family: var(--font-heading); font-weight: 800;
+  font-size: 14px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.step-content h4 {
+  font-family: var(--font-heading); font-size: 15px; font-weight: 700;
+  color: #fff; margin-bottom: 4px;
+}
+.step-content p { font-size: 14px; }
+
+/* === TWO COLUMN LAYOUT === */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+.two-col-text { display: flex; flex-direction: column; justify-content: center; }
+
+/* === MOCKUP SYSTEM === */
+.mockup {
+  border-radius: var(--radius); overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.4); display: flex;
+  height: 380px; position: relative;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+}
+.mockup-sb {
+  width: 200px; min-width: 200px;
+  background: rgba(3,7,18,0.95);
+  border-right: 1px solid var(--border);
+  padding: 16px 0; display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.mockup-sb-logo {
+  font-family: var(--font-heading); font-weight: 800; font-size: 16px;
+  padding: 0 16px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+}
+.mockup-sb-logo .c-amber { color: var(--amber); }
+.mockup-sb-sep {
+  padding: 12px 16px 4px; font-size: 9px; font-weight: 700;
+  color: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 1.5px;
+}
+.mockup-sb-item {
+  padding: 7px 16px; font-size: 12px; color: var(--text-muted);
+  display: flex; align-items: center; gap: 8px; transition: all 0.2s;
+}
+.mockup-sb-item .dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0;
+}
+.mockup-sb-item.active {
+  color: var(--amber); background: var(--amber-dim);
+}
+.mockup-sb-item.active .dot { background: var(--amber); }
+
+.mockup-body {
+  flex: 1; padding: 20px 24px; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.mockup-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px;
+}
+.mockup-header h3 {
+  font-family: var(--font-heading); font-size: 18px; font-weight: 700;
+}
+.mockup-btn {
+  padding: 6px 14px; border-radius: var(--radius-xs); font-size: 11px;
+  font-weight: 600; color: #fff; border: none; display: inline-flex;
+  align-items: center; gap: 4px;
+}
+.mockup-btn-primary { background: var(--amber); }
+.mockup-btn-outline { border: 1px solid var(--text-muted); background: transparent; }
+.mockup-stats {
+  display: flex; gap: 12px; margin-bottom: 16px;
+}
+.mockup-stat {
+  flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: var(--radius-xs); padding: 12px 14px;
+}
+.mockup-stat-val {
+  font-family: var(--font-heading); font-weight: 700; font-size: 18px;
+}
+.mockup-stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.mockup-stat-trend { font-size: 10px; color: var(--green); margin-top: 2px; }
+
+.mockup-chart {
+  flex: 1; min-height: 0; margin-bottom: 12px; position: relative;
+}
+.mockup-chart svg { width: 100%; height: 100%; }
+
+.mockup-table { width: 100%; border-collapse: collapse; }
+.mockup-table th {
+  text-align: left; font-size: 10px; color: var(--text-muted);
+  padding: 6px 10px; border-bottom: 1px solid var(--border);
+  text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600;
+}
+.mockup-table td {
+  padding: 8px 10px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.02);
+}
+.mockup-table td.text-white { color: #fff; font-weight: 500; }
+
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 600;
+}
+.badge-green { background: rgba(16,185,129,0.15); color: var(--green); }
+.badge-amber { background: rgba(245,158,11,0.15); color: var(--amber); }
+.badge-red { background: rgba(239,68,68,0.15); color: var(--red); }
+.badge-blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+.badge-purple { background: rgba(139,92,246,0.15); color: var(--purple); }
+.badge-gray { background: rgba(113,113,122,0.15); color: var(--text-muted); }
+
+/* === MOCKUP - TABS === */
+.mockup-tabs { display: flex; gap: 2px; margin-bottom: 14px; }
+.mockup-tab {
+  padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 500;
+  color: var(--text-muted); background: transparent; cursor: default;
+}
+.mockup-tab.active { color: var(--amber); background: var(--amber-dim); }
+
+/* === MOCKUP - FORM === */
+.mockup-form-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.mockup-input {
+  flex: 1; height: 32px; border-radius: 6px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  padding: 0 10px; font-size: 11px; color: var(--text-secondary);
+  display: flex; align-items: center;
+}
+.mockup-input.filled { color: var(--text-primary); }
+
+/* === MOCKUP - CHAT === */
+.mockup-chat {
+  position: absolute; bottom: 16px; right: 16px; width: 300px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.mockup-chat-header {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-heading); font-weight: 700; font-size: 13px; color: #fff;
+}
+.mockup-chat-messages { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.mockup-chat-msg {
+  padding: 8px 12px; border-radius: 10px; font-size: 11px; line-height: 1.5;
+  max-width: 85%;
+}
+.mockup-chat-msg.bot {
+  background: rgba(245,158,11,0.1); color: var(--text-secondary); align-self: flex-start;
+  border-bottom-left-radius: 2px;
+}
+.mockup-chat-msg.user {
+  background: var(--amber); color: #000; align-self: flex-end;
+  border-bottom-right-radius: 2px; font-weight: 500;
+}
+.mockup-chat-input {
+  padding: 10px 16px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text-muted);
+}
+
+/* === HERO === */
+.hero {
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  position: relative; overflow: hidden; padding: 120px 32px 80px;
+}
+.hero-orb {
+  position: absolute; border-radius: 50%; filter: blur(120px);
+  opacity: 0.12; pointer-events: none;
+  animation: orbFloat 20s ease-in-out infinite;
+}
+.hero-orb-1 { width: 600px; height: 600px; background: var(--purple); top: -200px; right: -200px; }
+.hero-orb-2 { width: 500px; height: 500px; background: var(--amber); bottom: -200px; left: -150px; animation-delay: -7s; }
+.hero-orb-3 { width: 350px; height: 350px; background: var(--green); top: 40%; left: 20%; animation-delay: -14s; }
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 20px; border-radius: 999px; font-size: 12px;
+  font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  border: 1px solid rgba(245,158,11,0.3); background: var(--amber-dim);
+  color: var(--amber); margin-bottom: 32px;
+  animation: fadeInUp 0.8s ease forwards;
+}
+.hero-title {
+  font-family: var(--font-heading); font-weight: 800;
+  font-size: clamp(48px, 8vw, 96px); line-height: 1;
+  margin-bottom: 8px; position: relative; z-index: 1;
+  animation: fadeInUp 0.8s ease forwards 0.15s; opacity: 0;
+}
+.hero-sub {
+  font-family: var(--font-heading); font-weight: 600;
+  font-size: clamp(20px, 3vw, 36px); color: var(--text-secondary);
+  margin-bottom: 24px; animation: fadeInUp 0.8s ease forwards 0.3s; opacity: 0;
+}
+.hero-desc {
+  font-size: 17px; color: var(--text-muted); max-width: 560px;
+  animation: fadeInUp 0.8s ease forwards 0.45s; opacity: 0;
+}
+.hero-version {
+  margin-top: 40px; font-size: 12px; color: var(--text-muted);
+  animation: fadeInUp 0.8s ease forwards 0.6s; opacity: 0;
+}
+.scroll-indicator {
+  position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  color: var(--text-muted); font-size: 11px; letter-spacing: 1px;
+  animation: fadeInUp 0.8s ease forwards 0.75s, bounce 2s ease-in-out 1.5s infinite;
+  opacity: 0;
+}
+.scroll-arrow { width: 20px; height: 20px; border-right: 2px solid var(--text-muted); border-bottom: 2px solid var(--text-muted); transform: rotate(45deg); }
+
+/* === TABLE OF CONTENTS === */
+.toc-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; margin-top: 40px;
+}
+.toc-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px;
+  text-decoration: none; transition: all var(--transition);
+  display: flex; align-items: flex-start; gap: 16px;
+}
+.toc-card:hover { border-color: var(--border-hover); transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(245,158,11,0.08);
+}
+.toc-num {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--amber-dim); color: var(--amber);
+  font-family: var(--font-heading); font-weight: 800; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.toc-card h3 {
+  font-family: var(--font-heading); font-size: 15px; font-weight: 700;
+  color: #fff; margin-bottom: 4px;
+}
+.toc-card p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+/* === ANIMATIONS === */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -30px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+@keyframes bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(8px); }
+}
+
+/* === SCROLL REVEAL === */
+.reveal { opacity: 0; transform: translateY(30px); transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+
+/* === FOOTER === */
+.footer {
+  padding: 60px 0 40px; text-align: center;
+  border-top: 1px solid var(--border);
+}
+.footer-logo { font-family: var(--font-heading); font-weight: 800; font-size: 24px; margin-bottom: 12px; }
+.footer-text { font-size: 13px; color: var(--text-muted); }
+
+/* === RESPONSIVE === */
+@media (max-width: 1024px) {
+  .two-col { grid-template-columns: 1fr; gap: 32px; }
+  .mockup { height: 320px; }
+  .mockup-sb { width: 160px; min-width: 160px; }
+}
+@media (max-width: 768px) {
+  .container { padding: 0 20px; }
+  .section { padding: 80px 0 60px; }
+  .navbar { padding: 0 16px; gap: 12px; }
+  .features-grid { grid-template-columns: 1fr; }
+  .toc-grid { grid-template-columns: 1fr; }
+  .mockup { flex-direction: column; height: auto; }
+  .mockup-sb { width: 100%; min-width: 100%; flex-direction: row; overflow-x: auto; padding: 8px; border-right: none; border-bottom: 1px solid var(--border); }
+  .mockup-sb-logo { padding: 0 8px 0 0; border-bottom: none; margin-bottom: 0; font-size: 13px; display: flex; align-items: center; }
+  .mockup-sb-item { padding: 4px 8px; font-size: 10px; white-space: nowrap; }
+  .mockup-sb-sep { display: none; }
+  .mockup-body { min-height: 280px; }
+  .two-col { grid-template-columns: 1fr; }
+  .hero-title { font-size: 48px; }
+}
+
+/* === PRINT === */
+@media print {
+  body { background: #fff; color: #333; }
+  .navbar, .scroll-indicator, .hero-orb, .progress-bar { display: none !important; }
+  .section { padding: 40px 0; page-break-inside: avoid; border-bottom: 1px solid #ddd; }
+  .gradient-text { -webkit-text-fill-color: #b45309; }
+  .mockup { box-shadow: none; border: 1px solid #ddd; height: auto; }
+  .mockup-sb { background: #f9f9f9; }
+  .mockup-body { background: #fff; }
+  .feature-card, .toc-card, .step, .pro-tip { background: #f9f9f9; border: 1px solid #ddd; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-amber { background: #fef3c7; color: #92400e; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .reveal { opacity: 1 !important; transform: none !important; }
+  a { color: inherit; text-decoration: none; }
+  .contact-hero-card { border: 1px solid #ddd !important; background: #f9f9f9 !important; }
+  .section-contact-strip { background: #f9f9f9 !important; border: 1px solid #ddd !important; }
+  .section-contact-strip a { color: #92400e !important; }
+}
+
+/* === CONTACT CARD (HERO) === */
+.contact-hero-card {
+  margin-top: 48px; background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.2); border-radius: 20px;
+  padding: 28px 40px; max-width: 520px; text-align: center;
+  animation: fadeInUp 0.8s ease forwards 0.7s; opacity: 0;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.contact-hero-card .contact-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--amber); font-weight: 700; margin-bottom: 12px;
+}
+.contact-hero-card .contact-name {
+  font-family: var(--font-heading); font-size: 20px; font-weight: 800;
+  color: #fff; margin-bottom: 4px;
+}
+.contact-hero-card .contact-role {
+  font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;
+}
+.contact-hero-card .contact-links {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; font-size: 13px;
+}
+.contact-hero-card .contact-links a {
+  color: var(--amber); text-decoration: none; display: flex; align-items: center; gap: 6px;
+  transition: color var(--transition);
+}
+.contact-hero-card .contact-links a:hover { color: var(--amber-light); }
+.contact-hero-card .contact-links .contact-phone { color: var(--text-secondary); }
+.contact-hero-card .contact-links .contact-phone:hover { color: #fff; }
+
+/* === SECTION CONTACT STRIP === */
+.section-contact-strip {
+  margin-top: 48px; padding: 16px 24px;
+  background: rgba(245,158,11,0.03); border: 1px solid rgba(245,158,11,0.1);
+  border-radius: var(--radius-sm); display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.section-contact-strip .strip-left {
+  display: flex; align-items: center; gap: 12px; font-size: 13px;
+}
+.section-contact-strip .strip-name {
+  font-family: var(--font-heading); font-weight: 700; color: #fff; font-size: 13px;
+}
+.section-contact-strip .strip-sep { color: var(--text-muted); }
+.section-contact-strip .strip-role { color: var(--text-muted); font-size: 12px; }
+.section-contact-strip .strip-right {
+  display: flex; align-items: center; gap: 16px; font-size: 12px;
+}
+.section-contact-strip .strip-right a {
+  color: var(--amber); text-decoration: none; transition: color var(--transition);
+}
+.section-contact-strip .strip-right a:hover { color: var(--amber-light); }
+.section-contact-strip .strip-right .strip-phone { color: var(--text-secondary); }
+
+@media (max-width: 768px) {
+  .contact-hero-card { padding: 20px 24px; margin-top: 32px; }
+  .section-contact-strip { flex-direction: column; text-align: center; }
+  .section-contact-strip .strip-left, .section-contact-strip .strip-right { justify-content: center; }
+  .cta-section-inner { padding: 60px 24px !important; }
+  .cta-headline { font-size: 32px !important; }
+  .cta-stats { flex-direction: column; gap: 20px !important; }
+  .cta-btn-group { flex-direction: column; align-items: center; }
+  .hero-cta-wrapper { flex-direction: column; align-items: center; }
+}
+
+/* === HERO CTA BUTTON === */
+.hero-cta-wrapper {
+  display: flex; gap: 16px; margin-top: 32px; flex-wrap: wrap; justify-content: center;
+  animation: fadeInUp 0.8s ease forwards 0.5s; opacity: 0;
+}
+.hero-cta-btn {
+  position: relative; display: inline-flex; align-items: center; gap: 10px;
+  padding: 16px 36px; border-radius: 999px; font-family: var(--font-heading);
+  font-size: 16px; font-weight: 700; color: #000; text-decoration: none;
+  background: linear-gradient(135deg, var(--amber-light) 0%, var(--amber) 50%, #f97316 100%);
+  box-shadow: 0 0 40px rgba(245,158,11,0.3), 0 4px 20px rgba(245,158,11,0.2);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; z-index: 1;
+}
+.hero-cta-btn::before {
+  content: ''; position: absolute; inset: -2px; border-radius: 999px; z-index: -1;
+  background: linear-gradient(135deg, #facc15, var(--amber), #f97316, var(--green), #facc15);
+  background-size: 300% 300%;
+  animation: cta-gradient-rotate 4s ease infinite;
+}
+.hero-cta-btn::after {
+  content: ''; position: absolute; inset: 0; border-radius: 999px;
+  background: linear-gradient(135deg, var(--amber-light) 0%, var(--amber) 50%, #f97316 100%);
+  z-index: -1;
+}
+.hero-cta-btn:hover {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 0 60px rgba(245,158,11,0.45), 0 8px 32px rgba(245,158,11,0.3);
+}
+.hero-cta-btn svg { transition: transform 0.3s ease; }
+.hero-cta-btn:hover svg { transform: translateX(4px); }
+
+.hero-cta-btn-outline {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 15px 32px; border-radius: 999px; font-family: var(--font-heading);
+  font-size: 15px; font-weight: 600; color: var(--text-secondary); text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(8px); transition: all 0.3s ease;
+}
+.hero-cta-btn-outline:hover {
+  color: #fff; border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.06);
+  transform: translateY(-2px);
+}
+
+@keyframes cta-gradient-rotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* === CTA SECTION (pre-footer) === */
+.cta-section {
+  position: relative; overflow: hidden;
+  border-bottom: none;
+}
+.cta-section-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(245,158,11,0.08) 0%, transparent 70%),
+              radial-gradient(ellipse 60% 50% at 20% 80%, rgba(139,92,246,0.06) 0%, transparent 60%),
+              radial-gradient(ellipse 50% 40% at 80% 20%, rgba(16,185,129,0.05) 0%, transparent 60%);
+}
+.cta-section-inner {
+  position: relative; z-index: 1;
+  max-width: 900px; margin: 0 auto; text-align: center;
+  padding: 100px 32px 80px;
+}
+.cta-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 20px; border-radius: 999px; font-size: 12px;
+  font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(16,185,129,0.08));
+  border: 1px solid rgba(245,158,11,0.2); color: var(--amber);
+  margin-bottom: 28px;
+}
+.cta-badge-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green); animation: cta-pulse 2s ease infinite;
+}
+@keyframes cta-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 8px rgba(16,185,129,0); }
+}
+.cta-headline {
+  font-family: var(--font-heading); font-size: clamp(36px, 5vw, 56px);
+  font-weight: 800; line-height: 1.1; color: #fff; margin-bottom: 20px;
+}
+.cta-subtext {
+  font-size: 18px; color: var(--text-secondary); max-width: 640px;
+  margin: 0 auto 40px; line-height: 1.7;
+}
+.cta-btn-group {
+  display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 56px;
+}
+.cta-btn-primary {
+  position: relative; display: inline-flex; align-items: center; gap: 12px;
+  padding: 20px 44px; border-radius: 999px; font-family: var(--font-heading);
+  font-size: 18px; font-weight: 700; color: #000; text-decoration: none;
+  background: linear-gradient(135deg, var(--amber-light) 0%, var(--amber) 100%);
+  box-shadow: 0 0 60px rgba(245,158,11,0.25), 0 8px 32px rgba(245,158,11,0.15);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cta-btn-primary::before {
+  content: ''; position: absolute; inset: -3px; border-radius: 999px; z-index: -1;
+  background: conic-gradient(from 0deg, #facc15, var(--amber), #f97316, var(--green), var(--cyan), var(--purple), #facc15);
+  animation: cta-border-spin 6s linear infinite;
+  filter: blur(2px);
+}
+@keyframes cta-border-spin {
+  to { transform: rotate(360deg); }
+}
+.cta-btn-primary:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 0 80px rgba(245,158,11,0.4), 0 12px 40px rgba(245,158,11,0.25);
+}
+.cta-btn-primary svg { transition: transform 0.3s ease; }
+.cta-btn-primary:hover svg { transform: translateX(5px); }
+
+.cta-btn-secondary {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 19px 40px; border-radius: 999px; font-family: var(--font-heading);
+  font-size: 16px; font-weight: 600; color: var(--text-secondary); text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(10px); transition: all 0.3s ease;
+}
+.cta-btn-secondary:hover {
+  color: #fff; border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.06);
+  transform: translateY(-2px);
+}
+
+.cta-stats {
+  display: flex; justify-content: center; gap: 48px; flex-wrap: wrap;
+  padding-top: 40px; border-top: 1px solid var(--border);
+}
+.cta-stat { text-align: center; }
+.cta-stat-value {
+  font-family: var(--font-heading); font-size: 36px; font-weight: 800;
+  line-height: 1;
+}
+.cta-stat-value .gradient-text-warm { display: inline; }
+.cta-stat-label {
+  font-size: 13px; color: var(--text-muted); margin-top: 6px;
+  text-transform: uppercase; letter-spacing: 1px; font-weight: 500;
+}
+
+/* === NAVBAR CTA === */
+.navbar-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 18px; border-radius: 999px; font-size: 12px;
+  font-weight: 700; color: #000; text-decoration: none; white-space: nowrap;
+  background: linear-gradient(135deg, var(--amber-light), var(--amber));
+  transition: all 0.3s ease; flex-shrink: 0;
+}
+.navbar-cta:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(245,158,11,0.3); }
+.navbar-cta svg { width: 14px; height: 14px; }
+
+@media print {
+  .cta-section { page-break-before: always; }
+  .cta-section-bg { display: none; }
+  .cta-btn-primary::before { display: none; }
+  .hero-cta-btn::before { display: none; }
+  .navbar-cta { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     NAVBAR
+     ============================================================ -->
+<nav class="navbar" id="navbar">
+  <div class="navbar-logo">
+    <span class="c-amber">Cash</span><span class="c-white">Pilot</span>
+  </div>
+  <div class="navbar-nav" id="navLinks">
+    <a href="#premiers-pas" class="navbar-link">Premiers pas</a>
+    <a href="#dashboard" class="navbar-link">Dashboard</a>
+    <a href="#commercial" class="navbar-link">Commercial</a>
+    <a href="#facturation" class="navbar-link">Facturation</a>
+    <a href="#finance" class="navbar-link">Finance</a>
+    <a href="#comptabilite" class="navbar-link">Comptabilit&eacute;</a>
+    <a href="#projets" class="navbar-link">Projets</a>
+    <a href="#stock" class="navbar-link">Stock</a>
+    <a href="#ia" class="navbar-link">IA</a>
+    <a href="#banque" class="navbar-link">Banque</a>
+    <a href="#parametres" class="navbar-link">Param&egrave;tres</a>
+    <a href="#astuces" class="navbar-link">Astuces</a>
+  </div>
+  <a href="https://www.cashpilot.tech" target="_blank" rel="noopener" class="navbar-cta">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    cashpilot.tech
+  </a>
+  <div class="progress-bar" id="progressBar"></div>
+</nav>
+
+<!-- ============================================================
+     HERO
+     ============================================================ -->
+<header class="hero" id="hero">
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
+  <div class="hero-badge">Guide Utilisateur Officiel</div>
+  <h1 class="hero-title gradient-text">CashPilot</h1>
+  <p class="hero-sub">Guide Utilisateur Complet</p>
+  <p class="hero-desc">
+    Tout ce que vous devez savoir pour piloter votre activit&eacute; financi&egrave;re.
+    Facturation, comptabilit&eacute;, projets, tr&eacute;sorerie et intelligence artificielle &mdash; ma&icirc;trisez chaque fonctionnalit&eacute; de votre plateforme.
+  </p>
+  <div class="hero-version">Version 1.0 &bull; F&eacute;vrier 2026</div>
+
+  <!-- CTA Buttons -->
+  <div class="hero-cta-wrapper">
+    <a href="https://www.cashpilot.tech" target="_blank" rel="noopener" class="hero-cta-btn">
+      Acc&eacute;der &agrave; CashPilot
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+    <a href="#toc" class="hero-cta-btn-outline">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      Lire le guide
+    </a>
+  </div>
+
+  <!-- Contact Card - Marketing Prominent -->
+  <div class="contact-hero-card">
+    <div class="contact-label">Propuls&eacute; par</div>
+    <div class="contact-name">Eric Georges Djoufack</div>
+    <div class="contact-role">AI Project Manager</div>
+    <div class="contact-links">
+      <a href="https://www.dmgmanagement.tech" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        dmgmanagement.tech
+      </a>
+      <a href="tel:+32472544765" class="contact-phone">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        (+32) 472.544.765
+      </a>
+    </div>
+  </div>
+
+  <div class="scroll-indicator">
+    EXPLORER
+    <div class="scroll-arrow"></div>
+  </div>
+</header>
+
+<!-- ============================================================
+     TABLE DES MATIERES
+     ============================================================ -->
+<section class="section" id="toc">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Sommaire</div>
+      <h2 class="section-title">Table des <span class="gradient-text">mati&egrave;res</span></h2>
+      <p class="section-subtitle">12 chapitres pour ma&icirc;triser CashPilot de A &agrave; Z.</p>
+    </div>
+    <div class="toc-grid">
+      <a href="#premiers-pas" class="toc-card reveal reveal-delay-1"><div class="toc-num">01</div><div><h3>Premiers Pas</h3><p>Connexion, inscription, MFA et navigation</p></div></a>
+      <a href="#dashboard" class="toc-card reveal reveal-delay-1"><div class="toc-num">02</div><div><h3>Tableau de Bord</h3><p>KPIs, graphiques et actions rapides</p></div></a>
+      <a href="#commercial" class="toc-card reveal reveal-delay-1"><div class="toc-num">03</div><div><h3>Gestion Commerciale</h3><p>Clients, fournisseurs et contacts</p></div></a>
+      <a href="#facturation" class="toc-card reveal reveal-delay-2"><div class="toc-num">04</div><div><h3>Cycle de Facturation</h3><p>Devis, factures, avoirs et bons de livraison</p></div></a>
+      <a href="#finance" class="toc-card reveal reveal-delay-2"><div class="toc-num">05</div><div><h3>Gestion Financi&egrave;re</h3><p>D&eacute;penses, cr&eacute;ances, dettes, tr&eacute;sorerie</p></div></a>
+      <a href="#comptabilite" class="toc-card reveal reveal-delay-2"><div class="toc-num">06</div><div><h3>Comptabilit&eacute;</h3><p>Plan comptable, bilan, r&eacute;sultat, TVA</p></div></a>
+      <a href="#projets" class="toc-card reveal reveal-delay-3"><div class="toc-num">07</div><div><h3>Projets &amp; Temps</h3><p>Projets, feuilles de temps, t&acirc;ches</p></div></a>
+      <a href="#stock" class="toc-card reveal reveal-delay-3"><div class="toc-num">08</div><div><h3>Stock &amp; Produits</h3><p>Inventaire, alertes, code-barres</p></div></a>
+      <a href="#ia" class="toc-card reveal reveal-delay-3"><div class="toc-num">09</div><div><h3>Intelligence Artificielle</h3><p>Chat IA, OCR, anomalies, pr&eacute;visions</p></div></a>
+      <a href="#banque" class="toc-card reveal"><div class="toc-num">10</div><div><h3>Banque &amp; Int&eacute;grations</h3><p>Open Banking, rapprochement, API</p></div></a>
+      <a href="#parametres" class="toc-card reveal"><div class="toc-num">11</div><div><h3>Param&egrave;tres &amp; Admin</h3><p>Profil, entreprise, &eacute;quipe, RGPD</p></div></a>
+      <a href="#astuces" class="toc-card reveal"><div class="toc-num">12</div><div><h3>Raccourcis &amp; Astuces</h3><p>Shortcuts, multi-vues, exports</p></div></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 1 : PREMIERS PAS
+     ============================================================ -->
+<section class="section" id="premiers-pas">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Chapitre 01</div>
+      <h2 class="section-title">Premiers <span class="gradient-text">Pas</span></h2>
+      <p class="section-subtitle">Inscrivez-vous, connectez-vous et d&eacute;couvrez l'interface en quelques minutes.</p>
+    </div>
+
+    <div class="two-col">
+      <div class="two-col-text reveal">
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>Cr&eacute;er un compte</h4>
+              <p>Rendez-vous sur la page d'inscription. Entrez votre e-mail, choisissez un mot de passe et validez votre compte via le lien re&ccedil;u par e-mail.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>Se connecter</h4>
+              <p>Entrez vos identifiants sur la page de connexion. Activez l'authentification &agrave; deux facteurs (MFA) dans les param&egrave;tres de s&eacute;curit&eacute; pour prot&eacute;ger votre compte.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>Configurer votre entreprise</h4>
+              <p>Acc&eacute;dez &agrave; <strong style="color:#fff">Param&egrave;tres &rarr; Entreprise</strong> pour renseigner le nom, l'adresse, le num&eacute;ro de TVA et le logo de votre soci&eacute;t&eacute;.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h4>Explorer la navigation</h4>
+              <p>La barre lat&eacute;rale vous donne acc&egrave;s &agrave; toutes les sections : Dashboard, Clients, Factures, Comptabilit&eacute;, Projets et plus encore. Elle est r&eacute;ductible pour gagner de l'espace.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MOCKUP: Login -->
+      <div class="reveal reveal-delay-2">
+        <div class="mockup" style="height:360px;flex-direction:column;">
+          <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+            <span style="font-family:var(--font-heading);font-weight:800;font-size:18px;"><span style="color:var(--amber)">Cash</span><span style="color:#fff">Pilot</span></span>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+            <div style="width:320px;">
+              <h3 style="font-family:var(--font-heading);font-size:24px;font-weight:700;color:#fff;margin-bottom:4px;text-align:center;">Connexion</h3>
+              <p style="font-size:13px;color:var(--text-muted);text-align:center;margin-bottom:24px;">Acc&eacute;dez &agrave; votre espace de gestion</p>
+              <div style="margin-bottom:14px;">
+                <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:500;">Adresse e-mail</div>
+                <div class="mockup-input filled">contact@monentreprise.fr</div>
+              </div>
+              <div style="margin-bottom:20px;">
+                <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:500;">Mot de passe</div>
+                <div class="mockup-input filled">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</div>
+              </div>
+              <div class="mockup-btn mockup-btn-primary" style="width:100%;text-align:center;padding:10px;font-size:13px;border-radius:8px;display:block;">Se connecter</div>
+              <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:14px;">Pas encore de compte ? <span style="color:var(--amber);">S'inscrire</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pro-tip reveal">
+      <div class="pro-tip-icon">!</div>
+      <div class="pro-tip-text">
+        <strong>S&eacute;curit&eacute; renforc&eacute;e :</strong> Activez la double authentification (MFA) d&egrave;s la premi&egrave;re connexion via <strong>Param&egrave;tres &rarr; S&eacute;curit&eacute;</strong>. CashPilot supporte les codes TOTP et l'authentification biom&eacute;trique.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 2 : TABLEAU DE BORD
+     ============================================================ -->
+<section class="section" id="dashboard">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Chapitre 02</div>
+      <h2 class="section-title">Tableau de <span class="gradient-text">Bord</span></h2>
+      <p class="section-subtitle">Votre hub central pour suivre l'activit&eacute; de votre entreprise en temps r&eacute;el.</p>
+    </div>
+
+    <!-- MOCKUP: Dashboard -->
+    <div class="reveal">
+      <div class="mockup" style="height:420px;">
+        <div class="mockup-sb">
+          <div class="mockup-sb-logo"><span class="c-amber">Cash</span>Pilot</div>
+          <div class="mockup-sb-item active"><span class="dot"></span>Tableau de bord</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Clients</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Projets</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Feuilles de temps</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Factures</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Devis</div>
+          <div class="mockup-sb-item"><span class="dot"></span>D&eacute;penses</div>
+          <div class="mockup-sb-sep">Fournisseurs</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Fournisseurs</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Stock</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Comptabilit&eacute;</div>
+          <div class="mockup-sb-sep">Finance</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Tr&eacute;sorerie</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Analytique</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Param&egrave;tres</div>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-header">
+            <h3 class="gradient-text">Tableau de bord</h3>
+            <div style="display:flex;gap:6px;">
+              <span class="mockup-btn mockup-btn-primary">PDF (3)</span>
+              <span class="mockup-btn mockup-btn-outline">HTML (2)</span>
+            </div>
+          </div>
+          <div class="mockup-stats">
+            <div class="mockup-stat">
+              <div class="mockup-stat-val gradient-text">24 580 &euro;</div>
+              <div class="mockup-stat-label">Revenu Total</div>
+              <div class="mockup-stat-trend">&uarr; +12.5%</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-val gradient-text">68%</div>
+              <div class="mockup-stat-label">Marge B&eacute;n&eacute;ficiaire</div>
+              <div class="mockup-stat-trend">&uarr; +3.2%</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-val gradient-text">85%</div>
+              <div class="mockup-stat-label">Taux d'Occupation</div>
+              <div class="mockup-stat-trend">&uarr; +5.1%</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;flex:1;min-height:0;">
+            <div style="flex:2;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:12px;position:relative;overflow:hidden;">
+              <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">Revenue Overview</div>
+              <svg viewBox="0 0 400 120" style="width:100%;height:calc(100% - 20px);">
+                <defs>
+                  <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.3"/>
+                    <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0,100 C40,85 80,90 120,70 C160,50 200,60 240,35 C280,20 320,30 360,15 L400,10 L400,120 L0,120 Z" fill="url(#chartGrad)"/>
+                <path d="M0,100 C40,85 80,90 120,70 C160,50 200,60 240,35 C280,20 320,30 360,15 L400,10" fill="none" stroke="#f59e0b" stroke-width="2"/>
+                <circle cx="120" cy="70" r="3" fill="#f59e0b"/>
+                <circle cx="240" cy="35" r="3" fill="#f59e0b"/>
+                <circle cx="360" cy="15" r="3" fill="#f59e0b"/>
+                <text x="20" y="118" fill="#71717a" font-size="9" font-family="Inter">Jan</text>
+                <text x="100" y="118" fill="#71717a" font-size="9" font-family="Inter">Mar</text>
+                <text x="180" y="118" fill="#71717a" font-size="9" font-family="Inter">Mai</text>
+                <text x="260" y="118" fill="#71717a" font-size="9" font-family="Inter">Jul</text>
+                <text x="340" y="118" fill="#71717a" font-size="9" font-family="Inter">Sep</text>
+              </svg>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:2px;">Factures r&eacute;centes</div>
+              <div style="background:rgba(255,255,255,0.02);border-radius:6px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;">
+                <div><div style="font-size:11px;color:#fff;font-weight:500;">FAC-2026-042</div><div style="font-size:9px;color:var(--text-muted);">Acme Corp</div></div>
+                <div style="text-align:right;"><div style="font-size:11px;font-weight:600;" class="gradient-text">3 200 &euro;</div><span class="badge badge-green">Pay&eacute;e</span></div>
+              </div>
+              <div style="background:rgba(255,255,255,0.02);border-radius:6px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;">
+                <div><div style="font-size:11px;color:#fff;font-weight:500;">FAC-2026-041</div><div style="font-size:9px;color:var(--text-muted);">TechStart</div></div>
+                <div style="text-align:right;"><div style="font-size:11px;font-weight:600;" class="gradient-text">1 850 &euro;</div><span class="badge badge-blue">Envoy&eacute;e</span></div>
+              </div>
+              <div style="background:rgba(255,255,255,0.02);border-radius:6px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;">
+                <div><div style="font-size:11px;color:#fff;font-weight:500;">FAC-2026-040</div><div style="font-size:9px;color:var(--text-muted);">DesignLab</div></div>
+                <div style="text-align:right;"><div style="font-size:11px;font-weight:600;" class="gradient-text">5 400 &euro;</div><span class="badge badge-red">En retard</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">$</div>
+        <h3>KPIs en temps r&eacute;el</h3>
+        <p>Revenu total, marge b&eacute;n&eacute;ficiaire et taux d'occupation calcul&eacute;s automatiquement &agrave; partir de vos donn&eacute;es.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#9650;</div>
+        <h3>Graphiques interactifs</h3>
+        <p>Visualisez l'&eacute;volution mensuelle de votre chiffre d'affaires et la r&eacute;partition par client.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:var(--blue);">&#9889;</div>
+        <h3>Actions rapides</h3>
+        <p>Cr&eacute;ez une facture, une feuille de temps ou un nouveau client en un seul clic depuis le dashboard.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#8595;</div>
+        <h3>Export PDF &amp; HTML</h3>
+        <p>T&eacute;l&eacute;chargez un rapport complet de votre tableau de bord en PDF ou en page HTML.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 3 : GESTION COMMERCIALE
+     ============================================================ -->
+<section class="section" id="commercial">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Chapitre 03</div>
+      <h2 class="section-title">Gestion <span class="gradient-text">Commerciale</span></h2>
+      <p class="section-subtitle">G&eacute;rez votre portefeuille clients et fournisseurs avec un CRM int&eacute;gr&eacute;.</p>
+    </div>
+
+    <div class="two-col">
+      <!-- MOCKUP: Clients -->
+      <div class="reveal">
+        <div class="mockup" style="height:360px;">
+          <div class="mockup-sb">
+            <div class="mockup-sb-logo"><span class="c-amber">Cash</span>Pilot</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Tableau de bord</div>
+            <div class="mockup-sb-item active"><span class="dot"></span>Clients</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Projets</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Feuilles de temps</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Factures</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Devis</div>
+            <div class="mockup-sb-item"><span class="dot"></span>D&eacute;penses</div>
+            <div class="mockup-sb-sep">Fournisseurs</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Fournisseurs</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Stock</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Comptabilit&eacute;</div>
+          </div>
+          <div class="mockup-body">
+            <div class="mockup-header">
+              <h3 class="gradient-text">Gestion des clients</h3>
+              <span class="mockup-btn mockup-btn-primary">+ Ajouter</span>
+            </div>
+            <div class="mockup-input" style="margin-bottom:12px;color:var(--text-muted);">&#128269; Rechercher des clients...</div>
+            <table class="mockup-table">
+              <thead><tr><th>Entreprise</th><th>Contact</th><th>E-mail</th><th>Devise</th><th></th></tr></thead>
+              <tbody>
+                <tr><td class="text-white">Acme Corporation</td><td>Jean Dupont</td><td>jean@acme.fr</td><td><span class="badge badge-amber">EUR</span></td><td style="color:var(--text-muted);">&#8942;</td></tr>
+                <tr><td class="text-white">TechStart SAS</td><td>Marie Laurent</td><td>marie@techstart.io</td><td><span class="badge badge-amber">EUR</span></td><td style="color:var(--text-muted);">&#8942;</td></tr>
+                <tr><td class="text-white">DesignLab SARL</td><td>Pierre Martin</td><td>pierre@designlab.fr</td><td><span class="badge badge-blue">USD</span></td><td style="color:var(--text-muted);">&#8942;</td></tr>
+                <tr><td class="text-white">Global Services Ltd</td><td>Sophie Brown</td><td>sophie@global.co.uk</td><td><span class="badge badge-green">GBP</span></td><td style="color:var(--text-muted);">&#8942;</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col-text reveal reveal-delay-1">
+        <h3 style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">Clients</h3>
+        <p style="margin-bottom:16px;">Centralisez toutes les informations de vos clients : nom d'entreprise, contact, e-mail, adresse, num&eacute;ro de TVA et devise pr&eacute;f&eacute;r&eacute;e. Chaque fiche client regroupe l'historique de ses factures, paiements et projets.</p>
+
+        <h3 style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;margin-top:24px;">Fournisseurs</h3>
+        <p style="margin-bottom:16px;">Cr&eacute;ez un r&eacute;pertoire fournisseurs complet avec contacts, produits/services, et historique d'achats. Visualisez vos fournisseurs sur une <strong style="color:#fff;">carte interactive</strong> et g&eacute;n&eacute;rez des rapports de performance.</p>
+
+        <div class="pro-tip" style="margin-top:24px;">
+          <div class="pro-tip-icon">!</div>
+          <div class="pro-tip-text">
+            <strong>Multi-devises :</strong> CashPilot supporte EUR, USD et GBP. La devise pr&eacute;f&eacute;r&eacute;e du client est appliqu&eacute;e automatiquement lors de la cr&eacute;ation de factures.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 4 : CYCLE DE FACTURATION
+     ============================================================ -->
+<section class="section" id="facturation">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Chapitre 04</div>
+      <h2 class="section-title">Cycle de <span class="gradient-text">Facturation</span></h2>
+      <p class="section-subtitle">Du devis &agrave; l'avoir, g&eacute;rez le cycle complet de facturation avec des vues multiples.</p>
+    </div>
+
+    <!-- MOCKUP: Invoices multi-view -->
+    <div class="reveal">
+      <div class="mockup" style="height:400px;">
+        <div class="mockup-sb">
+          <div class="mockup-sb-logo"><span class="c-amber">Cash</span>Pilot</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Tableau de bord</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Clients</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Projets</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Feuilles de temps</div>
+          <div class="mockup-sb-item active"><span class="dot"></span>Factures</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Factures r&eacute;currentes</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Avoirs</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Bons de livraison</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Devis</div>
+          <div class="mockup-sb-item"><span class="dot"></span>D&eacute;penses</div>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-header">
+            <h3 class="gradient-text">Factures</h3>
+            <div style="display:flex;gap:6px;">
+              <span class="mockup-btn mockup-btn-primary">+ Cr&eacute;er</span>
+              <span class="mockup-btn mockup-btn-outline">&#8595; CSV</span>
+            </div>
+          </div>
+          <div class="mockup-tabs">
+            <span class="mockup-tab active">&#9776; Liste</span>
+            <span class="mockup-tab">&#128197; Calendrier</span>
+            <span class="mockup-tab">&#128203; Agenda</span>
+            <span class="mockup-tab">&#9646;&#9646;&#9646; Kanban</span>
+          </div>
+          <table class="mockup-table">
+            <thead><tr><th>N&deg; Facture</th><th>Client</th><th>Date</th><th>Montant</th><th>Statut</th><th></th></tr></thead>
+            <tbody>
+              <tr><td class="text-white">FAC-2026-042</td><td>Acme Corp</td><td>05/02/2026</td><td class="text-white">3 200,00 &euro;</td><td><span class="badge badge-green">Pay&eacute;e</span></td><td style="color:var(--text-muted);">&#128065; &#128233; &#128465;</td></tr>
+              <tr><td class="text-white">FAC-2026-041</td><td>TechStart SAS</td><td>01/02/2026</td><td class="text-white">1 850,00 &euro;</td><td><span class="badge badge-blue">Envoy&eacute;e</span></td><td style="color:var(--text-muted);">&#128065; &#128233; &#128465;</td></tr>
+              <tr><td class="text-white">FAC-2026-040</td><td>DesignLab</td><td>28/01/2026</td><td class="text-white">5 400,00 &euro;</td><td><span class="badge badge-red">En retard</span></td><td style="color:var(--text-muted);">&#128065; &#128233; &#128465;</td></tr>
+              <tr><td class="text-white">FAC-2026-039</td><td>Global Services</td><td>22/01/2026</td><td class="text-white">2 100,00 &euro;</td><td><span class="badge badge-gray">Brouillon</span></td><td style="color:var(--text-muted);">&#128065; &#128233; &#128465;</td></tr>
+              <tr><td class="text-white">FAC-2026-038</td><td>Acme Corp</td><td>15/01/2026</td><td class="text-white">4 750,00 &euro;</td><td><span class="badge badge-green">Pay&eacute;e</span></td><td style="color:var(--text-muted);">&#128065; &#128233; &#128465;</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#128196;</div>
+        <h3>Devis &rarr; Facture</h3>
+        <p>Cr&eacute;ez un devis, faites-le valider par le client, puis convertissez-le en facture en un clic. Toutes les donn&eacute;es sont transf&eacute;r&eacute;es automatiquement.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:var(--blue);">&#128337;</div>
+        <h3>Factures r&eacute;currentes</h3>
+        <p>D&eacute;finissez des mod&egrave;les avec une fr&eacute;quence (hebdo, mensuelle, trimestrielle). Les factures sont g&eacute;n&eacute;r&eacute;es et envoy&eacute;es automatiquement.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(239,68,68,0.1);color:var(--red);">&#8722;</div>
+        <h3>Avoirs (notes de cr&eacute;dit)</h3>
+        <p>G&eacute;n&eacute;rez des avoirs li&eacute;s &agrave; une facture existante. Remboursement partiel ou total avec ajustement automatique de la TVA.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#128666;</div>
+        <h3>Bons de livraison</h3>
+        <p>G&eacute;n&eacute;rez des bons de livraison li&eacute;s &agrave; vos commandes. Suivi des articles, date de livraison et signature.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#9646;&#9646;&#9646;</div>
+        <h3>4 modes d'affichage</h3>
+        <p>Basculez entre les vues <strong style="color:#fff;">Liste</strong>, <strong style="color:#fff;">Calendrier</strong>, <strong style="color:#fff;">Agenda</strong> et <strong style="color:#fff;">Kanban</strong> pour organiser vos factures comme vous le souhaitez.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(6,182,212,0.1);color:var(--cyan);">&#128233;</div>
+        <h3>Envoi par e-mail</h3>
+        <p>Envoyez vos factures directement par e-mail depuis CashPilot. Le PDF est joint automatiquement au message.</p>
+      </div>
+    </div>
+
+    <!-- Steps: Create an invoice -->
+    <h3 style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-top:48px;margin-bottom:8px;" class="reveal">Cr&eacute;er une facture pas &agrave; pas</h3>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-content"><h4>S&eacute;lectionner le client</h4><p>Choisissez un client existant ou cr&eacute;ez-en un nouveau directement.</p></div>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-content"><h4>Ajouter les lignes</h4><p>Importez des feuilles de temps ou ajoutez des lignes manuelles avec description, quantit&eacute; et prix unitaire.</p></div>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-content"><h4>Configurer la TVA</h4><p>Le taux de TVA est appliqu&eacute; automatiquement. Les montants HT, TVA et TTC sont calcul&eacute;s en temps r&eacute;el.</p></div>
+      </div>
+      <div class="step">
+        <div class="step-number">4</div>
+        <div class="step-content"><h4>G&eacute;n&eacute;rer et envoyer</h4><p>Cliquez sur &laquo; G&eacute;n&eacute;rer la facture &raquo;, puis exportez en PDF ou envoyez par e-mail.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 5 : GESTION FINANCIERE
+     ============================================================ -->
+<section class="section" id="finance">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Chapitre 05</div>
+      <h2 class="section-title">Gestion <span class="gradient-text">Financi&egrave;re</span></h2>
+      <p class="section-subtitle">Suivez vos d&eacute;penses, g&eacute;rez vos cr&eacute;ances et dettes, et pilotez votre tr&eacute;sorerie.</p>
+    </div>
+
+    <div class="two-col">
+      <div class="two-col-text reveal">
+        <h3 style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">D&eacute;penses</h3>
+        <p style="margin-bottom:20px;">Enregistrez chaque d&eacute;pense avec cat&eacute;gorie, montant, date et justificatif. Importez en masse depuis un fichier CSV ou utilisez la <strong style="color:#fff">saisie vocale</strong> pour enregistrer vos frais en d&eacute;placement.</p>
+
+        <h3 style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">Cr&eacute;ances &amp; Dettes</h3>
+        <p style="margin-bottom:20px;">Le <strong style="color:#fff">Gestionnaire de Cr&eacute;ances/Dettes</strong> centralise tout ce qu'on vous doit et tout ce que vous devez. Visualisez en mode Calendrier, Agenda ou Kanban, et enregistrez les paiements avec m&eacute;thode (esp&egrave;ces, virement, ch&egrave;que, mobile money).</p>
+
+        <h3 style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">Tr&eacute;sorerie (Cash Flow)</h3>
+        <p>Visualisez l'historique de votre tr&eacute;sorerie sur 6 mois et les <strong style="color:#fff">pr&eacute;visions sur 3 mois</strong>. Le graphique en barres affiche revenus vs d&eacute;penses avec une ligne de tendance.</p>
+      </div>
+
+      <!-- MOCKUP: Cash Flow -->
+      <div class="reveal reveal-delay-2">
+        <div class="mockup" style="height:360px;">
+          <div class="mockup-sb">
+            <div class="mockup-sb-logo"><span class="c-amber">Cash</span>Pilot</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Tableau de bord</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Factures</div>
+            <div class="mockup-sb-item"><span class="dot"></span>D&eacute;penses</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Cr&eacute;ances &amp; Dettes</div>
+            <div class="mockup-sb-sep">Finance</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Connexions Bancaires</div>
+            <div class="mockup-sb-item active"><span class="dot"></span>Tr&eacute;sorerie</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Analytique</div>
+          </div>
+          <div class="mockup-body">
+            <div class="mockup-header">
+              <h3 class="gradient-text">Tr&eacute;sorerie</h3>
+              <span class="mockup-btn mockup-btn-outline">&#8635; Actualiser</span>
+            </div>
+            <div class="mockup-stats">
+              <div class="mockup-stat">
+                <div class="mockup-stat-val" style="color:var(--green);">48 200 &euro;</div>
+                <div class="mockup-stat-label">Total Revenus</div>
+              </div>
+              <div class="mockup-stat">
+                <div class="mockup-stat-val" style="color:var(--red);">31 600 &euro;</div>
+                <div class="mockup-stat-label">Total D&eacute;penses</div>
+              </div>
+              <div class="mockup-stat">
+                <div class="mockup-stat-val gradient-text">+16 600 &euro;</div>
+                <div class="mockup-stat-label">Position Nette</div>
+              </div>
+            </div>
+            <div style="flex:1;position:relative;">
+              <svg viewBox="0 0 400 130" style="width:100%;height:100%;">
+                <!-- Bar chart -->
+                <rect x="20" y="40" width="28" height="80" rx="3" fill="rgba(16,185,129,0.3)"/>
+                <rect x="20" y="60" width="28" height="60" rx="3" fill="rgba(239,68,68,0.3)"/>
+                <rect x="70" y="30" width="28" height="90" rx="3" fill="rgba(16,185,129,0.3)"/>
+                <rect x="70" y="55" width="28" height="65" rx="3" fill="rgba(239,68,68,0.3)"/>
+                <rect x="120" y="20" width="28" height="100" rx="3" fill="rgba(16,185,129,0.3)"/>
+                <rect x="120" y="50" width="28" height="70" rx="3" fill="rgba(239,68,68,0.3)"/>
+                <rect x="170" y="35" width="28" height="85" rx="3" fill="rgba(16,185,129,0.3)"/>
+                <rect x="170" y="55" width="28" height="65" rx="3" fill="rgba(239,68,68,0.3)"/>
+                <rect x="220" y="25" width="28" height="95" rx="3" fill="rgba(16,185,129,0.3)"/>
+                <rect x="220" y="45" width="28" height="75" rx="3" fill="rgba(239,68,68,0.3)"/>
+                <rect x="270" y="15" width="28" height="105" rx="3" fill="rgba(16,185,129,0.3)"/>
+                <rect x="270" y="40" width="28" height="80" rx="3" fill="rgba(239,68,68,0.3)"/>
+                <!-- Forecast area -->
+                <rect x="320" y="20" width="28" height="100" rx="3" fill="rgba(16,185,129,0.15)" stroke="rgba(16,185,129,0.3)" stroke-dasharray="3"/>
+                <rect x="370" y="25" width="28" height="95" rx="3" fill="rgba(16,185,129,0.15)" stroke="rgba(16,185,129,0.3)" stroke-dasharray="3"/>
+                <!-- Labels -->
+                <text x="27" y="128" fill="#71717a" font-size="8" text-anchor="middle" font-family="Inter">Sep</text>
+                <text x="77" y="128" fill="#71717a" font-size="8" text-anchor="middle" font-family="Inter">Oct</text>
+                <text x="127" y="128" fill="#71717a" font-size="8" text-anchor="middle" font-family="Inter">Nov</text>
+                <text x="177" y="128" fill="#71717a" font-size="8" text-anchor="middle" font-family="Inter">D&eacute;c</text>
+                <text x="227" y="128" fill="#71717a" font-size="8" text-anchor="middle" font-family="Inter">Jan</text>
+                <text x="277" y="128" fill="#71717a" font-size="8" text-anchor="middle" font-family="Inter">F&eacute;v</text>
+                <text x="327" y="128" fill="var(--amber)" font-size="8" text-anchor="middle" font-family="Inter">Mar*</text>
+                <text x="377" y="128" fill="var(--amber)" font-size="8" text-anchor="middle" font-family="Inter">Avr*</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pro-tip reveal">
+      <div class="pro-tip-icon">!</div>
+      <div class="pro-tip-text">
+        <strong>Saisie vocale :</strong> Sur mobile, appuyez sur le micro pour dicter vos d&eacute;penses. CashPilot extrait automatiquement le montant, la cat&eacute;gorie et la description.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 6 : COMPTABILITE
+     ============================================================ -->
+<section class="section" id="comptabilite">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Chapitre 06</div>
+      <h2 class="section-title"><span class="gradient-text">Comptabilit&eacute;</span> Int&eacute;gr&eacute;e</h2>
+      <p class="section-subtitle">Un module comptable complet avec 10 onglets : plan comptable, bilan, compte de r&eacute;sultat, TVA, estimation d'imp&ocirc;t et rapprochement bancaire.</p>
+    </div>
+
+    <!-- MOCKUP: Accounting -->
+    <div class="reveal">
+      <div class="mockup" style="height:400px;">
+        <div class="mockup-sb">
+          <div class="mockup-sb-logo"><span class="c-amber">Cash</span>Pilot</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Tableau de bord</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Factures</div>
+          <div class="mockup-sb-item"><span class="dot"></span>D&eacute;penses</div>
+          <div class="mockup-sb-sep">Fournisseurs</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Fournisseurs</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Stock</div>
+          <div class="mockup-sb-item active"><span class="dot"></span>Comptabilit&eacute;</div>
+          <div class="mockup-sb-sep">Finance</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Tr&eacute;sorerie</div>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-header">
+            <h3 class="gradient-text">Comptabilit&eacute;</h3>
+            <div style="display:flex;gap:4px;align-items:center;">
+              <span style="font-size:10px;color:var(--text-muted);margin-right:6px;">P&eacute;riode:</span>
+              <span class="mockup-btn mockup-btn-outline" style="font-size:10px;">Ce mois</span>
+            </div>
+          </div>
+          <div class="mockup-tabs" style="flex-wrap:wrap;">
+            <span class="mockup-tab active">Dashboard</span>
+            <span class="mockup-tab">Plan comptable</span>
+            <span class="mockup-tab">Bilan</span>
+            <span class="mockup-tab">R&eacute;sultat</span>
+            <span class="mockup-tab">TVA</span>
+            <span class="mockup-tab">Imp&ocirc;t</span>
+            <span class="mockup-tab">Mappings</span>
+            <span class="mockup-tab">Taux TVA</span>
+            <span class="mockup-tab">Rapprochement</span>
+          </div>
+          <div class="mockup-stats">
+            <div class="mockup-stat">
+              <div class="mockup-stat-val" style="color:var(--green);">24 580 &euro;</div>
+              <div class="mockup-stat-label">CA HT</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-val" style="color:var(--red);">16 200 &euro;</div>
+              <div class="mockup-stat-label">Total Charges</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-val gradient-text">8 380 &euro;</div>
+              <div class="mockup-stat-label">R&eacute;sultat Net</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-val" style="color:var(--amber);">1 680 &euro;</div>
+              <div class="mockup-stat-label">TVA &agrave; payer</div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;gap:12px;min-height:0;">
+            <div style="flex:1;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:10px;">
+              <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">Revenus vs Charges</div>
+              <svg viewBox="0 0 200 80" style="width:100%;height:calc(100% - 18px);">
+                <rect x="10" y="10" width="22" height="60" rx="2" fill="rgba(16,185,129,0.4)"/>
+                <rect x="35" y="25" width="22" height="45" rx="2" fill="rgba(239,68,68,0.4)"/>
+                <rect x="70" y="5" width="22" height="65" rx="2" fill="rgba(16,185,129,0.4)"/>
+                <rect x="95" y="20" width="22" height="50" rx="2" fill="rgba(239,68,68,0.4)"/>
+                <rect x="130" y="8" width="22" height="62" rx="2" fill="rgba(16,185,129,0.4)"/>
+                <rect x="155" y="22" width="22" height="48" rx="2" fill="rgba(239,68,68,0.4)"/>
+              </svg>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">TVA</div>
+              <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:6px;">
+                <div style="display:flex;justify-content:space-between;font-size:11px;"><span>TVA collect&eacute;e</span><span style="color:var(--green);">4 916 &euro;</span></div>
+              </div>
+              <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:6px;">
+                <div style="display:flex;justify-content:space-between;font-size:11px;"><span>TVA d&eacute;ductible</span><span style="color:var(--blue);">3 236 &euro;</span></div>
+              </div>
+              <div style="background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2);border-radius:6px;padding:8px 10px;">
+                <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:600;"><span style="color:var(--amber);">TVA &agrave; payer</span><span style="color:var(--amber);">1 680 &euro;</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#128209;</div>
+        <h3>Plan Comptable</h3>
+        <p>Importez votre plan comptable depuis un CSV. Recherchez et filtrez par code ou type de compte. Pr&eacute;r&eacute;glages France, Belgique et OHADA.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#9878;</div>
+        <h3>Bilan &amp; R&eacute;sultat</h3>
+        <p>G&eacute;n&eacute;ration automatique du bilan (Actif/Passif/Capitaux propres) et du compte de r&eacute;sultat (Produits/Charges). Export PDF inclus.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:var(--blue);">%</div>
+        <h3>D&eacute;claration TVA</h3>
+        <p>Calcul automatique de la TVA collect&eacute;e, d&eacute;ductible et &agrave; payer. Historique mensuel et export PDF pour votre d&eacute;claration.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#128200;</div>
+        <h3>Estimation d'Imp&ocirc;t</h3>
+        <p>Calculez votre imp&ocirc;t estim&eacute; par tranches personnalisables. Provisions trimestrielles et taux effectif. Pr&eacute;r&eacute;glages par pays.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(6,182,212,0.1);color:var(--cyan);">&#8596;</div>
+        <h3>Rapprochement Bancaire</h3>
+        <p>Importez vos relev&eacute;s (PDF, Excel, CSV). Rapprochement automatique avec scoring de confiance. Interface de matching manuelle.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(236,72,153,0.1);color:var(--pink);">&#128260;</div>
+        <h3>Comptabilit&eacute; Automatique</h3>
+        <p>Chaque facture, d&eacute;pense et paiement g&eacute;n&egrave;re automatiquement les &eacute;critures comptables correspondantes en temps r&eacute;el.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 7 : PROJETS & TEMPS
+     ============================================================ -->
+<section class="section" id="projets">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Chapitre 07</div>
+      <h2 class="section-title">Projets &amp; <span class="gradient-text">Temps</span></h2>
+      <p class="section-subtitle">Suivez vos projets, enregistrez le temps pass&eacute; et g&eacute;rez vos t&acirc;ches avec des vues multiples.</p>
+    </div>
+
+    <div class="two-col">
+      <!-- MOCKUP: Timesheets -->
+      <div class="reveal">
+        <div class="mockup" style="height:360px;">
+          <div class="mockup-sb">
+            <div class="mockup-sb-logo"><span class="c-amber">Cash</span>Pilot</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Tableau de bord</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Clients</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Projets</div>
+            <div class="mockup-sb-item active"><span class="dot"></span>Feuilles de temps</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Factures</div>
+          </div>
+          <div class="mockup-body">
+            <div class="mockup-header">
+              <h3 class="gradient-text">Feuilles de temps</h3>
+              <span class="mockup-btn mockup-btn-primary">+ Nouvelle</span>
+            </div>
+            <div class="mockup-tabs">
+              <span class="mockup-tab">&#128197; Calendrier</span>
+              <span class="mockup-tab active">&#9776; Liste</span>
+              <span class="mockup-tab">&#9646;&#9646;&#9646; Kanban</span>
+              <span class="mockup-tab">&#128203; Agenda</span>
+            </div>
+            <table class="mockup-table">
+              <thead><tr><th>Date</th><th>Client</th><th>Projet</th><th>Dur&eacute;e</th><th>Statut</th></tr></thead>
+              <tbody>
+                <tr><td class="text-white">09/02/2026</td><td>Acme Corp</td><td>Refonte site</td><td class="text-white">3h 30m</td><td><span class="badge badge-green">Valid&eacute;</span></td></tr>
+                <tr><td class="text-white">08/02/2026</td><td>TechStart</td><td>App mobile</td><td class="text-white">5h 00m</td><td><span class="badge badge-blue">En cours</span></td></tr>
+                <tr><td class="text-white">08/02/2026</td><td>DesignLab</td><td>Branding</td><td class="text-white">2h 15m</td><td><span class="badge badge-amber">Factur&eacute;</span></td></tr>
+                <tr><td class="text-white">07/02/2026</td><td>Global Services</td><td>Audit UX</td><td class="text-white">4h 00m</td><td><span class="badge badge-gray">Brouillon</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col-text reveal reveal-delay-1">
+        <h3 style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">Gestion de Projets</h3>
+        <p style="margin-bottom:20px;">Cr&eacute;ez des projets avec client, budget en heures, &eacute;quipe et timeline. Suivez l'avancement avec des statistiques en temps r&eacute;el : heures consomm&eacute;es, budget restant et taux de compl&eacute;tion.</p>
+
+        <h3 style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">Feuilles de Temps</h3>
+        <p style="margin-bottom:20px;">Enregistrez vos heures avec heure de d&eacute;but/fin, calcul automatique de la dur&eacute;e, et assignation au client et projet. 4 modes d'affichage : <strong style="color:#fff">Calendrier, Liste, Kanban et Agenda</strong>.</p>
+
+        <h3 style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">Facturation directe</h3>
+        <p>S&eacute;lectionnez des feuilles de temps et g&eacute;n&eacute;rez une facture en un clic. Les heures approuv&eacute;es sont converties automatiquement en lignes de facture.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 8 : STOCK & PRODUITS
+     ============================================================ -->
+<section class="section" id="stock">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Chapitre 08</div>
+      <h2 class="section-title">Stock &amp; <span class="gradient-text">Produits</span></h2>
+      <p class="section-subtitle">G&eacute;rez votre inventaire, recevez des alertes de stock bas et scannez les codes-barres.</p>
+    </div>
+
+    <!-- MOCKUP: Stock -->
+    <div class="reveal">
+      <div class="mockup" style="height:340px;">
+        <div class="mockup-sb">
+          <div class="mockup-sb-logo"><span class="c-amber">Cash</span>Pilot</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Tableau de bord</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Fournisseurs</div>
+          <div class="mockup-sb-item active"><span class="dot"></span>Stock</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Scanner</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Rapports</div>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-header">
+            <h3 class="gradient-text">Gestion de Stock</h3>
+            <span class="mockup-btn mockup-btn-primary">+ Produit</span>
+          </div>
+          <table class="mockup-table">
+            <thead><tr><th>Produit</th><th>SKU</th><th>Stock</th><th>Alerte</th><th>Cat&eacute;gorie</th><th>Statut</th></tr></thead>
+            <tbody>
+              <tr><td class="text-white">Ordinateur portable</td><td>LAP-001</td><td class="text-white">24</td><td>5</td><td>Mat&eacute;riel</td><td><span class="badge badge-green">OK</span></td></tr>
+              <tr><td class="text-white">Cl&eacute; USB 64Go</td><td>USB-064</td><td class="text-white">142</td><td>20</td><td>Accessoires</td><td><span class="badge badge-green">OK</span></td></tr>
+              <tr><td class="text-white">&Eacute;cran 27 pouces</td><td>MON-027</td><td style="color:var(--amber);font-weight:600;">3</td><td>5</td><td>Mat&eacute;riel</td><td><span class="badge badge-amber">Bas</span></td></tr>
+              <tr><td class="text-white">Cartouche encre</td><td>INK-BLK</td><td style="color:var(--red);font-weight:600;">0</td><td>10</td><td>Consommable</td><td><span class="badge badge-red">Rupture</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#128230;</div>
+        <h3>Inventaire complet</h3>
+        <p>R&eacute;f&eacute;rencez vos produits avec SKU, cat&eacute;gorie, quantit&eacute; et seuil d'alerte. Mouvements de stock trac&eacute;s automatiquement.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(239,68,68,0.1);color:var(--red);">&#128276;</div>
+        <h3>Alertes de stock</h3>
+        <p>Notifications automatiques quand un produit passe sous le seuil d'alerte. Code couleur visuel : vert (OK), orange (bas), rouge (rupture).</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#9638;</div>
+        <h3>Scanner code-barres</h3>
+        <p>Utilisez la cam&eacute;ra de votre appareil pour scanner les codes-barres et mettre &agrave; jour le stock instantan&eacute;ment.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 9 : INTELLIGENCE ARTIFICIELLE & MCP
+     ============================================================ -->
+<section class="section" id="ia">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Chapitre 09</div>
+      <h2 class="section-title">Intelligence <span class="gradient-text">Artificielle</span></h2>
+      <p class="section-subtitle">6 fonctionnalit&eacute;s IA int&eacute;gr&eacute;es et une compatibilit&eacute; MCP avec tous les grands mod&egrave;les de langage.</p>
+    </div>
+
+    <div class="two-col">
+      <div class="two-col-text reveal">
+        <h3 style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">Assistant IA Int&eacute;gr&eacute;</h3>
+        <p style="margin-bottom:20px;">Un widget de chat IA flottant, toujours accessible, qui r&eacute;pond &agrave; vos questions financi&egrave;res en contexte. Il analyse vos donn&eacute;es et fournit des recommandations personnalis&eacute;es.</p>
+
+        <h3 style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">Serveur MCP &mdash; 29 Outils</h3>
+        <p style="margin-bottom:12px;">CashPilot int&egrave;gre un <strong style="color:#fff">serveur MCP (Model Context Protocol)</strong> avec 29 outils, permettant &agrave; n'importe quel LLM compatible de piloter votre gestion financi&egrave;re par la voix ou le texte :</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+          <span class="badge badge-purple" style="font-size:11px;padding:4px 12px;">Claude (Anthropic)</span>
+          <span class="badge badge-green" style="font-size:11px;padding:4px 12px;">ChatGPT (OpenAI)</span>
+          <span class="badge badge-blue" style="font-size:11px;padding:4px 12px;">Gemini (Google)</span>
+          <span class="badge badge-amber" style="font-size:11px;padding:4px 12px;">Rube.app</span>
+          <span class="badge" style="font-size:11px;padding:4px 12px;background:rgba(255,255,255,0.05);color:var(--text-secondary);">Tout LLM MCP-compatible</span>
+        </div>
+        <p style="margin-bottom:20px;">Demandez simplement : <em style="color:var(--amber);">&laquo; Cr&eacute;e une facture pour Acme Corp de 3200&euro; &raquo;</em> depuis Claude, ChatGPT ou Gemini &mdash; le serveur MCP ex&eacute;cute la commande directement dans CashPilot.</p>
+
+        <h3 style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">CashPilot comme Outil d'Automatisation</h3>
+        <p>Au-del&agrave; de ses propres automatisations, <strong style="color:#fff">CashPilot peut &ecirc;tre utilis&eacute; comme un outil dans vos cha&icirc;nes d'automatisation externes</strong> (Rube.app, Zapier, Make, n8n, etc.). Gr&acirc;ce &agrave; son API REST et son serveur MCP, vous pouvez int&eacute;grer la facturation, la comptabilit&eacute; et la gestion financi&egrave;re dans n'importe quel workflow automatis&eacute;.</p>
+      </div>
+
+      <!-- MOCKUP: AI Chat -->
+      <div class="reveal reveal-delay-2">
+        <div class="mockup" style="height:400px;position:relative;">
+          <div class="mockup-sb">
+            <div class="mockup-sb-logo"><span class="c-amber">Cash</span>Pilot</div>
+            <div class="mockup-sb-item active"><span class="dot"></span>Tableau de bord</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Factures</div>
+            <div class="mockup-sb-item"><span class="dot"></span>D&eacute;penses</div>
+            <div class="mockup-sb-item"><span class="dot"></span>Comptabilit&eacute;</div>
+          </div>
+          <div class="mockup-body" style="position:relative;">
+            <div class="mockup-header">
+              <h3 class="gradient-text">Tableau de bord</h3>
+            </div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;">(contenu du dashboard)</div>
+
+            <!-- Chat Widget -->
+            <div class="mockup-chat">
+              <div class="mockup-chat-header">
+                <span style="width:24px;height:24px;border-radius:50%;background:var(--amber-dim);display:flex;align-items:center;justify-content:center;font-size:12px;">&#9733;</span>
+                Assistant CashPilot
+              </div>
+              <div class="mockup-chat-messages">
+                <div class="mockup-chat-msg bot">Bonjour ! Comment puis-je vous aider avec votre gestion financi&egrave;re ?</div>
+                <div class="mockup-chat-msg user">Quel est mon CA ce mois ?</div>
+                <div class="mockup-chat-msg bot">Votre chiffre d'affaires ce mois est de <strong>8 380 &euro;</strong>, en hausse de 12% par rapport au mois dernier.</div>
+              </div>
+              <div class="mockup-chat-input">&#128172; Posez votre question...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#128172;</div>
+        <h3>Chat IA Contextuel</h3>
+        <p>Posez des questions en langage naturel sur vos finances. L'IA acc&egrave;de &agrave; vos donn&eacute;es en temps r&eacute;el pour des r&eacute;ponses pr&eacute;cises.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:var(--blue);">&#128247;</div>
+        <h3>OCR &amp; Extraction</h3>
+        <p>Uploadez une facture re&ccedil;ue ou un re&ccedil;u : l'IA extrait automatiquement le montant, la date, le fournisseur et les lignes.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(239,68,68,0.1);color:var(--red);">&#9888;</div>
+        <h3>D&eacute;tection d'Anomalies</h3>
+        <p>L'IA surveille vos transactions et vous alerte en cas de d&eacute;penses inhabituelles, d&eacute;passements de budget ou variations suspectes.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#128202;</div>
+        <h3>Pr&eacute;visions &amp; Sc&eacute;narios</h3>
+        <p>Cr&eacute;ez des sc&eacute;narios financiers avec hypoth&egrave;ses personnalis&eacute;es. Comparez les r&eacute;sultats c&ocirc;te &agrave; c&ocirc;te et identifiez le point mort.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#128279;</div>
+        <h3>29 Outils MCP</h3>
+        <p>Cr&eacute;ation de factures, recherche de clients, export comptable, r&eacute;sum&eacute; financier &mdash; 29 outils utilisables depuis tout LLM compatible MCP.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(6,182,212,0.1);color:var(--cyan);">&#9881;</div>
+        <h3>API REST Compl&egrave;te</h3>
+        <p>Une API REST document&eacute;e (OpenAPI 3.1) pour int&eacute;grer CashPilot dans vos automatisations Rube.app, Zapier, Make, n8n ou scripts personnalis&eacute;s.</p>
+      </div>
+    </div>
+
+    <div class="pro-tip reveal">
+      <div class="pro-tip-icon">!</div>
+      <div class="pro-tip-text">
+        <strong>Automatisation ultime :</strong> Connectez CashPilot &agrave; <strong>Rube.app</strong> ou toute plateforme d'automatisation. Exemple : recevoir un e-mail de facture fournisseur &rarr; extraction IA &rarr; cr&eacute;ation automatique dans CashPilot &rarr; notification Slack. Votre gestion financi&egrave;re devient une brique de votre pipeline automatis&eacute;.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 10 : BANQUE & INTEGRATIONS
+     ============================================================ -->
+<section class="section" id="banque">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Chapitre 10</div>
+      <h2 class="section-title">Banque &amp; <span class="gradient-text">Int&eacute;grations</span></h2>
+      <p class="section-subtitle">Connectez vos comptes bancaires, rapprochez vos transactions et int&eacute;grez CashPilot &agrave; votre &eacute;cosyst&egrave;me.</p>
+    </div>
+
+    <!-- MOCKUP: Bank Reconciliation -->
+    <div class="reveal">
+      <div class="mockup" style="height:360px;">
+        <div class="mockup-sb">
+          <div class="mockup-sb-logo"><span class="c-amber">Cash</span>Pilot</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Tableau de bord</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Comptabilit&eacute;</div>
+          <div class="mockup-sb-sep">Finance</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Connexions Bancaires</div>
+          <div class="mockup-sb-item active"><span class="dot"></span>Rapprochement</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Tr&eacute;sorerie</div>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-header">
+            <h3 class="gradient-text">Rapprochement Bancaire</h3>
+            <div style="display:flex;gap:6px;">
+              <span class="mockup-btn mockup-btn-primary">Rapprochement auto</span>
+              <span class="mockup-btn mockup-btn-outline">&#8595; PDF</span>
+            </div>
+          </div>
+          <div class="mockup-stats">
+            <div class="mockup-stat">
+              <div class="mockup-stat-val" style="color:#fff;font-size:16px;">48</div>
+              <div class="mockup-stat-label">Total lignes</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-val" style="color:var(--green);font-size:16px;">35</div>
+              <div class="mockup-stat-label">Rapproch&eacute;es</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-val" style="color:var(--amber);font-size:16px;">10</div>
+              <div class="mockup-stat-label">Non rapproch&eacute;es</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-val gradient-text" style="font-size:16px;">73%</div>
+              <div class="mockup-stat-label">Taux</div>
+            </div>
+          </div>
+          <div class="mockup-tabs">
+            <span class="mockup-tab active">Toutes</span>
+            <span class="mockup-tab">Rapproch&eacute;es</span>
+            <span class="mockup-tab">Non rapproch&eacute;es</span>
+            <span class="mockup-tab">Ignor&eacute;es</span>
+          </div>
+          <table class="mockup-table" style="font-size:11px;">
+            <thead><tr><th>Date</th><th>Libell&eacute;</th><th>Montant</th><th>Confiance</th><th>Source</th></tr></thead>
+            <tbody>
+              <tr><td>05/02</td><td class="text-white">Virement Acme Corp</td><td style="color:var(--green);">+3 200 &euro;</td><td><span class="badge badge-green">98%</span></td><td>FAC-042</td></tr>
+              <tr><td>03/02</td><td class="text-white">Pr&eacute;l&egrave;vement OVH</td><td style="color:var(--red);">-89 &euro;</td><td><span class="badge badge-amber">72%</span></td><td>D&eacute;pense</td></tr>
+              <tr><td>01/02</td><td class="text-white">CB Amazon</td><td style="color:var(--red);">-245 &euro;</td><td><span class="badge badge-red">?</span></td><td>&mdash;</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#127974;</div>
+        <h3>Connexions Bancaires</h3>
+        <p>Connectez vos comptes bancaires pour synchroniser automatiquement vos transactions. Support multi-banques.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#8596;</div>
+        <h3>Rapprochement Intelligent</h3>
+        <p>L'algorithme de matching automatique rapproche vos relev&eacute;s avec vos factures et d&eacute;penses avec un score de confiance.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">{ }</div>
+        <h3>API REST &amp; MCP</h3>
+        <p>Int&eacute;grez CashPilot dans votre &eacute;cosyst&egrave;me via l'API REST (OpenAPI 3.1) ou le protocole MCP pour les LLMs.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 11 : PARAMETRES & ADMINISTRATION
+     ============================================================ -->
+<section class="section" id="parametres">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Chapitre 11</div>
+      <h2 class="section-title">Param&egrave;tres &amp; <span class="gradient-text">Administration</span></h2>
+      <p class="section-subtitle">Personnalisez CashPilot, g&eacute;rez votre &eacute;quipe et s&eacute;curisez vos donn&eacute;es.</p>
+    </div>
+
+    <!-- MOCKUP: Settings -->
+    <div class="reveal">
+      <div class="mockup" style="height:340px;">
+        <div class="mockup-sb">
+          <div class="mockup-sb-logo"><span class="c-amber">Cash</span>Pilot</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Tableau de bord</div>
+          <div class="mockup-sb-item"><span class="dot"></span>Analytique</div>
+          <div class="mockup-sb-item"><span class="dot"></span>S&eacute;curit&eacute;</div>
+          <div class="mockup-sb-item active"><span class="dot"></span>Param&egrave;tres</div>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-header">
+            <h3 class="gradient-text">Param&egrave;tres</h3>
+          </div>
+          <div class="mockup-tabs">
+            <span class="mockup-tab active">Profil</span>
+            <span class="mockup-tab">Entreprise</span>
+            <span class="mockup-tab">Factures</span>
+            <span class="mockup-tab">Facturation</span>
+            <span class="mockup-tab">Notifications</span>
+            <span class="mockup-tab">&Eacute;quipe</span>
+            <span class="mockup-tab">Sauvegardes</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:500;">Nom complet</div>
+              <div class="mockup-input filled">Jean Dupont</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:500;">E-mail</div>
+              <div class="mockup-input filled">jean@monentreprise.fr</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:500;">Langue</div>
+              <div class="mockup-input filled">&#127467;&#127479; Fran&ccedil;ais</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:500;">Th&egrave;me</div>
+              <div class="mockup-input filled">&#127761; Sombre</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:8px;">
+            <span class="mockup-btn mockup-btn-primary">Enregistrer</span>
+            <span class="mockup-btn mockup-btn-outline">Annuler</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#128100;</div>
+        <h3>Profil &amp; Entreprise</h3>
+        <p>Nom, logo, adresse, TVA, ann&eacute;e fiscale. Personnalisez vos factures avec 5 templates (Classic, Modern, Professional, Minimal, Bold).</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:var(--blue);">&#128101;</div>
+        <h3>&Eacute;quipe &amp; R&ocirc;les</h3>
+        <p>Invitez des collaborateurs et attribuez des r&ocirc;les avec permissions granulaires. Contr&ocirc;lez l'acc&egrave;s &agrave; chaque section.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#128274;</div>
+        <h3>S&eacute;curit&eacute;</h3>
+        <p>Authentification MFA (TOTP), gestion des sessions, historique des connexions, authentification biom&eacute;trique et cl&eacute;s API.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#128190;</div>
+        <h3>Sauvegardes</h3>
+        <p>Sauvegarde locale JSON, sauvegarde cloud (multi-providers), planification automatique (quotidienne, hebdo, mensuelle).</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(236,72,153,0.1);color:var(--pink);">&#127760;</div>
+        <h3>Multilingue</h3>
+        <p>Interface disponible en fran&ccedil;ais, anglais et n&eacute;erlandais. Changement de langue instantan&eacute;.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(239,68,68,0.1);color:var(--red);">&#128203;</div>
+        <h3>RGPD &amp; Export</h3>
+        <p>Exportez toutes vos donn&eacute;es pour conformit&eacute; RGPD. Supprimez votre compte et vos donn&eacute;es &agrave; tout moment.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 12 : RACCOURCIS & ASTUCES
+     ============================================================ -->
+<section class="section" id="astuces">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Chapitre 12</div>
+      <h2 class="section-title">Raccourcis &amp; <span class="gradient-text">Astuces</span></h2>
+      <p class="section-subtitle">Devenez un power user de CashPilot avec ces conseils et raccourcis.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#9646;&#9646;&#9646;</div>
+        <h3>4 Modes d'Affichage</h3>
+        <p>Factures, feuilles de temps et cr&eacute;ances disposent de 4 vues : <strong style="color:#fff">Liste</strong> (tableau), <strong style="color:#fff">Calendrier</strong> (mois), <strong style="color:#fff">Agenda</strong> (priorit&eacute;) et <strong style="color:#fff">Kanban</strong> (drag &amp; drop).</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:var(--blue);">&#128190;</div>
+        <h3>Formats d'Export</h3>
+        <p><strong style="color:#fff">PDF</strong> pour l'impression, <strong style="color:#fff">HTML</strong> pour le web, <strong style="color:#fff">CSV</strong> pour les tableurs, <strong style="color:#fff">Excel</strong> pour l'analyse avanc&eacute;e. Tous les documents sont exportables.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#128161;</div>
+        <h3>Syst&egrave;me de Cr&eacute;dits</h3>
+        <p>Les exports PDF et les fonctionnalit&eacute;s IA consomment des cr&eacute;dits. Surveillez votre solde dans la barre de navigation. Des cr&eacute;dits gratuits sont offerts chaque mois.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#127916;</div>
+        <h3>Onboarding Guid&eacute;</h3>
+        <p>&Agrave; la premi&egrave;re connexion, un tour interactif vous guide &agrave; travers les fonctionnalit&eacute;s cl&eacute;s. Rejouez-le &agrave; tout moment depuis les param&egrave;tres.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(6,182,212,0.1);color:var(--cyan);">&#9889;</div>
+        <h3>Facturation Rapide</h3>
+        <p>Le mode <strong style="color:#fff">Quick Invoice</strong> permet de cr&eacute;er une facture en moins de 30 secondes avec un formulaire minimaliste.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(236,72,153,0.1);color:var(--pink);">&#128640;</div>
+        <h3>CashPilot = Outil d'Automatisation</h3>
+        <p>Gr&acirc;ce au serveur MCP et &agrave; l'API REST, CashPilot n'est pas seulement un logiciel &mdash; c'est une <strong style="color:#fff">brique r&eacute;utilisable</strong> dans vos pipelines d'automatisation (Rube.app, Zapier, Make, n8n).</p>
+      </div>
+    </div>
+
+    <div class="pro-tip reveal" style="margin-top:40px;">
+      <div class="pro-tip-icon">!</div>
+      <div class="pro-tip-text">
+        <strong>Sidebar r&eacute;ductible :</strong> Cliquez sur la fl&egrave;che dans la barre lat&eacute;rale pour la r&eacute;duire en mode ic&ocirc;nes. Survolez une ic&ocirc;ne pour voir le tooltip avec le nom de la section.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CTA SECTION - ACCES PLATEFORME
+     ============================================================ -->
+<section class="cta-section" id="cta">
+  <div class="cta-section-bg"></div>
+  <div class="cta-section-inner">
+    <div class="reveal">
+      <div class="cta-badge">
+        <span class="cta-badge-dot"></span>
+        Plateforme en ligne
+      </div>
+    </div>
+    <h2 class="cta-headline reveal">
+      Pr&ecirc;t &agrave; transformer votre<br>
+      <span class="gradient-text">gestion financi&egrave;re</span> ?
+    </h2>
+    <p class="cta-subtext reveal">
+      Rejoignez les entreprises qui pilotent leur facturation, comptabilit&eacute;, tr&eacute;sorerie
+      et projets depuis une seule plateforme propuls&eacute;e par l'intelligence artificielle.
+      <strong style="color:#fff;">Essayez CashPilot d&egrave;s maintenant.</strong>
+    </p>
+    <div class="cta-btn-group reveal">
+      <a href="https://www.cashpilot.tech" target="_blank" rel="noopener" class="cta-btn-primary">
+        D&eacute;couvrir CashPilot
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+      <a href="https://www.dmgmanagement.tech" target="_blank" rel="noopener" class="cta-btn-secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Contacter l'&eacute;quipe
+      </a>
+    </div>
+    <div class="cta-stats reveal">
+      <div class="cta-stat">
+        <div class="cta-stat-value"><span class="gradient-text-warm">121+</span></div>
+        <div class="cta-stat-label">Fonctionnalit&eacute;s</div>
+      </div>
+      <div class="cta-stat">
+        <div class="cta-stat-value"><span class="gradient-text-warm">29</span></div>
+        <div class="cta-stat-label">Outils MCP / IA</div>
+      </div>
+      <div class="cta-stat">
+        <div class="cta-stat-value"><span class="gradient-text-warm">34</span></div>
+        <div class="cta-stat-label">Modules</div>
+      </div>
+      <div class="cta-stat">
+        <div class="cta-stat-value"><span class="gradient-text-warm">API</span></div>
+        <div class="cta-stat-label">REST + OpenAPI 3.1</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-logo">
+      <span class="gradient-text">Cash</span><span style="color:#fff">Pilot</span>
+    </div>
+    <p class="footer-text">Guide Utilisateur v1.0 &bull; F&eacute;vrier 2026 &bull; &copy; CashPilot. Tous droits r&eacute;serv&eacute;s.</p>
+    <p class="footer-text" style="margin-top:8px;">Plateforme de Gestion Financi&egrave;re</p>
+    <div style="margin-top:24px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;">
+      <p style="font-family:var(--font-heading);font-weight:700;color:#fff;font-size:15px;margin-bottom:4px;">Eric Georges Djoufack</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">AI Project Manager</p>
+      <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;font-size:13px;">
+        <a href="https://www.dmgmanagement.tech" target="_blank" rel="noopener" style="color:var(--amber);text-decoration:none;">www.dmgmanagement.tech</a>
+        <span style="color:var(--text-muted);">(+32) 472.544.765</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+(function() {
+  // === Scroll Reveal ===
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // === Progress Bar ===
+  const progressBar = document.getElementById('progressBar');
+  const sections = document.querySelectorAll('.section[id]');
+  const navLinks = document.querySelectorAll('.navbar-link');
+
+  function updateProgress() {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    progressBar.style.width = progress + '%';
+
+    // Active section
+    let current = '';
+    sections.forEach(section => {
+      const top = section.offsetTop - 100;
+      if (scrollTop >= top) current = section.id;
+    });
+    navLinks.forEach(link => {
+      link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+    });
+  }
+
+  // === Navbar hide/show ===
+  let lastScroll = 0;
+  const navbar = document.getElementById('navbar');
+  function handleScroll() {
+    updateProgress();
+    const scrollTop = window.scrollY;
+    if (scrollTop > 200 && scrollTop > lastScroll) {
+      navbar.classList.add('hidden');
+    } else {
+      navbar.classList.remove('hidden');
+    }
+    lastScroll = scrollTop;
+  }
+
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  updateProgress();
+
+  // === Inject Contact Strips in all content sections ===
+  const contentSections = document.querySelectorAll('.section[id]:not(#toc)');
+  contentSections.forEach(section => {
+    const container = section.querySelector('.container');
+    if (!container) return;
+    const strip = document.createElement('div');
+    strip.className = 'section-contact-strip';
+    strip.innerHTML = '<div class="strip-left">' +
+      '<span class="strip-name">Eric Georges Djoufack</span>' +
+      '<span class="strip-sep">&bull;</span>' +
+      '<span class="strip-role">AI Project Manager</span>' +
+      '</div>' +
+      '<div class="strip-right">' +
+      '<a href="https://www.dmgmanagement.tech" target="_blank" rel="noopener">dmgmanagement.tech</a>' +
+      '<a href="tel:+32472544765" class="strip-phone">(+32) 472.544.765</a>' +
+      '</div>';
+    container.appendChild(strip);
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,5 +1,5 @@
 // CashPilot Service Worker
-const CACHE_NAME = 'cashpilot-v1';
+const CACHE_NAME = 'cashpilot-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -50,7 +50,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: cache-first
+  // JS chunks in /assets/: network-first (prevents stale chunk errors after deploy)
+  if (url.pathname.startsWith('/assets/') && url.pathname.endsWith('.js')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Other static assets: cache-first
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
