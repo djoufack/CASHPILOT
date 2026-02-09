@@ -1,0 +1,1203 @@
+openapi: 3.1.0
+info:
+  title: CashPilot API
+  description: |
+    API REST de gestion financiere CashPilot.
+    Couvre la facturation, les clients, les paiements, la comptabilite, l'analyse et les exports fiscaux.
+    Authentification par cle API via le header X-API-Key.
+  version: 1.0.0
+
+servers:
+  - url: https://rfzvrezrcigzmldgvntz.supabase.co/functions/v1/api-v1
+    description: Production
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Cle API CashPilot (generee depuis l'interface web)
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        invoice_number:
+          type: string
+        client_id:
+          type: string
+          format: uuid
+        invoice_date:
+          type: string
+          format: date
+        due_date:
+          type: string
+          format: date
+        total_ht:
+          type: number
+        tax_rate:
+          type: number
+        total_vat:
+          type: number
+        total_ttc:
+          type: number
+        status:
+          type: string
+          enum: [draft, sent, paid, overdue, cancelled]
+        payment_status:
+          type: string
+          enum: [unpaid, partial, paid]
+        notes:
+          type: string
+
+    Client:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_name:
+          type: string
+        contact_name:
+          type: string
+        email:
+          type: string
+          format: email
+        address:
+          type: string
+        city:
+          type: string
+        postal_code:
+          type: string
+        country:
+          type: string
+        phone:
+          type: string
+        vat_number:
+          type: string
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        invoice_id:
+          type: string
+          format: uuid
+        client_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+        payment_method:
+          type: string
+          enum: [bank_transfer, cash, check, card, other]
+        payment_date:
+          type: string
+          format: date
+        receipt_number:
+          type: string
+        reference:
+          type: string
+        notes:
+          type: string
+
+    Account:
+      type: object
+      properties:
+        account_code:
+          type: string
+        account_name:
+          type: string
+        account_category:
+          type: string
+          enum: [asset, liability, equity, revenue, expense]
+
+    AccountingEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transaction_date:
+          type: string
+          format: date
+        account_code:
+          type: string
+        account_name:
+          type: string
+        debit:
+          type: number
+        credit:
+          type: number
+        description:
+          type: string
+        reference:
+          type: string
+        journal_code:
+          type: string
+
+    TrialBalance:
+      type: object
+      properties:
+        accounts:
+          type: array
+          items:
+            type: object
+            properties:
+              account_code:
+                type: string
+              account_name:
+                type: string
+              total_debit:
+                type: number
+              total_credit:
+                type: number
+              balance:
+                type: number
+        total_debit:
+          type: number
+        total_credit:
+          type: number
+        balanced:
+          type: boolean
+        cutoff_date:
+          type: string
+          format: date
+
+    TaxSummary:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date
+            end:
+              type: string
+              format: date
+        revenue_ht:
+          type: number
+        output_vat:
+          type: number
+        total_expenses:
+          type: number
+        estimated_input_vat:
+          type: number
+        vat_payable:
+          type: number
+        invoice_count:
+          type: integer
+        expense_count:
+          type: integer
+
+    CashFlow:
+      type: object
+      properties:
+        monthly:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              income:
+                type: number
+              expenses:
+                type: number
+              net:
+                type: number
+        summary:
+          type: object
+          properties:
+            total_income:
+              type: number
+            total_expenses:
+              type: number
+            net:
+              type: number
+
+    KPIs:
+      type: object
+      properties:
+        month:
+          type: string
+        revenue_billed:
+          type: number
+        revenue_collected:
+          type: number
+        expenses:
+          type: number
+        margin:
+          type: number
+        total_pending_all_time:
+          type: number
+        invoices_this_month:
+          type: integer
+
+    TopClient:
+      type: object
+      properties:
+        client_id:
+          type: string
+          format: uuid
+        company_name:
+          type: string
+        email:
+          type: string
+        total_revenue:
+          type: number
+        invoice_count:
+          type: integer
+
+    ReceivablesSummary:
+      type: object
+      properties:
+        total_receivable:
+          type: number
+        total_collected:
+          type: number
+        total_pending:
+          type: number
+        total_overdue:
+          type: number
+        count:
+          type: integer
+
+paths:
+  # ── INVOICES ─────────────────────────────────────────────
+  /invoices:
+    get:
+      operationId: listInvoices
+      summary: Lister les factures
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        "200":
+          description: Liste des factures
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Invoice"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+    post:
+      operationId: createInvoice
+      summary: Creer une facture
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invoice_number, client_id, invoice_date, due_date, total_ht, total_ttc]
+              properties:
+                invoice_number:
+                  type: string
+                client_id:
+                  type: string
+                  format: uuid
+                invoice_date:
+                  type: string
+                  format: date
+                due_date:
+                  type: string
+                  format: date
+                total_ht:
+                  type: number
+                tax_rate:
+                  type: number
+                  default: 20
+                total_ttc:
+                  type: number
+                status:
+                  type: string
+                  enum: [draft, sent]
+                  default: draft
+                notes:
+                  type: string
+      responses:
+        "201":
+          description: Facture creee
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Invoice"
+
+  /invoices/{id}:
+    get:
+      operationId: getInvoice
+      summary: Obtenir une facture par ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Detail de la facture
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Invoice"
+        "404":
+          description: Facture non trouvee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateInvoice
+      summary: Mettre a jour une facture
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [draft, sent, paid, overdue, cancelled]
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Facture mise a jour
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Invoice"
+    delete:
+      operationId: deleteInvoice
+      summary: Supprimer une facture
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Facture supprimee
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  # ── CLIENTS ──────────────────────────────────────────────
+  /clients:
+    get:
+      operationId: listClients
+      summary: Lister les clients
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        "200":
+          description: Liste des clients
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Client"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+    post:
+      operationId: createClient
+      summary: Creer un client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [company_name]
+              properties:
+                company_name:
+                  type: string
+                contact_name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                address:
+                  type: string
+                city:
+                  type: string
+                postal_code:
+                  type: string
+                country:
+                  type: string
+                phone:
+                  type: string
+                vat_number:
+                  type: string
+      responses:
+        "201":
+          description: Client cree
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Client"
+
+  /clients/{id}:
+    get:
+      operationId: getClient
+      summary: Obtenir un client par ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Detail du client
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Client"
+    patch:
+      operationId: updateClient
+      summary: Mettre a jour un client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                company_name:
+                  type: string
+                contact_name:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+                address:
+                  type: string
+                vat_number:
+                  type: string
+      responses:
+        "200":
+          description: Client mis a jour
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Client"
+    delete:
+      operationId: deleteClient
+      summary: Supprimer un client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Client supprime
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  # ── PAYMENTS ─────────────────────────────────────────────
+  /payments:
+    get:
+      operationId: listPayments
+      summary: Lister les paiements
+      parameters:
+        - name: invoice_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filtrer par facture
+        - name: client_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filtrer par client
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        "200":
+          description: Liste des paiements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Payment"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+    post:
+      operationId: createPayment
+      summary: Enregistrer un paiement (met a jour automatiquement le statut de la facture)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invoice_id, amount]
+              properties:
+                invoice_id:
+                  type: string
+                  format: uuid
+                amount:
+                  type: number
+                payment_method:
+                  type: string
+                  enum: [bank_transfer, cash, check, card, other]
+                  default: bank_transfer
+                payment_date:
+                  type: string
+                  format: date
+                  description: Defaut = aujourd'hui
+                reference:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        "201":
+          description: Paiement enregistre
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Payment"
+                  receipt_number:
+                    type: string
+                  invoice_payment_status:
+                    type: string
+                    enum: [unpaid, partial, paid]
+
+  /payments/unpaid:
+    get:
+      operationId: getUnpaidInvoices
+      summary: Factures impayees triees par anciennete
+      parameters:
+        - name: days_overdue
+          in: query
+          schema:
+            type: integer
+          description: Ne montrer que les factures en retard d'au moins N jours
+      responses:
+        "200":
+          description: Factures impayees
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Invoice"
+                  summary:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      total_unpaid:
+                        type: number
+
+  /payments/receivables:
+    get:
+      operationId: getReceivablesSummary
+      summary: Resume des creances
+      responses:
+        "200":
+          description: Statistiques des creances
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ReceivablesSummary"
+
+  # ── ACCOUNTING ───────────────────────────────────────────
+  /accounting/chart:
+    get:
+      operationId: getChartOfAccounts
+      summary: Plan comptable
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [asset, liability, equity, revenue, expense]
+          description: Filtrer par categorie
+      responses:
+        "200":
+          description: Plan comptable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Account"
+                  count:
+                    type: integer
+
+  /accounting/entries:
+    get:
+      operationId: getAccountingEntries
+      summary: Ecritures comptables
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: account_code
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 500
+      responses:
+        "200":
+          description: Ecritures comptables
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AccountingEntry"
+                  count:
+                    type: integer
+
+  /accounting/trial-balance:
+    get:
+      operationId: getTrialBalance
+      summary: Balance des comptes (debit/credit par compte)
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Date de coupure (defaut = aujourd'hui)
+      responses:
+        "200":
+          description: Balance des comptes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/TrialBalance"
+
+  /accounting/tax-summary:
+    get:
+      operationId: getTaxSummary
+      summary: Resume TVA pour une periode
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Resume TVA
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/TaxSummary"
+
+  /accounting/init:
+    post:
+      operationId: initAccounting
+      summary: Initialiser la comptabilite pour un pays
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [country]
+              properties:
+                country:
+                  type: string
+                  enum: [FR, BE, OHADA]
+                  description: "FR = France, BE = Belgique, OHADA = Afrique de l'Ouest"
+      responses:
+        "201":
+          description: Comptabilite initialisee
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      initialized:
+                        type: boolean
+                      country:
+                        type: string
+                      message:
+                        type: string
+
+  # ── ANALYTICS ────────────────────────────────────────────
+  /analytics/cash-flow:
+    get:
+      operationId: getCashFlow
+      summary: Tresorerie mensuelle (revenus, depenses, solde net)
+      parameters:
+        - name: months
+          in: query
+          schema:
+            type: integer
+            default: 6
+          description: Nombre de mois a analyser
+      responses:
+        "200":
+          description: Donnees de tresorerie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/CashFlow"
+
+  /analytics/kpis:
+    get:
+      operationId: getDashboardKPIs
+      summary: KPIs du mois en cours
+      responses:
+        "200":
+          description: Indicateurs de performance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/KPIs"
+
+  /analytics/top-clients:
+    get:
+      operationId: getTopClients
+      summary: Classement des clients par chiffre d'affaires
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Nombre de clients a retourner
+      responses:
+        "200":
+          description: Top clients
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TopClient"
+
+  # ── EXPORTS ──────────────────────────────────────────────
+  /exports/fec:
+    get:
+      operationId: exportFEC
+      summary: Generer le FEC (Fichier des Ecritures Comptables)
+      description: Format pipe-delimited conforme aux exigences fiscales francaises.
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Fichier FEC (texte pipe-delimited)
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /exports/saft:
+    get:
+      operationId: exportSAFT
+      summary: Generer le SAF-T XML (norme OCDE)
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Fichier SAF-T XML
+          content:
+            application/xml:
+              schema:
+                type: string
+
+  /exports/facturx/{invoice_id}:
+    get:
+      operationId: exportFacturX
+      summary: Generer le XML Factur-X (CII) pour une facture
+      parameters:
+        - name: invoice_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: profile
+          in: query
+          schema:
+            type: string
+            enum: [MINIMUM, BASIC, EN16931]
+            default: BASIC
+      responses:
+        "200":
+          description: XML Factur-X
+          content:
+            application/xml:
+              schema:
+                type: string
+
+  /exports/backup:
+    get:
+      operationId: exportBackup
+      summary: Export JSON complet de toutes les donnees
+      responses:
+        "200":
+          description: Backup complet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      exported_at:
+                        type: string
+                        format: date-time
+                      stats:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                      tables:
+                        type: object
+                        additionalProperties:
+                          type: array
+                          items:
+                            type: object
+
+  # ── OTHER CRUD RESOURCES ─────────────────────────────────
+  /quotes:
+    get:
+      operationId: listQuotes
+      summary: Lister les devis
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Liste des devis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+
+  /expenses:
+    get:
+      operationId: listExpenses
+      summary: Lister les depenses
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Liste des depenses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+    post:
+      operationId: createExpense
+      summary: Creer une depense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, date]
+              properties:
+                amount:
+                  type: number
+                date:
+                  type: string
+                  format: date
+                category:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "201":
+          description: Depense creee
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+
+  /products:
+    get:
+      operationId: listProducts
+      summary: Lister les produits
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Liste des produits
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+
+  /projects:
+    get:
+      operationId: listProjects
+      summary: Lister les projets
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Liste des projets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"

@@ -42,3 +42,4 @@ pnpm-debug.log*
 Desktop.ini
 .vercel
 .env*.local
+nul
