@@ -61,7 +61,7 @@ export function registerInvoiceTools(server: McpServer) {
     {
       invoice_number: z.string().describe('Unique invoice number (e.g. INV-2026-001)'),
       client_id: z.string().describe('Client UUID'),
-      invoice_date: z.string().describe('Issue date (YYYY-MM-DD)'),
+      date: z.string().describe('Issue date (YYYY-MM-DD)'),
       due_date: z.string().describe('Due date (YYYY-MM-DD)'),
       total_ht: z.number().describe('Total excluding VAT'),
       tax_rate: z.number().optional().describe('VAT rate (default 20)'),
@@ -69,9 +69,8 @@ export function registerInvoiceTools(server: McpServer) {
       status: z.string().optional().describe('Status: draft, sent (default draft)'),
       notes: z.string().optional().describe('Invoice notes')
     },
-    async ({ invoice_number, client_id, invoice_date, due_date, total_ht, tax_rate, total_ttc, status, notes }) => {
+    async ({ invoice_number, client_id, date, due_date, total_ht, tax_rate, total_ttc, status, notes }) => {
       const vatRate = tax_rate ?? 20;
-      const totalVat = total_ttc - total_ht;
 
       const { data, error } = await supabase
         .from('invoices')
@@ -79,11 +78,10 @@ export function registerInvoiceTools(server: McpServer) {
           user_id: getUserId(),
           invoice_number,
           client_id,
-          invoice_date,
+          date,
           due_date,
           total_ht,
           tax_rate: vatRate,
-          total_vat: totalVat,
           total_ttc,
           status: status ?? 'draft',
           notes: notes ? sanitizeText(notes) : null
@@ -162,7 +160,7 @@ export function registerInvoiceTools(server: McpServer) {
         .from('invoices')
         .select('total_ttc, status, due_date, payment_status')
         .eq('user_id', getUserId())
-        .gte('invoice_date', startDate.toISOString().split('T')[0]);
+        .gte('date', startDate.toISOString().split('T')[0]);
 
       if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
 

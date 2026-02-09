@@ -17,10 +17,10 @@ export function registerAnalyticsTools(server: McpServer) {
       const startStr = startDate.toISOString().split('T')[0];
 
       const [invoicesRes, expensesRes] = await Promise.all([
-        supabase.from('invoices').select('total_ttc, invoice_date, status')
-          .eq('user_id', getUserId()).in('status', ['paid', 'sent']).gte('invoice_date', startStr),
-        supabase.from('expenses').select('amount, date, category')
-          .eq('user_id', getUserId()).gte('date', startStr)
+        supabase.from('invoices').select('total_ttc, date, status')
+          .eq('user_id', getUserId()).in('status', ['paid', 'sent']).gte('date', startStr),
+        supabase.from('expenses').select('amount, created_at, category')
+          .eq('user_id', getUserId()).gte('created_at', startStr)
       ]);
 
       // Group by month
@@ -33,12 +33,12 @@ export function registerAnalyticsTools(server: McpServer) {
       }
 
       for (const inv of invoicesRes.data ?? []) {
-        const key = inv.invoice_date?.substring(0, 7);
+        const key = inv.date?.substring(0, 7);
         if (key && monthlyData[key]) monthlyData[key].income += parseFloat(inv.total_ttc || '0');
       }
 
       for (const exp of expensesRes.data ?? []) {
-        const key = exp.date?.substring(0, 7);
+        const key = exp.created_at?.substring(0, 7);
         if (key && monthlyData[key]) monthlyData[key].expenses += parseFloat(exp.amount || '0');
       }
 
@@ -69,11 +69,11 @@ export function registerAnalyticsTools(server: McpServer) {
 
       const [invoicesRes, paidRes, expensesRes, pendingRes] = await Promise.all([
         supabase.from('invoices').select('total_ttc')
-          .eq('user_id', getUserId()).gte('invoice_date', monthStart).lte('invoice_date', today),
-        supabase.from('invoices').select('total_ttc')
-          .eq('user_id', getUserId()).gte('invoice_date', monthStart).in('status', ['paid']),
-        supabase.from('expenses').select('amount')
           .eq('user_id', getUserId()).gte('date', monthStart).lte('date', today),
+        supabase.from('invoices').select('total_ttc')
+          .eq('user_id', getUserId()).gte('date', monthStart).in('status', ['paid']),
+        supabase.from('expenses').select('amount')
+          .eq('user_id', getUserId()).gte('created_at', monthStart).lte('created_at', today),
         supabase.from('invoices').select('total_ttc')
           .eq('user_id', getUserId()).in('payment_status', ['unpaid', 'partial'])
       ]);
