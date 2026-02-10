@@ -59,48 +59,7 @@ function CodeBlock({ code, language }) {
 // ---------------------------------------------------------------------------
 // MCP Config Section (URL-based, uses API key)
 // ---------------------------------------------------------------------------
-function McpConfigSection({ apiKeys }) {
-  const [activeClient, setActiveClient] = useState('claude-code');
-
-  const activeKey = apiKeys?.find(k => k.is_active);
-  const keyPlaceholder = activeKey ? `${activeKey.key_prefix}...` : 'cpk_votre_cle_ici';
-
-  const mcpConfig = JSON.stringify({
-    mcpServers: {
-      cashpilot: {
-        url: MCP_SERVER_URL,
-        headers: {
-          'X-API-Key': keyPlaceholder
-        }
-      }
-    }
-  }, null, 2);
-
-  const clients = [
-    {
-      id: 'claude-code',
-      name: 'Claude Code',
-      icon: <Terminal className="w-4 h-4" />,
-      file: '~/.claude/settings.local.json'
-    },
-    {
-      id: 'claude-desktop',
-      name: 'Claude Desktop',
-      icon: <MessageSquare className="w-4 h-4" />,
-      file: /Win/.test(navigator.userAgent)
-        ? '%APPDATA%\\Claude\\claude_desktop_config.json'
-        : '~/Library/Application Support/Claude/claude_desktop_config.json'
-    },
-    {
-      id: 'vscode',
-      name: 'VS Code (Cline)',
-      icon: <Code2 className="w-4 h-4" />,
-      file: 'Parametres Cline > MCP Servers'
-    }
-  ];
-
-  const active = clients.find(c => c.id === activeClient);
-
+function McpConfigSection() {
   return (
     <Card className="bg-gray-900 border-gray-800 text-white">
       <CardHeader>
@@ -111,82 +70,36 @@ function McpConfigSection({ apiKeys }) {
           <div>
             <CardTitle className="text-lg">Connexion MCP (Claude, VS Code, Cursor...)</CardTitle>
             <CardDescription className="text-gray-400">
-              Pilotez CashPilot en langage naturel depuis votre assistant IA.
-              Aucune installation locale requise — connexion distante via votre cle API.
+              Pilotez CashPilot en langage naturel depuis votre assistant IA. 26 outils disponibles.
             </CardDescription>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* How it works */}
         <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4">
-          <p className="text-sm text-blue-300 font-medium mb-2">Comment ca marche :</p>
+          <p className="text-sm text-blue-300 font-medium mb-2">Comment connecter :</p>
           <ol className="text-sm text-gray-400 space-y-1 list-decimal list-inside">
-            <li>Generez une <strong className="text-white">cle API</strong> dans la section <em>"REST API"</em> ci-dessus</li>
-            <li>Copiez la configuration ci-dessous dans votre client MCP</li>
-            <li>Remplacez <code className="text-blue-400 bg-gray-800 px-1 rounded">{keyPlaceholder}</code> par votre vraie cle API</li>
-            <li>Relancez votre client — les 29 outils CashPilot sont disponibles</li>
+            <li>Generez une <strong className="text-white">cle API</strong> dans la section ci-dessus</li>
+            <li>L'<strong className="text-white">URL complete</strong> et la <strong className="text-white">configuration JSON</strong> s'affichent automatiquement</li>
+            <li>Copiez selon votre client et collez — c'est pret</li>
           </ol>
         </div>
 
-        {/* No key warning */}
-        {!activeKey && (
-          <div className="bg-yellow-500/5 border border-yellow-500/30 rounded-lg p-3 flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-            <p className="text-sm text-yellow-300">
-              Vous n'avez pas encore de cle API. Creez-en une dans la section <strong>"REST API"</strong> ci-dessus pour commencer.
-            </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+          <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-white font-medium mb-1"><MessageSquare className="w-4 h-4" />Claude Desktop / Cursor</div>
+            <p className="text-xs text-gray-500">Copiez l'<strong className="text-gray-400">URL</strong> et collez-la dans "Add MCP Server"</p>
           </div>
-        )}
-
-        {/* Client selector */}
-        <div className="flex gap-2 flex-wrap">
-          {clients.map(c => (
-            <button
-              key={c.id}
-              onClick={() => setActiveClient(c.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                activeClient === c.id
-                  ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
-                  : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600'
-              }`}
-            >
-              {c.icon}
-              {c.name}
-            </button>
-          ))}
-        </div>
-
-        {/* Config file location */}
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <span>Fichier :</span>
-          <code className="bg-gray-800 px-2 py-0.5 rounded text-blue-300 text-xs">{active?.file}</code>
-          <CopyButton text={active?.file || ''} label="le chemin" />
-        </div>
-
-        {/* Config JSON */}
-        <CodeBlock code={mcpConfig} language="json" />
-
-        {/* Key info */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="bg-gray-800/50 rounded-lg p-3 space-y-1">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs text-gray-500 uppercase tracking-wider">URL du serveur</Label>
-              <CopyButton text={MCP_SERVER_URL} />
-            </div>
-            <code className="text-sm text-blue-300 font-mono">{MCP_SERVER_URL}</code>
+          <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-white font-medium mb-1"><Terminal className="w-4 h-4" />Claude Code</div>
+            <p className="text-xs text-gray-500">Copiez le <strong className="text-gray-400">JSON</strong> dans <code className="text-blue-400">~/.claude/settings.local.json</code></p>
           </div>
-          <div className="bg-gray-800/50 rounded-lg p-3 space-y-1">
-            <Label className="text-xs text-gray-500 uppercase tracking-wider">Authentification</Label>
-            <p className="text-sm text-gray-300">Cle API personnelle (header <code className="text-blue-400">X-API-Key</code>)</p>
+          <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-white font-medium mb-1"><Code2 className="w-4 h-4" />VS Code (Cline)</div>
+            <p className="text-xs text-gray-500">Copiez le <strong className="text-gray-400">JSON</strong> dans les parametres MCP de Cline</p>
           </div>
         </div>
-
-        <p className="text-xs text-gray-500">
-          Chaque utilisateur utilise sa propre cle API. Les permissions (lecture, ecriture, suppression) sont definies lors de la creation de la cle.
-          Transport : Streamable HTTP + SSE.
-        </p>
       </CardContent>
     </Card>
   );
@@ -411,20 +324,53 @@ function CreateApiKeyForm({ onCreated }) {
     }
   };
 
-  // If key just created, show it
+  // If key just created — show ready-to-use URLs
   if (newKey) {
+    const mcpUrl = `${MCP_SERVER_URL}?api_key=${newKey}`;
+    const jsonConfig = JSON.stringify({
+      mcpServers: {
+        cashpilot: {
+          url: mcpUrl
+        }
+      }
+    }, null, 2);
+
     return (
-      <div className="bg-green-500/5 border border-green-500/30 rounded-lg p-4 space-y-3">
+      <div className="bg-green-500/5 border border-green-500/30 rounded-lg p-4 space-y-4">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-yellow-400" />
-          <p className="text-sm font-semibold text-yellow-300">Copiez cette cle maintenant — elle ne sera plus jamais affichee</p>
+          <Check className="w-5 h-5 text-green-400" />
+          <p className="text-sm font-semibold text-green-300">Cle generee ! Vos configurations sont pretes.</p>
         </div>
-        <div className="flex items-center gap-2 bg-gray-950 rounded-lg p-3 border border-gray-700">
-          <code className="text-green-400 font-mono text-sm flex-1 break-all select-all">{newKey}</code>
-          <CopyButton text={newKey} label="la cle" />
+
+        {/* MCP URL — for Claude Desktop */}
+        <div className="space-y-1.5">
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">URL MCP — collez dans Claude Desktop / Cursor / Windsurf</Label>
+          <div className="flex items-center gap-2 bg-gray-950 rounded-lg p-3 border border-blue-500/30">
+            <code className="text-blue-300 font-mono text-sm flex-1 break-all select-all">{mcpUrl}</code>
+            <CopyButton text={mcpUrl} label="l'URL MCP" />
+          </div>
         </div>
-        <div className="flex justify-between items-center">
-          <p className="text-xs text-gray-500">Utilisez cette cle dans le header <code className="text-orange-400">X-API-Key</code></p>
+
+        {/* JSON config — for Claude Code / VS Code */}
+        <div className="space-y-1.5">
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">JSON — pour Claude Code / VS Code (Cline, Continue, Copilot)</Label>
+          <CodeBlock code={jsonConfig} language="json" />
+        </div>
+
+        {/* Raw API key — for REST API / scripts */}
+        <div className="space-y-1.5">
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">Cle API brute — pour scripts, ChatGPT, Zapier</Label>
+          <div className="flex items-center gap-2 bg-gray-950 rounded-lg p-3 border border-gray-700">
+            <code className="text-green-400 font-mono text-sm flex-1 break-all select-all">{newKey}</code>
+            <CopyButton text={newKey} label="la cle" />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-yellow-400" />
+            <p className="text-xs text-yellow-300">Ces informations ne seront plus jamais affichees.</p>
+          </div>
           <Button variant="ghost" size="sm" onClick={() => setNewKey(null)} className="text-gray-400 hover:text-white">
             J'ai copie, fermer
           </Button>
@@ -673,7 +619,6 @@ const ConnectionSettings = () => {
   const { user } = useAuth();
   const [apiKeys, setApiKeys] = useState([]);
   const [keysLoading, setKeysLoading] = useState(true);
-
   const fetchKeys = useCallback(async () => {
     if (!user) { setKeysLoading(false); return; }
     setKeysLoading(true);
@@ -697,7 +642,7 @@ const ConnectionSettings = () => {
   return (
     <div className="space-y-6">
       <RestApiSection keys={apiKeys} keysLoading={keysLoading} onKeysChanged={fetchKeys} />
-      <McpConfigSection apiKeys={apiKeys} />
+      <McpConfigSection />
       <McpConnectorSection />
     </div>
   );
