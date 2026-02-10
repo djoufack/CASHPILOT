@@ -462,6 +462,10 @@ const LandingPage = () => {
               Gestion financière et comptabilité 100% automatisée pour la France, la Belgique et l'Afrique (OHADA).
             </p>
 
+            <p className="hero-mcp-banner animate-in" data-delay="350">
+              <span className="highlight">Révolutionnaire</span> dans le monde de la comptabilité et la finance d'entreprise : CashPilot est aussi un <strong>serveur MCP</strong>, qui offre <strong>26 outils</strong> à tout client MCP (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop…), pour une conversation en temps réel ou pour son intégration dans vos workflows d'automatisation (n8n, Zapier, Rube.app…).
+            </p>
+
             <div className="feature-tags animate-in" data-delay="400">
               <div className="tag tag-green">
                 <Zap />
