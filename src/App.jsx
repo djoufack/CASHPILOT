@@ -70,6 +70,7 @@ const SecuritySettings = lazyRetry(() => import('@/pages/SecuritySettings'));
 const RecurringInvoicesPage = lazyRetry(() => import('@/pages/RecurringInvoicesPage'));
 const BankConnectionsPage = lazyRetry(() => import('@/pages/BankConnectionsPage'));
 const CashFlowPage = lazyRetry(() => import('@/pages/CashFlowPage'));
+const OnboardingWizard = lazyRetry(() => import('@/components/onboarding/OnboardingWizard'));
 
 // Lazy-loaded feature components
 const SupplierMap = lazyRetry(() => import('@/components/SupplierMap'));
@@ -119,6 +120,13 @@ const AuthWrapper = () => {
                 <Route index element={<Suspense fallback={<PageLoader />}><AdminPage /></Suspense>} />
                 <Route path="seed-data" element={<Suspense fallback={<PageLoader />}><SeedDataManager /></Suspense>} />
             </Route>
+
+            {/* Onboarding - Protected, standalone (no MainLayout) */}
+            <Route path="/app/onboarding" element={
+                <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}><OnboardingWizard /></Suspense>
+                </ProtectedRoute>
+            } />
 
             {/* Main App Routes - Protected */}
             <Route path="/app" element={

@@ -208,7 +208,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
           <SelectContent className="bg-gray-700 border-gray-600 text-white">
             {clients.map((client) => (
               <SelectItem key={client.id} value={client.id}>
-                {client.companyName || client.company_name}
+                {client.company_name || client.companyName}
               </SelectItem>
             ))}
           </SelectContent>

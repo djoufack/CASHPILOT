@@ -53,8 +53,8 @@ const ClientProfile = () => {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gradient">{client.companyName}</h1>
-          <p className="text-gray-400 text-sm">{client.contactName}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gradient">{client.company_name}</h1>
+          <p className="text-gray-400 text-sm">{client.contact_name}</p>
         </div>
       </div>
 
@@ -84,7 +84,7 @@ const ClientProfile = () => {
                 <Mail className="h-3 w-3" /> Contact
               </h4>
               <div className="text-sm">
-                <p className="font-medium text-gradient">{client.contactName || 'N/A'}</p>
+                <p className="font-medium text-gradient">{client.contact_name || 'N/A'}</p>
                 <p className="flex items-center gap-2 text-gray-400 mt-1"><Mail className="h-3 w-3" /> {client.email || 'N/A'}</p>
                 {client.phone && <p className="flex items-center gap-2 text-gray-400 mt-1"><Phone className="h-3 w-3" /> {client.phone}</p>}
                 {client.website && (
@@ -120,9 +120,9 @@ const ClientProfile = () => {
                 <FileText className="h-3 w-3" /> Détails commerciaux
               </h4>
               <div className="text-sm text-gray-400">
-                <p>TVA: <span className="text-white">{client.vatNumber || 'N/A'}</span></p>
+                <p>TVA: <span className="text-white">{client.vat_number || 'N/A'}</span></p>
                 {client.tax_id && <p>SIRET: <span className="text-white">{client.tax_id}</span></p>}
-                <p>Devise: <span className="text-white">{client.preferredCurrency || 'EUR'}</span></p>
+                <p>Devise: <span className="text-white">{client.preferred_currency || 'EUR'}</span></p>
                 {client.payment_terms && <p>Conditions: <span className="text-white capitalize">{client.payment_terms.replace('_', ' ')}</span></p>}
               </div>
             </div>

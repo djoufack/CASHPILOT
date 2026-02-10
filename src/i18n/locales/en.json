@@ -949,5 +949,69 @@
     "unauthorized": "You do not have permission to access this resource.",
     "notFound": "Resource not found.",
     "general": "Something went wrong."
+  },
+  "onboarding": {
+    "back": "Back",
+    "next": "Next",
+    "skipForNow": "Skip for now",
+    "steps": {
+      "welcome": "Welcome",
+      "company": "Company",
+      "plan": "Chart of Accounts",
+      "balances": "Balances",
+      "confirm": "Confirmation"
+    },
+    "welcome": {
+      "title": "Welcome to CashPilot!",
+      "subtitle": "We'll set up your accounting space in a few minutes.",
+      "start": "Get Started",
+      "step1": "Your company information",
+      "step1Desc": "Name, address, tax number...",
+      "step2": "Choose your chart of accounts",
+      "step2Desc": "France, Belgium, OHADA, or import your own.",
+      "step3": "Your current balances",
+      "step3Desc": "A few simple figures to start your accounting."
+    },
+    "company": {
+      "title": "Your Company",
+      "subtitle": "This information will appear on your invoices and documents.",
+      "name": "Company name",
+      "type": "Type",
+      "taxId": "Tax ID / VAT Number",
+      "address": "Address",
+      "city": "City",
+      "postalCode": "Postal code",
+      "country": "Country"
+    },
+    "plan": {
+      "title": "Choose your chart of accounts",
+      "subtitle": "Select the plan for your country or import your own.",
+      "import": "Import my chart of accounts"
+    },
+    "balances": {
+      "title": "Your current balances",
+      "subtitle": "These amounts will initialize your accounting. All fields are optional.",
+      "bankBalance": "Current balance of your business bank account",
+      "receivables": "Total amount of unpaid customer invoices",
+      "payables": "Total amount of unpaid supplier invoices",
+      "equityCapital": "Company equity capital",
+      "loanBalance": "Outstanding loan balance",
+      "fixedAssets": "Estimated value of professional equipment"
+    },
+    "confirm": {
+      "title": "All set!",
+      "subtitle": "Review the summary and launch the setup.",
+      "planSelected": "Chart of accounts selected",
+      "balancesCount_one": "{{count}} balance entered",
+      "balancesCount_other": "{{count}} balances entered",
+      "launch": "Launch setup",
+      "progressAccounts": "Loading chart of accounts...",
+      "progressBalances": "Creating opening balance entries...",
+      "progressDone": "Setup complete!"
+    },
+    "banner": {
+      "message": "Your accounting is not yet configured.",
+      "action": "Configure"
+    }
   }
 }

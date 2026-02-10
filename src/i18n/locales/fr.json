@@ -949,5 +949,69 @@
     "unauthorized": "Vous n'avez pas la permission d'acc\u00e9der \u00e0 cette ressource.",
     "notFound": "Ressource non trouv\u00e9e.",
     "general": "Une erreur est survenue."
+  },
+  "onboarding": {
+    "back": "Retour",
+    "next": "Suivant",
+    "skipForNow": "Passer pour l'instant",
+    "steps": {
+      "welcome": "Bienvenue",
+      "company": "Entreprise",
+      "plan": "Plan comptable",
+      "balances": "Soldes",
+      "confirm": "Confirmation"
+    },
+    "welcome": {
+      "title": "Bienvenue sur CashPilot !",
+      "subtitle": "Nous allons pr\u00e9parer votre espace comptable en quelques minutes.",
+      "start": "Commencer",
+      "step1": "Informations de votre entreprise",
+      "step1Desc": "Nom, adresse, num\u00e9ro de TVA...",
+      "step2": "Choix de votre plan comptable",
+      "step2Desc": "France, Belgique, OHADA ou importez le v\u00f4tre.",
+      "step3": "Vos soldes actuels",
+      "step3Desc": "Quelques chiffres simples pour d\u00e9marrer votre comptabilit\u00e9."
+    },
+    "company": {
+      "title": "Votre entreprise",
+      "subtitle": "Ces informations appara\u00eetront sur vos factures et documents.",
+      "name": "Nom de l'entreprise",
+      "type": "Type",
+      "taxId": "N\u00b0 TVA / SIRET",
+      "address": "Adresse",
+      "city": "Ville",
+      "postalCode": "Code postal",
+      "country": "Pays"
+    },
+    "plan": {
+      "title": "Choisissez votre plan comptable",
+      "subtitle": "S\u00e9lectionnez le plan adapt\u00e9 \u00e0 votre pays ou importez le v\u00f4tre.",
+      "import": "Importer mon plan comptable"
+    },
+    "balances": {
+      "title": "Vos soldes actuels",
+      "subtitle": "Ces montants permettront de d\u00e9marrer votre comptabilit\u00e9. Tous les champs sont optionnels.",
+      "bankBalance": "Solde actuel de votre compte bancaire professionnel",
+      "receivables": "Montant total des factures clients impay\u00e9es",
+      "payables": "Montant total des factures fournisseurs impay\u00e9es",
+      "equityCapital": "Capital de votre entreprise",
+      "loanBalance": "Emprunt en cours ? Montant restant d\u00fb",
+      "fixedAssets": "Valeur estim\u00e9e du mat\u00e9riel professionnel"
+    },
+    "confirm": {
+      "title": "Tout est pr\u00eat !",
+      "subtitle": "V\u00e9rifiez le r\u00e9capitulatif et lancez la configuration.",
+      "planSelected": "Plan comptable s\u00e9lectionn\u00e9",
+      "balancesCount_one": "{{count}} solde renseign\u00e9",
+      "balancesCount_other": "{{count}} soldes renseign\u00e9s",
+      "launch": "Lancer la configuration",
+      "progressAccounts": "Chargement du plan comptable...",
+      "progressBalances": "Cr\u00e9ation des \u00e9critures d'ouverture...",
+      "progressDone": "Configuration termin\u00e9e !"
+    },
+    "banner": {
+      "message": "Votre comptabilit\u00e9 n'est pas encore configur\u00e9e.",
+      "action": "Configurer"
+    }
   }
 }

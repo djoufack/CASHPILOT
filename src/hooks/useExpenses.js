@@ -45,10 +45,12 @@ export const useExpenses = () => {
     setLoading(true);
     try {
       // Ensure date is present, default to now if not provided
+      // Also set expense_date (DATE type) for accounting trigger
       const payload = {
         ...expenseData,
         user_id: user.id,
-        date: expenseData.date || new Date().toISOString()
+        date: expenseData.date || new Date().toISOString(),
+        expense_date: expenseData.expense_date || expenseData.date || new Date().toISOString().split('T')[0]
       };
 
       const { data, error } = await supabase
