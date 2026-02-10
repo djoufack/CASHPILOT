@@ -3,7 +3,6 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -452,14 +451,22 @@ function CreateApiKeyForm({ onCreated }) {
       <div className="space-y-2">
         <Label className="text-sm text-gray-300">Permissions</Label>
         <div className="flex flex-wrap gap-4">
+          {/* Read — always on, not toggleable */}
+          <div className="flex items-center gap-3 bg-gray-800 rounded-lg p-3 border border-blue-500/40 opacity-80">
+            <Check className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <div>
+              <p className="text-sm text-white font-medium">Lecture <span className="text-xs text-gray-500 font-normal ml-1">(toujours active)</span></p>
+              <p className="text-xs text-gray-500">GET — consulter factures, clients, KPIs...</p>
+            </div>
+          </div>
+          {/* Write & Delete — toggleable */}
           {[
-            { key: 'read', label: 'Lecture', desc: 'GET — consulter factures, clients, KPIs...' },
             { key: 'write', label: 'Ecriture', desc: 'POST/PUT — creer factures, clients, paiements...' },
             { key: 'delete', label: 'Suppression', desc: 'DELETE — supprimer des enregistrements' },
           ].map(scope => (
             <div
               key={scope.key}
-              onClick={() => scope.key !== 'read' && setScopes(s => ({ ...s, [scope.key]: !s[scope.key] }))}
+              onClick={() => setScopes(s => ({ ...s, [scope.key]: !s[scope.key] }))}
               className={`flex items-center gap-3 bg-gray-800 rounded-lg p-3 cursor-pointer border transition-colors ${
                 scopes[scope.key] ? scopeBorderColor[scope.key] : 'border-gray-700'
               }`}
@@ -467,7 +474,6 @@ function CreateApiKeyForm({ onCreated }) {
               <Switch
                 checked={scopes[scope.key]}
                 onCheckedChange={v => setScopes(s => ({ ...s, [scope.key]: v }))}
-                disabled={scope.key === 'read'}
               />
               <div>
                 <p className="text-sm text-white font-medium">{scope.label}</p>
@@ -664,7 +670,7 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
 // Main Component
 // ---------------------------------------------------------------------------
 const ConnectionSettings = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const [apiKeys, setApiKeys] = useState([]);
   const [keysLoading, setKeysLoading] = useState(true);
 
