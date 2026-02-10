@@ -1887,18 +1887,20 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
         <p style="margin-bottom:20px;">Un widget de chat IA flottant, toujours accessible, qui r&eacute;pond &agrave; vos questions financi&egrave;res en contexte. Il analyse vos donn&eacute;es et fournit des recommandations personnalis&eacute;es.</p>
 
         <h3 id="serveur-mcp" style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">Serveur MCP &mdash; 29 Outils</h3>
-        <p style="margin-bottom:12px;">CashPilot int&egrave;gre un <strong style="color:#fff">serveur MCP (Model Context Protocol)</strong> avec 29 outils, permettant &agrave; n'importe quel LLM compatible de piloter votre gestion financi&egrave;re par la voix ou le texte :</p>
+        <p style="margin-bottom:12px;">CashPilot int&egrave;gre un <strong style="color:#fff">serveur MCP (Model Context Protocol)</strong> avec 26 outils, permettant &agrave; n'importe quel LLM compatible de piloter votre gestion financi&egrave;re par la voix ou le texte :</p>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
           <span class="badge badge-purple" style="font-size:11px;padding:4px 12px;">Claude (Anthropic)</span>
           <span class="badge badge-green" style="font-size:11px;padding:4px 12px;">ChatGPT (OpenAI)</span>
           <span class="badge badge-blue" style="font-size:11px;padding:4px 12px;">Gemini (Google)</span>
+          <span class="badge" style="font-size:11px;padding:4px 12px;background:linear-gradient(135deg,#ff6b35,#ff8c42);color:#fff;">Mistral (Le Chat)</span>
           <span class="badge badge-amber" style="font-size:11px;padding:4px 12px;">Rube.app</span>
+          <span class="badge" style="font-size:11px;padding:4px 12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;">Gumloop</span>
           <span class="badge" style="font-size:11px;padding:4px 12px;background:rgba(255,255,255,0.05);color:var(--text-secondary);">Tout LLM MCP-compatible</span>
         </div>
-        <p style="margin-bottom:20px;">Demandez simplement : <em style="color:var(--amber);">&laquo; Cr&eacute;e une facture pour Acme Corp de 3200&euro; &raquo;</em> depuis Claude, ChatGPT ou Gemini &mdash; le serveur MCP ex&eacute;cute la commande directement dans CashPilot.</p>
+        <p style="margin-bottom:20px;">Demandez simplement : <em style="color:var(--amber);">&laquo; Cr&eacute;e une facture pour Acme Corp de 3200&euro; &raquo;</em> depuis Claude, ChatGPT, Gemini ou Mistral &mdash; le serveur MCP ex&eacute;cute la commande directement dans CashPilot.</p>
 
         <h3 id="automatisation" style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">CashPilot comme Outil d'Automatisation</h3>
-        <p>Au-del&agrave; de ses propres automatisations, <strong style="color:#fff">CashPilot peut &ecirc;tre utilis&eacute; comme un outil dans vos cha&icirc;nes d'automatisation externes</strong> (Rube.app, Zapier, Make, n8n, etc.). Gr&acirc;ce &agrave; son API REST et son serveur MCP, vous pouvez int&eacute;grer la facturation, la comptabilit&eacute; et la gestion financi&egrave;re dans n'importe quel workflow automatis&eacute;.</p>
+        <p>Au-del&agrave; de ses propres automatisations, <strong style="color:#fff">CashPilot peut &ecirc;tre utilis&eacute; comme un outil dans vos cha&icirc;nes d'automatisation externes</strong> (Rube.app, Gumloop, Zapier, Make, n8n, etc.). Gr&acirc;ce &agrave; son API REST et son serveur MCP, vous pouvez int&eacute;grer la facturation, la comptabilit&eacute; et la gestion financi&egrave;re dans n'importe quel workflow automatis&eacute;.</p>
       </div>
 
       <!-- MOCKUP: AI Chat -->
@@ -1959,12 +1961,12 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       <div class="feature-card reveal">
         <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#128279;</div>
         <h3 id="outils-mcp">29 Outils MCP</h3>
-        <p>Cr&eacute;ation de factures, recherche de clients, export comptable, r&eacute;sum&eacute; financier &mdash; 29 outils utilisables depuis tout LLM compatible MCP.</p>
+        <p>Cr&eacute;ation de factures, recherche de clients, export comptable, r&eacute;sum&eacute; financier &mdash; 26 outils utilisables depuis tout LLM compatible MCP.</p>
       </div>
       <div class="feature-card reveal reveal-delay-1">
         <div class="feature-icon" style="background:rgba(6,182,212,0.1);color:var(--cyan);">&#9881;</div>
         <h3 id="api-rest">API REST Compl&egrave;te</h3>
-        <p>Une API REST document&eacute;e (OpenAPI 3.1) pour int&eacute;grer CashPilot dans vos automatisations Rube.app, Zapier, Make, n8n ou scripts personnalis&eacute;s.</p>
+        <p>Une API REST document&eacute;e (OpenAPI 3.1) pour int&eacute;grer CashPilot dans vos automatisations Rube.app, Gumloop, Zapier, Make, n8n ou scripts personnalis&eacute;s.</p>
       </div>
     </div>
 
@@ -2199,7 +2201,7 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       <div class="feature-card reveal reveal-delay-1">
         <div class="feature-icon" style="background:rgba(236,72,153,0.1);color:var(--pink);">&#128640;</div>
         <h3 id="outil-auto">CashPilot = Outil d'Automatisation</h3>
-        <p>Gr&acirc;ce au serveur MCP et &agrave; l'API REST, CashPilot n'est pas seulement un logiciel &mdash; c'est une <strong style="color:#fff">brique r&eacute;utilisable</strong> dans vos pipelines d'automatisation (Rube.app, Zapier, Make, n8n).</p>
+        <p>Gr&acirc;ce au serveur MCP et &agrave; l'API REST, CashPilot n'est pas seulement un logiciel &mdash; c'est une <strong style="color:#fff">brique r&eacute;utilisable</strong> dans vos pipelines d'automatisation (Rube.app, Gumloop, Zapier, Make, n8n).</p>
       </div>
     </div>
 
@@ -2645,11 +2647,11 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       s9_assistant_title: 'Integrated AI Assistant',
       s9_assistant_desc: 'A floating AI chat widget, always accessible, that answers your financial questions in context. It analyzes your data and provides personalized recommendations.',
       s9_mcp_title: 'MCP Server \u2014 29 Tools',
-      s9_mcp_desc: 'CashPilot integrates an <strong style="color:#fff">MCP server (Model Context Protocol)</strong> with 29 tools, allowing any compatible LLM to manage your finances by voice or text:',
+      s9_mcp_desc: 'CashPilot integrates an <strong style="color:#fff">MCP server (Model Context Protocol)</strong> with 26 tools, allowing any compatible LLM to manage your finances by voice or text:',
       s9_mcp_any: 'Any MCP-compatible LLM',
       s9_mcp_example: 'Simply ask: <em style="color:var(--amber);">"Create an invoice for Acme Corp of \u20AC3200"</em> from Claude, ChatGPT or Gemini \u2014 the MCP server executes the command directly in CashPilot.',
       s9_auto_title: 'CashPilot as an Automation Tool',
-      s9_auto_desc: 'Beyond its own automations, <strong style="color:#fff">CashPilot can be used as a tool in your external automation chains</strong> (Rube.app, Zapier, Make, n8n, etc.). Thanks to its REST API and MCP server, you can integrate invoicing, accounting and financial management into any automated workflow.',
+      s9_auto_desc: 'Beyond its own automations, <strong style="color:#fff">CashPilot can be used as a tool in your external automation chains</strong> (Rube.app, Gumloop, Zapier, Make, n8n, etc.). Thanks to its REST API and MCP server, you can integrate invoicing, accounting and financial management into any automated workflow.',
       s9_chat_title: 'Contextual AI Chat',
       s9_chat_desc: 'Ask questions in natural language about your finances. The AI accesses your real-time data for accurate answers.',
       s9_ocr_title: 'OCR & Extraction',
@@ -2659,9 +2661,9 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       s9_previsions_title: 'Forecasts & Scenarios',
       s9_previsions_desc: 'Create financial scenarios with custom assumptions. Compare results side by side and identify the break-even point.',
       s9_outils_title: '29 MCP Tools',
-      s9_outils_desc: 'Invoice creation, client search, accounting export, financial summary \u2014 29 tools usable from any MCP-compatible LLM.',
+      s9_outils_desc: 'Invoice creation, client search, accounting export, financial summary \u2014 26 tools usable from any MCP-compatible LLM.',
       s9_api_title: 'Complete REST API',
-      s9_api_desc: 'A documented REST API (OpenAPI 3.1) to integrate CashPilot into your Rube.app, Zapier, Make, n8n automations or custom scripts.',
+      s9_api_desc: 'A documented REST API (OpenAPI 3.1) to integrate CashPilot into your Rube.app, Gumloop, Zapier, Make, n8n automations or custom scripts.',
       s9_tip: '<strong>Ultimate automation:</strong> Connect CashPilot to <strong>Rube.app</strong> or any automation platform. Example: receive a supplier invoice email \u2192 AI extraction \u2192 automatic creation in CashPilot \u2192 Slack notification. Your financial management becomes a building block in your automated pipeline.',
       // Section 10
       s10_title_1: 'Banking & ', s10_title_2: 'Integrations',
@@ -2701,7 +2703,7 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       s12_quick_title: 'Quick Invoicing',
       s12_quick_desc: 'The <strong style="color:#fff">Quick Invoice</strong> mode allows you to create an invoice in less than 30 seconds with a minimalist form.',
       s12_auto_title: 'CashPilot = Automation Tool',
-      s12_auto_desc: 'Thanks to the MCP server and REST API, CashPilot is not just software \u2014 it\'s a <strong style="color:#fff">reusable building block</strong> in your automation pipelines (Rube.app, Zapier, Make, n8n).',
+      s12_auto_desc: 'Thanks to the MCP server and REST API, CashPilot is not just software \u2014 it\'s a <strong style="color:#fff">reusable building block</strong> in your automation pipelines (Rube.app, Gumloop, Zapier, Make, n8n).',
       s12_tip: '<strong>Collapsible sidebar:</strong> Click the arrow in the sidebar to collapse it to icon mode. Hover over an icon to see the tooltip with the section name.',
       // CTA
       cta_badge: 'Online platform',
@@ -2871,11 +2873,11 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       s9_assistant_title: 'Ge\u00efntegreerde AI-assistent',
       s9_assistant_desc: 'Een zwevende AI-chatwidget, altijd toegankelijk, die uw financi\u00eble vragen in context beantwoordt. Het analyseert uw gegevens en biedt gepersonaliseerde aanbevelingen.',
       s9_mcp_title: 'MCP-server \u2014 29 Tools',
-      s9_mcp_desc: 'CashPilot integreert een <strong style="color:#fff">MCP-server (Model Context Protocol)</strong> met 29 tools, waarmee elke compatibele LLM uw financi\u00ebn kan beheren via spraak of tekst:',
+      s9_mcp_desc: 'CashPilot integreert een <strong style="color:#fff">MCP-server (Model Context Protocol)</strong> met 26 tools, waarmee elke compatibele LLM uw financi\u00ebn kan beheren via spraak of tekst:',
       s9_mcp_any: 'Elke MCP-compatibele LLM',
       s9_mcp_example: 'Vraag gewoon: <em style="color:var(--amber);">"Maak een factuur voor Acme Corp van \u20AC3200"</em> vanuit Claude, ChatGPT of Gemini \u2014 de MCP-server voert het commando rechtstreeks uit in CashPilot.',
       s9_auto_title: 'CashPilot als automatiseringstool',
-      s9_auto_desc: 'Naast zijn eigen automatiseringen kan <strong style="color:#fff">CashPilot worden gebruikt als tool in uw externe automatiseringsketens</strong> (Rube.app, Zapier, Make, n8n, etc.). Dankzij de REST API en MCP-server kunt u facturatie, boekhouding en financieel beheer integreren in elke geautomatiseerde workflow.',
+      s9_auto_desc: 'Naast zijn eigen automatiseringen kan <strong style="color:#fff">CashPilot worden gebruikt als tool in uw externe automatiseringsketens</strong> (Rube.app, Gumloop, Zapier, Make, n8n, etc.). Dankzij de REST API en MCP-server kunt u facturatie, boekhouding en financieel beheer integreren in elke geautomatiseerde workflow.',
       s9_chat_title: 'Contextuele AI-chat',
       s9_chat_desc: 'Stel vragen in natuurlijke taal over uw financi\u00ebn. De AI heeft toegang tot uw real-time gegevens voor nauwkeurige antwoorden.',
       s9_ocr_title: 'OCR & Extractie',
@@ -2885,9 +2887,9 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       s9_previsions_title: 'Voorspellingen & Scenario\'s',
       s9_previsions_desc: 'Maak financi\u00eble scenario\'s met aangepaste aannames. Vergelijk resultaten naast elkaar en identificeer het break-evenpunt.',
       s9_outils_title: '29 MCP-tools',
-      s9_outils_desc: 'Factuuraanmaak, klantenzoekopdracht, boekhoudexport, financieel overzicht \u2014 29 tools bruikbaar vanuit elke MCP-compatibele LLM.',
+      s9_outils_desc: 'Factuuraanmaak, klantenzoekopdracht, boekhoudexport, financieel overzicht \u2014 26 tools bruikbaar vanuit elke MCP-compatibele LLM.',
       s9_api_title: 'Volledige REST API',
-      s9_api_desc: 'Een gedocumenteerde REST API (OpenAPI 3.1) om CashPilot te integreren in uw Rube.app, Zapier, Make, n8n automatiseringen of aangepaste scripts.',
+      s9_api_desc: 'Een gedocumenteerde REST API (OpenAPI 3.1) om CashPilot te integreren in uw Rube.app, Gumloop, Zapier, Make, n8n automatiseringen of aangepaste scripts.',
       s9_tip: '<strong>Ultieme automatisering:</strong> Verbind CashPilot met <strong>Rube.app</strong> of elk automatiseringsplatform. Voorbeeld: leveranciersfactuur e-mail ontvangen \u2192 AI-extractie \u2192 automatische aanmaak in CashPilot \u2192 Slack-melding. Uw financieel beheer wordt een bouwsteen in uw geautomatiseerde pipeline.',
       s10_title_1: 'Bank & ', s10_title_2: 'Integraties',
       s10_subtitle: 'Verbind uw bankrekeningen, reconcilieer uw transacties en integreer CashPilot in uw ecosysteem.',
@@ -2924,7 +2926,7 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       s12_quick_title: 'Snelle facturatie',
       s12_quick_desc: 'De <strong style="color:#fff">Quick Invoice</strong> modus maakt het mogelijk om een factuur in minder dan 30 seconden aan te maken met een minimalistisch formulier.',
       s12_auto_title: 'CashPilot = Automatiseringstool',
-      s12_auto_desc: 'Dankzij de MCP-server en REST API is CashPilot niet alleen software \u2014 het is een <strong style="color:#fff">herbruikbare bouwsteen</strong> in uw automatiseringspipelines (Rube.app, Zapier, Make, n8n).',
+      s12_auto_desc: 'Dankzij de MCP-server en REST API is CashPilot niet alleen software \u2014 het is een <strong style="color:#fff">herbruikbare bouwsteen</strong> in uw automatiseringspipelines (Rube.app, Gumloop, Zapier, Make, n8n).',
       s12_tip: '<strong>Inklapbare zijbalk:</strong> Klik op de pijl in de zijbalk om deze in te klappen naar pictogrammodus. Zweef over een pictogram om de tooltip met de sectienaam te zien.',
       cta_badge: 'Online platform',
       cta_headline_1: 'Klaar om uw', cta_headline_2: 'financieel beheer te transformeren',

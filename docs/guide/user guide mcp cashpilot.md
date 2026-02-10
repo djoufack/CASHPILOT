@@ -4,13 +4,13 @@
 
 Le serveur MCP (Model Context Protocol) de CashPilot vous permet de gerer vos finances directement depuis **Claude Code** ou tout autre client MCP compatible. Plus besoin d'ouvrir l'interface web : demandez simplement en langage naturel et Claude execute les operations pour vous.
 
-**29 outils disponibles** couvrant la facturation, les clients, les paiements, la comptabilite, l'analyse et les exports fiscaux.
+**26 outils disponibles** couvrant la facturation, les clients, les paiements, la comptabilite, l'analyse et les exports fiscaux.
 
 **3 modes d'acces :**
 
 | Mode | Pour qui | Auth |
 |------|----------|------|
-| MCP distant (URL) | Claude Code, Claude Desktop, VS Code (Cline/Continue/Copilot), Antigravity, Cursor, Windsurf | cle API personnelle (`X-API-Key`) |
+| MCP distant (URL) | Claude Code, Claude Desktop, VS Code (Cline/Continue/Copilot), Antigravity, Cursor, Windsurf, Rube.app, Mistral (Le Chat), n8n, Gumloop | cle API personnelle (`X-API-Key`) |
 | MCP Connector | Applications utilisant l'API Anthropic Messages | cle API personnelle |
 | API REST | ChatGPT, agents custom, scripts, apps | cle API (header `X-API-Key`) |
 
@@ -20,7 +20,7 @@ Le serveur MCP (Model Context Protocol) de CashPilot vous permet de gerer vos fi
 
 - Un compte CashPilot actif (email + mot de passe)
 - Une **cle API CashPilot** (generee dans Parametres > Connexions > REST API sur [cashpilot.tech](https://cashpilot.tech/settings?tab=connections))
-- Un client MCP compatible : [Claude Code](https://claude.com/claude-code), [VS Code](https://code.visualstudio.com/) (avec Cline, Continue ou Copilot Chat), [Antigravity](https://antigravity.google/), Cursor, Windsurf, etc.
+- Un client MCP compatible : [Claude Code](https://claude.com/claude-code), [VS Code](https://code.visualstudio.com/) (avec Cline, Continue ou Copilot Chat), [Antigravity](https://antigravity.google/), Cursor, Windsurf, [Rube.app](https://rube.app/), [Mistral Le Chat](https://chat.mistral.ai/), [n8n](https://n8n.io/), [Gumloop](https://www.gumloop.com/), etc.
 
 > **Aucune installation locale requise.** CashPilot fonctionne en mode distant — il suffit de copier la configuration ci-dessous dans votre client.
 
@@ -35,188 +35,150 @@ Le serveur MCP (Model Context Protocol) de CashPilot vous permet de gerer vos fi
 3. Dans la section **REST API**, cliquez sur **"Generer la cle API"**
 4. Copiez votre cle (format `cpk_...`) — elle ne sera affichee qu'une seule fois
 
-### Etape 2 : Configurer votre client
+### Etape 2 : Copier la configuration
 
-Choisissez la configuration correspondant a votre outil. Remplacez `cpk_votre_cle_ici` par votre vraie cle API.
+Apres avoir genere votre cle API, CashPilot affiche automatiquement trois formats prets a copier :
+
+1. **URL complete** — pour Claude Desktop, Cursor, Windsurf (collez directement dans "Add MCP Server")
+2. **JSON** — pour Claude Code, VS Code (Cline, Continue, Copilot Chat)
+3. **Cle brute** — pour scripts, ChatGPT, Zapier
+
+---
+
+##### Claude Desktop / Cursor / Windsurf (URL)
+
+Dans votre client, ajoutez un serveur MCP en collant l'URL complete :
+
+```
+https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici
+```
+
+Relancez le client. Les 26 outils CashPilot apparaitront automatiquement.
 
 ---
 
 ##### Claude Code
 
-Ajouter dans `~/.claude/settings.local.json` :
+Copiez le JSON dans `~/.claude/settings.local.json` :
 
 ```json
 {
   "mcpServers": {
     "cashpilot": {
-      "url": "https://cashpilot.tech/mcp",
-      "headers": {
-        "X-API-Key": "cpk_votre_cle_ici"
-      }
+      "url": "https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici"
     }
   }
 }
 ```
-
----
-
-##### Claude Desktop (application native)
-
-Si vous utilisez l'application Claude Desktop (et non Claude Code en ligne de commande), ajoutez le serveur MCP dans le fichier de configuration :
-
-- **Windows :** `%APPDATA%\Claude\claude_desktop_config.json`
-- **macOS :** `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "cashpilot": {
-      "url": "https://cashpilot.tech/mcp",
-      "headers": {
-        "X-API-Key": "cpk_votre_cle_ici"
-      }
-    }
-  }
-}
-```
-
-Relancez Claude Desktop apres modification. Les 29 outils CashPilot apparaitront automatiquement dans la liste des outils disponibles.
 
 ---
 
 ##### VS Code (Cline, Continue, Copilot Chat)
 
-Plusieurs extensions VS Code supportent le protocole MCP. Voici la configuration pour chacune.
-
 **Cline** (extension `saoudrizwan.claude-dev`) :
 
-Ouvrir les parametres Cline (icone engrenage) → "MCP Servers" → "Edit MCP Settings", puis ajouter :
-
-```json
-{
-  "mcpServers": {
-    "cashpilot": {
-      "url": "https://cashpilot.tech/mcp",
-      "headers": {
-        "X-API-Key": "cpk_votre_cle_ici"
-      }
-    }
-  }
-}
-```
+Ouvrir les parametres Cline → "MCP Servers" → "Edit MCP Settings", puis coller le JSON ci-dessus.
 
 **Continue** (extension `continue.continue`) :
 
-Ouvrir `~/.continue/config.yaml` (ou via la palette de commandes : "Continue: Open Config") et ajouter :
+Ouvrir `~/.continue/config.yaml` et ajouter :
 
 ```yaml
 mcpServers:
   - name: cashpilot
-    url: https://cashpilot.tech/mcp
-    headers:
-      X-API-Key: cpk_votre_cle_ici
+    url: https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici
 ```
 
 **GitHub Copilot Chat** (MCP natif dans VS Code 1.99+) :
 
-Ouvrir les settings VS Code (`Ctrl+,`) → chercher `mcp` → "Edit in settings.json", puis ajouter :
+Ouvrir les settings VS Code (`Ctrl+,`) → chercher `mcp` → "Edit in settings.json" :
 
 ```json
 {
   "mcp": {
     "servers": {
       "cashpilot": {
-        "url": "https://cashpilot.tech/mcp",
-        "headers": {
-          "X-API-Key": "cpk_votre_cle_ici"
-        }
+        "url": "https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici"
       }
     }
   }
 }
 ```
 
-> **Astuce VS Code :** Vous pouvez aussi creer un fichier `.vscode/mcp.json` a la racine du projet pour partager la config MCP avec tous les collaborateurs du projet.
+---
+
+##### Rube.app
+
+[Rube.app](https://rube.app/) est une plateforme d'automatisation IA qui supporte les connexions MCP. Ajoutez CashPilot comme outil dans vos recettes :
+
+1. Dans Rube, ouvrez les parametres de connexions MCP
+2. Ajoutez un nouveau serveur avec l'URL : `https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici`
+3. Les 26 outils CashPilot sont disponibles dans vos recettes d'automatisation
 
 ---
 
-##### Google Antigravity
+##### Mistral (Le Chat)
 
-Antigravity supporte nativement le protocole MCP. Creez un fichier `mcp_config.json` dans le dossier de configuration Antigravity :
+[Mistral Le Chat](https://chat.mistral.ai/) supporte les serveurs MCP distants. Pour connecter CashPilot :
 
-- **Windows :** `%APPDATA%\Antigravity\mcp_config.json`
-- **macOS :** `~/Library/Application Support/Antigravity/mcp_config.json`
-- **Linux :** `~/.config/antigravity/mcp_config.json`
-
-Contenu du fichier :
-
-```json
-{
-  "mcpServers": {
-    "cashpilot": {
-      "url": "https://cashpilot.tech/mcp",
-      "headers": {
-        "X-API-Key": "cpk_votre_cle_ici"
-      }
-    }
-  }
-}
-```
-
-Relancez Antigravity apres avoir cree le fichier.
+1. Dans Le Chat, ouvrez les parametres → "Outils" ou "MCP Servers"
+2. Ajoutez un serveur MCP avec l'URL : `https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici`
+3. Mistral pourra interroger et piloter CashPilot en langage naturel
 
 ---
 
-##### Autres clients MCP compatibles (Cursor, Windsurf, etc.)
+##### n8n (MCP natif)
 
-La plupart des clients MCP utilisent le meme format de configuration. Consultez la documentation de votre client et ajoutez un serveur avec ces parametres :
+[n8n](https://n8n.io/) supporte les serveurs MCP nativement via le noeud "MCP Client". Pour connecter CashPilot :
+
+1. Ajoutez un noeud **"MCP Client"** dans votre workflow
+2. Configurez la connexion MCP :
+   - **URL** : `https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici`
+   - **Transport** : Streamable HTTP
+3. Les 26 outils CashPilot sont disponibles comme actions dans vos workflows n8n
+
+> **Note :** n8n supporte egalement l'API REST classique via le noeud "HTTP Request" (voir section Integration Automatisation).
+
+---
+
+##### Gumloop
+
+[Gumloop](https://www.gumloop.com/) est une plateforme d'automatisation IA visuelle qui supporte les connexions MCP. Pour connecter CashPilot :
+
+1. Dans votre flow Gumloop, ajoutez un bloc MCP Server
+2. Configurez l'URL : `https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici`
+3. Les outils CashPilot apparaissent comme actions disponibles dans vos pipelines
+
+---
+
+##### Autres clients MCP compatibles
+
+La plupart des clients MCP supportent une URL. Ajoutez un serveur avec :
 
 | Parametre | Valeur |
 |-----------|--------|
-| URL | `https://cashpilot.tech/mcp` |
-| Header `X-API-Key` | Votre cle API personnelle (format `cpk_...`) |
-| Transport | Streamable HTTP / SSE |
+| URL | `https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici` |
+| Transport | Streamable HTTP |
 
 ---
 
 #### Etape 3 : Relancer votre client
 
-Fermez et rouvrez votre client (Claude Code, VS Code, Antigravity, etc.) pour charger le serveur MCP.
-
-### Instructions pour Claude Code (configuration automatique)
-
-Si un utilisateur demande a Claude Code de configurer le serveur MCP CashPilot, voici les etapes a suivre :
-
-1. Demander a l'utilisateur sa cle API CashPilot (format `cpk_...`). S'il n'en a pas, lui indiquer d'en creer une sur [cashpilot.tech/settings?tab=connections](https://cashpilot.tech/settings?tab=connections)
-2. Lire le fichier `~/.claude/settings.local.json` (le creer s'il n'existe pas)
-3. Ajouter ou mettre a jour l'entree `mcpServers.cashpilot` avec :
-   - `url`: `"https://cashpilot.tech/mcp"`
-   - `headers.X-API-Key`: la cle API de l'utilisateur
-4. Demander a l'utilisateur de relancer Claude Code
+Fermez et rouvrez votre client pour charger le serveur MCP.
 
 ---
 
 ## Connexion
 
-Avec le mode distant (URL), l'authentification est automatique via votre cle API. Des que vous utilisez un outil, CashPilot identifie votre compte grace a la cle dans le header `X-API-Key`. Toutes les operations sont filtrees par vos propres donnees grace aux politiques de securite (RLS) de Supabase.
+L'authentification est **automatique** via votre cle API, integree directement dans l'URL MCP ou dans le header `X-API-Key`. Aucun login/logout n'est necessaire — CashPilot identifie votre compte des la premiere requete. Toutes les operations sont filtrees par vos propres donnees grace aux politiques de securite (RLS) de Supabase.
 
-**Commandes utiles :**
-- "Suis-je connecte ?" → appelle `whoami` (verifie que la cle est valide)
-- "Deconnecte-moi" → appelle `logout`
-
----
-
-## Les 29 outils disponibles
-
-### Authentification (3 outils)
-
-| Outil | Ce que vous pouvez demander |
-|-------|-----------------------------|
-| `login` | "Connecte-moi a CashPilot" |
-| `logout` | "Deconnecte-moi" |
-| `whoami` | "Suis-je connecte ?" |
+**Deux methodes d'authentification :**
+- **URL avec cle integree** (recommande) : `https://cashpilot.tech/mcp?api_key=cpk_votre_cle`
+- **Header HTTP** : `X-API-Key: cpk_votre_cle`
 
 ---
+
+## Les 26 outils disponibles
 
 ### Factures (6 outils)
 
@@ -396,11 +358,10 @@ Avec le mode distant (URL), l'authentification est automatique via votre cle API
 ### Scenario 1 : Revue de fin de mois
 
 ```
-1. "Connecte-moi a CashPilot"
-2. "Quels sont mes KPIs ce mois-ci ?"
-3. "Quelles factures sont impayees ?"
-4. "Resume de mes creances"
-5. "Genere le FEC du mois dernier"
+1. "Quels sont mes KPIs ce mois-ci ?"
+2. "Quelles factures sont impayees ?"
+3. "Resume de mes creances"
+4. "Genere le FEC du mois dernier"
 ```
 
 ### Scenario 2 : Gestion d'un nouveau client
@@ -435,7 +396,7 @@ Avec le mode distant (URL), l'authentification est automatique via votre cle API
 
 ## Cas d'usage MCP : 3 exemples concrets de A a Z
 
-Les cas suivants montrent le parcours complet : installation, connexion, utilisation quotidienne. Le protocole MCP permet de piloter CashPilot **en langage naturel** depuis un client IA (Claude Code, Claude Desktop, VS Code, Cursor...).
+Les cas suivants montrent le parcours complet : installation, connexion, utilisation quotidienne. Le protocole MCP permet de piloter CashPilot **en langage naturel** depuis un client IA (Claude Code, Claude Desktop, VS Code, Cursor, Mistral Le Chat, Rube.app, n8n, Gumloop...).
 
 ### Cas MCP 1 : Le freelance qui fait sa cloture de fin de mois (Claude Code)
 
@@ -443,20 +404,9 @@ Les cas suivants montrent le parcours complet : installation, connexion, utilisa
 
 **1. Installation (une seule fois)**
 
-Marie ouvre son terminal et demande a Claude Code :
+Marie va dans **Parametres > Connexions** sur cashpilot.tech, genere une cle API et copie la configuration JSON affichee dans `~/.claude/settings.local.json`. Elle relance Claude Code. Les 26 outils CashPilot sont disponibles.
 
-> "Configure le serveur MCP CashPilot pour moi"
-
-Claude detecte le dossier `mcp-server/`, execute `npm install`, et ajoute automatiquement la configuration dans `~/.claude/settings.local.json`. Marie relance Claude Code.
-
-**2. Connexion**
-
-```
-Marie : "Connecte-moi a CashPilot avec marie@freelance.fr et mon mot de passe"
-Claude : → appelle login → "Connectee avec succes. Bienvenue Marie !"
-```
-
-**3. Revue mensuelle**
+**2. Revue mensuelle**
 
 ```
 Marie : "Quels sont mes KPIs de janvier 2026 ?"
@@ -503,16 +453,13 @@ Thomas ouvre les parametres Cline (icone engrenage → "MCP Servers" → "Edit M
 }
 ```
 
-Il relance VS Code. Les 29 outils CashPilot apparaissent dans Cline.
+Il relance VS Code. Les 26 outils CashPilot apparaissent dans Cline.
 
-**2. Connexion + facturation apres livraison**
+**2. Facturation apres livraison**
 
 Thomas vient de livrer un sprint pour son client. Sans quitter VS Code :
 
 ```
-Thomas : "Connecte-moi a CashPilot avec thomas@dev.fr"
-Cline :  → login → "Connecte !"
-
 Thomas : "Cree un client TechStartup SAS, contact Alice Moreau,
           email alice@techstartup.fr, ville Lyon, TVA FR98765432100"
 Cline :  → create_client → "Client cree (id: 7b2f...)"
@@ -550,20 +497,9 @@ Cline :  → get_top_clients avec limit = 3
 
 **1. Installation (une seule fois)**
 
-Sophie ouvre le fichier de configuration Claude Desktop :
-- Windows : `%APPDATA%\Claude\claude_desktop_config.json`
-- macOS : `~/Library/Application Support/Claude/claude_desktop_config.json`
+Sophie genere une cle API depuis le compte CashPilot de son client, puis dans Claude Desktop elle ajoute le serveur MCP en collant l'URL complete (`https://cashpilot.tech/mcp?api_key=cpk_...`). Elle relance l'application. Les 26 outils apparaissent automatiquement.
 
-Elle ajoute le serveur MCP CashPilot et relance l'application. Les outils apparaissent automatiquement.
-
-**2. Connexion avec les identifiants du client**
-
-```
-Sophie : "Connecte-moi a CashPilot avec comptabilite@client-dupont.fr"
-Claude : → login → "Connectee au compte Dupont & Fils"
-```
-
-**3. Audit trimestriel**
+**2. Audit trimestriel**
 
 ```
 Sophie : "Montre-moi le plan comptable, uniquement les charges"
@@ -827,44 +763,42 @@ print("\n=== Synchronisation terminee ===")
 
 Si votre agent IA ne supporte pas le protocole MCP (ChatGPT, agents custom, scripts), trois alternatives sont disponibles.
 
-### Option 1 : Serveur MCP en mode HTTP
+### Option 1 : Serveur MCP distant (Streamable HTTP)
 
-Le serveur MCP peut demarrer en mode HTTP, exposant les memes 29 outils via un endpoint JSON-RPC standard.
+Le serveur MCP CashPilot est deploye en production en tant que Supabase Edge Function, accessible via le protocole **MCP Streamable HTTP** (JSON-RPC 2.0 sur HTTP).
 
-**Demarrage :**
+**URL du serveur :** `https://cashpilot.tech/mcp`
 
-```bash
-cd mcp-server
-npm run start:http
-```
-
-Le serveur ecoute sur `http://localhost:3100` (configurable via `MCP_HTTP_PORT`).
+**Authentification :** cle API dans l'URL (`?api_key=cpk_...`) ou dans le header `X-API-Key`.
 
 **Endpoints :**
 
 | Methode | URL | Description |
 |---------|-----|-------------|
 | `POST` | `/mcp` | Requetes JSON-RPC MCP (initialisation, appels d'outils) |
-| `GET` | `/mcp` | Flux SSE pour notifications (necessite header `mcp-session-id`) |
+| `GET` | `/mcp` | Flux SSE (Server-Sent Events) |
 | `DELETE` | `/mcp` | Terminer une session |
-| `GET` | `/health` | Verification de sante du serveur |
 
 **Exemple d'appel (curl) :**
 
 ```bash
-# 1. Initialiser une session
-curl -X POST http://localhost:3100/mcp \
+# 1. Initialiser une session (cle dans l'URL)
+curl -X POST "https://cashpilot.tech/mcp?api_key=cpk_votre_cle" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
 
-# 2. Appeler un outil (avec le mcp-session-id retourne)
-curl -X POST http://localhost:3100/mcp \
+# 2. Lister les outils
+curl -X POST "https://cashpilot.tech/mcp?api_key=cpk_votre_cle" \
   -H "Content-Type: application/json" \
-  -H "mcp-session-id: <SESSION_ID>" \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"login","arguments":{"email":"user@example.com","password":"..."}}}'
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+
+# 3. Appeler un outil
+curl -X POST "https://cashpilot.tech/mcp?api_key=cpk_votre_cle" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_dashboard_kpis","arguments":{}}}'
 ```
 
-Ce mode est ideal pour les agents qui peuvent envoyer des requetes HTTP mais ne supportent pas le transport stdio MCP.
+Ce mode fonctionne depuis n'importe quel ordinateur, sans installation locale. Ideal pour les agents IA, les clients MCP, et les scripts d'automatisation.
 
 ---
 
@@ -929,9 +863,9 @@ curl https://api.anthropic.com/v1/messages \
 
 **Points cles :**
 - `mcp_servers` : declare le serveur MCP distant avec son URL et le token d'autorisation
-- `tools` avec `mcp_toolset` : expose automatiquement les 29 outils CashPilot a Claude
+- `tools` avec `mcp_toolset` : expose automatiquement les 26 outils CashPilot a Claude
 - Le `authorization_token` est votre cle API CashPilot (format `cpk_...`)
-- Le serveur supporte SSE (Server-Sent Events) et Streamable HTTP
+- Le serveur est stateless : chaque requete est authentifiee independamment
 
 **Cas d'usage :** agents IA en production, applications SaaS integrant la comptabilite, workflows cloud sans code local.
 
@@ -1105,11 +1039,11 @@ curl -H "X-API-Key: votre-cle" \
 
 ## Securite et confidentialite
 
-- **Authentification requise** : chaque session necessite une connexion (email/mot de passe pour MCP, cle API pour REST).
-- **Isolation des donnees** : les politiques RLS (Row Level Security) de Supabase garantissent que vous n'accedez qu'a vos propres donnees.
-- **Pas de cle admin** : le serveur MCP utilise la cle publique (anon key), pas la cle de service. Les memes regles de securite que l'application web s'appliquent.
-- **Session locale** : votre session MCP reste sur votre machine. Aucune donnee n'est stockee en dehors de Supabase.
-- **Cles API scopees** : l'API REST utilise des cles API avec scopes (`read`, `write`, `delete`) pour un controle granulaire des permissions.
+- **Authentification par cle API** : chaque requete necessite une cle API valide, transmise via l'URL (`?api_key=`) ou le header `X-API-Key`.
+- **Isolation des donnees** : chaque requete est filtree par l'identifiant utilisateur associe a la cle API. Vous n'accedez qu'a vos propres donnees.
+- **Serveur stateless** : aucune session n'est stockee cote serveur. Chaque requete est independante et authentifiee individuellement.
+- **Cles API scopees** : les cles API disposent de scopes (`read`, `write`, `delete`) pour un controle granulaire des permissions.
+- **Cles revocables** : vous pouvez revoquer une cle API a tout moment depuis Parametres > Connexions.
 
 ---
 
