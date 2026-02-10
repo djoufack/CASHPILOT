@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>CashPilot - Presentation Video</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-primary: #0a0e27;
+  --bg-secondary: #141b3d;
+  --bg-tertiary: #1a1f4a;
+  --blue: #3b82f6;
+  --purple: #8b5cf6;
+  --pink: #ec4899;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --cyan: #06b6d4;
+  --red: #ef4444;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg-primary);
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--text-primary);
+  cursor: none;
+}
+
+/* ===== PRESENTATION CONTAINER ===== */
+#presentation {
+  width: 100vw; height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== PARTICLES ===== */
+.particles {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; z-index: 0;
+}
+.particle {
+  position: absolute;
+  width: 4px; height: 4px;
+  background: var(--purple);
+  border-radius: 50%;
+  opacity: 0;
+  animation: floatParticle linear infinite;
+}
+@keyframes floatParticle {
+  0% { opacity: 0; transform: translateY(100vh) scale(0); }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { opacity: 0; transform: translateY(-10vh) scale(1); }
+}
+
+/* ===== GRADIENT ORBS ===== */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+  animation: orbFloat 20s ease-in-out infinite;
+}
+.orb-1 { width: 600px; height: 600px; background: var(--purple); top: -200px; right: -200px; }
+.orb-2 { width: 500px; height: 500px; background: var(--blue); bottom: -200px; left: -150px; animation-delay: -7s; }
+.orb-3 { width: 400px; height: 400px; background: var(--amber); top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: -14s; }
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -30px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+/* ===== SLIDES ===== */
+.slide {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 120px;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+.slide.active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+  z-index: 2;
+}
+.slide.exit-left {
+  opacity: 0;
+  transform: translateX(-60px) scale(0.97);
+}
+
+/* ===== GRADIENT TEXT ===== */
+.gradient-text {
+  background: linear-gradient(135deg, var(--amber) 0%, var(--green) 50%, var(--purple) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.gradient-text-blue {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ===== TYPOGRAPHY ===== */
+.slide-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 64px;
+  line-height: 1.1;
+  margin-bottom: 24px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(40px);
+}
+.slide.active .slide-title {
+  animation: fadeInUp 0.8s ease forwards 0.2s;
+}
+
+.slide-subtitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 32px;
+  color: var(--text-secondary);
+  margin-bottom: 40px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(30px);
+}
+.slide.active .slide-subtitle {
+  animation: fadeInUp 0.8s ease forwards 0.4s;
+}
+
+.slide-body {
+  font-size: 22px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 900px;
+  text-align: center;
+  opacity: 0;
+}
+.slide.active .slide-body {
+  animation: fadeInUp 0.8s ease forwards 0.6s;
+}
+
+/* ===== EPISODE BADGE ===== */
+.episode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border-radius: 999px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  opacity: 0;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--purple);
+}
+.slide.active .episode-badge {
+  animation: fadeInUp 0.6s ease forwards 0.1s;
+}
+
+/* ===== FEATURE LIST ===== */
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 1100px;
+  width: 100%;
+  margin-top: 20px;
+}
+.feature-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 28px 32px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  opacity: 0;
+  transform: translateY(20px);
+}
+.slide.active .feature-card { animation: fadeInUp 0.6s ease forwards; }
+.slide.active .feature-card:nth-child(1) { animation-delay: 0.3s; }
+.slide.active .feature-card:nth-child(2) { animation-delay: 0.4s; }
+.slide.active .feature-card:nth-child(3) { animation-delay: 0.5s; }
+.slide.active .feature-card:nth-child(4) { animation-delay: 0.6s; }
+.slide.active .feature-card:nth-child(5) { animation-delay: 0.7s; }
+.slide.active .feature-card:nth-child(6) { animation-delay: 0.8s; }
+
+.feature-icon {
+  width: 48px; height: 48px; min-width: 48px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+}
+.feature-card h3 { font-family: 'Space Grotesk'; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.feature-card p { font-size: 15px; color: var(--text-secondary); line-height: 1.5; }
+
+/* ===== STAT CARDS ===== */
+.stats-row {
+  display: flex;
+  gap: 32px;
+  margin-top: 20px;
+}
+.stat-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px;
+  padding: 36px 44px;
+  text-align: center;
+  flex: 1;
+  opacity: 0;
+  transform: translateY(30px) scale(0.95);
+}
+.slide.active .stat-card { animation: scaleIn 0.7s ease forwards; }
+.slide.active .stat-card:nth-child(1) { animation-delay: 0.3s; }
+.slide.active .stat-card:nth-child(2) { animation-delay: 0.45s; }
+.slide.active .stat-card:nth-child(3) { animation-delay: 0.6s; }
+.slide.active .stat-card:nth-child(4) { animation-delay: 0.75s; }
+
+.stat-value {
+  font-family: 'Space Grotesk';
+  font-size: 48px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.stat-label {
+  font-size: 16px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ===== MOCKUP UI ===== */
+.mockup-container {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  gap: 0;
+  margin-top: 20px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.3);
+  height: 420px;
+  opacity: 0;
+  transform: translateY(30px);
+}
+.slide.active .mockup-container {
+  animation: fadeInUp 0.8s ease forwards 0.3s;
+}
+
+.mockup-sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: rgba(10, 14, 39, 0.9);
+  border-right: 1px solid rgba(255,255,255,0.06);
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+}
+.mockup-sidebar-logo {
+  font-family: 'Space Grotesk';
+  font-weight: 800;
+  font-size: 18px;
+  padding: 0 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 12px;
+}
+.mockup-nav-item {
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s;
+}
+.mockup-nav-item.active-item {
+  color: var(--text-primary);
+  background: rgba(139, 92, 246, 0.1);
+  border-right: 3px solid var(--purple);
+}
+.mockup-nav-item .nav-dot {
+  width: 8px; height: 8px; border-radius: 4px;
+  background: var(--text-muted);
+}
+.mockup-nav-item.active-item .nav-dot {
+  background: var(--purple);
+}
+
+.mockup-content {
+  flex: 1;
+  padding: 24px 32px;
+  overflow: hidden;
+}
+.mockup-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.mockup-topbar h2 {
+  font-family: 'Space Grotesk';
+  font-size: 22px;
+  font-weight: 700;
+}
+.mockup-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  color: white;
+}
+.mockup-btn-primary {
+  background: linear-gradient(135deg, var(--purple), var(--blue));
+}
+.mockup-stat-row {
+  display: flex; gap: 16px; margin-bottom: 20px;
+}
+.mockup-mini-stat {
+  flex: 1;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.mockup-mini-stat .mms-value {
+  font-family: 'Space Grotesk';
+  font-weight: 700;
+  font-size: 20px;
+  margin-bottom: 2px;
+}
+.mockup-mini-stat .mms-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.mockup-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.mockup-table th {
+  text-align: left;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.mockup-table td {
+  padding: 10px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-green { background: rgba(16,185,129,0.15); color: var(--green); }
+.badge-amber { background: rgba(245,158,11,0.15); color: var(--amber); }
+.badge-red { background: rgba(239,68,68,0.15); color: var(--red); }
+.badge-blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+.badge-purple { background: rgba(139,92,246,0.15); color: var(--purple); }
+
+/* ===== PROCESS FLOW ===== */
+.process-flow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 30px;
+  opacity: 0;
+}
+.slide.active .process-flow { animation: fadeInUp 0.8s ease forwards 0.4s; }
+
+.process-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 28px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  min-width: 140px;
+  text-align: center;
+}
+.process-step .step-icon {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+}
+.process-step .step-label {
+  font-family: 'Space Grotesk';
+  font-size: 14px;
+  font-weight: 600;
+}
+.process-arrow {
+  font-size: 24px;
+  color: var(--text-muted);
+  margin: 0 8px;
+}
+
+/* ===== LIST SLIDE ===== */
+.list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 900px;
+  width: 100%;
+  margin-top: 20px;
+}
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  opacity: 0;
+  transform: translateX(-30px);
+}
+.slide.active .list-item { animation: slideInLeft 0.5s ease forwards; }
+.slide.active .list-item:nth-child(1) { animation-delay: 0.3s; }
+.slide.active .list-item:nth-child(2) { animation-delay: 0.4s; }
+.slide.active .list-item:nth-child(3) { animation-delay: 0.5s; }
+.slide.active .list-item:nth-child(4) { animation-delay: 0.6s; }
+.slide.active .list-item:nth-child(5) { animation-delay: 0.7s; }
+.slide.active .list-item:nth-child(6) { animation-delay: 0.8s; }
+
+.list-icon {
+  width: 40px; height: 40px; min-width: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.list-item h4 { font-family: 'Space Grotesk'; font-size: 17px; font-weight: 700; }
+.list-item p { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
+
+/* ===== TWO COLUMNS ===== */
+.two-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  max-width: 1100px;
+  width: 100%;
+  margin-top: 20px;
+}
+.col-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px;
+  padding: 36px;
+  opacity: 0;
+}
+.slide.active .col-card:first-child { animation: fadeInUp 0.7s ease forwards 0.3s; }
+.slide.active .col-card:last-child { animation: fadeInUp 0.7s ease forwards 0.5s; }
+
+.col-card h3 {
+  font-family: 'Space Grotesk';
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.col-card ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.col-card li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+.col-card li::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  min-width: 6px;
+}
+
+/* ===== BIG ICON ===== */
+.big-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  opacity: 0;
+  transform: scale(0.5);
+}
+.slide.active .big-icon {
+  animation: scaleIn 0.8s ease forwards 0.1s;
+}
+
+/* ===== NARRATION BAR ===== */
+#narration-bar {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 1000px;
+  width: 90%;
+  padding: 18px 32px;
+  background: rgba(10, 14, 39, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  z-index: 100;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+#narration-bar.visible { opacity: 1; }
+
+/* ===== PROGRESS BAR ===== */
+#progress-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.05);
+  z-index: 100;
+}
+#progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber), var(--green), var(--purple));
+  transition: width 0.5s ease;
+  width: 0%;
+}
+
+/* ===== CONTROLS ===== */
+#controls {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+  opacity: 0.4;
+  transition: opacity 0.3s;
+}
+#controls:hover { opacity: 1; }
+.ctrl-btn {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(10, 14, 39, 0.7);
+  backdrop-filter: blur(10px);
+  color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+.ctrl-btn:hover { background: rgba(139,92,246,0.2); color: white; border-color: var(--purple); }
+
+#slide-counter {
+  position: fixed;
+  top: 28px;
+  left: 28px;
+  font-family: 'Space Grotesk';
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  z-index: 100;
+  opacity: 0.5;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* ===== COLOR HELPERS ===== */
+.bg-purple { background: rgba(139,92,246,0.15); }
+.bg-blue { background: rgba(59,130,246,0.15); }
+.bg-green { background: rgba(16,185,129,0.15); }
+.bg-amber { background: rgba(245,158,11,0.15); }
+.bg-pink { background: rgba(236,72,153,0.15); }
+.bg-cyan { background: rgba(6,182,212,0.15); }
+.bg-red { background: rgba(239,68,68,0.15); }
+.c-purple { color: var(--purple); }
+.c-blue { color: var(--blue); }
+.c-green { color: var(--green); }
+.c-amber { color: var(--amber); }
+.c-pink { color: var(--pink); }
+.c-cyan { color: var(--cyan); }
+.c-red { color: var(--red); }
+.li-purple::before { background: var(--purple) !important; }
+.li-blue::before { background: var(--blue) !important; }
+.li-green::before { background: var(--green) !important; }
+.li-amber::before { background: var(--amber) !important; }
+
+/* ===== CHART MOCKUP ===== */
+.chart-mockup {
+  width: 100%;
+  height: 180px;
+  position: relative;
+  margin-top: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-left: 1px solid rgba(255,255,255,0.06);
+}
+.chart-bar {
+  position: absolute;
+  bottom: 0;
+  border-radius: 4px 4px 0 0;
+  transition: height 1s ease;
+}
+.chart-line {
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 100%; height: 100%;
+}
+.chart-line svg {
+  width: 100%; height: 100%;
+}
+.chart-line svg path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+}
+.slide.active .chart-line svg path {
+  animation: drawLine 2s ease forwards 0.5s;
+}
+@keyframes drawLine {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Slide with left content + right visual */
+.split-slide {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 60px;
+  padding: 80px 100px;
+}
+.split-left {
+  flex: 1;
+  max-width: 500px;
+}
+.split-right {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Logo animation */
+.logo-huge {
+  font-family: 'Space Grotesk';
+  font-weight: 800;
+  font-size: 120px;
+  line-height: 1;
+  opacity: 0;
+  transform: scale(0.7);
+}
+.slide.active .logo-huge {
+  animation: logoIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.3s;
+}
+@keyframes logoIn {
+  from { opacity: 0; transform: scale(0.7) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.tagline {
+  font-size: 28px;
+  color: var(--text-secondary);
+  margin-top: 16px;
+  opacity: 0;
+}
+.slide.active .tagline {
+  animation: fadeInUp 0.8s ease forwards 0.8s;
+}
+
+/* ===== ACCOUNTING ENTRY ===== */
+.accounting-entry {
+  width: 100%;
+  max-width: 800px;
+  margin-top: 20px;
+  opacity: 0;
+}
+.slide.active .accounting-entry {
+  animation: fadeInUp 0.7s ease forwards 0.4s;
+}
+.ae-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 120px 120px;
+  gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 16px;
+}
+.ae-header {
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.ae-debit { color: var(--amber); font-weight: 600; }
+.ae-credit { color: var(--green); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div id="presentation">
+  <!-- Particles -->
+  <div class="particles" id="particles"></div>
+
+  <!-- Gradient Orbs -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 0: TITLE -->
+  <!-- ============================================ -->
+  <div class="slide active" data-narration="Bienvenue dans CashPilot, votre solution complete de gestion d'entreprise. Facturation, projets, comptabilite, stocks : tout ce dont vous avez besoin, dans une seule application.">
+    <div class="logo-huge gradient-text">CashPilot</div>
+    <div class="tagline">Votre solution complete de gestion d'entreprise</div>
+    <p class="slide-body" style="margin-top: 40px; max-width: 700px;">Facturation &bull; Projets &bull; Comptabilite &bull; Stocks &bull; Analyses</p>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 1: SOMMAIRE -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Dans cette presentation, nous allons parcourir toutes les fonctionnalites de CashPilot en 10 episodes : du tableau de bord a la comptabilite integree.">
+    <div class="episode-badge">Sommaire</div>
+    <div class="slide-title gradient-text-blue" style="font-size: 48px;">10 Modules Essentiels</div>
+    <div class="feature-grid" style="grid-template-columns: 1fr 1fr; max-width: 900px;">
+      <div class="feature-card"><div class="feature-icon bg-purple">📊</div><div><h3>Tableau de Bord</h3><p>Hub central de votre activite</p></div></div>
+      <div class="feature-card"><div class="feature-icon bg-blue">👥</div><div><h3>Clients & Projets</h3><p>Portefeuille et suivi</p></div></div>
+      <div class="feature-card"><div class="feature-icon bg-green">🧾</div><div><h3>Facturation</h3><p>Factures, devis, avoirs</p></div></div>
+      <div class="feature-card"><div class="feature-icon bg-amber">💰</div><div><h3>Depenses & Stocks</h3><p>Suivi complet</p></div></div>
+      <div class="feature-card"><div class="feature-icon bg-pink">📒</div><div><h3>Comptabilite</h3><p>Plan comptable, TVA, bilan</p></div></div>
+      <div class="feature-card"><div class="feature-icon bg-cyan">📈</div><div><h3>Analyses</h3><p>Rapports et projections</p></div></div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 2: PREMIERS PAS -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Pour commencer, connectez-vous avec votre adresse email et mot de passe. Si vous n'avez pas de compte, inscrivez-vous en quelques minutes. Configurez ensuite votre profil d'entreprise.">
+    <div class="episode-badge">Episode 1</div>
+    <div class="slide-title gradient-text" style="font-size: 52px;">Premiers Pas</div>
+    <div class="process-flow">
+      <div class="process-step"><div class="step-icon bg-blue">🔐</div><div class="step-label c-blue">Connexion</div></div>
+      <div class="process-arrow">→</div>
+      <div class="process-step"><div class="step-icon bg-purple">📝</div><div class="step-label c-purple">Inscription</div></div>
+      <div class="process-arrow">→</div>
+      <div class="process-step"><div class="step-icon bg-green">🏢</div><div class="step-label c-green">Profil Entreprise</div></div>
+      <div class="process-arrow">→</div>
+      <div class="process-step"><div class="step-icon bg-amber">🚀</div><div class="step-label c-amber">Pret !</div></div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 3: NAVIGATION -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="L'application s'organise autour d'une barre laterale. Vous y trouverez toutes les sections : Dashboard, Clients, Projets, Factures, Comptabilite, et bien plus.">
+    <div class="episode-badge">Episode 1</div>
+    <div class="slide-title gradient-text-blue" style="font-size: 48px;">Navigation Intuitive</div>
+    <div class="mockup-container">
+      <div class="mockup-sidebar">
+        <div class="mockup-sidebar-logo"><span class="gradient-text">CashPilot</span></div>
+        <div class="mockup-nav-item active-item"><div class="nav-dot"></div>Dashboard</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Clients</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Projets</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Feuilles de temps</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Factures</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Devis</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Depenses</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Stocks</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Fournisseurs</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Comptabilite</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Scenarios</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Analyses</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Parametres</div>
+      </div>
+      <div class="mockup-content" style="display:flex;flex-direction:column;justify-content:center;align-items:center;">
+        <div style="font-size:60px;margin-bottom:16px;">🧭</div>
+        <h2 style="font-family:'Space Grotesk';font-size:28px;margin-bottom:8px;">Barre laterale</h2>
+        <p style="color:var(--text-secondary);font-size:16px;text-align:center;max-width:350px;">Acces rapide a toutes les sections depuis le menu principal.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 4: DASHBOARD OVERVIEW -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Le tableau de bord est votre hub central. En un coup d'oeil : revenu total, marge beneficiaire, et taux d'occupation. Ces indicateurs se calculent automatiquement.">
+    <div class="episode-badge">Episode 2</div>
+    <div class="slide-title gradient-text" style="font-size: 52px;">Tableau de Bord</div>
+    <div class="slide-subtitle">Vos indicateurs cles en un coup d'oeil</div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value c-green">€ 84 500</div>
+        <div class="stat-label">Revenu Total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value c-amber">67%</div>
+        <div class="stat-label">Marge Beneficiaire</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value c-purple">82%</div>
+        <div class="stat-label">Taux d'Occupation</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 5: DASHBOARD GRAPHIQUES -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Deux graphiques cles : la tendance du revenu montre l'evolution mensuelle sous forme de graphique en aires, et le revenu par client identifie vos clients les plus rentables.">
+    <div class="episode-badge">Episode 2</div>
+    <div class="slide-title gradient-text-blue" style="font-size: 48px;">Graphiques & Tendances</div>
+    <div class="two-cols">
+      <div class="col-card">
+        <h3><span style="color:var(--green);">📈</span> Tendance du Revenu</h3>
+        <div class="chart-mockup">
+          <div class="chart-line">
+            <svg viewBox="0 0 400 160" preserveAspectRatio="none">
+              <defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#10b981"/><stop offset="100%" style="stop-color:#8b5cf6"/></linearGradient></defs>
+              <path d="M0,140 C30,130 60,110 100,100 C140,90 170,95 200,70 C230,45 260,55 300,35 C340,15 370,20 400,10" fill="none" stroke="url(#g1)" stroke-width="3"/>
+              <path d="M0,140 C30,130 60,110 100,100 C140,90 170,95 200,70 C230,45 260,55 300,35 C340,15 370,20 400,10 L400,160 L0,160 Z" fill="url(#g1)" opacity="0.1"/>
+            </svg>
+          </div>
+        </div>
+        <p style="font-size:14px;color:var(--text-muted);margin-top:12px;">Evolution mensuelle du chiffre d'affaires</p>
+      </div>
+      <div class="col-card">
+        <h3><span style="color:var(--blue);">👥</span> Revenu par Client</h3>
+        <div class="chart-mockup" style="display:flex;align-items:flex-end;gap:20px;padding: 0 20px;">
+          <div class="chart-bar" style="width:16%;height:85%;background:linear-gradient(to top,var(--blue),var(--purple));position:relative;border-radius:4px 4px 0 0;"></div>
+          <div class="chart-bar" style="width:16%;height:65%;background:linear-gradient(to top,var(--blue),var(--purple));opacity:0.85;position:relative;border-radius:4px 4px 0 0;"></div>
+          <div class="chart-bar" style="width:16%;height:50%;background:linear-gradient(to top,var(--blue),var(--purple));opacity:0.7;position:relative;border-radius:4px 4px 0 0;"></div>
+          <div class="chart-bar" style="width:16%;height:35%;background:linear-gradient(to top,var(--blue),var(--purple));opacity:0.55;position:relative;border-radius:4px 4px 0 0;"></div>
+          <div class="chart-bar" style="width:16%;height:20%;background:linear-gradient(to top,var(--blue),var(--purple));opacity:0.4;position:relative;border-radius:4px 4px 0 0;"></div>
+        </div>
+        <p style="font-size:14px;color:var(--text-muted);margin-top:12px;">Classement par chiffre d'affaires</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 6: CLIENTS -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="La page Clients affiche votre portefeuille complet. Creez un client avec ses coordonnees, consultez son profil avec toutes ses factures et projets associes, et retrouvez le montant total facture.">
+    <div class="episode-badge">Episode 3</div>
+    <div class="slide-title gradient-text" style="font-size: 52px;">Gestion des Clients</div>
+    <div class="mockup-container">
+      <div class="mockup-sidebar">
+        <div class="mockup-sidebar-logo"><span class="gradient-text">CashPilot</span></div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Dashboard</div>
+        <div class="mockup-nav-item active-item"><div class="nav-dot"></div>Clients</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Projets</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Factures</div>
+      </div>
+      <div class="mockup-content">
+        <div class="mockup-topbar"><h2>Clients</h2><div class="mockup-btn mockup-btn-primary">+ Nouveau Client</div></div>
+        <div class="mockup-stat-row">
+          <div class="mockup-mini-stat"><div class="mms-value c-blue">24</div><div class="mms-label">Total clients</div></div>
+          <div class="mockup-mini-stat"><div class="mms-value c-green">18</div><div class="mms-label">Actifs</div></div>
+          <div class="mockup-mini-stat"><div class="mms-value c-amber">€ 142K</div><div class="mms-label">Total facture</div></div>
+        </div>
+        <table class="mockup-table">
+          <thead><tr><th>Nom</th><th>Contact</th><th>Projets</th><th>Factures</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">Acme Corp</td><td style="color:var(--text-muted)">Jean Dupont</td><td>3</td><td><span class="badge badge-green">12</span></td></tr>
+            <tr><td style="font-weight:600;">TechVision</td><td style="color:var(--text-muted)">Marie Leroy</td><td>2</td><td><span class="badge badge-blue">8</span></td></tr>
+            <tr><td style="font-weight:600;">GlobalDesign</td><td style="color:var(--text-muted)">Pierre Martin</td><td>1</td><td><span class="badge badge-amber">5</span></td></tr>
+            <tr><td style="font-weight:600;">StartupFlow</td><td style="color:var(--text-muted)">Sophie Blanc</td><td>4</td><td><span class="badge badge-purple">15</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 7: PROJETS -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Gerez vos projets avec trois vues : grille, calendrier et agenda. Chaque projet affiche sa progression automatique, calculee a partir des heures enregistrees par rapport au budget.">
+    <div class="episode-badge">Episode 4</div>
+    <div class="slide-title gradient-text" style="font-size: 52px;">Projets & Feuilles de Temps</div>
+    <div class="feature-grid" style="grid-template-columns: 1fr 1fr 1fr; max-width:1000px;">
+      <div class="feature-card" style="flex-direction:column;text-align:center;align-items:center;padding:32px 24px;">
+        <div style="font-size:40px;margin-bottom:12px;">🗂️</div>
+        <h3>Vue Grille</h3>
+        <p>Cartes visuelles avec barre de progression</p>
+      </div>
+      <div class="feature-card" style="flex-direction:column;text-align:center;align-items:center;padding:32px 24px;">
+        <div style="font-size:40px;margin-bottom:12px;">📅</div>
+        <h3>Vue Calendrier</h3>
+        <p>Projets positionnes par date</p>
+      </div>
+      <div class="feature-card" style="flex-direction:column;text-align:center;align-items:center;padding:32px 24px;">
+        <div style="font-size:40px;margin-bottom:12px;">📋</div>
+        <h3>Vue Agenda</h3>
+        <p>Timeline chronologique</p>
+      </div>
+    </div>
+    <div class="stats-row" style="margin-top:32px;">
+      <div class="stat-card" style="padding:24px 32px;">
+        <div class="stat-value c-green" style="font-size:36px;">85%</div>
+        <div class="stat-label">Site Web Acme</div>
+        <div style="background:rgba(255,255,255,0.06);height:6px;border-radius:3px;margin-top:10px;overflow:hidden;"><div style="width:85%;height:100%;background:var(--green);border-radius:3px;"></div></div>
+      </div>
+      <div class="stat-card" style="padding:24px 32px;">
+        <div class="stat-value c-blue" style="font-size:36px;">42%</div>
+        <div class="stat-label">App Mobile</div>
+        <div style="background:rgba(255,255,255,0.06);height:6px;border-radius:3px;margin-top:10px;overflow:hidden;"><div style="width:42%;height:100%;background:var(--blue);border-radius:3px;"></div></div>
+      </div>
+      <div class="stat-card" style="padding:24px 32px;">
+        <div class="stat-value c-amber" style="font-size:36px;">15%</div>
+        <div class="stat-label">Refonte ERP</div>
+        <div style="background:rgba(255,255,255,0.06);height:6px;border-radius:3px;margin-top:10px;overflow:hidden;"><div style="width:15%;height:100%;background:var(--amber);border-radius:3px;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 8: FEUILLES DE TEMPS -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Les feuilles de temps enregistrent vos heures par projet et par tache. La duree se calcule automatiquement. En vue calendrier, le glisser-deposer permet de reprogrammer facilement.">
+    <div class="episode-badge">Episode 4</div>
+    <div class="slide-title gradient-text-blue" style="font-size: 48px;">Suivi du Temps</div>
+    <div class="list-container" style="max-width:800px;">
+      <div class="list-item"><div class="list-icon bg-green">⏱️</div><div><h4>Saisie Rapide</h4><p>Projet, tache, heures de debut et fin — la duree se calcule automatiquement</p></div></div>
+      <div class="list-item"><div class="list-icon bg-blue">📅</div><div><h4>Vue Calendrier</h4><p>Glissez-deposez vos entrees pour reprogrammer en un geste</p></div></div>
+      <div class="list-item"><div class="list-icon bg-purple">📊</div><div><h4>Statistiques</h4><p>Total des heures du mois, repartition par projet, heures facturables</p></div></div>
+      <div class="list-item"><div class="list-icon bg-amber">📄</div><div><h4>Export</h4><p>PDF ou HTML avec totaux et details complets</p></div></div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 9: FACTURATION INTRO -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="La facturation est au coeur de CashPilot. Deux modes de creation : Standard pour un controle complet, et Rapide pour les factures simples. Six templates professionnels sont disponibles.">
+    <div class="episode-badge">Episode 5</div>
+    <div class="big-icon">🧾</div>
+    <div class="slide-title gradient-text" style="font-size: 56px;">Facturation</div>
+    <div class="slide-subtitle">Le coeur de CashPilot</div>
+    <div class="stats-row" style="margin-top:10px;">
+      <div class="stat-card" style="padding:24px 28px;">
+        <div style="font-size:32px;margin-bottom:8px;">📝</div>
+        <div class="stat-label">Mode Standard</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:6px;">Formulaire complet</p>
+      </div>
+      <div class="stat-card" style="padding:24px 28px;">
+        <div style="font-size:32px;margin-bottom:8px;">⚡</div>
+        <div class="stat-label">Mode Rapide</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:6px;">Creation acceleree</p>
+      </div>
+      <div class="stat-card" style="padding:24px 28px;">
+        <div style="font-size:32px;margin-bottom:8px;">🎨</div>
+        <div class="stat-label">6 Templates</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:6px;">Designs professionnels</p>
+      </div>
+      <div class="stat-card" style="padding:24px 28px;">
+        <div style="font-size:32px;margin-bottom:8px;">📤</div>
+        <div class="stat-label">Export PDF</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:6px;">Documents imprimables</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 10: FACTURATION MOCKUP -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Creez une facture en renseignant le client, les dates, puis les lignes : description, quantite, prix unitaire et TVA. Le montant se calcule automatiquement. Enregistrez les paiements et suivez les statuts.">
+    <div class="episode-badge">Episode 5</div>
+    <div class="slide-title gradient-text-blue" style="font-size: 44px;">Interface Factures</div>
+    <div class="mockup-container" style="height:440px;">
+      <div class="mockup-sidebar">
+        <div class="mockup-sidebar-logo"><span class="gradient-text">CashPilot</span></div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Dashboard</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Clients</div>
+        <div class="mockup-nav-item active-item"><div class="nav-dot"></div>Factures</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Devis</div>
+        <div class="mockup-nav-item"><div class="nav-dot"></div>Depenses</div>
+      </div>
+      <div class="mockup-content">
+        <div class="mockup-topbar"><h2>Factures</h2><div class="mockup-btn mockup-btn-primary">+ Nouvelle Facture</div></div>
+        <div class="mockup-stat-row">
+          <div class="mockup-mini-stat"><div class="mms-value c-green">€ 84 500</div><div class="mms-label">Total facture</div></div>
+          <div class="mockup-mini-stat"><div class="mms-value c-blue">€ 72 300</div><div class="mms-label">Paye</div></div>
+          <div class="mockup-mini-stat"><div class="mms-value c-amber">€ 12 200</div><div class="mms-label">Solde du</div></div>
+        </div>
+        <table class="mockup-table">
+          <thead><tr><th>N°</th><th>Client</th><th>Montant</th><th>Statut</th><th>Echeance</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">FAC-2026-042</td><td>Acme Corp</td><td>€ 4 800</td><td><span class="badge badge-green">Payee</span></td><td style="color:var(--text-muted)">15/01/2026</td></tr>
+            <tr><td style="font-weight:600;">FAC-2026-041</td><td>TechVision</td><td>€ 3 200</td><td><span class="badge badge-amber">Partielle</span></td><td style="color:var(--text-muted)">20/01/2026</td></tr>
+            <tr><td style="font-weight:600;">FAC-2026-040</td><td>StartupFlow</td><td>€ 6 500</td><td><span class="badge badge-red">En retard</span></td><td style="color:var(--text-muted)">10/01/2026</td></tr>
+            <tr><td style="font-weight:600;">FAC-2026-039</td><td>GlobalDesign</td><td>€ 2 100</td><td><span class="badge badge-blue">Envoyee</span></td><td style="color:var(--text-muted)">28/01/2026</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 11: STATUTS FACTURE -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Les factures passent par plusieurs statuts. Enregistrez les paiements avec le montant, la methode et la reference. Le paiement forfaitaire permet de repartir un virement global sur plusieurs factures.">
+    <div class="episode-badge">Episode 5</div>
+    <div class="slide-title gradient-text" style="font-size: 48px;">Cycle de Vie d'une Facture</div>
+    <div class="process-flow">
+      <div class="process-step"><div class="step-icon bg-purple">📝</div><div class="step-label" style="color:var(--text-muted);">Brouillon</div></div>
+      <div class="process-arrow">→</div>
+      <div class="process-step"><div class="step-icon bg-blue">📤</div><div class="step-label c-blue">Envoyee</div></div>
+      <div class="process-arrow">→</div>
+      <div class="process-step"><div class="step-icon bg-amber">⏳</div><div class="step-label c-amber">Partielle</div></div>
+      <div class="process-arrow">→</div>
+      <div class="process-step"><div class="step-icon bg-green">✅</div><div class="step-label c-green">Payee</div></div>
+    </div>
+    <div class="two-cols" style="margin-top:40px;">
+      <div class="col-card">
+        <h3><span style="color:var(--green);">💳</span> Paiement Simple</h3>
+        <ul>
+          <li class="li-green">Montant recu</li>
+          <li class="li-green">Date de paiement</li>
+          <li class="li-green">Methode : virement, carte, cheque</li>
+          <li class="li-green">Reference de transaction</li>
+          <li class="li-green">Statut mis a jour automatiquement</li>
+        </ul>
+      </div>
+      <div class="col-card">
+        <h3><span style="color:var(--amber);">📦</span> Paiement Forfaitaire</h3>
+        <ul>
+          <li class="li-amber">Montant global recu</li>
+          <li class="li-amber">Selection du client</li>
+          <li class="li-amber">Repartition sur factures impayees</li>
+          <li class="li-amber">Ideal pour virements groupes</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 12: DEVIS & BONS -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Les devis fonctionnent comme les factures avec leurs propres statuts. Un devis accepte se convertit en facture en un clic. Les bons de commande gerent vos achats fournisseurs, et les avoirs gèrent les remboursements.">
+    <div class="episode-badge">Episode 6</div>
+    <div class="slide-title gradient-text" style="font-size: 48px;">Devis, Bons & Avoirs</div>
+    <div class="feature-grid" style="grid-template-columns:1fr 1fr 1fr;max-width:1100px;">
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:28px;">
+        <div style="font-size:44px;margin-bottom:12px;">📋</div>
+        <h3 class="c-blue">Devis</h3>
+        <p>Brouillon → Envoye → Accepte</p>
+        <p style="margin-top:8px;font-size:13px;"><span class="badge badge-green">Convertir en facture</span></p>
+      </div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:28px;">
+        <div style="font-size:44px;margin-bottom:12px;">📦</div>
+        <h3 class="c-amber">Bons de Commande</h3>
+        <p>Gerez vos achats fournisseurs</p>
+        <p style="margin-top:8px;font-size:13px;"><span class="badge badge-amber">Suivi livraisons</span></p>
+      </div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:28px;">
+        <div style="font-size:44px;margin-bottom:12px;">↩️</div>
+        <h3 class="c-pink">Avoirs</h3>
+        <p>Notes de credit et remboursements</p>
+        <p style="margin-top:8px;font-size:13px;"><span class="badge badge-purple">Lie ou independant</span></p>
+      </div>
+    </div>
+    <div class="feature-grid" style="grid-template-columns:1fr 1fr;max-width:750px;margin-top:20px;">
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:24px;">
+        <div style="font-size:36px;margin-bottom:10px;">🚚</div>
+        <h3 class="c-cyan">Bons de Livraison</h3>
+        <p>Transporteur, suivi, statut</p>
+      </div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:24px;">
+        <div style="font-size:36px;margin-bottom:10px;">📤</div>
+        <h3 class="c-green">Export PDF</h3>
+        <p>Tous documents exportables</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 13: DEPENSES -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Suivez toutes vos depenses par categorie : bureau, deplacement, logiciel, marketing. Chaque categorie a sa couleur. L'export inclut les totaux par categorie et les statistiques globales.">
+    <div class="episode-badge">Episode 7</div>
+    <div class="slide-title gradient-text" style="font-size: 52px;">Gestion des Depenses</div>
+    <div class="list-container" style="max-width:900px;">
+      <div class="list-item"><div class="list-icon bg-blue" style="font-size:18px;">🏢</div><div style="flex:1;"><h4>Bureau</h4><p>Fournitures, mobilier, amenagement</p></div><div class="badge badge-blue" style="font-size:14px;">€ 2 340</div></div>
+      <div class="list-item"><div class="list-icon bg-green" style="font-size:18px;">✈️</div><div style="flex:1;"><h4>Deplacements</h4><p>Transport, hebergement, repas</p></div><div class="badge badge-green" style="font-size:14px;">€ 5 120</div></div>
+      <div class="list-item"><div class="list-icon bg-purple" style="font-size:18px;">💻</div><div style="flex:1;"><h4>Logiciels</h4><p>Licences, SaaS, abonnements</p></div><div class="badge badge-purple" style="font-size:14px;">€ 3 680</div></div>
+      <div class="list-item"><div class="list-icon bg-pink" style="font-size:18px;">📢</div><div style="flex:1;"><h4>Marketing</h4><p>Publicite, evenements, contenu</p></div><div class="badge" style="background:rgba(236,72,153,0.15);color:var(--pink);font-size:14px;">€ 4 200</div></div>
+      <div class="list-item"><div class="list-icon bg-amber" style="font-size:18px;">🔧</div><div style="flex:1;"><h4>Materiel</h4><p>Ordinateurs, equipements</p></div><div class="badge badge-amber" style="font-size:14px;">€ 8 900</div></div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 14: STOCKS -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="La gestion des stocks affiche un tableau de bord complet. Ajoutez des produits avec SKU et prix, ajustez les quantites avec historique des mouvements. Les alertes orange et rouge signalent les reapprovisionnements.">
+    <div class="episode-badge">Episode 7</div>
+    <div class="slide-title gradient-text-blue" style="font-size: 52px;">Gestion des Stocks</div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value c-blue">156</div>
+        <div class="stat-label">Total Produits</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value c-amber">12</div>
+        <div class="stat-label">Stock Bas ⚠️</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value c-red">3</div>
+        <div class="stat-label">Rupture 🔴</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value c-green">€ 89K</div>
+        <div class="stat-label">Valeur Totale</div>
+      </div>
+    </div>
+    <div class="process-flow" style="margin-top:32px;">
+      <div class="process-step"><div class="step-icon bg-blue">📦</div><div class="step-label">Ajout Produit</div></div>
+      <div class="process-arrow">→</div>
+      <div class="process-step"><div class="step-icon bg-green">🔄</div><div class="step-label">Ajustement</div></div>
+      <div class="process-arrow">→</div>
+      <div class="process-step"><div class="step-icon bg-purple">📜</div><div class="step-label">Historique</div></div>
+      <div class="process-arrow">→</div>
+      <div class="process-step"><div class="step-icon bg-amber">🔔</div><div class="step-label">Alertes</div></div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 15: FOURNISSEURS -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Centralisez les informations fournisseurs : coordonnees, conditions de paiement, TVA, coordonnees bancaires. Les rapports classent vos partenaires par volume. Une vue carte les localise geographiquement.">
+    <div class="episode-badge">Episode 8</div>
+    <div class="slide-title gradient-text" style="font-size: 48px;">Fournisseurs & Creances</div>
+    <div class="two-cols">
+      <div class="col-card">
+        <h3><span style="color:var(--blue);">🏭</span> Fournisseurs</h3>
+        <ul>
+          <li class="li-blue">Fiche complete : contact, adresse, fiscal</li>
+          <li class="li-blue">Conditions de paiement et devise</li>
+          <li class="li-blue">Coordonnees bancaires (IBAN/BIC)</li>
+          <li class="li-blue">Rapports et classement par volume</li>
+          <li class="li-blue">Vue carte geographique</li>
+          <li class="li-blue">Statut actif / inactif</li>
+        </ul>
+      </div>
+      <div class="col-card">
+        <h3><span style="color:var(--green);">💰</span> Creances & Dettes</h3>
+        <ul>
+          <li class="li-green">Solde net : creances - dettes</li>
+          <li class="li-green">Creances : argent a recevoir</li>
+          <li class="li-green">Dettes : argent a payer</li>
+          <li class="li-green">Enregistrement des paiements</li>
+          <li class="li-green">Statuts automatiques</li>
+          <li class="li-green">Alertes de retard</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 16: COMPTABILITE -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="L'integration comptable comprend dix modules : plan comptable, bilan, compte de resultat, TVA, estimation fiscale, rapprochement bancaire, diagnostic financier, mappings, taux de TVA et journal automatique.">
+    <div class="episode-badge">Episode 9</div>
+    <div class="big-icon">📒</div>
+    <div class="slide-title gradient-text" style="font-size: 52px;">Integration Comptable</div>
+    <div class="slide-subtitle">10 Modules Comptables Integres</div>
+    <div class="feature-grid" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr;max-width:1200px;">
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:20px 12px;"><div style="font-size:28px;margin-bottom:6px;">📊</div><h3 style="font-size:13px;">Plan Comptable</h3></div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:20px 12px;"><div style="font-size:28px;margin-bottom:6px;">⚖️</div><h3 style="font-size:13px;">Bilan</h3></div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:20px 12px;"><div style="font-size:28px;margin-bottom:6px;">📈</div><h3 style="font-size:13px;">Resultat</h3></div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:20px 12px;"><div style="font-size:28px;margin-bottom:6px;">🏛️</div><h3 style="font-size:13px;">TVA</h3></div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:20px 12px;"><div style="font-size:28px;margin-bottom:6px;">💡</div><h3 style="font-size:13px;">Fiscal</h3></div>
+    </div>
+    <div class="feature-grid" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr;max-width:1200px;margin-top:0;">
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:20px 12px;"><div style="font-size:28px;margin-bottom:6px;">🏦</div><h3 style="font-size:13px;">Bancaire</h3></div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:20px 12px;"><div style="font-size:28px;margin-bottom:6px;">🩺</div><h3 style="font-size:13px;">Diagnostic</h3></div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:20px 12px;"><div style="font-size:28px;margin-bottom:6px;">🔗</div><h3 style="font-size:13px;">Mappings</h3></div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:20px 12px;"><div style="font-size:28px;margin-bottom:6px;">%</div><h3 style="font-size:13px;">Taux TVA</h3></div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:20px 12px;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><h3 style="font-size:13px;">Journal Auto</h3></div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 17: JOURNAL AUTO -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Le journal automatique genere les ecritures comptables. Par exemple, une facture de 1200 euros TTC cree le debit du compte clients et les credits des comptes produits et TVA. Tout est trace automatiquement.">
+    <div class="episode-badge">Episode 9</div>
+    <div class="slide-title gradient-text-blue" style="font-size: 44px;">Ecriture Comptable Automatique</div>
+    <div class="slide-subtitle" style="font-size:22px;">Facture de 1 200 € TTC (1 000 € HT + 200 € TVA)</div>
+    <div class="accounting-entry">
+      <div class="ae-row ae-header"><div>Compte</div><div>Libelle</div><div>Debit</div><div>Credit</div></div>
+      <div class="ae-row"><div style="font-weight:600;">411</div><div>Clients</div><div class="ae-debit">1 200 €</div><div>—</div></div>
+      <div class="ae-row"><div style="font-weight:600;">706</div><div>Prestations de services</div><div>—</div><div class="ae-credit">1 000 €</div></div>
+      <div class="ae-row"><div style="font-weight:600;">44571</div><div>TVA collectee</div><div>—</div><div class="ae-credit">200 €</div></div>
+      <div class="ae-row" style="border-top:2px solid rgba(255,255,255,0.1);font-weight:700;"><div></div><div>Total</div><div class="ae-debit">1 200 €</div><div class="ae-credit">1 200 €</div></div>
+    </div>
+    <div class="process-flow" style="margin-top:32px;">
+      <div class="process-step"><div class="step-icon bg-blue">🧾</div><div class="step-label">Facture</div></div>
+      <div class="process-arrow">→</div>
+      <div class="process-step"><div class="step-icon bg-purple">🔗</div><div class="step-label">Mapping</div></div>
+      <div class="process-arrow">→</div>
+      <div class="process-step"><div class="step-icon bg-green">📒</div><div class="step-label">Ecriture Auto</div></div>
+      <div class="process-arrow">→</div>
+      <div class="process-step"><div class="step-icon bg-amber">🔍</div><div class="step-label">Piste d'Audit</div></div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 18: DIAGNOSTIC FINANCIER -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Le diagnostic financier analyse votre sante avec des ratios cles : marge brute, ROE, liquidite, endettement. Des jauges visuelles en vert, orange ou rouge indiquent les zones d'attention.">
+    <div class="episode-badge">Episode 9</div>
+    <div class="slide-title gradient-text" style="font-size: 48px;">Diagnostic Financier</div>
+    <div class="stats-row">
+      <div class="stat-card" style="border-left:3px solid var(--green);">
+        <div class="stat-value c-green" style="font-size:40px;">68%</div>
+        <div class="stat-label">Marge Brute</div>
+        <div style="margin-top:10px;"><span class="badge badge-green">Sain</span></div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid var(--green);">
+        <div class="stat-value c-green" style="font-size:40px;">22%</div>
+        <div class="stat-label">ROE</div>
+        <div style="margin-top:10px;"><span class="badge badge-green">Bon</span></div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid var(--amber);">
+        <div class="stat-value c-amber" style="font-size:40px;">1.4</div>
+        <div class="stat-label">Ratio Liquidite</div>
+        <div style="margin-top:10px;"><span class="badge badge-amber">Attention</span></div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid var(--green);">
+        <div class="stat-value c-green" style="font-size:40px;">0.35</div>
+        <div class="stat-label">Endettement</div>
+        <div style="margin-top:10px;"><span class="badge badge-green">Faible</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 19: SCENARIOS -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Les scenarios financiers simulent l'avenir. Definissez vos hypotheses de croissance, depenses et investissements. Comparez plusieurs scenarios — optimiste, pessimiste, realiste — pour prendre des decisions eclairees.">
+    <div class="episode-badge">Episode 10</div>
+    <div class="slide-title gradient-text" style="font-size: 52px;">Scenarios Financiers</div>
+    <div class="feature-grid" style="grid-template-columns:1fr 1fr 1fr;max-width:1000px;">
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:28px;border-left:3px solid var(--green);">
+        <div style="font-size:36px;margin-bottom:10px;">🌱</div>
+        <h3 class="c-green">Optimiste</h3>
+        <p>Croissance +15%/mois</p>
+        <div style="margin-top:12px;font-family:'Space Grotesk';font-size:24px;font-weight:700;color:var(--green);">€ 240K</div>
+        <div style="font-size:12px;color:var(--text-muted);">CA projete annuel</div>
+      </div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:28px;border-left:3px solid var(--blue);">
+        <div style="font-size:36px;margin-bottom:10px;">📊</div>
+        <h3 class="c-blue">Realiste</h3>
+        <p>Croissance +8%/mois</p>
+        <div style="margin-top:12px;font-family:'Space Grotesk';font-size:24px;font-weight:700;color:var(--blue);">€ 165K</div>
+        <div style="font-size:12px;color:var(--text-muted);">CA projete annuel</div>
+      </div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:28px;border-left:3px solid var(--amber);">
+        <div style="font-size:36px;margin-bottom:10px;">⚠️</div>
+        <h3 class="c-amber">Pessimiste</h3>
+        <p>Croissance +2%/mois</p>
+        <div style="margin-top:12px;font-family:'Space Grotesk';font-size:24px;font-weight:700;color:var(--amber);">€ 108K</div>
+        <div style="font-size:12px;color:var(--text-muted);">CA projete annuel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 20: ANALYSES -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="La page Analyses offre des tableaux de bord multi-dimensionnels : tendances de revenus et depenses, classement des clients, performance des projets. Filtrez par periode et exportez un rapport complet.">
+    <div class="episode-badge">Episode 10</div>
+    <div class="slide-title gradient-text-blue" style="font-size: 48px;">Analyses & Rapports</div>
+    <div class="feature-grid" style="max-width:1000px;">
+      <div class="feature-card"><div class="feature-icon bg-green">📈</div><div><h3>Tendances Revenus</h3><p>Evolution mensuelle du chiffre d'affaires avec graphiques interactifs</p></div></div>
+      <div class="feature-card"><div class="feature-icon bg-red">📉</div><div><h3>Tendances Depenses</h3><p>Suivi des couts avec comparaison revenus vs depenses</p></div></div>
+      <div class="feature-card"><div class="feature-icon bg-blue">🏆</div><div><h3>Top Clients</h3><p>Classement par chiffre d'affaires et repartition</p></div></div>
+      <div class="feature-card"><div class="feature-icon bg-purple">⚡</div><div><h3>Performance Projets</h3><p>Budget vs realise, taux de completion, rentabilite</p></div></div>
+    </div>
+    <div class="stats-row" style="margin-top:24px;max-width:800px;">
+      <div class="stat-card" style="padding:20px 28px;">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Filtres</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-blue">7j</span>
+          <span class="badge badge-purple">30j</span>
+          <span class="badge badge-green">3m</span>
+          <span class="badge badge-amber">12m</span>
+        </div>
+      </div>
+      <div class="stat-card" style="padding:20px 28px;">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Export</div>
+        <div style="display:flex;gap:6px;">
+          <span class="badge badge-red">PDF</span>
+          <span class="badge badge-blue">HTML</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 21: PARAMETRES -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="Les parametres couvrent tout : profil, entreprise avec logo et couleurs, facturation avec templates, equipe avec roles, notifications, securite avec 2FA, credits pour les exports, et sauvegardes automatiques.">
+    <div class="episode-badge">Episode 10</div>
+    <div class="slide-title gradient-text" style="font-size: 48px;">Parametres & Configuration</div>
+    <div class="feature-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;max-width:1100px;">
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:24px 16px;">
+        <div style="font-size:32px;margin-bottom:8px;">👤</div>
+        <h3 style="font-size:15px;">Profil</h3>
+        <p style="font-size:12px;">Nom, email, avatar</p>
+      </div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:24px 16px;">
+        <div style="font-size:32px;margin-bottom:8px;">🏢</div>
+        <h3 style="font-size:15px;">Entreprise</h3>
+        <p style="font-size:12px;">Logo, SIRET, couleurs</p>
+      </div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:24px 16px;">
+        <div style="font-size:32px;margin-bottom:8px;">🧾</div>
+        <h3 style="font-size:15px;">Facturation</h3>
+        <p style="font-size:12px;">Templates, numerotation</p>
+      </div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:24px 16px;">
+        <div style="font-size:32px;margin-bottom:8px;">👥</div>
+        <h3 style="font-size:15px;">Equipe</h3>
+        <p style="font-size:12px;">Roles, permissions</p>
+      </div>
+    </div>
+    <div class="feature-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;max-width:1100px;margin-top:0;">
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:24px 16px;">
+        <div style="font-size:32px;margin-bottom:8px;">🔔</div>
+        <h3 style="font-size:15px;">Notifications</h3>
+        <p style="font-size:12px;">Email, push, SMS</p>
+      </div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:24px 16px;">
+        <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+        <h3 style="font-size:15px;">Securite</h3>
+        <p style="font-size:12px;">2FA, biometrie</p>
+      </div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:24px 16px;">
+        <div style="font-size:32px;margin-bottom:8px;">🪙</div>
+        <h3 style="font-size:15px;">Credits</h3>
+        <p style="font-size:12px;">Solde, achats, historique</p>
+      </div>
+      <div class="feature-card" style="flex-direction:column;align-items:center;text-align:center;padding:24px 16px;">
+        <div style="font-size:32px;margin-bottom:8px;">💾</div>
+        <h3 style="font-size:15px;">Sauvegarde</h3>
+        <p style="font-size:12px;">Auto, manuelle, restauration</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 22: CREDITS & EXPORTS -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="CashPilot utilise un systeme de credits pour les exports premium. Un export PDF coute 2 credits, un HTML coute 1 credit. Achetez des packs de credits depuis les parametres.">
+    <div class="episode-badge">Systeme</div>
+    <div class="slide-title gradient-text-blue" style="font-size: 48px;">Credits & Exports</div>
+    <div class="two-cols" style="max-width:900px;">
+      <div class="col-card" style="text-align:center;">
+        <h3 style="justify-content:center;"><span style="color:var(--red);">📄</span> Export PDF</h3>
+        <div style="font-family:'Space Grotesk';font-size:64px;font-weight:800;color:var(--amber);margin:20px 0;">2</div>
+        <div style="font-size:18px;color:var(--text-secondary);">credits par document</div>
+        <ul style="margin-top:16px;text-align:left;">
+          <li class="li-amber">Factures professionnelles</li>
+          <li class="li-amber">Rapports comptables</li>
+          <li class="li-amber">Etats financiers</li>
+        </ul>
+      </div>
+      <div class="col-card" style="text-align:center;">
+        <h3 style="justify-content:center;"><span style="color:var(--blue);">🌐</span> Export HTML</h3>
+        <div style="font-family:'Space Grotesk';font-size:64px;font-weight:800;color:var(--green);margin:20px 0;">1</div>
+        <div style="font-size:18px;color:var(--text-secondary);">credit par document</div>
+        <ul style="margin-top:16px;text-align:left;">
+          <li class="li-green">Pages web</li>
+          <li class="li-green">Envoi par email</li>
+          <li class="li-green">Partage en ligne</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SLIDE 23: CLOSING -->
+  <!-- ============================================ -->
+  <div class="slide" data-narration="CashPilot, c'est la gestion d'entreprise simplifiee. Facturation, projets, comptabilite, stocks : tout est la. A vous de jouer.">
+    <div class="logo-huge gradient-text">CashPilot</div>
+    <div class="tagline">Gerez votre entreprise. Simplement.</div>
+    <p class="slide-body" style="margin-top:30px;font-size:18px;max-width:600px;">
+      Facturation &bull; Projets &bull; Comptabilite &bull; Stocks &bull; Analyses &bull; Scenarios
+    </p>
+    <p class="slide-body" style="margin-top:24px;font-size:14px;color:var(--text-muted);">
+      Version 1.0 — Fevrier 2026
+    </p>
+  </div>
+
+</div><!-- end presentation -->
+
+<!-- Narration Bar -->
+<div id="narration-bar"></div>
+
+<!-- Progress Bar -->
+<div id="progress-container"><div id="progress-bar"></div></div>
+
+<!-- Slide Counter -->
+<div id="slide-counter">1 / 24</div>
+
+<!-- Controls -->
+<div id="controls">
+  <div class="ctrl-btn" id="btn-prev" title="Precedent">◀</div>
+  <div class="ctrl-btn" id="btn-play" title="Play/Pause">⏸</div>
+  <div class="ctrl-btn" id="btn-next" title="Suivant">▶</div>
+  <div class="ctrl-btn" id="btn-fs" title="Plein ecran">⛶</div>
+</div>
+
+<script>
+(function() {
+  // Generate particles
+  const particlesContainer = document.getElementById('particles');
+  for (let i = 0; i < 40; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (8 + Math.random() * 15) + 's';
+    p.style.animationDelay = (Math.random() * 10) + 's';
+    p.style.width = p.style.height = (2 + Math.random() * 4) + 'px';
+    const colors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    particlesContainer.appendChild(p);
+  }
+
+  // Slides engine
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  let playing = true;
+  let timer = null;
+  const INTERVAL = 9000; // ms per slide
+
+  const narrationBar = document.getElementById('narration-bar');
+  const progressBar = document.getElementById('progress-bar');
+  const counter = document.getElementById('slide-counter');
+  const btnPlay = document.getElementById('btn-play');
+
+  function goTo(index) {
+    if (index < 0 || index >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit-left');
+    setTimeout(() => slides[current === index ? current : (index > 0 ? index - 1 : total - 1)].classList.remove('exit-left'), 800);
+
+    current = index;
+    slides[current].classList.remove('exit-left');
+    slides[current].classList.add('active');
+
+    // Narration
+    const narration = slides[current].getAttribute('data-narration');
+    if (narration) {
+      narrationBar.textContent = narration;
+      narrationBar.classList.add('visible');
+    } else {
+      narrationBar.classList.remove('visible');
+    }
+
+    // Progress
+    progressBar.style.width = ((current + 1) / total * 100) + '%';
+
+    // Counter
+    counter.textContent = (current + 1) + ' / ' + total;
+  }
+
+  function next() {
+    const nextIndex = (current + 1) % total;
+    goTo(nextIndex);
+  }
+
+  function prev() {
+    const prevIndex = (current - 1 + total) % total;
+    goTo(prevIndex);
+  }
+
+  function startAutoPlay() {
+    stopAutoPlay();
+    playing = true;
+    btnPlay.textContent = '⏸';
+    timer = setInterval(next, INTERVAL);
+  }
+
+  function stopAutoPlay() {
+    playing = false;
+    btnPlay.textContent = '▶';
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  function togglePlay() {
+    if (playing) stopAutoPlay();
+    else startAutoPlay();
+  }
+
+  // Init
+  goTo(0);
+  startAutoPlay();
+
+  // Controls
+  document.getElementById('btn-next').addEventListener('click', () => { next(); if (playing) startAutoPlay(); });
+  document.getElementById('btn-prev').addEventListener('click', () => { prev(); if (playing) startAutoPlay(); });
+  document.getElementById('btn-play').addEventListener('click', togglePlay);
+  document.getElementById('btn-fs').addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  });
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); if (playing) startAutoPlay(); }
+    else if (e.key === 'ArrowLeft') { prev(); if (playing) startAutoPlay(); }
+    else if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+    else if (e.key === 'p' || e.key === 'P') togglePlay();
+    else if (e.key === 'r' || e.key === 'R') { goTo(0); if (playing) startAutoPlay(); }
+  });
+
+  // Cleanup exit-left on all non-active
+  setInterval(() => {
+    slides.forEach((s, i) => { if (i !== current) s.classList.remove('active', 'exit-left'); });
+  }, 1000);
+})();
+</script>
+</body>
+</html>
