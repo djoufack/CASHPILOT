@@ -35,6 +35,7 @@ const ExpensesPage = () => {
     amount: '',
     category: 'general',
     date: new Date().toISOString().split('T')[0],
+    expense_date: new Date().toISOString().split('T')[0],
     notes: '',
     supplier_name: ''
   };
@@ -45,7 +46,8 @@ const ExpensesPage = () => {
     try {
       await createExpense({
         ...formData,
-        amount: parseFloat(formData.amount)
+        amount: parseFloat(formData.amount),
+        expense_date: formData.expense_date || formData.date
       });
       setIsDialogOpen(false);
       setFormData(emptyForm);

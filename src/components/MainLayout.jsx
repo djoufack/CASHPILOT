@@ -5,6 +5,7 @@ import { Outlet } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import MobileMenu from './MobileMenu';
+import OnboardingBanner from './onboarding/OnboardingBanner';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
@@ -105,6 +106,7 @@ const MainLayout = () => {
           md:pt-14
           min-h-[calc(100vh-65px)] md:min-h-screen`}
       >
+        <OnboardingBanner />
         <div className="w-full h-full">
             <Outlet />
         </div>

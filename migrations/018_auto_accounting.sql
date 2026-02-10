@@ -275,6 +275,7 @@ DECLARE
   v_amount_ht NUMERIC;
   v_tva NUMERIC;
   v_amount_ttc NUMERIC;
+  v_txn_date DATE;
 BEGIN
   -- Check if auto-journaling is enabled
   SELECT auto_journal_enabled INTO v_enabled
@@ -305,21 +306,24 @@ BEGIN
   v_tva := COALESCE(NEW.tax_amount, 0);
   v_amount_ttc := v_amount_ht + v_tva;
 
+  -- Determine transaction date: prefer expense_date, then created_at, then CURRENT_DATE
+  v_txn_date := COALESCE(NEW.expense_date, NEW.created_at::date, CURRENT_DATE);
+
   -- Debit: Expense account (HT)
   INSERT INTO accounting_entries (user_id, transaction_date, account_code, debit, credit, source_type, source_id, journal, entry_ref, is_auto, description)
-  VALUES (NEW.user_id, COALESCE(NEW.date, CURRENT_DATE), v_expense_code, v_amount_ht, 0, 'expense', NEW.id, 'AC', v_ref, true,
+  VALUES (NEW.user_id, v_txn_date, v_expense_code, v_amount_ht, 0, 'expense', NEW.id, 'AC', v_ref, true,
     'Dépense - ' || COALESCE(NEW.category, 'divers') || ': ' || COALESCE(NEW.description, ''));
 
   -- Debit: VAT input (TVA déductible) — only if > 0
   IF v_tva > 0 THEN
     INSERT INTO accounting_entries (user_id, transaction_date, account_code, debit, credit, source_type, source_id, journal, entry_ref, is_auto, description)
-    VALUES (NEW.user_id, COALESCE(NEW.date, CURRENT_DATE), v_vat_code, v_tva, 0, 'expense', NEW.id, 'AC', v_ref, true,
+    VALUES (NEW.user_id, v_txn_date, v_vat_code, v_tva, 0, 'expense', NEW.id, 'AC', v_ref, true,
       'TVA déductible - ' || COALESCE(NEW.description, ''));
   END IF;
 
   -- Credit: Bank (TTC)
   INSERT INTO accounting_entries (user_id, transaction_date, account_code, debit, credit, source_type, source_id, journal, entry_ref, is_auto, description)
-  VALUES (NEW.user_id, COALESCE(NEW.date, CURRENT_DATE), v_bank_code, 0, v_amount_ttc, 'expense', NEW.id, 'AC', v_ref, true,
+  VALUES (NEW.user_id, v_txn_date, v_bank_code, 0, v_amount_ttc, 'expense', NEW.id, 'AC', v_ref, true,
     'Règlement dépense - ' || COALESCE(NEW.description, ''));
 
   RETURN NEW;

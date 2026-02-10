@@ -57,7 +57,7 @@ const SignupPage = () => {
       });
       
       setTimeout(() => {
-         navigate('/');
+         navigate('/app/onboarding');
       }, 1500);
 
     } catch (error) {

@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS public.expenses (
   receipt_url TEXT,
   refacturable BOOLEAN DEFAULT false,
   date TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  expense_date DATE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 

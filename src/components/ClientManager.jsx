@@ -47,8 +47,8 @@ const ClientManager = () => {
   const [clientToDelete, setClientToDelete] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const emptyFormData = {
-    companyName: '',
-    contactName: '',
+    company_name: '',
+    contact_name: '',
     email: '',
     phone: '',
     website: '',
@@ -58,9 +58,9 @@ const ClientManager = () => {
     postal_code: '',
     country: '',
     // Business
-    vatNumber: '',
+    vat_number: '',
     tax_id: '',
-    preferredCurrency: 'EUR',
+    preferred_currency: 'EUR',
     payment_terms: '',
     // Bank
     bank_name: '',
@@ -75,8 +75,8 @@ const ClientManager = () => {
     if (client) {
       setEditingClient(client);
       setFormData({
-        companyName: client.companyName || '',
-        contactName: client.contactName || '',
+        company_name: client.company_name || '',
+        contact_name: client.contact_name || '',
         email: client.email || '',
         phone: client.phone || '',
         website: client.website || '',
@@ -84,9 +84,9 @@ const ClientManager = () => {
         city: client.city || '',
         postal_code: client.postal_code || '',
         country: client.country || '',
-        vatNumber: client.vatNumber || '',
+        vat_number: client.vat_number || '',
         tax_id: client.tax_id || '',
-        preferredCurrency: client.preferredCurrency || 'EUR',
+        preferred_currency: client.preferred_currency || 'EUR',
         payment_terms: client.payment_terms || '',
         bank_name: client.bank_name || '',
         iban: client.iban || '',
@@ -133,22 +133,22 @@ const ClientManager = () => {
   };
 
   const filteredClients = clients.filter(client =>
-    client.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.contactName.toLowerCase().includes(searchTerm.toLowerCase())
+    (client.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (client.contact_name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleExportList = (format) => {
     if (!filteredClients || filteredClients.length === 0) return;
     const exportData = filteredClients.map(c => ({
-      'Company Name': c.companyName || c.company_name || '',
-      'Contact Name': c.contactName || c.contact_name || '',
+      'Company Name': c.company_name || '',
+      'Contact Name': c.contact_name || '',
       'Email': c.email || '',
       'Phone': c.phone || '',
       'Address': c.address || '',
       'City': c.city || '',
       'Country': c.country || '',
-      'VAT Number': c.vatNumber || c.vat_number || '',
-      'Currency': c.preferredCurrency || c.preferred_currency || '',
+      'VAT Number': c.vat_number || '',
+      'Currency': c.preferred_currency || '',
     }));
     if (format === 'csv') {
       exportToCSV(exportData, 'clients');
@@ -244,20 +244,20 @@ const ClientManager = () => {
                     onClick={() => handleOpenDialog(client)}
                   >
                     <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
-                      {client.companyName}
+                      {client.company_name}
                       {/* Mobile Only Details */}
                       <div className="md:hidden text-xs text-gray-400 mt-1">
-                         {client.contactName}
+                         {client.contact_name}
                       </div>
                     </td>
                     <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
-                      {client.contactName}
+                      {client.contact_name}
                     </td>
                     <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden lg:table-cell">
                       {client.email}
                     </td>
                     <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden lg:table-cell">
-                      {client.preferredCurrency}
+                      {client.preferred_currency}
                     </td>
                     <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
@@ -303,22 +303,22 @@ const ClientManager = () => {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="companyName">{t('clients.companyName')} *</Label>
+                    <Label htmlFor="company_name">{t('clients.companyName')} *</Label>
                     <Input
-                      id="companyName"
-                      value={formData.companyName}
-                      onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                      id="company_name"
+                      value={formData.company_name}
+                      onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
                       required
                       placeholder="Acme Corp"
                       className="bg-gray-700 border-gray-600 text-white w-full"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="contactName">{t('clients.contactName')} *</Label>
+                    <Label htmlFor="contact_name">{t('clients.contactName')} *</Label>
                     <Input
-                      id="contactName"
-                      value={formData.contactName}
-                      onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+                      id="contact_name"
+                      value={formData.contact_name}
+                      onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
                       required
                       placeholder="Jean Dupont"
                       className="bg-gray-700 border-gray-600 text-white w-full"
@@ -415,11 +415,11 @@ const ClientManager = () => {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="vatNumber">{t('clients.vatNumber')}</Label>
+                    <Label htmlFor="vat_number">{t('clients.vatNumber')}</Label>
                     <Input
-                      id="vatNumber"
-                      value={formData.vatNumber}
-                      onChange={(e) => setFormData({ ...formData, vatNumber: e.target.value })}
+                      id="vat_number"
+                      value={formData.vat_number}
+                      onChange={(e) => setFormData({ ...formData, vat_number: e.target.value })}
                       placeholder="FR 12 345678901"
                       className="bg-gray-700 border-gray-600 text-white w-full"
                     />
@@ -457,8 +457,8 @@ const ClientManager = () => {
                   <div className="space-y-2">
                     <Label htmlFor="currency">{t('clients.preferredCurrency')}</Label>
                     <Select
-                      value={formData.preferredCurrency}
-                      onValueChange={(value) => setFormData({ ...formData, preferredCurrency: value })}
+                      value={formData.preferred_currency}
+                      onValueChange={(value) => setFormData({ ...formData, preferred_currency: value })}
                     >
                       <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full">
                         <SelectValue />
