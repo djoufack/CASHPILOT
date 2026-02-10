@@ -2097,17 +2097,21 @@ Activez/Désactivez :
 
 L'onglet **Connexions** centralise tout ce dont vous avez besoin pour connecter CashPilot a vos assistants IA et outils externes.
 
-#### Section 1 : MCP distant (Claude Code, Desktop, VS Code)
+#### Section 1 : MCP distant (Claude, Cursor, Windsurf, Mistral, Rube, n8n, Gumloop...)
 
 Pilotez CashPilot en langage naturel depuis votre client IA favori via le protocole MCP (Model Context Protocol). Connexion distante — aucune installation locale requise.
 
 1. Generez une **cle API** dans la section REST API ci-dessous
-2. Selectionnez votre client : **Claude Code**, **Claude Desktop** ou **VS Code (Cline)**
-3. Copiez la configuration JSON affichee (contient l'URL `https://cashpilot.tech/mcp`)
-4. Remplacez `cpk_votre_cle_ici` par votre vraie cle API
-5. Relancez votre client — les 29 outils sont disponibles
+2. L'**URL complete** et la **configuration JSON** s'affichent automatiquement
+3. Copiez selon votre client :
+   - **Claude Desktop / Cursor / Windsurf / Mistral Le Chat** : collez l'URL dans "Add MCP Server"
+   - **Claude Code / VS Code (Cline, Continue, Copilot)** : copiez le JSON dans votre fichier de configuration
+   - **Rube.app** : ajoutez l'URL comme connexion MCP dans vos recettes
+   - **n8n** : utilisez le noeud "MCP Client" avec l'URL
+   - **Gumloop** : ajoutez un bloc MCP Server avec l'URL
+4. Relancez votre client — les 26 outils sont disponibles
 
-**Authentification :** cle API personnelle (header `X-API-Key`). Chaque utilisateur genere sa propre cle dans Parametres > Connexions.
+**Authentification :** la cle API est integree directement dans l'URL MCP. Aucun login/logout necessaire.
 
 #### Section 2 : MCP Connector — API Anthropic (distant)
 
@@ -2115,7 +2119,7 @@ Connectez-vous a CashPilot depuis l'API Anthropic Messages, sans installation lo
 
 1. Generez une **cle API CashPilot** (section REST API ci-dessous)
 2. Ajoutez le serveur MCP dans votre appel API avec `mcp_servers`
-3. Utilisez `mcp_toolset` pour que Claude accede aux 29 outils CashPilot
+3. Utilisez `mcp_toolset` pour que Claude accede aux 26 outils CashPilot
 
 **Variables a copier :**
 - **URL du serveur MCP :** `https://cashpilot.tech/mcp`
@@ -2132,7 +2136,10 @@ Generez des cles API pour connecter des logiciels externes (ChatGPT Custom GPT, 
 1. Donnez un nom a votre cle (ex: `ChatGPT`, `Zapier`, `Script Python`)
 2. Choisissez les permissions : **Lecture** (GET), **Ecriture** (POST/PUT), **Suppression** (DELETE)
 3. Cliquez sur **"Generer la cle API"**
-4. **Copiez la cle immediatement** — elle ne sera plus jamais affichee
+4. Trois formats s'affichent automatiquement — copiez celui dont vous avez besoin :
+   - **URL MCP** : pour Claude Desktop, Cursor, Windsurf, Mistral Le Chat, Rube.app, n8n, Gumloop
+   - **JSON** : pour Claude Code, VS Code (Cline, Continue, Copilot)
+   - **Cle brute** : pour scripts, ChatGPT, Zapier
 
 **Utilisation :** envoyez vos requetes HTTP vers `https://cashpilot.tech/api/v1` avec le header `X-API-Key: cpk_votre_cle`.
 
