@@ -79,6 +79,7 @@
   "rewrites": [
     { "source": "/api/v1/:path*", "destination": "https://rfzvrezrcigzmldgvntz.supabase.co/functions/v1/api-v1/:path*" },
     { "source": "/mcp", "destination": "https://rfzvrezrcigzmldgvntz.supabase.co/functions/v1/mcp" },
+    { "source": "/guide/:path*", "destination": "/guide/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
