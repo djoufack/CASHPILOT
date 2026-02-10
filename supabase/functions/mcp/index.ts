@@ -794,16 +794,37 @@ serve(async (req: Request) => {
     return new Response(null, { status: 204, headers: CORS });
   }
 
-  // MCP Streamable HTTP only accepts POST
+  // GET → SSE stream (required by Claude Desktop for Streamable HTTP)
+  if (req.method === 'GET') {
+    const body = new ReadableStream({
+      start(controller) {
+        const enc = new TextEncoder();
+        controller.enqueue(enc.encode(': ok\n\n'));
+        // Keep-alive: the Edge Function will close naturally after ~25s
+      }
+    });
+    return new Response(body, {
+      status: 200,
+      headers: { ...CORS, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+    });
+  }
+
+  // DELETE → close session (no-op for stateless server)
+  if (req.method === 'DELETE') {
+    return new Response(null, { status: 200, headers: CORS });
+  }
+
+  // Only POST beyond this point
   if (req.method !== 'POST') {
-    return jsonRes({ jsonrpc: '2.0', error: { code: -32600, message: 'Only POST is accepted for MCP Streamable HTTP.' } }, 405);
+    return jsonRes({ jsonrpc: '2.0', error: { code: -32600, message: 'Method not allowed' } }, 405);
   }
 
   try {
-    // ── Authenticate via API key ────────────────────────────────
-    const apiKey = req.headers.get('x-api-key');
+    // ── Authenticate via API key (header OR query param) ────────
+    const url = new URL(req.url);
+    const apiKey = req.headers.get('x-api-key') || url.searchParams.get('api_key');
     if (!apiKey) {
-      return jsonRes({ error: 'Missing X-API-Key header' }, 401);
+      return jsonRes({ error: 'Missing API key. Use header X-API-Key or query param ?api_key=' }, 401);
     }
 
     const sb = createClient(
