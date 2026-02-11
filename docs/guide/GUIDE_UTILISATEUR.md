@@ -4,6 +4,7 @@
 
 1. [Introduction](#introduction)
 2. [Premiers Pas](#premiers-pas)
+   - [Onboarding Comptable](#onboarding-comptable)
 3. [Tableau de Bord](#tableau-de-bord)
 4. [Gestion des Clients](#gestion-des-clients)
 5. [Gestion des Projets](#gestion-des-projets)
@@ -58,6 +59,68 @@ Bienvenue dans **CashPilot**, votre solution complète de gestion d'entreprise. 
 2. Remplissez le formulaire avec vos informations
 3. Validez votre adresse e-mail
 4. Configurez votre profil et vos informations d'entreprise
+
+### Onboarding Comptable
+
+Après la création de votre compte, CashPilot vous propose un **assistant de configuration comptable** en 5 étapes pour paramétrer votre comptabilité. Cet onboarding est **optionnel** — un bandeau de rappel s'affiche sur le tableau de bord tant qu'il n'est pas complété.
+
+#### Étape 1 — Bienvenue
+Présentation de l'assistant et des avantages de la configuration comptable.
+
+#### Étape 2 — Informations Entreprise
+Renseignez les informations de votre société (nom, adresse, numéro de TVA, etc.). Ces champs réutilisent le formulaire des paramètres entreprise.
+
+#### Étape 3 — Choix du Plan Comptable
+
+CashPilot propose **3 plans comptables pré-chargés** couvrant les principales zones francophones :
+
+| Plan | Pays | Nombre de comptes |
+|------|------|-------------------|
+| **PCG — Plan Comptable Général** | France | 271 comptes |
+| **PCMN — Plan Comptable Minimum Normalisé** | Belgique | 993 comptes |
+| **SYSCOHADA Révisé** | Afrique (17 pays OHADA) | 493 comptes |
+
+Chaque plan est affiché sous forme de **carte visuelle** avec le drapeau du pays, le nom du plan et le nombre de comptes.
+
+**Importer un plan personnalisé** : Vous pouvez également uploader votre propre plan comptable au format **CSV** ou **Excel (.xlsx)**. Les colonnes attendues sont :
+- `code` — Code du compte (ex: 6411)
+- `nom` ou `libellé` — Libellé du compte (ex: Salaires)
+- `type` ou `classe` — Type de compte (optionnel, déduit automatiquement du code)
+
+CashPilot détecte automatiquement le type de compte selon le premier chiffre du code :
+- **1** → Capitaux propres (equity)
+- **2, 3, 5** → Actifs (asset)
+- **4** → Passifs (liability)
+- **6** → Charges (expense)
+- **7** → Produits (revenue)
+
+Un aperçu des comptes importés s'affiche avant validation.
+
+#### Étape 4 — Soldes d'Ouverture
+
+Des questions simples en langage courant permettent de saisir vos soldes initiaux :
+
+| Question | Compte cible |
+|----------|-------------|
+| Solde actuel de votre compte bancaire professionnel ? | 512 (FR) / 550 (BE) / 521 (OHADA) |
+| Montant total des factures clients impayées ? | 411 / 400 |
+| Montant total des factures fournisseurs impayées ? | 401 / 440 |
+| Capital de votre entreprise ? | 101 / 100 |
+| Emprunt en cours ? Montant restant dû ? | 164 / 174 |
+| Valeur estimée du matériel professionnel ? | 218 / 215 |
+
+Tous les champs sont optionnels. CashPilot génère automatiquement les écritures journal "À Nouveau" (AN) correspondantes.
+
+Un **mode avancé** (upload) est également disponible pour les utilisateurs expérimentés.
+
+#### Étape 5 — Confirmation
+Résumé de la configuration choisie et lancement de l'initialisation comptable.
+
+#### Bandeau de Rappel
+Si vous ne complétez pas l'onboarding, un **bandeau persistant** s'affiche en haut du tableau de bord avec le message :
+> "Votre comptabilité n'est pas encore configurée."
+
+Un bouton **"Configurer"** vous ramène au wizard à l'étape où vous vous êtes arrêté. Le bandeau est masquable temporairement et réapparaît à la session suivante.
 
 ### Navigation
 
@@ -1362,6 +1425,20 @@ L'intégration comptable comprend plusieurs modules :
 
 ### 1. Plan Comptable
 
+#### Plans Pré-chargés
+
+CashPilot fournit **3 plans comptables système** accessibles à tous les utilisateurs :
+
+| Plan | Zone | Comptes | Standard |
+|------|------|---------|----------|
+| PCG | France | 271 | Plan Comptable Général |
+| PCMN | Belgique | 993 | Plan Comptable Minimum Normalisé |
+| SYSCOHADA | Afrique OHADA | 493 | Système Comptable OHADA Révisé |
+
+Ces plans sont sélectionnés lors de l'**onboarding** (voir [Onboarding Comptable](#onboarding-comptable)) ou depuis les paramètres comptables.
+
+Les utilisateurs peuvent aussi **importer un plan personnalisé** (CSV/Excel) qui reste privé à leur compte.
+
 #### Accéder au Plan Comptable
 
 1. Cliquez sur l'onglet **"Plan Comptable"**
@@ -1370,11 +1447,13 @@ L'intégration comptable comprend plusieurs modules :
 #### Structure du Plan Comptable
 
 Les comptes sont organisés par **types** :
-- **Actifs (Assets)** : Comptes 1xxx-2xxx
-- **Passifs (Liabilities)** : Comptes 4xxx-5xxx
-- **Capitaux propres (Equity)** : Comptes 10xx
+- **Actifs (Assets)** : Comptes 2xxx-3xxx, 5xxx
+- **Passifs (Liabilities)** : Comptes 4xxx
+- **Capitaux propres (Equity)** : Comptes 1xxx
 - **Produits (Revenue)** : Comptes 7xxx
 - **Charges (Expenses)** : Comptes 6xxx
+
+Les comptes suivent une **hiérarchie parent-enfant** (ex: 60 → 601, 602, 604...) pour permettre la consolidation des soldes.
 
 #### Ajouter un Compte
 

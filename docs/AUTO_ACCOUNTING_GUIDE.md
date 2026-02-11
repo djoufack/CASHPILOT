@@ -23,6 +23,102 @@ Le système d'auto-comptabilité de CashPilot génère **automatiquement** des �
 - ✅ Écritures de contrepassation lors d'annulations
 - ✅ Traçabilité complète de toutes les opérations
 
+## 📂 Plans Comptables Pré-chargés
+
+### Plans Système Disponibles
+
+CashPilot embarque **3 plans comptables officiels** accessibles à tous les utilisateurs dès l'inscription :
+
+| Plan | Pays | Comptes | Plan ID |
+|------|------|---------|---------|
+| **PCG Français** | France | 271 | `00000000-0000-4000-a000-000000000001` |
+| **PCMN Belge** | Belgique | 993 | `00000000-0000-4000-a000-000000000002` |
+| **SYSCOHADA Révisé** | Afrique (17 pays) | 493 | `00000000-0000-4000-a000-000000000003` |
+
+Total : **1 757 comptes** couvrant les classes 1 à 8 (capitaux, immobilisations, stocks, tiers, finances, charges, produits, résultat).
+
+### Schéma de Données
+
+```sql
+-- Table des plans (métadonnées)
+accounting_plans
+├── id (UUID PK)
+├── name (text)              -- "PCG Français", "PCMN Belge", etc.
+├── description (text)
+├── country_code (text)      -- "FR", "BE", "OHADA"
+├── is_global (boolean)      -- true = système, visible par tous
+├── source (text)            -- "system" ou "user_upload"
+├── uploaded_by (UUID FK)    -- NULL pour les plans système
+└── accounts_count (integer)
+
+-- Table des comptes (détail hiérarchique)
+accounting_plan_accounts
+├── id (UUID PK)
+├── plan_id (UUID FK → accounting_plans)
+├── account_code (text)      -- "101", "4111", "6324", etc.
+├── account_name (text)      -- "Capital social", "Clients locaux"
+├── account_type (text)      -- asset, liability, equity, revenue, expense
+└── parent_code (text)       -- hiérarchie parent (ex: "10" pour "101")
+```
+
+### Politiques RLS (Row Level Security)
+
+| Table | Opération | Règle |
+|-------|-----------|-------|
+| `accounting_plans` | **SELECT** | `is_global = true OR uploaded_by = auth.uid()` |
+| `accounting_plans` | **INSERT** | Utilisateur authentifié (plans privés uniquement) |
+| `accounting_plan_accounts` | **SELECT** | Plan parent accessible (global ou privé de l'utilisateur) |
+
+Tout utilisateur authentifié voit les 3 plans système + ses propres plans importés.
+
+### Onboarding : Choix du Plan (Step 3)
+
+Lors de l'inscription, le wizard d'onboarding propose à l'étape 3 :
+
+1. **Sélection d'un plan existant** : cartes visuelles avec drapeau, nom et nombre de comptes
+2. **Import d'un plan personnalisé** : upload CSV ou Excel (.xlsx)
+
+#### Format d'Import CSV/Excel
+
+| Colonne | Obligatoire | Description |
+|---------|-------------|-------------|
+| `code` | Oui | Code du compte (ex: "411") |
+| `nom` / `libellé` / `name` | Oui | Libellé du compte |
+| `type` / `classe` | Non | Type : asset, liability, equity, revenue, expense (auto-détecté si absent) |
+
+L'auto-détection du type se base sur le préfixe du code :
+- **1** → equity | **2, 3, 5** → asset | **4** → liability | **6** → expense | **7** → revenue
+
+Les plans importés sont sauvegardés en **privé** (`is_global = false`, `uploaded_by = user_id`).
+
+### Requêtes Utiles
+
+```sql
+-- Lister les plans disponibles pour un utilisateur
+SELECT id, name, country_code, accounts_count, is_global
+FROM accounting_plans
+WHERE is_global = true OR uploaded_by = auth.uid();
+
+-- Comptes d'un plan spécifique (ex: PCG Français)
+SELECT account_code, account_name, account_type, parent_code
+FROM accounting_plan_accounts
+WHERE plan_id = '00000000-0000-4000-a000-000000000001'
+ORDER BY account_code;
+
+-- Hiérarchie : comptes racines d'un plan
+SELECT account_code, account_name, account_type
+FROM accounting_plan_accounts
+WHERE plan_id = '00000000-0000-4000-a000-000000000001'
+  AND parent_code IS NULL
+ORDER BY account_code;
+
+-- Vérifier les comptages
+SELECT ap.name, ap.accounts_count, COUNT(apa.id) AS actual
+FROM accounting_plans ap
+LEFT JOIN accounting_plan_accounts apa ON apa.plan_id = ap.id
+GROUP BY ap.id, ap.name, ap.accounts_count;
+```
+
 ## 🔧 Architecture Technique
 
 ### Flux de Données
@@ -397,6 +493,11 @@ Chaque écriture automatique contient :
 - **Hook principal** : `/src/hooks/useAccountingData.js`
 - **Calculs** : `/src/utils/accountingCalculations.js`
 - **Diagnostic** : `/src/utils/financialAnalysisCalculations.js`
+- **Plans comptables JSON** : `/src/data/pcg-belge.json`, `/src/data/pcg-france.json`, `/src/data/pcg-ohada.json`
+- **Service d'initialisation** : `/src/services/accountingInitService.js`
+- **Hook onboarding** : `/src/hooks/useOnboarding.js`
+- **Wizard onboarding** : `/src/components/onboarding/OnboardingWizard.jsx`
+- **Step 3 (choix plan)** : `/src/components/onboarding/steps/Step3AccountingPlan.jsx`
 
 ## 🆘 Support
 
@@ -423,6 +524,9 @@ Pour toute question ou problème :
 
 ## 🎯 Prochaines Améliorations
 
+- [x] Onboarding comptable avec choix du plan (FR/BE/OHADA) et import personnalisé
+- [x] 3 plans comptables pré-chargés (1 757 comptes) avec RLS
+- [x] Soldes d'ouverture via questions simples (Step 4)
 - [ ] Support multi-devises avec écritures de change
 - [ ] Amortissements automatiques
 - [ ] Écritures de régularisation
