@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useStockAlerts, useStockHistory } from '@/hooks/useStockHistory';
 import { useProducts, useProductCategories } from '@/hooks/useProducts';
 import { useCompany } from '@/hooks/useCompany';
+import { getCurrencySymbol } from '@/utils/currencyService';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +28,9 @@ const StockManagement = () => {
   const { categories } = useProductCategories();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
+
+  // Get company currency symbol
+  const currencySymbol = getCurrencySymbol(company?.currency || 'EUR');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -258,12 +262,12 @@ const StockManagement = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Prix de vente (€)</Label>
+                    <Label>Prix de vente ({currencySymbol})</Label>
                     <Input type="number" className="bg-gray-800 border-gray-700" value={newProduct.unit_price}
                       onChange={e => setNewProduct(p => ({ ...p, unit_price: e.target.value }))} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Prix d'achat (€)</Label>
+                    <Label>Prix d'achat ({currencySymbol})</Label>
                     <Input type="number" className="bg-gray-800 border-gray-700" value={newProduct.purchase_price}
                       onChange={e => setNewProduct(p => ({ ...p, purchase_price: e.target.value }))} />
                   </div>

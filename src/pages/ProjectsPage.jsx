@@ -15,6 +15,7 @@ import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
 import { format, parseISO } from 'date-fns';
 import { useCompany } from '@/hooks/useCompany';
+import { getCurrencySymbol } from '@/utils/currencyService';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportProjectsListPDF, exportProjectsListHTML } from '@/services/exportListsPDF';
@@ -109,6 +110,9 @@ const ProjectsPage = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [submitting, setSubmitting] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+
+  // Get company currency symbol
+  const currencySymbol = getCurrencySymbol(company?.currency || 'EUR');
 
   const projectCalendarStatusColors = {
     active: { bg: '#f97316', border: '#ea580c', text: '#fff' },
@@ -471,7 +475,7 @@ const ProjectsPage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="hourly_rate" className="text-gray-300">Hourly Rate (€)</Label>
+                <Label htmlFor="hourly_rate" className="text-gray-300">Hourly Rate ({currencySymbol})</Label>
                 <Input
                   id="hourly_rate"
                   type="number"
