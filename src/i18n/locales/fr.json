@@ -178,7 +178,15 @@
       "timesheetDeleted": "Feuille de temps supprimée avec succès"
     },
     "error": {
-      "pdfExportFailed": "Échec de l'export PDF"
+      "pdfExportFailed": "Échec de l'export PDF",
+      "timesheetCreateFailed": "Erreur lors de la création",
+      "timesheetCreateDescription": "Veuillez vérifier que tous les champs obligatoires sont correctement remplis.",
+      "timesheetFetchFailed": "Erreur de chargement",
+      "timesheetFetchDescription": "Impossible de charger les feuilles de temps. Veuillez réessayer.",
+      "timesheetUpdateFailed": "Erreur de mise à jour",
+      "timesheetUpdateDescription": "Impossible de mettre à jour la feuille de temps. Veuillez réessayer.",
+      "timesheetDeleteFailed": "Erreur de suppression",
+      "timesheetDeleteDescription": "Impossible de supprimer la feuille de temps. Veuillez réessayer."
     }
   },
   "validation": {
