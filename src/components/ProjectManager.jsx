@@ -35,10 +35,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Search, Briefcase, Loader2, FolderOpen, ListTodo } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast";
 import { motion } from 'framer-motion';
 
 const ProjectManager = ({ onProjectSelect }) => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const { clients } = useClients();
   const { company } = useCompany();
@@ -88,6 +90,20 @@ const ProjectManager = ({ onProjectSelect }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation des champs obligatoires
+    const missingFields = [];
+    if (!formData.name?.trim()) missingFields.push(t('projects.name', 'Nom du projet'));
+
+    if (missingFields.length > 0) {
+      toast({
+        title: t('validation.missingFields', 'Champs obligatoires manquants'),
+        description: `${t('validation.pleaseComplete', 'Veuillez remplir')} : ${missingFields.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSaveLoading(true);
     
     try {

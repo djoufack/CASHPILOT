@@ -140,7 +140,16 @@
       "tomorrow": "Tomorrow",
       "thisWeek": "This Week",
       "later": "Later"
-    }
+    },
+    "billable": "Billable",
+    "notBillable": "Not billable",
+    "invoiced": "Invoiced",
+    "generateInvoice": "Generate invoice",
+    "selectForBilling": "Select for billing",
+    "selectedEntries": "entry(ies) selected",
+    "deselectAll": "Deselect all",
+    "selectAllBillable": "Select all billable",
+    "billTimesheets": "Bill timesheets"
   },
   "buttons": {
     "cancel": "Cancel",
@@ -157,7 +166,12 @@
     "sent": "Sent",
     "paid": "Paid",
     "overdue": "Overdue",
-    "cancelled": "Cancelled"
+    "cancelled": "Cancelled",
+    "active": "Active",
+    "inProgress": "In Progress",
+    "onHold": "On Hold",
+    "completed": "Completed",
+    "confirmed": "Confirmed"
   },
   "messages": {
     "success": {
@@ -170,14 +184,31 @@
       "invoiceDeleted": "Invoice deleted successfully",
       "timesheetAdded": "Timesheet added successfully",
       "timesheetUpdated": "Timesheet updated successfully",
-      "timesheetDeleted": "Timesheet deleted successfully"
+      "timesheetDeleted": "Timesheet deleted successfully",
+      "timesheetInvoiced": "Timesheets invoiced successfully"
     },
     "error": {
-      "pdfExportFailed": "PDF export failed"
+      "pdfExportFailed": "PDF export failed",
+      "timesheetCreateFailed": "Error creating entry",
+      "timesheetCreateDescription": "Please check that all required fields are filled in correctly.",
+      "timesheetFetchFailed": "Loading error",
+      "timesheetFetchDescription": "Unable to load timesheets. Please try again.",
+      "timesheetUpdateFailed": "Update error",
+      "timesheetUpdateDescription": "Unable to update the timesheet entry. Please try again.",
+      "timesheetDeleteFailed": "Deletion error",
+      "timesheetDeleteDescription": "Unable to delete the timesheet entry. Please try again.",
+      "timesheetInvoiceFailed": "Billing error",
+      "timesheetInvoiceDescription": "Unable to mark timesheets as invoiced."
     }
   },
   "validation": {
-    "invalidEmail": "Invalid email address"
+    "invalidEmail": "Invalid email address",
+    "missingFields": "Required fields missing",
+    "pleaseComplete": "Please fill in",
+    "invalidTimeFormat": "Invalid time format",
+    "useHHMM": "Please use HH:MM format for start and end times.",
+    "invalidTimeRange": "Invalid time range",
+    "endAfterStart": "End time must be after start time."
   },
   "admin": {
     "users": "User Management",

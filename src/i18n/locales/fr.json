@@ -140,7 +140,16 @@
       "tomorrow": "Demain",
       "thisWeek": "Cette semaine",
       "later": "Plus tard"
-    }
+    },
+    "billable": "Facturable",
+    "notBillable": "Non facturable",
+    "invoiced": "Facturé",
+    "generateInvoice": "Générer une facture",
+    "selectForBilling": "Sélectionner pour facturer",
+    "selectedEntries": "entrée(s) sélectionnée(s)",
+    "deselectAll": "Tout désélectionner",
+    "selectAllBillable": "Sélectionner les facturables",
+    "billTimesheets": "Facturer les heures"
   },
   "buttons": {
     "cancel": "Annuler",
@@ -157,7 +166,12 @@
     "sent": "Envoyée",
     "paid": "Payée",
     "overdue": "En retard",
-    "cancelled": "Annulée"
+    "cancelled": "Annulée",
+    "active": "Actif",
+    "inProgress": "En cours",
+    "onHold": "En attente",
+    "completed": "Terminé",
+    "confirmed": "Confirmé"
   },
   "messages": {
     "success": {
@@ -170,14 +184,31 @@
       "invoiceDeleted": "Facture supprimée avec succès",
       "timesheetAdded": "Feuille de temps ajoutée avec succès",
       "timesheetUpdated": "Feuille de temps mise à jour avec succès",
-      "timesheetDeleted": "Feuille de temps supprimée avec succès"
+      "timesheetDeleted": "Feuille de temps supprimée avec succès",
+      "timesheetInvoiced": "Feuilles de temps facturées avec succès"
     },
     "error": {
-      "pdfExportFailed": "Échec de l'export PDF"
+      "pdfExportFailed": "Échec de l'export PDF",
+      "timesheetCreateFailed": "Erreur lors de la création",
+      "timesheetCreateDescription": "Veuillez vérifier que tous les champs obligatoires sont correctement remplis.",
+      "timesheetFetchFailed": "Erreur de chargement",
+      "timesheetFetchDescription": "Impossible de charger les feuilles de temps. Veuillez réessayer.",
+      "timesheetUpdateFailed": "Erreur de mise à jour",
+      "timesheetUpdateDescription": "Impossible de mettre à jour la feuille de temps. Veuillez réessayer.",
+      "timesheetDeleteFailed": "Erreur de suppression",
+      "timesheetDeleteDescription": "Impossible de supprimer la feuille de temps. Veuillez réessayer.",
+      "timesheetInvoiceFailed": "Erreur de facturation",
+      "timesheetInvoiceDescription": "Impossible de marquer les feuilles de temps comme facturées."
     }
   },
   "validation": {
-    "invalidEmail": "Adresse e-mail invalide"
+    "invalidEmail": "Adresse e-mail invalide",
+    "missingFields": "Champs obligatoires manquants",
+    "pleaseComplete": "Veuillez remplir",
+    "invalidTimeFormat": "Format horaire invalide",
+    "useHHMM": "Veuillez utiliser le format HH:MM pour les heures de début et de fin.",
+    "invalidTimeRange": "Plage horaire invalide",
+    "endAfterStart": "L'heure de fin doit être postérieure à l'heure de début."
   },
   "admin": {
     "users": "Gestion des utilisateurs",

@@ -9,10 +9,12 @@ import { COUNTRIES } from '@/constants/countries';
 import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft, ArrowRight, Building2 } from 'lucide-react';
 
 const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { user } = useAuth();
   const [form, setForm] = useState({
     company_name: '',
@@ -64,6 +66,19 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
   };
 
   const handleNext = async () => {
+    // Validation des champs obligatoires
+    const missingFields = [];
+    if (!form.company_name?.trim()) missingFields.push(t('company.name', 'Nom de l\'entreprise'));
+
+    if (missingFields.length > 0) {
+      toast({
+        title: t('validation.missingFields', 'Champs obligatoires manquants'),
+        description: `${t('validation.pleaseComplete', 'Veuillez remplir')} : ${missingFields.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       if (supabase && user) {
@@ -74,12 +89,22 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
             ...form,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'user_id' });
-        if (error) console.warn('Error saving company:', error.message);
+        if (error) {
+          toast({
+            title: t('messages.error.companySaveFailed', 'Erreur de sauvegarde'),
+            description: t('messages.error.companySaveDescription', 'Impossible de sauvegarder les informations de l\'entreprise. Veuillez réessayer.'),
+            variant: "destructive"
+          });
+        }
       }
       updateWizardData('companyInfo', form);
       onNext();
     } catch (err) {
-      console.warn('Error:', err.message);
+      toast({
+        title: t('messages.error.companySaveFailed', 'Erreur de sauvegarde'),
+        description: t('messages.error.companySaveDescription', 'Impossible de sauvegarder les informations de l\'entreprise. Veuillez réessayer.'),
+        variant: "destructive"
+      });
     } finally {
       setSaving(false);
     }

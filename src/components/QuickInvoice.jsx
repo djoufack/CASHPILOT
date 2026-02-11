@@ -98,8 +98,26 @@ const QuickInvoice = ({ onSuccess }) => {
   const grandTotal = totals.totalTTC + Number(shippingFee || 0) + Number(adjustment || 0);
 
   const handleSubmit = async () => {
-    if (!clientId || items.length === 0 || !items[0].description) {
-      toast({ title: t('common.error'), description: 'Please select a client and add at least one item.', variant: 'destructive' });
+    // Validation des champs obligatoires
+    const missingFields = [];
+    if (!clientId) missingFields.push(t('invoices.client', 'Client'));
+    if (!items || items.length === 0) {
+      missingFields.push(t('invoices.items', 'Articles'));
+    } else {
+      const invalidItems = items.filter((item, i) => !item.description?.trim());
+      if (invalidItems.length > 0) missingFields.push(t('invoices.itemDescription', 'Description des articles'));
+      const zeroQty = items.filter(item => !item.quantity || Number(item.quantity) <= 0);
+      if (zeroQty.length > 0) missingFields.push(t('invoices.itemQuantity', 'Quantité des articles'));
+      const zeroPrice = items.filter(item => !item.unitPrice || Number(item.unitPrice) <= 0);
+      if (zeroPrice.length > 0) missingFields.push(t('invoices.itemUnitPrice', 'Prix unitaire des articles'));
+    }
+
+    if (missingFields.length > 0) {
+      toast({
+        title: t('validation.missingFields', 'Champs obligatoires manquants'),
+        description: `${t('validation.pleaseComplete', 'Veuillez remplir')} : ${missingFields.join(', ')}`,
+        variant: "destructive"
+      });
       return;
     }
 
