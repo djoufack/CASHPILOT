@@ -68,7 +68,17 @@ Après la création de votre compte, CashPilot vous propose un **assistant de co
 Présentation de l'assistant et des avantages de la configuration comptable.
 
 #### Étape 2 — Informations Entreprise
-Renseignez les informations de votre société (nom, adresse, numéro de TVA, etc.). Ces champs réutilisent le formulaire des paramètres entreprise.
+Renseignez les informations de votre société (nom, adresse, numéro de TVA, **devise de travail**, etc.). Ces champs réutilisent le formulaire des paramètres entreprise.
+
+**Sélection de la devise** :
+CashPilot supporte **75+ devises mondiales** organisées par région :
+- **Europe** : EUR, GBP, CHF, PLN, CZK, NOK, SEK, etc.
+- **Amériques** : USD, CAD, BRL, MXN, ARS, CLP, etc.
+- **Asie-Pacifique** : JPY, CNY, INR, SGD, AUD, NZD, etc.
+- **Moyen-Orient** : AED, SAR, QAR, ILS, KWD, etc.
+- **Afrique** : ZAR, MAD, NGN, KES, XOF, XAF, etc.
+
+La devise sélectionnée sera utilisée partout dans l'application (factures, comptabilité, rapports).
 
 #### Étape 3 — Choix du Plan Comptable
 
@@ -108,6 +118,12 @@ Des questions simples en langage courant permettent de saisir vos soldes initiau
 | Capital de votre entreprise ? | 101 / 100 |
 | Emprunt en cours ? Montant restant dû ? | 164 / 174 |
 | Valeur estimée du matériel professionnel ? | 218 / 215 |
+
+**Support Multi-Devises** :
+- Les montants sont saisis dans la **devise sélectionnée** à l'Étape 2
+- Si votre devise n'est pas l'EUR, **l'équivalent en EUR est affiché automatiquement** sous chaque champ
+- La conversion utilise les taux de change en temps réel de l'API Exchange Rate
+- Les montants sont stockés avec la conversion EUR pour faciliter les rapports comptables
 
 Tous les champs sont optionnels. CashPilot génère automatiquement les écritures journal "À Nouveau" (AN) correspondantes.
 
@@ -1707,18 +1723,55 @@ Associez les catégories de dépenses à des comptes :
 - Logiciel → 6183 (Logiciels)
 - etc.
 
-#### Créer un Mapping
+#### Créer un Mapping avec Suggestions Automatiques 💡
 
-1. Cliquez sur **"+ Nouveau Mapping"**
-2. Sélectionnez :
-   - **Type d'opération** : Facture, Dépense, etc.
-   - **Catégorie/Item**
-   - **Compte comptable**
-3. Enregistrez
+CashPilot vous aide à créer vos mappings en **suggérant automatiquement** les comptes appropriés selon votre plan comptable :
+
+1. Cliquez sur **"+ Ajouter un mapping"**
+2. Sélectionnez le **Type de source** (Facture client, Dépense, etc.)
+3. Sélectionnez la **Catégorie** (service, product, travel, etc.)
+4. ✨ **Les comptes débit et crédit sont automatiquement suggérés** selon votre pays (France, Belgique ou OHADA)
+5. Un badge bleu 💡 **"Suggestion automatique"** s'affiche pour vous informer
+6. Vous pouvez :
+   - **Accepter** les suggestions et cliquer sur "Créer le mapping"
+   - **Modifier** les comptes si vos besoins sont spécifiques
+   - La description est également pré-remplie
+7. Enregistrez
+
+**Exemple pour une facture de service en France** :
+- Type : Facture client (vente)
+- Catégorie : service
+- ✨ Suggestion automatique :
+  - Compte débit : `411` (Clients)
+  - Compte crédit : `706` (Prestations de services)
+  - Description : "Prestations de services"
+
+**Exemple pour une dépense de déplacement en Belgique** :
+- Type : Dépense
+- Catégorie : travel
+- ✨ Suggestion automatique :
+  - Compte débit : `6251` (Voyages et déplacements)
+  - Compte crédit : `512` (Banque)
+  - Description : "Voyages et déplacements"
+
+#### Presets Rapides
+
+Pour gagner du temps, vous pouvez charger des **presets complets** avec un seul clic :
+
+- **Preset Belgique** : Charge tous les mappings standards du PCG belge
+- **Preset France** : Charge tous les mappings standards du PCG français
+- **Preset OHADA** : Charge tous les mappings standards SYSCOHADA
+
+Ces presets créent automatiquement les mappings pour :
+- Factures clients (ventes)
+- Dépenses (16 catégories : bureau, loyer, logiciels, déplacements, marketing, etc.)
+- Factures fournisseurs (achats)
+- Paiements clients
+- Notes de crédit
 
 #### Utilité
 
-Les mappings permettent la **génération automatique** des écritures comptables lors de la création de factures, dépenses, etc.
+Les mappings permettent la **génération automatique** des écritures comptables lors de la création de factures, dépenses, etc. Grâce aux suggestions intelligentes, même les utilisateurs sans connaissance comptable peuvent configurer correctement leur système.
 
 ### 9. Gestion des Taux de TVA
 
@@ -2020,8 +2073,11 @@ Configurez tous les aspects de votre application.
 - Utilisées dans les templates de documents
 
 #### Devise par Défaut
-- Sélectionnez : EUR, USD, GBP, etc.
-- Utilisée pour tous les montants
+- **75+ devises disponibles** organisées par région
+- Affichage avec symbole, code et nom complet (ex: € EUR - Euro)
+- Utilisée pour tous les montants dans l'application
+- Conversion automatique en EUR pour les rapports comptables
+- Taux de change mis à jour en temps réel via API Exchange Rate
 
 ### 3. Facturation (`?tab=billing` ou `?tab=invoices`)
 

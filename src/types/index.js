@@ -82,8 +82,13 @@ export const STATUS = {
   REJECTED: 'rejected'
 };
 
+// DEPRECATED: Use SUPPORTED_CURRENCIES from '@/utils/currencyService' instead
+// Kept for backwards compatibility only
 export const Currency = {
   EUR: 'EUR',
   USD: 'USD',
   GBP: 'GBP'
 };
+
+// For new code, import SUPPORTED_CURRENCIES from currencyService.js
+// which supports 75+ global currencies
