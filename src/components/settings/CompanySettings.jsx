@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { COUNTRIES } from '@/constants/countries';
-import { Loader2, Upload, Trash2, Camera, Building2, MapPin, FileText, CreditCard, Globe } from 'lucide-react';
+import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
+import { Loader2, Upload, Trash2, Camera, Building2, MapPin, FileText, CreditCard, Globe, DollarSign } from 'lucide-react';
 
 const CompanySettings = () => {
   const {
@@ -18,6 +20,12 @@ const CompanySettings = () => {
   } = useCompany();
 
   const logoInputRef = useRef(null);
+
+  // Currency options for SearchableSelect
+  const currencyOptions = SUPPORTED_CURRENCIES.map(c => ({
+    value: c.code,
+    label: `${c.symbol} ${c.code} - ${c.name}`
+  }));
 
   const [formData, setFormData] = useState({
     company_name: '',
@@ -28,6 +36,7 @@ const CompanySettings = () => {
     city: '',
     postal_code: '',
     country: '',
+    currency: 'EUR',
     phone: '',
     email: '',
     website: '',
@@ -48,6 +57,7 @@ const CompanySettings = () => {
         city: company.city || '',
         postal_code: company.postal_code || '',
         country: company.country || '',
+        currency: company.currency || 'EUR',
         phone: company.phone || '',
         email: company.email || '',
         website: company.website || '',
@@ -182,6 +192,18 @@ const CompanySettings = () => {
                     <SelectItem value="company">Société (SAS, SARL, EURL...)</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currency">Devise de travail *</Label>
+                <SearchableSelect
+                  options={currencyOptions}
+                  value={formData.currency}
+                  onValueChange={(val) => handleSelectChange('currency', val)}
+                  placeholder="Sélectionner une devise"
+                  searchPlaceholder="Rechercher une devise..."
+                  emptyMessage="Aucune devise trouvée"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="registration_number">SIRET / N° d'enregistrement</Label>
