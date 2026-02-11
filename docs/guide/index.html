@@ -917,6 +917,7 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
         <a href="#creer-compte" class="sidebar-sub-link">Cr&eacute;er un compte</a>
         <a href="#se-connecter" class="sidebar-sub-link">Se connecter</a>
         <a href="#configurer-entreprise" class="sidebar-sub-link">Configurer l'entreprise</a>
+        <a href="#onboarding-comptable" class="sidebar-sub-link">Onboarding comptable</a>
       </div>
     </div>
     <!-- 02 Dashboard -->
@@ -967,6 +968,7 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       <div class="sidebar-section-header"><span class="sidebar-section-num">06</span><span class="sidebar-section-label">Comptabilit&eacute;</span><svg class="sidebar-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
       <div class="sidebar-sub-list">
         <a href="#comptabilite" class="sidebar-sub-link">Vue d'ensemble</a>
+        <a href="#plans-precharges" class="sidebar-sub-link">Plans pr&eacute;-charg&eacute;s</a>
         <a href="#plan-comptable" class="sidebar-sub-link">Plan Comptable</a>
         <a href="#bilan-resultat" class="sidebar-sub-link">Bilan &amp; R&eacute;sultat</a>
         <a href="#declaration-tva" class="sidebar-sub-link">D&eacute;claration TVA</a>
@@ -1217,6 +1219,42 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       <div class="pro-tip-icon">!</div>
       <div class="pro-tip-text">
         <strong>S&eacute;curit&eacute; renforc&eacute;e :</strong> Activez la double authentification (MFA) d&egrave;s la premi&egrave;re connexion via <strong>Param&egrave;tres &rarr; S&eacute;curit&eacute;</strong>. CashPilot supporte les codes TOTP et l'authentification biom&eacute;trique.
+      </div>
+    </div>
+
+    <!-- ONBOARDING COMPTABLE -->
+    <div class="reveal" style="margin-top:40px;">
+      <h3 id="onboarding-comptable" style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:8px;">Onboarding <span class="gradient-text">Comptable</span></h3>
+      <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px;">Apr&egrave;s la cr&eacute;ation de votre compte, un assistant en 5 &eacute;tapes vous guide pour configurer votre comptabilit&eacute;. Cet onboarding est <strong style="color:#fff">optionnel</strong> &mdash; un bandeau de rappel s'affiche tant qu'il n'est pas compl&eacute;t&eacute;.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#128075;</div>
+        <h3>1. Bienvenue</h3>
+        <p>Pr&eacute;sentation de l'assistant et des avantages de la configuration comptable int&eacute;gr&eacute;e.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:var(--blue);">&#127970;</div>
+        <h3>2. Entreprise</h3>
+        <p>Renseignez le nom, l'adresse, le num&eacute;ro de TVA et le logo de votre soci&eacute;t&eacute;.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#128209;</div>
+        <h3>3. Plan Comptable</h3>
+        <p>Choisissez parmi 3 plans pr&eacute;-charg&eacute;s (France, Belgique, OHADA) ou importez votre plan personnalis&eacute; en CSV/Excel.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#128176;</div>
+        <h3>4. Soldes d'ouverture</h3>
+        <p>Saisissez vos soldes initiaux via des questions simples (solde bancaire, cr&eacute;ances, dettes, capital). CashPilot g&eacute;n&egrave;re les &eacute;critures &laquo;&nbsp;&Agrave; Nouveau&nbsp;&raquo;.</p>
+      </div>
+    </div>
+
+    <div class="pro-tip reveal" style="margin-top:16px;">
+      <div class="pro-tip-icon">&#128161;</div>
+      <div class="pro-tip-text">
+        <strong>Bandeau de rappel :</strong> Si vous ne compl&eacute;tez pas l'onboarding, un bandeau persistant s'affiche en haut du tableau de bord : &laquo;&nbsp;Votre comptabilit&eacute; n'est pas encore configur&eacute;e.&nbsp;&raquo; Cliquez sur <strong>Configurer</strong> pour reprendre l&agrave; o&ugrave; vous vous &ecirc;tes arr&ecirc;t&eacute;.
       </div>
     </div>
   </div>
@@ -1714,11 +1752,47 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       </div>
     </div>
 
+    <!-- PLANS PRÉ-CHARGÉS -->
+    <div class="reveal" style="margin-top:40px;">
+      <h3 id="plans-precharges" style="font-family:var(--font-heading);font-size:20px;font-weight:700;color:#fff;margin-bottom:16px;">Plans Comptables <span class="gradient-text">Pr&eacute;-charg&eacute;s</span></h3>
+    </div>
+    <div class="reveal" style="margin-bottom:32px;">
+      <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border);background:rgba(245,158,11,0.04);">
+              <th style="text-align:left;padding:10px 14px;color:var(--text-muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Plan</th>
+              <th style="text-align:left;padding:10px 14px;color:var(--text-muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Zone</th>
+              <th style="text-align:right;padding:10px 14px;color:var(--text-muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Comptes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid rgba(31,41,55,0.5);">
+              <td style="padding:10px 14px;color:#fff;font-weight:500;">&#127467;&#127479; PCG &mdash; Plan Comptable G&eacute;n&eacute;ral</td>
+              <td style="padding:10px 14px;color:var(--text-muted);">France</td>
+              <td style="padding:10px 14px;text-align:right;color:var(--amber);font-weight:600;">271</td>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(31,41,55,0.5);">
+              <td style="padding:10px 14px;color:#fff;font-weight:500;">&#127463;&#127466; PCMN &mdash; Plan Comptable Minimum Normalis&eacute;</td>
+              <td style="padding:10px 14px;color:var(--text-muted);">Belgique</td>
+              <td style="padding:10px 14px;text-align:right;color:var(--amber);font-weight:600;">993</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;color:#fff;font-weight:500;">&#127464;&#127474; SYSCOHADA R&eacute;vis&eacute;</td>
+              <td style="padding:10px 14px;color:var(--text-muted);">Afrique (17 pays OHADA)</td>
+              <td style="padding:10px 14px;text-align:right;color:var(--amber);font-weight:600;">493</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">Ces plans sont accessibles &agrave; tous les utilisateurs. Vous pouvez &eacute;galement importer un plan personnalis&eacute; en <strong style="color:#fff">CSV</strong> ou <strong style="color:#fff">Excel (.xlsx)</strong> qui restera priv&eacute; &agrave; votre compte.</p>
+    </div>
+
     <div class="features-grid">
       <div class="feature-card reveal">
         <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#128209;</div>
         <h3 id="plan-comptable">Plan Comptable</h3>
-        <p>Importez votre plan comptable depuis un CSV. Recherchez et filtrez par code ou type de compte. Pr&eacute;r&eacute;glages France, Belgique et OHADA.</p>
+        <p>Choisissez un plan pr&eacute;-charg&eacute; (France, Belgique, OHADA) ou importez le v&ocirc;tre en CSV/Excel. Recherchez et filtrez par code ou type de compte. Hi&eacute;rarchie parent-enfant compl&egrave;te.</p>
       </div>
       <div class="feature-card reveal reveal-delay-1">
         <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#9878;</div>
