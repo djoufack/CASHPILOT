@@ -85,17 +85,18 @@ const InvoicesPage = () => {
   const paginatedInvoices = invoices.slice(pagination.from, pagination.to + 1);
 
   const invoiceCalendarStatusColors = {
-    unpaid: { bg: '#ef4444', border: '#dc2626', text: '#fff' },
-    partial: { bg: '#eab308', border: '#ca8a04', text: '#000' },
-    paid: { bg: '#22c55e', border: '#16a34a', text: '#fff' },
-    overpaid: { bg: '#3b82f6', border: '#2563eb', text: '#fff' },
+    draft: { bg: 'rgba(107, 114, 128, 0.7)', border: '#4b5563', text: '#fff' },
+    sent: { bg: 'rgba(59, 130, 246, 0.7)', border: '#2563eb', text: '#fff' },
+    paid: { bg: 'rgba(34, 197, 94, 0.7)', border: '#16a34a', text: '#fff' },
+    overdue: { bg: 'rgba(239, 68, 68, 0.7)', border: '#dc2626', text: '#fff' },
+    cancelled: { bg: 'rgba(107, 114, 128, 0.4)', border: '#374151', text: '#9ca3af' },
   };
 
   const invoiceCalendarLegend = [
-    { label: 'Unpaid', color: '#ef4444' },
-    { label: 'Partial', color: '#eab308' },
-    { label: 'Paid', color: '#22c55e' },
-    { label: 'Overpaid', color: '#3b82f6' },
+    { label: t('status.draft'), color: 'rgba(107, 114, 128, 0.7)' },
+    { label: t('status.sent'), color: 'rgba(59, 130, 246, 0.7)' },
+    { label: t('status.paid'), color: 'rgba(34, 197, 94, 0.7)' },
+    { label: t('status.overdue'), color: 'rgba(239, 68, 68, 0.7)' },
   ];
 
   const invoiceCalendarEvents = invoices.map(inv => {
@@ -104,39 +105,71 @@ const InvoicesPage = () => {
       id: inv.id,
       title: `${inv.invoice_number || inv.invoiceNumber || ''} - ${client?.company_name || client?.companyName || 'Unknown'}`,
       date: inv.date || inv.issueDate,
-      status: inv.payment_status || 'unpaid',
-      resource: inv,
+      status: inv.status || 'draft',
+      resource: { ...inv, status: inv.status || 'draft' },
     };
   });
+
+  const INVOICE_AGENDA_COLORS = {
+    draft: 'bg-gray-500/20 text-gray-400',
+    sent: 'bg-blue-500/20 text-blue-400',
+    paid: 'bg-green-500/20 text-green-400',
+    overdue: 'bg-red-500/20 text-red-400',
+    cancelled: 'bg-gray-500/20 text-gray-500',
+  };
+
+  const PAYMENT_BADGE_COLORS = {
+    unpaid: 'bg-red-900/30 text-red-300 border border-red-800',
+    partial: 'bg-yellow-900/30 text-yellow-300 border border-yellow-800',
+    paid: 'bg-green-900/30 text-green-300 border border-green-800',
+    overpaid: 'bg-blue-900/30 text-blue-300 border border-blue-800',
+  };
+
+  const renderInvoiceBadge = (item) => {
+    const inv = item._original;
+    const invoiceStatus = inv?.status || 'draft';
+    const paymentStatus = inv?.payment_status || 'unpaid';
+    return (
+      <div className="flex flex-col items-end gap-1">
+        <span className={`text-xs px-2 py-0.5 rounded-full ${INVOICE_AGENDA_COLORS[invoiceStatus] || 'bg-gray-500/20 text-gray-400'}`}>
+          {t(`status.${invoiceStatus}`)}
+        </span>
+        <span className={`text-xs px-2 py-0.5 rounded-full ${PAYMENT_BADGE_COLORS[paymentStatus] || 'bg-gray-900/30 text-gray-300 border border-gray-800'}`}>
+          {t(`payments.${paymentStatus}`)}
+        </span>
+        {inv?.due_date && new Date(inv.due_date) < new Date() && paymentStatus !== 'paid' && paymentStatus !== 'overpaid' && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/20 text-red-400 border border-red-800">
+            {t('status.overdue')}
+          </span>
+        )}
+      </div>
+    );
+  };
 
   const invoiceAgendaItems = invoices.map(inv => {
     const client = clients.find(c => c.id === (inv.client_id || inv.clientId));
     const currency = client?.preferred_currency || client?.preferredCurrency || 'EUR';
-    const ps = inv.payment_status || 'unpaid';
-    const colorMap = {
-      unpaid: 'bg-red-500/20 text-red-400',
-      partial: 'bg-yellow-500/20 text-yellow-400',
-      paid: 'bg-green-500/20 text-green-400',
-      overpaid: 'bg-blue-500/20 text-blue-400',
-    };
+    const invoiceStatus = inv.status || 'draft';
     return {
       id: inv.id,
       title: `${inv.invoice_number || inv.invoiceNumber || ''}`,
       subtitle: client?.company_name || client?.companyName || 'Unknown',
-      date: inv.date || inv.issueDate,
-      status: ps,
-      payment_status: ps,
-      statusLabel: ps.charAt(0).toUpperCase() + ps.slice(1),
-      statusColor: colorMap[ps] || 'bg-gray-500/20 text-gray-400',
+      date: inv.due_date || inv.date || inv.issueDate,
+      status: invoiceStatus,
+      payment_status: inv.payment_status || 'unpaid',
+      statusLabel: t(`status.${invoiceStatus}`),
+      statusColor: INVOICE_AGENDA_COLORS[invoiceStatus] || 'bg-gray-500/20 text-gray-400',
       amount: formatCurrency(Number(inv.total_ttc || inv.total || 0), currency),
+      _original: inv,
     };
   });
 
   const invoiceKanbanColumns = [
-    { id: 'unpaid', title: t('status.unpaid') || 'Unpaid', color: 'bg-red-500/20 text-red-400' },
-    { id: 'partial', title: t('status.partial') || 'Partial', color: 'bg-yellow-500/20 text-yellow-400' },
-    { id: 'paid', title: t('status.paid') || 'Paid', color: 'bg-green-500/20 text-green-400' },
-    { id: 'overpaid', title: t('status.overpaid') || 'Overpaid', color: 'bg-blue-500/20 text-blue-400' },
+    { id: 'draft', title: t('status.draft'), color: 'bg-gray-500/20 text-gray-400' },
+    { id: 'sent', title: t('status.sent'), color: 'bg-blue-500/20 text-blue-400' },
+    { id: 'paid', title: t('status.paid'), color: 'bg-green-500/20 text-green-400' },
+    { id: 'overdue', title: t('status.overdue'), color: 'bg-red-500/20 text-red-400' },
+    { id: 'cancelled', title: t('status.cancelled'), color: 'bg-gray-500/20 text-gray-500' },
   ];
 
   const handleViewInvoice = (invoice) => {
@@ -250,15 +283,23 @@ const InvoicesPage = () => {
     }
   };
 
+  const INVOICE_STATUS_COLORS = {
+    draft: 'bg-gray-500/20 text-gray-400 border-gray-600',
+    sent: 'bg-blue-500/20 text-blue-400 border-blue-600',
+    paid: 'bg-green-500/20 text-green-400 border-green-600',
+    overdue: 'bg-red-500/20 text-red-400 border-red-600',
+    cancelled: 'bg-gray-500/20 text-gray-500 border-gray-700',
+  };
+
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'paid':
-        return 'bg-green-500';
-      case 'sent':
-        return 'bg-blue-500';
-      default:
-        return 'bg-gray-500';
-    }
+    const colors = {
+      paid: 'bg-green-500',
+      sent: 'bg-blue-500',
+      overdue: 'bg-red-500',
+      cancelled: 'bg-gray-600',
+      default: 'bg-gray-500',
+    };
+    return colors[status] || colors.default;
   };
 
   const getPaymentStatusBadge = (paymentStatus) => {
@@ -444,19 +485,23 @@ const InvoicesPage = () => {
                                   </span>
                                 </td>
                                 <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm">
-                                  <Select
-                                    value={invoice.status}
-                                    onValueChange={(value) => handleStatusChange(invoice.id, value)}
-                                  >
-                                    <SelectTrigger className={`w-28 md:w-32 ${getStatusColor(invoice.status)} text-white border-none h-8`}>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-gray-700 border-gray-600 text-white">
-                                      <SelectItem value="draft">{t('status.draft')}</SelectItem>
-                                      <SelectItem value="sent">{t('status.sent')}</SelectItem>
-                                      <SelectItem value="paid">{t('status.paid')}</SelectItem>
-                                    </SelectContent>
-                                  </Select>
+                                  <div className="flex flex-col gap-1">
+                                    <Select
+                                      value={invoice.status}
+                                      onValueChange={(value) => handleStatusChange(invoice.id, value)}
+                                    >
+                                      <SelectTrigger className={`w-28 md:w-32 ${getStatusColor(invoice.status)} text-white border-none h-8`}>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-gray-700 border-gray-600 text-white">
+                                        <SelectItem value="draft">{t('status.draft')}</SelectItem>
+                                        <SelectItem value="sent">{t('status.sent')}</SelectItem>
+                                        <SelectItem value="paid">{t('status.paid')}</SelectItem>
+                                        <SelectItem value="overdue">{t('status.overdue')}</SelectItem>
+                                        <SelectItem value="cancelled">{t('status.cancelled')}</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
                                 </td>
                                 <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm hidden sm:table-cell">
                                   {getPaymentStatusBadge(invoice.payment_status)}
@@ -566,6 +611,7 @@ const InvoicesPage = () => {
                   onView={(item) => handleViewInvoice(invoices.find(i => i.id === item.id))}
                   onDelete={(item) => handleDeleteClick(invoices.find(i => i.id === item.id))}
                   paidStatuses={['paid', 'overpaid', 'cancelled']}
+                  renderBadge={renderInvoiceBadge}
                 />
               </TabsContent>
 

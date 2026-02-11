@@ -105,7 +105,9 @@
     "invoiceDetails": "Invoice Details",
     "sendByEmail": "Send by Email",
     "noClientEmail": "This client does not have an email address",
-    "emailSentTo": "Invoice sent to {{email}}"
+    "emailSentTo": "Invoice sent to {{email}}",
+    "statusLegend": "Status Legend",
+    "overdueWarning": "This invoice is overdue"
   },
   "timesheets": {
     "title": "Timesheets",
@@ -169,6 +171,9 @@
     "paid": "Paid",
     "overdue": "Overdue",
     "cancelled": "Cancelled",
+    "unpaid": "Unpaid",
+    "partial": "Partially Paid",
+    "overpaid": "Overpaid",
     "active": "Active",
     "inProgress": "In Progress",
     "onHold": "On Hold",
