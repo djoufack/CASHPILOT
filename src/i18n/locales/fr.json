@@ -105,7 +105,9 @@
     "invoiceDetails": "Détails de la facture",
     "sendByEmail": "Envoyer par email",
     "noClientEmail": "Ce client n'a pas d'adresse email",
-    "emailSentTo": "Facture envoyée à {{email}}"
+    "emailSentTo": "Facture envoyée à {{email}}",
+    "statusLegend": "Légende des statuts",
+    "overdueWarning": "Cette facture est en retard de paiement"
   },
   "timesheets": {
     "title": "Feuilles de temps",
@@ -169,6 +171,9 @@
     "paid": "Payée",
     "overdue": "En retard",
     "cancelled": "Annulée",
+    "unpaid": "Non payé",
+    "partial": "Partiellement payé",
+    "overpaid": "Surpayé",
     "active": "Actif",
     "inProgress": "En cours",
     "onHold": "En attente",
