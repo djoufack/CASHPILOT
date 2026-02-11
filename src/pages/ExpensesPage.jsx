@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useCompany } from '@/hooks/useCompany';
+import { getCurrencySymbol } from '@/utils/currencyService';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,9 @@ const ExpensesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+
+  // Get company currency symbol
+  const currencySymbol = getCurrencySymbol(company?.currency || 'EUR');
 
   const emptyForm = {
     description: '',
@@ -333,7 +337,7 @@ const ExpensesPage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Montant (€) *</Label>
+                <Label>Montant ({currencySymbol}) *</Label>
                 <Input
                   type="number"
                   step="0.01"

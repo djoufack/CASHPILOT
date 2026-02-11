@@ -45,9 +45,15 @@ import {
   Users,
 } from 'lucide-react';
 import useFinancialScenarios from '@/hooks/useFinancialScenarios';
+import { useCompany } from '@/hooks/useCompany';
+import { getCurrencySymbol } from '@/utils/currencyService';
 
 const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) => {
   const { addAssumption, updateAssumption, deleteAssumption } = useFinancialScenarios();
+  const { company } = useCompany();
+
+  // Get company currency symbol
+  const currencySymbol = getCurrencySymbol(company?.currency || 'EUR');
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAssumption, setEditingAssumption] = useState(null);
@@ -205,7 +211,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
       case 'recurring':
         return (
           <div>
-            <Label htmlFor="amount">Montant (€) *</Label>
+            <Label htmlFor="amount">Montant ({currencySymbol}) *</Label>
             <Input
               id="amount"
               type="number"
@@ -222,7 +228,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
         return (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="amount">Montant (€) *</Label>
+              <Label htmlFor="amount">Montant ({currencySymbol}) *</Label>
               <Input
                 id="amount"
                 type="number"

@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '@/hooks/useProjects';
 import { useClients } from '@/hooks/useClients';
+import { useCompany } from '@/hooks/useCompany';
+import { getCurrencySymbol } from '@/utils/currencyService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,12 +41,16 @@ const ProjectManager = ({ onProjectSelect }) => {
   const { t } = useTranslation();
   const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const { clients } = useClients();
-  
+  const { company } = useCompany();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
+
+  // Get company currency symbol
+  const currencySymbol = getCurrencySymbol(company?.currency || 'EUR');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -308,7 +314,7 @@ const ProjectManager = ({ onProjectSelect }) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="hourly_rate">Hourly Rate</Label>
+                <Label htmlFor="hourly_rate">Hourly Rate ({currencySymbol})</Label>
                 <Input
                   id="hourly_rate"
                   type="number"

@@ -71,6 +71,7 @@ export const useCompany = () => {
         city: companyData.city || '',
         postal_code: companyData.postal_code || '',
         country: companyData.country || '',
+        currency: companyData.currency || 'EUR',
         phone: companyData.phone || '',
         email: companyData.email || '',
         website: companyData.website || '',

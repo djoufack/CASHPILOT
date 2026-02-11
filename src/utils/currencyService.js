@@ -163,4 +163,14 @@ const FALLBACK_RATES = {
   ETB: 131.50, TZS: 2750.00, UGX: 4050.00, MUR: 49.80,
 };
 
-export default { fetchExchangeRates, convertCurrency, formatCurrency, SUPPORTED_CURRENCIES };
+/**
+ * Get currency symbol from currency code
+ * @param {string} currencyCode - ISO currency code (e.g., 'EUR', 'XAF', 'USD')
+ * @returns {string} Currency symbol (e.g., '€', 'FCFA', '$')
+ */
+export const getCurrencySymbol = (currencyCode = 'EUR') => {
+  const currency = SUPPORTED_CURRENCIES.find(c => c.code === currencyCode);
+  return currency ? currency.symbol : currencyCode;
+};
+
+export default { fetchExchangeRates, convertCurrency, formatCurrency, getCurrencySymbol, SUPPORTED_CURRENCIES };
