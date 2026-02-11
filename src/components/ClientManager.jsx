@@ -39,10 +39,12 @@ import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard, Do
 import { exportToCSV, exportToExcel } from '@/utils/exportService';
 import { motion } from 'framer-motion';
 import { validateEmail } from '@/utils/validation';
+import { useToast } from '@/components/ui/use-toast';
 import { Currency } from '@/types';
 
 const ClientManager = () => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { clients, loading, createClient, updateClient, deleteClient } = useClients();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -114,8 +116,28 @@ const ClientManager = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateEmail(formData.email)) {
+
+    // Validation des champs obligatoires
+    const missingFields = [];
+    if (!formData.company_name?.trim()) missingFields.push(t('clients.companyName', 'Nom de l\'entreprise'));
+    if (!formData.contact_name?.trim()) missingFields.push(t('clients.contactName', 'Nom du contact'));
+    if (!formData.email?.trim()) missingFields.push(t('clients.email', 'Email'));
+
+    if (missingFields.length > 0) {
+      toast({
+        title: t('validation.missingFields', 'Champs obligatoires manquants'),
+        description: `${t('validation.pleaseComplete', 'Veuillez remplir')} : ${missingFields.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.email && !validateEmail(formData.email)) {
+      toast({
+        title: t('validation.invalidEmail', 'Email invalide'),
+        description: t('validation.invalidEmailDescription', 'Veuillez saisir une adresse email valide.'),
+        variant: "destructive"
+      });
       return;
     }
 

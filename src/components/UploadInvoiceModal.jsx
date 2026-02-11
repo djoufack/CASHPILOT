@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, X, FileText, Sparkles, Loader2, ChevronDown, ChevronUp, Image } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/components/ui/use-toast';
 
 const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) => {
   const { loading, progress, error } = useInvoiceUpload();
@@ -21,6 +22,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
   const { guardedAction } = useCreditsGuard();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { toast } = useToast();
 
   const [file, setFile] = useState(null);
   const [formData, setFormData] = useState({
@@ -125,7 +127,22 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file) return;
+
+    // Validation des champs obligatoires
+    const missingFields = [];
+    if (!file) missingFields.push(t('invoices.file', 'Fichier'));
+    if (!formData.invoice_number?.trim()) missingFields.push(t('invoices.number', 'Numéro de facture'));
+    if (!formData.invoice_date) missingFields.push(t('invoices.date', 'Date de facture'));
+    if (!formData.total_amount || Number(formData.total_amount) <= 0) missingFields.push(t('invoices.totalAmount', 'Montant total'));
+
+    if (missingFields.length > 0) {
+      toast({
+        title: t('validation.missingFields', 'Champs obligatoires manquants'),
+        description: `${t('validation.pleaseComplete', 'Veuillez remplir')} : ${missingFields.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
       const submitData = {

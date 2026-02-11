@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import format from 'date-fns/format';
@@ -17,6 +18,7 @@ import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportTimesheetsListPDF, exportTimesheetsListHTML } from '@/services/exportListsPDF';
 import TimesheetForm from '@/components/TimesheetForm';
+import TimesheetEditModal from '@/components/TimesheetEditModal';
 import TimesheetsList from '@/components/TimesheetsList';
 import TimesheetKanbanView from '@/components/TimesheetKanbanView';
 import TimesheetAgendaView from '@/components/TimesheetAgendaView';
@@ -40,7 +42,10 @@ const TimesheetsPage = () => {
   const { timesheets, loading, fetchTimesheets } = useTimesheets();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
+  const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedTimesheet, setSelectedTimesheet] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [view, setView] = useState('list'); // Default to list for mobile safety
 
@@ -67,7 +72,27 @@ const TimesheetsPage = () => {
   };
 
   const handleSelectEvent = (event) => {
-    // Logic for editing event could go here
+    setSelectedTimesheet(event.resource);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditTimesheet = (timesheet) => {
+    setSelectedTimesheet(timesheet);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditModalClose = () => {
+    setIsEditModalOpen(false);
+    setSelectedTimesheet(null);
+    fetchTimesheets();
+  };
+
+  const handleGenerateInvoice = (selectedTimesheetIds) => {
+    // Store selected IDs in sessionStorage for InvoiceGenerator to pick up
+    if (selectedTimesheetIds && selectedTimesheetIds.length > 0) {
+      sessionStorage.setItem('selectedTimesheetIds', JSON.stringify(selectedTimesheetIds));
+      navigate('/app/invoices?tab=generator');
+    }
   };
 
   const handleSuccess = () => {
@@ -157,6 +182,13 @@ const TimesheetsPage = () => {
                   </div>
 
                   <Button
+                    onClick={() => navigate('/app/invoices?tab=generator')}
+                    variant="outline"
+                    className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 font-semibold w-full sm:w-auto"
+                  >
+                    <FileText className="mr-2 h-4 w-4" /> Facturer
+                  </Button>
+                  <Button
                     onClick={() => { setSelectedDate(null); setIsAddModalOpen(true); }}
                     className="bg-orange-500 hover:bg-orange-600 text-white font-semibold w-full sm:w-auto"
                   >
@@ -164,6 +196,13 @@ const TimesheetsPage = () => {
                   </Button>
                 </div>
             </div>
+
+            {/* Edit Modal (shared across all views) */}
+            <TimesheetEditModal
+              isOpen={isEditModalOpen}
+              onClose={handleEditModalClose}
+              timesheet={selectedTimesheet}
+            />
 
             {/* Add Modal */}
             <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
@@ -190,7 +229,8 @@ const TimesheetsPage = () => {
                       .calendar-dark-theme .rbc-off-range-bg { background-color: #0a0a0f; }
                       .calendar-dark-theme .rbc-calendar { color: #9ca3af; min-width: 600px; }
                       .calendar-dark-theme .rbc-today { background-color: rgba(245, 158, 11, 0.15); }
-                      .calendar-dark-theme .rbc-event { background-color: #F59E0B; border-color: #D97706; color: #000; font-weight: 500; }
+                      .calendar-dark-theme .rbc-event { background-color: #F59E0B; border-color: #D97706; color: #000; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
+                      .calendar-dark-theme .rbc-event:hover { opacity: 0.85; }
                       .calendar-dark-theme .rbc-header { border-bottom: 1px solid #1f2937; padding: 10px; font-weight: 600; color: #e5e7eb; background: #111827; }
                       .calendar-dark-theme .rbc-month-view, .calendar-dark-theme .rbc-time-view, .calendar-dark-theme .rbc-agenda-view { border: 1px solid #1f2937; border-radius: 8px; overflow: hidden; }
                       .calendar-dark-theme .rbc-day-bg + .rbc-day-bg { border-left: 1px solid #1f2937; }
@@ -235,20 +275,21 @@ const TimesheetsPage = () => {
                         View All
                       </Button>
                     </div>
-                    <TimesheetsList timesheets={timesheets} loading={loading} />
+                    <TimesheetsList timesheets={timesheets} loading={loading} onGenerateInvoice={handleGenerateInvoice} />
                   </div>
                 </>
               )}
 
               {/* List View */}
               {view === 'list' && (
-                <TimesheetsList timesheets={timesheets} loading={loading} />
+                <TimesheetsList timesheets={timesheets} loading={loading} onGenerateInvoice={handleGenerateInvoice} />
               )}
 
               {/* Kanban View */}
               {view === 'kanban' && (
                 <TimesheetKanbanView
                   timesheets={timesheets}
+                  onEdit={handleEditTimesheet}
                   onRefresh={fetchTimesheets}
                 />
               )}
@@ -257,6 +298,7 @@ const TimesheetsPage = () => {
               {view === 'agenda' && (
                 <TimesheetAgendaView
                   timesheets={timesheets}
+                  onEdit={handleEditTimesheet}
                 />
               )}
             </div>
