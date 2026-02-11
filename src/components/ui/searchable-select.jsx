@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Check, ChevronsUpDown, Search } from "lucide-react";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown, Search, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -35,6 +34,16 @@ export function SearchableSelect({
     option.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleSelect = (optionValue) => {
+    onValueChange(optionValue);
+    setOpen(false);
+    setSearchQuery("");
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -48,52 +57,68 @@ export function SearchableSelect({
             className
           )}
         >
-          <span className="truncate">
+          <span className="truncate text-left">
             {selectedOption ? selectedOption.label : placeholder}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0 bg-gray-800 border-gray-700" align="start">
-        <Command className="bg-gray-800 text-white">
-          <div className="flex items-center border-b border-gray-700 px-3">
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0 bg-gray-800 border-gray-700"
+        align="start"
+        sideOffset={4}
+      >
+        <div className="bg-gray-800 text-white">
+          {/* Search input */}
+          <div className="flex items-center border-b border-gray-700 px-3 py-2">
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
             <input
+              type="text"
               placeholder={searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex-1 h-8 bg-transparent text-sm outline-none placeholder:text-gray-500"
+              autoFocus
             />
-          </div>
-          <CommandList className="max-h-[300px] overflow-y-auto">
-            {filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-sm text-gray-500">{emptyMessage}</div>
-            ) : (
-              <CommandGroup>
-                {filteredOptions.map((option) => (
-                  <CommandItem
-                    key={option.value}
-                    value={option.value}
-                    onSelect={() => {
-                      onValueChange(option.value);
-                      setOpen(false);
-                      setSearchQuery("");
-                    }}
-                    className="cursor-pointer hover:bg-gray-700 data-[selected=true]:bg-gray-700"
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === option.value ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {option.label}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+            {searchQuery && (
+              <button
+                onClick={handleClearSearch}
+                className="ml-2 p-1 hover:bg-gray-700 rounded"
+              >
+                <X className="h-3 w-3" />
+              </button>
             )}
-          </CommandList>
-        </Command>
+          </div>
+
+          {/* Options list */}
+          <div className="max-h-[300px] overflow-y-auto p-1">
+            {filteredOptions.length === 0 ? (
+              <div className="py-6 text-center text-sm text-gray-500">
+                {emptyMessage}
+              </div>
+            ) : (
+              filteredOptions.map((option) => (
+                <div
+                  key={option.value}
+                  onClick={() => handleSelect(option.value)}
+                  className={cn(
+                    "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none transition-colors",
+                    "hover:bg-gray-700 focus:bg-gray-700",
+                    value === option.value && "bg-gray-700/50"
+                  )}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === option.value ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <span className="flex-1 truncate">{option.label}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   );
