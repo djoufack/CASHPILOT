@@ -981,7 +981,8 @@
       "address": "Address",
       "city": "City",
       "postalCode": "Postal code",
-      "country": "Country"
+      "country": "Country",
+      "currency": "Working currency"
     },
     "plan": {
       "title": "Choose your chart of accounts",
@@ -991,6 +992,7 @@
     "balances": {
       "title": "Your current balances",
       "subtitle": "These amounts will initialize your accounting. All fields are optional.",
+      "currencyNote": "Currency: {{currency}} • EUR equivalents are displayed automatically",
       "bankBalance": "Current balance of your business bank account",
       "receivables": "Total amount of unpaid customer invoices",
       "payables": "Total amount of unpaid supplier invoices",

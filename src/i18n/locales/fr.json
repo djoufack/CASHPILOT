@@ -981,7 +981,8 @@
       "address": "Adresse",
       "city": "Ville",
       "postalCode": "Code postal",
-      "country": "Pays"
+      "country": "Pays",
+      "currency": "Devise de travail"
     },
     "plan": {
       "title": "Choisissez votre plan comptable",
@@ -991,6 +992,7 @@
     "balances": {
       "title": "Vos soldes actuels",
       "subtitle": "Ces montants permettront de d\u00e9marrer votre comptabilit\u00e9. Tous les champs sont optionnels.",
+      "currencyNote": "Devise : {{currency}} • Les \u00e9quivalents en EUR sont affich\u00e9s automatiquement",
       "bankBalance": "Solde actuel de votre compte bancaire professionnel",
       "receivables": "Montant total des factures clients impay\u00e9es",
       "payables": "Montant total des factures fournisseurs impay\u00e9es",
