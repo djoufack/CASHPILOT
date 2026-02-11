@@ -61,6 +61,9 @@ export const useCompany = () => {
       setSaving(true);
       setError(null);
 
+      console.log('🔍 saveCompany received data:', companyData);
+      console.log('🔍 Currency from companyData:', companyData.currency);
+
       // Explicit field whitelist — only send columns that exist in the DB
       const companyFields = {
         company_name: companyData.company_name || '',
@@ -87,6 +90,9 @@ export const useCompany = () => {
         companyFields.company_type = 'freelance';
       }
 
+      console.log('📤 Prepared companyFields for DB:', companyFields);
+      console.log('📤 Currency being sent to DB:', companyFields.currency);
+
       let result;
 
       if (company?.id) {
@@ -100,6 +106,8 @@ export const useCompany = () => {
 
         if (error) throw error;
         result = data;
+        console.log('✅ DB Update result:', result);
+        console.log('✅ Currency in result:', result?.currency);
       } else {
         // Create new
         const { data, error } = await supabase
@@ -110,6 +118,8 @@ export const useCompany = () => {
 
         if (error) throw error;
         result = data;
+        console.log('✅ DB Insert result:', result);
+        console.log('✅ Currency in result:', result?.currency);
       }
 
       setCompany(result);

@@ -75,11 +75,18 @@ const CompanySettings = () => {
   };
 
   const handleSelectChange = (name, value) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    console.log(`🔧 handleSelectChange called: ${name} = ${value}`);
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      console.log('📊 Updated formData:', updated);
+      return updated;
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('💾 Submitting company data:', formData);
+    console.log('💰 Currency value:', formData.currency);
     await saveCompany(formData);
   };
 
