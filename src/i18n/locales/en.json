@@ -178,7 +178,15 @@
       "timesheetDeleted": "Timesheet deleted successfully"
     },
     "error": {
-      "pdfExportFailed": "PDF export failed"
+      "pdfExportFailed": "PDF export failed",
+      "timesheetCreateFailed": "Error creating entry",
+      "timesheetCreateDescription": "Please check that all required fields are filled in correctly.",
+      "timesheetFetchFailed": "Loading error",
+      "timesheetFetchDescription": "Unable to load timesheets. Please try again.",
+      "timesheetUpdateFailed": "Update error",
+      "timesheetUpdateDescription": "Unable to update the timesheet entry. Please try again.",
+      "timesheetDeleteFailed": "Deletion error",
+      "timesheetDeleteDescription": "Unable to delete the timesheet entry. Please try again."
     }
   },
   "validation": {

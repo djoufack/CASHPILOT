@@ -58,8 +58,8 @@ export const useTimesheets = () => {
 
       setError(err.message);
       toast({
-        title: "Error fetching timesheets",
-        description: err.message,
+        title: t('messages.error.timesheetFetchFailed', 'Erreur de chargement'),
+        description: t('messages.error.timesheetFetchDescription', 'Impossible de charger les feuilles de temps. Veuillez réessayer.'),
         variant: "destructive"
       });
     } finally {
@@ -96,8 +96,8 @@ export const useTimesheets = () => {
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Error creating timesheet",
-        description: err.message,
+        title: t('messages.error.timesheetCreateFailed', 'Erreur lors de la création'),
+        description: t('messages.error.timesheetCreateDescription', 'Veuillez vérifier que tous les champs obligatoires sont correctement remplis.'),
         variant: "destructive"
       });
       throw err;
@@ -134,8 +134,8 @@ export const useTimesheets = () => {
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Error updating timesheet",
-        description: err.message,
+        title: t('messages.error.timesheetUpdateFailed', 'Erreur de mise à jour'),
+        description: t('messages.error.timesheetUpdateDescription', 'Impossible de mettre à jour la feuille de temps. Veuillez réessayer.'),
         variant: "destructive"
       });
       throw err;
@@ -163,8 +163,8 @@ export const useTimesheets = () => {
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Error deleting timesheet",
-        description: err.message,
+        title: t('messages.error.timesheetDeleteFailed', 'Erreur de suppression'),
+        description: t('messages.error.timesheetDeleteDescription', 'Impossible de supprimer la feuille de temps. Veuillez réessayer.'),
         variant: "destructive"
       });
       throw err;
