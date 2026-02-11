@@ -35,7 +35,7 @@ export const useTimesheets = () => {
         .select(`
           *,
           client:clients(company_name),
-          project:projects(name),
+          project:projects(name, hourly_rate),
           task:tasks(name)
         `)
         .order('date', { ascending: false });
@@ -173,6 +173,71 @@ export const useTimesheets = () => {
     }
   };
 
+  const fetchBillableTimesheets = async (clientId, startDate, endDate) => {
+    if (!user || !supabase) return [];
+    try {
+      let query = supabase
+        .from('timesheets')
+        .select(`*, client:clients(company_name), project:projects(name, hourly_rate)`)
+        .eq('user_id', user.id)
+        .eq('billable', true)
+        .is('invoice_id', null);
+
+      if (clientId) query = query.eq('client_id', clientId);
+      if (startDate) query = query.gte('date', startDate);
+      if (endDate) query = query.lte('date', endDate);
+
+      const { data, error } = await query.order('date', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error fetching billable timesheets:', err);
+      return [];
+    }
+  };
+
+  const markAsInvoiced = async (timesheetIds, invoiceId) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('timesheets')
+        .update({
+          invoice_id: invoiceId,
+          billed_at: new Date().toISOString(),
+          status: 'invoiced'
+        })
+        .in('id', timesheetIds);
+
+      if (error) throw error;
+      await fetchTimesheets();
+      toast({
+        title: t('messages.success.timesheetInvoiced', 'Timesheets facturées'),
+        description: `${timesheetIds.length} entrée(s) marquée(s) comme facturée(s).`
+      });
+    } catch (err) {
+      toast({
+        title: t('messages.error.timesheetInvoiceFailed', 'Erreur de facturation'),
+        description: t('messages.error.timesheetInvoiceDescription', 'Impossible de marquer les feuilles de temps comme facturées.'),
+        variant: "destructive"
+      });
+    }
+  };
+
+  const toggleBillable = async (id, billable) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('timesheets')
+        .update({ billable })
+        .eq('id', id);
+
+      if (error) throw error;
+      setTimesheets(prev => prev.map(t => t.id === id ? { ...t, billable } : t));
+    } catch (err) {
+      console.error('Error toggling billable:', err);
+    }
+  };
+
   useEffect(() => {
     fetchTimesheets();
   }, [user]);
@@ -185,6 +250,9 @@ export const useTimesheets = () => {
     createTimesheet,
     updateTimesheet,
     deleteTimesheet,
-    calculateDuration
+    calculateDuration,
+    fetchBillableTimesheets,
+    markAsInvoiced,
+    toggleBillable
   };
 };

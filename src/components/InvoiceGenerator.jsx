@@ -25,7 +25,7 @@ import { format } from 'date-fns';
 const InvoiceGenerator = ({ onSuccess }) => {
   const { t } = useTranslation();
   const { createInvoice } = useInvoices();
-  const { timesheets } = useTimesheets();
+  const { timesheets, markAsInvoiced } = useTimesheets();
   const { clients } = useClients();
 
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -51,6 +51,22 @@ const InvoiceGenerator = ({ onSuccess }) => {
   const [internalRemark, setInternalRemark] = useState('');
   const [customFields, setCustomFields] = useState([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [preSelectedIds, setPreSelectedIds] = useState([]);
+
+  // Read pre-selected timesheet IDs from sessionStorage (e.g. from TimesheetsPage)
+  useEffect(() => {
+    const stored = sessionStorage.getItem('selectedTimesheetIds');
+    if (stored) {
+      try {
+        const ids = JSON.parse(stored);
+        setPreSelectedIds(ids);
+        setSelectedTimesheets(ids);
+        sessionStorage.removeItem('selectedTimesheetIds');
+      } catch (e) {
+        // ignore parse errors
+      }
+    }
+  }, []);
 
   const filteredTimesheets = timesheets.filter(ts => {
     if (!selectedClientId) return false;
@@ -114,11 +130,13 @@ const InvoiceGenerator = ({ onSuccess }) => {
   const getAllInvoiceItems = () => {
     const timesheetItems = selectedTimesheets.map(tsId => {
       const ts = timesheets.find(t => t.id === tsId);
+      const durationHours = (ts.duration_minutes || 0) / 60;
+      const unitPrice = ts.hourly_rate || ts.project?.hourly_rate || 50;
       return {
         description: ts.notes || 'Timesheet entry',
-        quantity: ts.durationHours,
-        unitPrice: 50,
-        amount: ts.durationHours * 50,
+        quantity: durationHours,
+        unitPrice,
+        amount: durationHours * unitPrice,
         itemType: 'timesheet'
       };
     });
@@ -170,7 +188,12 @@ const InvoiceGenerator = ({ onSuccess }) => {
     };
 
     try {
-      await createInvoice(invoiceData, allItems);
+      const newInvoice = await createInvoice(invoiceData, allItems);
+
+      // Mark timesheets as invoiced
+      if (selectedTimesheets.length > 0 && newInvoice?.id) {
+        await markAsInvoiced(selectedTimesheets, newInvoice.id);
+      }
 
       // Reset form
       setSelectedClientId('');
@@ -244,7 +267,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
                     <Checkbox checked={selectedTimesheets.includes(ts.id)} onCheckedChange={() => handleTimesheetToggle(ts.id)} />
                     <div className="flex-1 min-w-0">
                       <p className="text-white truncate">{ts.notes || 'No description'}</p>
-                      <p className="text-sm text-gray-400">{format(new Date(ts.date), 'MMM dd, yyyy')} • {ts.durationHours.toFixed(2)}h</p>
+                      <p className="text-sm text-gray-400">{format(new Date(ts.date), 'MMM dd, yyyy')} • {((ts.duration_minutes || 0) / 60).toFixed(2)}h</p>
                     </div>
                   </div>
                 ))}

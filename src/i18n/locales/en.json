@@ -140,7 +140,16 @@
       "tomorrow": "Tomorrow",
       "thisWeek": "This Week",
       "later": "Later"
-    }
+    },
+    "billable": "Billable",
+    "notBillable": "Not billable",
+    "invoiced": "Invoiced",
+    "generateInvoice": "Generate invoice",
+    "selectForBilling": "Select for billing",
+    "selectedEntries": "entry(ies) selected",
+    "deselectAll": "Deselect all",
+    "selectAllBillable": "Select all billable",
+    "billTimesheets": "Bill timesheets"
   },
   "buttons": {
     "cancel": "Cancel",
@@ -175,7 +184,8 @@
       "invoiceDeleted": "Invoice deleted successfully",
       "timesheetAdded": "Timesheet added successfully",
       "timesheetUpdated": "Timesheet updated successfully",
-      "timesheetDeleted": "Timesheet deleted successfully"
+      "timesheetDeleted": "Timesheet deleted successfully",
+      "timesheetInvoiced": "Timesheets invoiced successfully"
     },
     "error": {
       "pdfExportFailed": "PDF export failed",
@@ -186,7 +196,9 @@
       "timesheetUpdateFailed": "Update error",
       "timesheetUpdateDescription": "Unable to update the timesheet entry. Please try again.",
       "timesheetDeleteFailed": "Deletion error",
-      "timesheetDeleteDescription": "Unable to delete the timesheet entry. Please try again."
+      "timesheetDeleteDescription": "Unable to delete the timesheet entry. Please try again.",
+      "timesheetInvoiceFailed": "Billing error",
+      "timesheetInvoiceDescription": "Unable to mark timesheets as invoiced."
     }
   },
   "validation": {
