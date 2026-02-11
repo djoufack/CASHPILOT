@@ -2658,3 +2658,97 @@ Consultez régulièrement pour les nouvelles fonctionnalités et améliorations.
 *Version 1.1 - Février 2026 — Ajout de l'onglet Connexions (MCP, MCP Connector, REST API)*
 
 Pour toute question ou suggestion, n'hésitez pas à contacter notre équipe de support.
+
+
+### 8. Assistant IA - Expert-Comptable & CFO Digital 🤖
+
+CashPilot intègre un **Assistant IA** qui combine l'expertise d'un **Expert-Comptable** et d'un **Directeur Financier (CFO)**. Cet assistant déplaçable est accessible depuis n'importe quelle page via le bouton orange flottant.
+
+#### Capacités de l'Assistant
+
+**🏦 EXPERTISE COMPTABLE & FISCALE**
+- Vérification de la conformité comptable et fiscale
+- Alertes sur les factures en retard (recouvrement)
+- Rappels des échéances fiscales (TVA, IS, déclarations)
+- Optimisation de la charge fiscale dans le cadre légal
+- Identification des anomalies dans les écritures
+
+**💼 FINANCE D'ENTREPRISE (CFO)**
+- Calcul automatique des KPIs financiers (EBITDA, ROI, BFR, DSO, DPO)
+- Analyse de rentabilité par client/produit
+- Prévisions de trésorerie et budgets prévisionnels
+- Modélisation de scénarios financiers (best/worst case)
+- Conseil stratégique (investissements, levées de fonds, M&A)
+- Gestion des risques financiers et plans d'action
+- Valorisation d'entreprise et business plans
+
+#### Utilisation
+
+1. **Ouvrir l'assistant** : Cliquez sur le bouton orange avec l'icône de message
+2. **Déplacer l'assistant** : Glissez le bouton ou le header pour repositionner la fenêtre
+3. **Poser une question** : Utilisez le langage naturel
+4. **Effacer l'historique** : Bouton poubelle dans le header
+
+#### Exemples de Questions
+
+**Comptabilité & Conformité**
+- "Ma comptabilité est-elle conforme ?"
+- "Quelles sont mes prochaines échéances fiscales ?"
+- "Quelles factures sont en retard ?"
+- "Y a-t-il des anomalies dans mes comptes ?"
+
+**Performance & Analyse**
+- "Quel est mon chiffre d'affaires ce mois ?"
+- "Quelle est ma marge nette ?"
+- "Quel client me rapporte le plus ?"
+- "Comment évoluent mes ventes ?"
+
+**Stratégie & Trésorerie**
+- "Comment optimiser mon BFR ?"
+- "Quelle sera ma trésorerie dans 6 mois ?"
+- "Dois-je augmenter mes prix ?"
+- "Vaut-il mieux lever des fonds ou m'endetter ?"
+
+**Décisions & Investissements**
+- "Quel est mon point mort ?"
+- "Quelle est ma valorisation d'entreprise ?"
+- "Dois-je investir dans ce projet ?"
+- "Comment réduire mes coûts ?"
+
+#### Données Accessibles
+
+L'assistant a accès en temps réel à :
+- ✅ Tous vos clients (100 max)
+- ✅ Vos factures récentes (50 max)
+- ✅ Vos paiements (50 max)
+- ✅ Vos dépenses (50 max)
+- ✅ Votre bilan financier calculé automatiquement
+- ✅ Votre profil entreprise
+
+#### Coût & Crédits
+
+- **2 crédits** par question
+- Les crédits sont automatiquement déduits
+- Rechargez vos crédits depuis l'onglet "Mon Profil"
+
+#### Règles Professionnelles
+
+L'assistant respecte :
+- ✓ **Précision** : Utilise uniquement vos vraies données
+- ✓ **Proactivité** : Anticipe les risques et propose des solutions
+- ✓ **Pédagogie** : Explique le "pourquoi" de ses recommandations
+- ✓ **Conformité** : Base ses conseils sur la législation FR/BE/OHADA
+- ✓ **Professionnalisme** : Ton expert mais accessible
+
+#### Documentation Complète
+
+Pour une documentation détaillée de toutes les capacités de l'assistant, consultez :
+📄 `Plans-Implémentation/fonctionnalités-assistant.md`
+
+**Valeur ajoutée estimée : 35-55k€/an**
+- Remplace un cabinet comptable (2-5k€/an)
+- Remplace un CFO à temps partiel (30-50k€/an)
+- Remplace un consultant financier (150-300€/h)
+
+---
+
