@@ -157,7 +157,12 @@
     "sent": "Envoyée",
     "paid": "Payée",
     "overdue": "En retard",
-    "cancelled": "Annulée"
+    "cancelled": "Annulée",
+    "active": "Actif",
+    "inProgress": "En cours",
+    "onHold": "En attente",
+    "completed": "Terminé",
+    "confirmed": "Confirmé"
   },
   "messages": {
     "success": {
