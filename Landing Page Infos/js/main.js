@@ -949,3 +949,199 @@ if (prefersReducedMotion.matches) {
    Initialize Everything
    ============================================ */
 console.log('🚀 CashPilot Landing Page Initialized');
+
+// ============================================================
+// AI ASSISTANT SECTION ANIMATIONS
+// ============================================================
+
+// Animate AI section on scroll
+if (typeof ScrollTrigger !== 'undefined') {
+    // AI Badge animation
+    gsap.from('.ai-badge', {
+        scrollTrigger: {
+            trigger: '.section-ai',
+            start: 'top 80%',
+            toggleActions: 'play none none reverse'
+        },
+        y: 30,
+        opacity: 0,
+        duration: 0.6,
+        ease: 'power3.out'
+    });
+
+    // AI Title animation
+    gsap.from('.ai-title span', {
+        scrollTrigger: {
+            trigger: '.section-ai',
+            start: 'top 75%',
+            toggleActions: 'play none none reverse'
+        },
+        y: 50,
+        opacity: 0,
+        stagger: 0.2,
+        duration: 0.8,
+        ease: 'power3.out'
+    });
+
+    // Value Banner animation
+    gsap.from('.ai-value-banner', {
+        scrollTrigger: {
+            trigger: '.ai-value-banner',
+            start: 'top 80%',
+            toggleActions: 'play none none reverse'
+        },
+        scale: 0.9,
+        opacity: 0,
+        duration: 0.8,
+        ease: 'back.out(1.3)'
+    });
+
+    // Value items stagger
+    gsap.from('.value-item', {
+        scrollTrigger: {
+            trigger: '.ai-value-banner',
+            start: 'top 75%',
+            toggleActions: 'play none none reverse'
+        },
+        y: 30,
+        opacity: 0,
+        stagger: 0.15,
+        duration: 0.6,
+        delay: 0.3,
+        ease: 'power2.out'
+    });
+
+    // AI Columns animation
+    gsap.from('.ai-column', {
+        scrollTrigger: {
+            trigger: '.ai-content-grid',
+            start: 'top 75%',
+            toggleActions: 'play none none reverse'
+        },
+        y: 60,
+        opacity: 0,
+        stagger: 0.2,
+        duration: 0.8,
+        ease: 'power3.out'
+    });
+
+    // AI Features list animation
+    gsap.from('.ai-features-list li', {
+        scrollTrigger: {
+            trigger: '.ai-features-list',
+            start: 'top 85%',
+            toggleActions: 'play none none reverse'
+        },
+        x: -30,
+        opacity: 0,
+        stagger: 0.08,
+        duration: 0.5,
+        ease: 'power2.out'
+    });
+
+    // Questions grid animation
+    gsap.from('.ai-question-card', {
+        scrollTrigger: {
+            trigger: '.ai-examples',
+            start: 'top 80%',
+            toggleActions: 'play none none reverse'
+        },
+        scale: 0.9,
+        opacity: 0,
+        stagger: {
+            amount: 0.6,
+            from: 'start'
+        },
+        duration: 0.5,
+        ease: 'back.out(1.4)'
+    });
+
+    // AI CTA animation
+    gsap.from('.ai-cta', {
+        scrollTrigger: {
+            trigger: '.ai-cta',
+            start: 'top 85%',
+            toggleActions: 'play none none reverse'
+        },
+        y: 40,
+        opacity: 0,
+        duration: 0.7,
+        ease: 'power3.out'
+    });
+
+    // Continuous pulse animation for AI badge
+    gsap.to('.ai-badge', {
+        scale: 1.05,
+        duration: 2,
+        repeat: -1,
+        yoyo: true,
+        ease: 'power1.inOut'
+    });
+
+    // Floating animation for AI orbs
+    gsap.to('.ai-orb-1', {
+        x: 50,
+        y: -30,
+        duration: 8,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut'
+    });
+
+    gsap.to('.ai-orb-2', {
+        x: -60,
+        y: 40,
+        duration: 10,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut'
+    });
+
+    gsap.to('.ai-orb-3', {
+        x: 40,
+        y: -50,
+        duration: 12,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut'
+    });
+
+    // Hover effects for question cards
+    document.querySelectorAll('.ai-question-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            gsap.to(this, {
+                scale: 1.05,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        });
+
+        card.addEventListener('mouseleave', function() {
+            gsap.to(this, {
+                scale: 1,
+                duration: 0.3,
+                ease: 'power2.out'
+            });
+        });
+    });
+
+    // Shimmer effect on AI button
+    gsap.to('.btn-ai-primary .btn-shine', {
+        x: '200%',
+        duration: 2,
+        repeat: -1,
+        repeatDelay: 3,
+        ease: 'power2.inOut'
+    });
+}
+
+// Add shine element to AI button if it doesn't exist
+document.addEventListener('DOMContentLoaded', function() {
+    const aiButton = document.querySelector('.btn-ai-primary');
+    if (aiButton && !aiButton.querySelector('.btn-shine')) {
+        const shine = document.createElement('span');
+        shine.className = 'btn-shine';
+        aiButton.appendChild(shine);
+    }
+});
+
