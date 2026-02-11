@@ -46,20 +46,60 @@ serve(async (req) => {
 
     await supabase.from('credit_transactions').insert([{ user_id: userId, amount: -CREDIT_COST, type: 'usage', description: 'AI Chatbot' }]);
 
-    // Fetch user financial context
-    const [invoicesRes, expensesRes, profileRes] = await Promise.all([
-      supabase.from('invoices').select('invoice_number, total_ttc, status, invoice_date, client:clients(name)').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
-      supabase.from('expenses').select('description, amount, category, date').eq('user_id', userId).order('date', { ascending: false }).limit(20),
-      supabase.from('profiles').select('company_name, full_name').eq('user_id', userId).single(),
+    // Fetch comprehensive user financial context
+    const [invoicesRes, expensesRes, clientsRes, paymentsRes, profileRes] = await Promise.all([
+      supabase.from('invoices').select('invoice_number, total_ttc, total_ht, status, invoice_date, due_date, client:clients(company_name)').eq('user_id', userId).order('invoice_date', { ascending: false }).limit(50),
+      supabase.from('expenses').select('description, amount, category, date, supplier').eq('user_id', userId).order('date', { ascending: false }).limit(50),
+      supabase.from('clients').select('company_name, contact_name, email, phone, city, country, vat_number').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
+      supabase.from('payments').select('amount, payment_date, payment_method, invoice:invoices(invoice_number)').eq('user_id', userId).order('payment_date', { ascending: false }).limit(50),
+      supabase.from('profiles').select('company_name, full_name, email, phone, address, city, postal_code, country').eq('user_id', userId).single(),
     ]);
+
+    // Calculate financial summary (bilan)
+    const invoices = invoicesRes.data || [];
+    const expenses = expensesRes.data || [];
+    const payments = paymentsRes.data || [];
+
+    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total_ttc || 0), 0);
+    const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    const totalPaid = payments.reduce((sum, pay) => sum + (pay.amount || 0), 0);
+    const unpaidInvoices = invoices.filter(inv => inv.status !== 'paid');
+    const totalUnpaid = unpaidInvoices.reduce((sum, inv) => sum + (inv.total_ttc || 0), 0);
+    const overdueInvoices = unpaidInvoices.filter(inv => new Date(inv.due_date) < new Date());
 
     const systemPrompt = `Tu es un assistant comptable expert pour ${profileRes.data?.company_name || 'l\'utilisateur'}. Tu aides avec la comptabilité, la fiscalité belge/française, et l'analyse financière.
 
-Données récentes de l'utilisateur:
-- Factures: ${JSON.stringify(invoicesRes.data?.slice(0, 10) || [])}
-- Dépenses: ${JSON.stringify(expensesRes.data?.slice(0, 10) || [])}
+CONTEXTE COMPLET DE L'ENTREPRISE:
 
-Réponds de manière concise et professionnelle en français. Si on te demande des calculs, utilise les vraies données.`;
+📊 BILAN FINANCIER:
+- Chiffre d'affaires (factures émises): ${totalRevenue.toFixed(2)}€
+- Dépenses totales: ${totalExpenses.toFixed(2)}€
+- Résultat net: ${(totalRevenue - totalExpenses).toFixed(2)}€
+- Montant payé: ${totalPaid.toFixed(2)}€
+- Créances (impayés): ${totalUnpaid.toFixed(2)}€ (${unpaidInvoices.length} factures)
+- Factures en retard: ${overdueInvoices.length} factures
+
+👥 CLIENTS (${clientsRes.data?.length || 0} clients):
+${JSON.stringify(clientsRes.data || [], null, 2)}
+
+📄 FACTURES (${invoices.length} factures récentes):
+${JSON.stringify(invoices.slice(0, 20), null, 2)}
+
+💰 PAIEMENTS (${payments.length} paiements récents):
+${JSON.stringify(payments.slice(0, 20), null, 2)}
+
+💸 DÉPENSES (${expenses.length} dépenses récentes):
+${JSON.stringify(expenses.slice(0, 20), null, 2)}
+
+🏢 PROFIL ENTREPRISE:
+${JSON.stringify(profileRes.data, null, 2)}
+
+INSTRUCTIONS:
+- Réponds de manière concise et professionnelle en français
+- Utilise UNIQUEMENT les vraies données ci-dessus pour tes réponses
+- Si on te demande des calculs, des stats ou des informations, base-toi sur ces données
+- Tu peux faire des analyses financières, identifier des tendances, suggérer des optimisations
+- Tu as accès à TOUT le contexte financier de l'entreprise`;
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
     const geminiRes = await fetch(geminiUrl, {
