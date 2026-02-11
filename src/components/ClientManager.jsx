@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useClients } from '@/hooks/useClients';
 import { Button } from '@/components/ui/button';
@@ -30,9 +30,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRIES } from '@/constants/countries';
+import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
 import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard, Download } from 'lucide-react';
 import { exportToCSV, exportToExcel } from '@/utils/exportService';
 import { motion } from 'framer-motion';
@@ -71,6 +73,15 @@ const ClientManager = () => {
     notes: ''
   };
   const [formData, setFormData] = useState(emptyFormData);
+
+  // Format currency options for SearchableSelect
+  const currencyOptions = useMemo(() =>
+    SUPPORTED_CURRENCIES.map(c => ({
+      value: c.code,
+      label: `${c.symbol} ${c.code} - ${c.name}`
+    })),
+    []
+  );
 
   const handleOpenDialog = (client = null) => {
     if (client) {
@@ -460,19 +471,15 @@ const ClientManager = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="currency">{t('clients.preferredCurrency')}</Label>
-                    <Select
+                    <SearchableSelect
+                      options={currencyOptions}
                       value={formData.preferred_currency}
                       onValueChange={(value) => setFormData({ ...formData, preferred_currency: value })}
-                    >
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                        <SelectItem value={Currency.EUR}>{t('currency.EUR')}</SelectItem>
-                        <SelectItem value={Currency.USD}>{t('currency.USD')}</SelectItem>
-                        <SelectItem value={Currency.GBP}>{t('currency.GBP')}</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      placeholder="Sélectionner une devise"
+                      searchPlaceholder="Rechercher une devise..."
+                      emptyMessage="Aucune devise trouvée"
+                      className="w-full"
+                    />
                   </div>
                 </div>
               </div>

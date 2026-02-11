@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { COUNTRIES } from '@/constants/countries';
 import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
 import { supabase } from '@/lib/supabase';
@@ -28,6 +29,20 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
     ...wizardData.companyInfo,
   });
   const [saving, setSaving] = useState(false);
+
+  // Format data for SearchableSelect components
+  const countryOptions = useMemo(() =>
+    COUNTRIES.map(c => ({ value: c.code, label: c.label })),
+    []
+  );
+
+  const currencyOptions = useMemo(() =>
+    SUPPORTED_CURRENCIES.map(c => ({
+      value: c.code,
+      label: `${c.symbol} ${c.code} - ${c.name}`
+    })),
+    []
+  );
 
   useEffect(() => {
     if (!user || !supabase) return;
@@ -128,32 +143,26 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
 
         <div className="space-y-1">
           <Label className="text-gray-300 text-xs">{t('onboarding.company.country', 'Pays')}</Label>
-          <Select value={form.country} onValueChange={(v) => handleChange('country', v)}>
-            <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
-              <SelectValue placeholder={t('onboarding.company.country', 'Pays')} />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
-              {COUNTRIES.map(c => (
-                <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            options={countryOptions}
+            value={form.country}
+            onValueChange={(v) => handleChange('country', v)}
+            placeholder={t('onboarding.company.country', 'Sélectionner un pays')}
+            searchPlaceholder="Rechercher un pays..."
+            emptyMessage="Aucun pays trouvé"
+          />
         </div>
 
         <div className="space-y-1">
           <Label className="text-gray-300 text-xs">{t('onboarding.company.currency', 'Devise de travail')}</Label>
-          <Select value={form.currency} onValueChange={(v) => handleChange('currency', v)}>
-            <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
-              <SelectValue placeholder={t('onboarding.company.currency', 'Devise')} />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
-              {SUPPORTED_CURRENCIES.map(c => (
-                <SelectItem key={c.code} value={c.code}>
-                  {c.symbol} {c.code} - {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            options={currencyOptions}
+            value={form.currency}
+            onValueChange={(v) => handleChange('currency', v)}
+            placeholder={t('onboarding.company.currency', 'Sélectionner une devise')}
+            searchPlaceholder="Rechercher une devise..."
+            emptyMessage="Aucune devise trouvée"
+          />
         </div>
 
         <div className="sm:col-span-2 space-y-1">

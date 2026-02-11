@@ -91,6 +91,62 @@ L'auto-détection du type se base sur le préfixe du code :
 
 Les plans importés sont sauvegardés en **privé** (`is_global = false`, `uploaded_by = user_id`).
 
+### Onboarding : Informations Entreprise et Devise (Step 2)
+
+À l'étape 2 du wizard d'onboarding, l'utilisateur configure les informations de son entreprise, incluant :
+
+#### Sélection de la Devise de Travail
+
+CashPilot supporte **75+ devises mondiales** organisées par région :
+
+| Région | Devises | Exemples |
+|--------|---------|----------|
+| **Europe** | 16 | EUR, GBP, CHF, SEK, NOK, PLN, CZK, DKK, HUF, RON |
+| **Amériques** | 11 | USD, CAD, BRL, MXN, ARS, CLP, COP, PEN |
+| **Asie-Pacifique** | 17 | JPY, CNY, HKD, SGD, AUD, NZD, INR, KRW, THB |
+| **Moyen-Orient** | 10 | AED, SAR, QAR, KWD, BHD, ILS, TRY |
+| **Afrique** | 14 | XOF, XAF, ZAR, NGN, KES, EGP, MAD, TND |
+
+**Fonctionnalités** :
+- Interface de sélection avec symbole, code et nom complet de la devise
+- Enregistrement dans la table `company` (colonne `currency`)
+- Support de toutes les devises ISO 4217 principales
+
+#### Conversion Automatique en EUR
+
+Pour les entreprises utilisant une devise autre que l'EUR, le système offre :
+
+1. **Saisie dans la devise locale** : À l'étape 4 (Soldes d'ouverture), tous les montants sont saisis dans la devise choisie
+2. **Conversion temps réel** : Affichage automatique de l'équivalent en EUR pour chaque montant
+3. **Taux de change actualisés** : Utilisation de l'API Exchange Rate (mise à jour quotidienne)
+4. **Fallback rates** : Taux par défaut si l'API n'est pas disponible
+
+#### Service de Conversion
+
+Le service `currencyService.js` fournit :
+
+```javascript
+// Fonction de conversion
+await convertCurrency(amount, fromCurrency, toCurrency)
+// Exemple : convertCurrency(1000, 'USD', 'EUR') => 920.50
+
+// Récupération des taux
+await fetchExchangeRates()
+// Cache : 1 heure pour optimiser les performances
+
+// Liste des devises supportées
+SUPPORTED_CURRENCIES // 75+ devises avec code, symbole, nom, région
+```
+
+#### Exemple d'Utilisation
+
+Si un utilisateur au Maroc choisit MAD (Dirham marocain) :
+- Étape 2 : Sélectionne "د.م. MAD - Moroccan Dirham"
+- Étape 4 : Saisit les soldes en MAD (ex: 50 000 MAD)
+- Affichage automatique : "≈ 4 651.16 EUR"
+
+Cette conversion facilite la consolidation financière pour les groupes internationaux.
+
 ### Requêtes Utiles
 
 ```sql
@@ -292,6 +348,127 @@ await deletePayment(paymentId);
 // Crédit 512 Banque : montant
 // (inverse de l'écriture initiale)
 ```
+
+## 💡 Suggestions Automatiques de Mappings (Nouveau!)
+
+### Fonctionnalité
+
+Pour faciliter la configuration des mappings comptables, CashPilot propose maintenant des **suggestions automatiques intelligentes** lors de la création d'un nouveau mapping.
+
+### Comment ça marche
+
+1. **Détection du pays** : Le système récupère le pays de l'utilisateur depuis `user_accounting_settings`
+2. **Sélection du preset** : Selon le pays (FR/BE/OHADA), CashPilot sélectionne le preset approprié
+3. **Suggestion contextuelle** : Quand vous sélectionnez un type de source + catégorie, les comptes sont automatiquement suggérés
+4. **Modification libre** : Vous pouvez accepter ou modifier les suggestions
+
+### Interface Utilisateur
+
+#### Badge de Suggestion
+Quand une suggestion est active, un badge bleu s'affiche :
+
+```
+💡 Suggestion automatique
+Comptes suggérés selon votre plan comptable (France/Belgique/OHADA).
+Vous pouvez les modifier si nécessaire.
+```
+
+#### Workflow
+1. Ouvrir le formulaire "Nouveau mapping"
+2. Sélectionner le **Type de source** (ex: Facture client)
+3. Sélectionner la **Catégorie** (ex: service)
+4. ✨ Les champs se remplissent automatiquement :
+   - Compte débit
+   - Compte crédit
+   - Description
+5. Le badge de suggestion s'affiche
+6. Modifier si nécessaire ou valider directement
+
+### Exemples de Suggestions
+
+#### France (PCG)
+```javascript
+// Type: invoice, Catégorie: service
+{
+  debit_account_code: '411',    // Clients
+  credit_account_code: '706',   // Prestations de services
+  description: 'Prestations de services'
+}
+
+// Type: expense, Catégorie: travel
+{
+  debit_account_code: '6251',   // Voyages et déplacements
+  credit_account_code: '512',   // Banque
+  description: 'Voyages et déplacements'
+}
+```
+
+#### Belgique (PCMN)
+```javascript
+// Type: invoice, Catégorie: service
+{
+  debit_account_code: '400',    // Clients
+  credit_account_code: '7061',  // Prestations de services
+  description: 'Prestations de services'
+}
+
+// Type: expense, Catégorie: office
+{
+  debit_account_code: '6064',   // Fournitures administratives
+  credit_account_code: '512',   // Banque
+  description: 'Fournitures administratives'
+}
+```
+
+#### OHADA (SYSCOHADA)
+```javascript
+// Type: invoice, Catégorie: service
+{
+  debit_account_code: '411',    // Clients
+  credit_account_code: '706',   // Services vendus
+  description: 'Services vendus'
+}
+
+// Type: expense, Catégorie: marketing
+{
+  debit_account_code: '627',    // Publicité et relations publiques
+  credit_account_code: '521',   // Banque
+  description: 'Publicité et relations publiques'
+}
+```
+
+### Presets Complets
+
+Au lieu de créer les mappings un par un, vous pouvez charger un **preset complet** :
+
+| Preset | Pays | Nombre de mappings | Contenu |
+|--------|------|-------------------|----------|
+| **Belgique** | BE | 27 | Ventes (3) + Dépenses (16) + Achats (3) + Paiements (4) + Avoirs (1) |
+| **France** | FR | 27 | Ventes (3) + Dépenses (16) + Achats (3) + Paiements (4) + Avoirs (1) |
+| **OHADA** | OHADA | 27 | Ventes (3) + Dépenses (16) + Achats (3) + Paiements (4) + Avoirs (1) |
+
+Chaque preset charge automatiquement tous les mappings standards couvrant :
+- **Factures clients** : revenue, service, product
+- **Dépenses** : general, office, travel, meals, transport, software, hardware, marketing, legal, insurance, rent, utilities, telecom, training, consulting, other
+- **Factures fournisseurs** : purchase, service, supply
+- **Paiements** : cash, bank_transfer, card, check
+- **Notes de crédit** : general
+
+### Avantages
+
+✅ **Accessibilité** : Aucune connaissance comptable requise
+✅ **Rapidité** : Configuration en quelques clics
+✅ **Conformité** : Mappings basés sur les plans comptables officiels
+✅ **Flexibilité** : Modification possible pour cas spécifiques
+✅ **Éducatif** : Montre les bonnes pratiques comptables
+
+### Code Source
+
+| Fichier | Rôle |
+|---------|------|
+| `src/components/accounting/AccountingMappings.jsx` | Composant UI avec suggestions |
+| `src/hooks/useAccountingInit.js` | Hook pour récupérer le pays |
+| `src/hooks/useAccounting.js` | Hook pour gérer les mappings |
 
 ## 📊 Journaux Comptables
 
@@ -527,7 +704,8 @@ Pour toute question ou problème :
 - [x] Onboarding comptable avec choix du plan (FR/BE/OHADA) et import personnalisé
 - [x] 3 plans comptables pré-chargés (1 757 comptes) avec RLS
 - [x] Soldes d'ouverture via questions simples (Step 4)
-- [ ] Support multi-devises avec écritures de change
+- [x] Support multi-devises (75+ devises) avec conversion temps réel en EUR
+- [ ] Écritures de change automatiques pour les factures multi-devises
 - [ ] Amortissements automatiques
 - [ ] Écritures de régularisation
 - [ ] Clôture d'exercice automatique
