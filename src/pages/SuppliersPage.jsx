@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { COUNTRIES } from '@/constants/countries';
 
 const SuppliersPage = () => {
   const { suppliers, loading, createSupplier, deleteSupplier } = useSuppliers();
@@ -192,12 +193,16 @@ const SuppliersPage = () => {
                     </div>
                     <div className="space-y-2">
                       <Label>Country</Label>
-                      <Input
-                        value={newSupplier.country}
-                        onChange={(e) => setNewSupplier({...newSupplier, country: e.target.value})}
-                        placeholder="France"
-                        className="bg-gray-700 border-gray-600"
-                      />
+                      <Select value={newSupplier.country} onValueChange={(val) => setNewSupplier({...newSupplier, country: val})}>
+                        <SelectTrigger className="bg-gray-700 border-gray-600">
+                          <SelectValue placeholder="Select country" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
+                          {COUNTRIES.map(c => (
+                            <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>

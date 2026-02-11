@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, ArrowRight, PiggyBank, HelpCircle } from 'lucide-react';
+import { convertCurrency, SUPPORTED_CURRENCIES } from '@/utils/currencyService';
 
 const BALANCE_FIELDS = [
   {
@@ -54,11 +55,48 @@ const Step4OpeningBalances = ({ onNext, onBack, wizardData, updateWizardData }) 
   const { t } = useTranslation();
   const [balances, setBalances] = useState(wizardData.openingBalances || {});
   const [showTooltip, setShowTooltip] = useState(null);
+  const [eurEquivalents, setEurEquivalents] = useState({});
 
-  const handleChange = (key, value) => {
+  // Get selected currency from company info (default to EUR)
+  const selectedCurrency = wizardData.companyInfo?.currency || 'EUR';
+  const currencySymbol = SUPPORTED_CURRENCIES.find(c => c.code === selectedCurrency)?.symbol || selectedCurrency;
+
+  const handleChange = async (key, value) => {
     const numValue = value.replace(/[^\d.,]/g, '').replace(',', '.');
     setBalances(prev => ({ ...prev, [key]: numValue }));
+
+    // Calculate EUR equivalent if currency is not EUR
+    if (selectedCurrency !== 'EUR' && numValue) {
+      const parsedValue = parseFloat(numValue);
+      if (!isNaN(parsedValue)) {
+        const eurValue = await convertCurrency(parsedValue, selectedCurrency, 'EUR');
+        setEurEquivalents(prev => ({ ...prev, [key]: eurValue }));
+      }
+    }
   };
+
+  // Update EUR equivalents when currency or balances change
+  useEffect(() => {
+    const updateEquivalents = async () => {
+      if (selectedCurrency === 'EUR') {
+        setEurEquivalents({});
+        return;
+      }
+
+      const newEquivalents = {};
+      for (const [key, value] of Object.entries(balances)) {
+        if (value) {
+          const parsedValue = parseFloat(value);
+          if (!isNaN(parsedValue)) {
+            newEquivalents[key] = await convertCurrency(parsedValue, selectedCurrency, 'EUR');
+          }
+        }
+      }
+      setEurEquivalents(newEquivalents);
+    };
+
+    updateEquivalents();
+  }, [selectedCurrency]);
 
   const handleNext = () => {
     updateWizardData('openingBalances', balances);
@@ -75,6 +113,11 @@ const Step4OpeningBalances = ({ onNext, onBack, wizardData, updateWizardData }) 
         <p className="text-gray-400 text-sm">
           {t('onboarding.balances.subtitle', 'Ces montants permettront de démarrer votre comptabilité. Tous les champs sont optionnels.')}
         </p>
+        {selectedCurrency !== 'EUR' && (
+          <p className="text-blue-400 text-xs pt-1">
+            💱 {t('onboarding.balances.currencyNote', `Devise: ${currencySymbol} ${selectedCurrency} • Les équivalents en EUR sont affichés automatiquement`)}
+          </p>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -97,16 +140,25 @@ const Step4OpeningBalances = ({ onNext, onBack, wizardData, updateWizardData }) 
                 {field.tooltip}
               </p>
             )}
-            <div className="relative">
-              <Input
-                type="text"
-                inputMode="decimal"
-                value={balances[field.key] || ''}
-                onChange={(e) => handleChange(field.key, e.target.value)}
-                className="bg-gray-800/50 border-gray-700 text-white pr-10"
-                placeholder={field.placeholder}
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">EUR</span>
+            <div className="space-y-1.5">
+              <div className="relative">
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={balances[field.key] || ''}
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  className="bg-gray-800/50 border-gray-700 text-white pr-16"
+                  placeholder={field.placeholder}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">
+                  {selectedCurrency}
+                </span>
+              </div>
+              {selectedCurrency !== 'EUR' && eurEquivalents[field.key] && (
+                <p className="text-xs text-blue-400/70 pl-3">
+                  ≈ {eurEquivalents[field.key].toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR
+                </p>
+              )}
             </div>
           </div>
         ))}

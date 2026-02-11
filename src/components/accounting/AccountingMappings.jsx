@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAccounting } from '@/hooks/useAccounting';
+import { useAccountingInit } from '@/hooks/useAccountingInit';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, AlertTriangle, ArrowRight, Settings, Zap, Loader2 } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, ArrowRight, Settings, Zap, Loader2, Lightbulb } from 'lucide-react';
 
 const SOURCE_TYPES = [
   { value: 'invoice', label: 'Facture client (vente)' },
@@ -139,9 +140,11 @@ const OHADA_MAPPINGS = [
 
 const AccountingMappings = () => {
   const { accounts, mappings, fetchAccounts, fetchMappings, createMapping, deleteMapping, bulkCreateMappings, loading } = useAccounting();
+  const { country } = useAccountingInit();
   const [showDialog, setShowDialog] = useState(false);
   const [showPresetConfirm, setShowPresetConfirm] = useState(false);
   const [presetLoading, setPresetLoading] = useState(false);
+  const [isSuggested, setIsSuggested] = useState(false);
   const [form, setForm] = useState({
     source_type: '',
     source_category: '',
@@ -154,6 +157,40 @@ const AccountingMappings = () => {
     fetchAccounts();
     fetchMappings();
   }, [fetchAccounts, fetchMappings]);
+
+  // Fonction pour obtenir les suggestions de mapping par défaut
+  const getSuggestedMapping = (sourceType, sourceCategory, userCountry) => {
+    if (!sourceType || !sourceCategory || !userCountry) return null;
+
+    // Sélectionner le bon preset selon le pays
+    let presetMappings = BELGIAN_MAPPINGS; // Par défaut
+    if (userCountry === 'FR') {
+      presetMappings = FRENCH_MAPPINGS;
+    } else if (userCountry === 'OHADA') {
+      presetMappings = OHADA_MAPPINGS;
+    }
+
+    // Trouver le mapping correspondant
+    return presetMappings.find(
+      m => m.source_type === sourceType && m.source_category === sourceCategory
+    );
+  };
+
+  // Auto-suggestion quand le type et la catégorie changent
+  useEffect(() => {
+    if (form.source_type && form.source_category && country) {
+      const suggestion = getSuggestedMapping(form.source_type, form.source_category, country);
+      if (suggestion) {
+        setForm(prev => ({
+          ...prev,
+          debit_account_code: suggestion.debit_account_code,
+          credit_account_code: suggestion.credit_account_code,
+          description: suggestion.description || ''
+        }));
+        setIsSuggested(true);
+      }
+    }
+  }, [form.source_type, form.source_category, country]);
 
   const getCategoriesForType = (type) => {
     switch (type) {
@@ -181,6 +218,15 @@ const AccountingMappings = () => {
     await createMapping(form);
     setShowDialog(false);
     setForm({ source_type: '', source_category: '', debit_account_code: '', credit_account_code: '', description: '' });
+    setIsSuggested(false);
+  };
+
+  const handleDialogClose = (open) => {
+    setShowDialog(open);
+    if (!open) {
+      setForm({ source_type: '', source_category: '', debit_account_code: '', credit_account_code: '', description: '' });
+      setIsSuggested(false);
+    }
   };
 
   const handleLoadBelgianPreset = async () => {
@@ -287,7 +333,7 @@ const AccountingMappings = () => {
       )}
 
       {/* Create Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+      <Dialog open={showDialog} onOpenChange={handleDialogClose}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-gradient">Nouveau mapping</DialogTitle>
@@ -295,7 +341,10 @@ const AccountingMappings = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Type de source</Label>
-              <Select value={form.source_type} onValueChange={v => setForm(p => ({ ...p, source_type: v, source_category: '' }))}>
+              <Select value={form.source_type} onValueChange={v => {
+                setForm(p => ({ ...p, source_type: v, source_category: '' }));
+                setIsSuggested(false);
+              }}>
                 <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700 text-white">
                   {SOURCE_TYPES.map(s => (
@@ -308,7 +357,10 @@ const AccountingMappings = () => {
             {form.source_type && (
               <div className="space-y-2">
                 <Label>Catégorie</Label>
-                <Select value={form.source_category} onValueChange={v => setForm(p => ({ ...p, source_category: v }))}>
+                <Select value={form.source_category} onValueChange={v => {
+                  setForm(p => ({ ...p, source_category: v }));
+                  setIsSuggested(false);
+                }}>
                   <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[200px]">
                     {getCategoriesForType(form.source_type).map(cat => (
@@ -319,10 +371,26 @@ const AccountingMappings = () => {
               </div>
             )}
 
+            {/* Badge de suggestion */}
+            {isSuggested && form.debit_account_code && form.credit_account_code && (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex items-start gap-2">
+                <Lightbulb className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <p className="text-blue-400 font-medium">Suggestion automatique</p>
+                  <p className="text-gray-400 mt-0.5">
+                    Comptes suggérés selon votre plan comptable ({country === 'FR' ? 'France' : country === 'BE' ? 'Belgique' : 'OHADA'}). Vous pouvez les modifier si nécessaire.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Compte débit</Label>
-                <Select value={form.debit_account_code} onValueChange={v => setForm(p => ({ ...p, debit_account_code: v }))}>
+                <Select value={form.debit_account_code} onValueChange={v => {
+                  setForm(p => ({ ...p, debit_account_code: v }));
+                  setIsSuggested(false);
+                }}>
                   <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Débit" /></SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[200px]">
                     {accounts.map(a => (
@@ -335,7 +403,10 @@ const AccountingMappings = () => {
               </div>
               <div className="space-y-2">
                 <Label>Compte crédit</Label>
-                <Select value={form.credit_account_code} onValueChange={v => setForm(p => ({ ...p, credit_account_code: v }))}>
+                <Select value={form.credit_account_code} onValueChange={v => {
+                  setForm(p => ({ ...p, credit_account_code: v }));
+                  setIsSuggested(false);
+                }}>
                   <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Crédit" /></SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[200px]">
                     {accounts.map(a => (
@@ -359,7 +430,7 @@ const AccountingMappings = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)} className="border-gray-700">Annuler</Button>
+            <Button variant="outline" onClick={() => handleDialogClose(false)} className="border-gray-700">Annuler</Button>
             <Button onClick={handleCreate} className="bg-orange-500 hover:bg-orange-600"
               disabled={!form.source_type || !form.source_category || !form.debit_account_code || !form.credit_account_code}>
               Créer le mapping

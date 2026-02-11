@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { COUNTRIES } from '@/constants/countries';
+import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft, ArrowRight, Building2 } from 'lucide-react';
@@ -19,6 +21,7 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
     city: '',
     postal_code: '',
     country: '',
+    currency: 'EUR',
     phone: '',
     email: '',
     iban: '',
@@ -125,11 +128,35 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
 
         <div className="space-y-1">
           <Label className="text-gray-300 text-xs">{t('onboarding.company.country', 'Pays')}</Label>
-          <Input value={form.country} onChange={(e) => handleChange('country', e.target.value)}
-            className="bg-gray-800/50 border-gray-700 text-white" placeholder="France" />
+          <Select value={form.country} onValueChange={(v) => handleChange('country', v)}>
+            <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
+              <SelectValue placeholder={t('onboarding.company.country', 'Pays')} />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
+              {COUNTRIES.map(c => (
+                <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-1">
+          <Label className="text-gray-300 text-xs">{t('onboarding.company.currency', 'Devise de travail')}</Label>
+          <Select value={form.currency} onValueChange={(v) => handleChange('currency', v)}>
+            <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
+              <SelectValue placeholder={t('onboarding.company.currency', 'Devise')} />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
+              {SUPPORTED_CURRENCIES.map(c => (
+                <SelectItem key={c.code} value={c.code}>
+                  {c.symbol} {c.code} - {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="sm:col-span-2 space-y-1">
           <Label className="text-gray-300 text-xs">IBAN</Label>
           <Input value={form.iban} onChange={(e) => handleChange('iban', e.target.value)}
             className="bg-gray-800/50 border-gray-700 text-white" placeholder="FR76 1234 5678 9012 3456 789" />

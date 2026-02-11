@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { COUNTRIES } from '@/constants/countries';
 import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard, Download } from 'lucide-react';
 import { exportToCSV, exportToExcel } from '@/utils/exportService';
 import { motion } from 'framer-motion';
@@ -397,13 +398,16 @@ const ClientManager = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="country">Pays</Label>
-                    <Input
-                      id="country"
-                      value={formData.country}
-                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                      placeholder="France"
-                      className="bg-gray-700 border-gray-600 text-white w-full"
-                    />
+                    <Select value={formData.country} onValueChange={(val) => setFormData({ ...formData, country: val })}>
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full">
+                        <SelectValue placeholder="Sélectionner un pays" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
+                        {COUNTRIES.map(c => (
+                          <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
