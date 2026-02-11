@@ -29,16 +29,44 @@ export const useAIChat = () => {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session?.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ userId: user.id, message: text, context }),
         }
       );
 
-      const data = await response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI Chatbot HTTP error:', response.status, errorText);
+        if (response.status === 401) {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: 'Session expirée. Veuillez vous reconnecter.',
+            timestamp: new Date().toISOString(),
+            isError: true,
+          }]);
+          return;
+        }
+        if (response.status === 402) {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: 'Crédits insuffisants pour utiliser le chatbot IA. Rechargez vos crédits pour continuer.',
+            timestamp: new Date().toISOString(),
+            isError: true,
+          }]);
+          return;
+        }
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `Erreur serveur (${response.status}). Veuillez réessayer.`,
+          timestamp: new Date().toISOString(),
+          isError: true,
+        }]);
+        return;
+      }
 
-      // Debug: log la réponse complète
-      console.log('AI Chatbot Response:', { status: response.status, data });
+      const data = await response.json();
 
       if (data.error === 'insufficient_credits') {
         setMessages(prev => [...prev, {
@@ -61,10 +89,9 @@ export const useAIChat = () => {
           timestamp: new Date().toISOString(),
         }]);
       } else {
-        console.error('Unexpected server response - data structure:', JSON.stringify(data, null, 2));
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: `Réponse inattendue du serveur. Debug: ${JSON.stringify(data)}`,
+          content: 'Réponse inattendue du serveur. Veuillez réessayer.',
           timestamp: new Date().toISOString(),
           isError: true,
         }]);
