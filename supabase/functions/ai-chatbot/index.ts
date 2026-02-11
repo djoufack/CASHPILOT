@@ -202,6 +202,8 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
     });
 
     if (!geminiRes.ok) {
+      const geminiError = await geminiRes.text();
+      console.error('Gemini API error:', geminiRes.status, geminiError);
       // Refund credits on error
       await supabase.from('user_credits').update({
         free_credits: credits.free_credits,
@@ -212,7 +214,9 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
     }
 
     const result = await geminiRes.json();
+    console.log('Gemini result structure:', JSON.stringify(result, null, 2));
     const reply = result.candidates?.[0]?.content?.parts?.[0]?.text || 'Désolé, je n\'ai pas pu répondre.';
+    console.log('Extracted reply:', reply);
 
     return new Response(JSON.stringify({ success: true, reply }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
