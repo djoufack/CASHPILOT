@@ -13,7 +13,11 @@ const AIChatWidget = () => {
     if (saved) {
       return JSON.parse(saved);
     }
-    return { x: 0, y: 0 };
+    // Position par défaut en bas à droite
+    return {
+      x: typeof window !== 'undefined' ? window.innerWidth - 100 : 0,
+      y: typeof window !== 'undefined' ? window.innerHeight - 100 : 0
+    };
   });
 
   const { messages, isLoading, sendMessage, clearChat } = useAIChat();
