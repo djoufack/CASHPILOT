@@ -17,6 +17,7 @@ import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportTimesheetsListPDF, exportTimesheetsListHTML } from '@/services/exportListsPDF';
 import TimesheetForm from '@/components/TimesheetForm';
+import TimesheetEditModal from '@/components/TimesheetEditModal';
 import TimesheetsList from '@/components/TimesheetsList';
 import TimesheetKanbanView from '@/components/TimesheetKanbanView';
 import TimesheetAgendaView from '@/components/TimesheetAgendaView';
@@ -41,6 +42,8 @@ const TimesheetsPage = () => {
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedTimesheet, setSelectedTimesheet] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [view, setView] = useState('list'); // Default to list for mobile safety
 
@@ -67,7 +70,19 @@ const TimesheetsPage = () => {
   };
 
   const handleSelectEvent = (event) => {
-    // Logic for editing event could go here
+    setSelectedTimesheet(event.resource);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditTimesheet = (timesheet) => {
+    setSelectedTimesheet(timesheet);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditModalClose = () => {
+    setIsEditModalOpen(false);
+    setSelectedTimesheet(null);
+    fetchTimesheets();
   };
 
   const handleSuccess = () => {
@@ -165,6 +180,13 @@ const TimesheetsPage = () => {
                 </div>
             </div>
 
+            {/* Edit Modal (shared across all views) */}
+            <TimesheetEditModal
+              isOpen={isEditModalOpen}
+              onClose={handleEditModalClose}
+              timesheet={selectedTimesheet}
+            />
+
             {/* Add Modal */}
             <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
               <DialogContent className="w-full sm:max-w-[90%] md:max-w-[600px] bg-gray-900 border-gray-800 text-white p-4 md:p-6 overflow-y-auto max-h-[90vh]">
@@ -190,7 +212,8 @@ const TimesheetsPage = () => {
                       .calendar-dark-theme .rbc-off-range-bg { background-color: #0a0a0f; }
                       .calendar-dark-theme .rbc-calendar { color: #9ca3af; min-width: 600px; }
                       .calendar-dark-theme .rbc-today { background-color: rgba(245, 158, 11, 0.15); }
-                      .calendar-dark-theme .rbc-event { background-color: #F59E0B; border-color: #D97706; color: #000; font-weight: 500; }
+                      .calendar-dark-theme .rbc-event { background-color: #F59E0B; border-color: #D97706; color: #000; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
+                      .calendar-dark-theme .rbc-event:hover { opacity: 0.85; }
                       .calendar-dark-theme .rbc-header { border-bottom: 1px solid #1f2937; padding: 10px; font-weight: 600; color: #e5e7eb; background: #111827; }
                       .calendar-dark-theme .rbc-month-view, .calendar-dark-theme .rbc-time-view, .calendar-dark-theme .rbc-agenda-view { border: 1px solid #1f2937; border-radius: 8px; overflow: hidden; }
                       .calendar-dark-theme .rbc-day-bg + .rbc-day-bg { border-left: 1px solid #1f2937; }
@@ -249,6 +272,7 @@ const TimesheetsPage = () => {
               {view === 'kanban' && (
                 <TimesheetKanbanView
                   timesheets={timesheets}
+                  onEdit={handleEditTimesheet}
                   onRefresh={fetchTimesheets}
                 />
               )}
@@ -257,6 +281,7 @@ const TimesheetsPage = () => {
               {view === 'agenda' && (
                 <TimesheetAgendaView
                   timesheets={timesheets}
+                  onEdit={handleEditTimesheet}
                 />
               )}
             </div>
