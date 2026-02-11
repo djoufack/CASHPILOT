@@ -37,6 +37,9 @@ export const useAIChat = () => {
 
       const data = await response.json();
 
+      // Debug: log la réponse complète
+      console.log('AI Chatbot Response:', { status: response.status, data });
+
       if (data.error === 'insufficient_credits') {
         setMessages(prev => [...prev, {
           role: 'assistant',
@@ -58,9 +61,10 @@ export const useAIChat = () => {
           timestamp: new Date().toISOString(),
         }]);
       } else {
+        console.error('Unexpected server response - data structure:', JSON.stringify(data, null, 2));
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: 'Réponse inattendue du serveur.',
+          content: `Réponse inattendue du serveur. Debug: ${JSON.stringify(data)}`,
           timestamp: new Date().toISOString(),
           isError: true,
         }]);
