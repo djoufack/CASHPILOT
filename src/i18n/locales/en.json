@@ -190,7 +190,13 @@
     }
   },
   "validation": {
-    "invalidEmail": "Invalid email address"
+    "invalidEmail": "Invalid email address",
+    "missingFields": "Required fields missing",
+    "pleaseComplete": "Please fill in",
+    "invalidTimeFormat": "Invalid time format",
+    "useHHMM": "Please use HH:MM format for start and end times.",
+    "invalidTimeRange": "Invalid time range",
+    "endAfterStart": "End time must be after start time."
   },
   "admin": {
     "users": "User Management",

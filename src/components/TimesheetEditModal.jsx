@@ -35,6 +35,7 @@ import {
 import { calculateDuration } from '@/utils/calculations';
 import { validateTimeFormat } from '@/utils/validation';
 import { Clock, Loader2, Trash2 } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast";
 
 const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
   const { t } = useTranslation();
@@ -42,6 +43,7 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
   const { clients } = useClients();
   const { projects } = useProjects();
   
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -83,6 +85,41 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation des champs obligatoires avec nom du champ
+    const missingFields = [];
+    if (!formData.date) missingFields.push(t('timesheets.date', 'Date'));
+    if (!formData.client_id) missingFields.push(t('timesheets.client', 'Client'));
+    if (!formData.start_time) missingFields.push(t('timesheets.startTime', 'Heure de début'));
+    if (!formData.end_time) missingFields.push(t('timesheets.endTime', 'Heure de fin'));
+
+    if (missingFields.length > 0) {
+      toast({
+        title: t('validation.missingFields', 'Champs obligatoires manquants'),
+        description: `${t('validation.pleaseComplete', 'Veuillez remplir')} : ${missingFields.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validateTimeFormat(formData.start_time) || !validateTimeFormat(formData.end_time)) {
+      toast({
+        title: t('validation.invalidTimeFormat', 'Format horaire invalide'),
+        description: t('validation.useHHMM', 'Veuillez utiliser le format HH:MM pour les heures de début et de fin.'),
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.start_time >= formData.end_time) {
+      toast({
+        title: t('validation.invalidTimeRange', 'Plage horaire invalide'),
+        description: t('validation.endAfterStart', "L'heure de fin doit être postérieure à l'heure de début."),
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       await updateTimesheet(timesheet.id, formData);
