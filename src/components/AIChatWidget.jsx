@@ -8,6 +8,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 const AIChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [position, setPosition] = useState(() => {
+    // Charger la position depuis localStorage ou utiliser la position par défaut
+    const saved = localStorage.getItem('aiChatPosition');
+    return saved ? JSON.parse(saved) : { x: window.innerWidth - 420, y: window.innerHeight - 530 };
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0, hasMoved: false });
+
   const { messages, isLoading, sendMessage, clearChat } = useAIChat();
   const { fetchCredits } = useCredits();
   const messagesEndRef = useRef(null);
@@ -20,6 +28,85 @@ const AIChatWidget = () => {
   useEffect(() => {
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
+
+  // Sauvegarder la position dans localStorage
+  useEffect(() => {
+    localStorage.setItem('aiChatPosition', JSON.stringify(position));
+  }, [position]);
+
+  // Gestion du drag & drop pour le bouton flottant
+  const handleButtonDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setIsDragging(true);
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: position.x,
+      initialY: position.y
+    };
+  };
+
+  // Gestion du drag & drop pour le header du panneau
+  const handleHeaderDrag = (e) => {
+    // Ne pas commencer le drag si on clique sur un bouton du header
+    if (e.target.closest('button')) return;
+
+    setIsDragging(true);
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: position.x,
+      initialY: position.y
+    };
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - dragRef.current.startX;
+      const deltaY = e.clientY - dragRef.current.startY;
+
+      const newX = dragRef.current.initialX + deltaX;
+      const newY = dragRef.current.initialY + deltaY;
+
+      // Limiter la position pour garder le widget visible
+      const maxX = window.innerWidth - (isOpen ? 384 : 56); // 384px = w-96, 56px = bouton
+      const maxY = window.innerHeight - (isOpen ? 500 : 56);
+
+      setPosition({
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY))
+      });
+
+      // Marquer qu'on a bougé
+      dragRef.current.hasMoved = true;
+    };
+
+    const handleMouseUp = (e) => {
+      const wasDragging = isDragging;
+      setIsDragging(false);
+
+      // Si c'était le bouton et qu'on n'a pas bougé, ouvrir le panneau
+      if (wasDragging && !isOpen && !dragRef.current.hasMoved) {
+        setIsOpen(true);
+      }
+
+      dragRef.current.hasMoved = false;
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, isOpen]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -46,8 +133,13 @@ const AIChatWidget = () => {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
-            onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-orange-500 hover:bg-orange-600 rounded-full shadow-lg flex items-center justify-center text-white transition-colors"
+            onMouseDown={handleButtonDrag}
+            style={{
+              left: `${position.x}px`,
+              top: `${position.y}px`,
+              cursor: isDragging ? 'grabbing' : 'grab'
+            }}
+            className="fixed z-50 w-14 h-14 bg-orange-500 hover:bg-orange-600 rounded-full shadow-lg flex items-center justify-center text-white transition-colors"
           >
             <MessageCircle className="w-6 h-6" />
           </motion.button>
@@ -61,10 +153,18 @@ const AIChatWidget = () => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-50 w-96 h-[500px] bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            style={{
+              left: `${position.x}px`,
+              top: `${position.y}px`
+            }}
+            className="fixed z-50 w-96 h-[500px] bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700">
+            <div
+              onMouseDown={handleHeaderDrag}
+              className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700 cursor-move select-none"
+              style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+            >
               <div className="flex items-center gap-2">
                 <Bot className="w-5 h-5 text-orange-400" />
                 <span className="text-white font-semibold text-sm">Assistant IA</span>
