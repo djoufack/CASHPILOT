@@ -9,6 +9,13 @@ import { CheckSquare, Square, FileText, DollarSign } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import TimesheetEditModal from './TimesheetEditModal';
 
+const STATUS_COLORS = {
+  draft: 'bg-gray-500/20 text-gray-400 border-gray-600',
+  in_progress: 'bg-blue-500/20 text-blue-400 border-blue-600',
+  approved: 'bg-green-500/20 text-green-400 border-green-600',
+  invoiced: 'bg-purple-500/20 text-purple-400 border-purple-600',
+};
+
 const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoice }) => {
   const { t } = useTranslation();
   const [selectedTimesheet, setSelectedTimesheet] = useState(null);
@@ -160,6 +167,14 @@ const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoi
                           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-300 border border-blue-800">
                             {ts.client?.company_name || 'No Client'}
                           </span>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${STATUS_COLORS[ts.status || 'draft'] || STATUS_COLORS.draft}`}>
+                            {t(`timesheets.status.${ts.status || 'draft'}`)}
+                          </span>
+                          {ts.billable === false && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/20 text-red-400 border border-red-800">
+                              {t('timesheets.notBillable')}
+                            </span>
+                          )}
                         </div>
                         <p className="text-gray-300 text-sm whitespace-pre-wrap">
                           {ts.notes || <span className="text-gray-600 italic">No description</span>}
