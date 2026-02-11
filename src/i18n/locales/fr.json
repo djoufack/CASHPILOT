@@ -190,7 +190,13 @@
     }
   },
   "validation": {
-    "invalidEmail": "Adresse e-mail invalide"
+    "invalidEmail": "Adresse e-mail invalide",
+    "missingFields": "Champs obligatoires manquants",
+    "pleaseComplete": "Veuillez remplir",
+    "invalidTimeFormat": "Format horaire invalide",
+    "useHHMM": "Veuillez utiliser le format HH:MM pour les heures de début et de fin.",
+    "invalidTimeRange": "Plage horaire invalide",
+    "endAfterStart": "L'heure de fin doit être postérieure à l'heure de début."
   },
   "admin": {
     "users": "Gestion des utilisateurs",
