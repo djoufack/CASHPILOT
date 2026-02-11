@@ -149,7 +149,9 @@
     "selectedEntries": "entrée(s) sélectionnée(s)",
     "deselectAll": "Tout désélectionner",
     "selectAllBillable": "Sélectionner les facturables",
-    "billTimesheets": "Facturer les heures"
+    "billTimesheets": "Facturer les heures",
+    "invoicedInfo": "Cette entrée est liée à une facture.",
+    "statusLegend": "Légende des statuts"
   },
   "buttons": {
     "cancel": "Annuler",

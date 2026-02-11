@@ -120,6 +120,27 @@ const TimesheetsPage = () => {
     );
   };
 
+  const eventPropGetter = (event) => {
+    const status = event.resource?.status || 'draft';
+    const statusColors = {
+      draft: { backgroundColor: 'rgba(107, 114, 128, 0.7)', borderColor: '#4b5563' },
+      in_progress: { backgroundColor: 'rgba(59, 130, 246, 0.7)', borderColor: '#2563eb' },
+      approved: { backgroundColor: 'rgba(34, 197, 94, 0.7)', borderColor: '#16a34a' },
+      invoiced: { backgroundColor: 'rgba(168, 85, 247, 0.7)', borderColor: '#9333ea' },
+    };
+    return {
+      style: {
+        ...(statusColors[status] || { backgroundColor: 'rgba(245, 158, 11, 0.7)', borderColor: '#D97706' }),
+        color: '#fff',
+        fontWeight: 500,
+        cursor: 'pointer',
+        borderWidth: '2px',
+        borderStyle: 'solid',
+        borderRadius: '4px',
+      }
+    };
+  };
+
   return (
     <>
       <CreditsGuardModal {...modalProps} />
@@ -229,7 +250,7 @@ const TimesheetsPage = () => {
                       .calendar-dark-theme .rbc-off-range-bg { background-color: #0a0a0f; }
                       .calendar-dark-theme .rbc-calendar { color: #9ca3af; min-width: 600px; }
                       .calendar-dark-theme .rbc-today { background-color: rgba(245, 158, 11, 0.15); }
-                      .calendar-dark-theme .rbc-event { background-color: #F59E0B; border-color: #D97706; color: #000; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
+                      .calendar-dark-theme .rbc-event { cursor: pointer; transition: opacity 0.2s; }
                       .calendar-dark-theme .rbc-event:hover { opacity: 0.85; }
                       .calendar-dark-theme .rbc-header { border-bottom: 1px solid #1f2937; padding: 10px; font-weight: 600; color: #e5e7eb; background: #111827; }
                       .calendar-dark-theme .rbc-month-view, .calendar-dark-theme .rbc-time-view, .calendar-dark-theme .rbc-agenda-view { border: 1px solid #1f2937; border-radius: 8px; overflow: hidden; }
@@ -241,7 +262,7 @@ const TimesheetsPage = () => {
                       .calendar-dark-theme .rbc-time-content { border-top: 2px solid #1f2937; }
                       .calendar-dark-theme .rbc-time-gutter .rbc-timeslot-group { border-bottom: 1px solid #1f2937; }
                       .calendar-dark-theme .rbc-day-slot .rbc-events-container { margin-right: 0; }
-                      .calendar-dark-theme .rbc-day-slot .rbc-event { border: 1px solid #D97706; background-color: rgba(245, 158, 11, 0.2); color: #fff; }
+                      .calendar-dark-theme .rbc-day-slot .rbc-event { color: #fff; }
                       .calendar-dark-theme .rbc-event-label { display: none; }
                       .calendar-dark-theme .rbc-time-view .rbc-header { border-bottom: 1px solid #1f2937; }
                       .calendar-dark-theme .rbc-day-slot .rbc-time-slot { border-top: 1px solid #111827; }
@@ -264,9 +285,24 @@ const TimesheetsPage = () => {
                         selectable
                         onSelectSlot={handleSelectSlot}
                         onSelectEvent={handleSelectEvent}
+                        eventPropGetter={eventPropGetter}
                         className="text-gray-200"
                         views={['month', 'week', 'day', 'agenda']}
                     />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 mt-4 px-2">
+                    <span className="text-xs text-gray-400 font-medium">{t('common.status')}:</span>
+                    {[
+                      { status: 'draft', color: 'bg-gray-500', label: t('timesheets.status.draft') },
+                      { status: 'in_progress', color: 'bg-blue-500', label: t('timesheets.status.in_progress') },
+                      { status: 'approved', color: 'bg-green-500', label: t('timesheets.status.approved') },
+                      { status: 'invoiced', color: 'bg-purple-500', label: t('timesheets.status.invoiced') },
+                    ].map(({ status, color, label }) => (
+                      <span key={status} className="flex items-center gap-1.5 text-xs text-gray-300">
+                        <span className={`w-3 h-3 rounded-sm ${color}`} />
+                        {label}
+                      </span>
+                    ))}
                   </div>
                   <div className="mt-12">
                     <div className="flex items-center justify-between mb-6">
