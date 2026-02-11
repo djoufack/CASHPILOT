@@ -149,7 +149,9 @@
     "selectedEntries": "entry(ies) selected",
     "deselectAll": "Deselect all",
     "selectAllBillable": "Select all billable",
-    "billTimesheets": "Bill timesheets"
+    "billTimesheets": "Bill timesheets",
+    "invoicedInfo": "This entry is linked to an invoice.",
+    "statusLegend": "Status Legend"
   },
   "buttons": {
     "cancel": "Cancel",

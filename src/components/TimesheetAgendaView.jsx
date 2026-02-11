@@ -19,6 +19,27 @@ const TimesheetAgendaView = ({ timesheets = [], onEdit, onDelete }) => {
     return `${hours}h ${mins}m`;
   };
 
+  const renderBadge = (item) => {
+    const ts = item._original;
+    return (
+      <div className="flex flex-col items-end gap-1">
+        <span className={`text-xs px-2 py-0.5 rounded-full ${item.statusColor || 'bg-gray-500/20 text-gray-400'}`}>
+          {item.statusLabel || item.status}
+        </span>
+        {ts?.invoice_id && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-900/30 text-purple-300 border border-purple-800">
+            {t('timesheets.invoiced')}
+          </span>
+        )}
+        {ts?.billable === false && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/20 text-red-400 border border-red-800">
+            {t('timesheets.notBillable')}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   const items = timesheets.map((ts) => ({
     id: ts.id,
     title: ts.project?.name || ts.client?.company_name || t('timesheets.noClient'),
@@ -28,6 +49,7 @@ const TimesheetAgendaView = ({ timesheets = [], onEdit, onDelete }) => {
     statusLabel: t(`timesheets.status.${ts.status || 'draft'}`),
     statusColor: STATUS_COLORS[ts.status || 'draft'],
     amount: formatDuration(ts.duration_minutes),
+    payment_status: ts.invoice_id ? 'invoiced' : undefined,
     _original: ts,
   }));
 
@@ -50,6 +72,7 @@ const TimesheetAgendaView = ({ timesheets = [], onEdit, onDelete }) => {
       onDelete={handleDelete}
       dateField="date"
       paidStatuses={['approved', 'invoiced']}
+      renderBadge={renderBadge}
     />
   );
 };

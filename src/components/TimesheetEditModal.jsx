@@ -52,7 +52,9 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
     end_time: '',
     client_id: '',
     project_id: '',
-    notes: ''
+    notes: '',
+    status: 'draft',
+    billable: true
   });
   const [calculatedDuration, setCalculatedDuration] = useState('0:00');
 
@@ -64,7 +66,9 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
         end_time: timesheet.end_time || '',
         client_id: timesheet.client_id || '',
         project_id: timesheet.project_id || '',
-        notes: timesheet.notes || ''
+        notes: timesheet.notes || '',
+        status: timesheet.status || 'draft',
+        billable: timesheet.billable !== false
       });
     }
   }, [timesheet]);
@@ -153,6 +157,12 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {timesheet?.invoice_id && (
+            <div className="p-3 bg-purple-900/20 border border-purple-700 rounded-lg text-purple-300 text-sm mb-4">
+              {t('timesheets.invoiced')} - {t('timesheets.invoicedInfo', 'This entry is linked to an invoice.')}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-date" className="text-gray-300">Date</Label>
@@ -205,6 +215,45 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-status" className="text-gray-300">{t('common.status')}</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                  <SelectValue placeholder={t('common.status')} />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                  <SelectItem value="draft">{t('timesheets.status.draft')}</SelectItem>
+                  <SelectItem value="in_progress">{t('timesheets.status.in_progress')}</SelectItem>
+                  <SelectItem value="approved">{t('timesheets.status.approved')}</SelectItem>
+                  <SelectItem value="invoiced">{t('timesheets.status.invoiced')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-gray-300">{t('timesheets.billable')}</Label>
+              <div
+                onClick={() => setFormData({ ...formData, billable: !formData.billable })}
+                className={`flex items-center gap-3 p-2.5 rounded-md border cursor-pointer transition-colors ${
+                  formData.billable
+                    ? 'bg-green-900/20 border-green-700 text-green-400'
+                    : 'bg-gray-800 border-gray-700 text-gray-400'
+                }`}
+              >
+                <div className={`w-9 h-5 rounded-full transition-colors relative ${formData.billable ? 'bg-green-500' : 'bg-gray-600'}`}>
+                  <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-transform ${formData.billable ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </div>
+                <span className="text-sm font-medium">
+                  {formData.billable ? t('timesheets.billable') : t('timesheets.notBillable')}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
