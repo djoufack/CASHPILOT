@@ -140,7 +140,16 @@
       "tomorrow": "Demain",
       "thisWeek": "Cette semaine",
       "later": "Plus tard"
-    }
+    },
+    "billable": "Facturable",
+    "notBillable": "Non facturable",
+    "invoiced": "Facturé",
+    "generateInvoice": "Générer une facture",
+    "selectForBilling": "Sélectionner pour facturer",
+    "selectedEntries": "entrée(s) sélectionnée(s)",
+    "deselectAll": "Tout désélectionner",
+    "selectAllBillable": "Sélectionner les facturables",
+    "billTimesheets": "Facturer les heures"
   },
   "buttons": {
     "cancel": "Annuler",
@@ -175,7 +184,8 @@
       "invoiceDeleted": "Facture supprimée avec succès",
       "timesheetAdded": "Feuille de temps ajoutée avec succès",
       "timesheetUpdated": "Feuille de temps mise à jour avec succès",
-      "timesheetDeleted": "Feuille de temps supprimée avec succès"
+      "timesheetDeleted": "Feuille de temps supprimée avec succès",
+      "timesheetInvoiced": "Feuilles de temps facturées avec succès"
     },
     "error": {
       "pdfExportFailed": "Échec de l'export PDF",
@@ -186,7 +196,9 @@
       "timesheetUpdateFailed": "Erreur de mise à jour",
       "timesheetUpdateDescription": "Impossible de mettre à jour la feuille de temps. Veuillez réessayer.",
       "timesheetDeleteFailed": "Erreur de suppression",
-      "timesheetDeleteDescription": "Impossible de supprimer la feuille de temps. Veuillez réessayer."
+      "timesheetDeleteDescription": "Impossible de supprimer la feuille de temps. Veuillez réessayer.",
+      "timesheetInvoiceFailed": "Erreur de facturation",
+      "timesheetInvoiceDescription": "Impossible de marquer les feuilles de temps comme facturées."
     }
   },
   "validation": {

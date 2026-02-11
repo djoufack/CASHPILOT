@@ -5,13 +5,31 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Edit, Trash2, Clock, CalendarDays, Briefcase, User } from 'lucide-react';
+import { CheckSquare, Square, FileText, DollarSign } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import TimesheetEditModal from './TimesheetEditModal';
 
-const TimesheetsList = ({ timesheets, loading, onEdit, onDelete }) => {
+const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoice }) => {
   const { t } = useTranslation();
   const [selectedTimesheet, setSelectedTimesheet] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    const billableIds = timesheets.filter(ts => ts.billable !== false && !ts.invoice_id).map(ts => ts.id);
+    setSelectedIds(new Set(billableIds));
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
 
   const handleEditClick = (timesheet) => {
     setSelectedTimesheet(timesheet);
@@ -49,6 +67,38 @@ const TimesheetsList = ({ timesheets, loading, onEdit, onDelete }) => {
 
   return (
     <div className="space-y-6">
+      {/* Billing toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-4 mb-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
+          <span className="text-orange-300 font-medium">
+            {selectedIds.size} entrée(s) sélectionnée(s)
+          </span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={clearSelection} className="border-gray-600 text-gray-300">
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => onGenerateInvoice && onGenerateInvoice([...selectedIds])}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Générer une facture
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Select All bar */}
+      {timesheets?.length > 0 && (
+        <div className="flex items-center gap-3 mb-4">
+          <Button size="sm" variant="ghost" onClick={selectedIds.size > 0 ? clearSelection : selectAll} className="text-gray-400 hover:text-white">
+            {selectedIds.size > 0 ? <CheckSquare className="w-4 h-4 mr-2" /> : <Square className="w-4 h-4 mr-2" />}
+            {selectedIds.size > 0 ? 'Tout désélectionner' : 'Sélectionner les facturables'}
+          </Button>
+        </div>
+      )}
+
       <TimesheetEditModal 
         isOpen={isEditModalOpen} 
         onClose={() => setIsEditModalOpen(false)} 
@@ -83,6 +133,23 @@ const TimesheetsList = ({ timesheets, loading, onEdit, onDelete }) => {
                     className="p-4 hover:bg-gray-800/30 transition-colors"
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        {/* Selection checkbox */}
+                        {!ts.invoice_id && ts.billable !== false && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleSelect(ts.id); }}
+                            className="mr-3 text-gray-400 hover:text-orange-400 transition-colors flex-shrink-0"
+                          >
+                            {selectedIds.has(ts.id)
+                              ? <CheckSquare className="w-5 h-5 text-orange-400" />
+                              : <Square className="w-5 h-5" />
+                            }
+                          </button>
+                        )}
+                        {ts.invoice_id && (
+                          <span className="mr-3 text-xs font-medium px-2 py-0.5 rounded-full bg-green-900/30 text-green-300 border border-green-800 flex-shrink-0">
+                            Facturé
+                          </span>
+                        )}
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           {ts.project?.name && (

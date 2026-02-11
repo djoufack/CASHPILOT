@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import format from 'date-fns/format';
@@ -41,6 +42,7 @@ const TimesheetsPage = () => {
   const { timesheets, loading, fetchTimesheets } = useTimesheets();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
+  const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedTimesheet, setSelectedTimesheet] = useState(null);
@@ -83,6 +85,14 @@ const TimesheetsPage = () => {
     setIsEditModalOpen(false);
     setSelectedTimesheet(null);
     fetchTimesheets();
+  };
+
+  const handleGenerateInvoice = (selectedTimesheetIds) => {
+    // Store selected IDs in sessionStorage for InvoiceGenerator to pick up
+    if (selectedTimesheetIds && selectedTimesheetIds.length > 0) {
+      sessionStorage.setItem('selectedTimesheetIds', JSON.stringify(selectedTimesheetIds));
+      navigate('/app/invoices?tab=generator');
+    }
   };
 
   const handleSuccess = () => {
@@ -172,6 +182,13 @@ const TimesheetsPage = () => {
                   </div>
 
                   <Button
+                    onClick={() => navigate('/app/invoices?tab=generator')}
+                    variant="outline"
+                    className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 font-semibold w-full sm:w-auto"
+                  >
+                    <FileText className="mr-2 h-4 w-4" /> Facturer
+                  </Button>
+                  <Button
                     onClick={() => { setSelectedDate(null); setIsAddModalOpen(true); }}
                     className="bg-orange-500 hover:bg-orange-600 text-white font-semibold w-full sm:w-auto"
                   >
@@ -258,14 +275,14 @@ const TimesheetsPage = () => {
                         View All
                       </Button>
                     </div>
-                    <TimesheetsList timesheets={timesheets} loading={loading} />
+                    <TimesheetsList timesheets={timesheets} loading={loading} onGenerateInvoice={handleGenerateInvoice} />
                   </div>
                 </>
               )}
 
               {/* List View */}
               {view === 'list' && (
-                <TimesheetsList timesheets={timesheets} loading={loading} />
+                <TimesheetsList timesheets={timesheets} loading={loading} onGenerateInvoice={handleGenerateInvoice} />
               )}
 
               {/* Kanban View */}
