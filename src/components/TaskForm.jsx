@@ -15,7 +15,7 @@ import { Loader2, Calendar as CalendarIcon, AlertTriangle } from 'lucide-react';
 import { DialogFooter } from '@/components/ui/dialog';
 import { format, isBefore, isAfter } from 'date-fns';
 
-const TaskForm = ({ task, onSave, onCancel, loading }) => {
+const TaskForm = ({ task, onSave, onCancel, loading, services = [] }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -28,7 +28,9 @@ const TaskForm = ({ task, onSave, onCancel, loading }) => {
     color: '#3b82f6',
     invoice_id: '',
     quote_id: '',
-    purchase_order_id: ''
+    purchase_order_id: '',
+    service_id: '',
+    estimated_hours: ''
   });
 
   const [validationError, setValidationError] = useState('');
@@ -47,7 +49,9 @@ const TaskForm = ({ task, onSave, onCancel, loading }) => {
         color: task.color || '#3b82f6',
         invoice_id: task.invoice_id || '',
         quote_id: task.quote_id || '',
-        purchase_order_id: task.purchase_order_id || ''
+        purchase_order_id: task.purchase_order_id || '',
+        service_id: task.service_id || '',
+        estimated_hours: task.estimated_hours || ''
       });
     }
   }, [task]);
@@ -76,6 +80,8 @@ const TaskForm = ({ task, onSave, onCancel, loading }) => {
       purchase_order_id: formData.purchase_order_id || null,
       started_at: formData.started_at || null,
       completed_at: formData.completed_at || null,
+      service_id: formData.service_id || null,
+      estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
     };
     
     onSave(cleanedData);
@@ -157,6 +163,48 @@ const TaskForm = ({ task, onSave, onCancel, loading }) => {
             />
             <CalendarIcon className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
           </div>
+        </div>
+      </div>
+
+      {/* Service & Estimated Hours */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="service_id" className="text-gray-300">Service</Label>
+          <Select
+            value={formData.service_id}
+            onValueChange={(value) => {
+              setFormData({
+                ...formData,
+                service_id: value === 'none' ? '' : value
+              });
+            }}
+          >
+            <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-full">
+              <SelectValue placeholder="Select Service (Optional)" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700 text-white">
+              <SelectItem value="none">None</SelectItem>
+              {services.filter(s => s.is_active).map((svc) => (
+                <SelectItem key={svc.id} value={svc.id}>
+                  {svc.service_name} ({svc.pricing_type === 'hourly' ? `${svc.hourly_rate}/h` : svc.pricing_type === 'fixed' ? `${svc.fixed_price} fixed` : `${svc.unit_price}/${svc.unit}`})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="estimated_hours" className="text-gray-300">Estimated Hours</Label>
+          <Input
+            id="estimated_hours"
+            type="number"
+            step="0.5"
+            min="0"
+            value={formData.estimated_hours}
+            onChange={(e) => setFormData({ ...formData, estimated_hours: e.target.value })}
+            className="bg-gray-800 border-gray-700 text-white w-full"
+            placeholder="e.g. 8"
+          />
         </div>
       </div>
 

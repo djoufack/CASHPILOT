@@ -15,7 +15,8 @@ import {
   CheckSquare,
   PauseCircle,
   XCircle,
-  PlayCircle
+  PlayCircle,
+  Wrench
 } from 'lucide-react';
 import { format, parseISO, isPast, differenceInDays } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -169,6 +170,30 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
       {/* Footer: Linked Docs & Subtasks */}
       <div className="flex items-center justify-between pl-7 border-t border-gray-700/50 pt-3 mt-2">
         <div className="flex gap-2">
+          {task.service && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <div className="p-1.5 rounded bg-emerald-900/30 text-emerald-400 border border-emerald-800">
+                    <Wrench className="w-3.5 h-3.5" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>{task.service.service_name}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {task.estimated_hours && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <div className="p-1.5 rounded bg-cyan-900/30 text-cyan-400 border border-cyan-800 text-xs font-medium">
+                    {task.estimated_hours}h
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>Estimated: {task.estimated_hours} hours</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {task.invoice_id && (
             <TooltipProvider>
               <Tooltip>

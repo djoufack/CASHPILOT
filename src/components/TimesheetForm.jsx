@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useTimesheets } from '@/hooks/useTimesheets';
 import { useClients } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
+import { useServices } from '@/hooks/useServices';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +29,10 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
   const { clients } = useClients();
   const { projects } = useProjects();
   const { toast } = useToast();
-  
+  const { services } = useServices();
+  const [projectTasks, setProjectTasks] = useState([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     date: defaultDate || new Date().toISOString().split('T')[0],
@@ -35,6 +40,8 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
     end_time: '17:00',
     client_id: '',
     project_id: '',
+    task_id: '',
+    service_id: '',
     notes: ''
   });
   const [calculatedDuration, setCalculatedDuration] = useState('0:00');
@@ -47,6 +54,31 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
       }
     }
   }, [formData.start_time, formData.end_time]);
+
+  // Fetch tasks for selected project
+  useEffect(() => {
+    const fetchProjectTasks = async () => {
+      if (!formData.project_id || !supabase) {
+        setProjectTasks([]);
+        return;
+      }
+      setLoadingTasks(true);
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('id, title, service_id, service:services(id, service_name, hourly_rate, pricing_type)')
+          .eq('project_id', formData.project_id)
+          .in('status', ['pending', 'in_progress'])
+          .order('title');
+        if (!error) setProjectTasks(data || []);
+      } catch (err) {
+        console.error('Error fetching tasks:', err);
+      } finally {
+        setLoadingTasks(false);
+      }
+    };
+    fetchProjectTasks();
+  }, [formData.project_id]);
 
   // Filter projects based on selected client
   const filteredProjects = formData.client_id 
@@ -101,6 +133,8 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
         end_time: '17:00',
         client_id: '',
         project_id: '',
+        task_id: '',
+        service_id: '',
         notes: ''
       });
       
@@ -152,7 +186,7 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
         <Label htmlFor="project">Project</Label>
         <Select
           value={formData.project_id}
-          onValueChange={(value) => setFormData({ ...formData, project_id: value })}
+          onValueChange={(value) => setFormData({ ...formData, project_id: value, task_id: '', service_id: '' })}
         >
           <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full">
             <SelectValue placeholder="Select Project (Optional)" />
@@ -161,6 +195,52 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
             {filteredProjects.map((project) => (
               <SelectItem key={project.id} value={project.id}>
                 {project.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Task selection (from project) */}
+      {formData.project_id && (
+        <div className="space-y-2">
+          <Label htmlFor="task_id">{t('timesheets.task', 'Task')}</Label>
+          <Select
+            value={formData.task_id}
+            onValueChange={(value) => {
+              const task = projectTasks.find(t => t.id === value);
+              const newServiceId = task?.service_id || formData.service_id;
+              setFormData({ ...formData, task_id: value, service_id: newServiceId });
+            }}
+          >
+            <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full">
+              <SelectValue placeholder={t('timesheets.selectTask', 'Select Task (Optional)')} />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-700 border-gray-600 text-white">
+              {projectTasks.map((task) => (
+                <SelectItem key={task.id} value={task.id}>
+                  {task.title} {task.service ? `(${task.service.service_name})` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Service selection (direct or auto-filled from task) */}
+      <div className="space-y-2">
+        <Label htmlFor="service_id">{t('services.title', 'Service')}</Label>
+        <Select
+          value={formData.service_id}
+          onValueChange={(value) => setFormData({ ...formData, service_id: value })}
+        >
+          <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full">
+            <SelectValue placeholder={t('timesheets.selectService', 'Select Service (Optional)')} />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-700 border-gray-600 text-white">
+            {services.filter(s => s.is_active).map((svc) => (
+              <SelectItem key={svc.id} value={svc.id}>
+                {svc.service_name} ({svc.pricing_type === 'hourly' ? `${svc.hourly_rate}/h` : svc.pricing_type === 'fixed' ? `${svc.fixed_price}` : `${svc.unit_price}/${svc.unit}`})
               </SelectItem>
             ))}
           </SelectContent>
