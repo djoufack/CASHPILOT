@@ -51,7 +51,9 @@
     "suppliers": "Suppliers",
     "reports": "Reports",
     "accounting": "Accounting",
-    "scenarios": "Financial Simulations"
+    "scenarios": "Financial Simulations",
+    "catalog": "Catalog",
+    "products": "Products"
   },
   "dashboard": {
     "title": "Dashboard",
