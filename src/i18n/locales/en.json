@@ -53,7 +53,8 @@
     "accounting": "Accounting",
     "scenarios": "Financial Simulations",
     "catalog": "Catalog",
-    "products": "Products"
+    "products": "Products",
+    "categories": "Categories"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -205,6 +206,25 @@
     "serviceDeleted": "Service deleted successfully",
     "categoryCreated": "Category created successfully",
     "statusLegend": "Status Legend"
+  },
+  "categories": {
+    "title": "Category Management",
+    "productCategories": "Product Categories",
+    "serviceCategories": "Service Categories",
+    "addCategory": "Add Category",
+    "editCategory": "Edit Category",
+    "deleteCategory": "Delete Category",
+    "categoryName": "Category Name",
+    "categoryDescription": "Description",
+    "categoryUpdated": "Category updated successfully",
+    "categoryDeleted": "Category deleted successfully",
+    "noCategories": "No categories",
+    "itemCount": "{{count}} item(s)",
+    "deleteConfirmTitle": "Delete this category?",
+    "deleteConfirmMessage": "This category is used by {{count}} item(s). They will be unlinked but not deleted.",
+    "deleteConfirmEmpty": "This category is not used by any items.",
+    "associatedProducts": "Associated Products",
+    "associatedServices": "Associated Services"
   },
   "buttons": {
     "cancel": "Cancel",
