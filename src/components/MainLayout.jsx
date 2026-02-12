@@ -10,7 +10,8 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Package, BarChart3, Calculator, PieChart, Settings,
-  FileMinus, PackageCheck, Wallet, TrendingUp, Building2, RefreshCw, Shield
+  FileMinus, PackageCheck, Wallet, TrendingUp, Building2, RefreshCw, Shield,
+  Receipt, ClipboardList, Wrench, Map, QrCode, FileBarChart, Database
 } from 'lucide-react';
 
 const MainLayout = () => {
@@ -52,9 +53,15 @@ const MainLayout = () => {
     { path: '/app/delivery-notes', label: t('deliveryNotes.title'), icon: PackageCheck },
     { path: '/app/quotes', label: t('nav.quotes'), icon: FileSignature },
     { path: '/app/debt-manager', label: t('debtManager.title'), icon: Wallet },
-    { path: '/app/stock', label: t('nav.stock'), icon: Package },
+    { path: '/app/expenses', label: t('nav.expenses') || 'Dépenses', icon: Receipt },
+    { path: '/app/purchase-orders', label: t('nav.purchaseOrders') || 'Bons de commande', icon: ClipboardList },
+    { type: 'separator', label: t('nav.catalog') || 'Catalogue' },
+    { path: '/app/stock', label: t('nav.products') || 'Produits', icon: Package },
+    { path: '/app/services', label: t('services.title') || 'Services', icon: Wrench },
     { type: 'separator', label: t('suppliers.title') },
     { path: '/app/suppliers', label: t('nav.suppliers'), icon: Truck },
+    { path: '/app/suppliers/map', label: 'Map View', icon: Map },
+    { path: '/app/products/barcode', label: 'Scanner', icon: QrCode },
     { path: '/app/suppliers/reports', label: t('nav.reports'), icon: BarChart3 },
     { path: '/app/suppliers/accounting', label: t('nav.accounting'), icon: Calculator },
     { path: '/app/scenarios', label: t('nav.scenarios'), icon: TrendingUp },
@@ -62,6 +69,7 @@ const MainLayout = () => {
     { path: '/app/bank-connections', label: t('nav.bankConnections'), icon: Building2 },
     { path: '/app/cash-flow', label: t('nav.cashFlow'), icon: TrendingUp },
     { type: 'separator', label: 'System' },
+    { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
     { path: '/app/analytics', label: t('nav.analytics'), icon: PieChart },
     { path: '/app/security', label: t('nav.security'), icon: Shield },
     { path: '/app/settings', label: t('nav.settings'), icon: Settings },
