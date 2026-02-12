@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useClients } from '@/hooks/useClients';
+import { useProducts } from '@/hooks/useProducts';
+import { useServices } from '@/hooks/useServices';
 import { calculateInvoiceTotalWithDiscount, formatCurrency } from '@/utils/calculations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,13 +17,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Tag, Send, Truck, Settings2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Tag, Send, Truck, Settings2, ChevronDown, ChevronUp, Package, Wrench } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const QuickInvoice = ({ onSuccess }) => {
   const { t } = useTranslation();
   const { createInvoice } = useInvoices();
   const { clients } = useClients();
+  const { products } = useProducts();
+  const { services } = useServices();
   const { toast } = useToast();
 
   const [clientId, setClientId] = useState('');
@@ -34,7 +38,7 @@ const QuickInvoice = ({ onSuccess }) => {
   const [globalDiscountValue, setGlobalDiscountValue] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [items, setItems] = useState([
-    { id: '1', description: '', quantity: 1, unitPrice: 0, discount_type: 'none', discount_value: 0, hsn_code: '' }
+    { id: '1', description: '', quantity: 1, unitPrice: 0, discount_type: 'none', discount_value: 0, hsn_code: '', source: 'manual', item_type: 'manual', product_id: null, service_id: null }
   ]);
 
   // Enhanced fields
@@ -56,7 +60,11 @@ const QuickInvoice = ({ onSuccess }) => {
       unitPrice: 0,
       discount_type: 'none',
       discount_value: 0,
-      hsn_code: ''
+      hsn_code: '',
+      source: 'manual',
+      item_type: 'manual',
+      product_id: null,
+      service_id: null
     }]);
   };
 
@@ -74,6 +82,61 @@ const QuickInvoice = ({ onSuccess }) => {
         updated.amount = Number(updated.quantity) * Number(updated.unitPrice);
       }
       return updated;
+    }));
+  };
+
+  const handleSourceChange = (id, newSource) => {
+    setItems(items.map(item => {
+      if (item.id !== id) return item;
+      return {
+        ...item,
+        source: newSource,
+        item_type: newSource,
+        product_id: null,
+        service_id: null,
+        // Reset description and price when source changes
+        description: newSource === 'manual' ? item.description : '',
+        unitPrice: newSource === 'manual' ? item.unitPrice : 0,
+        amount: 0
+      };
+    }));
+  };
+
+  const handleProductSelect = (id, productId) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    setItems(items.map(item => {
+      if (item.id !== id) return item;
+      const unitPrice = Number(product.unit_price || 0);
+      return {
+        ...item,
+        product_id: productId,
+        service_id: null,
+        description: product.product_name,
+        unitPrice,
+        amount: Number(item.quantity) * unitPrice
+      };
+    }));
+  };
+
+  const handleServiceSelect = (id, serviceId) => {
+    const service = services.find(s => s.id === serviceId);
+    if (!service) return;
+    let unitPrice = 0;
+    if (service.pricing_type === 'hourly') unitPrice = Number(service.hourly_rate || 0);
+    else if (service.pricing_type === 'fixed') unitPrice = Number(service.fixed_price || 0);
+    else if (service.pricing_type === 'per_unit') unitPrice = Number(service.unit_price || 0);
+
+    setItems(items.map(item => {
+      if (item.id !== id) return item;
+      return {
+        ...item,
+        service_id: serviceId,
+        product_id: null,
+        description: service.service_name,
+        unitPrice,
+        amount: Number(item.quantity) * unitPrice
+      };
     }));
   };
 
@@ -107,7 +170,7 @@ const QuickInvoice = ({ onSuccess }) => {
       const invalidItems = items.filter((item, i) => !item.description?.trim());
       if (invalidItems.length > 0) missingFields.push(t('invoices.itemDescription', 'Description des articles'));
       const zeroQty = items.filter(item => !item.quantity || Number(item.quantity) <= 0);
-      if (zeroQty.length > 0) missingFields.push(t('invoices.itemQuantity', 'Quantité des articles'));
+      if (zeroQty.length > 0) missingFields.push(t('invoices.itemQuantity', 'Quantite des articles'));
       const zeroPrice = items.filter(item => !item.unitPrice || Number(item.unitPrice) <= 0);
       if (zeroPrice.length > 0) missingFields.push(t('invoices.itemUnitPrice', 'Prix unitaire des articles'));
     }
@@ -123,6 +186,17 @@ const QuickInvoice = ({ onSuccess }) => {
 
     setSubmitting(true);
     try {
+      // Compute invoice_type
+      const hasProducts = items.some(i => i.item_type === 'product');
+      const hasServices = items.some(i => i.item_type === 'service');
+      const hasManual = items.some(i => i.item_type === 'manual');
+      let invoice_type = 'mixed';
+      if (hasProducts && !hasServices && !hasManual) {
+        invoice_type = 'product';
+      } else if (!hasProducts && (hasServices || hasManual)) {
+        invoice_type = 'service';
+      }
+
       const invoiceData = {
         client_id: clientId,
         date: issueDate,
@@ -137,6 +211,7 @@ const QuickInvoice = ({ onSuccess }) => {
         balance_due: grandTotal,
         payment_status: 'unpaid',
         notes,
+        invoice_type,
         shipping_fee: Number(shippingFee || 0),
         adjustment: Number(adjustment || 0),
         adjustment_label: adjustmentLabel,
@@ -149,14 +224,14 @@ const QuickInvoice = ({ onSuccess }) => {
 
       await createInvoice(invoiceData, items.map(item => ({
         ...item,
-        itemType: 'manual'
+        itemType: item.item_type || 'manual'
       })));
 
       toast({ title: t('common.success'), description: t('messages.success.invoiceGenerated') });
 
       // Reset form
       setClientId('');
-      setItems([{ id: '1', description: '', quantity: 1, unitPrice: 0, discount_type: 'none', discount_value: 0, hsn_code: '' }]);
+      setItems([{ id: '1', description: '', quantity: 1, unitPrice: 0, discount_type: 'none', discount_value: 0, hsn_code: '', source: 'manual', item_type: 'manual', product_id: null, service_id: null }]);
       setNotes('');
       setReference('');
       setGlobalDiscountType('none');
@@ -238,10 +313,11 @@ const QuickInvoice = ({ onSuccess }) => {
         <div className="space-y-2">
           {/* Header row */}
           <div className="hidden md:grid md:grid-cols-12 gap-2 text-xs text-gray-500 uppercase px-1">
+            <div className="col-span-1">{t('invoices.source')}</div>
             <div className="col-span-3">{t('invoices.description')}</div>
             <div className="col-span-1 text-right">{t('invoices.quantity')}</div>
             <div className="col-span-2 text-right">{t('invoices.unitPrice')}</div>
-            <div className="col-span-2">{t('discounts.discount')}</div>
+            <div className="col-span-1">{t('discounts.discount')}</div>
             <div className="col-span-1">HSN</div>
             <div className="col-span-2 text-right">{t('invoices.amount')}</div>
             <div className="col-span-1"></div>
@@ -256,8 +332,62 @@ const QuickInvoice = ({ onSuccess }) => {
 
             return (
               <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 bg-gray-700/30 p-2 rounded-lg items-end">
+                {/* Source selector */}
+                <div className="md:col-span-1">
+                  <Label className="text-xs text-gray-400 md:hidden">{t('invoices.source')}</Label>
+                  <Select value={item.source || 'manual'} onValueChange={(v) => handleSourceChange(item.id, v)}>
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white h-10 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-700 border-gray-600 text-white">
+                      <SelectItem value="manual">
+                        <span className="flex items-center gap-1">Manual</span>
+                      </SelectItem>
+                      <SelectItem value="product">
+                        <span className="flex items-center gap-1"><Package className="w-3 h-3" /> {t('invoices.product')}</span>
+                      </SelectItem>
+                      <SelectItem value="service">
+                        <span className="flex items-center gap-1"><Wrench className="w-3 h-3" /> {t('invoices.service')}</span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="md:col-span-3">
-                  <Input value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="bg-gray-700 border-gray-600 text-white" placeholder="Service or product" />
+                  {item.source === 'product' ? (
+                    <Select value={item.product_id || ''} onValueChange={(v) => handleProductSelect(item.id, v)}>
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white h-10">
+                        <SelectValue placeholder={t('invoices.pickProduct')} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-700 border-gray-600 text-white max-h-60">
+                        {products.map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.product_name} - {formatCurrency(Number(p.unit_price || 0), currency)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : item.source === 'service' ? (
+                    <Select value={item.service_id || ''} onValueChange={(v) => handleServiceSelect(item.id, v)}>
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white h-10">
+                        <SelectValue placeholder={t('invoices.pickService')} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-700 border-gray-600 text-white max-h-60">
+                        {services.map(s => {
+                          let price = 0;
+                          if (s.pricing_type === 'hourly') price = s.hourly_rate || 0;
+                          else if (s.pricing_type === 'fixed') price = s.fixed_price || 0;
+                          else price = s.unit_price || 0;
+                          return (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.service_name} - {formatCurrency(Number(price), currency)}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="bg-gray-700 border-gray-600 text-white" placeholder="Service or product" />
+                  )}
                 </div>
                 <div className="md:col-span-1">
                   <Input type="number" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} className="bg-gray-700 border-gray-600 text-white text-right" min="0" step="0.01" />
@@ -265,7 +395,7 @@ const QuickInvoice = ({ onSuccess }) => {
                 <div className="md:col-span-2">
                   <Input type="number" value={item.unitPrice} onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} className="bg-gray-700 border-gray-600 text-white text-right" min="0" step="0.01" />
                 </div>
-                <div className="md:col-span-2">
+                <div className="md:col-span-1">
                   <div className="flex gap-1">
                     <Select value={item.discount_type} onValueChange={(v) => updateItem(item.id, 'discount_type', v)}>
                       <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-16 h-10 text-xs">

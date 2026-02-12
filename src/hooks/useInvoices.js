@@ -59,7 +59,7 @@ export const useInvoices = () => {
     }
   };
 
-  const createInvoice = async (invoiceData) => {
+  const createInvoice = async (invoiceData, items = []) => {
     if (!user) return;
     if (!supabase) throw new Error("Supabase not configured");
     setLoading(true);
@@ -76,22 +76,64 @@ export const useInvoices = () => {
       if (sanitizedData.internal_remark) sanitizedData.internal_remark = sanitizeText(sanitizedData.internal_remark);
       if (sanitizedData.adjustment_label) sanitizedData.adjustment_label = sanitizeText(sanitizedData.adjustment_label);
 
+      // Insert invoice as draft first (so accounting trigger fires after items exist)
       const { data, error } = await supabase
         .from('invoices')
-        .insert([{ ...sanitizedData, invoice_number: invoiceNumber, user_id: user.id }])
+        .insert([{ ...sanitizedData, invoice_number: invoiceNumber, user_id: user.id, status: 'draft' }])
         .select()
         .single();
 
       if (error) throw error;
 
-      logAction('create', 'invoice', null, data);
+      // Insert invoice items if provided
+      if (items.length > 0) {
+        const invoiceItems = items.map(item => ({
+          invoice_id: data.id,
+          description: sanitizeText(item.description || ''),
+          quantity: Number(item.quantity || 0),
+          unit_price: Number(item.unitPrice || item.unit_price || 0),
+          total: Number(item.amount || (Number(item.quantity || 0) * Number(item.unitPrice || item.unit_price || 0))),
+          item_type: item.item_type || item.itemType || 'manual',
+          product_id: item.product_id || null,
+          service_id: item.service_id || null,
+          timesheet_id: item.timesheet_id || null,
+          discount_type: item.discount_type || null,
+          discount_value: item.discount_value ? Number(item.discount_value) : null,
+          hsn_code: item.hsn_code || null
+        }));
 
-      setInvoices([data, ...invoices]);
+        const { error: itemsError } = await supabase
+          .from('invoice_items')
+          .insert(invoiceItems);
+
+        if (itemsError) {
+          console.error('Error inserting invoice items:', itemsError);
+          // Don't throw - invoice was created, items failed
+        }
+      }
+
+      // Update invoice status to 'sent' (triggers accounting journal after items exist)
+      const { data: updatedInvoice, error: updateError } = await supabase
+        .from('invoices')
+        .update({ status: 'sent' })
+        .eq('id', data.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating invoice status:', updateError);
+      }
+
+      const finalInvoice = updatedInvoice || data;
+
+      logAction('create', 'invoice', null, finalInvoice);
+
+      setInvoices([finalInvoice, ...invoices]);
       toast({
         title: "Success",
         description: t('messages.success.invoiceGenerated')
       });
-      return data;
+      return finalInvoice;
     } catch (err) {
       setError(err.message);
       toast({
