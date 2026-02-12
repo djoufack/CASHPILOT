@@ -175,6 +175,26 @@ export const useServiceCategories = () => {
     }
   };
 
+  const updateCategory = async (id, name, description = '') => {
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from('service_categories')
+        .update({ name, description })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setCategories(prev => prev.map(c => c.id === id ? data : c));
+      toast({ title: "Succès", description: "Catégorie mise à jour." });
+      return data;
+    } catch (err) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      throw err;
+    }
+  };
+
   const deleteCategory = async (id) => {
     if (!supabase) return;
     try {
@@ -194,5 +214,5 @@ export const useServiceCategories = () => {
     fetchCategories();
   }, [user]);
 
-  return { categories, loading, fetchCategories, createCategory, deleteCategory };
+  return { categories, loading, fetchCategories, createCategory, updateCategory, deleteCategory };
 };
