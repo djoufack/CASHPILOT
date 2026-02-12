@@ -11,7 +11,7 @@ import {
   LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Package, BarChart3, Calculator, PieChart, Settings,
   FileMinus, PackageCheck, Wallet, TrendingUp, Building2, RefreshCw, Shield,
-  Receipt, ClipboardList, Wrench, Map, QrCode, FileBarChart, Database
+  Receipt, ClipboardList, Wrench, Map, QrCode, FileBarChart, Database, Tag
 } from 'lucide-react';
 
 const MainLayout = () => {
@@ -58,6 +58,7 @@ const MainLayout = () => {
     { type: 'separator', label: t('nav.catalog') || 'Catalogue' },
     { path: '/app/stock', label: t('nav.products') || 'Produits', icon: Package },
     { path: '/app/services', label: t('services.title') || 'Services', icon: Wrench },
+    { path: '/app/categories', label: t('nav.categories') || 'Catégories', icon: Tag },
     { type: 'separator', label: t('suppliers.title') },
     { path: '/app/suppliers', label: t('nav.suppliers'), icon: Truck },
     { path: '/app/suppliers/map', label: 'Map View', icon: Map },

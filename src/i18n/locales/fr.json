@@ -53,7 +53,8 @@
     "accounting": "Comptabilité",
     "scenarios": "Simulations Financières",
     "catalog": "Catalogue",
-    "products": "Produits"
+    "products": "Produits",
+    "categories": "Catégories"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -192,6 +193,25 @@
     "serviceDeleted": "Service supprimé avec succès",
     "categoryCreated": "Catégorie créée avec succès",
     "statusLegend": "Légende des statuts"
+  },
+  "categories": {
+    "title": "Gestion des catégories",
+    "productCategories": "Catégories de produits",
+    "serviceCategories": "Catégories de services",
+    "addCategory": "Ajouter une catégorie",
+    "editCategory": "Modifier la catégorie",
+    "deleteCategory": "Supprimer la catégorie",
+    "categoryName": "Nom de la catégorie",
+    "categoryDescription": "Description",
+    "categoryUpdated": "Catégorie mise à jour",
+    "categoryDeleted": "Catégorie supprimée",
+    "noCategories": "Aucune catégorie",
+    "itemCount": "{{count}} élément(s)",
+    "deleteConfirmTitle": "Supprimer cette catégorie ?",
+    "deleteConfirmMessage": "Cette catégorie est utilisée par {{count}} élément(s). Ils seront dissociés mais pas supprimés.",
+    "deleteConfirmEmpty": "Cette catégorie n'est utilisée par aucun élément.",
+    "associatedProducts": "Produits associés",
+    "associatedServices": "Services associés"
   },
   "buttons": {
     "cancel": "Annuler",

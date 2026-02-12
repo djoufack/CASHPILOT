@@ -57,6 +57,7 @@ const SuppliersPage = lazyRetry(() => import('./pages/SuppliersPage'));
 const SupplierProfile = lazyRetry(() => import('./pages/SupplierProfile'));
 const StockManagement = lazyRetry(() => import('./pages/StockManagement'));
 const ServicesPage = lazyRetry(() => import('./pages/ServicesPage'));
+const CategoriesPage = lazyRetry(() => import('./pages/CategoriesPage'));
 const NotificationCenter = lazyRetry(() => import('./pages/NotificationCenter'));
 const SupplierReports = lazyRetry(() => import('./pages/SupplierReports'));
 const AccountingIntegration = lazyRetry(() => import('./pages/AccountingIntegration'));
@@ -152,6 +153,7 @@ const AuthWrapper = () => {
                 {/* Stock (produits du User) */}
                 <Route path="stock" element={<Suspense fallback={<PageLoader />}><StockManagement /></Suspense>} />
                 <Route path="services" element={<Suspense fallback={<PageLoader />}><ServicesPage /></Suspense>} />
+                <Route path="categories" element={<Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense>} />
                 <Route path="suppliers/stock" element={<Navigate to="/app/stock" replace />} />
 
                 {/* Supplier Routes */}
