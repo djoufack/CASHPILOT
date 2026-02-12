@@ -51,7 +51,9 @@
     "suppliers": "Fournisseurs",
     "reports": "Rapports",
     "accounting": "Comptabilité",
-    "scenarios": "Simulations Financières"
+    "scenarios": "Simulations Financières",
+    "catalog": "Catalogue",
+    "products": "Produits"
   },
   "dashboard": {
     "title": "Tableau de bord",

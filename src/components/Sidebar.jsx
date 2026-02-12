@@ -8,7 +8,7 @@ import {
   Shield,
   Home, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Archive, BarChart3, Calculator, PieChart, Settings,
-  Map, QrCode, FileBarChart, Database, Menu,
+  Map, QrCode, FileBarChart, Database, Menu, Package,
   Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -40,10 +40,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
     { path: '/app/debt-manager', label: t('debtManager.title'), icon: Wallet },
     { path: '/app/expenses', label: 'Dépenses', icon: Receipt },
     { path: '/app/purchase-orders', label: 'Bons de commande', icon: ClipboardList },
+    { type: 'separator', label: t('nav.catalog') || 'Catalogue' },
+    { path: '/app/stock', label: t('nav.products') || 'Produits', icon: Package },
     { path: '/app/services', label: t('services.title') || 'Services', icon: Wrench },
     { type: 'separator', label: t('suppliers.title') },
     { path: '/app/suppliers', label: t('common.suppliers'), icon: Truck },
-    { path: '/app/suppliers/stock', label: t('suppliers.stock'), icon: Archive },
     { path: '/app/suppliers/map', label: 'Map View', icon: Map },
     { path: '/app/products/barcode', label: 'Scanner', icon: QrCode },
     { path: '/app/suppliers/reports', label: t('suppliers.reports'), icon: BarChart3 },
