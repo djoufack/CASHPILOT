@@ -196,6 +196,25 @@ export const useTimesheets = () => {
     }
   };
 
+  const fetchBillableTimesheetsForProject = async (projectId) => {
+    if (!user || !supabase) return [];
+    try {
+      const { data, error } = await supabase
+        .from('timesheets')
+        .select(`*, client:clients(company_name), project:projects(name, hourly_rate), task:tasks(name), service:services(id, service_name, hourly_rate)`)
+        .eq('user_id', user.id)
+        .eq('project_id', projectId)
+        .eq('billable', true)
+        .is('invoice_id', null)
+        .order('date', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error fetching billable timesheets for project:', err);
+      return [];
+    }
+  };
+
   const markAsInvoiced = async (timesheetIds, invoiceId) => {
     if (!supabase) return;
     try {
@@ -252,6 +271,7 @@ export const useTimesheets = () => {
     deleteTimesheet,
     calculateDuration,
     fetchBillableTimesheets,
+    fetchBillableTimesheetsForProject,
     markAsInvoiced,
     toggleBillable
   };

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasksForProject } from '@/hooks/useTasksForProject';
 import { useProjectStatus } from '@/hooks/useProjectStatus';
@@ -10,24 +11,27 @@ import KanbanBoard from '@/components/KanbanBoard';
 import CalendarView from '@/components/CalendarView';
 import AgendaView from '@/components/AgendaView';
 import TaskForm from '@/components/TaskForm';
+import ProjectBillingDialog from '@/components/ProjectBillingDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Briefcase, Calendar as CalendarIcon, Clock, DollarSign, LayoutList, PieChart, Users, Kanban, List, CalendarDays } from 'lucide-react';
+import { ArrowLeft, Briefcase, Calendar as CalendarIcon, Clock, DollarSign, LayoutList, PieChart, Users, Kanban, List, CalendarDays, Receipt } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 
 const ProjectDetail = () => {
   const { projectId } = useParams();
+  const { t } = useTranslation();
   const { projects } = useProjects();
   const [project, setProject] = useState(null);
   const { tasks, loading, createTask, updateTask, deleteTask, refreshTasks } = useTasksForProject(projectId);
   const { status: calculatedStatus, stats } = useProjectStatus(projectId);
-  
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [activeTab, setActiveTab] = useState("kanban");
+  const [billingOpen, setBillingOpen] = useState(false);
 
   useEffect(() => {
     if (projects.length > 0) {
@@ -94,15 +98,21 @@ const ProjectDetail = () => {
                 </div>
               </div>
               
-              <div className="bg-gray-900 p-4 rounded-lg border border-gray-800 flex flex-wrap gap-6 text-sm w-full lg:w-auto">
-                <div>
-                   <p className="text-gray-500 mb-1">Budget</p>
-                   <p className="text-gradient font-mono flex items-center gap-1"><Clock className="w-3 h-3" /> {project.budget_hours || 0}h</p>
+              <div className="flex flex-col gap-3 w-full lg:w-auto">
+                <div className="bg-gray-900 p-4 rounded-lg border border-gray-800 flex flex-wrap gap-6 text-sm w-full">
+                  <div>
+                     <p className="text-gray-500 mb-1">Budget</p>
+                     <p className="text-gradient font-mono flex items-center gap-1"><Clock className="w-3 h-3" /> {project.budget_hours || 0}h</p>
+                  </div>
+                  <div>
+                     <p className="text-gray-500 mb-1">Progress</p>
+                     <p className="text-gradient font-mono flex items-center gap-1"><PieChart className="w-3 h-3" /> {stats.progress}%</p>
+                  </div>
                 </div>
-                <div>
-                   <p className="text-gray-500 mb-1">Progress</p>
-                   <p className="text-gradient font-mono flex items-center gap-1"><PieChart className="w-3 h-3" /> {stats.progress}%</p>
-                </div>
+                <Button onClick={() => setBillingOpen(true)} className="bg-orange-500 hover:bg-orange-600">
+                  <Receipt className="w-4 h-4 mr-2" />
+                  {t('projects.billProject')}
+                </Button>
               </div>
             </div>
           </div>
@@ -169,6 +179,14 @@ const ProjectDetail = () => {
             <TaskForm task={editingTask} onSave={handleSave} onCancel={() => setIsFormOpen(false)} />
           </DialogContent>
         </Dialog>
+
+        <ProjectBillingDialog
+          open={billingOpen}
+          onOpenChange={setBillingOpen}
+          projectId={projectId}
+          project={project}
+          onSuccess={() => { setBillingOpen(false); }}
+        />
     </>
   );
 };

@@ -5,6 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useTimesheets } from '@/hooks/useTimesheets';
 import { useClients } from '@/hooks/useClients';
+import { useProducts } from '@/hooks/useProducts';
+import { useServices } from '@/hooks/useServices';
+import ProductPicker from './ProductPicker';
+import ServicePicker from './ServicePicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,7 +23,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { motion } from 'framer-motion';
 import { calculateInvoiceTotalWithDiscount, formatCurrency } from '@/utils/calculations';
-import { Plus, Trash2, Tag, Truck, Settings2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Tag, Truck, Settings2, ChevronDown, ChevronUp, Package, Wrench } from 'lucide-react';
 import { format } from 'date-fns';
 
 const InvoiceGenerator = ({ onSuccess }) => {
@@ -27,11 +31,15 @@ const InvoiceGenerator = ({ onSuccess }) => {
   const { createInvoice } = useInvoices();
   const { timesheets, markAsInvoiced } = useTimesheets();
   const { clients } = useClients();
+  const { products } = useProducts();
+  const { services } = useServices();
 
   const [selectedClientId, setSelectedClientId] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [selectedTimesheets, setSelectedTimesheets] = useState([]);
+  const [productItems, setProductItems] = useState([]);
+  const [serviceItems, setServiceItems] = useState([]);
   const [manualItems, setManualItems] = useState([]);
   const [taxRate, setTaxRate] = useState(20);
   const [notes, setNotes] = useState('');
@@ -85,6 +93,86 @@ const InvoiceGenerator = ({ onSuccess }) => {
     });
   };
 
+  // Product handlers
+  const handleAddProduct = (product) => {
+    setProductItems(prev => [...prev, {
+      id: Date.now().toString(),
+      description: product.product_name,
+      quantity: 1,
+      unitPrice: Number(product.unit_price || 0),
+      amount: Number(product.unit_price || 0),
+      product_id: product.id,
+      item_type: 'product',
+      discount_type: 'none',
+      discount_value: 0,
+      hsn_code: ''
+    }]);
+  };
+
+  const updateProductItem = (id, field, value) => {
+    setProductItems(prev => prev.map(item => {
+      if (item.id === id) {
+        const updated = { ...item, [field]: value };
+        if (field === 'quantity' || field === 'unitPrice') {
+          updated.amount = Number(updated.quantity) * Number(updated.unitPrice);
+        }
+        return updated;
+      }
+      return item;
+    }));
+  };
+
+  const removeProductItem = (id) => {
+    setProductItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Service handlers
+  const handleAddService = (service) => {
+    let unitPrice = 0;
+    let quantity = 1;
+    let description = service.service_name;
+
+    if (service.pricing_type === 'hourly') {
+      unitPrice = Number(service.hourly_rate || 0);
+      description = `${service.service_name} (${t('services.hourly')})`;
+    } else if (service.pricing_type === 'fixed') {
+      unitPrice = Number(service.fixed_price || 0);
+    } else if (service.pricing_type === 'per_unit') {
+      unitPrice = Number(service.unit_price || 0);
+    }
+
+    setServiceItems(prev => [...prev, {
+      id: Date.now().toString(),
+      description,
+      quantity,
+      unitPrice,
+      amount: quantity * unitPrice,
+      service_id: service.id,
+      item_type: 'service',
+      discount_type: 'none',
+      discount_value: 0,
+      hsn_code: ''
+    }]);
+  };
+
+  const updateServiceItem = (id, field, value) => {
+    setServiceItems(prev => prev.map(item => {
+      if (item.id === id) {
+        const updated = { ...item, [field]: value };
+        if (field === 'quantity' || field === 'unitPrice') {
+          updated.amount = Number(updated.quantity) * Number(updated.unitPrice);
+        }
+        return updated;
+      }
+      return item;
+    }));
+  };
+
+  const removeServiceItem = (id) => {
+    setServiceItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Manual item handlers
   const addManualItem = () => {
     setManualItems([...manualItems, {
       id: Date.now().toString(),
@@ -92,6 +180,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
       quantity: 1,
       unitPrice: 0,
       amount: 0,
+      item_type: 'manual',
       discount_type: 'none',
       discount_value: 0,
       hsn_code: ''
@@ -137,16 +226,27 @@ const InvoiceGenerator = ({ onSuccess }) => {
         quantity: durationHours,
         unitPrice,
         amount: durationHours * unitPrice,
-        itemType: 'timesheet'
+        item_type: 'timesheet',
+        timesheet_id: ts.id
       };
     });
 
-    const manualLineItems = manualItems.map(item => ({
+    const productLineItems = productItems.map(item => ({
       ...item,
-      itemType: 'manual'
+      item_type: 'product'
     }));
 
-    return [...timesheetItems, ...manualLineItems];
+    const serviceLineItems = serviceItems.map(item => ({
+      ...item,
+      item_type: 'service'
+    }));
+
+    const manualLineItems = manualItems.map(item => ({
+      ...item,
+      item_type: 'manual'
+    }));
+
+    return [...timesheetItems, ...productLineItems, ...serviceLineItems, ...manualLineItems];
   };
 
   const allItems = getAllInvoiceItems();
@@ -163,6 +263,17 @@ const InvoiceGenerator = ({ onSuccess }) => {
       return;
     }
 
+    // Compute invoice_type
+    const hasProducts = productItems.length > 0;
+    const hasServices = serviceItems.length > 0 || selectedTimesheets.length > 0;
+    const hasManual = manualItems.length > 0;
+    let invoice_type = 'mixed';
+    if (hasProducts && !hasServices && !hasManual) {
+      invoice_type = 'product';
+    } else if (!hasProducts && (hasServices || hasManual)) {
+      invoice_type = 'service';
+    }
+
     const invoiceData = {
       client_id: selectedClientId,
       date: issueDate,
@@ -177,6 +288,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
       balance_due: grandTotal,
       payment_status: 'unpaid',
       notes,
+      invoice_type,
       shipping_fee: Number(shippingFee || 0),
       adjustment: Number(adjustment || 0),
       adjustment_label: adjustmentLabel,
@@ -200,6 +312,8 @@ const InvoiceGenerator = ({ onSuccess }) => {
       setFromDate('');
       setToDate('');
       setSelectedTimesheets([]);
+      setProductItems([]);
+      setServiceItems([]);
       setManualItems([]);
       setNotes('');
       setShippingFee(0);
@@ -216,6 +330,58 @@ const InvoiceGenerator = ({ onSuccess }) => {
     } catch (error) {
       console.error('Error generating invoice:', error);
     }
+  };
+
+  // Reusable editable item list renderer
+  const renderEditableItemList = (items, updateFn, removeFn, emptyLabel) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="space-y-2 mt-3">
+        {items.map((item) => (
+          <div key={item.id} className="bg-gray-700/30 p-3 rounded-lg space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:items-end">
+              <div className="md:col-span-4 space-y-1">
+                <Label className="text-xs">{t('invoices.description')}</Label>
+                <Input value={item.description} onChange={(e) => updateFn(item.id, 'description', e.target.value)} className="bg-gray-700 border-gray-600 text-white w-full" placeholder={emptyLabel} />
+              </div>
+              <div className="md:col-span-1 space-y-1">
+                <Label className="text-xs">{t('invoices.quantity')}</Label>
+                <Input type="number" value={item.quantity} onChange={(e) => updateFn(item.id, 'quantity', e.target.value)} className="bg-gray-700 border-gray-600 text-white w-full" min="0" step="0.01" />
+              </div>
+              <div className="md:col-span-2 space-y-1">
+                <Label className="text-xs">{t('invoices.unitPrice')}</Label>
+                <Input type="number" value={item.unitPrice} onChange={(e) => updateFn(item.id, 'unitPrice', e.target.value)} className="bg-gray-700 border-gray-600 text-white w-full" min="0" step="0.01" />
+              </div>
+              <div className="md:col-span-2 space-y-1">
+                <Label className="text-xs">{t('discounts.discount')}</Label>
+                <div className="flex gap-1">
+                  <Select value={item.discount_type || 'none'} onValueChange={(v) => updateFn(item.id, 'discount_type', v)}>
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-20 h-10 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-gray-700 border-gray-600 text-white">
+                      <SelectItem value="none">-</SelectItem>
+                      <SelectItem value="percentage">%</SelectItem>
+                      <SelectItem value="fixed">{t('discounts.fixed')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {item.discount_type && item.discount_type !== 'none' && (
+                    <Input type="number" value={item.discount_value || ''} onChange={(e) => updateFn(item.id, 'discount_value', e.target.value)} className="bg-gray-700 border-gray-600 text-white flex-1" min="0" step="0.01" placeholder="0" />
+                  )}
+                </div>
+              </div>
+              <div className="md:col-span-2 space-y-1">
+                <Label className="text-xs">{t('invoiceEnhanced.hsnCode')}</Label>
+                <Input value={item.hsn_code || ''} onChange={(e) => updateFn(item.id, 'hsn_code', e.target.value)} className="bg-gray-700 border-gray-600 text-white w-full" placeholder="HSN/SAC" />
+              </div>
+              <div className="md:col-span-1 flex justify-end md:justify-center mt-2 md:mt-0">
+                <Button variant="ghost" size="sm" onClick={() => removeFn(item.id)} className="text-red-400 hover:text-red-300 hover:bg-red-900/20">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -259,7 +425,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
           {filteredTimesheets.length > 0 && (
             <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
               <h3 className="text-lg md:text-xl font-bold text-gradient">
-                Step 3: {t('invoices.selectTimesheets')}
+                Step 3a: {t('invoices.selectTimesheets')}
               </h3>
               <div className="space-y-2">
                 {filteredTimesheets.map((ts) => (
@@ -274,6 +440,26 @@ const InvoiceGenerator = ({ onSuccess }) => {
               </div>
             </div>
           )}
+
+          {/* Step 3b: Add Products */}
+          <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
+            <h3 className="text-lg md:text-xl font-bold text-gradient flex items-center gap-2">
+              <Package className="w-5 h-5" />
+              Step 3b: {t('invoices.addProducts')}
+            </h3>
+            <ProductPicker products={products} onAddProduct={handleAddProduct} currency={currency} />
+            {renderEditableItemList(productItems, updateProductItem, removeProductItem, t('invoices.pickProduct'))}
+          </div>
+
+          {/* Step 3c: Add Services */}
+          <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
+            <h3 className="text-lg md:text-xl font-bold text-gradient flex items-center gap-2">
+              <Wrench className="w-5 h-5" />
+              Step 3c: {t('invoices.addServices')}
+            </h3>
+            <ServicePicker services={services} onAddService={handleAddService} currency={currency} />
+            {renderEditableItemList(serviceItems, updateServiceItem, removeServiceItem, t('invoices.pickService'))}
+          </div>
 
           <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
