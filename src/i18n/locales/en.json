@@ -58,7 +58,11 @@
     "quickActions": "Quick Actions",
     "newTimesheet": "New Timesheet",
     "newInvoice": "New Invoice",
-    "newClient": "New Client"
+    "newClient": "New Client",
+    "productRevenue": "Product Revenue",
+    "serviceRevenue": "Service Revenue",
+    "otherRevenue": "Other Revenue",
+    "revenueBreakdown": "Revenue Breakdown"
   },
   "clients": {
     "title": "Client Management",
@@ -107,7 +111,20 @@
     "noClientEmail": "This client does not have an email address",
     "emailSentTo": "Invoice sent to {{email}}",
     "statusLegend": "Status Legend",
-    "overdueWarning": "This invoice is overdue"
+    "overdueWarning": "This invoice is overdue",
+    "addProducts": "Add Products",
+    "addServices": "Add Services",
+    "productItems": "Product Items",
+    "serviceItems": "Service Items",
+    "source": "Source",
+    "fromCatalog": "From Catalog",
+    "pickProduct": "Pick a product",
+    "pickService": "Pick a service",
+    "stockWarning": "Low stock",
+    "invoiceType": "Invoice Type",
+    "product": "Product",
+    "service": "Service",
+    "mixed": "Mixed"
   },
   "timesheets": {
     "title": "Timesheets",
@@ -1085,5 +1102,9 @@
       "message": "Your accounting is not yet configured.",
       "action": "Configure"
     }
+  },
+  "projects": {
+    "billProject": "Bill Project",
+    "noTimesheets": "No billable timesheets found"
   }
 }

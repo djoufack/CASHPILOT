@@ -11,10 +11,10 @@ import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { formatCurrency } from '@/utils/calculations';
-import { Users, Clock, FileText, TrendingUp, DollarSign, Activity, Loader2, ArrowUp, Download } from 'lucide-react';
+import { Users, Clock, FileText, TrendingUp, DollarSign, Activity, Loader2, ArrowUp, Download, Package, Wrench } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, Legend } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { exportDashboardPDF, exportDashboardHTML } from '@/services/exportReports';
 
@@ -38,12 +38,14 @@ const Dashboard = () => {
     }
   }, [user]);
 
-  const { metrics, revenueData, clientRevenueData, recentInvoices, recentTimesheets } = useMemo(() => {
+  const { metrics, revenueData, clientRevenueData, revenueByType, revenueBreakdownData, recentInvoices, recentTimesheets } = useMemo(() => {
     if (!invoices || !timesheets || !projects) {
       return {
         metrics: { revenue: 0, profitMargin: 0, occupancyRate: 0 },
         revenueData: [],
         clientRevenueData: [],
+        revenueByType: { product: 0, service: 0, other: 0 },
+        revenueBreakdownData: [],
         recentInvoices: [],
         recentTimesheets: []
       };
@@ -82,10 +84,53 @@ const Dashboard = () => {
       .map(([name, amount]) => ({ name, amount }))
       .sort((a, b) => months.indexOf(a.name) - months.indexOf(b.name));
 
+    // Revenue breakdown by type
+    const revenueByType = { product: 0, service: 0, other: 0 };
+    paidInvoices.forEach(inv => {
+      const items = inv.items || [];
+      if (items.length > 0) {
+        items.forEach(item => {
+          const itemTotal = item.total || (item.quantity * item.unit_price) || 0;
+          if (item.item_type === 'product') revenueByType.product += itemTotal;
+          else if (item.item_type === 'service' || item.item_type === 'timesheet') revenueByType.service += itemTotal;
+          else revenueByType.other += itemTotal;
+        });
+      } else {
+        // Legacy invoices without typed items
+        revenueByType.other += (inv.total || inv.total_ttc || 0);
+      }
+    });
+
+    // Monthly breakdown by type for stacked chart
+    const revenueByMonthType = {};
+    paidInvoices.forEach(inv => {
+      const date = new Date(inv.date || inv.created_at);
+      const monthName = months[date.getMonth()];
+      if (!revenueByMonthType[monthName]) {
+        revenueByMonthType[monthName] = { name: monthName, products: 0, services: 0, other: 0 };
+      }
+      const items = inv.items || [];
+      if (items.length > 0) {
+        items.forEach(item => {
+          const itemTotal = item.total || (item.quantity * item.unit_price) || 0;
+          if (item.item_type === 'product') revenueByMonthType[monthName].products += itemTotal;
+          else if (item.item_type === 'service' || item.item_type === 'timesheet') revenueByMonthType[monthName].services += itemTotal;
+          else revenueByMonthType[monthName].other += itemTotal;
+        });
+      } else {
+        revenueByMonthType[monthName].other += (inv.total || inv.total_ttc || 0);
+      }
+    });
+
+    const revenueBreakdownData = Object.values(revenueByMonthType)
+      .sort((a, b) => months.indexOf(a.name) - months.indexOf(b.name));
+
     return {
       metrics: { revenue: totalRevenue, profitMargin, occupancyRate },
       revenueData: chartRevenue,
       clientRevenueData: chartClient,
+      revenueByType,
+      revenueBreakdownData,
       recentInvoices: [...invoices].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5),
       recentTimesheets: [...timesheets].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5),
     };
@@ -209,6 +254,74 @@ const Dashboard = () => {
             </motion.div>
           ))}
         </div>
+
+        {/* Revenue Breakdown Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="bg-gray-900 rounded-xl p-5 border border-gray-800/50"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.productRevenue')}</p>
+                <p className="text-2xl md:text-3xl font-bold text-blue-400">{formatCurrency(revenueByType.product)}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-blue-500/10">
+                <Package className="w-6 h-6 text-blue-400" />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-gray-900 rounded-xl p-5 border border-gray-800/50"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.serviceRevenue')}</p>
+                <p className="text-2xl md:text-3xl font-bold text-emerald-400">{formatCurrency(revenueByType.service)}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-500/10">
+                <Wrench className="w-6 h-6 text-emerald-400" />
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Revenue Breakdown Chart */}
+        {revenueBreakdownData.length > 0 && (
+          <motion.div
+            className="bg-gray-900 rounded-xl p-5 border border-gray-800/50 mb-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.45 }}
+          >
+            <h2 className="text-lg font-semibold text-gradient mb-5">{t('dashboard.revenueBreakdown')}</h2>
+            <div className="h-[280px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenueBreakdownData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
+                  <XAxis dataKey="name" stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
+                    formatter={(value, name) => [formatCurrency(value), name === 'products' ? t('dashboard.productRevenue') : name === 'services' ? t('dashboard.serviceRevenue') : t('dashboard.otherRevenue')]}
+                  />
+                  <Legend
+                    formatter={(value) => value === 'products' ? t('dashboard.productRevenue') : value === 'services' ? t('dashboard.serviceRevenue') : t('dashboard.otherRevenue')}
+                  />
+                  <Bar dataKey="products" stackId="a" fill="#3B82F6" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="services" stackId="a" fill="#10B981" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="other" stackId="a" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        )}
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

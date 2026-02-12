@@ -58,7 +58,11 @@
     "quickActions": "Actions rapides",
     "newTimesheet": "Nouvelle feuille de temps",
     "newInvoice": "Nouvelle facture",
-    "newClient": "Nouveau client"
+    "newClient": "Nouveau client",
+    "productRevenue": "Revenus Produits",
+    "serviceRevenue": "Revenus Services",
+    "otherRevenue": "Autres Revenus",
+    "revenueBreakdown": "Ventilation des Revenus"
   },
   "clients": {
     "title": "Gestion des clients",
@@ -1085,5 +1089,9 @@
       "message": "Votre comptabilit\u00e9 n'est pas encore configur\u00e9e.",
       "action": "Configurer"
     }
+  },
+  "projects": {
+    "billProject": "Facturer le projet",
+    "noTimesheets": "Aucune feuille de temps facturable"
   }
 }
