@@ -35,7 +35,18 @@ import {
   Bot,
   Mic,
   Workflow,
-  Plug
+  Plug,
+  Lock,
+  ShieldCheck,
+  Brain,
+  Landmark,
+  Mail,
+  Repeat,
+  Webhook,
+  Coins,
+  Download,
+  Rocket,
+  WandSparkles
 } from 'lucide-react';
 import '../styles/landing.css';
 
@@ -491,6 +502,10 @@ const LandingPage = () => {
                 <Bot />
                 <span>Serveur MCP &bull; Compatible IA</span>
               </div>
+              <div className="tag tag-red">
+                <Lock />
+                <span>MFA & GDPR</span>
+              </div>
             </div>
 
             <div className="hero-cta animate-in" data-delay="500">
@@ -524,6 +539,11 @@ const LandingPage = () => {
               <div className="stat-item">
                 <span className="stat-number">0</span>
                 <span className="stat-label">Saisie Manuelle</span>
+              </div>
+              <div className="stat-divider"></div>
+              <div className="stat-item">
+                <span className="stat-number">244</span>
+                <span className="stat-label">Tests Automatisés</span>
               </div>
             </div>
           </div>
@@ -956,6 +976,78 @@ const LandingPage = () => {
               <h3>Serveur MCP & API</h3>
               <p>29 outils MCP + API REST pour tous les agents IA et automations</p>
             </div>
+
+            <div className="feature-card" data-color="rose-red">
+              <div className="feature-card-icon">
+                <Lock />
+              </div>
+              <h3>MFA / 2FA (TOTP)</h3>
+              <p>Authentification à deux facteurs via Google Authenticator ou Authy</p>
+            </div>
+
+            <div className="feature-card" data-color="sky-indigo">
+              <div className="feature-card-icon">
+                <ShieldCheck />
+              </div>
+              <h3>Conformité RGPD</h3>
+              <p>Consentement cookies, export données, droit à l'oubli</p>
+            </div>
+
+            <div className="feature-card" data-color="emerald-teal">
+              <div className="feature-card-icon">
+                <Brain />
+              </div>
+              <h3>Extraction IA Factures</h3>
+              <p>Upload PDF/image → extraction automatique par Gemini 2.0 Flash</p>
+            </div>
+
+            <div className="feature-card" data-color="green-lime">
+              <div className="feature-card-icon">
+                <Landmark />
+              </div>
+              <h3>Connexion Bancaire</h3>
+              <p>3000+ banques via GoCardless Open Banking</p>
+            </div>
+
+            <div className="feature-card" data-color="pink-purple">
+              <div className="feature-card-icon">
+                <Mail />
+              </div>
+              <h3>Email & Rappels Auto</h3>
+              <p>Envoi de factures et rappels de paiement automatiques</p>
+            </div>
+
+            <div className="feature-card" data-color="blue-indigo">
+              <div className="feature-card-icon">
+                <Repeat />
+              </div>
+              <h3>Factures Récurrentes</h3>
+              <p>Facturation automatique des abonnements et contrats</p>
+            </div>
+
+            <div className="feature-card" data-color="orange-amber">
+              <div className="feature-card-icon">
+                <Plug />
+              </div>
+              <h3>API REST & Webhooks</h3>
+              <p>API documentée + webhooks HMAC pour intégrations externes</p>
+            </div>
+
+            <div className="feature-card" data-color="violet-indigo">
+              <div className="feature-card-icon">
+                <Coins />
+              </div>
+              <h3>Taux de Change BCE</h3>
+              <p>33 devises avec taux officiels mis à jour automatiquement</p>
+            </div>
+
+            <div className="feature-card" data-color="lime-emerald">
+              <div className="feature-card-icon">
+                <Download />
+              </div>
+              <h3>Export Excel/CSV Natif</h3>
+              <p>Export en un clic depuis toutes les pages principales</p>
+            </div>
           </div>
         </div>
       </section>
@@ -1155,6 +1247,36 @@ const LandingPage = () => {
                 <Bot />
               </div>
               <p>Serveur MCP : Pilotez CashPilot depuis ChatGPT, Claude, Gemini, Mistral ou tout agent IA</p>
+              <div className="advantage-check">
+                <CheckCircle2 />
+              </div>
+            </div>
+
+            <div className="advantage-item">
+              <div className="advantage-icon">
+                <Lock />
+              </div>
+              <p>Sécurité renforcée : MFA/2FA, RGPD, 244 tests automatisés</p>
+              <div className="advantage-check">
+                <CheckCircle2 />
+              </div>
+            </div>
+
+            <div className="advantage-item">
+              <div className="advantage-icon">
+                <Brain />
+              </div>
+              <p>IA intégrée : Extraction factures fournisseurs par Gemini 2.0 Flash</p>
+              <div className="advantage-check">
+                <CheckCircle2 />
+              </div>
+            </div>
+
+            <div className="advantage-item">
+              <div className="advantage-icon">
+                <Landmark />
+              </div>
+              <p>Banque connectée : 3000+ banques, rapprochement auto, taux de change BCE</p>
               <div className="advantage-check">
                 <CheckCircle2 />
               </div>

@@ -2647,15 +2647,154 @@ Si vous rencontrez des problèmes :
 
 ---
 
-## Mises à Jour et Nouveautés
+## Mises à Jour et Nouveautés — Février 2026
 
-Consultez régulièrement pour les nouvelles fonctionnalités et améliorations.
+### 19 Nouvelles Fonctionnalités (v2.0)
+
+CashPilot a été enrichi de **19 fonctionnalités majeures** réparties en 5 domaines :
+
+---
+
+### Sprint 1 — Sécurité & Fiabilité
+
+#### MFA / 2FA (TOTP)
+Authentification à deux facteurs via application (Google Authenticator, Authy).
+- Accédez aux **Paramètres > Sécurité** pour activer le MFA
+- Scannez le QR code avec votre application d'authentification
+- Entrez le code à 6 chiffres pour valider
+- Protection renforcée contre le vol de mot de passe
+
+#### Pagination Cursor-Based
+Les listes (clients, factures, dépenses, fournisseurs, produits) utilisent désormais une **pagination par curseur** pour un chargement progressif fluide, même avec des milliers d'enregistrements.
+
+#### Conformité RGPD
+- **Bannière de consentement** : Affichée lors de la première visite pour les cookies
+- **Export de données** : Dans Paramètres > Mes Données, exportez toutes vos données personnelles au format JSON
+- **Suppression de compte** : Droit à l'oubli — suppression complète et irréversible de toutes vos données
+- **Journal des consentements** : Traçabilité complète pour audit CNIL
+
+#### 244 Tests Automatisés
+Suite de tests unitaires couvrant les calculs financiers, la validation de données, la sanitisation, la comptabilité et la pagination. 100% de réussite garantissant la fiabilité de l'application.
+
+---
+
+### Sprint 2 — Onboarding Comptable & Initialisation
+
+#### Wizard d'Onboarding (5 étapes)
+Assistant de configuration guidé accessible après la création de compte :
+1. **Bienvenue** — Présentation de l'assistant
+2. **Infos société** — Nom, adresse, TVA, devise
+3. **Plan comptable** — Choix entre PCG (FR), PCMN (BE), SYSCOHADA ou import personnalisé
+4. **Soldes d'ouverture** — Questions en langage simple (solde bancaire, créances, dettes...)
+5. **Confirmation** — Résumé et lancement de l'initialisation
+
+#### Plans Comptables Pré-chargés
+3 référentiels officiels disponibles en un clic :
+| Plan | Pays | Comptes |
+|------|------|---------|
+| PCG (Plan Comptable Général) | France | 271 |
+| PCMN (Plan Comptable Minimum Normalisé) | Belgique | 993 |
+| SYSCOHADA Révisé | Afrique (17 pays) | 493 |
+
+#### Écritures d'Ouverture Automatiques
+À partir des soldes saisis dans le wizard, CashPilot génère automatiquement les écritures AN (À Nouveau) avec les comptes correspondant à votre pays.
+
+#### Import Excel/CSV de Plan Comptable
+Importez votre plan comptable existant depuis un fichier .xlsx, .xls ou .csv avec auto-détection des colonnes (code, nom, type). Aperçu avant validation.
+
+---
+
+### Sprint 3 — Email, Factures Récurrentes & IA
+
+#### Service Email (Resend)
+Envoyez vos factures et rappels directement depuis CashPilot :
+- Bouton **"Envoyer par email"** sur chaque facture
+- Templates HTML professionnels
+- Suivi centralisé des envois
+
+#### Factures Récurrentes
+Créez des modèles de facturation périodique :
+- Accédez à **Factures > Récurrentes**
+- Définissez la fréquence (hebdo, mensuelle, trimestrielle, annuelle)
+- Les factures sont générées automatiquement via pg_cron
+
+#### Rappels de Paiement Automatiques
+Configurez des règles de relance :
+- X jours avant/après l'échéance
+- Nombre maximum de relances
+- Templates personnalisables
+- Envoi automatique par email
+
+#### Extraction IA de Factures Fournisseurs (Gemini 2.0 Flash)
+- Uploadez une facture fournisseur (PDF ou image)
+- L'IA extrait automatiquement : montants, TVA, IBAN, lignes de détail, numéro de TVA
+- Score de confiance affiché pour chaque extraction
+- Coût : **3 crédits** par extraction
+- Gain de temps estimé : 90% sur la saisie
+
+---
+
+### Sprint 4 — Intégrations Bancaires & Taux de Change
+
+#### Connexion Bancaire (GoCardless)
+- Connectez vos comptes bancaires via OAuth sécurisé
+- **3000+ institutions** bancaires supportées
+- Synchronisation automatique des transactions
+- Rapprochement automatique avec vos factures
+
+#### Taux de Change BCE
+- Mise à jour automatique via la Banque Centrale Européenne
+- **33 devises** supportées (EUR, USD, GBP, CHF, XAF, etc.)
+- Conversion automatique sur factures et devis
+- Taux officiels conformes aux normes IFRS
+
+#### Mode Clair / Sombre
+- Toggle dans la barre de navigation : clair, sombre ou système
+- Préférence persistante entre les sessions
+- 5 templates de facture adaptés au mode choisi
+
+---
+
+### Sprint 5 — API, Performance & Écosystème
+
+#### API REST v1 Documentée
+- Endpoints CRUD complets : clients, factures, dépenses, devis, fournisseurs, produits
+- Authentification par **clé API**
+- Whitelisting des champs pour la sécurité
+- Accédez à **Paramètres > API** pour générer votre clé
+
+#### Webhooks Sortants (HMAC-SHA256)
+- Notifications en temps réel vers des URL externes
+- Événements : `invoice.created`, `invoice.paid`, `payment.received`, `client.created`
+- Signature HMAC-SHA256 pour vérification d'authenticité
+- Configurez vos webhooks dans **Paramètres > Webhooks**
+
+#### Code Splitting (React.lazy)
+Optimisation des performances : chargement différé de toutes les routes. Première page chargée 2-3x plus vite.
+
+#### Export Excel/CSV Natif
+Bouton d'export disponible sur 5 pages :
+- Clients, Factures, Dépenses, Fournisseurs, Stock
+- Format .xlsx ou .csv avec BOM UTF-8
+
+---
+
+### Impact Global v2.0
+
+| Métrique | Avant | Après |
+|----------|-------|-------|
+| Sécurité | Login simple | MFA + RGPD + JWT Edge Functions |
+| Onboarding | Configuration manuelle | Wizard guidé + plans pré-chargés |
+| Automatisation | Tout manuel | Email, récurrentes, rappels, extraction IA |
+| Intégrations | Aucune | Banque, API REST, Webhooks, taux de change |
+| Performance | Bundle monolithique | Code splitting, pagination, lazy loading |
+| Tests | 0 | 244 tests (100% pass) |
 
 ---
 
 **Fin du Guide Utilisateur CashPilot**
 
-*Version 1.1 - Février 2026 — Ajout de l'onglet Connexions (MCP, MCP Connector, REST API)*
+*Version 2.0 - Février 2026 — 19 nouvelles fonctionnalités (MFA, GDPR, Onboarding, Email, IA, Banque, API, Performance)*
 
 Pour toute question ou suggestion, n'hésitez pas à contacter notre équipe de support.
 
