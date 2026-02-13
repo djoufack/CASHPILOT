@@ -1047,6 +1047,13 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
         <a href="#quick-invoice" class="sidebar-sub-link">Facturation Rapide</a>
       </div>
     </div>
+    <!-- 13 Nouveaut&eacute;s v2.0 -->
+    <div class="sidebar-section" data-section="nouveautes">
+      <div class="sidebar-section-header"><span class="sidebar-section-num">13</span><span class="sidebar-section-label">Nouveaut&eacute;s v2.0</span><svg class="sidebar-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="sidebar-sub-list">
+        <a href="#nouveautes" class="sidebar-sub-link">19 Nouvelles Fonctionnalit&eacute;s</a>
+      </div>
+    </div>
   </nav>
   <div class="sidebar-footer">
     <a href="https://www.cashpilot.tech" target="_blank" rel="noopener" class="sidebar-cta">
@@ -2283,6 +2290,128 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       <div class="pro-tip-icon">!</div>
       <div class="pro-tip-text">
         <strong>Sidebar r&eacute;ductible :</strong> Cliquez sur la fl&egrave;che dans la barre lat&eacute;rale pour la r&eacute;duire en mode ic&ocirc;nes. Survolez une ic&ocirc;ne pour voir le tooltip avec le nom de la section.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION: 19 NOUVELLES FONCTIONNALITES (v2.0)
+     ============================================================ -->
+<section class="section" id="nouveautes">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-badge">Mise à Jour v2.0</div>
+      <h2 class="section-title">19 <span class="gradient-text">Nouvelles Fonctionnalités</span></h2>
+      <p class="section-subtitle">Implémentées en février 2026 via orchestration multi-agents en 5 sprints parallèles.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(239,68,68,0.1);color:var(--red);">&#128274;</div>
+        <h3>MFA / 2FA (TOTP)</h3>
+        <p>Authentification à deux facteurs via Google Authenticator ou Authy. Protection renforcée de votre compte.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:var(--blue);">&#128506;</div>
+        <h3>Pagination Cursor-Based</h3>
+        <p>Chargement progressif des listes (clients, factures, dépenses). Interface fluide même avec des milliers d'enregistrements.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#128737;</div>
+        <h3>Conformité RGPD</h3>
+        <p>Bannière de consentement, export complet de données (JSON), suppression de compte avec purge totale.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#9989;</div>
+        <h3>244 Tests Automatisés</h3>
+        <p>Suite de tests unitaires couvrant calculs financiers, validation, sanitisation et comptabilité. 100% pass.</p>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#127937;</div>
+        <h3>Wizard d'Onboarding</h3>
+        <p>Assistant de configuration en 5 étapes : bienvenue, infos société, plan comptable, soldes d'ouverture, confirmation.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(6,182,212,0.1);color:var(--cyan);">&#128218;</div>
+        <h3>Plans Comptables FR/BE/OHADA</h3>
+        <p>3 référentiels pré-chargés : PCG (271 comptes), PCMN (993 comptes), SYSCOHADA (493 comptes).</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(236,72,153,0.1);color:var(--pink);">&#128200;</div>
+        <h3>Écritures d'Ouverture Auto</h3>
+        <p>Génération automatique des écritures AN à partir de vos soldes d'ouverture. Comptes adaptés au pays.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#128196;</div>
+        <h3>Import Excel/CSV</h3>
+        <p>Importez votre plan comptable personnalisé (.xlsx, .csv) avec auto-détection des colonnes.</p>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:var(--blue);">&#128233;</div>
+        <h3>Service Email (Resend)</h3>
+        <p>Envoi de factures et rappels par email. Templates HTML professionnels. Suivi centralisé.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#128257;</div>
+        <h3>Factures Récurrentes</h3>
+        <p>Modèles de facturation périodique avec génération automatique. Zéro oubli, zéro saisie répétitive.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(239,68,68,0.1);color:var(--red);">&#128276;</div>
+        <h3>Rappels de Paiement Auto</h3>
+        <p>Règles configurables : X jours avant/après échéance, templates personnalisés, nombre max de relances.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#129302;</div>
+        <h3>Extraction IA (Gemini)</h3>
+        <p>Upload facture fournisseur (PDF/image) &rarr; extraction auto par IA : montants, TVA, IBAN, lignes. 3 crédits/extraction.</p>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#127974;</div>
+        <h3>Connexion Bancaire</h3>
+        <p>GoCardless OAuth : 3000+ banques. Synchronisation auto des transactions. Rapprochement automatique.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(6,182,212,0.1);color:var(--cyan);">&#128177;</div>
+        <h3>Taux de Change BCE</h3>
+        <p>33 devises, taux officiels BCE mis à jour automatiquement. Conversion multi-devises sur factures et devis.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:var(--amber);">&#127763;</div>
+        <h3>Mode Clair / Sombre</h3>
+        <p>Toggle light/dark/système avec persistance. Variables CSS adaptées, templates de facture compatibles.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:var(--blue);">&#128268;</div>
+        <h3>API REST v1</h3>
+        <p>Endpoints CRUD complets (clients, factures, dépenses, devis). Auth par clé API. Whitelisting des champs.</p>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-icon" style="background:rgba(236,72,153,0.1);color:var(--pink);">&#128232;</div>
+        <h3>Webhooks HMAC</h3>
+        <p>Notifications temps réel : facture créée/payée, paiement reçu, client créé. Signature HMAC-SHA256.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#9889;</div>
+        <h3>Code Splitting</h3>
+        <p>React.lazy + Suspense sur toutes les routes. Première page chargée 2-3x plus vite.</p>
+      </div>
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon" style="background:rgba(16,185,129,0.1);color:var(--green);">&#128190;</div>
+        <h3>Export Excel/CSV</h3>
+        <p>Bouton d'export sur 5 pages : clients, factures, dépenses, fournisseurs, stock. Format .xlsx ou .csv.</p>
+      </div>
+    </div>
+
+    <div class="pro-tip reveal">
+      <div class="pro-tip-icon">&#128200;</div>
+      <div class="pro-tip-text">
+        <strong>Impact global v2.0 :</strong> 244 tests automatisés, 8 nouvelles tables DB, 6 migrations SQL, sécurité renforcée (5 vulnérabilités critiques corrigées), bundle optimisé avec code splitting.
       </div>
     </div>
   </div>
