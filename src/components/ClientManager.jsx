@@ -35,12 +35,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRIES } from '@/constants/countries';
 import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
-import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard, Download } from 'lucide-react';
-import { exportToCSV, exportToExcel } from '@/utils/exportService';
+import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard } from 'lucide-react';
+import ExportButton from '@/components/ExportButton';
 import { motion } from 'framer-motion';
 import { validateEmail } from '@/utils/validation';
 import { useToast } from '@/components/ui/use-toast';
 import { Currency } from '@/types';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationControls from '@/components/PaginationControls';
 
 const ClientManager = () => {
   const { t } = useTranslation();
@@ -166,30 +168,32 @@ const ClientManager = () => {
     }
   };
 
+  const pagination = usePagination({ pageSize: 25 });
+
   const filteredClients = clients.filter(client =>
     (client.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (client.contact_name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleExportList = (format) => {
-    if (!filteredClients || filteredClients.length === 0) return;
-    const exportData = filteredClients.map(c => ({
-      'Company Name': c.company_name || '',
-      'Contact Name': c.contact_name || '',
-      'Email': c.email || '',
-      'Phone': c.phone || '',
-      'Address': c.address || '',
-      'City': c.city || '',
-      'Country': c.country || '',
-      'VAT Number': c.vat_number || '',
-      'Currency': c.preferred_currency || '',
-    }));
-    if (format === 'csv') {
-      exportToCSV(exportData, 'clients');
-    } else {
-      exportToExcel(exportData, 'clients');
-    }
-  };
+  // Update pagination when filtered clients change
+  React.useEffect(() => {
+    pagination.setTotalCount(filteredClients.length);
+  }, [filteredClients.length]);
+
+  const paginatedClients = filteredClients.slice(pagination.from, pagination.to + 1);
+
+  const clientExportColumns = [
+    { key: 'company_name', header: t('clients.companyName'), width: 25 },
+    { key: 'contact_name', header: t('clients.contactName'), width: 20 },
+    { key: 'email', header: t('clients.email'), width: 25 },
+    { key: 'phone', header: 'Phone', width: 18 },
+    { key: 'address', header: t('clients.address'), width: 30 },
+    { key: 'city', header: 'City', width: 15 },
+    { key: 'country', header: 'Country', width: 10 },
+    { key: 'vat_number', header: t('clients.vatNumber'), width: 20 },
+    { key: 'preferred_currency', header: t('clients.preferredCurrency'), width: 10 },
+    { key: 'created_at', header: 'Date', type: 'date', width: 12 },
+  ];
 
   return (
     <div className="space-y-6">
@@ -205,30 +209,11 @@ const ClientManager = () => {
           />
         </div>
         <div className="flex gap-2 w-full md:w-auto">
-          {filteredClients.length > 0 && (
-            <>
-              <Button
-                onClick={() => handleExportList('csv')}
-                size="sm"
-                variant="outline"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                title="Export CSV"
-              >
-                <Download className="w-4 h-4 mr-1" />
-                CSV
-              </Button>
-              <Button
-                onClick={() => handleExportList('xlsx')}
-                size="sm"
-                variant="outline"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                title="Export Excel"
-              >
-                <Download className="w-4 h-4 mr-1" />
-                Excel
-              </Button>
-            </>
-          )}
+          <ExportButton
+            data={filteredClients}
+            columns={clientExportColumns}
+            filename={t('export.filename.clients', 'clients')}
+          />
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
               onClick={() => handleOpenDialog()}
@@ -269,7 +254,7 @@ const ClientManager = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
-                {filteredClients.map((client) => (
+                {paginatedClients.map((client) => (
                   <motion.tr
                     key={client.id}
                     initial={{ opacity: 0 }}
@@ -318,6 +303,19 @@ const ClientManager = () => {
               </tbody>
             </table>
           </div>
+          <PaginationControls
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalCount={pagination.totalCount}
+            pageSize={pagination.pageSize}
+            pageSizeOptions={pagination.pageSizeOptions}
+            hasNextPage={pagination.hasNextPage}
+            hasPrevPage={pagination.hasPrevPage}
+            onNextPage={pagination.nextPage}
+            onPrevPage={pagination.prevPage}
+            onGoToPage={pagination.goToPage}
+            onChangePageSize={pagination.changePageSize}
+          />
         </div>
       )}
 

@@ -27,7 +27,7 @@ const MinimalTemplate = ({ invoice, client, items, company, theme, settings }) =
         <div className="flex justify-between items-start">
           <div>
             {settings?.show_logo && company?.logo_url && (
-              <img src={company.logo_url} alt="Logo" className="h-8 w-auto object-contain mb-4" />
+              <img src={company.logo_url} alt="Logo" loading="lazy" className="h-8 w-auto object-contain mb-4" />
             )}
             <p className="text-sm" style={{ color: theme.textLight }}>{company?.company_name || t('app.name')}</p>
           </div>

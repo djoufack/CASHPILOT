@@ -436,7 +436,7 @@ const ProfileSettings = () => {
               <div className="bg-gray-950 p-6 rounded-lg border border-gray-800 dashed border-2 border-dashed border-gray-700 flex flex-col items-center justify-center min-h-[150px]">
                 {signaturePreview ? (
                    <div className="relative group">
-                     <img src={signaturePreview} alt="Signature" className="max-h-32 object-contain bg-white/5 p-2 rounded" />
+                     <img src={signaturePreview} alt="Signature" loading="lazy" className="max-h-32 object-contain bg-white/5 p-2 rounded" />
                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded">
                         <Label htmlFor="sig-upload" className="cursor-pointer">
                           <div className="p-2 bg-orange-500 hover:bg-orange-600 rounded-full text-white" title="Change">

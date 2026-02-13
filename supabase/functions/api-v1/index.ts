@@ -215,10 +215,10 @@ serve(async (req) => {
         }
 
         const page = parseInt(url.searchParams.get('page') || '1');
-        const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 100);
-        const from = (page - 1) * limit;
+        const perPage = Math.min(parseInt(url.searchParams.get('per_page') || url.searchParams.get('limit') || '25'), 100);
+        const from = (page - 1) * perPage;
 
-        // Build query with optional filters for payments
+        // Build query with optional filters
         let query = supabase
           .from(resource)
           .select(
@@ -229,20 +229,35 @@ serve(async (req) => {
           )
           .eq('user_id', userId);
 
+        // Generic filters applicable to most resources
+        const statusFilter = url.searchParams.get('status');
+        const clientIdFilter = url.searchParams.get('client_id');
+
+        if (statusFilter) {
+          // Support status filter on invoices, quotes, expenses, projects
+          if (['invoices', 'quotes', 'projects'].includes(resource)) {
+            query = query.eq('status', statusFilter);
+          } else if (resource === 'invoices') {
+            query = query.eq('payment_status', statusFilter);
+          }
+        }
+
+        if (clientIdFilter && ['invoices', 'quotes', 'payments', 'projects'].includes(resource)) {
+          query = query.eq('client_id', clientIdFilter);
+        }
+
         // Payment-specific filters
         if (resource === 'payments') {
           const invoiceId = url.searchParams.get('invoice_id');
-          const clientId = url.searchParams.get('client_id');
           if (invoiceId) query = query.eq('invoice_id', invoiceId);
-          if (clientId) query = query.eq('client_id', clientId);
           query = query.order('payment_date', { ascending: false });
         } else {
           query = query.order('created_at', { ascending: false });
         }
 
-        const { data, error, count } = await query.range(from, from + limit - 1);
+        const { data, error, count } = await query.range(from, from + perPage - 1);
 
-        return jsonResponse({ data, meta: { page, limit, total: count } });
+        return jsonResponse({ data, meta: { page, per_page: perPage, total: count } });
       }
 
       case 'POST': {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useRecurringInvoices } from '@/hooks/useRecurringInvoices';
+import { usePaymentReminders } from '@/hooks/usePaymentReminders';
 import { useClients } from '@/hooks/useClients';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Edit, Trash2, Play, Pause, RefreshCw, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Play, Pause, RefreshCw, Calendar, Bell, XCircle, Clock, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/utils/calculations';
@@ -57,6 +58,14 @@ const emptyLineItem = {
   total: 0,
 };
 
+const emptyRuleForm = {
+  name: '',
+  days_before_due: 0,
+  days_after_due: 0,
+  max_reminders: 3,
+  is_active: true,
+};
+
 const RecurringInvoicesPage = () => {
   const { t } = useTranslation();
   const {
@@ -67,15 +76,33 @@ const RecurringInvoicesPage = () => {
     deleteRecurringInvoice,
     toggleStatus,
   } = useRecurringInvoices();
+  const {
+    rules: reminderRules,
+    reminderLogs,
+    loading: remindersLoading,
+    addRule,
+    updateRule,
+    deleteRule,
+    toggleRule,
+  } = usePaymentReminders();
   const { clients } = useClients();
 
+  const [activeTab, setActiveTab] = useState('recurring');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [cancelId, setCancelId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [lineItems, setLineItems] = useState([{ ...emptyLineItem }]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Payment reminder rule form state
+  const [isRuleFormOpen, setIsRuleFormOpen] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState(null);
+  const [ruleForm, setRuleForm] = useState(emptyRuleForm);
+  const [ruleSubmitting, setRuleSubmitting] = useState(false);
 
   const statusColors = {
     active: 'bg-green-500/20 text-green-400',
@@ -165,7 +192,6 @@ const RecurringInvoicesPage = () => {
       };
 
       if (editingId) {
-        // For update, we update the main record. Line items update is not in scope for simple edit.
         await updateRecurringInvoice(editingId, invoiceData);
       } else {
         await createRecurringInvoice(invoiceData, lineItems.filter((li) => li.description));
@@ -191,16 +217,74 @@ const RecurringInvoicesPage = () => {
     }
   };
 
+  const handleCancelClick = (id) => {
+    setCancelId(id);
+    setIsCancelDialogOpen(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (cancelId) {
+      await toggleStatus(cancelId, 'cancelled');
+      setIsCancelDialogOpen(false);
+      setCancelId(null);
+    }
+  };
+
   const handleToggleStatus = async (recurring) => {
     const newStatus = recurring.status === 'active' ? 'paused' : 'active';
     await toggleStatus(recurring.id, newStatus);
   };
 
+  // Reminder rule handlers
+  const openCreateRule = () => {
+    setEditingRuleId(null);
+    setRuleForm(emptyRuleForm);
+    setIsRuleFormOpen(true);
+  };
+
+  const openEditRule = (rule) => {
+    setEditingRuleId(rule.id);
+    setRuleForm({
+      name: rule.name || '',
+      days_before_due: rule.days_before_due || 0,
+      days_after_due: rule.days_after_due || 0,
+      max_reminders: rule.max_reminders || 3,
+      is_active: rule.is_active !== false,
+    });
+    setIsRuleFormOpen(true);
+  };
+
+  const handleRuleSubmit = async (e) => {
+    e.preventDefault();
+    setRuleSubmitting(true);
+    try {
+      if (editingRuleId) {
+        await updateRule(editingRuleId, ruleForm);
+      } else {
+        await addRule(ruleForm);
+      }
+      setIsRuleFormOpen(false);
+    } catch (err) {
+      console.error('Submit reminder rule error:', err);
+    } finally {
+      setRuleSubmitting(false);
+    }
+  };
+
+  const handleDeleteRule = async (id) => {
+    await deleteRule(id);
+  };
+
+  const tabs = [
+    { id: 'recurring', label: t('reminders.tabRecurring'), icon: RefreshCw },
+    { id: 'reminders', label: t('reminders.tabReminders'), icon: Bell },
+  ];
+
   return (
     <>
       <Helmet>
         <title>{t('recurringInvoices.title')} - {t('app.name')}</title>
-        <meta name="description" content="Manage recurring invoices" />
+        <meta name="description" content="Manage recurring invoices and payment reminders" />
       </Helmet>
 
       <div className="container mx-auto">
@@ -218,148 +302,396 @@ const RecurringInvoicesPage = () => {
                 {t('recurringInvoices.subtitle')}
               </p>
             </div>
-            <Button
-              onClick={openCreate}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {t('recurringInvoices.create')}
-            </Button>
+            <div className="flex gap-2">
+              {activeTab === 'recurring' && (
+                <Button
+                  onClick={openCreate}
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('recurringInvoices.create')}
+                </Button>
+              )}
+              {activeTab === 'reminders' && (
+                <Button
+                  onClick={openCreateRule}
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('reminders.addRule')}
+                </Button>
+              )}
+            </div>
           </div>
         </motion.div>
 
-        {/* List */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gray-900/50 rounded-lg border border-gray-800 shadow-xl overflow-hidden"
-        >
-          {loading ? (
-            <div className="text-center py-12 text-gray-400">
-              {t('recurringInvoices.loading')}
-            </div>
-          ) : recurringInvoices.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <RefreshCw className="w-12 h-12 mx-auto mb-4 opacity-30" />
-              {t('recurringInvoices.noItems')}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-800/50">
-                  <tr>
-                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      {t('recurringInvoices.fields.title')}
-                    </th>
-                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
-                      {t('recurringInvoices.fields.client')}
-                    </th>
-                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
-                      {t('recurringInvoices.fields.frequency')}
-                    </th>
-                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
-                      {t('recurringInvoices.fields.nextGeneration')}
-                    </th>
-                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      {t('recurringInvoices.fields.amountTTC')}
-                    </th>
-                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      {t('recurringInvoices.fields.status')}
-                    </th>
-                    <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      {t('common.actions')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-800">
-                  {recurringInvoices.map((recurring) => {
-                    const client = clients.find((c) => c.id === recurring.client_id);
-                    const clientName = client?.company_name || client?.name || '-';
-                    return (
-                      <tr key={recurring.id} className="hover:bg-gray-800/30 transition-colors">
-                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
-                          {recurring.title}
-                        </td>
-                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
-                          {clientName}
-                        </td>
-                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
-                          <span className="inline-flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-gray-500" />
-                            {frequencyLabels[recurring.frequency] || recurring.frequency}
-                            {recurring.interval_count > 1 && ` (x${recurring.interval_count})`}
-                          </span>
-                        </td>
-                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden lg:table-cell">
-                          {recurring.next_generation_date
-                            ? format(new Date(recurring.next_generation_date), 'MMM dd, yyyy')
-                            : '-'}
-                        </td>
-                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                          {formatCurrency(Number(recurring.total_ttc || 0), recurring.currency || 'EUR')}
-                        </td>
-                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm">
-                          <span
-                            className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[recurring.status] || 'bg-gray-500/20 text-gray-400'}`}
-                          >
-                            {t(`recurringInvoices.status.${recurring.status}`) || recurring.status}
-                          </span>
-                        </td>
-                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleToggleStatus(recurring)}
-                              className={`h-8 w-8 p-0 ${
-                                recurring.status === 'active'
-                                  ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-900/20'
-                                  : 'text-green-400 hover:text-green-300 hover:bg-green-900/20'
-                              }`}
-                              title={
-                                recurring.status === 'active'
-                                  ? t('recurringInvoices.actions.pause')
-                                  : t('recurringInvoices.actions.activate')
-                              }
-                              disabled={recurring.status === 'completed' || recurring.status === 'cancelled'}
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                  : 'bg-gray-800/50 text-gray-400 border border-gray-700 hover:bg-gray-800 hover:text-gray-300'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Recurring Invoices Tab */}
+        {activeTab === 'recurring' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gray-900/50 rounded-lg border border-gray-800 shadow-xl overflow-hidden"
+          >
+            {loading ? (
+              <div className="text-center py-12 text-gray-400">
+                {t('recurringInvoices.loading')}
+              </div>
+            ) : recurringInvoices.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <RefreshCw className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                {t('recurringInvoices.noItems')}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-800/50">
+                    <tr>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        {t('recurringInvoices.fields.title')}
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+                        {t('recurringInvoices.fields.client')}
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                        {t('recurringInvoices.fields.frequency')}
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
+                        {t('recurringInvoices.fields.nextGeneration')}
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        {t('recurringInvoices.fields.amountTTC')}
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                        {t('recurringInvoices.generated')}
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        {t('recurringInvoices.fields.status')}
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        {t('common.actions')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {recurringInvoices.map((recurring) => {
+                      const client = clients.find((c) => c.id === recurring.client_id);
+                      const clientName = client?.company_name || client?.name || '-';
+                      return (
+                        <tr key={recurring.id} className="hover:bg-gray-800/30 transition-colors">
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                            {recurring.title}
+                          </td>
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
+                            {clientName}
+                          </td>
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
+                            <span className="inline-flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                              {frequencyLabels[recurring.frequency] || recurring.frequency}
+                              {recurring.interval_count > 1 && ` (x${recurring.interval_count})`}
+                            </span>
+                          </td>
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden lg:table-cell">
+                            {recurring.next_generation_date
+                              ? format(new Date(recurring.next_generation_date), 'MMM dd, yyyy')
+                              : '-'}
+                          </td>
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                            {formatCurrency(Number(recurring.total_ttc || 0), recurring.currency || 'EUR')}
+                          </td>
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
+                            <span className="inline-flex items-center gap-1 text-gray-400">
+                              <Clock className="w-3.5 h-3.5" />
+                              {recurring.invoices_generated || 0}
+                            </span>
+                          </td>
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm">
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[recurring.status] || 'bg-gray-500/20 text-gray-400'}`}
                             >
-                              {recurring.status === 'active' ? (
-                                <Pause className="w-4 h-4" />
-                              ) : (
-                                <Play className="w-4 h-4" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEdit(recurring)}
-                              className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 h-8 w-8 p-0"
-                              title={t('common.edit')}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteClick(recurring.id)}
-                              className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
-                              title={t('common.delete')}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
+                              {t(`recurringInvoices.status.${recurring.status}`) || recurring.status}
+                            </span>
+                          </td>
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleToggleStatus(recurring)}
+                                className={`h-8 w-8 p-0 ${
+                                  recurring.status === 'active'
+                                    ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-900/20'
+                                    : 'text-green-400 hover:text-green-300 hover:bg-green-900/20'
+                                }`}
+                                title={
+                                  recurring.status === 'active'
+                                    ? t('recurringInvoices.actions.pause')
+                                    : t('recurringInvoices.actions.activate')
+                                }
+                                disabled={recurring.status === 'completed' || recurring.status === 'cancelled'}
+                              >
+                                {recurring.status === 'active' ? (
+                                  <Pause className="w-4 h-4" />
+                                ) : (
+                                  <Play className="w-4 h-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCancelClick(recurring.id)}
+                                className="text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 h-8 w-8 p-0"
+                                title={t('recurringInvoices.actions.cancel')}
+                                disabled={recurring.status === 'completed' || recurring.status === 'cancelled'}
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEdit(recurring)}
+                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 h-8 w-8 p-0"
+                                title={t('common.edit')}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteClick(recurring.id)}
+                                className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
+                                title={t('common.delete')}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Payment Reminders Tab */}
+        {activeTab === 'reminders' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Reminder Rules */}
+            <div className="bg-gray-900/50 rounded-lg border border-gray-800 shadow-xl overflow-hidden">
+              <div className="px-4 md:px-6 py-4 border-b border-gray-800">
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-orange-400" />
+                  {t('reminders.rulesTitle')}
+                </h2>
+                <p className="text-sm text-gray-400 mt-1">{t('reminders.rulesSubtitle')}</p>
+              </div>
+
+              {remindersLoading ? (
+                <div className="text-center py-12 text-gray-400">
+                  {t('reminders.loading')}
+                </div>
+              ) : reminderRules.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <Bell className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                  <p>{t('reminders.noRules')}</p>
+                  <p className="text-sm mt-2">{t('reminders.noRulesHint')}</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-800/50">
+                      <tr>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          {t('reminders.ruleName')}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+                          {t('reminders.daysBeforeDue')}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+                          {t('reminders.daysAfterDue')}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                          {t('reminders.maxReminders')}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          {t('common.status')}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          {t('common.actions')}
+                        </th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-800">
+                      {reminderRules.map((rule) => (
+                        <tr key={rule.id} className="hover:bg-gray-800/30 transition-colors">
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                            {rule.name}
+                          </td>
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
+                            {rule.days_before_due > 0 ? `${rule.days_before_due} ${t('reminders.days')}` : '-'}
+                          </td>
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
+                            {rule.days_after_due > 0 ? `${rule.days_after_due} ${t('reminders.days')}` : '-'}
+                          </td>
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
+                            {rule.max_reminders}
+                          </td>
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm">
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                rule.is_active
+                                  ? 'bg-green-500/20 text-green-400'
+                                  : 'bg-gray-500/20 text-gray-400'
+                              }`}
+                            >
+                              {rule.is_active ? t('reminders.active') : t('reminders.inactive')}
+                            </span>
+                          </td>
+                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleRule(rule.id, !rule.is_active)}
+                                className={`h-8 w-8 p-0 ${
+                                  rule.is_active
+                                    ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-900/20'
+                                    : 'text-green-400 hover:text-green-300 hover:bg-green-900/20'
+                                }`}
+                                title={rule.is_active ? t('reminders.deactivate') : t('reminders.activate')}
+                              >
+                                {rule.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditRule(rule)}
+                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 h-8 w-8 p-0"
+                                title={t('common.edit')}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteRule(rule.id)}
+                                className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
+                                title={t('common.delete')}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          )}
-        </motion.div>
+
+            {/* Reminder Logs */}
+            <div className="bg-gray-900/50 rounded-lg border border-gray-800 shadow-xl overflow-hidden">
+              <div className="px-4 md:px-6 py-4 border-b border-gray-800">
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-orange-400" />
+                  {t('reminders.logsTitle')}
+                </h2>
+                <p className="text-sm text-gray-400 mt-1">{t('reminders.logsSubtitle')}</p>
+              </div>
+
+              {reminderLogs.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <Mail className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p>{t('reminders.noLogs')}</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-800/50">
+                      <tr>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          {t('reminders.logInvoice')}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+                          {t('reminders.logRule')}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                          {t('reminders.logRecipient')}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          {t('reminders.logSentAt')}
+                        </th>
+                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                          {t('common.status')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-800">
+                      {reminderLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-gray-800/30 transition-colors">
+                          <td className="px-4 md:px-6 py-3 whitespace-nowrap text-sm text-white">
+                            {log.invoice?.invoice_number || '-'}
+                          </td>
+                          <td className="px-4 md:px-6 py-3 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
+                            {log.rule?.name || t('reminders.defaultRule')}
+                          </td>
+                          <td className="px-4 md:px-6 py-3 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
+                            {log.recipient_email || '-'}
+                          </td>
+                          <td className="px-4 md:px-6 py-3 whitespace-nowrap text-sm text-gray-300">
+                            {log.sent_at ? format(new Date(log.sent_at), 'MMM dd, yyyy HH:mm') : '-'}
+                          </td>
+                          <td className="px-4 md:px-6 py-3 whitespace-nowrap text-sm">
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                log.status === 'sent'
+                                  ? 'bg-green-500/20 text-green-400'
+                                  : log.status === 'failed'
+                                  ? 'bg-red-500/20 text-red-400'
+                                  : 'bg-yellow-500/20 text-yellow-400'
+                              }`}
+                            >
+                              {t(`reminders.logStatus.${log.status}`) || log.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
       </div>
 
-      {/* Create/Edit Dialog */}
+      {/* Create/Edit Recurring Invoice Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="w-full sm:max-w-[95%] md:max-w-2xl bg-gray-900 border-gray-700 text-white p-4 md:p-6 overflow-y-auto max-h-[90vh]">
           <DialogHeader>
@@ -676,6 +1008,99 @@ const RecurringInvoicesPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Create/Edit Reminder Rule Dialog */}
+      <Dialog open={isRuleFormOpen} onOpenChange={setIsRuleFormOpen}>
+        <DialogContent className="w-full sm:max-w-[95%] md:max-w-lg bg-gray-900 border-gray-700 text-white p-4 md:p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl md:text-2xl font-bold text-gradient">
+              {editingRuleId
+                ? t('reminders.editRule')
+                : t('reminders.addRule')}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleRuleSubmit} className="space-y-4 mt-4">
+            <div>
+              <Label className="text-gray-300">{t('reminders.ruleName')}</Label>
+              <Input
+                value={ruleForm.name}
+                onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })}
+                className="bg-gray-800 border-gray-700 text-white"
+                placeholder={t('reminders.ruleNamePlaceholder')}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-gray-300">{t('reminders.daysBeforeDue')}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={ruleForm.days_before_due}
+                  onChange={(e) => setRuleForm({ ...ruleForm, days_before_due: parseInt(e.target.value) || 0 })}
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
+                <p className="text-xs text-gray-500 mt-1">{t('reminders.daysBeforeHint')}</p>
+              </div>
+              <div>
+                <Label className="text-gray-300">{t('reminders.daysAfterDue')}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={ruleForm.days_after_due}
+                  onChange={(e) => setRuleForm({ ...ruleForm, days_after_due: parseInt(e.target.value) || 0 })}
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
+                <p className="text-xs text-gray-500 mt-1">{t('reminders.daysAfterHint')}</p>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-gray-300">{t('reminders.maxReminders')}</Label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={ruleForm.max_reminders}
+                onChange={(e) => setRuleForm({ ...ruleForm, max_reminders: parseInt(e.target.value) || 3 })}
+                className="bg-gray-800 border-gray-700 text-white"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={ruleForm.is_active}
+                  onChange={(e) => setRuleForm({ ...ruleForm, is_active: e.target.checked })}
+                  className="rounded border-gray-600 bg-gray-800 text-orange-500"
+                />
+                {t('reminders.ruleActive')}
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsRuleFormOpen(false)}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                {t('buttons.cancel')}
+              </Button>
+              <Button
+                type="submit"
+                disabled={ruleSubmitting}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                {ruleSubmitting ? '...' : t('buttons.save')}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="w-full sm:max-w-[90%] md:max-w-lg bg-gray-900 border-gray-700 text-white">
@@ -694,6 +1119,29 @@ const RecurringInvoicesPage = () => {
               className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
             >
               {t('buttons.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Confirmation */}
+      <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <AlertDialogContent className="w-full sm:max-w-[90%] md:max-w-lg bg-gray-900 border-gray-700 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('recurringInvoices.cancelTitle')}</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              {t('recurringInvoices.cancelConfirm')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-700 w-full sm:w-auto mt-0">
+              {t('buttons.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancel}
+              className="bg-orange-600 hover:bg-orange-700 text-white w-full sm:w-auto"
+            >
+              {t('recurringInvoices.actions.cancel')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

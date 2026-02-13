@@ -30,7 +30,7 @@ const ModernTemplate = ({ invoice, client, items, company, theme, settings }) =>
         <div className="flex flex-col sm:flex-row justify-between items-start mb-10 gap-4">
           <div>
             {settings?.show_logo && company?.logo_url && (
-              <img src={company.logo_url} alt="Logo" className="h-10 w-auto object-contain mb-3" />
+              <img src={company.logo_url} alt="Logo" loading="lazy" className="h-10 w-auto object-contain mb-3" />
             )}
             <h1 className="text-2xl font-light tracking-wide uppercase" style={{ color: theme.primary }}>
               {getLabel('invoiceTitle', 'INVOICE')}

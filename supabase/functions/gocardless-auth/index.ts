@@ -22,7 +22,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, userId, institutionId, redirectUrl, requisitionId } = await req.json();
+    const { action, userId, institutionId, redirectUrl, requisitionId, connectionId, accountId, country } = await req.json();
 
     // Get access token
     const tokenRes = await fetch(`${GOCARDLESS_BASE}/token/new/`, {
@@ -40,8 +40,8 @@ serve(async (req) => {
 
     switch (action) {
       case 'list-institutions': {
-        const country = institutionId || 'BE'; // Default to Belgium
-        const res = await fetch(`${GOCARDLESS_BASE}/institutions/?country=${country}`, { headers });
+        const instCountry = country || institutionId || 'BE';
+        const res = await fetch(`${GOCARDLESS_BASE}/institutions/?country=${instCountry}`, { headers });
         const institutions = await res.json();
         return new Response(
           JSON.stringify({ success: true, institutions }),
@@ -135,6 +135,138 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({ success: true, accounts: results }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'sync-transactions': {
+        // Sync transactions for a specific bank connection
+        if (!connectionId || !userId) {
+          return new Response(
+            JSON.stringify({ error: 'Missing connectionId or userId' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Get the bank connection
+        const { data: connection, error: connError } = await supabase
+          .from('bank_connections')
+          .select('*')
+          .eq('id', connectionId)
+          .eq('user_id', userId)
+          .single();
+
+        if (connError || !connection) {
+          return new Response(
+            JSON.stringify({ error: 'Bank connection not found' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        if (!connection.account_id) {
+          return new Response(
+            JSON.stringify({ error: 'No account linked to this connection' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Fetch transactions from GoCardless
+        const txRes = await fetch(
+          `${GOCARDLESS_BASE}/accounts/${connection.account_id}/transactions/`,
+          { headers }
+        );
+
+        if (!txRes.ok) {
+          const errBody = await txRes.text();
+          // Update sync error
+          await supabase
+            .from('bank_connections')
+            .update({ sync_error: `GoCardless API error: ${txRes.status}`, updated_at: new Date().toISOString() })
+            .eq('id', connectionId);
+
+          return new Response(
+            JSON.stringify({ error: `Failed to fetch transactions: ${txRes.status}`, details: errBody }),
+            { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const txData = await txRes.json();
+        const booked = txData.transactions?.booked || [];
+        const pending = txData.transactions?.pending || [];
+
+        // Also update balance
+        const balRes = await fetch(
+          `${GOCARDLESS_BASE}/accounts/${connection.account_id}/balances/`,
+          { headers }
+        );
+        let currentBalance = connection.account_balance;
+        if (balRes.ok) {
+          const balData = await balRes.json();
+          currentBalance = parseFloat(balData.balances?.[0]?.balanceAmount?.amount || currentBalance);
+        }
+
+        // Upsert booked transactions into bank_transactions
+        let syncedCount = 0;
+        for (const tx of booked) {
+          const externalId = tx.transactionId || tx.internalTransactionId || `${tx.bookingDate}_${tx.transactionAmount?.amount}_${syncedCount}`;
+          const amount = parseFloat(tx.transactionAmount?.amount || '0');
+
+          const { error: upsertError } = await supabase
+            .from('bank_transactions')
+            .upsert({
+              user_id: userId,
+              bank_connection_id: connectionId,
+              external_id: externalId,
+              date: tx.bookingDate || tx.valueDate,
+              booking_date: tx.bookingDate || null,
+              value_date: tx.valueDate || null,
+              amount,
+              currency: tx.transactionAmount?.currency || connection.account_currency || 'EUR',
+              description: tx.remittanceInformationUnstructured || tx.additionalInformation || '',
+              reference: tx.endToEndId || tx.transactionId || null,
+              creditor_name: tx.creditorName || null,
+              debtor_name: tx.debtorName || null,
+              remittance_info: tx.remittanceInformationUnstructured || null,
+              raw_data: tx,
+              reconciliation_status: 'unreconciled',
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'bank_connection_id,external_id',
+              ignoreDuplicates: false,
+            });
+
+          if (!upsertError) syncedCount++;
+        }
+
+        // Update the bank connection
+        await supabase
+          .from('bank_connections')
+          .update({
+            account_balance: currentBalance,
+            last_sync_at: new Date().toISOString(),
+            sync_error: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', connectionId);
+
+        // Record sync history
+        await supabase.from('bank_sync_history').insert({
+          bank_connection_id: connectionId,
+          user_id: userId,
+          sync_type: 'transactions',
+          status: 'success',
+          transactions_synced: syncedCount,
+          completed_at: new Date().toISOString(),
+        });
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            synced: syncedCount,
+            totalBooked: booked.length,
+            totalPending: pending.length,
+            balance: currentBalance,
+          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

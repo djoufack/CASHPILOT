@@ -50,10 +50,43 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Verify JWT from Authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const token = authHeader.replace('Bearer ', '');
+
+    // Create a client with the user's token to verify identity
+    const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser();
+
+    if (authError || !authUser) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { filePath, fileType, userId } = await req.json();
 
+    // Ensure the authenticated user matches the requested userId
+    if (userId && userId !== authUser.id) {
+      return new Response(
+        JSON.stringify({ error: 'User ID mismatch with authenticated user' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const resolvedUserId = authUser.id;
+
     // Rate limiting: 10 extractions per 15 minutes per user
-    const rateLimit = checkRateLimit(userId || 'anonymous', {
+    const rateLimit = checkRateLimit(resolvedUserId, {
       maxRequests: 10,
       windowMs: 15 * 60 * 1000,
       keyPrefix: 'extract-invoice',
@@ -63,9 +96,9 @@ serve(async (req) => {
       return rateLimitResponse(rateLimit, corsHeaders);
     }
 
-    if (!filePath || !fileType || !userId) {
+    if (!filePath || !fileType) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: filePath, fileType, userId' }),
+        JSON.stringify({ error: 'Missing required fields: filePath, fileType' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -74,7 +107,7 @@ serve(async (req) => {
     const { data: creditsData, error: creditsError } = await supabase
       .from('user_credits')
       .select('balance')
-      .eq('user_id', userId)
+      .eq('user_id', resolvedUserId)
       .single();
 
     if (creditsError || !creditsData) {
@@ -95,7 +128,7 @@ serve(async (req) => {
     const { error: deductError } = await supabase
       .from('user_credits')
       .update({ balance: creditsData.balance - CREDIT_COST })
-      .eq('user_id', userId);
+      .eq('user_id', resolvedUserId);
 
     if (deductError) {
       return new Response(
@@ -105,7 +138,7 @@ serve(async (req) => {
     }
 
     await supabase.from('credit_transactions').insert([{
-      user_id: userId,
+      user_id: resolvedUserId,
       amount: -CREDIT_COST,
       type: 'usage',
       description: 'AI Invoice Extraction',
@@ -118,9 +151,9 @@ serve(async (req) => {
 
     if (downloadError || !fileData) {
       // Refund credits on file download failure
-      await supabase.from('user_credits').update({ balance: creditsData.balance }).eq('user_id', userId);
+      await supabase.from('user_credits').update({ balance: creditsData.balance }).eq('user_id', resolvedUserId);
       await supabase.from('credit_transactions').insert([{
-        user_id: userId, amount: CREDIT_COST, type: 'refund', description: 'AI Invoice Extraction - file not found',
+        user_id: resolvedUserId, amount: CREDIT_COST, type: 'refund', description: 'AI Invoice Extraction - file not found',
       }]);
       return new Response(
         JSON.stringify({ error: 'File not found in storage' }),
@@ -168,9 +201,9 @@ serve(async (req) => {
 
     if (!geminiResponse.ok) {
       // Refund credits on Gemini API failure
-      await supabase.from('user_credits').update({ balance: creditsData.balance }).eq('user_id', userId);
+      await supabase.from('user_credits').update({ balance: creditsData.balance }).eq('user_id', resolvedUserId);
       await supabase.from('credit_transactions').insert([{
-        user_id: userId, amount: CREDIT_COST, type: 'refund', description: 'AI Invoice Extraction - API error',
+        user_id: resolvedUserId, amount: CREDIT_COST, type: 'refund', description: 'AI Invoice Extraction - API error',
       }]);
       return new Response(
         JSON.stringify({ error: 'Gemini API error', details: await geminiResponse.text() }),
@@ -188,9 +221,9 @@ serve(async (req) => {
       extractedData = JSON.parse(textContent);
     } catch (parseError) {
       // Refund credits on parse failure
-      await supabase.from('user_credits').update({ balance: creditsData.balance }).eq('user_id', userId);
+      await supabase.from('user_credits').update({ balance: creditsData.balance }).eq('user_id', resolvedUserId);
       await supabase.from('credit_transactions').insert([{
-        user_id: userId, amount: CREDIT_COST, type: 'refund', description: 'AI Invoice Extraction - parse error',
+        user_id: resolvedUserId, amount: CREDIT_COST, type: 'refund', description: 'AI Invoice Extraction - parse error',
       }]);
       return new Response(
         JSON.stringify({ error: 'extraction_failed', message: 'Could not parse extracted data' }),

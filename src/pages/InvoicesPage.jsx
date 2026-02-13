@@ -16,9 +16,9 @@ import { useEmailService } from '@/hooks/useEmailService';
 import { useToast } from '@/components/ui/use-toast';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportInvoicePDF, exportInvoiceHTML } from '@/services/exportDocuments';
-import { exportToCSV, exportToExcel } from '@/utils/exportService';
+import ExportButton from '@/components/ExportButton';
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download, Kanban, Mail } from 'lucide-react';
+import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download, Kanban, Mail, Send, Loader2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
@@ -51,6 +51,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const InvoicesPage = () => {
   const { t } = useTranslation();
@@ -72,6 +74,8 @@ const InvoicesPage = () => {
   const [historyInvoice, setHistoryInvoice] = useState(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  const [emailModalInvoice, setEmailModalInvoice] = useState(null);
+  const [emailModalAddress, setEmailModalAddress] = useState('');
   const pagination = usePagination({ pageSize: 20 });
 
   // Update pagination total count when invoices change
@@ -234,23 +238,35 @@ const InvoicesPage = () => {
     );
   };
 
-  const handleSendEmail = async (invoice) => {
+  const handleOpenEmailModal = (invoice) => {
+    const client = invoice.client || clients.find(c => c.id === (invoice.client_id || invoice.clientId)) || {};
+    setEmailModalInvoice(invoice);
+    setEmailModalAddress(client.email || '');
+  };
+
+  const handleConfirmSendEmail = async () => {
+    if (!emailModalInvoice) return;
+    const invoice = emailModalInvoice;
+    const client = invoice.client || clients.find(c => c.id === (invoice.client_id || invoice.clientId)) || {};
+    const recipientEmail = emailModalAddress.trim();
+
+    if (!recipientEmail) {
+      toast({
+        title: t('common.error'),
+        description: t('invoices.noClientEmail'),
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // Client may come from the nested relation or from the clients array
-      const client = invoice.client || clients.find(c => c.id === (invoice.client_id || invoice.clientId)) || {};
-      if (!client.email) {
-        toast({
-          title: t('common.error'),
-          description: t('invoices.noClientEmail'),
-          variant: "destructive",
-        });
-        return;
-      }
-      await sendInvoiceEmail(invoice, client);
+      await sendInvoiceEmail(invoice, { ...client, email: recipientEmail });
       toast({
         title: t('common.success'),
-        description: t('invoices.emailSentTo', { email: client.email }),
+        description: t('invoices.emailSentTo', { email: recipientEmail }),
       });
+      setEmailModalInvoice(null);
+      setEmailModalAddress('');
     } catch (err) {
       toast({
         title: t('common.error'),
@@ -260,28 +276,19 @@ const InvoicesPage = () => {
     }
   };
 
-  const handleExportList = (format) => {
-    if (!invoices || invoices.length === 0) return;
-    const exportData = invoices.map(inv => {
+  const invoiceExportColumns = [
+    { key: 'invoice_number', header: t('invoices.invoiceNumber'), width: 18, accessor: (inv) => inv.invoice_number || inv.invoiceNumber || '' },
+    { key: 'client', header: t('clients.companyName'), width: 25, accessor: (inv) => {
       const client = clients.find(c => c.id === (inv.client_id || inv.clientId));
-      return {
-        'Invoice Number': inv.invoice_number || inv.invoiceNumber || '',
-        'Client': client?.company_name || client?.companyName || '',
-        'Total HT': inv.total_ht || '',
-        'Total TVA': inv.total_tva || '',
-        'Total TTC': inv.total_ttc || inv.total || '',
-        'Status': inv.status || '',
-        'Payment Status': inv.payment_status || '',
-        'Invoice Date': inv.date || inv.issueDate || '',
-        'Due Date': inv.due_date || inv.dueDate || '',
-      };
-    });
-    if (format === 'csv') {
-      exportToCSV(exportData, 'invoices');
-    } else {
-      exportToExcel(exportData, 'invoices');
-    }
-  };
+      return client?.company_name || client?.companyName || '';
+    }},
+    { key: 'date', header: t('invoices.issueDate'), type: 'date', width: 12, accessor: (inv) => inv.date || inv.issueDate || '' },
+    { key: 'due_date', header: t('invoices.dueDate'), type: 'date', width: 12, accessor: (inv) => inv.due_date || inv.dueDate || '' },
+    { key: 'total_ht', header: t('invoices.totalHT'), type: 'currency', width: 14 },
+    { key: 'total_tva', header: t('invoices.taxAmount'), type: 'currency', width: 14 },
+    { key: 'total_ttc', header: t('invoices.totalTTC'), type: 'currency', width: 14, accessor: (inv) => inv.total_ttc || inv.total || 0 },
+    { key: 'status', header: t('invoices.status'), width: 12 },
+  ];
 
   const INVOICE_STATUS_COLORS = {
     draft: 'bg-gray-500/20 text-gray-400 border-gray-600',
@@ -338,28 +345,11 @@ const InvoicesPage = () => {
               </div>
               <div className="flex gap-2 w-full md:w-auto flex-wrap">
                 {!showGenerator && invoices.length > 0 && (
-                  <>
-                    <Button
-                      onClick={() => handleExportList('csv')}
-                      size="sm"
-                      variant="outline"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                      title="Export CSV"
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      CSV
-                    </Button>
-                    <Button
-                      onClick={() => handleExportList('xlsx')}
-                      size="sm"
-                      variant="outline"
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                      title="Export Excel"
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      Excel
-                    </Button>
-                  </>
+                  <ExportButton
+                    data={invoices}
+                    columns={invoiceExportColumns}
+                    filename={t('export.filename.invoices', 'invoices')}
+                  />
                 )}
                 <Button
                   onClick={() => setShowGenerator(!showGenerator)}
@@ -547,7 +537,7 @@ const InvoicesPage = () => {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleSendEmail(invoice)}
+                                      onClick={() => handleOpenEmailModal(invoice)}
                                       disabled={emailSending}
                                       className="text-sky-400 hover:text-sky-300 hover:bg-sky-900/20 h-8 w-8 p-0"
                                       title={t('invoices.sendByEmail')}
@@ -700,6 +690,89 @@ const InvoicesPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Send Email Modal */}
+      <Dialog open={!!emailModalInvoice} onOpenChange={(open) => { if (!open) { setEmailModalInvoice(null); setEmailModalAddress(''); } }}>
+        <DialogContent className="w-full sm:max-w-[90%] md:max-w-md bg-gray-800 border-gray-700 text-white p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gradient flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              {t('email.sendInvoice')}
+            </DialogTitle>
+          </DialogHeader>
+          {emailModalInvoice && (() => {
+            const emailClient = emailModalInvoice.client || clients.find(c => c.id === (emailModalInvoice.client_id || emailModalInvoice.clientId)) || {};
+            const emailCurrency = emailClient.preferred_currency || emailClient.preferredCurrency || 'EUR';
+            return (
+              <div className="space-y-4">
+                {/* Invoice summary */}
+                <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-700">
+                  <p className="text-sm text-gray-400">{t('invoices.invoiceNumber')}</p>
+                  <p className="text-white font-medium">{emailModalInvoice.invoice_number || emailModalInvoice.invoiceNumber}</p>
+                  <p className="text-sm text-gray-400 mt-2">{t('clients.companyName')}</p>
+                  <p className="text-white">{emailClient.company_name || emailClient.companyName || 'N/A'}</p>
+                  <p className="text-sm text-gray-400 mt-2">{t('invoices.total')}</p>
+                  <p className="text-white font-medium">{formatCurrency(Number(emailModalInvoice.total_ttc || emailModalInvoice.total || 0), emailCurrency)}</p>
+                </div>
+
+                {/* Subject preview */}
+                <div>
+                  <Label className="text-sm text-gray-400">{t('email.subject.invoice')}</Label>
+                  <p className="text-white text-sm mt-1 bg-gray-900/30 rounded px-3 py-2 border border-gray-700">
+                    {t('email.subjectPreview', {
+                      invoiceNumber: emailModalInvoice.invoice_number || emailModalInvoice.invoiceNumber || '',
+                      companyName: company?.company_name || 'CashPilot'
+                    })}
+                  </p>
+                </div>
+
+                {/* Email input */}
+                <div>
+                  <Label htmlFor="email-recipient" className="text-sm text-gray-400">
+                    {t('email.recipientEmail')}
+                  </Label>
+                  <Input
+                    id="email-recipient"
+                    type="email"
+                    value={emailModalAddress}
+                    onChange={(e) => setEmailModalAddress(e.target.value)}
+                    placeholder="client@example.com"
+                    className="bg-gray-900 border-gray-600 text-white mt-1"
+                  />
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => { setEmailModalInvoice(null); setEmailModalAddress(''); }}
+                    className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    {t('buttons.cancel')}
+                  </Button>
+                  <Button
+                    onClick={handleConfirmSendEmail}
+                    disabled={emailSending || !emailModalAddress.trim()}
+                    className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
+                  >
+                    {emailSending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        {t('email.sending')}
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        {t('email.send')}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

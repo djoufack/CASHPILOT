@@ -13,18 +13,32 @@ export const useProducts = () => {
   const { toast } = useToast();
   const { logAction } = useAuditLog();
 
-  const fetchProducts = async () => {
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchProducts = async ({ page, pageSize } = {}) => {
     if (!user || !supabase) return;
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase
+      const usePagination = page != null && pageSize != null;
+      let query = supabase
         .from('products')
-        .select('*, category:product_categories(id, name), supplier:suppliers(id, company_name)')
+        .select('*, category:product_categories(id, name), supplier:suppliers(id, company_name)', usePagination ? { count: 'exact' } : undefined)
         .order('product_name', { ascending: true });
+
+      if (usePagination) {
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        query = query.range(from, to);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error;
       setProducts(data || []);
+      if (usePagination && count != null) {
+        setTotalCount(count);
+      }
     } catch (err) {
       if (err.code === '42P17' || err.code === '42501') {
         console.warn('RLS policy error fetching products:', err.message);
@@ -162,6 +176,7 @@ export const useProducts = () => {
     products,
     loading,
     error,
+    totalCount,
     fetchProducts,
     createProduct,
     updateProduct,

@@ -20,7 +20,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import { exportExpensesListPDF, exportExpensesListHTML } from '@/services/exportListsPDF';
-import { exportToCSV, exportToExcel } from '@/utils/exportService';
+import ExportButton from '@/components/ExportButton';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationControls from '@/components/PaginationControls';
 
 const ExpensesPage = () => {
   const { t } = useTranslation();
@@ -80,28 +82,29 @@ const ExpensesPage = () => {
     );
   };
 
+  const pagination = usePagination({ pageSize: 25 });
+
   const filteredExpenses = expenses.filter(exp =>
     (exp.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (exp.supplier_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (exp.category || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleExportList = (format) => {
-    if (!filteredExpenses || filteredExpenses.length === 0) return;
-    const exportData = filteredExpenses.map(exp => ({
-      'Description': exp.description || '',
-      'Amount': exp.amount || '',
-      'Category': exp.category || '',
-      'Date': exp.date || '',
-      'Supplier': exp.supplier_name || '',
-      'Notes': exp.notes || '',
-    }));
-    if (format === 'csv') {
-      exportToCSV(exportData, 'expenses');
-    } else {
-      exportToExcel(exportData, 'expenses');
-    }
-  };
+  // Update pagination when filtered expenses change
+  React.useEffect(() => {
+    pagination.setTotalCount(filteredExpenses.length);
+  }, [filteredExpenses.length]);
+
+  const paginatedExpenses = filteredExpenses.slice(pagination.from, pagination.to + 1);
+
+  const expenseExportColumns = [
+    { key: 'description', header: 'Description', width: 30 },
+    { key: 'category', header: t('debtManager.category', 'Category'), width: 15 },
+    { key: 'amount', header: t('payments.amount', 'Amount'), type: 'currency', width: 14 },
+    { key: 'date', header: 'Date', type: 'date', width: 12 },
+    { key: 'supplier_name', header: 'Fournisseur', width: 20 },
+    { key: 'notes', header: 'Notes', width: 25 },
+  ];
 
   const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
@@ -168,30 +171,11 @@ const ExpensesPage = () => {
               <p className="text-gray-400 mt-1 text-sm">Gérez et suivez vos dépenses professionnelles.</p>
             </div>
             <div className="flex gap-2 flex-wrap">
-              {filteredExpenses.length > 0 && (
-                <>
-                  <Button
-                    onClick={() => handleExportList('csv')}
-                    size="sm"
-                    variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                    title="Export CSV"
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    CSV
-                  </Button>
-                  <Button
-                    onClick={() => handleExportList('xlsx')}
-                    size="sm"
-                    variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                    title="Export Excel"
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    Excel
-                  </Button>
-                </>
-              )}
+              <ExportButton
+                data={filteredExpenses}
+                columns={expenseExportColumns}
+                filename={t('export.filename.expenses', 'expenses')}
+              />
               <Button
                 onClick={handleExportPDF}
                 size="sm"
@@ -282,7 +266,7 @@ const ExpensesPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredExpenses.map((exp) => (
+                      {paginatedExpenses.map((exp) => (
                         <tr key={exp.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                           <td className="p-4 text-gray-400 text-sm">
                             {exp.date ? new Date(exp.date).toLocaleDateString('fr-FR') : '—'}
@@ -296,6 +280,19 @@ const ExpensesPage = () => {
                     </tbody>
                   </table>
                 </div>
+                <PaginationControls
+                  currentPage={pagination.currentPage}
+                  totalPages={pagination.totalPages}
+                  totalCount={pagination.totalCount}
+                  pageSize={pagination.pageSize}
+                  pageSizeOptions={pagination.pageSizeOptions}
+                  hasNextPage={pagination.hasNextPage}
+                  hasPrevPage={pagination.hasPrevPage}
+                  onNextPage={pagination.nextPage}
+                  onPrevPage={pagination.prevPage}
+                  onGoToPage={pagination.goToPage}
+                  onChangePageSize={pagination.changePageSize}
+                />
               </div>
             )}
           </TabsContent>

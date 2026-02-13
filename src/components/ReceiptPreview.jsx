@@ -55,7 +55,7 @@ const ReceiptPreview = ({ payment, invoice, client, allocations = [] }) => {
           <div>
             <div className="flex items-center gap-3 mb-2">
               {settings?.show_logo && company?.logo_url && (
-                <img src={company.logo_url} alt="Logo" className="h-12 w-auto object-contain" />
+                <img src={company.logo_url} alt="Logo" loading="lazy" className="h-12 w-auto object-contain" />
               )}
               <h1 className="text-2xl font-bold" style={{ color: theme.primary }}>
                 {company?.company_name || t('app.name')}

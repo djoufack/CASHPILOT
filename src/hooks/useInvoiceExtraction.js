@@ -8,12 +8,12 @@ export const useInvoiceExtraction = () => {
   const [extractionError, setExtractionError] = useState(null);
   const { toast } = useToast();
 
-  const extractInvoice = async (filePath, fileType, userId) => {
+  const extractInvoice = async (filePath, fileType, userId, accessToken) => {
     setExtracting(true);
     setExtractionError(null);
 
     try {
-      const data = await extractInvoiceData({ filePath, fileType, userId });
+      const data = await extractInvoiceData({ filePath, fileType, userId, accessToken });
       setExtractedData(data);
       toast({
         title: 'Extraction complete',

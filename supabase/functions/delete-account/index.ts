@@ -48,6 +48,8 @@ serve(async (req) => {
 
     // Delete user data from all tables (order matters for FK constraints)
     const tablesToDelete = [
+      'consent_logs',
+      'data_export_requests',
       'credit_transactions',
       'user_credits',
       'invoice_line_items',
@@ -87,7 +89,7 @@ serve(async (req) => {
 
     // Delete storage files
     try {
-      const buckets = ['supplier-invoices', 'documents', 'avatars'];
+      const buckets = ['supplier-invoices', 'documents', 'avatars', 'exports'];
       for (const bucket of buckets) {
         const { data: files } = await supabase.storage.from(bucket).list(userId);
         if (files && files.length > 0) {

@@ -43,11 +43,16 @@ export const AuthProvider = ({ children }) => {
   // Safe auth object fallback
   const safeAuth = auth || {
     user: null,
+    session: null,
     loading: true,
     isAuthenticated: false,
     signIn: async () => { throw new Error("Auth not initialized"); },
     signUp: async () => { throw new Error("Auth not initialized"); },
     logout: async () => { },
+    getMFAStatus: async () => ({ enabled: false, factors: [] }),
+    enrollMFA: async () => { throw new Error("Auth not initialized"); },
+    verifyMFA: async () => { throw new Error("Auth not initialized"); },
+    unenrollMFA: async () => { throw new Error("Auth not initialized"); },
   };
 
   const contextValue = {

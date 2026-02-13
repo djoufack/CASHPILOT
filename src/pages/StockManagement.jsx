@@ -19,7 +19,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { exportStockListPDF, exportStockListHTML } from '@/services/exportListsPDF';
-import { exportToCSV, exportToExcel } from '@/utils/exportService';
+import ExportButton from '@/components/ExportButton';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationControls from '@/components/PaginationControls';
 
 const StockManagement = () => {
   const { alerts, fetchAlerts, resolveAlert } = useStockAlerts();
@@ -56,6 +58,8 @@ const StockManagement = () => {
     fetchAlerts();
   }, []);
 
+  const pagination = usePagination({ pageSize: 25 });
+
   // Filter products
   const filteredProducts = products.filter(p => {
     const matchSearch = !searchTerm ||
@@ -64,6 +68,12 @@ const StockManagement = () => {
     const matchCategory = selectedCategory === 'all' || p.category_id === selectedCategory;
     return matchSearch && matchCategory;
   });
+
+  useEffect(() => {
+    pagination.setTotalCount(filteredProducts.length);
+  }, [filteredProducts.length]);
+
+  const paginatedProducts = filteredProducts.slice(pagination.from, pagination.to + 1);
 
   // Stats
   const totalProducts = products.length;
@@ -152,24 +162,16 @@ const StockManagement = () => {
     );
   };
 
-  const handleExportList = (format) => {
-    if (!filteredProducts || filteredProducts.length === 0) return;
-    const exportData = filteredProducts.map(p => ({
-      'Product Name': p.product_name || '',
-      'SKU': p.sku || '',
-      'Category': p.category?.name || '',
-      'Unit Price': p.unit_price || '',
-      'Purchase Price': p.purchase_price || '',
-      'Unit': p.unit || '',
-      'Stock Quantity': p.stock_quantity || 0,
-      'Min Stock Level': p.min_stock_level || 0,
-    }));
-    if (format === 'csv') {
-      exportToCSV(exportData, 'products');
-    } else {
-      exportToExcel(exportData, 'products');
-    }
-  };
+  const productExportColumns = [
+    { key: 'product_name', header: 'Produit', width: 25 },
+    { key: 'sku', header: 'SKU', width: 15 },
+    { key: 'category_name', header: 'Categorie', width: 15, accessor: (p) => p.category?.name || '' },
+    { key: 'unit_price', header: 'Prix vente', type: 'currency', width: 14 },
+    { key: 'purchase_price', header: 'Prix achat', type: 'currency', width: 14 },
+    { key: 'stock_quantity', header: 'Quantite', type: 'number', width: 10 },
+    { key: 'min_stock_level', header: 'Min Stock', type: 'number', width: 10 },
+    { key: 'unit', header: 'Unite', width: 10 },
+  ];
 
   return (
     <>
@@ -181,30 +183,11 @@ const StockManagement = () => {
             <p className="text-gray-400">Gérez votre inventaire, alertes et mouvements de stock.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {filteredProducts.length > 0 && (
-              <>
-                <Button
-                  onClick={() => handleExportList('csv')}
-                  size="sm"
-                  variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                  title="Export CSV"
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  CSV
-                </Button>
-                <Button
-                  onClick={() => handleExportList('xlsx')}
-                  size="sm"
-                  variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                  title="Export Excel"
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  Excel
-                </Button>
-              </>
-            )}
+            <ExportButton
+              data={filteredProducts}
+              columns={productExportColumns}
+              filename="products"
+            />
             <Button onClick={handleExportPDF} size="sm" variant="outline" className="border-gray-600 hover:bg-gray-700">
               <Download className="w-4 h-4 mr-2" />
               PDF ({CREDIT_COSTS.PDF_REPORT})
@@ -411,7 +394,7 @@ const StockManagement = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredProducts.map(product => (
+                    {paginatedProducts.map(product => (
                       <TableRow key={product.id} className="border-gray-800">
                         <TableCell className="font-medium">{product.product_name}</TableCell>
                         <TableCell className="text-gray-400">{product.sku || '—'}</TableCell>
@@ -432,6 +415,19 @@ const StockManagement = () => {
                   </TableBody>
                 </Table>
               )}
+              <PaginationControls
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalCount={pagination.totalCount}
+                pageSize={pagination.pageSize}
+                pageSizeOptions={pagination.pageSizeOptions}
+                hasNextPage={pagination.hasNextPage}
+                hasPrevPage={pagination.hasPrevPage}
+                onNextPage={pagination.nextPage}
+                onPrevPage={pagination.prevPage}
+                onGoToPage={pagination.goToPage}
+                onChangePageSize={pagination.changePageSize}
+              />
             </CardContent>
           </Card>
         </TabsContent>

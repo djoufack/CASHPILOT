@@ -3,6 +3,10 @@
     "name": "CashPilot",
     "tagline": "Plateforme de Gestion Financière"
   },
+  "loading": {
+    "page": "Chargement...",
+    "data": "Chargement des donn\u00e9es..."
+  },
   "common": {
     "dashboard": "Tableau de bord",
     "clients": "Clients",
@@ -913,6 +917,63 @@
     "create_entries": "Créé des écritures comptables (manuelles ou automatiques)",
     "balanced_sheet": "Un bilan équilibré avec des données cohérentes"
   },
+  "mfa": {
+    "title": "Authentification a deux facteurs",
+    "setup": "Configurer l'authentification a deux facteurs",
+    "setupDesc": "Utilisez une application d'authentification comme Google Authenticator ou Authy pour generer des codes de verification.",
+    "verify": "Verification MFA",
+    "verifyDesc": "Entrez le code de votre application d'authentification",
+    "enabled": "L'authentification a deux facteurs est activee",
+    "disabled": "L'authentification a deux facteurs est desactivee",
+    "scanQR": "Scannez ce QR code avec votre application d'authentification",
+    "enterCode": "Entrez le code a 6 chiffres de votre application d'authentification :",
+    "confirm": "Confirmer",
+    "disable": "Desactiver le MFA",
+    "enable": "Activer le MFA",
+    "enrolling": "Configuration en cours...",
+    "success": "Authentification a deux facteurs activee !",
+    "successDesc": "Votre compte est maintenant protege par l'authentification a deux facteurs TOTP.",
+    "error": "Erreur MFA",
+    "invalidCode": "Code invalide. Veuillez reessayer.",
+    "codeLengthError": "Le code doit contenir exactement 6 chiffres",
+    "sixDigitCode": "Code a 6 chiffres",
+    "codeInput": "Code de verification TOTP",
+    "codeHelp": "Ouvrez votre application d'authentification et entrez le code actuel a 6 chiffres.",
+    "codeValidity": "Validite du code",
+    "verifyButton": "Verifier",
+    "verifying": "Verification...",
+    "verifyFormLabel": "Formulaire de verification MFA",
+    "qrCodeAlt": "QR Code MFA - scannez avec votre application d'authentification",
+    "secretKey": "Ou entrez cette cle secrete manuellement :",
+    "copySecret": "Copier la cle secrete",
+    "loginSuccess": "Connexion reussie",
+    "redirecting": "Redirection vers le tableau de bord...",
+    "invalidCredentials": "Email ou mot de passe invalide. Veuillez reessayer.",
+    "emailNotConfirmed": "Veuillez confirmer votre email avant de vous connecter.",
+    "networkError": "Erreur reseau. Verifiez votre connexion internet.",
+    "unexpectedError": "Une erreur inattendue est survenue. Veuillez reessayer."
+  },
+  "security": {
+    "title": "Parametres de securite",
+    "subtitle": "Gerez la securite de votre compte et l'authentification a deux facteurs.",
+    "mfa": {
+      "title": "Authentification a deux facteurs (TOTP)",
+      "enabled": "Votre compte est protege par l'authentification a deux facteurs.",
+      "disabled": "Ajoutez une couche de securite supplementaire a votre compte.",
+      "statusEnabled": "Active",
+      "statusDisabled": "Desactive",
+      "enable": "Activer le MFA",
+      "disable": "Desactiver",
+      "addedOn": "Ajoute le",
+      "scanQR": "Scannez ce QR code avec votre application d'authentification",
+      "secretKey": "Ou entrez cette cle secrete manuellement :",
+      "copySecret": "Copier la cle secrete",
+      "enterCode": "Entrez le code a 6 chiffres de votre application d'authentification :",
+      "verify": "Verifier",
+      "cancel": "Annuler",
+      "success": "L'authentification a deux facteurs a ete activee avec succes !"
+    }
+  },
   "auth": {
     "forgotPassword": "Mot de passe oublié ?",
     "forgotPasswordDescription": "Entrez votre email pour recevoir un lien de réinitialisation",
@@ -992,7 +1053,31 @@
     "deleting": "Suppression en cours...",
     "accountDeleted": "Compte supprim\u00e9",
     "accountDeletedDesc": "Votre compte et toutes les donn\u00e9es associ\u00e9es ont \u00e9t\u00e9 supprim\u00e9s d\u00e9finitivement.",
-    "deleteError": "\u00c9chec de la suppression du compte. Veuillez r\u00e9essayer ou contacter le support."
+    "deleteError": "\u00c9chec de la suppression du compte. Veuillez r\u00e9essayer ou contacter le support.",
+    "banner": {
+      "title": "Nous respectons votre vie priv\u00e9e",
+      "description": "CashPilot utilise des cookies et des technologies similaires pour am\u00e9liorer votre exp\u00e9rience. Vous pouvez choisir les cookies que vous autorisez ci-dessous.",
+      "acceptAll": "Tout accepter",
+      "rejectAll": "Tout refuser",
+      "customize": "Personnaliser"
+    },
+    "categories": {
+      "necessary": "N\u00e9cessaires",
+      "necessaryDesc": "Indispensables au fonctionnement du site. Ne peuvent pas \u00eatre d\u00e9sactiv\u00e9s.",
+      "analytics": "Analytiques",
+      "analyticsDesc": "Nous aident \u00e0 comprendre comment vous utilisez l'application pour l'am\u00e9liorer.",
+      "marketing": "Marketing",
+      "marketingDesc": "Utilis\u00e9s pour vous proposer des publicit\u00e9s pertinentes et mesurer leur efficacit\u00e9."
+    },
+    "settings": {
+      "title": "Mes donn\u00e9es personnelles",
+      "exportData": "Exporter mes donn\u00e9es",
+      "exportPending": "Export en cours...",
+      "exportReady": "Export pr\u00eat",
+      "downloadExport": "T\u00e9l\u00e9charger l'export",
+      "deleteAccount": "Supprimer mon compte",
+      "deleteWarning": "La suppression de votre compte est d\u00e9finitive et irr\u00e9versible."
+    }
   },
   "recurringInvoices": {
     "title": "Factures R\u00e9currentes",
@@ -1038,7 +1123,49 @@
     },
     "actions": {
       "pause": "Mettre en pause",
-      "activate": "Activer"
+      "activate": "Activer",
+      "cancel": "Annuler la r\u00e9currence"
+    },
+    "cancelTitle": "Annuler la Facture R\u00e9currente",
+    "cancelConfirm": "\u00cates-vous s\u00fbr de vouloir annuler cette facture r\u00e9currente ? Aucune nouvelle facture ne sera g\u00e9n\u00e9r\u00e9e.",
+    "generated": "G\u00e9n\u00e9r\u00e9es"
+  },
+  "reminders": {
+    "tabRecurring": "Factures R\u00e9currentes",
+    "tabReminders": "Rappels de Paiement",
+    "title": "Rappels de Paiement",
+    "addRule": "Nouvelle R\u00e8gle",
+    "editRule": "Modifier la R\u00e8gle",
+    "rulesTitle": "R\u00e8gles de Rappel",
+    "rulesSubtitle": "Configurez les r\u00e8gles d'envoi automatique des rappels de paiement",
+    "loading": "Chargement des rappels...",
+    "noRules": "Aucune r\u00e8gle de rappel configur\u00e9e",
+    "noRulesHint": "Ajoutez une r\u00e8gle pour envoyer automatiquement des rappels aux clients.",
+    "ruleName": "Nom de la r\u00e8gle",
+    "ruleNamePlaceholder": "ex. Rappel 7 jours apr\u00e8s \u00e9ch\u00e9ance",
+    "daysBeforeDue": "Jours avant \u00e9ch\u00e9ance",
+    "daysAfterDue": "Jours apr\u00e8s \u00e9ch\u00e9ance",
+    "daysBeforeHint": "0 = pas de rappel avant l'\u00e9ch\u00e9ance",
+    "daysAfterHint": "0 = pas de rappel apr\u00e8s l'\u00e9ch\u00e9ance",
+    "maxReminders": "Nombre max de rappels",
+    "ruleActive": "R\u00e8gle active",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "activate": "Activer",
+    "deactivate": "D\u00e9sactiver",
+    "days": "jours",
+    "logsTitle": "Historique des Rappels",
+    "logsSubtitle": "Consultez les rappels envoy\u00e9s r\u00e9cemment",
+    "noLogs": "Aucun rappel envoy\u00e9 pour le moment",
+    "logInvoice": "Facture",
+    "logRule": "R\u00e8gle",
+    "logRecipient": "Destinataire",
+    "logSentAt": "Envoy\u00e9 le",
+    "defaultRule": "R\u00e8gle par d\u00e9faut",
+    "logStatus": {
+      "sent": "Envoy\u00e9",
+      "failed": "\u00c9chou\u00e9",
+      "bounced": "Rejet\u00e9"
     }
   },
   "errors": {
@@ -1050,6 +1177,15 @@
     "back": "Retour",
     "next": "Suivant",
     "skipForNow": "Passer pour l'instant",
+    "wizard": {
+      "ariaLabel": "Assistant de configuration comptable",
+      "subtitle": "Configuration de votre espace comptable",
+      "stepperAriaLabel": "Etapes de configuration",
+      "stepOf": "Etape {{current}} sur {{total}}",
+      "completed": "Terminee",
+      "current": "En cours",
+      "upcoming": "A venir"
+    },
     "steps": {
       "welcome": "Bienvenue",
       "company": "Entreprise",
@@ -1059,61 +1195,185 @@
     },
     "welcome": {
       "title": "Bienvenue sur CashPilot !",
-      "subtitle": "Nous allons pr\u00e9parer votre espace comptable en quelques minutes.",
+      "subtitle": "Nous allons preparer votre espace comptable en quelques minutes.",
       "start": "Commencer",
       "step1": "Informations de votre entreprise",
-      "step1Desc": "Nom, adresse, num\u00e9ro de TVA...",
+      "step1Desc": "Nom, adresse, numero de TVA...",
       "step2": "Choix de votre plan comptable",
-      "step2Desc": "France, Belgique, OHADA ou importez le v\u00f4tre.",
+      "step2Desc": "France, Belgique, OHADA ou importez le votre.",
       "step3": "Vos soldes actuels",
-      "step3Desc": "Quelques chiffres simples pour d\u00e9marrer votre comptabilit\u00e9."
+      "step3Desc": "Quelques chiffres simples pour demarrer votre comptabilite."
     },
     "company": {
       "title": "Votre entreprise",
-      "subtitle": "Ces informations appara\u00eetront sur vos factures et documents.",
+      "subtitle": "Ces informations apparaitront sur vos factures et documents.",
       "name": "Nom de l'entreprise",
       "type": "Type",
-      "taxId": "N\u00b0 TVA / SIRET",
+      "taxId": "N. TVA / SIRET",
       "address": "Adresse",
       "city": "Ville",
       "postalCode": "Code postal",
       "country": "Pays",
-      "currency": "Devise de travail"
+      "currency": "Devise de travail",
+      "selectCountry": "Selectionnez un pays",
+      "selectCurrency": "Selectionnez une devise"
     },
     "plan": {
       "title": "Choisissez votre plan comptable",
-      "subtitle": "S\u00e9lectionnez le plan adapt\u00e9 \u00e0 votre pays ou importez le v\u00f4tre.",
-      "import": "Importer mon plan comptable"
+      "subtitle": "Selectionnez le plan adapte a votre pays ou importez le votre.",
+      "import": "Importer mon plan comptable",
+      "mainClasses": "Classes principales",
+      "uploadFile": "Parcourir un fichier"
     },
     "balances": {
       "title": "Vos soldes actuels",
-      "subtitle": "Ces montants permettront de d\u00e9marrer votre comptabilit\u00e9. Tous les champs sont optionnels.",
-      "currencyNote": "Devise : {{currency}} • Les \u00e9quivalents en EUR sont affich\u00e9s automatiquement",
+      "subtitle": "Ces montants permettront de demarrer votre comptabilite. Tous les champs sont optionnels.",
+      "currencyNote": "Devise : {{currency}}",
       "bankBalance": "Solde actuel de votre compte bancaire professionnel",
-      "receivables": "Montant total des factures clients impay\u00e9es",
-      "payables": "Montant total des factures fournisseurs impay\u00e9es",
+      "receivables": "Montant total des factures clients impayees",
+      "payables": "Montant total des factures fournisseurs impayees",
       "equityCapital": "Capital de votre entreprise",
-      "loanBalance": "Emprunt en cours ? Montant restant d\u00fb",
-      "fixedAssets": "Valeur estim\u00e9e du mat\u00e9riel professionnel"
+      "loanBalance": "Emprunt en cours ? Montant restant du",
+      "fixedAssets": "Valeur estimee du materiel professionnel",
+      "helpFor": "Aide pour {{field}}",
+      "skipField": "Je ne sais pas / Je remplirai plus tard",
+      "fillNow": "Remplir maintenant",
+      "advancedHint": "Besoin de preciser plus de comptes ?",
+      "advancedLink": "Importez un CSV apres la configuration."
     },
     "confirm": {
-      "title": "Tout est pr\u00eat !",
-      "subtitle": "V\u00e9rifiez le r\u00e9capitulatif et lancez la configuration.",
-      "planSelected": "Plan comptable s\u00e9lectionn\u00e9",
-      "balancesCount_one": "{{count}} solde renseign\u00e9",
-      "balancesCount_other": "{{count}} soldes renseign\u00e9s",
+      "title": "Tout est pret !",
+      "subtitle": "Verifiez le recapitulatif et lancez la configuration.",
+      "planSelected": "Plan comptable selectionne",
+      "balancesCount": "{{count}} solde(s) renseigne(s)",
+      "balancesCount_one": "{{count}} solde renseigne",
+      "balancesCount_other": "{{count}} soldes renseignes",
       "launch": "Lancer la configuration",
+      "initializing": "Configuration...",
       "progressAccounts": "Chargement du plan comptable...",
-      "progressBalances": "Cr\u00e9ation des \u00e9critures d'ouverture...",
-      "progressDone": "Configuration termin\u00e9e !"
+      "progressBalances": "Creation des ecritures d'ouverture...",
+      "progressDone": "Configuration terminee !",
+      "successTitle": "Votre comptabilite est prete !",
+      "successMessage": "Redirection vers votre tableau de bord..."
     },
     "banner": {
-      "message": "Votre comptabilit\u00e9 n'est pas encore configur\u00e9e.",
-      "action": "Configurer"
+      "message": "Votre comptabilite n'est pas encore configuree.",
+      "action": "Configurer",
+      "title": "Finalisez la configuration de votre comptabilite",
+      "resume": "Reprendre",
+      "dismiss": "Fermer temporairement",
+      "stepInfo": "Etape en cours : {{step}}",
+      "ariaLabel": "Configuration de la comptabilite"
     }
   },
   "projects": {
     "billProject": "Facturer le projet",
     "noTimesheets": "Aucune feuille de temps facturable"
+  },
+  "pagination": {
+    "showing": "Affichage",
+    "of": "sur",
+    "items": "elements",
+    "first": "Premier",
+    "previous": "Precedent",
+    "next": "Suivant",
+    "last": "Dernier",
+    "perPage": "Par page",
+    "page": "page",
+    "navigation": "Pagination",
+    "pageNavigation": "Navigation par page"
+  },
+  "import": {
+    "title": "Importer un plan comptable",
+    "dropzone": "Glissez-d\u00e9posez votre fichier ici",
+    "or": "ou",
+    "browse": "Parcourir",
+    "maxSize": "Max 5 Mo",
+    "fileTooLarge": "Le fichier d\u00e9passe 5 Mo",
+    "invalidFormat": "Format invalide. Accept\u00e9s : .xlsx, .xls, .csv",
+    "emptyFile": "Le fichier est vide ou ne contient pas de lignes de donn\u00e9es",
+    "preview": "Aper\u00e7u",
+    "mapping": "Associez les colonnes",
+    "mappingDesc": "Indiquez quelle colonne de votre fichier correspond \u00e0 chaque champ.",
+    "missingCodeColumn": "Veuillez associer la colonne \"Code\"",
+    "missingNameColumn": "Veuillez associer la colonne \"Nom\"",
+    "columns": {
+      "code": "Code",
+      "name": "Nom",
+      "type": "Type",
+      "parentCode": "Code parent"
+    },
+    "accounts_found": "{{count}} comptes trouv\u00e9s",
+    "editMapping": "Modifier le mapping",
+    "errorsDetected": "erreur(s) d\u00e9tect\u00e9e(s)",
+    "andMore": "et {{count}} autres",
+    "import_button": "Importer les comptes",
+    "importing": "Import en cours...",
+    "success": "Plan comptable import\u00e9 avec succ\u00e8s"
+  },
+  "api": {
+    "keys": "Cl\u00e9s API",
+    "documentation": "Documentation API",
+    "endpoint": "Endpoint"
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "subtitle": "Configurez les webhooks pour recevoir des notifications en temps r\u00e9el",
+    "add": "Ajouter un webhook",
+    "edit": "Modifier le webhook",
+    "events": "\u00c9v\u00e9nements",
+    "url": "URL",
+    "test": "Tester",
+    "logs": "Historique",
+    "status": "Statut",
+    "endpoints": "Endpoints",
+    "secret": "Secret",
+    "secretHint": "Ce secret est utilis\u00e9 pour signer les payloads (HMAC SHA-256). Conservez-le en s\u00e9curit\u00e9.",
+    "noWebhooks": "Aucun webhook configur\u00e9",
+    "noWebhooksHint": "Ajoutez un webhook pour recevoir des notifications quand des \u00e9v\u00e9nements se produisent.",
+    "noLogs": "Aucun envoi r\u00e9cent",
+    "delivered": "D\u00e9livr\u00e9",
+    "failed": "\u00c9chou\u00e9",
+    "statusCode": "Code HTTP",
+    "attempts": "Tentatives",
+    "timestamp": "Date",
+    "event": "\u00c9v\u00e9nement",
+    "lastTriggered": "Dernier d\u00e9clenchement",
+    "consecutiveFailures": "\u00e9chec(s) cons\u00e9cutif(s)",
+    "testSent": "\u00c9v\u00e9nement de test envoy\u00e9",
+    "secretCopied": "Secret copi\u00e9 dans le presse-papiers",
+    "created": "Webhook cr\u00e9\u00e9 avec succ\u00e8s",
+    "updated": "Webhook mis \u00e0 jour avec succ\u00e8s",
+    "deleted": "Webhook supprim\u00e9 avec succ\u00e8s",
+    "deleteTitle": "Supprimer le webhook",
+    "deleteConfirm": "\u00cates-vous s\u00fbr de vouloir supprimer ce webhook ? Les livraisons futures seront arr\u00eat\u00e9es.",
+    "urlAndEventsRequired": "L'URL et au moins un \u00e9v\u00e9nement sont requis"
+  },
+  "export": {
+    "title": "Exporter",
+    "excel": "Excel (.xlsx)",
+    "csv": "CSV (.csv)",
+    "exporting": "Exportation...",
+    "success": "Export termin\u00e9 avec succ\u00e8s",
+    "filename": {
+      "clients": "clients",
+      "invoices": "factures",
+      "expenses": "depenses",
+      "suppliers": "fournisseurs",
+      "products": "produits"
+    }
+  },
+  "email": {
+    "sendInvoice": "Envoyer la facture par email",
+    "sending": "Envoi en cours...",
+    "sent": "Email envoy\u00e9",
+    "send": "Envoyer",
+    "error": "Erreur d'envoi de l'email",
+    "recipientEmail": "Adresse email du destinataire",
+    "subject": {
+      "invoice": "Objet de l'email",
+      "reminder": "Objet du rappel"
+    },
+    "subjectPreview": "Facture {{invoiceNumber}} de {{companyName}}"
   }
 }
