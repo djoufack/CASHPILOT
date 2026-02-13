@@ -13,17 +13,31 @@ export const useSuppliers = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
-  const fetchSuppliers = async () => {
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchSuppliers = async ({ page, pageSize } = {}) => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const usePagination = page != null && pageSize != null;
+      let query = supabase
         .from('suppliers')
-        .select('*')
+        .select('*', usePagination ? { count: 'exact' } : undefined)
         .order('created_at', { ascending: false });
+
+      if (usePagination) {
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        query = query.range(from, to);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error;
       setSuppliers(data || []);
+      if (usePagination && count != null) {
+        setTotalCount(count);
+      }
     } catch (err) {
       setError(err.message);
       toast({
@@ -158,6 +172,7 @@ export const useSuppliers = () => {
     suppliers,
     loading,
     error,
+    totalCount,
     fetchSuppliers,
     getSupplierById,
     createSupplier,

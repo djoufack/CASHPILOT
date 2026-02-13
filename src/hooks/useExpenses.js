@@ -13,7 +13,9 @@ export const useExpenses = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
-  const fetchExpenses = async () => {
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchExpenses = async ({ page, pageSize } = {}) => {
     if (!user) return;
     if (!supabase) {
       console.warn("Supabase not configured");
@@ -22,14 +24,25 @@ export const useExpenses = () => {
     setLoading(true);
     try {
       // Fetch expenses ordered by date (newest first)
-      // This requires the 'date' column to exist in the expenses table
-      const { data, error } = await supabase
+      const usePagination = page != null && pageSize != null;
+      let query = supabase
         .from('expenses')
-        .select('*')
+        .select('*', usePagination ? { count: 'exact' } : undefined)
         .order('date', { ascending: false });
+
+      if (usePagination) {
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        query = query.range(from, to);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error;
       setExpenses(data || []);
+      if (usePagination && count != null) {
+        setTotalCount(count);
+      }
     } catch (err) {
       console.warn('Error fetching expenses:', err.message);
       setExpenses([]);
@@ -86,6 +99,7 @@ export const useExpenses = () => {
     expenses,
     loading,
     error,
+    totalCount,
     fetchExpenses,
     createExpense
   };

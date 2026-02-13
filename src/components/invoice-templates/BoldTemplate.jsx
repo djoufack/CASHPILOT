@@ -28,7 +28,7 @@ const BoldTemplate = ({ invoice, client, items, company, theme, settings }) => {
           <div>
             <div className="flex items-center gap-3 mb-2">
               {settings?.show_logo && company?.logo_url && (
-                <img src={company.logo_url} alt="Logo" className="h-12 w-auto object-contain brightness-0 invert" />
+                <img src={company.logo_url} alt="Logo" loading="lazy" className="h-12 w-auto object-contain brightness-0 invert" />
               )}
               <h1 className="text-3xl font-black uppercase tracking-tight">
                 {company?.company_name || t('app.name')}

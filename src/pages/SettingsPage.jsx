@@ -2,7 +2,7 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Building2, Bell, CreditCard, Users, Fingerprint, Wifi, Palette, Coins, HardDrive, ShieldAlert, Plug } from 'lucide-react';
+import { User, Building2, Bell, CreditCard, Users, Fingerprint, Wifi, Palette, Coins, HardDrive, ShieldAlert, Plug, Shield } from 'lucide-react';
 import ProfileSettings from '@/components/settings/ProfileSettings';
 import CompanySettings from '@/components/settings/CompanySettings';
 import BillingSettings from '@/components/settings/BillingSettings';
@@ -16,6 +16,7 @@ import BiometricSettings from '@/components/BiometricSettings';
 import SyncManager from '@/components/SyncManager';
 import DangerZoneSettings from '@/components/settings/DangerZoneSettings';
 import ConnectionSettings from '@/components/settings/ConnectionSettings';
+import GDPRSettings from '@/components/settings/GDPRSettings';
 
 const TAB_MAP = {
   profil: 'profile',
@@ -32,6 +33,8 @@ const TAB_MAP = {
   connexions: 'connections',
   api: 'connections',
   mcp: 'connections',
+  'donnees-personnelles': 'personal-data',
+  'personal-data': 'personal-data',
   gdpr: 'danger',
   danger: 'danger'
 };
@@ -85,6 +88,9 @@ const SettingsPage = () => {
           <TabsTrigger value="connections" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
             <Plug className="w-4 h-4 mr-2" /> Connexions
           </TabsTrigger>
+          <TabsTrigger value="personal-data" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400">
+            <Shield className="w-4 h-4 mr-2" /> Mes donn{'\u00e9'}es
+          </TabsTrigger>
           <TabsTrigger value="danger" className="data-[state=active]:bg-red-500/10 data-[state=active]:text-red-400">
             <ShieldAlert className="w-4 h-4 mr-2" /> GDPR
           </TabsTrigger>
@@ -132,6 +138,10 @@ const SettingsPage = () => {
 
         <TabsContent value="connections" className="mt-6">
           <ConnectionSettings />
+        </TabsContent>
+
+        <TabsContent value="personal-data" className="mt-6">
+          <GDPRSettings />
         </TabsContent>
 
         <TabsContent value="danger" className="mt-6">

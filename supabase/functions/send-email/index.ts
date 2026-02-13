@@ -21,13 +21,48 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { to, subject, html, text, from, userId } = await req.json();
+    // Verify JWT from Authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing Authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { to, subject, html, text, from, userId, attachments } = await req.json();
 
     if (!to || !subject || !html) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: to, subject, html' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Build the Resend payload
+    const resendPayload: Record<string, unknown> = {
+      from: from || 'CashPilot <noreply@cashpilot.app>',
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html,
+      text: text || '',
+    };
+
+    // Add attachments if provided (array of { filename, content (base64) })
+    if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+      resendPayload.attachments = attachments.map((att: { filename: string; content: string }) => ({
+        filename: att.filename,
+        content: att.content,
+      }));
     }
 
     // Send via Resend API
@@ -37,13 +72,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: from || 'CashPilot <noreply@cashpilot.app>',
-        to: Array.isArray(to) ? to : [to],
-        subject,
-        html,
-        text: text || '',
-      }),
+      body: JSON.stringify(resendPayload),
     });
 
     if (!resendResponse.ok) {
@@ -54,12 +83,13 @@ serve(async (req) => {
     const result = await resendResponse.json();
 
     // Log the email send
-    if (userId) {
+    const effectiveUserId = userId || user.id;
+    if (effectiveUserId) {
       await supabase.from('audit_log').insert({
-        user_id: userId,
+        user_id: effectiveUserId,
         action: 'email_sent',
         resource: 'email',
-        new_data: { to, subject, resend_id: result.id },
+        new_data: { to, subject, resend_id: result.id, has_attachment: !!(attachments && attachments.length > 0) },
       });
     }
 

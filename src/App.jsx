@@ -6,17 +6,12 @@ import ScrollToTop from './components/ScrollToTop';
 import MainLayout from './components/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import PageLoader from './components/PageLoader';
 import { Toaster } from '@/components/ui/toaster';
 import { useAuth } from '@/context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import GDPRConsentBanner from './components/GDPRConsentBanner';
 import './i18n/config';
-
-// Loading component for Suspense fallbacks
-const PageLoader = () => (
-  <div className="flex items-center justify-center h-64">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-  </div>
-);
 
 // Retry wrapper for lazy imports - handles chunk load failures after deployments
 function lazyRetry(importFn) {
@@ -73,6 +68,7 @@ const RecurringInvoicesPage = lazyRetry(() => import('@/pages/RecurringInvoicesP
 const BankConnectionsPage = lazyRetry(() => import('@/pages/BankConnectionsPage'));
 const CashFlowPage = lazyRetry(() => import('@/pages/CashFlowPage'));
 const OnboardingWizard = lazyRetry(() => import('@/components/onboarding/OnboardingWizard'));
+const WebhooksPage = lazyRetry(() => import('@/pages/WebhooksPage'));
 
 // Lazy-loaded feature components
 const SupplierMap = lazyRetry(() => import('@/components/SupplierMap'));
@@ -177,6 +173,7 @@ const AuthWrapper = () => {
                 <Route path="bank-callback" element={<Suspense fallback={<PageLoader />}><BankConnectionsPage /></Suspense>} />
                 <Route path="analytics" element={<Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>} />
                 <Route path="security" element={<Suspense fallback={<PageLoader />}><SecuritySettings /></Suspense>} />
+                <Route path="webhooks" element={<Suspense fallback={<PageLoader />}><WebhooksPage /></Suspense>} />
                 <Route path="settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
             </Route>
 
@@ -193,6 +190,7 @@ function App() {
                 <ScrollToTop />
                 <AuthWrapper />
                 <AuthenticatedChatWidget />
+                <GDPRConsentBanner />
                 <Toaster />
             </ErrorBoundary>
         </Router>

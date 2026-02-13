@@ -432,3 +432,215 @@ export function getDefaultTaxRates(country) {
     { name: 'TVA déductible 6%',  rate: 0.06, tax_type: 'input', account_code: '4110', is_default: false },
   ];
 }
+
+// ---------------------------------------------------------------------------
+// Copy plan accounts from a template plan to user's personal plan
+// ---------------------------------------------------------------------------
+
+/**
+ * Copies accounts from a template accounting plan to a new personal plan for the user.
+ *
+ * @param {string} fromPlanId - The source template plan ID
+ * @param {string} userId - The user ID
+ * @returns {Promise<{ success: boolean, planId: string|null, accountsCopied: number, error?: string }>}
+ */
+export async function copyPlanAccounts(fromPlanId, userId) {
+  try {
+    // 1. Fetch the source plan metadata
+    const { data: sourcePlan, error: planError } = await supabase
+      .from('accounting_plans')
+      .select('*')
+      .eq('id', fromPlanId)
+      .single();
+
+    if (planError || !sourcePlan) {
+      return {
+        success: false,
+        planId: null,
+        accountsCopied: 0,
+        error: planError?.message || 'Source plan not found',
+      };
+    }
+
+    // 2. Fetch all accounts from the source plan
+    const { data: sourceAccounts, error: accountsError } = await supabase
+      .from('accounting_plan_accounts')
+      .select('*')
+      .eq('plan_id', fromPlanId)
+      .order('account_code');
+
+    if (accountsError) {
+      return {
+        success: false,
+        planId: null,
+        accountsCopied: 0,
+        error: accountsError.message,
+      };
+    }
+
+    if (!sourceAccounts || sourceAccounts.length === 0) {
+      return {
+        success: false,
+        planId: null,
+        accountsCopied: 0,
+        error: 'No accounts found in source plan',
+      };
+    }
+
+    // 3. Create a personal plan for the user
+    const { data: newPlan, error: newPlanError } = await supabase
+      .from('accounting_plans')
+      .insert({
+        name: `${sourcePlan.name} (copie)`,
+        source: 'copy',
+        country_code: sourcePlan.country_code || null,
+        uploaded_by: userId,
+        is_global: false,
+        accounts_count: sourceAccounts.length,
+        description: `Copie du plan ${sourcePlan.name}`,
+        status: 'active',
+      })
+      .select()
+      .single();
+
+    if (newPlanError || !newPlan) {
+      return {
+        success: false,
+        planId: null,
+        accountsCopied: 0,
+        error: newPlanError?.message || 'Failed to create personal plan',
+      };
+    }
+
+    // 4. Copy all accounts to the personal plan (in batches of 200)
+    const BATCH_SIZE = 200;
+    let totalCopied = 0;
+
+    const rows = sourceAccounts.map((acc) => ({
+      plan_id: newPlan.id,
+      account_code: acc.account_code,
+      account_name: acc.account_name,
+      account_type: acc.account_type,
+      account_category: acc.account_category || null,
+      parent_code: acc.parent_code || null,
+      is_active: acc.is_active !== false,
+    }));
+
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      const batch = rows.slice(i, i + BATCH_SIZE);
+      const { error: insertError } = await supabase
+        .from('accounting_plan_accounts')
+        .insert(batch);
+
+      if (insertError) {
+        console.error(`[AccountingInit] Error copying accounts batch ${Math.floor(i / BATCH_SIZE) + 1}:`, insertError.message);
+      } else {
+        totalCopied += batch.length;
+      }
+    }
+
+    return {
+      success: true,
+      planId: newPlan.id,
+      accountsCopied: totalCopied,
+    };
+  } catch (err) {
+    console.error('[AccountingInit] Unexpected error in copyPlanAccounts:', err);
+    return {
+      success: false,
+      planId: null,
+      accountsCopied: 0,
+      error: err.message,
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Initialize accounting with planId + countryCode variant
+// ---------------------------------------------------------------------------
+
+/**
+ * Initializes accounting from a specific plan ID and country code.
+ * This is an alternative entry point that copies accounts from a plan template
+ * and then initializes mappings and tax rates.
+ *
+ * @param {string} userId
+ * @param {string} planId - The accounting plan to copy from
+ * @param {string} countryCode - "BE" | "FR" | "OHADA"
+ * @returns {Promise<{ success: boolean, accountsCount: number, mappingsCount: number, taxRatesCount: number, error?: string }>}
+ */
+export async function initializeAccountingFromPlan(userId, planId, countryCode) {
+  try {
+    // Map country code to the format used by existing functions
+    const country = countryCode || 'FR';
+
+    // 1. Upsert user_accounting_settings
+    const { error: settingsError } = await supabase
+      .from('user_accounting_settings')
+      .upsert(
+        {
+          user_id: userId,
+          country,
+          plan_id: planId,
+          is_initialized: false,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      );
+
+    if (settingsError) {
+      console.error('[AccountingInit] Error upserting settings:', settingsError.message);
+      return { success: false, accountsCount: 0, mappingsCount: 0, taxRatesCount: 0, error: settingsError.message };
+    }
+
+    // 2. Copy plan accounts to user's chart of accounts
+    let accountsCount = 0;
+    if (planId) {
+      const { data: planAccounts, error: fetchErr } = await supabase
+        .from('accounting_plan_accounts')
+        .select('*')
+        .eq('plan_id', planId);
+
+      if (!fetchErr && planAccounts && planAccounts.length > 0) {
+        accountsCount = await bulkInsertAccounts(userId, planAccounts);
+      }
+    }
+
+    // If no accounts were copied from the plan, fall back to static data
+    if (accountsCount === 0) {
+      const accounts = country === 'BE' ? pcgBelge : country === 'OHADA' ? pcgOhada : pcgFrance;
+      accountsCount = await bulkInsertAccounts(userId, accounts);
+    }
+
+    // 3. Insert default mappings
+    const mappingsCount = await insertDefaultMappings(userId, country);
+
+    // 4. Insert default tax rates
+    const taxRatesCount = await insertDefaultTaxRates(userId, country);
+
+    // 5. Mark user as initialized
+    const { error: finalizeError } = await supabase
+      .from('user_accounting_settings')
+      .update({
+        is_initialized: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId);
+
+    if (finalizeError) {
+      console.error('[AccountingInit] Error finalizing initialization:', finalizeError.message);
+      return {
+        success: false,
+        accountsCount,
+        mappingsCount,
+        taxRatesCount,
+        error: `Accounts/mappings/taxes were inserted but failed to finalize: ${finalizeError.message}`,
+      };
+    }
+
+    return { success: true, accountsCount, mappingsCount, taxRatesCount };
+  } catch (err) {
+    console.error('[AccountingInit] Unexpected error in initializeAccountingFromPlan:', err);
+    return { success: false, accountsCount: 0, mappingsCount: 0, taxRatesCount: 0, error: err.message };
+  }
+}

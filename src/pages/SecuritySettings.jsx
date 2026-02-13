@@ -155,7 +155,7 @@ const SecuritySettings = () => {
 
         {/* Error Display */}
         {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm" role="alert">
             {error}
           </div>
         )}
@@ -166,6 +166,7 @@ const SecuritySettings = () => {
             onClick={handleEnroll}
             disabled={isLoading}
             className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label={t('security.mfa.enable', 'Enable MFA')}
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -198,6 +199,7 @@ const SecuritySettings = () => {
                   onClick={() => handleUnenroll(factor.id)}
                   disabled={isLoading}
                   className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={t('security.mfa.disable', 'Disable MFA')}
                 >
                   {isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -224,7 +226,7 @@ const SecuritySettings = () => {
                 <div className="bg-white p-4 rounded-xl">
                   <img
                     src={enrollData.totp.qr_code}
-                    alt="MFA QR Code"
+                    alt={t('mfa.qrCodeAlt', 'MFA QR Code - scan with authenticator app')}
                     className="w-48 h-48"
                   />
                 </div>
@@ -269,6 +271,8 @@ const SecuritySettings = () => {
                     placeholder="000000"
                     className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-center text-lg font-mono tracking-widest focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                     autoFocus
+                    autoComplete="one-time-code"
+                    aria-label={t('mfa.codeInput', 'TOTP verification code')}
                   />
                   <button
                     type="submit"

@@ -20,7 +20,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
   const { loading, progress, error } = useInvoiceUpload();
   const { extractInvoice, extracting, extractedData, clearExtraction } = useInvoiceExtraction();
   const { guardedAction } = useCreditsGuard();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
 
@@ -94,7 +94,8 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
         CREDIT_COSTS.AI_INVOICE_EXTRACTION,
         t('invoiceExtraction.extractWithAI'),
         async () => {
-          const data = await extractInvoice(filePath, file.type, user.id);
+          const accessToken = session?.access_token;
+          const data = await extractInvoice(filePath, file.type, user.id, accessToken);
           if (data) {
             setFormData({
               invoice_number: data.invoice_number || '',

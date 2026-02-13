@@ -56,7 +56,7 @@ serve(async (req) => {
 
         if (createError) throw createError;
 
-        // Copy line items
+        // Copy line items to invoice_items
         if (recurring.line_items?.length > 0) {
           const lineItems = recurring.line_items.map((item: any) => ({
             invoice_id: invoice.id,
@@ -65,7 +65,7 @@ serve(async (req) => {
             unit_price: item.unit_price,
             total: item.total,
           }));
-          await supabase.from('invoice_line_items').insert(lineItems);
+          await supabase.from('invoice_items').insert(lineItems);
         }
 
         // Calculate next generation date

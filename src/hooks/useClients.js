@@ -16,7 +16,9 @@ export const useClients = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
-  const fetchClients = async () => {
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchClients = async ({ page, pageSize } = {}) => {
     if (!user) return;
     if (!supabase) {
       console.warn("Supabase not configured");
@@ -25,13 +27,25 @@ export const useClients = () => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase
+      const usePagination = page != null && pageSize != null;
+      let query = supabase
         .from('clients')
-        .select('*')
+        .select('*', usePagination ? { count: 'exact' } : undefined)
         .order('created_at', { ascending: false });
+
+      if (usePagination) {
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        query = query.range(from, to);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error;
       setClients(data || []);
+      if (usePagination && count != null) {
+        setTotalCount(count);
+      }
     } catch (err) {
       // Handle RLS recursion (42P17) or permission (42501) errors gracefully
       if (err.code === '42P17' || err.code === '42501') {
@@ -176,6 +190,7 @@ export const useClients = () => {
     clients,
     loading,
     error,
+    totalCount,
     fetchClients,
     createClient,
     addClient: createClient,  // alias for backward compatibility

@@ -17,7 +17,9 @@ export const useInvoices = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
-  const fetchInvoices = async (filters = {}) => {
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchInvoices = async (filters = {}, { page, pageSize } = {}) => {
     if (!user) return;
     if (!supabase) {
       console.warn("Supabase not configured");
@@ -25,6 +27,7 @@ export const useInvoices = () => {
     }
     setLoading(true);
     try {
+      const usePagination = page != null && pageSize != null;
       let query = supabase
         .from('invoices')
         .select(`
@@ -32,14 +35,23 @@ export const useInvoices = () => {
           client:clients(id, company_name, contact_name, email, preferred_currency),
           items:invoice_items(*),
           payments:payments(id, amount, payment_date, payment_method, receipt_number)
-        `)
+        `, usePagination ? { count: 'exact' } : undefined)
         .order('created_at', { ascending: false });
 
       if (filters.status) query = query.eq('status', filters.status);
 
-      const { data, error } = await query;
+      if (usePagination) {
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
+        query = query.range(from, to);
+      }
+
+      const { data, error, count } = await query;
       if (error) throw error;
       setInvoices(data || []);
+      if (usePagination && count != null) {
+        setTotalCount(count);
+      }
     } catch (err) {
       // Handle RLS recursion (42P17) or permission (42501) errors gracefully
       if (err.code === '42P17' || err.code === '42501') {
@@ -313,6 +325,7 @@ export const useInvoices = () => {
     invoices,
     loading,
     error,
+    totalCount,
     fetchInvoices,
     createInvoice,
     updateInvoice,

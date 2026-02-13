@@ -32,7 +32,6 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
   });
   const [saving, setSaving] = useState(false);
 
-  // Format data for SearchableSelect components
   const countryOptions = useMemo(() =>
     COUNTRIES.map(c => ({ value: c.code, label: c.label })),
     []
@@ -66,9 +65,8 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
   };
 
   const handleNext = async () => {
-    // Validation des champs obligatoires
     const missingFields = [];
-    if (!form.company_name?.trim()) missingFields.push(t('company.name', 'Nom de l\'entreprise'));
+    if (!form.company_name?.trim()) missingFields.push(t('onboarding.company.name', "Nom de l'entreprise"));
 
     if (missingFields.length > 0) {
       toast({
@@ -92,7 +90,7 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
         if (error) {
           toast({
             title: t('messages.error.companySaveFailed', 'Erreur de sauvegarde'),
-            description: t('messages.error.companySaveDescription', 'Impossible de sauvegarder les informations de l\'entreprise. Veuillez réessayer.'),
+            description: t('messages.error.companySaveDescription', "Impossible de sauvegarder les informations de l'entreprise. Veuillez reessayer."),
             variant: "destructive"
           });
         }
@@ -102,7 +100,7 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
     } catch (err) {
       toast({
         title: t('messages.error.companySaveFailed', 'Erreur de sauvegarde'),
-        description: t('messages.error.companySaveDescription', 'Impossible de sauvegarder les informations de l\'entreprise. Veuillez réessayer.'),
+        description: t('messages.error.companySaveDescription', "Impossible de sauvegarder les informations de l'entreprise. Veuillez reessayer."),
         variant: "destructive"
       });
     } finally {
@@ -110,99 +108,156 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
     }
   };
 
+  // Design DNA input classes
+  const inputClass = 'border text-sm focus:ring-2 focus:ring-[#DAA520]/40 focus:border-[#DAA520]/60 transition-all';
+  const inputStyle = { background: 'rgba(15, 21, 40, 0.5)', borderColor: '#1e293b', color: '#e8eaf0' };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" role="form" aria-label={t('onboarding.company.title', 'Votre entreprise')}>
       <div className="text-center space-y-1">
-        <Building2 className="w-8 h-8 text-orange-400 mx-auto" />
-        <h2 className="text-xl font-bold text-white">
+        <div
+          className="w-12 h-12 rounded-xl mx-auto flex items-center justify-center"
+          style={{ background: 'rgba(218, 165, 32, 0.15)' }}
+        >
+          <Building2 className="w-6 h-6" style={{ color: '#DAA520' }} />
+        </div>
+        <h2 className="text-xl font-bold" style={{ color: '#e8eaf0' }}>
           {t('onboarding.company.title', 'Votre entreprise')}
         </h2>
-        <p className="text-gray-400 text-sm">
-          {t('onboarding.company.subtitle', 'Ces informations apparaîtront sur vos factures et documents.')}
+        <p className="text-sm" style={{ color: '#8b92a8' }}>
+          {t('onboarding.company.subtitle', 'Ces informations apparaitront sur vos factures et documents.')}
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2 space-y-1">
-          <Label className="text-gray-300 text-xs">{t('onboarding.company.name', 'Nom de l\'entreprise')}</Label>
-          <Input value={form.company_name} onChange={(e) => handleChange('company_name', e.target.value)}
-            className="bg-gray-800/50 border-gray-700 text-white" placeholder="Ma Société SARL" />
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>
+            {t('onboarding.company.name', "Nom de l'entreprise")} <span className="text-red-400">*</span>
+          </Label>
+          <Input
+            value={form.company_name}
+            onChange={(e) => handleChange('company_name', e.target.value)}
+            className={inputClass}
+            style={inputStyle}
+            placeholder="Ma Societe SARL"
+            aria-required="true"
+            aria-label={t('onboarding.company.name', "Nom de l'entreprise")}
+          />
         </div>
 
         <div className="space-y-1">
-          <Label className="text-gray-300 text-xs">{t('onboarding.company.type', 'Type')}</Label>
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.type', 'Type')}</Label>
           <Select value={form.company_type} onValueChange={(v) => handleChange('company_type', v)}>
-            <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
+            <SelectTrigger className={inputClass} style={inputStyle}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="freelance">Freelance / Auto-entrepreneur</SelectItem>
-              <SelectItem value="company">Société (SARL, SAS, SA...)</SelectItem>
+              <SelectItem value="company">Societe (SARL, SAS, SA...)</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-1">
-          <Label className="text-gray-300 text-xs">{t('onboarding.company.taxId', 'N° TVA / SIRET')}</Label>
-          <Input value={form.tax_id} onChange={(e) => handleChange('tax_id', e.target.value)}
-            className="bg-gray-800/50 border-gray-700 text-white" placeholder="FR12345678901" />
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.taxId', 'N. TVA / SIRET')}</Label>
+          <Input
+            value={form.tax_id}
+            onChange={(e) => handleChange('tax_id', e.target.value)}
+            className={inputClass}
+            style={inputStyle}
+            placeholder="FR12345678901"
+          />
         </div>
 
         <div className="sm:col-span-2 space-y-1">
-          <Label className="text-gray-300 text-xs">{t('onboarding.company.address', 'Adresse')}</Label>
-          <Input value={form.address} onChange={(e) => handleChange('address', e.target.value)}
-            className="bg-gray-800/50 border-gray-700 text-white" placeholder="12 rue de la Paix" />
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.address', 'Adresse')}</Label>
+          <Input
+            value={form.address}
+            onChange={(e) => handleChange('address', e.target.value)}
+            className={inputClass}
+            style={inputStyle}
+            placeholder="12 rue de la Paix"
+          />
         </div>
 
         <div className="space-y-1">
-          <Label className="text-gray-300 text-xs">{t('onboarding.company.city', 'Ville')}</Label>
-          <Input value={form.city} onChange={(e) => handleChange('city', e.target.value)}
-            className="bg-gray-800/50 border-gray-700 text-white" placeholder="Paris" />
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.city', 'Ville')}</Label>
+          <Input
+            value={form.city}
+            onChange={(e) => handleChange('city', e.target.value)}
+            className={inputClass}
+            style={inputStyle}
+            placeholder="Paris"
+          />
         </div>
 
         <div className="space-y-1">
-          <Label className="text-gray-300 text-xs">{t('onboarding.company.postalCode', 'Code postal')}</Label>
-          <Input value={form.postal_code} onChange={(e) => handleChange('postal_code', e.target.value)}
-            className="bg-gray-800/50 border-gray-700 text-white" placeholder="75001" />
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.postalCode', 'Code postal')}</Label>
+          <Input
+            value={form.postal_code}
+            onChange={(e) => handleChange('postal_code', e.target.value)}
+            className={inputClass}
+            style={inputStyle}
+            placeholder="75001"
+          />
         </div>
 
         <div className="space-y-1">
-          <Label className="text-gray-300 text-xs">{t('onboarding.company.country', 'Pays')}</Label>
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.country', 'Pays')}</Label>
           <SearchableSelect
             options={countryOptions}
             value={form.country}
             onValueChange={(v) => handleChange('country', v)}
-            placeholder={t('onboarding.company.country', 'Sélectionner un pays')}
+            placeholder={t('onboarding.company.selectCountry', 'Selectionner un pays')}
             searchPlaceholder="Rechercher un pays..."
-            emptyMessage="Aucun pays trouvé"
+            emptyMessage="Aucun pays trouve"
           />
         </div>
 
         <div className="space-y-1">
-          <Label className="text-gray-300 text-xs">{t('onboarding.company.currency', 'Devise de travail')}</Label>
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.currency', 'Devise de travail')}</Label>
           <SearchableSelect
             options={currencyOptions}
             value={form.currency}
             onValueChange={(v) => handleChange('currency', v)}
-            placeholder={t('onboarding.company.currency', 'Sélectionner une devise')}
+            placeholder={t('onboarding.company.selectCurrency', 'Selectionner une devise')}
             searchPlaceholder="Rechercher une devise..."
-            emptyMessage="Aucune devise trouvée"
+            emptyMessage="Aucune devise trouvee"
           />
         </div>
 
         <div className="sm:col-span-2 space-y-1">
-          <Label className="text-gray-300 text-xs">IBAN</Label>
-          <Input value={form.iban} onChange={(e) => handleChange('iban', e.target.value)}
-            className="bg-gray-800/50 border-gray-700 text-white" placeholder="FR76 1234 5678 9012 3456 789" />
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>IBAN</Label>
+          <Input
+            value={form.iban}
+            onChange={(e) => handleChange('iban', e.target.value)}
+            className={inputClass}
+            style={inputStyle}
+            placeholder="FR76 1234 5678 9012 3456 789"
+          />
         </div>
       </div>
 
       <div className="flex justify-between pt-2">
-        <Button variant="ghost" onClick={onBack} className="text-gray-400 hover:text-white">
+        <Button
+          variant="ghost"
+          onClick={onBack}
+          className="hover:text-[#e8eaf0] focus:ring-2 focus:ring-[#DAA520]/40"
+          style={{ color: '#8b92a8' }}
+        >
           <ArrowLeft className="w-4 h-4 mr-2" /> {t('onboarding.back', 'Retour')}
         </Button>
-        <Button onClick={handleNext} disabled={saving} className="bg-orange-500 hover:bg-orange-600 text-white">
-          {t('onboarding.next', 'Suivant')} <ArrowRight className="w-4 h-4 ml-2" />
+        <Button
+          onClick={handleNext}
+          disabled={saving}
+          className="text-white font-medium focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#0a0e1a] focus:ring-[#DAA520]"
+          style={{ background: 'linear-gradient(135deg, #DAA520, #22C55E)' }}
+        >
+          {saving
+            ? t('common.saving', 'Sauvegarde...')
+            : t('onboarding.next', 'Suivant')
+          }
+          {!saving && <ArrowRight className="w-4 h-4 ml-2" />}
         </Button>
       </div>
     </div>

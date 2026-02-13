@@ -62,8 +62,8 @@ const LoginPage = () => {
       // No MFA - proceed normally
       setSuccess(true);
       toast({
-        title: "Connexion réussie ✅",
-        description: "Redirection vers le tableau de bord...",
+        title: t('mfa.loginSuccess', 'Login successful'),
+        description: t('mfa.redirecting', 'Redirecting to dashboard...'),
         className: "bg-green-500 border-none text-white"
       });
 
@@ -73,15 +73,15 @@ const LoginPage = () => {
 
     } catch (error) {
       let errorMessage = error.message;
-      
+
       if (error.message.includes('Invalid login credentials') || error.message.includes('AuthApiError')) {
-        errorMessage = "Email ou mot de passe invalide. Veuillez réessayer.";
+        errorMessage = t('mfa.invalidCredentials', 'Invalid email or password. Please try again.');
       } else if (error.message.includes('Email not confirmed')) {
-        errorMessage = "Veuillez confirmer votre email avant de vous connecter.";
+        errorMessage = t('mfa.emailNotConfirmed', 'Please confirm your email before signing in.');
       } else if (error.message.includes('Network request failed')) {
-        errorMessage = "Erreur réseau. Vérifiez votre connexion internet.";
+        errorMessage = t('mfa.networkError', 'Network error. Check your internet connection.');
       } else {
-        errorMessage = "Une erreur inattendue est survenue. Veuillez réessayer.";
+        errorMessage = t('mfa.unexpectedError', 'An unexpected error occurred. Please try again.');
       }
       
       setErrors({ form: errorMessage });
@@ -106,8 +106,8 @@ const LoginPage = () => {
 
       setSuccess(true);
       toast({
-        title: "Connexion réussie ✅",
-        description: "Redirection vers le tableau de bord...",
+        title: t('mfa.loginSuccess', 'Login successful'),
+        description: t('mfa.redirecting', 'Redirecting to dashboard...'),
         className: "bg-green-500 border-none text-white"
       });
 
@@ -168,8 +168,8 @@ const LoginPage = () => {
                  className="flex flex-col items-center justify-center py-8 space-y-4"
                >
                  <CheckCircle2 className="w-16 h-16 text-green-500 animate-pulse" />
-                 <h3 className="text-xl font-bold text-white">Connexion réussie ✅</h3>
-                 <p className="text-gray-400 text-sm">Redirection en cours...</p>
+                 <h3 className="text-xl font-bold text-white">{t('mfa.loginSuccess', 'Login successful')}</h3>
+                 <p className="text-gray-400 text-sm">{t('mfa.redirecting', 'Redirecting...')}</p>
                </motion.div>
             ) : mfaRequired ? (
               <MFAVerifyStep

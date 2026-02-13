@@ -15,14 +15,19 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Eye, Edit, Trash2, Building2, User, Mail, Phone, MapPin, Globe, CreditCard, FileText } from 'lucide-react';
+import ExportButton from '@/components/ExportButton';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRIES } from '@/constants/countries';
+import { usePagination } from '@/hooks/usePagination';
+import PaginationControls from '@/components/PaginationControls';
 
 const SuppliersPage = () => {
+  const { t } = useTranslation();
   const { suppliers, loading, createSupplier, deleteSupplier } = useSuppliers();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -52,10 +57,30 @@ const SuppliersPage = () => {
   };
   const [newSupplier, setNewSupplier] = useState(emptySupplier);
 
-  const filteredSuppliers = suppliers.filter(s => 
+  const pagination = usePagination({ pageSize: 25 });
+
+  const filteredSuppliers = suppliers.filter(s =>
     s.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.contact_person?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  React.useEffect(() => {
+    pagination.setTotalCount(filteredSuppliers.length);
+  }, [filteredSuppliers.length]);
+
+  const paginatedSuppliers = filteredSuppliers.slice(pagination.from, pagination.to + 1);
+
+  const supplierExportColumns = [
+    { key: 'company_name', header: 'Company Name', width: 25 },
+    { key: 'contact_person', header: 'Contact', width: 20 },
+    { key: 'email', header: 'Email', width: 25 },
+    { key: 'phone', header: 'Phone', width: 18 },
+    { key: 'address', header: 'Address', width: 30 },
+    { key: 'city', header: 'City', width: 15 },
+    { key: 'country', header: 'Country', width: 10 },
+    { key: 'supplier_type', header: 'Type', width: 10 },
+    { key: 'status', header: 'Status', width: 10 },
+  ];
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -74,12 +99,18 @@ const SuppliersPage = () => {
           <p className="text-gray-400">Manage your vendor relationships, products, and orders.</p>
         </div>
         
-        <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-orange-500 hover:bg-orange-600">
-              <Plus className="mr-2 h-4 w-4" /> Add Supplier
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2 flex-wrap">
+          <ExportButton
+            data={filteredSuppliers}
+            columns={supplierExportColumns}
+            filename={t('export.filename.suppliers', 'suppliers')}
+          />
+          <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-orange-500 hover:bg-orange-600">
+                <Plus className="mr-2 h-4 w-4" /> Add Supplier
+              </Button>
+            </DialogTrigger>
           <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle className="text-xl">Add New Supplier</DialogTitle>
@@ -320,6 +351,7 @@ const SuppliersPage = () => {
             </ScrollArea>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <SupplierStats />
@@ -338,7 +370,7 @@ const SuppliersPage = () => {
         </div>
 
         <ResponsiveTable
-          data={filteredSuppliers}
+          data={paginatedSuppliers}
           columns={[
             { header: 'Company', accessor: (s) => <span className="font-medium text-gradient">{s.company_name}</span> },
             { header: 'Contact', accessor: (s) => (
@@ -399,6 +431,19 @@ const SuppliersPage = () => {
           )}
           loading={loading}
           emptyMessage="No suppliers found."
+        />
+        <PaginationControls
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalCount={pagination.totalCount}
+          pageSize={pagination.pageSize}
+          pageSizeOptions={pagination.pageSizeOptions}
+          hasNextPage={pagination.hasNextPage}
+          hasPrevPage={pagination.hasPrevPage}
+          onNextPage={pagination.nextPage}
+          onPrevPage={pagination.prevPage}
+          onGoToPage={pagination.goToPage}
+          onChangePageSize={pagination.changePageSize}
         />
       </div>
     </div>
