@@ -98,10 +98,7 @@ async function deliverWebhook(
           attempts: attempt,
         });
 
-        await supabase.from('webhook_endpoints').update({
-          last_triggered_at: new Date().toISOString(),
-          failure_count: endpoint.failure_count + 1,
-        }).eq('id', endpoint.id);
+        await supabase.rpc('increment_webhook_failure', { endpoint_id: endpoint.id });
 
         return { delivered: false, status_code: res.status, attempts: attempt };
       }
@@ -130,10 +127,7 @@ async function deliverWebhook(
     attempts: MAX_RETRIES,
   });
 
-  await supabase.from('webhook_endpoints').update({
-    last_triggered_at: new Date().toISOString(),
-    failure_count: endpoint.failure_count + 1,
-  }).eq('id', endpoint.id);
+  await supabase.rpc('increment_webhook_failure', { endpoint_id: endpoint.id });
 
   return { delivered: false, status_code: lastStatusCode, error: lastError, attempts: MAX_RETRIES };
 }
@@ -142,11 +136,25 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-    const { userId, event, payload } = await req.json();
+    // Authenticate the caller via JWT
+    const supabaseAuth = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!);
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return jsonResponse({ error: 'Missing authorization' }, 401);
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+    if (authError || !user) {
+      return jsonResponse({ error: 'Unauthorized' }, 401);
+    }
+    const verifiedUserId = user.id;
 
-    if (!userId || !event || !payload) {
-      return jsonResponse({ error: 'Missing userId, event, or payload' }, 400);
+    // Service-role client for data operations
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const { event, payload } = await req.json();
+
+    if (!event || !payload) {
+      return jsonResponse({ error: 'Missing event or payload' }, 400);
     }
 
     // Validate event type
@@ -161,7 +169,7 @@ serve(async (req) => {
     const { data: endpoints } = await supabase
       .from('webhook_endpoints')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', verifiedUserId)
       .eq('is_active', true)
       .contains('events', [event]);
 

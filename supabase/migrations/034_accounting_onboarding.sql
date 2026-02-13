@@ -17,9 +17,9 @@
 --   ALTER TABLE profiles DROP COLUMN IF EXISTS onboarding_completed;
 --   ALTER TABLE profiles DROP COLUMN IF EXISTS onboarding_step;
 --   DELETE FROM accounting_plan_accounts WHERE plan_id IN (
---     SELECT id FROM accounting_plans WHERE source = 'system_seed'
+--     SELECT id FROM accounting_plans WHERE source = 'system'
 --   );
---   DELETE FROM accounting_plans WHERE source = 'system_seed';
+--   DELETE FROM accounting_plans WHERE source = 'system';
 -- ============================================================================
 
 -- ============================================================================
@@ -190,7 +190,7 @@ DECLARE
 BEGIN
   -- Check if BE PCMN already seeded
   SELECT id INTO v_plan_id FROM public.accounting_plans
-  WHERE country_code = 'BE' AND source = 'system_seed' AND status = 'active'
+  WHERE country_code = 'BE' AND source = 'system' AND status = 'active'
   LIMIT 1;
 
   IF v_plan_id IS NULL THEN
@@ -200,7 +200,7 @@ BEGIN
       'BE',
       'Plan comptable officiel belge conforme a l''Arrete Royal du 12 septembre 1983. Classes 1 a 7 avec sous-comptes courants.',
       true,
-      'system_seed',
+      'system',
       'active',
       22
     ) RETURNING id INTO v_plan_id;
@@ -263,7 +263,7 @@ DECLARE
   v_plan_id UUID;
 BEGIN
   SELECT id INTO v_plan_id FROM public.accounting_plans
-  WHERE country_code = 'FR' AND source = 'system_seed' AND status = 'active'
+  WHERE country_code = 'FR' AND source = 'system' AND status = 'active'
   LIMIT 1;
 
   IF v_plan_id IS NULL THEN
@@ -273,7 +273,7 @@ BEGIN
       'FR',
       'Plan comptable general francais conforme au reglement ANC 2014-03. Classes 1 a 7 avec sous-comptes courants.',
       true,
-      'system_seed',
+      'system',
       'active',
       24
     ) RETURNING id INTO v_plan_id;
@@ -336,7 +336,7 @@ DECLARE
   v_plan_id UUID;
 BEGIN
   SELECT id INTO v_plan_id FROM public.accounting_plans
-  WHERE country_code = 'OHADA' AND source = 'system_seed' AND status = 'active'
+  WHERE country_code = 'OHADA' AND source = 'system' AND status = 'active'
   LIMIT 1;
 
   IF v_plan_id IS NULL THEN
@@ -346,7 +346,7 @@ BEGIN
       'OHADA',
       'Plan comptable OHADA revise applicable dans les 17 pays de l''espace OHADA (Afrique de l''Ouest et Centrale). Classes 1 a 7.',
       true,
-      'system_seed',
+      'system',
       'active',
       26
     ) RETURNING id INTO v_plan_id;
@@ -433,14 +433,14 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'accounting_plans' AND policyname = 'ap_update_own') THEN
     CREATE POLICY ap_update_own ON public.accounting_plans
       FOR UPDATE TO authenticated
-      USING (uploaded_by = auth.uid() AND source != 'system_seed');
+      USING (uploaded_by = auth.uid() AND source != 'system');
   END IF;
 
   -- DELETE: Users can delete their own non-system plans
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'accounting_plans' AND policyname = 'ap_delete_own') THEN
     CREATE POLICY ap_delete_own ON public.accounting_plans
       FOR DELETE TO authenticated
-      USING (uploaded_by = auth.uid() AND source != 'system_seed');
+      USING (uploaded_by = auth.uid() AND source != 'system');
   END IF;
 END $$;
 
@@ -478,7 +478,7 @@ BEGIN
       USING (
         plan_id IN (
           SELECT id FROM public.accounting_plans
-          WHERE uploaded_by = auth.uid() AND source != 'system_seed'
+          WHERE uploaded_by = auth.uid() AND source != 'system'
         )
       );
   END IF;
@@ -490,7 +490,7 @@ BEGIN
       USING (
         plan_id IN (
           SELECT id FROM public.accounting_plans
-          WHERE uploaded_by = auth.uid() AND source != 'system_seed'
+          WHERE uploaded_by = auth.uid() AND source != 'system'
         )
       );
   END IF;

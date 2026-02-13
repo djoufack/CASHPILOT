@@ -44,8 +44,9 @@ CREATE POLICY "Users can view their own invoice line items"
   USING (
     EXISTS (
       SELECT 1 FROM supplier_invoices si
+      JOIN suppliers s ON s.id = si.supplier_id
       WHERE si.id = supplier_invoice_line_items.invoice_id
-        AND si.user_id = auth.uid()
+        AND s.user_id = auth.uid()
     )
   );
 
@@ -55,8 +56,9 @@ CREATE POLICY "Users can insert their own invoice line items"
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM supplier_invoices si
+      JOIN suppliers s ON s.id = si.supplier_id
       WHERE si.id = supplier_invoice_line_items.invoice_id
-        AND si.user_id = auth.uid()
+        AND s.user_id = auth.uid()
     )
   );
 
@@ -66,8 +68,9 @@ CREATE POLICY "Users can update their own invoice line items"
   USING (
     EXISTS (
       SELECT 1 FROM supplier_invoices si
+      JOIN suppliers s ON s.id = si.supplier_id
       WHERE si.id = supplier_invoice_line_items.invoice_id
-        AND si.user_id = auth.uid()
+        AND s.user_id = auth.uid()
     )
   );
 
@@ -77,8 +80,9 @@ CREATE POLICY "Users can delete their own invoice line items"
   USING (
     EXISTS (
       SELECT 1 FROM supplier_invoices si
+      JOIN suppliers s ON s.id = si.supplier_id
       WHERE si.id = supplier_invoice_line_items.invoice_id
-        AND si.user_id = auth.uid()
+        AND s.user_id = auth.uid()
     )
   );
 

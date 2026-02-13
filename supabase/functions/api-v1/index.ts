@@ -47,6 +47,29 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 // ---------------------------------------------------------------------------
+// Field whitelisting for write operations (prevents field injection)
+// ---------------------------------------------------------------------------
+
+const ALLOWED_FIELDS: Record<string, string[]> = {
+  clients: ['company_name', 'contact_name', 'email', 'phone', 'address', 'city', 'postal_code', 'country', 'vat_number', 'notes', 'payment_terms'],
+  invoices: ['invoice_number', 'date', 'due_date', 'client_id', 'status', 'notes', 'currency', 'discount', 'tax_rate'],
+  expenses: ['description', 'amount', 'category', 'expense_date', 'supplier_id', 'receipt_url', 'notes', 'vat_rate', 'payment_method'],
+  quotes: ['quote_number', 'date', 'valid_until', 'client_id', 'status', 'notes', 'currency', 'discount', 'tax_rate'],
+  suppliers: ['company_name', 'contact_name', 'email', 'phone', 'address', 'city', 'postal_code', 'country', 'vat_number', 'notes'],
+  products: ['name', 'description', 'price', 'unit', 'vat_rate', 'category', 'sku', 'stock_quantity'],
+};
+
+function filterFields(body: Record<string, any>, resource: string): Record<string, any> {
+  const allowed = ALLOWED_FIELDS[resource];
+  if (!allowed) return body;
+  const filtered: Record<string, any> = {};
+  for (const key of allowed) {
+    if (key in body) filtered[key] = body[key];
+  }
+  return filtered;
+}
+
+// ---------------------------------------------------------------------------
 // Main handler
 // ---------------------------------------------------------------------------
 
@@ -234,11 +257,16 @@ serve(async (req) => {
         const clientIdFilter = url.searchParams.get('client_id');
 
         if (statusFilter) {
-          // Support status filter on invoices, quotes, expenses, projects
-          if (['invoices', 'quotes', 'projects'].includes(resource)) {
+          if (resource === 'invoices') {
+            // Check if it's a payment status value
+            const paymentStatuses = ['paid', 'unpaid', 'partial', 'overdue'];
+            if (paymentStatuses.includes(statusFilter)) {
+              query = query.eq('payment_status', statusFilter);
+            } else {
+              query = query.eq('status', statusFilter);
+            }
+          } else if (['quotes', 'projects'].includes(resource)) {
             query = query.eq('status', statusFilter);
-          } else if (resource === 'invoices') {
-            query = query.eq('payment_status', statusFilter);
           }
         }
 
@@ -267,7 +295,8 @@ serve(async (req) => {
         }
 
         const body = await req.json();
-        const { data, error } = await supabase.from(resource).insert({ ...body, user_id: userId }).select().single();
+        const filtered = filterFields(body, resource);
+        const { data, error } = await supabase.from(resource).insert({ ...filtered, user_id: userId }).select().single();
         if (error) return jsonResponse({ error: error.message }, 400);
         return jsonResponse({ data }, 201);
       }
@@ -276,7 +305,8 @@ serve(async (req) => {
       case 'PATCH': {
         if (!resourceId) return jsonResponse({ error: 'Resource ID required' }, 400);
         const body = await req.json();
-        const { data, error } = await supabase.from(resource).update(body).eq('id', resourceId).eq('user_id', userId).select().single();
+        const filtered = filterFields(body, resource);
+        const { data, error } = await supabase.from(resource).update(filtered).eq('id', resourceId).eq('user_id', userId).select().single();
         if (error) return jsonResponse({ error: error.message }, 400);
         return jsonResponse({ data });
       }
@@ -377,8 +407,12 @@ async function handlePaymentsUnpaid(supabase: ReturnType<typeof createClient>, u
     .order('due_date', { ascending: true });
 
   if (daysOverdue) {
+    const days = parseInt(daysOverdue);
+    if (isNaN(days)) {
+      return jsonResponse({ error: 'days_overdue must be a number' }, 400);
+    }
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - parseInt(daysOverdue));
+    cutoff.setDate(cutoff.getDate() - days);
     query = query.lte('due_date', cutoff.toISOString().split('T')[0]);
   }
 
