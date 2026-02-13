@@ -103,6 +103,23 @@ serve(async (req) => {
       );
     }
 
+    // Validate file type against allowed MIME types
+    const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!ALLOWED_MIME_TYPES.includes(fileType)) {
+      return new Response(
+        JSON.stringify({ error: 'Unsupported file type' }),
+        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate file path belongs to authenticated user (prevent IDOR)
+    if (!filePath.startsWith(resolvedUserId + '/')) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid file path' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // 1. Check user credits
     const { data: creditsData, error: creditsError } = await supabase
       .from('user_credits')
@@ -124,16 +141,22 @@ serve(async (req) => {
       );
     }
 
-    // 2. Deduct credits before calling Gemini
-    const { error: deductError } = await supabase
+    // 2. Deduct credits before calling Gemini (optimistic lock: only succeeds if balance unchanged)
+    const { data: deductData, error: deductError } = await supabase
       .from('user_credits')
-      .update({ balance: creditsData.balance - CREDIT_COST })
-      .eq('user_id', resolvedUserId);
+      .update({
+        balance: creditsData.balance - CREDIT_COST,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', resolvedUserId)
+      .eq('balance', creditsData.balance)
+      .select('balance')
+      .single();
 
-    if (deductError) {
+    if (deductError || !deductData) {
       return new Response(
-        JSON.stringify({ error: 'Failed to deduct credits' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Credit deduction failed, please retry' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -150,8 +173,12 @@ serve(async (req) => {
       .download(filePath);
 
     if (downloadError || !fileData) {
-      // Refund credits on file download failure
-      await supabase.from('user_credits').update({ balance: creditsData.balance }).eq('user_id', resolvedUserId);
+      // Refund credits on file download failure (optimistic lock on current balance)
+      await supabase
+        .from('user_credits')
+        .update({ balance: deductData.balance + CREDIT_COST, updated_at: new Date().toISOString() })
+        .eq('user_id', resolvedUserId)
+        .eq('balance', deductData.balance);
       await supabase.from('credit_transactions').insert([{
         user_id: resolvedUserId, amount: CREDIT_COST, type: 'refund', description: 'AI Invoice Extraction - file not found',
       }]);
@@ -200,13 +227,19 @@ serve(async (req) => {
     });
 
     if (!geminiResponse.ok) {
-      // Refund credits on Gemini API failure
-      await supabase.from('user_credits').update({ balance: creditsData.balance }).eq('user_id', resolvedUserId);
+      // Log the full error server-side, but do not expose to client
+      console.error('Gemini API error:', geminiResponse.status, await geminiResponse.text());
+      // Refund credits on Gemini API failure (optimistic lock on current balance)
+      await supabase
+        .from('user_credits')
+        .update({ balance: deductData.balance + CREDIT_COST, updated_at: new Date().toISOString() })
+        .eq('user_id', resolvedUserId)
+        .eq('balance', deductData.balance);
       await supabase.from('credit_transactions').insert([{
         user_id: resolvedUserId, amount: CREDIT_COST, type: 'refund', description: 'AI Invoice Extraction - API error',
       }]);
       return new Response(
-        JSON.stringify({ error: 'Gemini API error', details: await geminiResponse.text() }),
+        JSON.stringify({ error: 'Extraction service temporarily unavailable' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -220,8 +253,12 @@ serve(async (req) => {
       if (!textContent) throw new Error('No content in Gemini response');
       extractedData = JSON.parse(textContent);
     } catch (parseError) {
-      // Refund credits on parse failure
-      await supabase.from('user_credits').update({ balance: creditsData.balance }).eq('user_id', resolvedUserId);
+      // Refund credits on parse failure (optimistic lock on current balance)
+      await supabase
+        .from('user_credits')
+        .update({ balance: deductData.balance + CREDIT_COST, updated_at: new Date().toISOString() })
+        .eq('user_id', resolvedUserId)
+        .eq('balance', deductData.balance);
       await supabase.from('credit_transactions').insert([{
         user_id: resolvedUserId, amount: CREDIT_COST, type: 'refund', description: 'AI Invoice Extraction - parse error',
       }]);

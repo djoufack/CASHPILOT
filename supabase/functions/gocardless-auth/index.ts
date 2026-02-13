@@ -22,7 +22,32 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, userId, institutionId, redirectUrl, requisitionId, connectionId, accountId, country } = await req.json();
+    // --- JWT Authentication ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const token = authHeader.replace('Bearer ', '');
+
+    // Create a client with the anon key to verify the user's JWT
+    const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser();
+
+    if (authError || !authUser) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const verifiedUserId = authUser.id;
+    // --- End JWT Authentication ---
+
+    const { action, institutionId, institutionName, redirectUrl, requisitionId, connectionId, accountId, country } = await req.json();
 
     // Get access token
     const tokenRes = await fetch(`${GOCARDLESS_BASE}/token/new/`, {
@@ -76,11 +101,26 @@ serve(async (req) => {
         });
         const requisition = await reqRes.json();
 
+        // Resolve institution name: use provided name, or look it up from GoCardless API
+        let resolvedInstitutionName = institutionName || null;
+        if (!resolvedInstitutionName && institutionId) {
+          try {
+            const instRes = await fetch(`${GOCARDLESS_BASE}/institutions/${institutionId}/`, { headers });
+            if (instRes.ok) {
+              const instData = await instRes.json();
+              resolvedInstitutionName = instData.name || institutionId;
+            }
+          } catch {
+            // Fallback: use institutionId if lookup fails
+            resolvedInstitutionName = institutionId;
+          }
+        }
+
         // Store in database
         await supabase.from('bank_connections').insert({
-          user_id: userId,
+          user_id: verifiedUserId,
           institution_id: institutionId,
-          institution_name: institutionId,
+          institution_name: resolvedInstitutionName || institutionId,
           requisition_id: requisition.id,
           agreement_id: agreement.id,
           status: 'pending',
@@ -141,19 +181,19 @@ serve(async (req) => {
 
       case 'sync-transactions': {
         // Sync transactions for a specific bank connection
-        if (!connectionId || !userId) {
+        if (!connectionId) {
           return new Response(
-            JSON.stringify({ error: 'Missing connectionId or userId' }),
+            JSON.stringify({ error: 'Missing connectionId' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
-        // Get the bank connection
+        // Get the bank connection (scoped to verified user)
         const { data: connection, error: connError } = await supabase
           .from('bank_connections')
           .select('*')
           .eq('id', connectionId)
-          .eq('user_id', userId)
+          .eq('user_id', verifiedUserId)
           .single();
 
         if (connError || !connection) {
@@ -214,7 +254,7 @@ serve(async (req) => {
           const { error: upsertError } = await supabase
             .from('bank_transactions')
             .upsert({
-              user_id: userId,
+              user_id: verifiedUserId,
               bank_connection_id: connectionId,
               external_id: externalId,
               date: tx.bookingDate || tx.valueDate,
@@ -252,7 +292,7 @@ serve(async (req) => {
         // Record sync history
         await supabase.from('bank_sync_history').insert({
           bank_connection_id: connectionId,
-          user_id: userId,
+          user_id: verifiedUserId,
           sync_type: 'transactions',
           status: 'success',
           transactions_synced: syncedCount,

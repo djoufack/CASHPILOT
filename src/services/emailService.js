@@ -1,6 +1,19 @@
 import { supabase } from '@/lib/supabase';
 
 /**
+ * Escape HTML special characters to prevent XSS in email templates.
+ */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
  * Base function to call the send-email Edge Function.
  */
 const callSendEmail = async (payload) => {
@@ -46,23 +59,23 @@ export const sendInvoiceEmail = async ({ invoiceId, recipientEmail, pdfBase64, i
   const currency = client?.preferred_currency || invoice?.currency || 'EUR';
   const dueDate = invoice?.due_date || invoice?.dueDate || 'N/A';
 
-  const subject = `Facture ${invoiceNumber} de ${companyName}`;
+  const subject = `Facture ${escapeHtml(invoiceNumber)} de ${escapeHtml(companyName)}`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a2e; color: #e0e0e0; padding: 32px; border-radius: 12px;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h1 style="color: #f59e0b; font-size: 24px; margin: 0;">${companyName}</h1>
+        <h1 style="color: #f59e0b; font-size: 24px; margin: 0;">${escapeHtml(companyName)}</h1>
       </div>
-      <p>Bonjour ${clientName},</p>
-      <p>Veuillez trouver ci-joint la facture <strong>${invoiceNumber}</strong>.</p>
+      <p>Bonjour ${escapeHtml(clientName)},</p>
+      <p>Veuillez trouver ci-joint la facture <strong>${escapeHtml(invoiceNumber)}</strong>.</p>
       <div style="background: #16213e; padding: 16px; border-radius: 8px; margin: 20px 0;">
-        <p style="margin: 4px 0;"><strong>Montant:</strong> ${totalTTC.toFixed(2)} ${currency}</p>
-        <p style="margin: 4px 0;"><strong>&Eacute;ch&eacute;ance:</strong> ${dueDate}</p>
+        <p style="margin: 4px 0;"><strong>Montant:</strong> ${totalTTC.toFixed(2)} ${escapeHtml(currency)}</p>
+        <p style="margin: 4px 0;"><strong>&Eacute;ch&eacute;ance:</strong> ${escapeHtml(dueDate)}</p>
       </div>
-      <p>Cordialement,<br/>${companyName}</p>
+      <p>Cordialement,<br/>${escapeHtml(companyName)}</p>
     </div>
   `;
 
-  const text = `Bonjour ${clientName},\n\nFacture ${invoiceNumber} - Montant: ${totalTTC.toFixed(2)} ${currency} - Echeance: ${dueDate}\n\nCordialement,\n${companyName}`;
+  const text = `Bonjour ${escapeHtml(clientName)},\n\nFacture ${escapeHtml(invoiceNumber)} - Montant: ${totalTTC.toFixed(2)} ${escapeHtml(currency)} - Echeance: ${escapeHtml(dueDate)}\n\nCordialement,\n${escapeHtml(companyName)}`;
 
   const payload = {
     to: recipientEmail,
@@ -109,26 +122,26 @@ export const sendPaymentReminder = async ({ invoiceId, recipientEmail, invoice, 
   }
 
   const urgency = daysOverdue > 30 ? 'URGENT' : daysOverdue > 14 ? 'Rappel' : 'Rappel amical';
-  const subject = `${urgency}: Facture ${invoiceNumber} en attente de paiement`;
+  const subject = `${urgency}: Facture ${escapeHtml(invoiceNumber)} en attente de paiement`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a2e; color: #e0e0e0; padding: 32px; border-radius: 12px;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h1 style="color: #f59e0b; font-size: 24px; margin: 0;">${companyName}</h1>
+        <h1 style="color: #f59e0b; font-size: 24px; margin: 0;">${escapeHtml(companyName)}</h1>
       </div>
-      <p>Bonjour ${clientName},</p>
-      <p>Nous vous rappelons que la facture <strong>${invoiceNumber}</strong> est en attente de paiement${daysOverdue > 0 ? ` depuis ${daysOverdue} jours` : ''}.</p>
+      <p>Bonjour ${escapeHtml(clientName)},</p>
+      <p>Nous vous rappelons que la facture <strong>${escapeHtml(invoiceNumber)}</strong> est en attente de paiement${daysOverdue > 0 ? ` depuis ${daysOverdue} jours` : ''}.</p>
       <div style="background: #16213e; padding: 16px; border-radius: 8px; margin: 20px 0; ${daysOverdue > 30 ? 'border-left: 4px solid #ef4444;' : ''}">
-        <p style="margin: 4px 0;"><strong>Montant d&ucirc;:</strong> ${totalTTC.toFixed(2)} ${currency}</p>
-        <p style="margin: 4px 0;"><strong>&Eacute;ch&eacute;ance:</strong> ${dueDate}</p>
+        <p style="margin: 4px 0;"><strong>Montant d&ucirc;:</strong> ${totalTTC.toFixed(2)} ${escapeHtml(currency)}</p>
+        <p style="margin: 4px 0;"><strong>&Eacute;ch&eacute;ance:</strong> ${escapeHtml(dueDate)}</p>
         ${daysOverdue > 0 ? `<p style="margin: 4px 0; color: #ef4444;"><strong>Retard:</strong> ${daysOverdue} jours</p>` : ''}
       </div>
       <p>Merci de proc&eacute;der au r&egrave;glement dans les meilleurs d&eacute;lais.</p>
-      <p>Cordialement,<br/>${companyName}</p>
+      <p>Cordialement,<br/>${escapeHtml(companyName)}</p>
     </div>
   `;
 
-  const text = `Bonjour ${clientName},\n\n${urgency}: Facture ${invoiceNumber} - ${totalTTC.toFixed(2)} ${currency} - Echeance: ${dueDate} - Retard: ${daysOverdue} jours\n\nCordialement,\n${companyName}`;
+  const text = `Bonjour ${escapeHtml(clientName)},\n\n${urgency}: Facture ${escapeHtml(invoiceNumber)} - ${totalTTC.toFixed(2)} ${escapeHtml(currency)} - Echeance: ${escapeHtml(dueDate)} - Retard: ${daysOverdue} jours\n\nCordialement,\n${escapeHtml(companyName)}`;
 
   return callSendEmail({
     to: recipientEmail,
