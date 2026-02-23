@@ -1,5 +1,5 @@
 // CashPilot Service Worker
-const CACHE_NAME = 'cashpilot-v2';
+const CACHE_NAME = 'cashpilot-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
