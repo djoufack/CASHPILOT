@@ -293,11 +293,11 @@ const DebtManagerPage = () => {
           <div className="font-medium text-white">{record[nameField]}</div>
           {record.description && <div className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{record.description}</div>}
         </td>
-        <td className="p-4">
+        <td className="p-4 hidden md:table-cell">
           <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">{t(`debtManager.categories.${record.category}`) || record.category}</span>
         </td>
-        <td className="p-4 text-sm">{record[dateField] ? format(new Date(record[dateField]), 'dd/MM/yyyy') : '-'}</td>
-        <td className="p-4 text-sm">{record.due_date ? format(new Date(record.due_date), 'dd/MM/yyyy') : '-'}</td>
+        <td className="p-4 text-sm hidden md:table-cell">{record[dateField] ? format(new Date(record[dateField]), 'dd/MM/yyyy') : '-'}</td>
+        <td className="p-4 text-sm hidden md:table-cell">{record.due_date ? format(new Date(record.due_date), 'dd/MM/yyyy') : '-'}</td>
         <td className="p-4">
           <div className="text-sm font-medium text-white">{formatAmount(record.amount, record.currency)}</div>
           <div className="w-full bg-gray-700 rounded-full h-1.5 mt-1">
@@ -352,9 +352,9 @@ const DebtManagerPage = () => {
           <thead>
             <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase">
               <th className="text-left p-4">{type === 'receivable' ? t('debtManager.debtor') : t('debtManager.creditor')}</th>
-              <th className="text-left p-4">{t('debtManager.category')}</th>
-              <th className="text-left p-4">{t('debtManager.date')}</th>
-              <th className="text-left p-4">{t('debtManager.dueDate')}</th>
+              <th className="text-left p-4 hidden md:table-cell">{t('debtManager.category')}</th>
+              <th className="text-left p-4 hidden md:table-cell">{t('debtManager.date')}</th>
+              <th className="text-left p-4 hidden md:table-cell">{t('debtManager.dueDate')}</th>
               <th className="text-left p-4">{t('debtManager.amount')}</th>
               <th className="text-left p-4">{t('debtManager.statusLabel')}</th>
               <th className="text-left p-4">{t('debtManager.actions')}</th>
@@ -471,308 +471,308 @@ const DebtManagerPage = () => {
       <CreditsGuardModal {...modalProps} />
       <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
         {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gradient">{t('debtManager.title')}</h1>
-          <p className="text-gray-400 text-sm mt-1">{t('debtManager.subtitle')}</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gradient">{t('debtManager.title')}</h1>
+            <p className="text-gray-400 text-sm mt-1">{t('debtManager.subtitle')}</p>
+          </div>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-gray-900 border-gray-800 w-full justify-start overflow-x-auto flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger value="dashboard" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
-            <Wallet className="w-4 h-4 mr-2" />{t('debtManager.dashboard')}
-          </TabsTrigger>
-          <TabsTrigger value="receivables" className="data-[state=active]:bg-green-500/10 data-[state=active]:text-green-400">
-            <ArrowDownCircle className="w-4 h-4 mr-2" />{t('debtManager.receivables')} ({receivables.length})
-          </TabsTrigger>
-          <TabsTrigger value="payables" className="data-[state=active]:bg-red-500/10 data-[state=active]:text-red-400">
-            <ArrowUpCircle className="w-4 h-4 mr-2" />{t('debtManager.payables')} ({payables.length})
-          </TabsTrigger>
-          <TabsTrigger value="calendar" className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400">
-            <CalendarDays className="w-4 h-4 mr-2" />{t('debtManager.calendar')}
-          </TabsTrigger>
-          <TabsTrigger value="agenda" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400">
-            <CalendarClock className="w-4 h-4 mr-2" />{t('debtManager.agenda')}
-          </TabsTrigger>
-          <TabsTrigger value="kanban" className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400 text-gray-500">
-            <Kanban className="w-4 h-4 mr-1" />{t('common.kanban') || 'Kanban'}
-          </TabsTrigger>
-        </TabsList>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="bg-gray-900 border-gray-800 w-full justify-start overflow-x-auto flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="dashboard" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
+              <Wallet className="w-4 h-4 mr-2" />{t('debtManager.dashboard')}
+            </TabsTrigger>
+            <TabsTrigger value="receivables" className="data-[state=active]:bg-green-500/10 data-[state=active]:text-green-400">
+              <ArrowDownCircle className="w-4 h-4 mr-2" />{t('debtManager.receivables')} ({receivables.length})
+            </TabsTrigger>
+            <TabsTrigger value="payables" className="data-[state=active]:bg-red-500/10 data-[state=active]:text-red-400">
+              <ArrowUpCircle className="w-4 h-4 mr-2" />{t('debtManager.payables')} ({payables.length})
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400">
+              <CalendarDays className="w-4 h-4 mr-2" />{t('debtManager.calendar')}
+            </TabsTrigger>
+            <TabsTrigger value="agenda" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400">
+              <CalendarClock className="w-4 h-4 mr-2" />{t('debtManager.agenda')}
+            </TabsTrigger>
+            <TabsTrigger value="kanban" className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400 text-gray-500">
+              <Kanban className="w-4 h-4 mr-1" />{t('common.kanban') || 'Kanban'}
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Dashboard */}
-        <TabsContent value="dashboard" className="mt-6">
-          <DashboardTab />
-        </TabsContent>
+          {/* Dashboard */}
+          <TabsContent value="dashboard" className="mt-6">
+            <DashboardTab />
+          </TabsContent>
 
-        {/* Receivables */}
-        <TabsContent value="receivables" className="mt-6 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input value={search} onChange={e => setSearch(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white pl-10" placeholder={t('common.search')} />
+          {/* Receivables */}
+          <TabsContent value="receivables" className="mt-6 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input value={search} onChange={e => setSearch(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white pl-10" placeholder={t('common.search')} />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleExportReceivablesPDF}
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600 hover:bg-gray-700"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  <span className="hidden sm:inline">PDF ({CREDIT_COSTS.PDF_REPORT})</span>
+                  <span className="sm:hidden">PDF</span>
+                </Button>
+                <Button
+                  onClick={handleExportReceivablesHTML}
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600 hover:bg-gray-700"
+                >
+                  <FileText className="w-4 h-4 mr-1" />
+                  <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
+                  <span className="sm:hidden">HTML</span>
+                </Button>
+                <Button onClick={() => { setReceivableForm(emptyReceivableForm); setShowCreateReceivable(true); }}
+                  className="bg-green-600 hover:bg-green-700 text-white">
+                  <Plus className="w-4 h-4 mr-2" />{t('debtManager.newReceivable')}
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleExportReceivablesPDF}
-                size="sm"
-                variant="outline"
-                className="border-gray-600 hover:bg-gray-700"
-              >
-                <Download className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">PDF ({CREDIT_COSTS.PDF_REPORT})</span>
-                <span className="sm:hidden">PDF</span>
-              </Button>
-              <Button
-                onClick={handleExportReceivablesHTML}
-                size="sm"
-                variant="outline"
-                className="border-gray-600 hover:bg-gray-700"
-              >
-                <FileText className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
-                <span className="sm:hidden">HTML</span>
-              </Button>
-              <Button onClick={() => { setReceivableForm(emptyReceivableForm); setShowCreateReceivable(true); }}
-                className="bg-green-600 hover:bg-green-700 text-white">
-                <Plus className="w-4 h-4 mr-2" />{t('debtManager.newReceivable')}
-              </Button>
-            </div>
-          </div>
-          <RecordTable data={filterList(receivables, 'debtor_name')} type="receivable" nameField="debtor_name" dateField="date_lent" loading={rLoading} />
-        </TabsContent>
+            <RecordTable data={filterList(receivables, 'debtor_name')} type="receivable" nameField="debtor_name" dateField="date_lent" loading={rLoading} />
+          </TabsContent>
 
-        {/* Payables */}
-        <TabsContent value="payables" className="mt-6 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input value={search} onChange={e => setSearch(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white pl-10" placeholder={t('common.search')} />
+          {/* Payables */}
+          <TabsContent value="payables" className="mt-6 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input value={search} onChange={e => setSearch(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white pl-10" placeholder={t('common.search')} />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleExportPayablesPDF}
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600 hover:bg-gray-700"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  <span className="hidden sm:inline">PDF ({CREDIT_COSTS.PDF_REPORT})</span>
+                  <span className="sm:hidden">PDF</span>
+                </Button>
+                <Button
+                  onClick={handleExportPayablesHTML}
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600 hover:bg-gray-700"
+                >
+                  <FileText className="w-4 h-4 mr-1" />
+                  <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
+                  <span className="sm:hidden">HTML</span>
+                </Button>
+                <Button onClick={() => { setPayableForm(emptyPayableForm); setShowCreatePayable(true); }}
+                  className="bg-red-600 hover:bg-red-700 text-white">
+                  <Plus className="w-4 h-4 mr-2" />{t('debtManager.newPayable')}
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleExportPayablesPDF}
-                size="sm"
-                variant="outline"
-                className="border-gray-600 hover:bg-gray-700"
-              >
-                <Download className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">PDF ({CREDIT_COSTS.PDF_REPORT})</span>
-                <span className="sm:hidden">PDF</span>
-              </Button>
-              <Button
-                onClick={handleExportPayablesHTML}
-                size="sm"
-                variant="outline"
-                className="border-gray-600 hover:bg-gray-700"
-              >
-                <FileText className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
-                <span className="sm:hidden">HTML</span>
-              </Button>
-              <Button onClick={() => { setPayableForm(emptyPayableForm); setShowCreatePayable(true); }}
-                className="bg-red-600 hover:bg-red-700 text-white">
-                <Plus className="w-4 h-4 mr-2" />{t('debtManager.newPayable')}
-              </Button>
-            </div>
-          </div>
-          <RecordTable data={filterList(payables, 'creditor_name')} type="payable" nameField="creditor_name" dateField="date_borrowed" loading={pLoading} />
-        </TabsContent>
+            <RecordTable data={filterList(payables, 'creditor_name')} type="payable" nameField="creditor_name" dateField="date_borrowed" loading={pLoading} />
+          </TabsContent>
 
-        {/* Calendar */}
-        <TabsContent value="calendar" className="mt-6">
-          <DebtCalendarView
-            receivables={receivables}
-            payables={payables}
-            onSelectDate={(date) => {
-              const dateStr = format(date, 'yyyy-MM-dd');
-              setShowTypeChooser(dateStr);
-            }}
-            onSelectRecord={(record) => {
-              if (record.status !== 'paid' && record.status !== 'cancelled') {
-                setShowPayment({ type: record.type, record });
+          {/* Calendar */}
+          <TabsContent value="calendar" className="mt-6">
+            <DebtCalendarView
+              receivables={receivables}
+              payables={payables}
+              onSelectDate={(date) => {
+                const dateStr = format(date, 'yyyy-MM-dd');
+                setShowTypeChooser(dateStr);
+              }}
+              onSelectRecord={(record) => {
+                if (record.status !== 'paid' && record.status !== 'cancelled') {
+                  setShowPayment({ type: record.type, record });
+                  setPaymentForm({ amount: '', payment_method: 'cash', notes: '' });
+                } else {
+                  handleViewPayments(record.type, record);
+                }
+              }}
+            />
+          </TabsContent>
+
+          {/* Agenda */}
+          <TabsContent value="agenda" className="mt-6">
+            <DebtAgendaView
+              receivables={receivables}
+              payables={payables}
+              onPay={(type, record) => {
+                setShowPayment({ type, record });
                 setPaymentForm({ amount: '', payment_method: 'cash', notes: '' });
-              } else {
-                handleViewPayments(record.type, record);
-              }
-            }}
-          />
-        </TabsContent>
-
-        {/* Agenda */}
-        <TabsContent value="agenda" className="mt-6">
-          <DebtAgendaView
-            receivables={receivables}
-            payables={payables}
-            onPay={(type, record) => {
-              setShowPayment({ type, record });
-              setPaymentForm({ amount: '', payment_method: 'cash', notes: '' });
-            }}
-            onView={(type, record) => handleViewPayments(type, record)}
-            onDelete={(type, record) => type === 'receivable' ? deleteReceivable(record.id) : deletePayable(record.id)}
-          />
-        </TabsContent>
-
-        {/* Kanban */}
-        <TabsContent value="kanban" className="mt-6 space-y-8">
-          <div>
-            <h3 className="text-lg font-bold text-green-400 mb-4">{t('debtManager.receivables') || 'Receivables'}</h3>
-            <GenericKanbanView
-              columns={debtKanbanColumns}
-              items={receivableKanbanItems}
-              onStatusChange={async (id, status) => await updateReceivable(id, { status })}
-            />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-red-400 mb-4">{t('debtManager.payables') || 'Payables'}</h3>
-            <GenericKanbanView
-              columns={debtKanbanColumns}
-              items={payableKanbanItems}
-              onStatusChange={async (id, status) => await updatePayable(id, { status })}
-            />
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Type Chooser Dialog (from calendar click) */}
-      <Dialog open={!!showTypeChooser} onOpenChange={() => setShowTypeChooser(null)}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-orange-400 flex items-center gap-2">
-              <CalendarDays className="w-5 h-5" />{t('debtManager.createOnDate')} {showTypeChooser}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Button
-              className="w-full bg-green-600 hover:bg-green-700 text-white justify-start"
-              onClick={() => {
-                setReceivableForm({ ...emptyReceivableForm, due_date: showTypeChooser });
-                setShowCreateReceivable(true);
-                setShowTypeChooser(null);
               }}
-            >
-              <ArrowDownCircle className="w-4 h-4 mr-2" />{t('debtManager.chooseReceivable')}
-            </Button>
-            <Button
-              className="w-full bg-red-600 hover:bg-red-700 text-white justify-start"
-              onClick={() => {
-                setPayableForm({ ...emptyPayableForm, due_date: showTypeChooser });
-                setShowCreatePayable(true);
-                setShowTypeChooser(null);
-              }}
-            >
-              <ArrowUpCircle className="w-4 h-4 mr-2" />{t('debtManager.choosePayable')}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+              onView={(type, record) => handleViewPayments(type, record)}
+              onDelete={(type, record) => type === 'receivable' ? deleteReceivable(record.id) : deletePayable(record.id)}
+            />
+          </TabsContent>
 
-      {/* Create Receivable Dialog */}
-      <Dialog open={showCreateReceivable} onOpenChange={setShowCreateReceivable}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-green-400 flex items-center gap-2">
-              <ArrowDownCircle className="w-5 h-5" />{t('debtManager.newReceivable')}
-            </DialogTitle>
-          </DialogHeader>
-          <CreateForm form={receivableForm} setForm={setReceivableForm} onSubmit={handleCreateReceivable} type="receivable" />
-        </DialogContent>
-      </Dialog>
+          {/* Kanban */}
+          <TabsContent value="kanban" className="mt-6 space-y-8">
+            <div>
+              <h3 className="text-lg font-bold text-green-400 mb-4">{t('debtManager.receivables') || 'Receivables'}</h3>
+              <GenericKanbanView
+                columns={debtKanbanColumns}
+                items={receivableKanbanItems}
+                onStatusChange={async (id, status) => await updateReceivable(id, { status })}
+              />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-red-400 mb-4">{t('debtManager.payables') || 'Payables'}</h3>
+              <GenericKanbanView
+                columns={debtKanbanColumns}
+                items={payableKanbanItems}
+                onStatusChange={async (id, status) => await updatePayable(id, { status })}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
 
-      {/* Create Payable Dialog */}
-      <Dialog open={showCreatePayable} onOpenChange={setShowCreatePayable}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-red-400 flex items-center gap-2">
-              <ArrowUpCircle className="w-5 h-5" />{t('debtManager.newPayable')}
-            </DialogTitle>
-          </DialogHeader>
-          <CreateForm form={payableForm} setForm={setPayableForm} onSubmit={handleCreatePayable} type="payable" />
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Payment Dialog */}
-      <Dialog open={!!showPayment} onOpenChange={() => setShowPayment(null)}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-orange-400 flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />{t('debtManager.recordPayment')}
-            </DialogTitle>
-          </DialogHeader>
-          {showPayment && (
-            <div className="space-y-4">
-              <div className="bg-gray-700/50 p-3 rounded-lg text-sm">
-                <p className="text-gray-400">{showPayment.type === 'receivable' ? t('debtManager.debtor') : t('debtManager.creditor')}</p>
-                <p className="text-white font-medium">{showPayment.record[showPayment.type === 'receivable' ? 'debtor_name' : 'creditor_name']}</p>
-                <p className="text-gray-400 mt-1">{t('debtManager.remaining')}</p>
-                <p className="text-orange-400 font-medium">{formatAmount(parseFloat(showPayment.record.amount) - parseFloat(showPayment.record.amount_paid), showPayment.record.currency)}</p>
-              </div>
-              <div>
-                <Label className="text-gray-300">{t('debtManager.paymentAmount')} *</Label>
-                <Input type="number" step="0.01" min="0"
-                  max={parseFloat(showPayment.record.amount) - parseFloat(showPayment.record.amount_paid)}
-                  value={paymentForm.amount}
-                  onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white" placeholder="0.00" />
-              </div>
-              <div>
-                <Label className="text-gray-300">{t('debtManager.paymentMethod')}</Label>
-                <Select value={paymentForm.payment_method} onValueChange={v => setPaymentForm({ ...paymentForm, payment_method: v })}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-gray-700 border-gray-600">
-                    {paymentMethods.map(m => (
-                      <SelectItem key={m} value={m} className="text-white">{t(`debtManager.methods.${m}`)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-gray-300">{t('debtManager.notes')}</Label>
-                <Input value={paymentForm.notes} onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                  className="bg-gray-700 border-gray-600 text-white" placeholder={t('debtManager.notesPlaceholder')} />
-              </div>
-              <Button onClick={handleAddPayment} disabled={!paymentForm.amount}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-                <CheckCircle2 className="w-4 h-4 mr-2" />{t('debtManager.confirmPayment')}
+        {/* Type Chooser Dialog (from calendar click) */}
+        <Dialog open={!!showTypeChooser} onOpenChange={() => setShowTypeChooser(null)}>
+          <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-orange-400 flex items-center gap-2">
+                <CalendarDays className="w-5 h-5" />{t('debtManager.createOnDate')} {showTypeChooser}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Button
+                className="w-full bg-green-600 hover:bg-green-700 text-white justify-start"
+                onClick={() => {
+                  setReceivableForm({ ...emptyReceivableForm, due_date: showTypeChooser });
+                  setShowCreateReceivable(true);
+                  setShowTypeChooser(null);
+                }}
+              >
+                <ArrowDownCircle className="w-4 h-4 mr-2" />{t('debtManager.chooseReceivable')}
+              </Button>
+              <Button
+                className="w-full bg-red-600 hover:bg-red-700 text-white justify-start"
+                onClick={() => {
+                  setPayableForm({ ...emptyPayableForm, due_date: showTypeChooser });
+                  setShowCreatePayable(true);
+                  setShowTypeChooser(null);
+                }}
+              >
+                <ArrowUpCircle className="w-4 h-4 mr-2" />{t('debtManager.choosePayable')}
               </Button>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
 
-      {/* Payment History Dialog */}
-      <Dialog open={!!showPayments} onOpenChange={() => setShowPayments(null)}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-md max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-blue-400 flex items-center gap-2">
-              <Clock className="w-5 h-5" />{t('debtManager.paymentHistory')}
-            </DialogTitle>
-          </DialogHeader>
-          {showPayments && (
-            <div className="space-y-3">
-              <div className="bg-gray-700/50 p-3 rounded-lg text-sm">
-                <p className="text-white font-medium">{showPayments.record[showPayments.type === 'receivable' ? 'debtor_name' : 'creditor_name']}</p>
-                <p className="text-gray-400">{formatAmount(showPayments.record.amount, showPayments.record.currency)}</p>
-              </div>
-              {paymentHistory.length === 0 ? (
-                <p className="text-gray-500 text-sm text-center py-4">{t('debtManager.noPayments')}</p>
-              ) : paymentHistory.map(p => (
-                <div key={p.id} className="flex items-center justify-between bg-gray-700/30 p-3 rounded-lg">
-                  <div>
-                    <p className="text-sm text-white">{formatAmount(p.amount)}</p>
-                    <p className="text-xs text-gray-400">{t(`debtManager.methods.${p.payment_method}`)}</p>
-                    {p.notes && <p className="text-xs text-gray-500 mt-0.5">{p.notes}</p>}
-                  </div>
-                  <span className="text-xs text-gray-400">{format(new Date(p.payment_date), 'dd/MM/yyyy')}</span>
+        {/* Create Receivable Dialog */}
+        <Dialog open={showCreateReceivable} onOpenChange={setShowCreateReceivable}>
+          <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-green-400 flex items-center gap-2">
+                <ArrowDownCircle className="w-5 h-5" />{t('debtManager.newReceivable')}
+              </DialogTitle>
+            </DialogHeader>
+            <CreateForm form={receivableForm} setForm={setReceivableForm} onSubmit={handleCreateReceivable} type="receivable" />
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Payable Dialog */}
+        <Dialog open={showCreatePayable} onOpenChange={setShowCreatePayable}>
+          <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-red-400 flex items-center gap-2">
+                <ArrowUpCircle className="w-5 h-5" />{t('debtManager.newPayable')}
+              </DialogTitle>
+            </DialogHeader>
+            <CreateForm form={payableForm} setForm={setPayableForm} onSubmit={handleCreatePayable} type="payable" />
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Payment Dialog */}
+        <Dialog open={!!showPayment} onOpenChange={() => setShowPayment(null)}>
+          <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-orange-400 flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />{t('debtManager.recordPayment')}
+              </DialogTitle>
+            </DialogHeader>
+            {showPayment && (
+              <div className="space-y-4">
+                <div className="bg-gray-700/50 p-3 rounded-lg text-sm">
+                  <p className="text-gray-400">{showPayment.type === 'receivable' ? t('debtManager.debtor') : t('debtManager.creditor')}</p>
+                  <p className="text-white font-medium">{showPayment.record[showPayment.type === 'receivable' ? 'debtor_name' : 'creditor_name']}</p>
+                  <p className="text-gray-400 mt-1">{t('debtManager.remaining')}</p>
+                  <p className="text-orange-400 font-medium">{formatAmount(parseFloat(showPayment.record.amount) - parseFloat(showPayment.record.amount_paid), showPayment.record.currency)}</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+                <div>
+                  <Label className="text-gray-300">{t('debtManager.paymentAmount')} *</Label>
+                  <Input type="number" step="0.01" min="0"
+                    max={parseFloat(showPayment.record.amount) - parseFloat(showPayment.record.amount_paid)}
+                    value={paymentForm.amount}
+                    onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                    className="bg-gray-700 border-gray-600 text-white" placeholder="0.00" />
+                </div>
+                <div>
+                  <Label className="text-gray-300">{t('debtManager.paymentMethod')}</Label>
+                  <Select value={paymentForm.payment_method} onValueChange={v => setPaymentForm({ ...paymentForm, payment_method: v })}>
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-gray-700 border-gray-600">
+                      {paymentMethods.map(m => (
+                        <SelectItem key={m} value={m} className="text-white">{t(`debtManager.methods.${m}`)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-gray-300">{t('debtManager.notes')}</Label>
+                  <Input value={paymentForm.notes} onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                    className="bg-gray-700 border-gray-600 text-white" placeholder={t('debtManager.notesPlaceholder')} />
+                </div>
+                <Button onClick={handleAddPayment} disabled={!paymentForm.amount}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white">
+                  <CheckCircle2 className="w-4 h-4 mr-2" />{t('debtManager.confirmPayment')}
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Payment History Dialog */}
+        <Dialog open={!!showPayments} onOpenChange={() => setShowPayments(null)}>
+          <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-md max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-blue-400 flex items-center gap-2">
+                <Clock className="w-5 h-5" />{t('debtManager.paymentHistory')}
+              </DialogTitle>
+            </DialogHeader>
+            {showPayments && (
+              <div className="space-y-3">
+                <div className="bg-gray-700/50 p-3 rounded-lg text-sm">
+                  <p className="text-white font-medium">{showPayments.record[showPayments.type === 'receivable' ? 'debtor_name' : 'creditor_name']}</p>
+                  <p className="text-gray-400">{formatAmount(showPayments.record.amount, showPayments.record.currency)}</p>
+                </div>
+                {paymentHistory.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-4">{t('debtManager.noPayments')}</p>
+                ) : paymentHistory.map(p => (
+                  <div key={p.id} className="flex items-center justify-between bg-gray-700/30 p-3 rounded-lg">
+                    <div>
+                      <p className="text-sm text-white">{formatAmount(p.amount)}</p>
+                      <p className="text-xs text-gray-400">{t(`debtManager.methods.${p.payment_method}`)}</p>
+                      {p.notes && <p className="text-xs text-gray-500 mt-0.5">{p.notes}</p>}
+                    </div>
+                    <span className="text-xs text-gray-400">{format(new Date(p.payment_date), 'dd/MM/yyyy')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );

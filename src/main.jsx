@@ -17,11 +17,20 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </AuthProvider>
 );
 
-// Register Service Worker
+// Register Service Worker only in production
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(err => {
-      console.error('SW registration failed:', err);
-    });
+    if (import.meta.env.MODE === 'production') {
+      navigator.serviceWorker.register('/sw.js').catch(err => {
+        console.error('SW registration failed:', err);
+      });
+    } else {
+      // Unregister in development to prevent caching issues
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
   });
 }

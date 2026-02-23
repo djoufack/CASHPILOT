@@ -46,7 +46,7 @@ import {
   Coins,
   Download,
   Rocket,
-  WandSparkles
+  Wand2
 } from 'lucide-react';
 import '../styles/landing.css';
 
@@ -1075,42 +1075,42 @@ const LandingPage = () => {
 
           <div className="mcp-agents-grid">
             <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{background: 'rgba(139,92,246,0.15)', color: '#a78bfa'}}>C</span>
+              <span className="mcp-agent-icon" style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa' }}>C</span>
               <span className="mcp-agent-name">Claude</span>
               <span className="mcp-agent-company">Anthropic</span>
             </div>
             <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{background: 'rgba(16,185,129,0.15)', color: '#34d399'}}>G</span>
+              <span className="mcp-agent-icon" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>G</span>
               <span className="mcp-agent-name">ChatGPT</span>
               <span className="mcp-agent-company">OpenAI</span>
             </div>
             <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{background: 'rgba(59,130,246,0.15)', color: '#60a5fa'}}>G</span>
+              <span className="mcp-agent-icon" style={{ background: 'rgba(59,130,246,0.15)', color: '#60a5fa' }}>G</span>
               <span className="mcp-agent-name">Gemini</span>
               <span className="mcp-agent-company">Google</span>
             </div>
             <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{background: 'rgba(245,158,11,0.15)', color: '#fbbf24'}}>M</span>
+              <span className="mcp-agent-icon" style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>M</span>
               <span className="mcp-agent-name">Mistral</span>
               <span className="mcp-agent-company">Mistral AI</span>
             </div>
             <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{background: 'rgba(236,72,153,0.15)', color: '#f472b6'}}>R</span>
+              <span className="mcp-agent-icon" style={{ background: 'rgba(236,72,153,0.15)', color: '#f472b6' }}>R</span>
               <span className="mcp-agent-name">Rube.app</span>
               <span className="mcp-agent-company">Automation</span>
             </div>
             <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{background: 'rgba(239,68,68,0.15)', color: '#f87171'}}>n</span>
+              <span className="mcp-agent-icon" style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>n</span>
               <span className="mcp-agent-name">n8n</span>
               <span className="mcp-agent-company">Workflow</span>
             </div>
             <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{background: 'rgba(6,182,212,0.15)', color: '#22d3ee'}}>G</span>
+              <span className="mcp-agent-icon" style={{ background: 'rgba(6,182,212,0.15)', color: '#22d3ee' }}>G</span>
               <span className="mcp-agent-name">Gunloop</span>
               <span className="mcp-agent-company">Automation</span>
             </div>
             <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{background: 'rgba(255,255,255,0.08)', color: '#a1a1aa'}}>+</span>
+              <span className="mcp-agent-icon" style={{ background: 'rgba(255,255,255,0.08)', color: '#a1a1aa' }}>+</span>
               <span className="mcp-agent-name">Tout Client MCP</span>
               <span className="mcp-agent-company">Universel</span>
             </div>
