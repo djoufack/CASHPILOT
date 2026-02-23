@@ -105,7 +105,7 @@ const ProjectManager = ({ onProjectSelect }) => {
     }
 
     setSaveLoading(true);
-    
+
     try {
       if (editingProject) {
         await updateProject(editingProject.id, formData);
@@ -183,13 +183,13 @@ const ProjectManager = ({ onProjectSelect }) => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Project Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
                     Client
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
                     Budget (Hrs)
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
                     Rate (/hr)
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
@@ -213,21 +213,20 @@ const ProjectManager = ({ onProjectSelect }) => {
                       <Briefcase className="w-4 h-4 mr-2 text-blue-400" />
                       {project.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
                       {project.client?.company_name || 'No Client'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
                       {project.budget_hours ? `${project.budget_hours} h` : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
                       {project.hourly_rate ? `${project.hourly_rate}` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                        project.status === 'active' ? 'bg-green-900/30 text-green-300 border-green-800' :
-                        project.status === 'completed' ? 'bg-blue-900/30 text-blue-300 border-blue-800' :
-                        'bg-yellow-900/30 text-yellow-300 border-yellow-800'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${project.status === 'active' ? 'bg-green-900/30 text-green-300 border-green-800' :
+                          project.status === 'completed' ? 'bg-blue-900/30 text-blue-300 border-blue-800' :
+                            'bg-yellow-900/30 text-yellow-300 border-yellow-800'
+                        }`}>
                         {project.status ? project.status.charAt(0).toUpperCase() + project.status.slice(1) : 'Active'}
                       </span>
                     </td>
@@ -248,7 +247,7 @@ const ProjectManager = ({ onProjectSelect }) => {
                             onClick={() => onProjectSelect(project)}
                             className="text-green-400 hover:text-green-300 hover:bg-green-900/20"
                           >
-                             <ListTodo className="w-4 h-4" />
+                            <ListTodo className="w-4 h-4" />
                           </Button>
                         )}
                       </div>
@@ -268,7 +267,7 @@ const ProjectManager = ({ onProjectSelect }) => {
               {editingProject ? 'Edit Project' : 'Add New Project'}
             </DialogTitle>
           </DialogHeader>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -364,8 +363,8 @@ const ProjectManager = ({ onProjectSelect }) => {
               {editingProject ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button 
-                      type="button" 
+                    <Button
+                      type="button"
                       variant="destructive"
                       className="bg-red-900/50 hover:bg-red-900 text-red-200 border border-red-900"
                     >
@@ -383,7 +382,7 @@ const ProjectManager = ({ onProjectSelect }) => {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700">Cancel</AlertDialogCancel>
-                      <AlertDialogAction 
+                      <AlertDialogAction
                         onClick={handleDelete}
                         className="bg-red-600 hover:bg-red-700 text-white border-0"
                         disabled={deleteLoading}
