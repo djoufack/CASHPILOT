@@ -69,9 +69,10 @@ export function registerClientTools(server: McpServer) {
       country: z.string().optional().describe('Country code (e.g. FR, BE)'),
       phone: z.string().optional().describe('Phone number'),
       vat_number: z.string().optional().describe('VAT number'),
+      preferred_currency: z.string().optional().describe('Currency code (e.g. EUR, USD, XAF)'),
       notes: z.string().optional().describe('Notes')
     },
-    async ({ company_name, contact_name, email, address, city, postal_code, country, phone, vat_number, notes }) => {
+    async ({ company_name, contact_name, email, address, city, postal_code, country, phone, vat_number, preferred_currency, notes }) => {
       const { data, error } = await supabase
         .from('clients')
         .insert([{
@@ -85,6 +86,7 @@ export function registerClientTools(server: McpServer) {
           country,
           phone,
           vat_number,
+          preferred_currency,
           notes: notes ? sanitizeText(notes) : null
         }])
         .select()
@@ -94,6 +96,46 @@ export function registerClientTools(server: McpServer) {
 
       return {
         content: [{ type: 'text' as const, text: `Client '${company_name}' created.\n${JSON.stringify(data, null, 2)}` }]
+      };
+    }
+  );
+
+  server.tool(
+    'update_client',
+    'Update an existing client',
+    {
+      client_id: z.string().describe('Client UUID to update'),
+      company_name: z.string().optional().describe('Company name'),
+      contact_name: z.string().optional().describe('Contact person name'),
+      email: z.string().optional().describe('Email address'),
+      address: z.string().optional().describe('Street address'),
+      city: z.string().optional().describe('City'),
+      postal_code: z.string().optional().describe('Postal code'),
+      country: z.string().optional().describe('Country code (e.g. FR, BE)'),
+      phone: z.string().optional().describe('Phone number'),
+      vat_number: z.string().optional().describe('VAT number'),
+      preferred_currency: z.string().optional().describe('Currency code (e.g. EUR, USD, XAF)'),
+      notes: z.string().optional().describe('Notes')
+    },
+    async (args) => {
+      const { client_id, ...updates } = args;
+      if (updates.company_name) updates.company_name = sanitizeText(updates.company_name);
+      if (updates.contact_name) updates.contact_name = sanitizeText(updates.contact_name);
+      if (updates.address) updates.address = sanitizeText(updates.address);
+      if (updates.notes) updates.notes = sanitizeText(updates.notes);
+
+      const { data, error } = await supabase
+        .from('clients')
+        .update(updates)
+        .eq('id', client_id)
+        .eq('user_id', getUserId())
+        .select()
+        .single();
+
+      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+
+      return {
+        content: [{ type: 'text' as const, text: `Client updated.\n${JSON.stringify(data, null, 2)}` }]
       };
     }
   );
