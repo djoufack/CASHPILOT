@@ -141,6 +141,27 @@ export function registerClientTools(server: McpServer) {
   );
 
   server.tool(
+    'delete_client',
+    'Delete a client from CashPilot',
+    {
+      client_id: z.string().describe('Client UUID to delete')
+    },
+    async ({ client_id }) => {
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', client_id)
+        .eq('user_id', getUserId());
+
+      if (error) return { content: [{ type: 'text' as const, text: `Error deleting client: ${error.message}` }] };
+
+      return {
+        content: [{ type: 'text' as const, text: `Successfully deleted client ${client_id}` }]
+      };
+    }
+  );
+
+  server.tool(
     'get_client_balance',
     'Get a client balance: invoices due, payments received, outstanding amount',
     {

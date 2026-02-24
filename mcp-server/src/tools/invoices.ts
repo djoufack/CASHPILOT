@@ -98,6 +98,27 @@ export function registerInvoiceTools(server: McpServer) {
   );
 
   server.tool(
+    'delete_invoice',
+    'Delete an invoice from CashPilot',
+    {
+      invoice_id: z.string().describe('Invoice UUID to delete')
+    },
+    async ({ invoice_id }) => {
+      const { error } = await supabase
+        .from('invoices')
+        .delete()
+        .eq('id', invoice_id)
+        .eq('user_id', getUserId());
+
+      if (error) return { content: [{ type: 'text' as const, text: `Error deleting invoice: ${error.message}` }] };
+
+      return {
+        content: [{ type: 'text' as const, text: `Successfully deleted invoice ${invoice_id}` }]
+      };
+    }
+  );
+
+  server.tool(
     'update_invoice_status',
     'Update the status of an invoice',
     {
