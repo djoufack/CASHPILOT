@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { generatedTools, generatedHandlers, generatedWriteTools } from './generated_crud.ts';
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 const CORS: Record<string, string> = {
@@ -43,11 +44,13 @@ const TOOLS = [
   {
     name: 'list_invoices',
     description: 'List invoices with optional filters by status, client, and limit.',
-    inputSchema: { type: 'object', properties: {
-      status: { type: 'string', enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'], description: 'Filter by status' },
-      client_id: { type: 'string', description: 'Filter by client ID' },
-      limit: { type: 'number', description: 'Max results (default 50)' },
-    }},
+    inputSchema: {
+      type: 'object', properties: {
+        status: { type: 'string', enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'], description: 'Filter by status' },
+        client_id: { type: 'string', description: 'Filter by client ID' },
+        limit: { type: 'number', description: 'Max results (default 50)' },
+      }
+    },
   },
   {
     name: 'get_invoice',
@@ -57,20 +60,24 @@ const TOOLS = [
   {
     name: 'create_invoice',
     description: 'Create a new invoice.',
-    inputSchema: { type: 'object', properties: {
-      invoice_number: { type: 'string' }, client_id: { type: 'string' },
-      date: { type: 'string', description: 'YYYY-MM-DD' }, due_date: { type: 'string', description: 'YYYY-MM-DD' },
-      total_ht: { type: 'number' }, tax_rate: { type: 'number', description: 'Default 20' }, total_ttc: { type: 'number' },
-      status: { type: 'string', enum: ['draft', 'sent'], description: 'Default draft' }, notes: { type: 'string' },
-    }, required: ['invoice_number', 'client_id', 'date', 'due_date', 'total_ht', 'total_ttc'] },
+    inputSchema: {
+      type: 'object', properties: {
+        invoice_number: { type: 'string' }, client_id: { type: 'string' },
+        date: { type: 'string', description: 'YYYY-MM-DD' }, due_date: { type: 'string', description: 'YYYY-MM-DD' },
+        total_ht: { type: 'number' }, tax_rate: { type: 'number', description: 'Default 20' }, total_ttc: { type: 'number' },
+        status: { type: 'string', enum: ['draft', 'sent'], description: 'Default draft' }, notes: { type: 'string' },
+      }, required: ['invoice_number', 'client_id', 'date', 'due_date', 'total_ht', 'total_ttc']
+    },
   },
   {
     name: 'update_invoice_status',
     description: 'Update the status of an invoice.',
-    inputSchema: { type: 'object', properties: {
-      invoice_id: { type: 'string' },
-      status: { type: 'string', enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'] },
-    }, required: ['invoice_id', 'status'] },
+    inputSchema: {
+      type: 'object', properties: {
+        invoice_id: { type: 'string' },
+        status: { type: 'string', enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'] },
+      }, required: ['invoice_id', 'status']
+    },
   },
   {
     name: 'search_invoices',
@@ -87,10 +94,12 @@ const TOOLS = [
   {
     name: 'list_clients',
     description: 'List all clients with optional search by name/email.',
-    inputSchema: { type: 'object', properties: {
-      search: { type: 'string', description: 'Search in company_name, contact_name, email' },
-      limit: { type: 'number', description: 'Max results (default 50)' },
-    }},
+    inputSchema: {
+      type: 'object', properties: {
+        search: { type: 'string', description: 'Search in company_name, contact_name, email' },
+        limit: { type: 'number', description: 'Max results (default 50)' },
+      }
+    },
   },
   {
     name: 'get_client',
@@ -100,11 +109,13 @@ const TOOLS = [
   {
     name: 'create_client',
     description: 'Create a new client.',
-    inputSchema: { type: 'object', properties: {
-      company_name: { type: 'string' }, contact_name: { type: 'string' }, email: { type: 'string' },
-      address: { type: 'string' }, city: { type: 'string' }, postal_code: { type: 'string' },
-      country: { type: 'string' }, phone: { type: 'string' }, vat_number: { type: 'string' }, notes: { type: 'string' },
-    }, required: ['company_name'] },
+    inputSchema: {
+      type: 'object', properties: {
+        company_name: { type: 'string' }, contact_name: { type: 'string' }, email: { type: 'string' },
+        address: { type: 'string' }, city: { type: 'string' }, postal_code: { type: 'string' },
+        country: { type: 'string' }, phone: { type: 'string' }, vat_number: { type: 'string' }, notes: { type: 'string' },
+      }, required: ['company_name']
+    },
   },
   {
     name: 'get_client_balance',
@@ -116,19 +127,23 @@ const TOOLS = [
   {
     name: 'list_payments',
     description: 'List payments with optional filters by invoice or client.',
-    inputSchema: { type: 'object', properties: {
-      invoice_id: { type: 'string' }, client_id: { type: 'string' }, limit: { type: 'number', description: 'Default 50' },
-    }},
+    inputSchema: {
+      type: 'object', properties: {
+        invoice_id: { type: 'string' }, client_id: { type: 'string' }, limit: { type: 'number', description: 'Default 50' },
+      }
+    },
   },
   {
     name: 'create_payment',
     description: 'Record a payment for an invoice. Auto-updates invoice payment status.',
-    inputSchema: { type: 'object', properties: {
-      invoice_id: { type: 'string' }, amount: { type: 'number' },
-      payment_method: { type: 'string', description: 'Default bank_transfer' },
-      payment_date: { type: 'string', description: 'YYYY-MM-DD, default today' },
-      reference: { type: 'string' }, notes: { type: 'string' },
-    }, required: ['invoice_id', 'amount'] },
+    inputSchema: {
+      type: 'object', properties: {
+        invoice_id: { type: 'string' }, amount: { type: 'number' },
+        payment_method: { type: 'string', description: 'Default bank_transfer' },
+        payment_date: { type: 'string', description: 'YYYY-MM-DD, default today' },
+        reference: { type: 'string' }, notes: { type: 'string' },
+      }, required: ['invoice_id', 'amount']
+    },
   },
   {
     name: 'get_unpaid_invoices',
@@ -145,17 +160,21 @@ const TOOLS = [
   {
     name: 'get_chart_of_accounts',
     description: 'Get chart of accounts, optionally filtered by category.',
-    inputSchema: { type: 'object', properties: {
-      category: { type: 'string', enum: ['asset', 'liability', 'equity', 'revenue', 'expense'] },
-    }},
+    inputSchema: {
+      type: 'object', properties: {
+        category: { type: 'string', enum: ['asset', 'liability', 'equity', 'revenue', 'expense'] },
+      }
+    },
   },
   {
     name: 'get_accounting_entries',
     description: 'Get journal entries with optional date range and account filters.',
-    inputSchema: { type: 'object', properties: {
-      start_date: { type: 'string', description: 'YYYY-MM-DD' }, end_date: { type: 'string', description: 'YYYY-MM-DD' },
-      account_code: { type: 'string' }, limit: { type: 'number', description: 'Default 100' },
-    }},
+    inputSchema: {
+      type: 'object', properties: {
+        start_date: { type: 'string', description: 'YYYY-MM-DD' }, end_date: { type: 'string', description: 'YYYY-MM-DD' },
+        account_code: { type: 'string' }, limit: { type: 'number', description: 'Default 100' },
+      }
+    },
   },
   {
     name: 'get_trial_balance',
@@ -165,16 +184,20 @@ const TOOLS = [
   {
     name: 'get_tax_summary',
     description: 'Get VAT/tax summary: output VAT vs input VAT for a period.',
-    inputSchema: { type: 'object', properties: {
-      start_date: { type: 'string', description: 'YYYY-MM-DD' }, end_date: { type: 'string', description: 'YYYY-MM-DD' },
-    }, required: ['start_date', 'end_date'] },
+    inputSchema: {
+      type: 'object', properties: {
+        start_date: { type: 'string', description: 'YYYY-MM-DD' }, end_date: { type: 'string', description: 'YYYY-MM-DD' },
+      }, required: ['start_date', 'end_date']
+    },
   },
   {
     name: 'init_accounting',
     description: 'Initialize accounting for a country (FR, BE, or OHADA).',
-    inputSchema: { type: 'object', properties: {
-      country: { type: 'string', enum: ['FR', 'BE', 'OHADA'] },
-    }, required: ['country'] },
+    inputSchema: {
+      type: 'object', properties: {
+        country: { type: 'string', enum: ['FR', 'BE', 'OHADA'] },
+      }, required: ['country']
+    },
   },
 
   // ── Analytics ──
@@ -198,34 +221,41 @@ const TOOLS = [
   {
     name: 'export_fec',
     description: 'Generate FEC (Fichier des Ecritures Comptables) for French tax compliance.',
-    inputSchema: { type: 'object', properties: {
-      start_date: { type: 'string', description: 'YYYY-MM-DD' }, end_date: { type: 'string', description: 'YYYY-MM-DD' },
-    }, required: ['start_date', 'end_date'] },
+    inputSchema: {
+      type: 'object', properties: {
+        start_date: { type: 'string', description: 'YYYY-MM-DD' }, end_date: { type: 'string', description: 'YYYY-MM-DD' },
+      }, required: ['start_date', 'end_date']
+    },
   },
   {
     name: 'export_saft',
     description: 'Generate SAF-T XML (Standard Audit File for Tax).',
-    inputSchema: { type: 'object', properties: {
-      start_date: { type: 'string', description: 'YYYY-MM-DD' }, end_date: { type: 'string', description: 'YYYY-MM-DD' },
-    }, required: ['start_date', 'end_date'] },
+    inputSchema: {
+      type: 'object', properties: {
+        start_date: { type: 'string', description: 'YYYY-MM-DD' }, end_date: { type: 'string', description: 'YYYY-MM-DD' },
+      }, required: ['start_date', 'end_date']
+    },
   },
   {
     name: 'export_facturx',
     description: 'Generate Factur-X (CII) XML for an invoice.',
-    inputSchema: { type: 'object', properties: {
-      invoice_id: { type: 'string' },
-      profile: { type: 'string', enum: ['MINIMUM', 'BASIC', 'EN16931'], description: 'Default BASIC' },
-    }, required: ['invoice_id'] },
+    inputSchema: {
+      type: 'object', properties: {
+        invoice_id: { type: 'string' },
+        profile: { type: 'string', enum: ['MINIMUM', 'BASIC', 'EN16931'], description: 'Default BASIC' },
+      }, required: ['invoice_id']
+    },
   },
   {
     name: 'backup_all_data',
     description: 'Export all user data as a JSON backup.',
     inputSchema: { type: 'object', properties: {} },
   },
+  ...generatedTools,
 ];
 
 // ─── Scope requirements ──────────────────────────────────────────────────────
-const WRITE_TOOLS = new Set(['create_client', 'create_invoice', 'create_payment', 'update_invoice_status', 'init_accounting']);
+const WRITE_TOOLS = new Set(['create_client', 'create_invoice', 'create_payment', 'update_invoice_status', 'init_accounting', ...Array.from(generatedWriteTools)]);
 
 // ─── Tool Handlers ───────────────────────────────────────────────────────────
 type Handler = (sb: SB, uid: string, a: Record<string, unknown>) => Promise<string>;
@@ -607,8 +637,8 @@ const hExportFec: Handler = async (sb, uid, a) => {
   const rows = entries.map((e: Record<string, unknown>, i: number) => {
     const d = String(e.transaction_date || '').replace(/-/g, '');
     return [e.journal_code || 'VE', e.journal_name || 'Ventes', String(i + 1), d,
-      e.account_code || '', e.account_name || '', '', '', e.reference || '', d,
-      e.description || '', fmtAmt(e.debit as number), fmtAmt(e.credit as number),
+    e.account_code || '', e.account_name || '', '', '', e.reference || '', d,
+    e.description || '', fmtAmt(e.debit as number), fmtAmt(e.credit as number),
       '', '', d, '', ''].join('|');
   });
   return `FEC generated: ${entries.length} entries from ${a.start_date} to ${a.end_date}.\n\n${[header, ...rows].join('\n')}`;
@@ -736,6 +766,7 @@ const HANDLERS: Record<string, Handler> = {
   get_cash_flow: hGetCashFlow, get_dashboard_kpis: hGetDashboardKpis, get_top_clients: hGetTopClients,
   // Exports
   export_fec: hExportFec, export_saft: hExportSaft, export_facturx: hExportFacturx, backup_all_data: hBackupAllData,
+  ...generatedHandlers,
 };
 
 // ─── JSON-RPC Request Handler ────────────────────────────────────────────────
@@ -853,7 +884,7 @@ serve(async (req: Request) => {
     }
 
     // Update last_used_at (fire-and-forget)
-    sb.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', keyData.id).then(() => {});
+    sb.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', keyData.id).then(() => { });
 
     const userId: string = keyData.user_id;
     const scopes: string[] = keyData.scopes || ['read'];
