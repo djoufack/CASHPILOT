@@ -77,10 +77,10 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
   const handleExtract = async () => {
     if (!file || !user || !supabase) return;
 
-    // Upload file to a temp path for extraction
+    // Upload file to the definitive path (no temp-extraction — reused as file_url)
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `temp-extraction/${user.id}/${fileName}`;
+    const filePath = `${user.id}/${fileName}`;
 
     try {
       const { error: uploadError } = await supabase.storage
@@ -165,7 +165,14 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
       };
 
       if (onUploadSuccess) {
-        await onUploadSuccess(submitData, file);
+        // If AI extraction already uploaded the file, pass null to avoid double upload
+        // and include the storage path in submitData
+        if (uploadedFilePath) {
+          submitData.file_url = uploadedFilePath;
+          await onUploadSuccess(submitData, null);
+        } else {
+          await onUploadSuccess(submitData, file);
+        }
         handleClose();
       }
     } catch (err) {

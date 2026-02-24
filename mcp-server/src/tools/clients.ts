@@ -142,21 +142,67 @@ export function registerClientTools(server: McpServer) {
 
   server.tool(
     'delete_client',
-    'Delete a client from CashPilot',
+    'Soft-delete (archive) a client. The client is not removed from the database but marked as deleted. Use restore_client to undo.',
     {
-      client_id: z.string().describe('Client UUID to delete')
+      client_id: z.string().describe('Client UUID to archive')
     },
     async ({ client_id }) => {
       const { error } = await supabase
         .from('clients')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', client_id)
         .eq('user_id', getUserId());
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error deleting client: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: `Error archiving client: ${error.message}` }] };
 
       return {
-        content: [{ type: 'text' as const, text: `Successfully deleted client ${client_id}` }]
+        content: [{ type: 'text' as const, text: `Successfully archived client ${client_id}. Use restore_client to undo.` }]
+      };
+    }
+  );
+
+  server.tool(
+    'restore_client',
+    'Restore a previously archived (soft-deleted) client',
+    {
+      client_id: z.string().describe('Client UUID to restore')
+    },
+    async ({ client_id }) => {
+      const { data, error } = await supabase
+        .from('clients')
+        .update({ deleted_at: null })
+        .eq('id', client_id)
+        .eq('user_id', getUserId())
+        .select()
+        .single();
+
+      if (error) return { content: [{ type: 'text' as const, text: `Error restoring client: ${error.message}` }] };
+
+      return {
+        content: [{ type: 'text' as const, text: `Client restored.\n${JSON.stringify(data, null, 2)}` }]
+      };
+    }
+  );
+
+  server.tool(
+    'list_archived_clients',
+    'List all archived (soft-deleted) clients',
+    {
+      limit: z.number().optional().describe('Max results (default 50)')
+    },
+    async ({ limit }) => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('user_id', getUserId())
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false })
+        .limit(limit ?? 50);
+
+      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }]
       };
     }
   );

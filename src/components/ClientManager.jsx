@@ -35,7 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRIES } from '@/constants/countries';
 import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
-import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard, ArchiveRestore, Archive } from 'lucide-react';
 import ExportButton from '@/components/ExportButton';
 import { motion } from 'framer-motion';
 import { validateEmail } from '@/utils/validation';
@@ -47,12 +47,15 @@ import PaginationControls from '@/components/PaginationControls';
 const ClientManager = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const { clients, loading, createClient, updateClient, deleteClient } = useClients();
+  const { clients, loading, createClient, updateClient, deleteClient, restoreClient, fetchDeletedClients } = useClients();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [clientToDelete, setClientToDelete] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedClients, setArchivedClients] = useState([]);
+  const [loadingArchived, setLoadingArchived] = useState(false);
   const emptyFormData = {
     company_name: '',
     contact_name: '',
@@ -155,6 +158,23 @@ const ClientManager = () => {
     }
   };
 
+  const handleToggleArchived = async () => {
+    if (!showArchived) {
+      setLoadingArchived(true);
+      const deleted = await fetchDeletedClients();
+      setArchivedClients(deleted);
+      setLoadingArchived(false);
+    }
+    setShowArchived(!showArchived);
+  };
+
+  const handleRestore = async (client) => {
+    const restored = await restoreClient(client.id);
+    if (restored) {
+      setArchivedClients(archivedClients.filter(c => c.id !== client.id));
+    }
+  };
+
   const handleDeleteClick = (client) => {
     setClientToDelete(client);
     setIsDeleteDialogOpen(true);
@@ -209,6 +229,19 @@ const ClientManager = () => {
           />
         </div>
         <div className="flex gap-2 w-full md:w-auto">
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              variant={showArchived ? "default" : "outline"}
+              onClick={handleToggleArchived}
+              className={showArchived
+                ? "bg-gray-600 hover:bg-gray-500 text-white"
+                : "border-gray-600 text-gray-300 hover:bg-gray-700"
+              }
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              {showArchived ? t('clients.showActive', 'Clients actifs') : t('clients.showArchived', 'Archivés')}
+            </Button>
+          </motion.div>
           <ExportButton
             data={filteredClients}
             columns={clientExportColumns}
@@ -226,7 +259,76 @@ const ClientManager = () => {
         </div>
       </div>
 
-      {loading ? (
+      {showArchived ? (
+        /* --- Archived clients view --- */
+        loadingArchived ? (
+          <div className="text-center py-8 text-gray-400">Loading...</div>
+        ) : archivedClients.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            {t('clients.noArchivedClients', 'Aucun client archivé')}
+          </div>
+        ) : (
+          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-800/50">
+                  <tr>
+                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      {t('clients.companyName')}
+                    </th>
+                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                      {t('clients.contactName')}
+                    </th>
+                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
+                      {t('clients.email')}
+                    </th>
+                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
+                      {t('clients.deletedAt', 'Archivé le')}
+                    </th>
+                    <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      {t('clients.actions')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {archivedClients.map((client) => (
+                    <motion.tr
+                      key={client.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="hover:bg-gray-700/50 transition-colors opacity-60"
+                    >
+                      <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-400">
+                        {client.company_name}
+                      </td>
+                      <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
+                        {client.contact_name}
+                      </td>
+                      <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
+                        {client.email}
+                      </td>
+                      <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
+                        {new Date(client.deleted_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRestore(client)}
+                          className="text-green-400 hover:text-green-300 hover:bg-green-900/20"
+                        >
+                          <ArchiveRestore className="w-4 h-4 mr-1" />
+                          {t('clients.restore', 'Restaurer')}
+                        </Button>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      ) : loading ? (
         <div className="text-center py-8 text-gray-400">Loading...</div>
       ) : filteredClients.length === 0 ? (
         <div className="text-center py-8 text-gray-400">{t('clients.noClients')}</div>
@@ -581,9 +683,9 @@ const ClientManager = () => {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="w-full sm:max-w-[90%] md:max-w-lg bg-gray-800 border-gray-700 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('clients.deleteClient')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('clients.archiveClient', 'Archiver le client')}</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
-              {t('clients.confirmDelete')} {t('clients.deleteWarning')}
+              {t('clients.confirmArchive', 'Ce client sera archivé et n\'apparaîtra plus dans la liste. Vous pourrez le restaurer à tout moment depuis les clients archivés. Les factures et documents associés seront conservés.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
@@ -594,7 +696,7 @@ const ClientManager = () => {
               onClick={handleConfirmDelete}
               className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
             >
-              {t('buttons.delete')}
+              {t('buttons.archive', 'Archiver')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -36,27 +36,41 @@ export const useSupplierInvoices = (supplierId) => {
   const uploadInvoice = async (file) => {
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `supplier-invoices/${user.id}/${fileName}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(filePath, file);
+        .from('supplier-invoices')
+        .upload(filePath, file, { contentType: file.type });
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage.from('documents').getPublicUrl(filePath);
-      return data.publicUrl;
+      // Return the storage path (not a public URL — bucket is private, use signed URLs to view)
+      return filePath;
     } catch (error) {
       console.error('Error uploading invoice:', error);
       throw error;
     }
   };
 
+  const getSignedUrl = async (fileUrl) => {
+    if (!fileUrl) return null;
+    // If it's already a full URL (legacy data), return as-is
+    if (fileUrl.startsWith('http')) return fileUrl;
+    const { data, error } = await supabase.storage
+      .from('supplier-invoices')
+      .createSignedUrl(fileUrl, 3600); // 1 hour
+    if (error) {
+      console.error('Error generating signed URL:', error);
+      return null;
+    }
+    return data?.signedUrl || null;
+  };
+
   const createInvoice = async (invoiceData, file) => {
     setLoading(true);
     try {
-      let fileUrl = null;
+      let fileUrl = invoiceData.file_url || null;
       if (file) {
         fileUrl = await uploadInvoice(file);
       }
@@ -142,6 +156,7 @@ export const useSupplierInvoices = (supplierId) => {
     createInvoice,
     createLineItems,
     deleteInvoice,
-    updateStatus
+    updateStatus,
+    getSignedUrl
   };
 };

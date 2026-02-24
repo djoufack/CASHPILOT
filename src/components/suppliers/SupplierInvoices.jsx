@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import GenericKanbanView from '@/components/GenericKanbanView';
-import { Plus, Trash2, Sparkles, FileText, List, CalendarDays, CalendarClock, Kanban } from 'lucide-react';
+import { Plus, Trash2, Sparkles, FileText, List, CalendarDays, CalendarClock, Kanban, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 
@@ -19,7 +19,7 @@ const statusColors = {
 };
 
 const SupplierInvoices = ({ supplierId }) => {
-  const { invoices, loading, createInvoice, createLineItems, deleteInvoice, updateStatus } = useSupplierInvoices(supplierId);
+  const { invoices, loading, createInvoice, createLineItems, deleteInvoice, updateStatus, getSignedUrl } = useSupplierInvoices(supplierId);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
   const { t } = useTranslation();
@@ -147,6 +147,7 @@ const SupplierInvoices = ({ supplierId }) => {
                     <th className="py-2 px-3 text-right">Amount</th>
                     <th className="py-2 px-3 text-center">Status</th>
                     <th className="py-2 px-3 text-center">Source</th>
+                    <th className="py-2 px-3 text-center">Doc</th>
                     <th className="py-2 px-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -176,6 +177,21 @@ const SupplierInvoices = ({ supplierId }) => {
                             <Sparkles className="h-3 w-3 mr-1" />
                             AI
                           </Badge>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 text-center">
+                        {inv.file_url ? (
+                          <Button variant="ghost" size="sm"
+                            className="text-gray-400 hover:text-blue-400 h-7 w-7 p-0"
+                            title={t('suppliers.viewDocument') || 'View document'}
+                            onClick={async () => {
+                              const url = await getSignedUrl(inv.file_url);
+                              if (url) window.open(url, '_blank');
+                            }}>
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <span className="text-gray-600">-</span>
                         )}
                       </td>
                       <td className="py-2 px-3 text-right">

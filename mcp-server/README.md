@@ -1,6 +1,6 @@
 # CashPilot MCP Server
 
-Serveur MCP (Model Context Protocol) pour CashPilot. Expose 29 outils de gestion financiere directement dans Claude Code.
+Serveur MCP (Model Context Protocol) pour CashPilot. Expose 34 outils de gestion financiere directement dans Claude Code, dont l'**extraction IA de factures fournisseurs** (PDF/image).
 
 Tout utilisateur inscrit sur CashPilot peut se connecter via le tool `login`.
 
@@ -51,7 +51,7 @@ Avant d'utiliser un outil, l'utilisateur doit se connecter :
 3. Appeler `whoami` pour verifier le statut de connexion
 4. Appeler `logout` pour se deconnecter
 
-## Outils disponibles (29)
+## Outils disponibles (34)
 
 ### Authentification (3)
 | Outil | Description |
@@ -110,6 +110,15 @@ Avant d'utiliser un outil, l'utilisateur doit se connecter :
 | `export_facturx` | Generer XML Factur-X pour une facture |
 | `backup_all_data` | Export JSON complet de toutes les donnees |
 
+### Factures Fournisseurs & Extraction IA (5)
+| Outil | Description |
+|-------|-------------|
+| `extract_supplier_invoice` | **Extraire une facture fournisseur par IA** (PDF/image → donnees structurees via Gemini 2.0 Flash). Upload, extraction, creation fournisseur + facture + lignes. Coute 3 credits. |
+| `list_supplier_invoices` | Lister les factures fournisseurs avec filtres (fournisseur, statut) |
+| `get_supplier_invoice` | Details complets d'une facture fournisseur (lignes incluses) |
+| `download_supplier_invoice` | Obtenir un lien temporaire (1h) pour visualiser/telecharger le document original |
+| `update_supplier_invoice_status` | Changer le statut de paiement d'une facture fournisseur |
+
 ## Exemples d'utilisation
 
 Dans Claude Code, demander simplement :
@@ -118,3 +127,5 @@ Dans Claude Code, demander simplement :
 - "Genere le FEC du mois de janvier 2026"
 - "Quels sont mes KPIs ce mois-ci ?"
 - "Cree un client ACME Corp avec email contact@acme.fr"
+- "Extrais cette facture fournisseur" (avec fichier PDF/image joint)
+- "Liste mes factures fournisseurs en attente de paiement"
