@@ -59,7 +59,47 @@ function CodeBlock({ code, language }) {
 // ---------------------------------------------------------------------------
 // MCP Config Section (URL-based, uses API key)
 // ---------------------------------------------------------------------------
-function McpConfigSection() {
+function McpConfigSection({ onKeysChanged }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [mcpUrl, setMcpUrl] = useState(null);
+  const [generating, setGenerating] = useState(false);
+
+  const generateMcpUrl = async () => {
+    setGenerating(true);
+    try {
+      if (!user?.id) throw new Error("Utilisateur non connecté");
+
+      const randomBytes = new Uint8Array(24);
+      crypto.getRandomValues(randomBytes);
+      const rawKey = 'cpk_' + Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+
+      const encoder = new TextEncoder();
+      const encoded = encoder.encode(rawKey);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
+      const keyHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+      const { error } = await supabase.from('api_keys').insert({
+        user_id: user.id,
+        name: 'Client MCP (Généré Automatiquement)',
+        key_hash: keyHash,
+        key_prefix: rawKey.slice(0, 12),
+        scopes: ['read', 'write', 'delete'],
+        is_active: true
+      });
+
+      if (error) throw error;
+
+      setMcpUrl(`${MCP_SERVER_URL}?api_key=${rawKey}`);
+      if (onKeysChanged) onKeysChanged();
+      toast({ title: 'URL MCP générée', description: 'Prête à être copiée dans votre client.' });
+    } catch (err) {
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <Card className="bg-gray-900 border-gray-800 text-white">
       <CardHeader>
@@ -70,34 +110,45 @@ function McpConfigSection() {
           <div>
             <CardTitle className="text-lg">Connexion MCP (Claude, VS Code, Cursor...)</CardTitle>
             <CardDescription className="text-gray-400">
-              Pilotez CashPilot en langage naturel depuis votre assistant IA. 26 outils disponibles.
+              Pilotez CashPilot en langage naturel depuis votre assistant IA (via SSE distant).
             </CardDescription>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-4">
-          <p className="text-sm text-blue-300 font-medium mb-2">Comment connecter :</p>
-          <ol className="text-sm text-gray-400 space-y-1 list-decimal list-inside">
-            <li>Generez une <strong className="text-white">cle API</strong> dans la section ci-dessus</li>
-            <li>L'<strong className="text-white">URL complete</strong> et la <strong className="text-white">configuration JSON</strong> s'affichent automatiquement</li>
-            <li>Copiez selon votre client et collez — c'est pret</li>
-          </ol>
+      <CardContent className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+          <div className="flex-1 space-y-2 w-full">
+            <Label className="text-sm font-medium text-gray-200">URL de connexion directe</Label>
+            {mcpUrl ? (
+              <div className="flex items-center gap-2 bg-gray-950 rounded border border-blue-500/40 p-2">
+                <code className="text-sm text-blue-300 font-mono break-all flex-1 select-all">
+                  {mcpUrl}
+                </code>
+                <CopyButton text={mcpUrl} label="l'URL MCP" />
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Aucune URL générée pour l'instant.</p>
+            )}
+          </div>
+          <Button
+            onClick={generateMcpUrl}
+            disabled={generating}
+            className="bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap mt-2 sm:mt-0"
+          >
+            {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+            {mcpUrl ? "Regénérer l'URL" : "Générer l'URL MCP"}
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
             <div className="flex items-center gap-2 text-white font-medium mb-1"><MessageSquare className="w-4 h-4" />Claude Desktop / Cursor</div>
-            <p className="text-xs text-gray-500">Copiez l'<strong className="text-gray-400">URL</strong> et collez-la dans "Add MCP Server"</p>
+            <p className="text-xs text-gray-400">Sélectionnez le type <strong>SSE</strong> ou <strong>URL</strong>, puis collez l'URL générée ci-dessus.</p>
           </div>
           <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-white font-medium mb-1"><Terminal className="w-4 h-4" />Claude Code</div>
-            <p className="text-xs text-gray-500">Copiez le <strong className="text-gray-400">JSON</strong> dans <code className="text-blue-400">~/.claude/settings.local.json</code></p>
-          </div>
-          <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-white font-medium mb-1"><Code2 className="w-4 h-4" />VS Code (Cline)</div>
-            <p className="text-xs text-gray-500">Copiez le <strong className="text-gray-400">JSON</strong> dans les parametres MCP de Cline</p>
+            <div className="flex items-center gap-2 text-white font-medium mb-1"><AlertTriangle className="w-4 h-4 text-yellow-500" />Sécurité</div>
+            <p className="text-xs text-gray-400">L'URL contient une clé secrète avec accès complet (lecture/écriture). Ne la partagez pas.</p>
           </div>
         </div>
       </CardContent>
@@ -213,11 +264,10 @@ print(response.content)`;
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                activeTab === t.id
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${activeTab === t.id
                   ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
                   : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600'
-              }`}
+                }`}
             >
               {t.icon}
               {t.label}
@@ -413,9 +463,8 @@ function CreateApiKeyForm({ onCreated }) {
             <div
               key={scope.key}
               onClick={() => setScopes(s => ({ ...s, [scope.key]: !s[scope.key] }))}
-              className={`flex items-center gap-3 bg-gray-800 rounded-lg p-3 cursor-pointer border transition-colors ${
-                scopes[scope.key] ? scopeBorderColor[scope.key] : 'border-gray-700'
-              }`}
+              className={`flex items-center gap-3 bg-gray-800 rounded-lg p-3 cursor-pointer border transition-colors ${scopes[scope.key] ? scopeBorderColor[scope.key] : 'border-gray-700'
+                }`}
             >
               <Switch
                 checked={scopes[scope.key]}
@@ -475,9 +524,8 @@ function ApiKeysList({ keys, loading, onRevoke }) {
       {keys.map(k => (
         <div
           key={k.id}
-          className={`flex items-center justify-between bg-gray-800/50 border rounded-lg p-3 ${
-            k.is_active ? 'border-gray-700' : 'border-red-900/30 opacity-50'
-          }`}
+          className={`flex items-center justify-between bg-gray-800/50 border rounded-lg p-3 ${k.is_active ? 'border-gray-700' : 'border-red-900/30 opacity-50'
+            }`}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <Key className={`w-4 h-4 flex-shrink-0 ${k.is_active ? 'text-orange-400' : 'text-gray-600'}`} />
