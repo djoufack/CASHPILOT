@@ -132,25 +132,27 @@ const SignupPage = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="text-gray-300">Full Name</Label>
-                  <Input 
-                    id="fullName" 
+                  <Input
+                    id="fullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="bg-gray-900/50 border-gray-700 text-white"
                     placeholder="John Doe"
+                    required
                   />
                   {errors.fullName && <p className="text-xs text-red-400">{errors.fullName}</p>}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-gray-300">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
+                  <Input
+                    id="email"
+                    type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="bg-gray-900/50 border-gray-700 text-white"
                     placeholder="name@company.com"
+                    required
                   />
                   {errors.email && <p className="text-xs text-red-400">{errors.email}</p>}
                 </div>
@@ -158,13 +160,14 @@ const SignupPage = () => {
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-gray-300">Password</Label>
                   <div className="relative">
-                    <Input 
-                      id="password" 
+                    <Input
+                      id="password"
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="bg-gray-900/50 border-gray-700 text-white pr-10"
                       placeholder="••••••••"
+                      required
                     />
                     <button
                       type="button"
@@ -179,13 +182,14 @@ const SignupPage = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword" className="text-gray-300">Confirm Password</Label>
-                  <Input 
-                      id="confirmPassword" 
+                  <Input
+                      id="confirmPassword"
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="bg-gray-900/50 border-gray-700 text-white"
                       placeholder="••••••••"
+                      required
                   />
                   {errors.confirmPassword && <p className="text-xs text-red-400">{errors.confirmPassword}</p>}
                 </div>

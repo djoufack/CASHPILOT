@@ -45,6 +45,21 @@ export function getUserId(): string {
 }
 
 /**
+ * Get the current session access token. Throws if not logged in.
+ */
+export function getAccessToken(): string {
+  if (!currentSession?.access_token) throw new Error('Not authenticated. Use the "login" tool first.');
+  return currentSession.access_token;
+}
+
+/**
+ * Get the Supabase project URL.
+ */
+export function getSupabaseUrl(): string {
+  return supabaseUrl!;
+}
+
+/**
  * Check if a user is currently logged in.
  */
 export function isAuthenticated(): boolean {

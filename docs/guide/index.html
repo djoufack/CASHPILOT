@@ -1959,7 +1959,7 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
     <div class="reveal">
       <div class="section-badge">Chapitre 09</div>
       <h2 class="section-title">Intelligence <span class="gradient-text">Artificielle</span></h2>
-      <p class="section-subtitle">6 fonctionnalit&eacute;s IA int&eacute;gr&eacute;es et une compatibilit&eacute; MCP avec tous les grands mod&egrave;les de langage.</p>
+      <p class="section-subtitle">6 fonctionnalit&eacute;s IA int&eacute;gr&eacute;es, extraction de factures fournisseurs par IA, et une compatibilit&eacute; MCP avec tous les grands mod&egrave;les de langage.</p>
     </div>
 
     <div class="two-col">
@@ -1967,8 +1967,8 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
         <h3 id="assistant-ia" style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">Assistant IA Int&eacute;gr&eacute;</h3>
         <p style="margin-bottom:20px;">Un widget de chat IA flottant, toujours accessible, qui r&eacute;pond &agrave; vos questions financi&egrave;res en contexte. Il analyse vos donn&eacute;es et fournit des recommandations personnalis&eacute;es.</p>
 
-        <h3 id="serveur-mcp" style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">Serveur MCP &mdash; 29 Outils</h3>
-        <p style="margin-bottom:12px;">CashPilot int&egrave;gre un <strong style="color:#fff">serveur MCP (Model Context Protocol)</strong> avec 26 outils, permettant &agrave; n'importe quel LLM compatible de piloter votre gestion financi&egrave;re par la voix ou le texte :</p>
+        <h3 id="serveur-mcp" style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">Serveur MCP &mdash; 34 Outils</h3>
+        <p style="margin-bottom:12px;">CashPilot int&egrave;gre un <strong style="color:#fff">serveur MCP (Model Context Protocol)</strong> avec 34 outils, dont l'<strong style="color:var(--amber)">extraction IA de factures fournisseurs</strong> (PDF/image &rarr; donn&eacute;es structur&eacute;es via Gemini 2.0 Flash), permettant &agrave; n'importe quel LLM compatible de piloter votre gestion financi&egrave;re par la voix ou le texte :</p>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
           <span class="badge badge-purple" style="font-size:11px;padding:4px 12px;">Claude (Anthropic)</span>
           <span class="badge badge-green" style="font-size:11px;padding:4px 12px;">ChatGPT (OpenAI)</span>
@@ -1978,7 +1978,7 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
           <span class="badge" style="font-size:11px;padding:4px 12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;">Gumloop</span>
           <span class="badge" style="font-size:11px;padding:4px 12px;background:rgba(255,255,255,0.05);color:var(--text-secondary);">Tout LLM MCP-compatible</span>
         </div>
-        <p style="margin-bottom:20px;">Demandez simplement : <em style="color:var(--amber);">&laquo; Cr&eacute;e une facture pour Acme Corp de 3200&euro; &raquo;</em> depuis Claude, ChatGPT, Gemini ou Mistral &mdash; le serveur MCP ex&eacute;cute la commande directement dans CashPilot.</p>
+        <p style="margin-bottom:20px;">Demandez simplement : <em style="color:var(--amber);">&laquo; Extrais cette facture fournisseur et enregistre-la &raquo;</em> ou <em style="color:var(--amber);">&laquo; Cr&eacute;e une facture pour Acme Corp de 3200&euro; &raquo;</em> depuis Claude, ChatGPT, Gemini ou Mistral &mdash; le serveur MCP ex&eacute;cute la commande directement dans CashPilot.</p>
 
         <h3 id="automatisation" style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;">CashPilot comme Outil d'Automatisation</h3>
         <p>Au-del&agrave; de ses propres automatisations, <strong style="color:#fff">CashPilot peut &ecirc;tre utilis&eacute; comme un outil dans vos cha&icirc;nes d'automatisation externes</strong> (Rube.app, Gumloop, Zapier, Make, n8n, etc.). Gr&acirc;ce &agrave; son API REST et son serveur MCP, vous pouvez int&eacute;grer la facturation, la comptabilit&eacute; et la gestion financi&egrave;re dans n'importe quel workflow automatis&eacute;.</p>
@@ -2026,8 +2026,8 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       </div>
       <div class="feature-card reveal reveal-delay-1">
         <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:var(--blue);">&#128247;</div>
-        <h3 id="ocr">OCR &amp; Extraction</h3>
-        <p>Uploadez une facture re&ccedil;ue ou un re&ccedil;u : l'IA extrait automatiquement le montant, la date, le fournisseur et les lignes.</p>
+        <h3 id="ocr">OCR &amp; Extraction IA</h3>
+        <p>Uploadez une facture fournisseur ou un re&ccedil;u (PDF/image) : l'IA extrait automatiquement le montant, la TVA, la date, le fournisseur, l'IBAN et les lignes. Disponible aussi <strong style="color:#fff">via MCP</strong> avec le tool <code>extract_supplier_invoice</code>.</p>
       </div>
       <div class="feature-card reveal reveal-delay-2">
         <div class="feature-icon" style="background:rgba(239,68,68,0.1);color:var(--red);">&#9888;</div>
@@ -2041,8 +2041,8 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       </div>
       <div class="feature-card reveal">
         <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#128279;</div>
-        <h3 id="outils-mcp">29 Outils MCP</h3>
-        <p>Cr&eacute;ation de factures, recherche de clients, export comptable, r&eacute;sum&eacute; financier &mdash; 26 outils utilisables depuis tout LLM compatible MCP.</p>
+        <h3 id="outils-mcp">34 Outils MCP</h3>
+        <p>Cr&eacute;ation de factures, recherche de clients, export comptable, r&eacute;sum&eacute; financier, <strong style="color:#fff">extraction IA de factures fournisseurs</strong> &mdash; 34 outils utilisables depuis tout LLM compatible MCP.</p>
       </div>
       <div class="feature-card reveal reveal-delay-1">
         <div class="feature-icon" style="background:rgba(6,182,212,0.1);color:var(--cyan);">&#9881;</div>
@@ -2054,7 +2054,7 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
     <div class="pro-tip reveal">
       <div class="pro-tip-icon">!</div>
       <div class="pro-tip-text">
-        <strong>Automatisation ultime :</strong> Connectez CashPilot &agrave; <strong>Rube.app</strong> ou toute plateforme d'automatisation. Exemple : recevoir un e-mail de facture fournisseur &rarr; extraction IA &rarr; cr&eacute;ation automatique dans CashPilot &rarr; notification Slack. Votre gestion financi&egrave;re devient une brique de votre pipeline automatis&eacute;.
+        <strong>Automatisation ultime :</strong> Connectez CashPilot &agrave; <strong>Rube.app</strong> ou toute plateforme d'automatisation. Exemple : recevoir un e-mail de facture fournisseur &rarr; appeler <code>extract_supplier_invoice</code> via MCP &rarr; cr&eacute;ation automatique du fournisseur + facture + lignes dans CashPilot &rarr; notification Slack. Votre gestion financi&egrave;re devient une brique de votre pipeline automatis&eacute;.
       </div>
     </div>
   </div>
@@ -2366,8 +2366,8 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
       </div>
       <div class="feature-card reveal reveal-delay-3">
         <div class="feature-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);">&#129302;</div>
-        <h3>Extraction IA (Gemini)</h3>
-        <p>Upload facture fournisseur (PDF/image) &rarr; extraction auto par IA : montants, TVA, IBAN, lignes. 3 crédits/extraction.</p>
+        <h3>Extraction IA (Gemini) + MCP</h3>
+        <p>Upload facture fournisseur (PDF/image) &rarr; extraction auto par IA : montants, TVA, IBAN, lignes. 3 cr&eacute;dits/extraction. <strong style="color:#fff">Nouveau :</strong> aussi accessible via le tool MCP <code>extract_supplier_invoice</code>.</p>
       </div>
 
       <div class="feature-card reveal">
@@ -2454,7 +2454,7 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
         <div class="cta-stat-label">Fonctionnalit&eacute;s</div>
       </div>
       <div class="cta-stat">
-        <div class="cta-stat-value"><span class="gradient-text-warm">29</span></div>
+        <div class="cta-stat-value"><span class="gradient-text-warm">33</span></div>
         <div class="cta-stat-label">Outils MCP / IA</div>
       </div>
       <div class="cta-stat">

@@ -1610,16 +1610,16 @@ export function registerGeneratedCrudTools(server: McpServer) {
 
   server.tool(
     'delete_clients',
-    'Delete a record from clients',
+    'Soft-delete (archive) a record from clients. Sets deleted_at timestamp instead of removing.',
     {
-      id: z.string().describe('Record UUID to delete')
+      id: z.string().describe('Record UUID to archive')
     },
     async ({ id }) => {
-      let query = supabase.from('clients').delete().eq('id', id);
+      let query = supabase.from('clients').update({ deleted_at: new Date().toISOString() }).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from clients: ' + error.message }] };
-      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from clients' }] };
+      if (error) return { content: [{ type: 'text' as const, text: 'Error archiving from clients: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully archived record ' + id + ' from clients' }] };
     }
   );
 

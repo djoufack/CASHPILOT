@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS public.clients (
   address TEXT,
   vat_number TEXT,
   preferred_currency TEXT DEFAULT 'EUR',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  deleted_at TIMESTAMPTZ DEFAULT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.projects (

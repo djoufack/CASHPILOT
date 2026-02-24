@@ -4,7 +4,7 @@
 
 Le serveur MCP (Model Context Protocol) de CashPilot vous permet de gerer vos finances directement depuis **Claude Code** ou tout autre client MCP compatible. Plus besoin d'ouvrir l'interface web : demandez simplement en langage naturel et Claude execute les operations pour vous.
 
-**26 outils disponibles** couvrant la facturation, les clients, les paiements, la comptabilite, l'analyse et les exports fiscaux.
+**34 outils disponibles** couvrant la facturation, les clients, les paiements, la comptabilite, l'analyse, les exports fiscaux et l'**extraction IA de factures fournisseurs**.
 
 **3 modes d'acces :**
 
@@ -53,7 +53,7 @@ Dans votre client, ajoutez un serveur MCP en collant l'URL complete :
 https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici
 ```
 
-Relancez le client. Les 26 outils CashPilot apparaitront automatiquement.
+Relancez le client. Les 34 outils CashPilot apparaitront automatiquement.
 
 ---
 
@@ -113,7 +113,7 @@ Ouvrir les settings VS Code (`Ctrl+,`) → chercher `mcp` → "Edit in settings.
 
 1. Dans Rube, ouvrez les parametres de connexions MCP
 2. Ajoutez un nouveau serveur avec l'URL : `https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici`
-3. Les 26 outils CashPilot sont disponibles dans vos recettes d'automatisation
+3. Les 34 outils CashPilot sont disponibles dans vos recettes d'automatisation
 
 ---
 
@@ -135,7 +135,7 @@ Ouvrir les settings VS Code (`Ctrl+,`) → chercher `mcp` → "Edit in settings.
 2. Configurez la connexion MCP :
    - **URL** : `https://cashpilot.tech/mcp?api_key=cpk_votre_cle_ici`
    - **Transport** : Streamable HTTP
-3. Les 26 outils CashPilot sont disponibles comme actions dans vos workflows n8n
+3. Les 34 outils CashPilot sont disponibles comme actions dans vos workflows n8n
 
 > **Note :** n8n supporte egalement l'API REST classique via le noeud "HTTP Request" (voir section Integration Automatisation).
 
@@ -178,7 +178,7 @@ L'authentification est **automatique** via votre cle API, integree directement d
 
 ---
 
-## Les 26 outils disponibles
+## Les 34 outils disponibles
 
 ### Factures (6 outils)
 
@@ -353,6 +353,42 @@ L'authentification est **automatique** via votre cle API, integree directement d
 
 ---
 
+### Factures Fournisseurs & Extraction IA (5 outils)
+
+| Outil | Ce que vous pouvez demander | Parametres |
+|-------|-----------------------------|------------|
+| `extract_supplier_invoice` | "Extrais cette facture fournisseur et enregistre-la" | fichier base64, nom, type MIME, fournisseur (optionnel) |
+| `list_supplier_invoices` | "Liste mes factures fournisseurs" | fournisseur, statut paiement, limite |
+| `get_supplier_invoice` | "Montre-moi la facture fournisseur XYZ" | ID facture fournisseur |
+| `download_supplier_invoice` | "Telecharge/visualise le document original" | ID facture fournisseur |
+| `update_supplier_invoice_status` | "Marque cette facture fournisseur comme payee" | ID, nouveau statut |
+
+**Exemples concrets :**
+
+```
+"Extrais les donnees de cette facture fournisseur (PDF en base64)"
+→ extract_supplier_invoice
+  1. Upload le fichier dans le storage
+  2. Appelle l'IA Gemini 2.0 Flash pour extraction
+  3. Cree ou retrouve le fournisseur automatiquement
+  4. Insere la facture + lignes dans la base
+  Coute : 3 credits
+
+"Liste mes factures fournisseurs impayees"
+→ list_supplier_invoices avec payment_status = "pending"
+
+"Marque la facture fournisseur abc123... comme payee"
+→ update_supplier_invoice_status avec payment_status = "paid"
+```
+
+**Statuts de paiement :** `pending`, `paid`, `partial`, `overdue`
+
+**Formats acceptes :** `image/jpeg`, `image/png`, `image/webp`, `application/pdf`
+
+> **Important :** L'extraction IA coute 3 credits par appel. Si le fichier est illisible ou si l'IA n'arrive pas a extraire les donnees, les credits sont automatiquement rembourses. Le fournisseur est cree automatiquement s'il n'existe pas deja (matching par nom).
+
+---
+
 ## Scenarios d'utilisation courants
 
 ### Scenario 1 : Revue de fin de mois
@@ -383,7 +419,18 @@ L'authentification est **automatique** via votre cle API, integree directement d
 3. "Balance des comptes a ce jour"
 ```
 
-### Scenario 4 : Preparation fiscale
+### Scenario 4 : Encodage d'une facture fournisseur via MCP
+
+```
+1. "Extrais cette facture fournisseur" (avec le fichier PDF/image en base64)
+   → extract_supplier_invoice : upload, extraction IA, creation fournisseur + facture + lignes
+2. "Liste mes factures fournisseurs de ce mois"
+   → list_supplier_invoices
+3. "Marque cette facture comme payee"
+   → update_supplier_invoice_status
+```
+
+### Scenario 5 : Preparation fiscale
 
 ```
 1. "Resume TVA du 01/01/2026 au 31/03/2026"
@@ -404,7 +451,7 @@ Les cas suivants montrent le parcours complet : installation, connexion, utilisa
 
 **1. Installation (une seule fois)**
 
-Marie va dans **Parametres > Connexions** sur cashpilot.tech, genere une cle API et copie la configuration JSON affichee dans `~/.claude/settings.local.json`. Elle relance Claude Code. Les 26 outils CashPilot sont disponibles.
+Marie va dans **Parametres > Connexions** sur cashpilot.tech, genere une cle API et copie la configuration JSON affichee dans `~/.claude/settings.local.json`. Elle relance Claude Code. Les 34 outils CashPilot sont disponibles.
 
 **2. Revue mensuelle**
 
@@ -453,7 +500,7 @@ Thomas ouvre les parametres Cline (icone engrenage → "MCP Servers" → "Edit M
 }
 ```
 
-Il relance VS Code. Les 26 outils CashPilot apparaissent dans Cline.
+Il relance VS Code. Les 34 outils CashPilot apparaissent dans Cline.
 
 **2. Facturation apres livraison**
 
@@ -497,7 +544,7 @@ Cline :  → get_top_clients avec limit = 3
 
 **1. Installation (une seule fois)**
 
-Sophie genere une cle API depuis le compte CashPilot de son client, puis dans Claude Desktop elle ajoute le serveur MCP en collant l'URL complete (`https://cashpilot.tech/mcp?api_key=cpk_...`). Elle relance l'application. Les 26 outils apparaissent automatiquement.
+Sophie genere une cle API depuis le compte CashPilot de son client, puis dans Claude Desktop elle ajoute le serveur MCP en collant l'URL complete (`https://cashpilot.tech/mcp?api_key=cpk_...`). Elle relance l'application. Les 34 outils apparaissent automatiquement.
 
 **2. Audit trimestriel**
 
@@ -863,7 +910,7 @@ curl https://api.anthropic.com/v1/messages \
 
 **Points cles :**
 - `mcp_servers` : declare le serveur MCP distant avec son URL et le token d'autorisation
-- `tools` avec `mcp_toolset` : expose automatiquement les 26 outils CashPilot a Claude
+- `tools` avec `mcp_toolset` : expose automatiquement les 34 outils CashPilot a Claude
 - Le `authorization_token` est votre cle API CashPilot (format `cpk_...`)
 - Le serveur est stateless : chaque requete est authentifiee independamment
 

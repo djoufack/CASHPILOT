@@ -153,15 +153,16 @@ export const useClients = () => {
     if (!supabase) throw new Error("Supabase not configured");
     setLoading(true);
     try {
+      // Soft delete: set deleted_at instead of removing the row
       const { error } = await supabase
         .from('clients')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', id);
 
       if (error) throw error;
 
       const deletedClient = clients.find(c => c.id === id);
-      logAction('delete', 'client', deletedClient || { id }, null);
+      logAction('soft_delete', 'client', deletedClient || { id }, null);
 
       setClients(clients.filter(c => c.id !== id));
       toast({
@@ -181,6 +182,56 @@ export const useClients = () => {
     }
   };
 
+  const restoreClient = async (id) => {
+    if (!supabase) throw new Error("Supabase not configured");
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .update({ deleted_at: null })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      logAction('restore', 'client', { id }, data);
+
+      toast({
+        title: "Success",
+        description: t('messages.success.clientRestored', 'Client restauré avec succès')
+      });
+      return data;
+    } catch (err) {
+      setError(err.message);
+      toast({
+        title: "Error restoring client",
+        description: err.message,
+        variant: "destructive"
+      });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDeletedClients = async () => {
+    if (!user || !supabase) return [];
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error fetching deleted clients:', err.message);
+      return [];
+    }
+  };
+
   useEffect(() => {
     if (user) fetchClients();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -195,6 +246,8 @@ export const useClients = () => {
     createClient,
     addClient: createClient,  // alias for backward compatibility
     updateClient,
-    deleteClient
+    deleteClient,
+    restoreClient,
+    fetchDeletedClients
   };
 };

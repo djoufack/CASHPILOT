@@ -3,7 +3,8 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminDashboard from './AdminDashboard';
 import UserManagement from './UserManagement';
-import { Shield, Users, LayoutDashboard, Key } from 'lucide-react';
+import { Shield, Users, LayoutDashboard, Key, Building2 } from 'lucide-react';
+import AdminClientManager from '@/components/admin/AdminClientManager';
 import { useTranslation } from 'react-i18next';
 
 const AdminPage = () => {
@@ -26,6 +27,9 @@ const AdminPage = () => {
           <TabsTrigger value="users" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
             <Users className="w-4 h-4 mr-2" /> {t('admin.users')}
           </TabsTrigger>
+          <TabsTrigger value="clients" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
+            <Building2 className="w-4 h-4 mr-2" /> Clients
+          </TabsTrigger>
           <TabsTrigger value="roles" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
             <Key className="w-4 h-4 mr-2" /> {t('admin.roles')}
           </TabsTrigger>
@@ -40,6 +44,10 @@ const AdminPage = () => {
         
         <TabsContent value="users" className="mt-6">
           <UserManagement />
+        </TabsContent>
+
+        <TabsContent value="clients" className="mt-6">
+          <AdminClientManager />
         </TabsContent>
 
         <TabsContent value="roles" className="mt-6">
