@@ -2254,7 +2254,8 @@ Connectez-vous a CashPilot depuis l'API Anthropic Messages, sans installation lo
 
 1. Generez une **cle API CashPilot** (section REST API ci-dessous)
 2. Ajoutez le serveur MCP dans votre appel API avec `mcp_servers`
-3. Utilisez `mcp_toolset` pour que Claude accede aux 26 outils CashPilot
+3. Utilisez `mcp_toolset` pour que Claude accede aux 400+ outils CashPilot
+4. Claude peut alors gerer vos factures, clients, paiements en langage naturel
 
 **Variables a copier :**
 - **URL du serveur MCP :** `https://cashpilot.tech/mcp`

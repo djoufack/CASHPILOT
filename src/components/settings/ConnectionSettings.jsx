@@ -110,7 +110,7 @@ function McpConfigSection({ onKeysChanged }) {
           <div>
             <CardTitle className="text-lg">Connexion MCP (Claude, VS Code, Cursor...)</CardTitle>
             <CardDescription className="text-gray-400">
-              Pilotez CashPilot en langage naturel depuis votre assistant IA (via SSE distant).
+              Pilotez CashPilot en langage naturel depuis votre assistant IA (via SSE distant). 400+ outils disponibles pour toutes vos opérations (lire, créer, modifier, supprimer).
             </CardDescription>
           </div>
         </div>
@@ -235,7 +235,7 @@ print(response.content)`;
           <ol className="text-sm text-gray-400 space-y-1 list-decimal list-inside">
             <li>Generez une <strong className="text-white">cle API CashPilot</strong> dans la section REST API ci-dessous</li>
             <li>Ajoutez le serveur MCP dans votre appel a l'API Anthropic avec <code className="text-purple-400 bg-gray-800 px-1 rounded">mcp_servers</code></li>
-            <li>Utilisez <code className="text-purple-400 bg-gray-800 px-1 rounded">mcp_toolset</code> pour que Claude accede automatiquement aux 29 outils CashPilot</li>
+            <li>Utilisez <code className="text-purple-400 bg-gray-800 px-1 rounded">mcp_toolset</code> pour que Claude accede automatiquement aux 400+ outils CashPilot</li>
             <li>Claude peut alors gerer vos factures, clients, paiements en langage naturel</li>
           </ol>
         </div>
@@ -265,8 +265,8 @@ print(response.content)`;
               key={t.id}
               onClick={() => setActiveTab(t.id)}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${activeTab === t.id
-                  ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
-                  : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600'
+                ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600'
                 }`}
             >
               {t.icon}

@@ -500,7 +500,7 @@ const LandingPage = () => {
               </div>
               <div className="tag tag-cyan">
                 <Bot />
-                <span>Serveur MCP &bull; Compatible IA</span>
+                <span>Serveur MCP &bull; 400+ Outils IA</span>
               </div>
               <div className="tag tag-red">
                 <Lock />
