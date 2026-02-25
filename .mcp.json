@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "cashpilot": {
+      "command": "npx",
+      "args": ["tsx", "mcp-server/src/index.ts"],
+      "env": {
+        "SUPABASE_URL": "https://rfzvrezrcigzmldgvntz.supabase.co",
+        "SUPABASE_ANON_KEY": "[SUPABASE_ANON_KEY_REDACTED]"
+      }
+    }
+  }
+}
