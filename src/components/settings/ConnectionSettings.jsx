@@ -90,7 +90,7 @@ function McpConfigSection({ onKeysChanged }) {
 
       if (error) throw error;
 
-      setMcpUrl(`${MCP_SERVER_URL}?api_key=${rawKey}`);
+      setMcpUrl({ full: `${MCP_SERVER_URL}?api_key=${rawKey}`, core: `${MCP_SERVER_URL}?api_key=${rawKey}&tools=core` });
       if (onKeysChanged) onKeysChanged();
       toast({ title: 'URL MCP générée', description: 'Prête à être copiée dans votre client.' });
     } catch (err) {
@@ -117,38 +117,56 @@ function McpConfigSection({ onKeysChanged }) {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-          <div className="flex-1 space-y-2 w-full">
-            <Label className="text-sm font-medium text-gray-200">URL de connexion directe</Label>
-            {mcpUrl ? (
-              <div className="flex items-center gap-2 bg-gray-950 rounded border border-blue-500/40 p-2">
-                <code className="text-sm text-blue-300 font-mono break-all flex-1 select-all">
-                  {mcpUrl}
-                </code>
-                <CopyButton text={mcpUrl} label="l'URL MCP" />
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">Aucune URL générée pour l'instant.</p>
-            )}
+        <div className="space-y-4 bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium text-gray-200">URLs de connexion</Label>
+            <Button
+              onClick={generateMcpUrl}
+              disabled={generating}
+              className="bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap"
+              size="sm"
+            >
+              {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+              {mcpUrl ? "Regénérer" : "Générer l'URL MCP"}
+            </Button>
           </div>
-          <Button
-            onClick={generateMcpUrl}
-            disabled={generating}
-            className="bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap mt-2 sm:mt-0"
-          >
-            {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-            {mcpUrl ? "Regénérer l'URL" : "Générer l'URL MCP"}
-          </Button>
+
+          {mcpUrl ? (
+            <div className="space-y-3">
+              {/* Full URL — Claude, Cursor, VS Code (443+ tools) */}
+              <div className="space-y-1">
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">Claude Desktop / Cursor / VS Code — 443+ outils</Label>
+                <div className="flex items-center gap-2 bg-gray-950 rounded border border-blue-500/40 p-2">
+                  <code className="text-sm text-blue-300 font-mono break-all flex-1 select-all">{mcpUrl.full}</code>
+                  <CopyButton text={mcpUrl.full} label="l'URL complete" />
+                </div>
+              </div>
+              {/* Core URL — ChatGPT, etc. (26 core tools) */}
+              <div className="space-y-1">
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">ChatGPT / clients legers — 26 outils essentiels</Label>
+                <div className="flex items-center gap-2 bg-gray-950 rounded border border-green-500/40 p-2">
+                  <code className="text-sm text-green-300 font-mono break-all flex-1 select-all">{mcpUrl.core}</code>
+                  <CopyButton text={mcpUrl.core} label="l'URL ChatGPT" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">Aucune URL générée pour l'instant.</p>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
           <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-white font-medium mb-1"><MessageSquare className="w-4 h-4" />Claude Desktop / Cursor</div>
-            <p className="text-xs text-gray-400">Sélectionnez le type <strong>SSE</strong> ou <strong>URL</strong>, puis collez l'URL générée ci-dessus.</p>
+            <div className="flex items-center gap-2 text-white font-medium mb-1"><MessageSquare className="w-4 h-4" />Claude / Cursor</div>
+            <p className="text-xs text-gray-400">URL complete (443+ outils). Type <strong>SSE</strong> ou <strong>URL</strong>.</p>
           </div>
           <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-white font-medium mb-1"><AlertTriangle className="w-4 h-4 text-yellow-500" />Sécurité</div>
-            <p className="text-xs text-gray-400">L'URL contient une clé secrète avec accès complet (lecture/écriture). Ne la partagez pas.</p>
+            <div className="flex items-center gap-2 text-white font-medium mb-1"><Globe className="w-4 h-4" />ChatGPT</div>
+            <p className="text-xs text-gray-400">URL core (26 outils). Compatible avec la limite ChatGPT.</p>
+          </div>
+          <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-white font-medium mb-1"><AlertTriangle className="w-4 h-4 text-yellow-500" />Securite</div>
+            <p className="text-xs text-gray-400">L'URL contient une cle secrete. Ne la partagez pas.</p>
           </div>
         </div>
       </CardContent>
@@ -377,6 +395,7 @@ function CreateApiKeyForm({ onCreated }) {
   // If key just created — show ready-to-use URLs
   if (newKey) {
     const mcpUrl = `${MCP_SERVER_URL}?api_key=${newKey}`;
+    const mcpUrlCore = `${MCP_SERVER_URL}?api_key=${newKey}&tools=core`;
     const jsonConfig = JSON.stringify({
       mcpServers: {
         cashpilot: {
@@ -392,12 +411,21 @@ function CreateApiKeyForm({ onCreated }) {
           <p className="text-sm font-semibold text-green-300">Cle generee ! Vos configurations sont pretes.</p>
         </div>
 
-        {/* MCP URL — for Claude Desktop */}
+        {/* MCP URL — for Claude Desktop (full 443+ tools) */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-gray-400 uppercase tracking-wider">URL MCP — collez dans Claude Desktop / Cursor / Windsurf</Label>
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">URL MCP — Claude Desktop / Cursor / Windsurf (443+ outils)</Label>
           <div className="flex items-center gap-2 bg-gray-950 rounded-lg p-3 border border-blue-500/30">
             <code className="text-blue-300 font-mono text-sm flex-1 break-all select-all">{mcpUrl}</code>
             <CopyButton text={mcpUrl} label="l'URL MCP" />
+          </div>
+        </div>
+
+        {/* MCP URL — for ChatGPT (core 26 tools) */}
+        <div className="space-y-1.5">
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">URL MCP — ChatGPT / clients legers (26 outils essentiels)</Label>
+          <div className="flex items-center gap-2 bg-gray-950 rounded-lg p-3 border border-green-500/30">
+            <code className="text-green-300 font-mono text-sm flex-1 break-all select-all">{mcpUrlCore}</code>
+            <CopyButton text={mcpUrlCore} label="l'URL ChatGPT" />
           </div>
         </div>
 

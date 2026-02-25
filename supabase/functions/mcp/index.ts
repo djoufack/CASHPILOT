@@ -254,6 +254,10 @@ const TOOLS = [
   ...generatedTools,
 ];
 
+// Core tools only (hand-written, no generated CRUD) — used when ?tools=core
+// The hand-written tools are all entries before the spread of generatedTools.
+const CORE_TOOLS = TOOLS.slice(0, TOOLS.length - generatedTools.length);
+
 // ─── Scope requirements ──────────────────────────────────────────────────────
 const WRITE_TOOLS = new Set(['create_client', 'create_invoice', 'create_payment', 'update_invoice_status', 'init_accounting', ...Array.from(generatedWriteTools)]);
 
@@ -772,7 +776,7 @@ const HANDLERS: Record<string, Handler> = {
 // ─── JSON-RPC Request Handler ────────────────────────────────────────────────
 async function handleRpc(
   r: { method?: string; params?: Record<string, unknown>; id?: unknown },
-  sb: SB, uid: string, scopes: string[],
+  sb: SB, uid: string, scopes: string[], coreOnly = false,
 ): Promise<unknown | null> {
   const { method, params, id } = r;
 
@@ -791,7 +795,7 @@ async function handleRpc(
       return rpcOk(id, {});
 
     case 'tools/list':
-      return rpcOk(id, { tools: TOOLS });
+      return rpcOk(id, { tools: coreOnly ? CORE_TOOLS : TOOLS });
 
     case 'tools/call': {
       const toolName = params?.name as string;
@@ -889,6 +893,12 @@ serve(async (req: Request) => {
     const userId: string = keyData.user_id;
     const scopes: string[] = keyData.scopes || ['read'];
 
+    // ── Determine tool filtering mode ───────────────────────────
+    // ?tools=core returns only hand-written tools (~39) to stay under
+    // external client size limits (e.g. ChatGPT CosmosDB 2MB cap).
+    const toolsMode = url.searchParams.get('tools');
+    const coreOnly = toolsMode === 'core';
+
     // ── Parse JSON-RPC body ─────────────────────────────────────
     let body: unknown;
     try {
@@ -903,7 +913,7 @@ serve(async (req: Request) => {
     const responses: unknown[] = [];
 
     for (const r of requests) {
-      const resp = await handleRpc(r, sb, userId, scopes);
+      const resp = await handleRpc(r, sb, userId, scopes, coreOnly);
       if (resp !== null) responses.push(resp);
     }
 
