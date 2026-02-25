@@ -2,9 +2,9 @@
 
 Serveur MCP (Model Context Protocol) **unifie** pour CashPilot. Source unique de tous les outils de gestion financiere accessibles depuis Claude Code.
 
-- **39 outils hand-written** (facturation, comptabilite, analytics, exports, extraction IA)
-- **385+ outils CRUD generes** (acces complet a toutes les tables Supabase)
-- **Total : 424+ outils**
+- **54 outils hand-written** (facturation, comptabilite, analytics, exports, extraction IA, rapprochement bancaire, documents)
+- **100 outils CRUD generes** (acces aux 20 tables principales Supabase)
+- **Total : 154 outils**
 
 > **IMPORTANT** : Ce serveur remplace tout serveur MCP tiers de comptabilite/facturation.
 > Ne pas utiliser d'autres serveurs MCP pour les operations CashPilot afin d'eviter les conflits de noms d'outils.

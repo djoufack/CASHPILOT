@@ -110,7 +110,7 @@ function McpConfigSection({ onKeysChanged }) {
           <div>
             <CardTitle className="text-lg">Connexion MCP (Claude, VS Code, Cursor...)</CardTitle>
             <CardDescription className="text-gray-400">
-              Pilotez CashPilot en langage naturel depuis votre assistant IA (via SSE distant). 400+ outils disponibles pour toutes vos opérations (lire, créer, modifier, supprimer).
+              Pilotez CashPilot en langage naturel depuis votre assistant IA (via SSE distant). 154 outils disponibles pour toutes vos opérations (lire, créer, modifier, supprimer).
             </CardDescription>
           </div>
         </div>
@@ -158,7 +158,7 @@ function McpConfigSection({ onKeysChanged }) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
           <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
             <div className="flex items-center gap-2 text-white font-medium mb-1"><MessageSquare className="w-4 h-4" />Claude / Cursor</div>
-            <p className="text-xs text-gray-400">URL complete (443+ outils). Type <strong>SSE</strong> ou <strong>URL</strong>.</p>
+            <p className="text-xs text-gray-400">URL complete (154 outils). Type <strong>SSE</strong> ou <strong>URL</strong>.</p>
           </div>
           <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
             <div className="flex items-center gap-2 text-white font-medium mb-1"><Globe className="w-4 h-4" />ChatGPT</div>
@@ -253,7 +253,7 @@ print(response.content)`;
           <ol className="text-sm text-gray-400 space-y-1 list-decimal list-inside">
             <li>Generez une <strong className="text-white">cle API CashPilot</strong> dans la section REST API ci-dessous</li>
             <li>Ajoutez le serveur MCP dans votre appel a l'API Anthropic avec <code className="text-purple-400 bg-gray-800 px-1 rounded">mcp_servers</code></li>
-            <li>Utilisez <code className="text-purple-400 bg-gray-800 px-1 rounded">mcp_toolset</code> pour que Claude accede automatiquement aux 400+ outils CashPilot</li>
+            <li>Utilisez <code className="text-purple-400 bg-gray-800 px-1 rounded">mcp_toolset</code> pour que Claude accede automatiquement aux 154 outils CashPilot</li>
             <li>Claude peut alors gerer vos factures, clients, paiements en langage naturel</li>
           </ol>
         </div>
@@ -411,9 +411,9 @@ function CreateApiKeyForm({ onCreated }) {
           <p className="text-sm font-semibold text-green-300">Cle generee ! Vos configurations sont pretes.</p>
         </div>
 
-        {/* MCP URL — for Claude Desktop (full 443+ tools) */}
+        {/* MCP URL — for Claude Desktop (full 154 tools) */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-gray-400 uppercase tracking-wider">URL MCP — Claude Desktop / Cursor / Windsurf (443+ outils)</Label>
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">URL MCP — Claude Desktop / Cursor / Windsurf (154 outils)</Label>
           <div className="flex items-center gap-2 bg-gray-950 rounded-lg p-3 border border-blue-500/30">
             <code className="text-blue-300 font-mono text-sm flex-1 break-all select-all">{mcpUrl}</code>
             <CopyButton text={mcpUrl} label="l'URL MCP" />
