@@ -406,6 +406,8 @@ const LandingPage = () => {
             <a href="#simulation" className="nav-link" onClick={(e) => handleSmoothScroll(e, '#simulation')}>Simulations</a>
             <a href="#audience" className="nav-link" onClick={(e) => handleSmoothScroll(e, '#audience')}>Pour qui ?</a>
             <a href="#advantages" className="nav-link" onClick={(e) => handleSmoothScroll(e, '#advantages')}>Avantages</a>
+            <a href="/mcp-tools.html" className="nav-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>MCP Tools</a>
+            <a href="/guide/" className="nav-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>Guide</a>
           </div>
           <div className="nav-actions">
             <button className="btn btn-ghost" onClick={() => handleNavigate('/login')}>Connexion</button>
@@ -427,6 +429,8 @@ const LandingPage = () => {
           <a href="#simulation" className="mobile-link" onClick={(e) => handleSmoothScroll(e, '#simulation')}>Simulations</a>
           <a href="#audience" className="mobile-link" onClick={(e) => handleSmoothScroll(e, '#audience')}>Pour qui ?</a>
           <a href="#advantages" className="mobile-link" onClick={(e) => handleSmoothScroll(e, '#advantages')}>Avantages</a>
+          <a href="/mcp-tools.html" className="mobile-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>MCP Tools</a>
+          <a href="/guide/" className="mobile-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>Guide</a>
           <div className="mobile-actions">
             <button className="btn btn-ghost" onClick={() => handleNavigate('/login')}>Connexion</button>
             <button className="btn btn-primary" onClick={() => handleNavigate('/signup')}>Démarrer</button>
