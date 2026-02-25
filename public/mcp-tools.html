@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CashPilot MCP - Catalogue des outils</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: #475569;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent2: #818cf8;
+      --green: #34d399;
+      --amber: #fbbf24;
+      --rose: #fb7185;
+      --cyan: #22d3ee;
+      --purple: #a78bfa;
+      --orange: #fb923c;
+      --pink: #f472b6;
+      --lime: #a3e635;
+      --teal: #2dd4bf;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 2rem;
+      text-align: center;
+    }
+    .hero-logo {
+      font-size: 3rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+    .hero-sub {
+      color: var(--text-muted);
+      font-size: 1.15rem;
+      max-width: 600px;
+      margin: 0 auto 1.5rem;
+    }
+    .hero-stats {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Search */
+    .search-container {
+      max-width: 600px;
+      margin: 1.5rem auto 0;
+      position: relative;
+    }
+    .search-input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-icon {
+      position: absolute;
+      left: 0.9rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+    .search-count {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    /* Nav */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .nav-inner {
+      display: flex;
+      gap: 0.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .nav-btn {
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .nav-btn:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+    .nav-btn.active {
+      background: var(--accent);
+      color: #0f172a;
+      border-color: var(--accent);
+    }
+
+    /* Main */
+    .main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Category */
+    .category {
+      margin-bottom: 3rem;
+    }
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid var(--surface2);
+    }
+    .category-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+    .category-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    .category-count {
+      background: var(--surface2);
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .category-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-left: auto;
+    }
+
+    /* Tools grid */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 1rem;
+    }
+    @media (max-width: 480px) {
+      .tools-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .tool-card {
+      background: var(--surface);
+      border: 1px solid var(--surface2);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .tool-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+    .tool-name {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .tool-desc {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      line-height: 1.5;
+      margin-bottom: 0.75rem;
+    }
+    .tool-params {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .param-tag {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      font-family: monospace;
+    }
+    .param-tag.optional {
+      background: rgba(148, 163, 184, 0.1);
+      color: var(--text-muted);
+      border-color: rgba(148, 163, 184, 0.2);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+    }
+    .badge-ai {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: white;
+    }
+    .badge-auto {
+      background: rgba(52, 211, 153, 0.2);
+      color: var(--green);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+    }
+    .badge-export {
+      background: rgba(251, 191, 36, 0.15);
+      color: var(--amber);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+    .badge-crud {
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--text-muted);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    /* CRUD section */
+    .crud-section {
+      margin-top: 3rem;
+      padding: 2rem;
+      background: var(--surface);
+      border-radius: 1rem;
+      border: 1px solid var(--surface2);
+    }
+    .crud-section h2 {
+      font-size: 1.4rem;
+      margin-bottom: 0.5rem;
+    }
+    .crud-section p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+    .crud-table-container {
+      overflow-x: auto;
+    }
+    .crud-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .crud-table th {
+      text-align: left;
+      padding: 0.6rem 1rem;
+      background: var(--surface2);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .crud-table th:first-child { border-radius: 0.5rem 0 0 0.5rem; }
+    .crud-table th:last-child { border-radius: 0 0.5rem 0.5rem 0; }
+    .crud-table td {
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+    }
+    .crud-table tr:last-child td { border-bottom: none; }
+    .crud-table tr:hover td { background: rgba(56, 189, 248, 0.03); }
+    .crud-table .entity-name {
+      font-family: monospace;
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .crud-ops {
+      display: flex;
+      gap: 0.4rem;
+    }
+    .crud-op {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: 600;
+    }
+    .crud-op.c { background: rgba(52, 211, 153, 0.15); color: var(--green); }
+    .crud-op.r { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
+    .crud-op.u { background: rgba(251, 191, 36, 0.15); color: var(--amber); }
+    .crud-op.d { background: rgba(251, 113, 133, 0.15); color: var(--rose); }
+    .crud-op.l { background: rgba(129, 140, 248, 0.15); color: var(--accent2); }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--surface2);
+      margin-top: 2rem;
+    }
+
+    /* Print styles */
+    @media print {
+      :root {
+        --bg: #fff; --surface: #f8fafc; --surface2: #e2e8f0; --border: #cbd5e1;
+        --text: #1e293b; --text-muted: #64748b; --accent: #0284c7; --accent2: #4f46e5;
+      }
+      .nav, .search-container, .search-count { display: none; }
+      .hero { padding: 1.5rem; }
+      .tool-card:hover { transform: none; box-shadow: none; }
+      body { font-size: 11pt; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="hero-logo">CashPilot MCP</div>
+  <p class="hero-sub">Catalogue complet des outils MCP disponibles pour piloter votre comptabilite, facturation, tresorerie et plus encore via l'IA.</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-number">154</div><div class="stat-label">Outils au total</div></div>
+    <div class="stat"><div class="stat-number">54</div><div class="stat-label">Outils metier</div></div>
+    <div class="stat"><div class="stat-number">100</div><div class="stat-label">Operations CRUD</div></div>
+    <div class="stat"><div class="stat-number">12</div><div class="stat-label">Categories</div></div>
+  </div>
+  <div class="search-container">
+    <span class="search-icon">&#128269;</span>
+    <input type="text" class="search-input" id="searchInput" placeholder="Rechercher un outil (ex: facture, client, rapprochement...)" autocomplete="off" />
+  </div>
+  <div class="search-count" id="searchCount"></div>
+</header>
+
+<!-- Navigation -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <button class="nav-btn active" data-target="all" onclick="filterCategory('all', this)">Tous</button>
+    <button class="nav-btn" data-target="auth" onclick="filterCategory('auth', this)">Authentification</button>
+    <button class="nav-btn" data-target="clients" onclick="filterCategory('clients', this)">Clients</button>
+    <button class="nav-btn" data-target="invoices" onclick="filterCategory('invoices', this)">Factures</button>
+    <button class="nav-btn" data-target="payments" onclick="filterCategory('payments', this)">Paiements</button>
+    <button class="nav-btn" data-target="documents" onclick="filterCategory('documents', this)">Documents</button>
+    <button class="nav-btn" data-target="suppliers" onclick="filterCategory('suppliers', this)">Fournisseurs</button>
+    <button class="nav-btn" data-target="accounting" onclick="filterCategory('accounting', this)">Comptabilite</button>
+    <button class="nav-btn" data-target="bank" onclick="filterCategory('bank', this)">Banque</button>
+    <button class="nav-btn" data-target="analytics" onclick="filterCategory('analytics', this)">Analytics</button>
+    <button class="nav-btn" data-target="reporting" onclick="filterCategory('reporting', this)">Reporting</button>
+    <button class="nav-btn" data-target="exports" onclick="filterCategory('exports', this)">Exports</button>
+    <button class="nav-btn" data-target="crud" onclick="filterCategory('crud', this)">CRUD</button>
+  </div>
+</nav>
+
+<!-- Main content -->
+<main class="main" id="mainContent">
+
+  <!-- ==================== AUTHENTIFICATION ==================== -->
+  <section class="category" data-cat="auth" id="cat-auth">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(56, 189, 248, 0.15);">&#128274;</div>
+      <h2 class="category-title">Authentification</h2>
+      <span class="category-count">3 outils</span>
+      <span class="category-desc">Connexion et gestion de session</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="login connexion authentification email mot de passe">
+        <div class="tool-name">login</div>
+        <div class="tool-desc">Connexion a CashPilot avec email et mot de passe. Requis avant toute autre operation.</div>
+        <div class="tool-params">
+          <span class="param-tag">email</span>
+          <span class="param-tag">password</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="logout deconnexion session">
+        <div class="tool-name">logout</div>
+        <div class="tool-desc">Deconnexion et fin de session MCP.</div>
+      </div>
+      <div class="tool-card" data-search="whoami identite utilisateur session qui suis-je">
+        <div class="tool-name">whoami</div>
+        <div class="tool-desc">Verifier le statut d'authentification et l'identite de l'utilisateur connecte.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== CLIENTS ==================== -->
+  <section class="category" data-cat="clients" id="cat-clients">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(129, 140, 248, 0.15);">&#128101;</div>
+      <h2 class="category-title">Gestion des Clients</h2>
+      <span class="category-count">8 outils</span>
+      <span class="category-desc">Creer, gerer et analyser le portefeuille client</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="list_clients liste clients recherche nom entreprise">
+        <div class="tool-name">list_clients</div>
+        <div class="tool-desc">Lister tous les clients avec recherche optionnelle par nom d'entreprise, contact ou email.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">search</span>
+          <span class="param-tag optional">limit</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_client detail client factures recentes">
+        <div class="tool-name">get_client</div>
+        <div class="tool-desc">Obtenir les details complets d'un client avec ses 10 dernieres factures.</div>
+        <div class="tool-params">
+          <span class="param-tag">client_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="create_client creer nouveau client entreprise">
+        <div class="tool-name">create_client</div>
+        <div class="tool-desc">Creer un nouveau client avec toutes ses coordonnees (entreprise, contact, adresse, TVA, devise).</div>
+        <div class="tool-params">
+          <span class="param-tag">company_name</span>
+          <span class="param-tag optional">contact_name</span>
+          <span class="param-tag optional">email</span>
+          <span class="param-tag optional">address</span>
+          <span class="param-tag optional">city</span>
+          <span class="param-tag optional">country</span>
+          <span class="param-tag optional">vat_number</span>
+          <span class="param-tag optional">preferred_currency</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="update_client modifier mettre a jour client">
+        <div class="tool-name">update_client</div>
+        <div class="tool-desc">Modifier les informations d'un client existant (nom, adresse, TVA, devise...).</div>
+        <div class="tool-params">
+          <span class="param-tag">client_id</span>
+          <span class="param-tag optional">company_name</span>
+          <span class="param-tag optional">email</span>
+          <span class="param-tag optional">vat_number</span>
+          <span class="param-tag optional">...</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="delete_client supprimer archiver client">
+        <div class="tool-name">delete_client</div>
+        <div class="tool-desc">Archiver un client (soft-delete). Le client n'est pas supprime definitivement, il peut etre restaure.</div>
+        <div class="tool-params">
+          <span class="param-tag">client_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="restore_client restaurer client archive">
+        <div class="tool-name">restore_client</div>
+        <div class="tool-desc">Restaurer un client precedemment archive.</div>
+        <div class="tool-params">
+          <span class="param-tag">client_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="list_archived_clients liste clients archives supprimes">
+        <div class="tool-name">list_archived_clients</div>
+        <div class="tool-desc">Lister tous les clients archives (soft-deleted) avec possibilite de restauration.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">limit</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_client_balance solde client factures impayees">
+        <div class="tool-name">get_client_balance</div>
+        <div class="tool-desc">Obtenir le solde financier d'un client : total facture, paye, en-cours et en retard.</div>
+        <div class="tool-params">
+          <span class="param-tag">client_id</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FACTURES ==================== -->
+  <section class="category" data-cat="invoices" id="cat-invoices">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(52, 211, 153, 0.15);">&#128196;</div>
+      <h2 class="category-title">Facturation</h2>
+      <span class="category-count">7 outils</span>
+      <span class="category-desc">Creer, suivre et gerer les factures de vente</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="list_invoices liste factures statut client filtres">
+        <div class="tool-name">list_invoices</div>
+        <div class="tool-desc">Lister les factures avec filtres optionnels : par statut (brouillon, envoyee, payee, en retard, annulee) et par client.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">status</span>
+          <span class="param-tag optional">client_id</span>
+          <span class="param-tag optional">limit</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_invoice detail facture lignes paiements client">
+        <div class="tool-name">get_invoice</div>
+        <div class="tool-desc">Obtenir le detail complet d'une facture : lignes, paiements recus, et informations client.</div>
+        <div class="tool-params">
+          <span class="param-tag">invoice_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="create_invoice creer nouvelle facture">
+        <div class="tool-name">create_invoice</div>
+        <div class="tool-desc">Creer une nouvelle facture avec numero, client, dates, montants HT/TTC et taux de TVA.</div>
+        <div class="tool-params">
+          <span class="param-tag">invoice_number</span>
+          <span class="param-tag">client_id</span>
+          <span class="param-tag">date</span>
+          <span class="param-tag">due_date</span>
+          <span class="param-tag">total_ht</span>
+          <span class="param-tag">total_ttc</span>
+          <span class="param-tag optional">tax_rate</span>
+          <span class="param-tag optional">status</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="delete_invoice supprimer facture">
+        <div class="tool-name">delete_invoice</div>
+        <div class="tool-desc">Supprimer une facture.</div>
+        <div class="tool-params">
+          <span class="param-tag">invoice_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="update_invoice_status modifier statut facture envoyee payee">
+        <div class="tool-name">update_invoice_status</div>
+        <div class="tool-desc">Modifier le statut d'une facture : brouillon, envoyee, payee, en retard ou annulee.</div>
+        <div class="tool-params">
+          <span class="param-tag">invoice_id</span>
+          <span class="param-tag">status</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="search_invoices recherche texte facture numero notes">
+        <div class="tool-name">search_invoices</div>
+        <div class="tool-desc">Recherche textuelle dans les factures par numero, notes ou reference.</div>
+        <div class="tool-params">
+          <span class="param-tag">query</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_invoice_stats statistiques factures total impaye retard">
+        <div class="tool-name">get_invoice_stats</div>
+        <div class="tool-desc">Obtenir les statistiques de facturation : total facture, paye, impaye et en retard sur une periode.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">months</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PAIEMENTS ==================== -->
+  <section class="category" data-cat="payments" id="cat-payments">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(251, 191, 36, 0.15);">&#128176;</div>
+      <h2 class="category-title">Paiements</h2>
+      <span class="category-count">4 outils</span>
+      <span class="category-desc">Enregistrer les encaissements et suivre les impayes</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="list_payments liste paiements encaissements">
+        <div class="tool-name">list_payments</div>
+        <div class="tool-desc">Lister les paiements avec filtres par facture ou par client.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">invoice_id</span>
+          <span class="param-tag optional">client_id</span>
+          <span class="param-tag optional">limit</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="create_payment enregistrer paiement encaissement virement cheque">
+        <span class="badge badge-auto">Auto</span>
+        <div class="tool-name">create_payment</div>
+        <div class="tool-desc">Enregistrer un paiement pour une facture. Met a jour automatiquement le statut de la facture (paye/partiel).</div>
+        <div class="tool-params">
+          <span class="param-tag">invoice_id</span>
+          <span class="param-tag">amount</span>
+          <span class="param-tag optional">payment_method</span>
+          <span class="param-tag optional">payment_date</span>
+          <span class="param-tag optional">reference</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_unpaid_invoices factures impayees retard echeance">
+        <div class="tool-name">get_unpaid_invoices</div>
+        <div class="tool-desc">Lister les factures impayees, triees par anciennete. Filtre optionnel par nombre de jours de retard.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">days_overdue</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_receivables_summary creances clients solde global">
+        <div class="tool-name">get_receivables_summary</div>
+        <div class="tool-desc">Resume global des creances clients : total du, encaisse, en attente et en retard.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== DOCUMENTS ==================== -->
+  <section class="category" data-cat="documents" id="cat-documents">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(244, 114, 182, 0.15);">&#128221;</div>
+      <h2 class="category-title">Documents commerciaux</h2>
+      <span class="category-count">5 outils</span>
+      <span class="category-desc">Devis, avoirs, depenses et soldes fournisseurs</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="create_quote creer devis lignes calcul automatique">
+        <span class="badge badge-auto">Auto-calcul</span>
+        <div class="tool-name">create_quote</div>
+        <div class="tool-desc">Creer un devis avec lignes de detail. Calcul automatique des totaux HT, TVA et TTC.</div>
+        <div class="tool-params">
+          <span class="param-tag">client_id</span>
+          <span class="param-tag">items[]</span>
+          <span class="param-tag optional">quote_number</span>
+          <span class="param-tag optional">valid_until</span>
+          <span class="param-tag optional">tax_rate</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="convert_quote_to_invoice convertir devis facture">
+        <span class="badge badge-auto">Auto</span>
+        <div class="tool-name">convert_quote_to_invoice</div>
+        <div class="tool-desc">Convertir un devis accepte en facture. Copie tous les details et marque le devis comme converti.</div>
+        <div class="tool-params">
+          <span class="param-tag">quote_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="create_credit_note creer avoir remboursement annulation">
+        <div class="tool-name">create_credit_note</div>
+        <div class="tool-desc">Creer un avoir (note de credit) lie a une facture. Remboursement total ou partiel.</div>
+        <div class="tool-params">
+          <span class="param-tag">invoice_id</span>
+          <span class="param-tag optional">amount</span>
+          <span class="param-tag optional">reason</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="create_expense enregistrer depense charge TVA deductible">
+        <span class="badge badge-auto">Auto HT/TVA</span>
+        <div class="tool-name">create_expense</div>
+        <div class="tool-desc">Enregistrer une depense avec calcul automatique du montant HT et de la TVA a partir du TTC.</div>
+        <div class="tool-params">
+          <span class="param-tag">amount_ttc</span>
+          <span class="param-tag optional">tax_rate</span>
+          <span class="param-tag optional">category</span>
+          <span class="param-tag optional">description</span>
+          <span class="param-tag optional">expense_date</span>
+          <span class="param-tag optional">client_id</span>
+          <span class="param-tag optional">refacturable</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_supplier_balance solde fournisseur impaye">
+        <div class="tool-name">get_supplier_balance</div>
+        <div class="tool-desc">Obtenir le solde d'un fournisseur : total facture, paye, en-cours et en retard.</div>
+        <div class="tool-params">
+          <span class="param-tag">supplier_id</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FOURNISSEURS ==================== -->
+  <section class="category" data-cat="suppliers" id="cat-suppliers">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(163, 230, 53, 0.15);">&#128230;</div>
+      <h2 class="category-title">Factures Fournisseurs &amp; IA</h2>
+      <span class="category-count">5 outils</span>
+      <span class="category-desc">Extraction IA, suivi et telechargement des factures d'achat</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="extract_supplier_invoice extraction ia pdf image gemini fournisseur">
+        <span class="badge badge-ai">IA Gemini</span>
+        <div class="tool-name">extract_supplier_invoice</div>
+        <div class="tool-desc">Extraire les donnees structurees d'une facture fournisseur (PDF/image) par IA Gemini. Cree automatiquement la facture + lignes + fournisseur si inconnu. Coute 3 credits.</div>
+        <div class="tool-params">
+          <span class="param-tag">file_data (base64)</span>
+          <span class="param-tag">file_name</span>
+          <span class="param-tag">file_type</span>
+          <span class="param-tag optional">supplier_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="list_supplier_invoices liste factures fournisseur achat">
+        <div class="tool-name">list_supplier_invoices</div>
+        <div class="tool-desc">Lister les factures fournisseurs avec filtres par fournisseur et statut de paiement.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">supplier_id</span>
+          <span class="param-tag optional">payment_status</span>
+          <span class="param-tag optional">limit</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_supplier_invoice detail facture fournisseur lignes">
+        <div class="tool-name">get_supplier_invoice</div>
+        <div class="tool-desc">Obtenir le detail complet d'une facture fournisseur avec ses lignes et un lien de visualisation.</div>
+        <div class="tool-params">
+          <span class="param-tag">invoice_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="download_supplier_invoice telecharger visualiser document pdf">
+        <div class="tool-name">download_supplier_invoice</div>
+        <div class="tool-desc">Obtenir un lien temporaire (1h) pour visualiser ou telecharger le document original d'une facture fournisseur.</div>
+        <div class="tool-params">
+          <span class="param-tag">invoice_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="update_supplier_invoice_status modifier statut paiement fournisseur">
+        <div class="tool-name">update_supplier_invoice_status</div>
+        <div class="tool-desc">Modifier le statut de paiement d'une facture fournisseur : en attente, paye, partiel, en retard.</div>
+        <div class="tool-params">
+          <span class="param-tag">invoice_id</span>
+          <span class="param-tag">payment_status</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== COMPTABILITE ==================== -->
+  <section class="category" data-cat="accounting" id="cat-accounting">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(34, 211, 238, 0.15);">&#128218;</div>
+      <h2 class="category-title">Comptabilite</h2>
+      <span class="category-count">5 outils</span>
+      <span class="category-desc">Plan comptable, ecritures, balance et TVA</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="get_chart_of_accounts plan comptable comptes categories">
+        <div class="tool-name">get_chart_of_accounts</div>
+        <div class="tool-desc">Consulter le plan comptable avec filtre optionnel par categorie : actif, passif, capitaux propres, produits, charges.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">category</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_accounting_entries ecritures comptables journal">
+        <div class="tool-name">get_accounting_entries</div>
+        <div class="tool-desc">Consulter les ecritures comptables (journal) avec filtres par date et code de compte.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">start_date</span>
+          <span class="param-tag optional">end_date</span>
+          <span class="param-tag optional">account_code</span>
+          <span class="param-tag optional">limit</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_trial_balance balance generale debit credit comptes">
+        <div class="tool-name">get_trial_balance</div>
+        <div class="tool-desc">Obtenir la balance generale : somme des debits et credits par compte, avec verification de l'equilibre.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">date</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_tax_summary resume tva collectee deductible declaration">
+        <div class="tool-name">get_tax_summary</div>
+        <div class="tool-desc">Resume TVA pour une periode : TVA collectee vs TVA deductible, montant a reverser, detail des taux.</div>
+        <div class="tool-params">
+          <span class="param-tag">start_date</span>
+          <span class="param-tag">end_date</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="init_accounting initialiser comptabilite pays france belgique ohada">
+        <div class="tool-name">init_accounting</div>
+        <div class="tool-desc">Initialiser le plan comptable selon le pays : FR (France), BE (Belgique) ou OHADA (Afrique de l'Ouest).</div>
+        <div class="tool-params">
+          <span class="param-tag">country</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== BANQUE ==================== -->
+  <section class="category" data-cat="bank" id="cat-bank">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(45, 212, 191, 0.15);">&#127974;</div>
+      <h2 class="category-title">Rapprochement Bancaire</h2>
+      <span class="category-count">7 outils</span>
+      <span class="category-desc">Import de releves, matching intelligent et rapprochement</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="import_bank_statement importer releve bancaire transactions">
+        <div class="tool-name">import_bank_statement</div>
+        <div class="tool-desc">Importer un releve bancaire avec toutes ses lignes de transactions. Cree l'enregistrement du releve et insere les lignes.</div>
+        <div class="tool-params">
+          <span class="param-tag">bank_name</span>
+          <span class="param-tag">statement_date</span>
+          <span class="param-tag">lines[]</span>
+          <span class="param-tag optional">account_number</span>
+          <span class="param-tag optional">opening_balance</span>
+          <span class="param-tag optional">closing_balance</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="auto_reconcile rapprochement automatique intelligent matching">
+        <span class="badge badge-ai">IA Matching</span>
+        <div class="tool-name">auto_reconcile</div>
+        <div class="tool-desc">Rapprochement automatique intelligent des transactions bancaires avec les factures. Score base sur le montant (50pts), la reference (30pts) et le nom du client (20pts).</div>
+        <div class="tool-params">
+          <span class="param-tag optional">threshold (0-1)</span>
+          <span class="param-tag optional">limit</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="match_bank_line rapprocher manuellement ligne facture depense">
+        <div class="tool-name">match_bank_line</div>
+        <div class="tool-desc">Rapprocher manuellement une ligne de releve avec un document source : facture, depense ou facture fournisseur.</div>
+        <div class="tool-params">
+          <span class="param-tag">line_id</span>
+          <span class="param-tag">source_type</span>
+          <span class="param-tag">source_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="unmatch_bank_line annuler rapprochement defaire">
+        <div class="tool-name">unmatch_bank_line</div>
+        <div class="tool-desc">Annuler le rapprochement d'une ligne de releve bancaire.</div>
+        <div class="tool-params">
+          <span class="param-tag">line_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="ignore_bank_lines ignorer lignes frais virements internes">
+        <div class="tool-name">ignore_bank_lines</div>
+        <div class="tool-desc">Marquer des lignes de releve comme ignorees (frais bancaires, virements internes, etc.).</div>
+        <div class="tool-params">
+          <span class="param-tag">line_ids[]</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_reconciliation_summary statistiques rapprochement taux avancement">
+        <div class="tool-name">get_reconciliation_summary</div>
+        <div class="tool-desc">Statistiques de rapprochement d'un releve : lignes rapprochees/non rapprochees, taux, montants et ecarts.</div>
+        <div class="tool-params">
+          <span class="param-tag">statement_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="search_match_candidates chercher candidats correspondance factures depenses">
+        <div class="tool-name">search_match_candidates</div>
+        <div class="tool-desc">Trouver les documents candidats pour rapprocher une ligne bancaire. Retourne factures, depenses et factures fournisseurs classees par score.</div>
+        <div class="tool-params">
+          <span class="param-tag">line_id</span>
+          <span class="param-tag optional">max_results</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== ANALYTICS ==================== -->
+  <section class="category" data-cat="analytics" id="cat-analytics">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(251, 146, 60, 0.15);">&#128200;</div>
+      <h2 class="category-title">Analytics &amp; KPI</h2>
+      <span class="category-count">3 outils</span>
+      <span class="category-desc">Tresorerie, indicateurs cles et classement clients</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="get_cash_flow tresorerie flux mensuel revenus depenses net">
+        <div class="tool-name">get_cash_flow</div>
+        <div class="tool-desc">Flux de tresorerie mensuel : revenus, depenses et solde net sur 6 mois (configurable).</div>
+        <div class="tool-params">
+          <span class="param-tag optional">months</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_dashboard_kpis indicateurs cle performance tableau bord marge">
+        <div class="tool-name">get_dashboard_kpis</div>
+        <div class="tool-desc">KPIs du mois en cours : chiffre d'affaires facture, encaisse, depenses, marge et total des impayes.</div>
+      </div>
+      <div class="tool-card" data-search="get_top_clients meilleurs clients classement chiffre affaires">
+        <div class="tool-name">get_top_clients</div>
+        <div class="tool-desc">Classement des meilleurs clients par chiffre d'affaires total, avec nombre de factures.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">limit</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== REPORTING ==================== -->
+  <section class="category" data-cat="reporting" id="cat-reporting">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(167, 139, 250, 0.15);">&#128202;</div>
+      <h2 class="category-title">Reporting financier</h2>
+      <span class="category-count">3 outils</span>
+      <span class="category-desc">Compte de resultat, bilan et echeancier</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="get_profit_and_loss compte resultat produits charges benefice perte">
+        <div class="tool-name">get_profit_and_loss</div>
+        <div class="tool-desc">Compte de resultat (P&amp;L) : produits et charges regroupes par compte, avec sous-totaux et resultat net.</div>
+        <div class="tool-params">
+          <span class="param-tag">start_date</span>
+          <span class="param-tag">end_date</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_balance_sheet bilan actif passif capitaux propres">
+        <div class="tool-name">get_balance_sheet</div>
+        <div class="tool-desc">Bilan comptable a une date donnee : actifs, passifs et capitaux propres, avec verification de l'equilibre.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">date</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_aging_report echeancier creances dettes 30 60 90 jours">
+        <div class="tool-name">get_aging_report</div>
+        <div class="tool-desc">Echeancier par tranches (courant, 1-30j, 31-60j, 61-90j, 90j+) pour les creances clients ou les dettes fournisseurs.</div>
+        <div class="tool-params">
+          <span class="param-tag">type</span>
+          <span class="param-tag optional">as_of_date</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== EXPORTS ==================== -->
+  <section class="category" data-cat="exports" id="cat-exports">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(251, 191, 36, 0.15);">&#128229;</div>
+      <h2 class="category-title">Exports &amp; Conformite</h2>
+      <span class="category-count">4 outils</span>
+      <span class="category-desc">FEC, SAF-T, Factur-X et sauvegarde complete</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="export_fec fichier ecritures comptables fiscal france impots">
+        <span class="badge badge-export">Fiscal</span>
+        <div class="tool-name">export_fec</div>
+        <div class="tool-desc">Generer le FEC (Fichier des Ecritures Comptables) pour la conformite fiscale francaise. Format pipe-separated exige par l'administration.</div>
+        <div class="tool-params">
+          <span class="param-tag">start_date</span>
+          <span class="param-tag">end_date</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="export_saft standard audit tax file xml ocde international">
+        <span class="badge badge-export">OCDE</span>
+        <div class="tool-name">export_saft</div>
+        <div class="tool-desc">Generer un fichier SAF-T XML (Standard Audit File for Tax) conforme a la norme OCDE. Inclut comptes, clients et ecritures.</div>
+        <div class="tool-params">
+          <span class="param-tag">start_date</span>
+          <span class="param-tag">end_date</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="export_facturx facture electronique xml cii peppol">
+        <span class="badge badge-export">e-Invoice</span>
+        <div class="tool-name">export_facturx</div>
+        <div class="tool-desc">Generer le XML Factur-X (CII) pour une facture. Profils : MINIMUM, BASIC, EN16931. Compatible avec les normes Peppol.</div>
+        <div class="tool-params">
+          <span class="param-tag">invoice_id</span>
+          <span class="param-tag optional">profile</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="backup_all_data sauvegarde export json complet donnees">
+        <div class="tool-name">backup_all_data</div>
+        <div class="tool-desc">Exporter toutes les donnees utilisateur en JSON : clients, factures, paiements, depenses, fournisseurs, ecritures comptables, etc.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== CRUD GENERES ==================== -->
+  <section class="category" data-cat="crud" id="cat-crud">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(148, 163, 184, 0.15);">&#9881;</div>
+      <h2 class="category-title">Operations CRUD generees</h2>
+      <span class="category-count">100 outils</span>
+      <span class="category-desc">Create, Read, Update, Delete, List sur 20 tables</span>
+    </div>
+
+    <div class="crud-section">
+      <h2>Operations de base sur les entites</h2>
+      <p>Chaque entite dispose de 5 operations standardisees : <strong>create</strong> (creer), <strong>get</strong> (lire), <strong>list</strong> (lister avec pagination), <strong>update</strong> (modifier), <strong>delete</strong> (supprimer). Toutes les operations sont isolees par utilisateur via Row-Level Security (RLS).</p>
+
+      <div class="crud-table-container">
+        <table class="crud-table">
+          <thead>
+            <tr>
+              <th>Entite</th>
+              <th>Description</th>
+              <th>Operations</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-search="invoice_items lignes facture articles detail">
+              <td class="entity-name">invoice_items</td>
+              <td>Lignes de detail des factures (articles, quantites, prix)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="invoice_settings parametres facture numerotation modele">
+              <td class="entity-name">invoice_settings</td>
+              <td>Parametres de facturation (numerotation, modele, mentions legales)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="expenses depenses charges frais">
+              <td class="entity-name">expenses</td>
+              <td>Depenses et charges de l'entreprise</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="quotes devis propositions commerciales">
+              <td class="entity-name">quotes</td>
+              <td>Devis et propositions commerciales</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="credit_notes avoirs notes credit remboursement">
+              <td class="entity-name">credit_notes</td>
+              <td>Avoirs et notes de credit</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="recurring_invoices factures recurrentes abonnement periodique">
+              <td class="entity-name">recurring_invoices</td>
+              <td>Factures recurrentes et abonnements</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="payment_terms conditions paiement echeance delai">
+              <td class="entity-name">payment_terms</td>
+              <td>Conditions de paiement (delais, echeances)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="payment_reminder_rules regles relance automatique rappel">
+              <td class="entity-name">payment_reminder_rules</td>
+              <td>Regles de relance automatique des impayes</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="suppliers fournisseurs prestataires">
+              <td class="entity-name">suppliers</td>
+              <td>Fournisseurs et prestataires</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="services prestations catalogue produits">
+              <td class="entity-name">services</td>
+              <td>Catalogue de services/prestations</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="service_categories categories services classification">
+              <td class="entity-name">service_categories</td>
+              <td>Categories pour organiser les services</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="company entreprise societe parametres profil">
+              <td class="entity-name">company</td>
+              <td>Informations de l'entreprise (raison sociale, SIRET, TVA...)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="accounting_tax_rates taux tva taxe fiscalite">
+              <td class="entity-name">accounting_tax_rates</td>
+              <td>Taux de TVA et taxes applicables</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="bank_connections connexions bancaires api open banking">
+              <td class="entity-name">bank_connections</td>
+              <td>Connexions aux comptes bancaires (Open Banking)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="bank_transactions transactions bancaires mouvements">
+              <td class="entity-name">bank_transactions</td>
+              <td>Transactions bancaires (mouvements de compte)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="bank_statements releves bancaires">
+              <td class="entity-name">bank_statements</td>
+              <td>Releves bancaires importes</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="bank_statement_lines lignes releve bancaire detail">
+              <td class="entity-name">bank_statement_lines</td>
+              <td>Lignes de detail des releves bancaires</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="bank_reconciliation_sessions sessions rapprochement bancaire">
+              <td class="entity-name">bank_reconciliation_sessions</td>
+              <td>Sessions de rapprochement bancaire</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="payables dettes fournisseurs charges a payer">
+              <td class="entity-name">payables</td>
+              <td>Dettes fournisseurs et charges a payer</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="receivables creances clients a recevoir">
+              <td class="entity-name">receivables</td>
+              <td>Creances clients et montants a recevoir</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <p><strong>CashPilot MCP</strong> &mdash; 154 outils | 12 categories | Genere le 25 fevrier 2026</p>
+  <p style="margin-top: 0.5rem;">Documentation a destination des utilisateurs du serveur MCP CashPilot. Les outils CRUD sont generes automatiquement a partir du schema de base de donnees Supabase.</p>
+</footer>
+
+<script>
+  // Search functionality
+  const searchInput = document.getElementById('searchInput');
+  const searchCount = document.getElementById('searchCount');
+  const mainContent = document.getElementById('mainContent');
+
+  searchInput.addEventListener('input', function() {
+    const query = this.value.toLowerCase().trim();
+    const allCards = document.querySelectorAll('.tool-card');
+    const allCrudRows = document.querySelectorAll('.crud-table tbody tr');
+    const categories = document.querySelectorAll('.category');
+    let visibleCount = 0;
+
+    if (!query) {
+      allCards.forEach(c => c.style.display = '');
+      allCrudRows.forEach(r => r.style.display = '');
+      categories.forEach(c => c.style.display = '');
+      searchCount.textContent = '';
+      return;
+    }
+
+    // Filter tool cards
+    allCards.forEach(card => {
+      const searchData = (card.getAttribute('data-search') || '') + ' ' +
+        (card.querySelector('.tool-name')?.textContent || '') + ' ' +
+        (card.querySelector('.tool-desc')?.textContent || '');
+      const match = searchData.toLowerCase().includes(query);
+      card.style.display = match ? '' : 'none';
+      if (match) visibleCount++;
+    });
+
+    // Filter CRUD rows
+    allCrudRows.forEach(row => {
+      const searchData = (row.getAttribute('data-search') || '') + ' ' +
+        (row.querySelector('.entity-name')?.textContent || '') + ' ' + row.textContent;
+      const match = searchData.toLowerCase().includes(query);
+      row.style.display = match ? '' : 'none';
+      if (match) visibleCount++;
+    });
+
+    // Hide empty categories
+    categories.forEach(cat => {
+      const catName = cat.getAttribute('data-cat');
+      if (catName === 'crud') {
+        const visibleRows = cat.querySelectorAll('.crud-table tbody tr:not([style*="display: none"])');
+        cat.style.display = visibleRows.length > 0 ? '' : 'none';
+      } else {
+        const visibleCards = cat.querySelectorAll('.tool-card:not([style*="display: none"])');
+        cat.style.display = visibleCards.length > 0 ? '' : 'none';
+      }
+    });
+
+    searchCount.textContent = `${visibleCount} resultat${visibleCount > 1 ? 's' : ''} pour "${query}"`;
+  });
+
+  // Category filter
+  function filterCategory(cat, btn) {
+    const categories = document.querySelectorAll('.category');
+    const allCards = document.querySelectorAll('.tool-card');
+    const allCrudRows = document.querySelectorAll('.crud-table tbody tr');
+
+    // Reset search
+    searchInput.value = '';
+    searchCount.textContent = '';
+    allCards.forEach(c => c.style.display = '');
+    allCrudRows.forEach(r => r.style.display = '');
+
+    // Update nav buttons
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    if (cat === 'all') {
+      categories.forEach(c => c.style.display = '');
+    } else {
+      categories.forEach(c => {
+        c.style.display = c.getAttribute('data-cat') === cat ? '' : 'none';
+      });
+    }
+
+    // Scroll to top of content
+    if (cat !== 'all') {
+      const target = document.getElementById('cat-' + cat);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+</script>
+
+</body>
+</html>
