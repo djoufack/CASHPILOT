@@ -21,6 +21,32 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 const excludedTables = ['audit_log', 'profiles', 'user_roles', 'role_permissions', 'schema_migrations'];
+
+// Whitelist: only these tables get CRUD tools generated.
+// All other tables are ignored. Hand-written tools cover the rest.
+const whitelistedTables = [
+  'invoice_items',
+  'invoice_settings',
+  'expenses',
+  'quotes',
+  'credit_notes',
+  'recurring_invoices',
+  'payment_terms',
+  'payment_reminder_rules',
+  'suppliers',
+  'services',
+  'service_categories',
+  'company',
+  'accounting_tax_rates',
+  'bank_connections',
+  'bank_transactions',
+  'bank_statements',
+  'bank_statement_lines',
+  'bank_reconciliation_sessions',
+  'payables',
+  'receivables',
+];
+
 const systemColumns = ['id', 'created_at', 'updated_at', 'deleted_at', 'user_id'];
 
 function mapTypeToZod(prop: any): string {
@@ -46,6 +72,7 @@ async function fetchSchema() {
     for (const [tableName, definition] of Object.entries((json.definitions || {}) as Record<string, any>)) {
         if (excludedTables.includes(tableName)) continue;
         if (definition.type !== 'object' || !definition.properties) continue;
+        if (!whitelistedTables.includes(tableName)) continue;
 
         const properties = definition.properties;
         const requiredCols = definition.required || [];
