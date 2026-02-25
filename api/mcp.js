@@ -6,8 +6,8 @@
 export const config = { maxDuration: 60 };
 
 export default async function handler(req, res) {
-  const SUPABASE_URL = process.env.SUPABASE_URL || 'https://rfzvrezrcigzmldgvntz.supabase.co';
-  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+  const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://rfzvrezrcigzmldgvntz.supabase.co';
+  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
   if (!SUPABASE_ANON_KEY) {
     return res.status(500).json({ error: 'Server misconfigured: missing SUPABASE_ANON_KEY' });
