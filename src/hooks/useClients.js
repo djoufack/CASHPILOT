@@ -31,6 +31,7 @@ export const useClients = () => {
       let query = supabase
         .from('clients')
         .select('*', usePagination ? { count: 'exact' } : undefined)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (usePagination) {
