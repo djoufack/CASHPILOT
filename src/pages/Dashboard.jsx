@@ -410,28 +410,122 @@ const Dashboard = () => {
         {/* Revenue Breakdown Chart */}
         {revenueBreakdownData.length > 0 && (
           <motion.div
-            className="bg-gray-900 rounded-xl p-5 border border-gray-800/50 mb-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.45 }}
+            className="relative bg-gradient-to-br from-[#0c1222] via-[#111827] to-[#0c1222] rounded-2xl p-6 border border-gray-800/40 mb-8 overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45, duration: 0.5 }}
           >
-            <h2 className="text-lg font-semibold text-gradient mb-5">{t('dashboard.revenueBreakdown')}</h2>
-            <div className="h-[280px] w-full">
+            {/* Subtle background glow */}
+            <div className="absolute top-0 left-1/4 w-1/2 h-32 bg-gradient-to-b from-blue-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex items-center justify-between mb-6 relative z-10">
+              <div>
+                <h2 className="text-lg font-semibold text-white tracking-tight">{t('dashboard.revenueBreakdown')}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{t('dashboard.revenueBreakdownSub', { defaultValue: 'Products vs Services by month' })}</p>
+              </div>
+              {/* Custom legend */}
+              <div className="flex items-center gap-4">
+                {[
+                  { key: 'products', color: '#6366f1', label: t('dashboard.productRevenue') },
+                  { key: 'services', color: '#06b6d4', label: t('dashboard.serviceRevenue') },
+                  { key: 'other', color: '#f59e0b', label: t('dashboard.otherRevenue') },
+                ].map(({ key, color, label }) => (
+                  <div key={key} className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}60` }} />
+                    <span className="text-xs text-gray-400 font-medium">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="h-[320px] w-full relative z-10">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={revenueBreakdownData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
-                  <XAxis dataKey="name" stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => { const abs = Math.abs(val); if (abs >= 1e9) return `${(val/1e9).toFixed(1)}Md`; if (abs >= 1e6) return `${(val/1e6).toFixed(1)}M`; if (abs >= 1e3) return `${(val/1e3).toFixed(0)}K`; return val; }} />
+                <BarChart data={revenueBreakdownData} barCategoryGap="20%" barGap={0}>
+                  <defs>
+                    <linearGradient id="gradProducts" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#818cf8" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#4f46e5" stopOpacity={0.85} />
+                    </linearGradient>
+                    <linearGradient id="gradServices" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#0891b2" stopOpacity={0.85} />
+                    </linearGradient>
+                    <linearGradient id="gradOther" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#d97706" stopOpacity={0.85} />
+                    </linearGradient>
+                    <filter id="barGlow">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <CartesianGrid stroke="#1e293b" strokeDasharray="none" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#475569"
+                    fontSize={11}
+                    fontWeight={500}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={8}
+                  />
+                  <YAxis
+                    stroke="#475569"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    dx={-4}
+                    tickFormatter={(val) => {
+                      const abs = Math.abs(val);
+                      if (abs >= 1e9) return `${(val/1e9).toFixed(1)}Md`;
+                      if (abs >= 1e6) return `${(val/1e6).toFixed(1)}M`;
+                      if (abs >= 1e3) return `${(val/1e3).toFixed(0)}K`;
+                      return val;
+                    }}
+                  />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
-                    formatter={(value, name) => [formatCurrency(value, company?.currency), name === 'products' ? t('dashboard.productRevenue') : name === 'services' ? t('dashboard.serviceRevenue') : t('dashboard.otherRevenue')]}
+                    cursor={{ fill: 'rgba(255,255,255,0.03)', radius: 8 }}
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      const total = payload.reduce((s, p) => s + (p.value || 0), 0);
+                      return (
+                        <div className="bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-xl px-4 py-3 shadow-2xl shadow-black/40">
+                          <p className="text-white font-semibold text-sm mb-2">{label}</p>
+                          <div className="space-y-1.5">
+                            {payload.filter(p => p.value > 0).map((p) => {
+                              const nameMap = { products: t('dashboard.productRevenue'), services: t('dashboard.serviceRevenue'), other: t('dashboard.otherRevenue') };
+                              const colorMap = { products: '#818cf8', services: '#22d3ee', other: '#fbbf24' };
+                              const pct = total > 0 ? ((p.value / total) * 100).toFixed(0) : 0;
+                              return (
+                                <div key={p.dataKey} className="flex items-center justify-between gap-6">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colorMap[p.dataKey] }} />
+                                    <span className="text-gray-400 text-xs">{nameMap[p.dataKey]}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-white text-xs font-semibold tabular-nums">{formatCurrency(p.value, company?.currency)}</span>
+                                    <span className="text-gray-500 text-[10px] w-8 text-right">{pct}%</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {payload.filter(p => p.value > 0).length > 1 && (
+                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-700/50">
+                              <span className="text-gray-500 text-xs">Total</span>
+                              <span className="text-white text-xs font-bold tabular-nums">{formatCurrency(total, company?.currency)}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }}
                   />
-                  <Legend
-                    formatter={(value) => value === 'products' ? t('dashboard.productRevenue') : value === 'services' ? t('dashboard.serviceRevenue') : t('dashboard.otherRevenue')}
-                  />
-                  <Bar dataKey="products" stackId="a" fill="#3B82F6" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="services" stackId="a" fill="#10B981" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="other" stackId="a" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="products" stackId="a" fill="url(#gradProducts)" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="services" stackId="a" fill="url(#gradServices)" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="other" stackId="a" fill="url(#gradOther)" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
