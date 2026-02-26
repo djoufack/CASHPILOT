@@ -102,10 +102,10 @@ const Dashboard = () => {
 
     // Expense trends
     const currentMonthExpenses = (expenses || [])
-      .filter(exp => { const d = new Date(exp.date || exp.created_at); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; })
+      .filter(exp => { const d = new Date(exp.expense_date || exp.created_at); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; })
       .reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
     const prevMonthExpenses = (expenses || [])
-      .filter(exp => { const d = new Date(exp.date || exp.created_at); return d.getMonth() === prevMonth && d.getFullYear() === prevYear; })
+      .filter(exp => { const d = new Date(exp.expense_date || exp.created_at); return d.getMonth() === prevMonth && d.getFullYear() === prevYear; })
       .reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
 
     const prevMonthMargin = calculateProfitMargin(prevMonthRevenue, prevMonthExpenses);
@@ -320,42 +320,44 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Revenue Breakdown Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            className="bg-gray-900 rounded-xl p-5 border border-gray-800/50"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.productRevenue')}</p>
-                <p className="text-2xl md:text-3xl font-bold text-blue-400">{formatCurrency(revenueByType.product, company?.currency)}</p>
+        {/* Revenue Breakdown Cards - show product/service split only when item data exists */}
+        {(revenueByType.product > 0 || revenueByType.service > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="bg-gray-900 rounded-xl p-5 border border-gray-800/50"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.productRevenue')}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-blue-400">{formatCurrency(revenueByType.product, company?.currency)}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-blue-500/10">
+                  <Package className="w-6 h-6 text-blue-400" />
+                </div>
               </div>
-              <div className="p-3 rounded-xl bg-blue-500/10">
-                <Package className="w-6 h-6 text-blue-400" />
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-gray-900 rounded-xl p-5 border border-gray-800/50"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.serviceRevenue')}</p>
-                <p className="text-2xl md:text-3xl font-bold text-emerald-400">{formatCurrency(revenueByType.service, company?.currency)}</p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-gray-900 rounded-xl p-5 border border-gray-800/50"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.serviceRevenue')}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-emerald-400">{formatCurrency(revenueByType.service, company?.currency)}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-emerald-500/10">
+                  <Wrench className="w-6 h-6 text-emerald-400" />
+                </div>
               </div>
-              <div className="p-3 rounded-xl bg-emerald-500/10">
-                <Wrench className="w-6 h-6 text-emerald-400" />
-              </div>
-            </div>
-          </motion.div>
-        </div>
+            </motion.div>
+          </div>
+        )}
 
         {/* Expense & Cash Flow Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">

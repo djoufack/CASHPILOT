@@ -28,7 +28,7 @@ export const useExpenses = () => {
       let query = supabase
         .from('expenses')
         .select('*', usePagination ? { count: 'exact' } : undefined)
-        .order('date', { ascending: false });
+        .order('expense_date', { ascending: false });
 
       if (usePagination) {
         const from = (page - 1) * pageSize;
