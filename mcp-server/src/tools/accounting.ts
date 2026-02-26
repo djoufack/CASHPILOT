@@ -142,20 +142,47 @@ export function registerAccountingTools(server: McpServer) {
 
   server.tool(
     'backfill_stale_entries',
-    'Run backfill for all accounting entry types (invoices, payments, expenses, supplier invoices, credit notes). Creates missing auto-journal entries.',
-    {},
-    async () => {
+    'Run backfill for all accounting entry types (invoices, payments, expenses, supplier invoices, credit notes). Creates missing auto-journal entries. Use dry_run=true to preview without creating entries.',
+    {
+      dry_run: z.boolean().optional().describe('Preview only, do not create entries (default false)')
+    },
+    async ({ dry_run }) => {
       const userId = getUserId();
 
-      const { data, error } = await supabase.rpc('backfill_accounting_entries', { p_user_id: userId });
+      const { data, error } = await supabase.rpc('backfill_accounting_entries', {
+        p_user_id: userId,
+        p_dry_run: dry_run ?? false
+      });
 
       if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
 
-      const results = data as Array<{ source_type: string; entries_created: number }> ?? [];
-      const total = results.reduce((s: number, r: { entries_created: number }) => s + r.entries_created, 0);
+      const result = data as {
+        dry_run: boolean;
+        user_id: string;
+        documents_missing_entries: {
+          invoices: number;
+          expenses: number;
+          payments: number;
+          credit_notes: number;
+          supplier_invoices: number;
+          total: number;
+        };
+      };
+
+      const missing = result.documents_missing_entries;
+      const mode = result.dry_run ? 'DRY RUN' : 'EXECUTED';
+
+      const lines = [
+        `Backfill ${mode}: ${missing.total} entries ${result.dry_run ? 'would be' : ''} created.`,
+        `  Invoices: ${missing.invoices}`,
+        `  Expenses: ${missing.expenses}`,
+        `  Payments: ${missing.payments}`,
+        `  Credit notes: ${missing.credit_notes}`,
+        `  Supplier invoices: ${missing.supplier_invoices}`
+      ];
 
       return {
-        content: [{ type: 'text' as const, text: `Backfill complete: ${total} entries created.\n${JSON.stringify(results, null, 2)}` }]
+        content: [{ type: 'text' as const, text: lines.join('\n') }]
       };
     }
   );
