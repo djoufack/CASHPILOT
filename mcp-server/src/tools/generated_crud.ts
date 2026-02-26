@@ -794,6 +794,181 @@ export function registerGeneratedCrudTools(server: McpServer) {
   );
 
   server.tool(
+    'create_supplier_order_items',
+    'Create a new record in supplier_order_items',
+    {
+      order_id: z.string().optional().describe('Note: This is a Foreign Key to `supplier_orders.id`.<fk table=\'supplier_orders\' column=\'id\'/>'),
+      service_id: z.string().optional().describe('Note: This is a Foreign Key to `supplier_services.id`.<fk table=\'supplier_services\' column=\'id\'/>'),
+      product_id: z.string().optional().describe('Note: This is a Foreign Key to `supplier_products.id`.<fk table=\'supplier_products\' column=\'id\'/>'),
+      quantity: z.number(),
+      unit_price: z.number(),
+      total_price: z.number()
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      const { data, error } = await supabase.from('supplier_order_items').insert([payload]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into supplier_order_items: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created supplier_order_items record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_supplier_order_items',
+    'Update an existing record in supplier_order_items',
+    {
+      id: z.string().describe('Record UUID to update'),
+      order_id: z.string().optional().describe('Note: This is a Foreign Key to `supplier_orders.id`.<fk table=\'supplier_orders\' column=\'id\'/>'),
+      service_id: z.string().optional().describe('Note: This is a Foreign Key to `supplier_services.id`.<fk table=\'supplier_services\' column=\'id\'/>'),
+      product_id: z.string().optional().describe('Note: This is a Foreign Key to `supplier_products.id`.<fk table=\'supplier_products\' column=\'id\'/>'),
+      quantity: z.number().optional(),
+      unit_price: z.number().optional(),
+      total_price: z.number().optional()
+    },
+    async (args) => {
+      const { id, ...updates } = args;
+      let query = supabase.from('supplier_order_items').update(updates).eq('id', id);
+      const { data, error } = await query.select().single();
+      if (error) return { content: [{ type: 'text' as const, text: 'Error updating supplier_order_items: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated supplier_order_items record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_supplier_order_items',
+    'Delete a record from supplier_order_items',
+    {
+      id: z.string().describe('Record UUID to delete')
+    },
+    async ({ id }) => {
+      let query = supabase.from('supplier_order_items').delete().eq('id', id);
+      const { error } = await query;
+      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from supplier_order_items: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from supplier_order_items' }] };
+    }
+  );
+
+  server.tool(
+    'get_supplier_order_items',
+    'Get a single record from supplier_order_items by ID',
+    {
+      id: z.string().describe('Record UUID to fetch')
+    },
+    async ({ id }) => {
+      let query = supabase.from('supplier_order_items').select('*').eq('id', id);
+      const { data, error } = await query.single();
+      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from supplier_order_items: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_supplier_order_items',
+    'List multiple records from supplier_order_items',
+    {
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ limit = 50, offset = 0 }) => {
+      let query = supabase.from('supplier_order_items').select('*');
+      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
+      if (error) return { content: [{ type: 'text' as const, text: 'Error listing supplier_order_items: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'create_supplier_orders',
+    'Create a new record in supplier_orders',
+    {
+      supplier_id: z.string().optional().describe('Note: This is a Foreign Key to `suppliers.id`.<fk table=\'suppliers\' column=\'id\'/>'),
+      order_number: z.string(),
+      order_date: z.string().optional(),
+      expected_delivery_date: z.string().optional(),
+      actual_delivery_date: z.string().optional(),
+      order_status: z.string().optional(),
+      total_amount: z.number().optional(),
+      notes: z.string().optional()
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      payload.user_id = getUserId();
+      const { data, error } = await supabase.from('supplier_orders').insert([payload]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into supplier_orders: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created supplier_orders record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_supplier_orders',
+    'Update an existing record in supplier_orders',
+    {
+      id: z.string().describe('Record UUID to update'),
+      supplier_id: z.string().optional().describe('Note: This is a Foreign Key to `suppliers.id`.<fk table=\'suppliers\' column=\'id\'/>'),
+      order_number: z.string().optional(),
+      order_date: z.string().optional(),
+      expected_delivery_date: z.string().optional(),
+      actual_delivery_date: z.string().optional(),
+      order_status: z.string().optional(),
+      total_amount: z.number().optional(),
+      notes: z.string().optional()
+    },
+    async (args) => {
+      const { id, ...updates } = args;
+      let query = supabase.from('supplier_orders').update(updates).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.select().single();
+      if (error) return { content: [{ type: 'text' as const, text: 'Error updating supplier_orders: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated supplier_orders record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_supplier_orders',
+    'Delete a record from supplier_orders',
+    {
+      id: z.string().describe('Record UUID to delete')
+    },
+    async ({ id }) => {
+      let query = supabase.from('supplier_orders').delete().eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { error } = await query;
+      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from supplier_orders: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from supplier_orders' }] };
+    }
+  );
+
+  server.tool(
+    'get_supplier_orders',
+    'Get a single record from supplier_orders by ID',
+    {
+      id: z.string().describe('Record UUID to fetch')
+    },
+    async ({ id }) => {
+      let query = supabase.from('supplier_orders').select('*').eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.single();
+      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from supplier_orders: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_supplier_orders',
+    'List multiple records from supplier_orders',
+    {
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ limit = 50, offset = 0 }) => {
+      let query = supabase.from('supplier_orders').select('*');
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
+      if (error) return { content: [{ type: 'text' as const, text: 'Error listing supplier_orders: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
     'create_service_categories',
     'Create a new record in service_categories',
     {
@@ -1851,6 +2026,100 @@ export function registerGeneratedCrudTools(server: McpServer) {
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
       if (error) return { content: [{ type: 'text' as const, text: 'Error listing recurring_invoices: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'create_purchase_orders',
+    'Create a new record in purchase_orders',
+    {
+      client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
+      po_number: z.string(),
+      date: z.string().optional(),
+      due_date: z.string().optional(),
+      items: z.any().optional(),
+      total: z.number().optional(),
+      status: z.string().optional(),
+      payment_terms_id: z.string().optional().describe('Note: This is a Foreign Key to `payment_terms.id`.<fk table=\'payment_terms\' column=\'id\'/>'),
+      notes: z.string().optional()
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      payload.user_id = getUserId();
+      const { data, error } = await supabase.from('purchase_orders').insert([payload]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into purchase_orders: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created purchase_orders record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_purchase_orders',
+    'Update an existing record in purchase_orders',
+    {
+      id: z.string().describe('Record UUID to update'),
+      client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
+      po_number: z.string().optional(),
+      date: z.string().optional(),
+      due_date: z.string().optional(),
+      items: z.any().optional(),
+      total: z.number().optional(),
+      status: z.string().optional(),
+      payment_terms_id: z.string().optional().describe('Note: This is a Foreign Key to `payment_terms.id`.<fk table=\'payment_terms\' column=\'id\'/>'),
+      notes: z.string().optional()
+    },
+    async (args) => {
+      const { id, ...updates } = args;
+      let query = supabase.from('purchase_orders').update(updates).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.select().single();
+      if (error) return { content: [{ type: 'text' as const, text: 'Error updating purchase_orders: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated purchase_orders record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_purchase_orders',
+    'Delete a record from purchase_orders',
+    {
+      id: z.string().describe('Record UUID to delete')
+    },
+    async ({ id }) => {
+      let query = supabase.from('purchase_orders').delete().eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { error } = await query;
+      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from purchase_orders: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from purchase_orders' }] };
+    }
+  );
+
+  server.tool(
+    'get_purchase_orders',
+    'Get a single record from purchase_orders by ID',
+    {
+      id: z.string().describe('Record UUID to fetch')
+    },
+    async ({ id }) => {
+      let query = supabase.from('purchase_orders').select('*').eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.single();
+      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from purchase_orders: ' + error.message }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_purchase_orders',
+    'List multiple records from purchase_orders',
+    {
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ limit = 50, offset = 0 }) => {
+      let query = supabase.from('purchase_orders').select('*');
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
+      if (error) return { content: [{ type: 'text' as const, text: 'Error listing purchase_orders: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );

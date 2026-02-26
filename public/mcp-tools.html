@@ -385,9 +385,9 @@
   <div class="hero-logo">CashPilot MCP</div>
   <p class="hero-sub">Catalogue complet des outils MCP disponibles pour piloter votre comptabilite, facturation, tresorerie et plus encore via l'IA.</p>
   <div class="hero-stats">
-    <div class="stat"><div class="stat-number">154</div><div class="stat-label">Outils au total</div></div>
+    <div class="stat"><div class="stat-number">169</div><div class="stat-label">Outils au total</div></div>
     <div class="stat"><div class="stat-number">54</div><div class="stat-label">Outils metier</div></div>
-    <div class="stat"><div class="stat-number">100</div><div class="stat-label">Operations CRUD</div></div>
+    <div class="stat"><div class="stat-number">115</div><div class="stat-label">Operations CRUD</div></div>
     <div class="stat"><div class="stat-number">12</div><div class="stat-label">Categories</div></div>
   </div>
   <div class="search-container">
@@ -709,8 +709,8 @@
     <div class="category-header">
       <div class="category-icon" style="background: rgba(163, 230, 53, 0.15);">&#128230;</div>
       <h2 class="category-title">Factures Fournisseurs &amp; IA</h2>
-      <span class="category-count">5 outils</span>
-      <span class="category-desc">Extraction IA, suivi et telechargement des factures d'achat</span>
+      <span class="category-count">15 outils</span>
+      <span class="category-desc">Extraction IA, factures, commandes et lignes de commande fournisseurs</span>
     </div>
     <div class="tools-grid">
       <div class="tool-card" data-search="extract_supplier_invoice extraction ia pdf image gemini fournisseur">
@@ -753,6 +753,107 @@
         <div class="tool-params">
           <span class="param-tag">invoice_id</span>
           <span class="param-tag">payment_status</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="create_supplier_orders creer commande fournisseur achat">
+        <span class="badge badge-crud">CRUD</span>
+        <div class="tool-name">create_supplier_orders</div>
+        <div class="tool-desc">Creer une nouvelle commande fournisseur avec numero, date, montant et statut.</div>
+        <div class="tool-params">
+          <span class="param-tag">supplier_id</span>
+          <span class="param-tag">order_number</span>
+          <span class="param-tag optional">order_date</span>
+          <span class="param-tag optional">expected_delivery_date</span>
+          <span class="param-tag optional">order_status</span>
+          <span class="param-tag optional">total_amount</span>
+          <span class="param-tag optional">notes</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="list_supplier_orders lister commandes fournisseur">
+        <span class="badge badge-crud">CRUD</span>
+        <div class="tool-name">list_supplier_orders</div>
+        <div class="tool-desc">Lister les commandes fournisseurs avec pagination.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">limit</span>
+          <span class="param-tag optional">offset</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_supplier_orders detail commande fournisseur">
+        <span class="badge badge-crud">CRUD</span>
+        <div class="tool-name">get_supplier_orders</div>
+        <div class="tool-desc">Obtenir le detail d'une commande fournisseur par son identifiant.</div>
+        <div class="tool-params">
+          <span class="param-tag">id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="update_supplier_orders modifier commande fournisseur statut">
+        <span class="badge badge-crud">CRUD</span>
+        <div class="tool-name">update_supplier_orders</div>
+        <div class="tool-desc">Modifier une commande fournisseur existante (statut, dates, montant, notes).</div>
+        <div class="tool-params">
+          <span class="param-tag">id</span>
+          <span class="param-tag optional">order_status</span>
+          <span class="param-tag optional">expected_delivery_date</span>
+          <span class="param-tag optional">actual_delivery_date</span>
+          <span class="param-tag optional">total_amount</span>
+          <span class="param-tag optional">notes</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="delete_supplier_orders supprimer commande fournisseur">
+        <span class="badge badge-crud">CRUD</span>
+        <div class="tool-name">delete_supplier_orders</div>
+        <div class="tool-desc">Supprimer une commande fournisseur.</div>
+        <div class="tool-params">
+          <span class="param-tag">id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="create_supplier_order_items creer ligne commande fournisseur article">
+        <span class="badge badge-crud">CRUD</span>
+        <div class="tool-name">create_supplier_order_items</div>
+        <div class="tool-desc">Ajouter une ligne (article/service) a une commande fournisseur.</div>
+        <div class="tool-params">
+          <span class="param-tag">order_id</span>
+          <span class="param-tag optional">service_id</span>
+          <span class="param-tag optional">product_id</span>
+          <span class="param-tag optional">quantity</span>
+          <span class="param-tag optional">unit_price</span>
+          <span class="param-tag optional">total_price</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="list_supplier_order_items lister lignes commande fournisseur">
+        <span class="badge badge-crud">CRUD</span>
+        <div class="tool-name">list_supplier_order_items</div>
+        <div class="tool-desc">Lister les lignes d'une commande fournisseur avec pagination.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">limit</span>
+          <span class="param-tag optional">offset</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_supplier_order_items detail ligne commande fournisseur">
+        <span class="badge badge-crud">CRUD</span>
+        <div class="tool-name">get_supplier_order_items</div>
+        <div class="tool-desc">Obtenir le detail d'une ligne de commande fournisseur.</div>
+        <div class="tool-params">
+          <span class="param-tag">id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="update_supplier_order_items modifier ligne commande fournisseur">
+        <span class="badge badge-crud">CRUD</span>
+        <div class="tool-name">update_supplier_order_items</div>
+        <div class="tool-desc">Modifier une ligne de commande fournisseur (quantite, prix, article).</div>
+        <div class="tool-params">
+          <span class="param-tag">id</span>
+          <span class="param-tag optional">quantity</span>
+          <span class="param-tag optional">unit_price</span>
+          <span class="param-tag optional">total_price</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="delete_supplier_order_items supprimer ligne commande fournisseur">
+        <span class="badge badge-crud">CRUD</span>
+        <div class="tool-name">delete_supplier_order_items</div>
+        <div class="tool-desc">Supprimer une ligne de commande fournisseur.</div>
+        <div class="tool-params">
+          <span class="param-tag">id</span>
         </div>
       </div>
     </div>
@@ -993,8 +1094,8 @@
     <div class="category-header">
       <div class="category-icon" style="background: rgba(148, 163, 184, 0.15);">&#9881;</div>
       <h2 class="category-title">Operations CRUD generees</h2>
-      <span class="category-count">100 outils</span>
-      <span class="category-desc">Create, Read, Update, Delete, List sur 20 tables</span>
+      <span class="category-count">115 outils</span>
+      <span class="category-desc">Create, Read, Update, Delete, List sur 23 tables</span>
     </div>
 
     <div class="crud-section">
@@ -1111,6 +1212,21 @@
               <td>Creances clients et montants a recevoir</td>
               <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
             </tr>
+            <tr data-search="supplier_orders commandes fournisseurs achat approvisionnement">
+              <td class="entity-name">supplier_orders</td>
+              <td>Commandes fournisseurs (approvisionnement)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="supplier_order_items lignes commande fournisseur articles">
+              <td class="entity-name">supplier_order_items</td>
+              <td>Lignes de commande fournisseur (articles/services)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="purchase_orders bons commande client devis confirme">
+              <td class="entity-name">purchase_orders</td>
+              <td>Bons de commande client (devis confirmes)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -1121,7 +1237,7 @@
 
 <!-- Footer -->
 <footer class="footer">
-  <p><strong>CashPilot MCP</strong> &mdash; 154 outils | 12 categories | Genere le 25 fevrier 2026</p>
+  <p><strong>CashPilot MCP</strong> &mdash; 169 outils | 12 categories | Genere le 25 fevrier 2026</p>
   <p style="margin-top: 0.5rem;">Documentation a destination des utilisateurs du serveur MCP CashPilot. Les outils CRUD sont generes automatiquement a partir du schema de base de donnees Supabase.</p>
 </footer>
 

@@ -45,6 +45,9 @@ const whitelistedTables = [
   'bank_reconciliation_sessions',
   'payables',
   'receivables',
+  'supplier_orders',
+  'supplier_order_items',
+  'purchase_orders',
 ];
 
 const systemColumns = ['id', 'created_at', 'updated_at', 'deleted_at', 'user_id'];
