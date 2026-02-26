@@ -70,8 +70,8 @@ export const formatCurrency = (amount, currency = 'EUR') => {
     USD: '$',
     GBP: '£'
   };
-  
-  const formatted = amount.toFixed(2);
+
+  const formatted = (Number(amount) || 0).toFixed(2);
   const symbol = symbols[currency] || currency;
   
   if (currency === 'USD') {
@@ -207,4 +207,62 @@ export const generateInvoiceNumber = () => {
   const sequence = (currentMonthInvoices.length + 1).toString().padStart(3, '0');
   
   return `INV-${year}-${month}-${sequence}`;
+};
+
+/**
+ * Calculate percentage trend between two values
+ * @param {number} current - Current period value
+ * @param {number} previous - Previous period value
+ * @returns {number} Percentage change (e.g., 12.5 or -3.2)
+ */
+export const calculateTrend = (current, previous) => {
+  if (previous === 0 && current === 0) return 0;
+  if (previous === 0) return current > 0 ? 100 : -100;
+  return Number((((current - previous) / Math.abs(previous)) * 100).toFixed(1));
+};
+
+/**
+ * Format a trend value as a display string
+ * @param {number} trend - Trend percentage
+ * @returns {string} Formatted string like "+12.5%" or "-3.2%"
+ */
+export const formatTrendLabel = (trend) => {
+  if (trend === 0 || isNaN(trend)) return '0%';
+  return `${trend > 0 ? '+' : ''}${trend}%`;
+};
+
+/**
+ * Calculate real profit margin from revenue and expenses
+ * @param {number} revenue - Total revenue
+ * @param {number} expenses - Total expenses
+ * @returns {number} Profit margin percentage
+ */
+export const calculateProfitMargin = (revenue, expenses) => {
+  if (revenue <= 0) return 0;
+  return Number((((revenue - expenses) / revenue) * 100).toFixed(1));
+};
+
+/**
+ * Get the best available total amount from an invoice
+ * Falls back through total_ttc -> total -> 0
+ * @param {Object} invoice - Invoice object
+ * @returns {number} The invoice amount
+ */
+export const getInvoiceAmount = (invoice) => {
+  return parseFloat(invoice?.total_ttc) || parseFloat(invoice?.total) || 0;
+};
+
+/**
+ * Filter array items by a specific month and year
+ * @param {Array} items - Array of objects with date fields
+ * @param {number} month - Month (0-11)
+ * @param {number} year - Full year
+ * @param {string} dateField - Name of the date field to check
+ * @returns {Array} Filtered items
+ */
+export const filterByMonth = (items, month, year, dateField = 'date') => {
+  return items.filter(item => {
+    const d = new Date(item[dateField] || item.created_at);
+    return d.getMonth() === month && d.getFullYear() === year;
+  });
 };

@@ -8,11 +8,14 @@ import { useTimesheets } from '@/hooks/useTimesheets';
 import { useProjects } from '@/hooks/useProjects';
 import { useClients } from '@/hooks/useClients';
 import { useCompany } from '@/hooks/useCompany';
+import { useExpenses } from '@/hooks/useExpenses';
+import { useCashFlow } from '@/hooks/useCashFlow';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import OnboardingBanner from '@/components/onboarding/OnboardingBanner';
-import { formatCurrency } from '@/utils/calculations';
-import { Users, Clock, FileText, TrendingUp, DollarSign, Activity, Loader2, ArrowUp, Download, Package, Wrench } from 'lucide-react';
+import { formatCurrency } from '@/utils/currencyService';
+import { calculateTrend, formatTrendLabel, calculateProfitMargin, getInvoiceAmount } from '@/utils/calculations';
+import { Users, Clock, FileText, TrendingUp, DollarSign, Activity, Loader2, ArrowUp, ArrowDown, Download, Package, Wrench, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, Legend } from 'recharts';
@@ -28,6 +31,8 @@ const Dashboard = () => {
   const { projects, fetchProjects, loading: projectsLoading } = useProjects();
   const { clients, fetchClients } = useClients();
   const { company } = useCompany();
+  const { expenses, fetchExpenses, loading: expensesLoading } = useExpenses();
+  const { cashFlowData, summary: cashFlowSummary, loading: cashFlowLoading } = useCashFlow();
   const { guardedAction, modalProps } = useCreditsGuard();
 
   useEffect(() => {
@@ -36,13 +41,14 @@ const Dashboard = () => {
       fetchTimesheets();
       fetchProjects();
       fetchClients();
+      fetchExpenses();
     }
   }, [user]);
 
   const { metrics, revenueData, clientRevenueData, revenueByType, revenueBreakdownData, recentInvoices, recentTimesheets } = useMemo(() => {
     if (!invoices || !timesheets || !projects) {
       return {
-        metrics: { revenue: 0, profitMargin: 0, occupancyRate: 0 },
+        metrics: { revenue: 0, profitMargin: 0, occupancyRate: 0, totalExpenses: 0, netCashFlow: 0, revenueTrend: '0', marginTrend: '0', occupancyTrend: '0' },
         revenueData: [],
         clientRevenueData: [],
         revenueByType: { product: 0, service: 0, other: 0 },
@@ -52,10 +58,20 @@ const Dashboard = () => {
       };
     }
 
-    const paidInvoices = invoices.filter(inv => inv.status === 'paid');
-    const totalRevenue = paidInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
-    const profitMargin = totalRevenue > 0 ? ((totalRevenue) / totalRevenue) * 100 : 0;
+    // --- Revenue: include both "sent" and "paid" invoices, use total_ttc preferably ---
+    const billedInvoices = invoices.filter(inv => ['sent', 'paid'].includes(inv.status));
+    const totalRevenue = billedInvoices.reduce((sum, inv) => sum + getInvoiceAmount(inv), 0);
 
+    // --- Total Expenses ---
+    const totalExpenses = (expenses || []).reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+
+    // --- Profit Margin (fixed formula) ---
+    const profitMargin = calculateProfitMargin(totalRevenue, totalExpenses);
+
+    // --- Net Cash Flow ---
+    const netCashFlow = totalRevenue - totalExpenses;
+
+    // --- Occupancy Rate ---
     const totalDurationMinutes = timesheets.reduce((sum, ts) => sum + (ts.duration_minutes || 0), 0);
     const totalBudgetMinutes = projects.reduce((sum, p) => sum + (p.budget_hours || 0), 0) * 60;
     let occupancyRate = 0;
@@ -65,29 +81,71 @@ const Dashboard = () => {
       occupancyRate = projects.length > 0 ? 100 : 0;
     }
 
+    // --- Real Trends (current month vs previous month) ---
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    const getInvDate = (inv) => inv.date || inv.invoice_date || inv.created_at;
+
+    const currentMonthRevenue = billedInvoices
+      .filter(inv => { const d = new Date(getInvDate(inv)); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; })
+      .reduce((sum, inv) => sum + getInvoiceAmount(inv), 0);
+
+    const prevMonthRevenue = billedInvoices
+      .filter(inv => { const d = new Date(getInvDate(inv)); return d.getMonth() === prevMonth && d.getFullYear() === prevYear; })
+      .reduce((sum, inv) => sum + getInvoiceAmount(inv), 0);
+
+    const revenueTrend = calculateTrend(currentMonthRevenue, prevMonthRevenue);
+
+    // Expense trends
+    const currentMonthExpenses = (expenses || [])
+      .filter(exp => { const d = new Date(exp.date || exp.created_at); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; })
+      .reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+    const prevMonthExpenses = (expenses || [])
+      .filter(exp => { const d = new Date(exp.date || exp.created_at); return d.getMonth() === prevMonth && d.getFullYear() === prevYear; })
+      .reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+
+    const prevMonthMargin = calculateProfitMargin(prevMonthRevenue, prevMonthExpenses);
+    const currentMonthMargin = calculateProfitMargin(currentMonthRevenue, currentMonthExpenses);
+    const marginTrend = calculateTrend(currentMonthMargin, prevMonthMargin);
+
+    // Occupancy trend
+    const currentMonthDuration = timesheets
+      .filter(ts => { const d = new Date(ts.date || ts.created_at); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; })
+      .reduce((sum, ts) => sum + (ts.duration_minutes || 0), 0);
+    const prevMonthDuration = timesheets
+      .filter(ts => { const d = new Date(ts.date || ts.created_at); return d.getMonth() === prevMonth && d.getFullYear() === prevYear; })
+      .reduce((sum, ts) => sum + (ts.duration_minutes || 0), 0);
+    const occupancyTrend = calculateTrend(currentMonthDuration, prevMonthDuration);
+
+    // --- Revenue chart by month ---
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const revenueByMonth = {};
-    paidInvoices.forEach(inv => {
-      const date = new Date(inv.date || inv.created_at);
+    billedInvoices.forEach(inv => {
+      const date = new Date(getInvDate(inv));
       const monthName = months[date.getMonth()];
-      revenueByMonth[monthName] = (revenueByMonth[monthName] || 0) + (inv.total || 0);
+      revenueByMonth[monthName] = (revenueByMonth[monthName] || 0) + getInvoiceAmount(inv);
     });
     const chartRevenue = Object.entries(revenueByMonth)
       .map(([name, revenue]) => ({ name, revenue }))
       .sort((a, b) => months.indexOf(a.name) - months.indexOf(b.name));
 
+    // --- Revenue by client ---
     const revenueByClient = {};
-    paidInvoices.forEach(inv => {
+    billedInvoices.forEach(inv => {
       const clientName = inv.client?.company_name || 'Other';
-      revenueByClient[clientName] = (revenueByClient[clientName] || 0) + (inv.total || 0);
+      revenueByClient[clientName] = (revenueByClient[clientName] || 0) + getInvoiceAmount(inv);
     });
     const chartClient = Object.entries(revenueByClient)
       .map(([name, amount]) => ({ name, amount }))
-      .sort((a, b) => months.indexOf(a.name) - months.indexOf(b.name));
+      .sort((a, b) => b.amount - a.amount);
 
-    // Revenue breakdown by type
+    // --- Revenue breakdown by type ---
     const revenueByType = { product: 0, service: 0, other: 0 };
-    paidInvoices.forEach(inv => {
+    billedInvoices.forEach(inv => {
       const items = inv.items || [];
       if (items.length > 0) {
         items.forEach(item => {
@@ -97,15 +155,14 @@ const Dashboard = () => {
           else revenueByType.other += itemTotal;
         });
       } else {
-        // Legacy invoices without typed items
-        revenueByType.other += (inv.total || inv.total_ttc || 0);
+        revenueByType.other += getInvoiceAmount(inv);
       }
     });
 
-    // Monthly breakdown by type for stacked chart
+    // --- Monthly breakdown by type for stacked chart ---
     const revenueByMonthType = {};
-    paidInvoices.forEach(inv => {
-      const date = new Date(inv.date || inv.created_at);
+    billedInvoices.forEach(inv => {
+      const date = new Date(getInvDate(inv));
       const monthName = months[date.getMonth()];
       if (!revenueByMonthType[monthName]) {
         revenueByMonthType[monthName] = { name: monthName, products: 0, services: 0, other: 0 };
@@ -119,7 +176,7 @@ const Dashboard = () => {
           else revenueByMonthType[monthName].other += itemTotal;
         });
       } else {
-        revenueByMonthType[monthName].other += (inv.total || inv.total_ttc || 0);
+        revenueByMonthType[monthName].other += getInvoiceAmount(inv);
       }
     });
 
@@ -127,7 +184,7 @@ const Dashboard = () => {
       .sort((a, b) => months.indexOf(a.name) - months.indexOf(b.name));
 
     return {
-      metrics: { revenue: totalRevenue, profitMargin, occupancyRate },
+      metrics: { revenue: totalRevenue, profitMargin, occupancyRate, totalExpenses, netCashFlow, revenueTrend, marginTrend, occupancyTrend },
       revenueData: chartRevenue,
       clientRevenueData: chartClient,
       revenueByType,
@@ -135,7 +192,7 @@ const Dashboard = () => {
       recentInvoices: [...invoices].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5),
       recentTimesheets: [...timesheets].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5),
     };
-  }, [invoices, timesheets, projects]);
+  }, [invoices, timesheets, projects, expenses, cashFlowData]);
 
   const handleExportPDF = () => {
     guardedAction(
@@ -169,12 +226,12 @@ const Dashboard = () => {
     );
   };
 
-  const isLoading = invoicesLoading || timesheetsLoading || projectsLoading;
+  const isLoading = invoicesLoading || timesheetsLoading || projectsLoading || expensesLoading || cashFlowLoading;
 
   const stats = [
-    { label: "Total Revenue", value: formatCurrency(metrics.revenue), icon: DollarSign, trend: "+12.5%" },
-    { label: "Profit Margin", value: `${Math.round(metrics.profitMargin)}%`, icon: TrendingUp, trend: "+3.2%" },
-    { label: "Occupancy Rate", value: `${Math.round(metrics.occupancyRate)}%`, icon: Activity, trend: "+5.1%" },
+    { label: "Total Revenue", value: formatCurrency(metrics.revenue, company?.currency), icon: DollarSign, trend: formatTrendLabel(metrics.revenueTrend), trendUp: parseFloat(metrics.revenueTrend) >= 0 },
+    { label: "Profit Margin", value: `${Math.round(metrics.profitMargin)}%`, icon: TrendingUp, trend: formatTrendLabel(metrics.marginTrend), trendUp: parseFloat(metrics.marginTrend) >= 0 },
+    { label: "Occupancy Rate", value: `${Math.round(metrics.occupancyRate)}%`, icon: Activity, trend: formatTrendLabel(metrics.occupancyTrend), trendUp: parseFloat(metrics.occupancyTrend) >= 0 },
   ];
 
   const quickActions = [
@@ -247,8 +304,12 @@ const Dashboard = () => {
                   <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{stat.label}</p>
                   <p className="text-2xl md:text-3xl font-bold text-gradient">{stat.value}</p>
                   <div className="flex items-center gap-1 mt-2">
-                    <ArrowUp className="w-3 h-3 text-orange-400" />
-                    <span className="text-xs text-orange-400 font-medium">{stat.trend}</span>
+                    {stat.trendUp ? (
+                      <ArrowUp className="w-3 h-3 text-green-400" />
+                    ) : (
+                      <ArrowDown className="w-3 h-3 text-red-400" />
+                    )}
+                    <span className={`text-xs font-medium ${stat.trendUp ? 'text-green-400' : 'text-red-400'}`}>{stat.trend}</span>
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-orange-500/10">
@@ -270,7 +331,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.productRevenue')}</p>
-                <p className="text-2xl md:text-3xl font-bold text-blue-400">{formatCurrency(revenueByType.product)}</p>
+                <p className="text-2xl md:text-3xl font-bold text-blue-400">{formatCurrency(revenueByType.product, company?.currency)}</p>
               </div>
               <div className="p-3 rounded-xl bg-blue-500/10">
                 <Package className="w-6 h-6 text-blue-400" />
@@ -287,10 +348,49 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.serviceRevenue')}</p>
-                <p className="text-2xl md:text-3xl font-bold text-emerald-400">{formatCurrency(revenueByType.service)}</p>
+                <p className="text-2xl md:text-3xl font-bold text-emerald-400">{formatCurrency(revenueByType.service, company?.currency)}</p>
               </div>
               <div className="p-3 rounded-xl bg-emerald-500/10">
                 <Wrench className="w-6 h-6 text-emerald-400" />
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Expense & Cash Flow Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+            className="bg-gray-900 rounded-xl p-5 border border-gray-800/50"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Total Expenses</p>
+                <p className="text-2xl md:text-3xl font-bold text-red-400">{formatCurrency(metrics.totalExpenses, company?.currency)}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-red-500/10">
+                <Wallet className="w-6 h-6 text-red-400" />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-gray-900 rounded-xl p-5 border border-gray-800/50"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Net Cash Flow</p>
+                <p className={`text-2xl md:text-3xl font-bold ${metrics.netCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {formatCurrency(metrics.netCashFlow, company?.currency)}
+                </p>
+              </div>
+              <div className={`p-3 rounded-xl ${metrics.netCashFlow >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                <DollarSign className={`w-6 h-6 ${metrics.netCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`} />
               </div>
             </div>
           </motion.div>
@@ -313,7 +413,7 @@ const Dashboard = () => {
                   <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
-                    formatter={(value, name) => [formatCurrency(value), name === 'products' ? t('dashboard.productRevenue') : name === 'services' ? t('dashboard.serviceRevenue') : t('dashboard.otherRevenue')]}
+                    formatter={(value, name) => [formatCurrency(value, company?.currency), name === 'products' ? t('dashboard.productRevenue') : name === 'services' ? t('dashboard.serviceRevenue') : t('dashboard.otherRevenue')]}
                   />
                   <Legend
                     formatter={(value) => value === 'products' ? t('dashboard.productRevenue') : value === 'services' ? t('dashboard.serviceRevenue') : t('dashboard.otherRevenue')}
@@ -351,7 +451,7 @@ const Dashboard = () => {
                     <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
-                      formatter={(value) => [formatCurrency(value), 'Revenue']}
+                      formatter={(value) => [formatCurrency(value, company?.currency), 'Revenue']}
                     />
                     <Area type="monotone" dataKey="revenue" stroke="#F59E0B" strokeWidth={2} fill="url(#revenueGradient)" />
                   </AreaChart>
@@ -380,7 +480,7 @@ const Dashboard = () => {
                     <YAxis stroke="#6B7280" fontSize={10} tickLine={false} axisLine={false} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
-                      formatter={(value) => [formatCurrency(value), 'Revenue']}
+                      formatter={(value) => [formatCurrency(value, company?.currency), 'Revenue']}
                     />
                     <Line type="monotone" dataKey="amount" stroke="#F59E0B" strokeWidth={2} dot={{ fill: '#F59E0B', strokeWidth: 0, r: 3 }} />
                   </LineChart>
@@ -393,6 +493,44 @@ const Dashboard = () => {
             </div>
           </motion.div>
         </div>
+
+        {/* Cash Flow Chart */}
+        {cashFlowData.length > 0 && (
+          <motion.div
+            className="bg-gray-900 rounded-xl p-5 border border-gray-800/50 mb-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <h2 className="text-lg font-semibold text-gradient mb-5">Cash Flow</h2>
+            <div className="h-[280px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={cashFlowData}>
+                  <defs>
+                    <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
+                  <XAxis dataKey="month" stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
+                    formatter={(value) => [formatCurrency(value, company?.currency)]}
+                  />
+                  <Area type="monotone" dataKey="income" stroke="#10B981" fill="url(#incomeGradient)" name="Income" />
+                  <Area type="monotone" dataKey="expenses" stroke="#EF4444" fill="url(#expenseGradient)" name="Expenses" />
+                  <Legend />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        )}
 
         {/* Quick Actions */}
         <div className="mb-8">
@@ -435,7 +573,7 @@ const Dashboard = () => {
                       <p className="text-xs text-gray-500">{inv.client?.company_name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-gradient font-semibold text-sm">{formatCurrency(inv.total)}</p>
+                      <p className="text-gradient font-semibold text-sm">{formatCurrency(getInvoiceAmount(inv), company?.currency)}</p>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                         inv.status === 'paid' ? 'bg-green-500/10 text-green-400' :
                         inv.status === 'sent' ? 'bg-blue-500/10 text-blue-400' :
