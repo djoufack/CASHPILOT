@@ -123,17 +123,19 @@ const Dashboard = () => {
       .reduce((sum, ts) => sum + (ts.duration_minutes || 0), 0);
     const occupancyTrend = calculateTrend(currentMonthDuration, prevMonthDuration);
 
-    // --- Revenue chart by month ---
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    // --- Revenue chart by month (year-aware to avoid cross-year merging) ---
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const getMonthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const getMonthLabel = (date) => `${monthNames[date.getMonth()]} ${String(date.getFullYear()).slice(2)}`;
     const revenueByMonth = {};
     billedInvoices.forEach(inv => {
       const date = new Date(getInvDate(inv));
-      const monthName = months[date.getMonth()];
-      revenueByMonth[monthName] = (revenueByMonth[monthName] || 0) + getInvoiceAmount(inv);
+      const key = getMonthKey(date);
+      if (!revenueByMonth[key]) revenueByMonth[key] = { name: getMonthLabel(date), sortKey: key, revenue: 0 };
+      revenueByMonth[key].revenue += getInvoiceAmount(inv);
     });
-    const chartRevenue = Object.entries(revenueByMonth)
-      .map(([name, revenue]) => ({ name, revenue }))
-      .sort((a, b) => months.indexOf(a.name) - months.indexOf(b.name));
+    const chartRevenue = Object.values(revenueByMonth)
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
     // --- Revenue by client ---
     const revenueByClient = {};
@@ -164,30 +166,30 @@ const Dashboard = () => {
       }
     });
 
-    // --- Monthly breakdown by type for stacked chart ---
+    // --- Monthly breakdown by type for stacked chart (year-aware) ---
     const revenueByMonthType = {};
     billedInvoices.forEach(inv => {
       const date = new Date(getInvDate(inv));
-      const monthName = months[date.getMonth()];
-      if (!revenueByMonthType[monthName]) {
-        revenueByMonthType[monthName] = { name: monthName, products: 0, services: 0, other: 0 };
+      const key = getMonthKey(date);
+      if (!revenueByMonthType[key]) {
+        revenueByMonthType[key] = { name: getMonthLabel(date), sortKey: key, products: 0, services: 0, other: 0 };
       }
       const items = inv.items || [];
       if (items.length > 0) {
         items.forEach(item => {
           const itemTotal = item.total || (item.quantity * item.unit_price) || 0;
           const cat = classifyItem(item);
-          if (cat === 'product') revenueByMonthType[monthName].products += itemTotal;
-          else if (cat === 'service') revenueByMonthType[monthName].services += itemTotal;
-          else revenueByMonthType[monthName].other += itemTotal;
+          if (cat === 'product') revenueByMonthType[key].products += itemTotal;
+          else if (cat === 'service') revenueByMonthType[key].services += itemTotal;
+          else revenueByMonthType[key].other += itemTotal;
         });
       } else {
-        revenueByMonthType[monthName].other += getInvoiceAmount(inv);
+        revenueByMonthType[key].other += getInvoiceAmount(inv);
       }
     });
 
     const revenueBreakdownData = Object.values(revenueByMonthType)
-      .sort((a, b) => months.indexOf(a.name) - months.indexOf(b.name));
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
     return {
       metrics: { revenue: totalRevenue, profitMargin, occupancyRate, totalExpenses, netCashFlow, revenueTrend, marginTrend, occupancyTrend },
