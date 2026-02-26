@@ -3,6 +3,7 @@ import { useBankConnections } from '@/hooks/useBankConnections';
 import { Building2, Plus, Trash2, RefreshCw, Loader2, CheckCircle2, XCircle, Clock, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
+import { formatNumber } from '@/utils/calculations';
 
 const statusConfig = {
   active: { color: 'text-green-400 bg-green-500/10', icon: CheckCircle2, label: 'Connecté' },
@@ -56,7 +57,7 @@ const BankConnectionsPage = () => {
           <Wallet className="w-8 h-8 text-orange-400" />
           <div>
             <p className="text-sm text-gray-400">Solde total</p>
-            <p className="text-3xl font-bold text-white">{totalBalance.toFixed(2)} €</p>
+            <p className="text-3xl font-bold text-white">{formatNumber(totalBalance)} €</p>
           </div>
         </div>
       </div>
@@ -95,7 +96,7 @@ const BankConnectionsPage = () => {
                 <div className="flex items-center gap-4">
                   {conn.account_balance != null && (
                     <p className={`text-lg font-semibold ${conn.account_balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {conn.account_balance.toFixed(2)} {conn.account_currency || '€'}
+                      {formatNumber(conn.account_balance)} {conn.account_currency || '€'}
                     </p>
                   )}
                   <Button

@@ -26,7 +26,7 @@ const DebtCalendarView = ({ receivables = [], payables = [], onSelectDate, onSel
   // Transform receivables into calendar events
   const receivableEvents = receivables.map(r => ({
     id: r.id,
-    title: `↓ ${r.debtor_name} — ${parseFloat(r.amount).toFixed(2)}€`,
+    title: `↓ ${r.debtor_name} — ${parseFloat(r.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`,
     start: r.due_date ? new Date(r.due_date) : new Date(r.date_lent),
     end: r.due_date ? new Date(r.due_date) : new Date(r.date_lent),
     allDay: true,
@@ -36,7 +36,7 @@ const DebtCalendarView = ({ receivables = [], payables = [], onSelectDate, onSel
   // Transform payables into calendar events
   const payableEvents = payables.map(p => ({
     id: p.id,
-    title: `↑ ${p.creditor_name} — ${parseFloat(p.amount).toFixed(2)}€`,
+    title: `↑ ${p.creditor_name} — ${parseFloat(p.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`,
     start: p.due_date ? new Date(p.due_date) : new Date(p.date_borrowed),
     end: p.due_date ? new Date(p.due_date) : new Date(p.date_borrowed),
     allDay: true,

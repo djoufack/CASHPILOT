@@ -67,7 +67,7 @@ const AnomalyAlerts = ({ autoScan = false }) => {
                   <p className="font-medium text-sm">{anomaly.title}</p>
                   <p className="text-xs mt-1 opacity-80">{anomaly.description}</p>
                   {anomaly.amount && (
-                    <p className="text-xs mt-1 font-mono">{anomaly.amount.toFixed(2)}&euro;</p>
+                    <p className="text-xs mt-1 font-mono">{Number(anomaly.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}&euro;</p>
                   )}
                 </div>
               </div>

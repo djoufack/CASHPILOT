@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Pencil, Trash2, Package, Wrench, Tag, FolderOpen, Sparkles } from 'lucide-react';
+import { formatNumber } from '@/utils/calculations';
 
 const CategoriesPage = () => {
   const { t } = useTranslation();
@@ -577,8 +578,8 @@ const CategoriesPage = () => {
                 </div>
                 <span className="text-orange-300 text-sm font-medium bg-orange-500/10 px-3 py-1 rounded-lg border border-orange-500/20">
                   {itemsDialogType === 'product'
-                    ? (item.unit_price ? `${Number(item.unit_price).toFixed(2)} €` : '—')
-                    : (item.hourly_rate ? `${Number(item.hourly_rate).toFixed(2)} €/h` : item.fixed_price ? `${Number(item.fixed_price).toFixed(2)} €` : '—')
+                    ? (item.unit_price ? `${formatNumber(item.unit_price)} €` : '—')
+                    : (item.hourly_rate ? `${formatNumber(item.hourly_rate)} €/h` : item.fixed_price ? `${formatNumber(item.fixed_price)} €` : '—')
                   }
                 </span>
               </div>

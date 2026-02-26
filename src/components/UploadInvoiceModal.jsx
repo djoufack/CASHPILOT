@@ -387,8 +387,8 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
                       <tr key={i} className="border-b border-gray-800">
                         <td className="py-1.5 px-3 text-gray-300">{item.description}</td>
                         <td className="py-1.5 px-3 text-right text-gray-300">{item.quantity}</td>
-                        <td className="py-1.5 px-3 text-right text-gray-300">{item.unit_price?.toFixed(2)}</td>
-                        <td className="py-1.5 px-3 text-right text-white">{item.total?.toFixed(2)}</td>
+                        <td className="py-1.5 px-3 text-right text-gray-300">{item.unit_price != null ? Number(item.unit_price).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}</td>
+                        <td className="py-1.5 px-3 text-right text-white">{item.total != null ? Number(item.total).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}</td>
                       </tr>
                     ))}
                   </tbody>

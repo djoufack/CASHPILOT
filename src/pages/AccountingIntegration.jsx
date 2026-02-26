@@ -35,6 +35,7 @@ import {
 } from '@/services/exportHTML';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { formatNumber } from '@/utils/calculations';
 
 const AccountingIntegration = () => {
   const { t } = useTranslation();
@@ -401,9 +402,9 @@ const AccountingIntegration = () => {
                         <span className="text-white font-medium">{account.account_name}</span>
                       </div>
                       <div className="text-sm">
-                        <span className="text-green-400 mr-4">D: {account.totalDebit.toFixed(2)} €</span>
-                        <span className="text-red-400 mr-4">C: {account.totalCredit.toFixed(2)} €</span>
-                        <span className="text-orange-400 font-bold">Solde: {account.balance.toFixed(2)} €</span>
+                        <span className="text-green-400 mr-4">D: {formatNumber(account.totalDebit)} €</span>
+                        <span className="text-red-400 mr-4">C: {formatNumber(account.totalCredit)} €</span>
+                        <span className="text-orange-400 font-bold">Solde: {formatNumber(account.balance)} €</span>
                       </div>
                     </div>
                     <table className="w-full text-sm">

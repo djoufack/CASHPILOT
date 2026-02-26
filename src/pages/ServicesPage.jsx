@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useServices, useServiceCategories } from '@/hooks/useServices';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
+import { formatNumber } from '@/utils/calculations';
 import { exportToCSV, exportToExcel } from '@/utils/exportService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -64,11 +65,11 @@ const ServicesPage = () => {
   const getRate = (service) => {
     switch (service.pricing_type) {
       case 'hourly':
-        return `${(service.hourly_rate || 0).toFixed(2)} ${currencySymbol}/h`;
+        return `${formatNumber(service.hourly_rate || 0)} ${currencySymbol}/h`;
       case 'fixed':
-        return `${(service.fixed_price || 0).toFixed(2)} ${currencySymbol}`;
+        return `${formatNumber(service.fixed_price || 0)} ${currencySymbol}`;
       case 'per_unit':
-        return `${(service.unit_price || 0).toFixed(2)} ${currencySymbol}/${service.unit || 'u'}`;
+        return `${formatNumber(service.unit_price || 0)} ${currencySymbol}/${service.unit || 'u'}`;
       default:
         return '—';
     }
