@@ -141,6 +141,26 @@ export function registerAccountingTools(server: McpServer) {
   );
 
   server.tool(
+    'backfill_stale_entries',
+    'Run backfill for all accounting entry types (invoices, payments, expenses, supplier invoices, credit notes). Creates missing auto-journal entries.',
+    {},
+    async () => {
+      const userId = getUserId();
+
+      const { data, error } = await supabase.rpc('backfill_accounting_entries', { p_user_id: userId });
+
+      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+
+      const results = data as Array<{ source_type: string; entries_created: number }> ?? [];
+      const total = results.reduce((s: number, r: { entries_created: number }) => s + r.entries_created, 0);
+
+      return {
+        content: [{ type: 'text' as const, text: `Backfill complete: ${total} entries created.\n${JSON.stringify(results, null, 2)}` }]
+      };
+    }
+  );
+
+  server.tool(
     'init_accounting',
     'Initialize accounting chart of accounts for a country (FR, BE, or OHADA)',
     {
