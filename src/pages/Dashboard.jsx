@@ -523,8 +523,24 @@ const Dashboard = () => {
                   <XAxis dataKey="month" stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
-                    formatter={(value) => [formatCurrency(value, company?.currency)]}
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      const income = payload.find(p => p.dataKey === 'income')?.value || 0;
+                      const exp = payload.find(p => p.dataKey === 'expenses')?.value || 0;
+                      const net = income - exp;
+                      return (
+                        <div style={{ backgroundColor: '#111827', border: '1px solid #1F2937', borderRadius: '8px', padding: '10px 14px' }}>
+                          <p style={{ color: '#9CA3AF', fontSize: 12, marginBottom: 6 }}>{label}</p>
+                          <p style={{ color: '#10B981', fontSize: 13 }}>{formatCurrency(income, cc)}</p>
+                          <p style={{ color: '#EF4444', fontSize: 13 }}>{formatCurrency(exp, cc)}</p>
+                          <div style={{ borderTop: '1px solid #374151', marginTop: 6, paddingTop: 6 }}>
+                            <p style={{ color: '#F59E0B', fontSize: 14, fontWeight: 700 }}>
+                              {net >= 0 ? '+' : ''}{formatCompactCurrency(net, cc)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }}
                   />
                   <Area type="monotone" dataKey="income" stroke="#10B981" fill="url(#incomeGradient)" name="Income" />
                   <Area type="monotone" dataKey="expenses" stroke="#EF4444" fill="url(#expenseGradient)" name="Expenses" />
