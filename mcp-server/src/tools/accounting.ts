@@ -170,4 +170,42 @@ export function registerAccountingTools(server: McpServer) {
       };
     }
   );
+
+  server.tool(
+    'run_accounting_audit',
+    'Run a comprehensive accounting audit. Returns score, grade, and detailed check results for balance/coherence, fiscal compliance, and anomaly detection.',
+    {
+      period_start: z.string().describe('Start date (YYYY-MM-DD)'),
+      period_end: z.string().describe('End date (YYYY-MM-DD)'),
+      categories: z.array(z.string()).optional().describe('Categories to audit: balance, fiscal, anomalies (default: all)')
+    },
+    async ({ period_start, period_end, categories }) => {
+      try {
+        const { getAccessToken, getSupabaseUrl } = await import('../supabase.js');
+        const token = getAccessToken();
+        const url = getSupabaseUrl();
+
+        const response = await fetch(`${url}/functions/v1/audit-comptable`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ period_start, period_end, categories }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          return { content: [{ type: 'text' as const, text: `Error: ${err.error || response.statusText}` }] };
+        }
+
+        const result = await response.json();
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (err: any) {
+        return { content: [{ type: 'text' as const, text: `Error calling audit: ${err.message}` }] };
+      }
+    }
+  );
 }
