@@ -15,22 +15,22 @@ export const useCashFlow = (periodMonths = 6) => {
       const startDate = new Date();
       startDate.setMonth(startDate.getMonth() - periodMonths);
 
-      // Fetch income (paid invoices)
+      // Fetch income (paid invoices) — column is "date" not "invoice_date"
       const { data: invoices } = await supabase
         .from('invoices')
-        .select('total_ttc, invoice_date, status')
+        .select('total_ttc, date, status')
         .eq('user_id', user.id)
         .in('status', ['paid', 'sent'])
-        .gte('invoice_date', startDate.toISOString().split('T')[0])
-        .order('invoice_date', { ascending: true });
-
-      // Fetch expenses
-      const { data: expenses } = await supabase
-        .from('expenses')
-        .select('amount, date, category')
-        .eq('user_id', user.id)
         .gte('date', startDate.toISOString().split('T')[0])
         .order('date', { ascending: true });
+
+      // Fetch expenses — column is "expense_date" not "date"
+      const { data: expenses } = await supabase
+        .from('expenses')
+        .select('amount, expense_date, category')
+        .eq('user_id', user.id)
+        .gte('expense_date', startDate.toISOString().split('T')[0])
+        .order('expense_date', { ascending: true });
 
       // Group by month
       const monthlyData = {};
@@ -42,14 +42,14 @@ export const useCashFlow = (periodMonths = 6) => {
       }
 
       (invoices || []).forEach(inv => {
-        const key = inv.invoice_date?.substring(0, 7);
+        const key = inv.date?.substring(0, 7);
         if (key && monthlyData[key]) {
           monthlyData[key].income += parseFloat(inv.total_ttc || 0);
         }
       });
 
       (expenses || []).forEach(exp => {
-        const key = exp.date?.substring(0, 7);
+        const key = exp.expense_date?.substring(0, 7);
         if (key && monthlyData[key]) {
           monthlyData[key].expenses += parseFloat(exp.amount || 0);
         }
