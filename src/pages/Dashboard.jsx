@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
@@ -15,7 +15,7 @@ import CreditsGuardModal from '@/components/CreditsGuardModal';
 import OnboardingBanner from '@/components/onboarding/OnboardingBanner';
 import { formatCurrency, formatCompactCurrency } from '@/utils/currencyService';
 import { calculateTrend, formatTrendLabel, calculateProfitMargin, getInvoiceAmount } from '@/utils/calculations';
-import { Users, Clock, FileText, TrendingUp, DollarSign, Activity, Loader2, ArrowUp, ArrowDown, Download, Package, Wrench, Wallet } from 'lucide-react';
+import { Users, Clock, FileText, TrendingUp, DollarSign, Activity, Loader2, ArrowUp, ArrowDown, Download, Package, Wrench, Wallet, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, Legend } from 'recharts';
@@ -32,7 +32,8 @@ const Dashboard = () => {
   const { clients, fetchClients } = useClients();
   const { company } = useCompany();
   const { expenses, fetchExpenses, loading: expensesLoading } = useExpenses();
-  const { cashFlowData, summary: cashFlowSummary, loading: cashFlowLoading } = useCashFlow();
+  const [cfGranularity, setCfGranularity] = useState('month');
+  const { cashFlowData, summary: cashFlowSummary, loading: cashFlowLoading } = useCashFlow(6, cfGranularity);
   const { guardedAction, modalProps } = useCreditsGuard();
 
   useEffect(() => {
@@ -505,7 +506,23 @@ const Dashboard = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            <h2 className="text-lg font-semibold text-gradient mb-5">Cash Flow</h2>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-semibold text-gradient">Cash Flow</h2>
+              <div className="flex items-center gap-1 bg-gray-800/60 rounded-lg p-0.5">
+                <Calendar className="w-3.5 h-3.5 text-gray-500 ml-2" />
+                {[{ key: 'month', label: 'Mois' }, { key: 'week', label: 'Semaines' }].map(opt => (
+                  <Button
+                    key={opt.key}
+                    variant="ghost"
+                    size="sm"
+                    className={`text-xs h-7 px-3 ${cfGranularity === opt.key ? 'bg-orange-500/20 text-orange-400' : 'text-gray-400 hover:text-white'}`}
+                    onClick={() => setCfGranularity(opt.key)}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
             <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={cashFlowData}>
@@ -524,8 +541,8 @@ const Dashboard = () => {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
-                  <XAxis dataKey="month" stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
+                  <XAxis dataKey="label" stroke="#6B7280" fontSize={cfGranularity === 'week' ? 9 : 11} tickLine={false} axisLine={false} interval={cfGranularity === 'week' ? 1 : 0} angle={cfGranularity === 'week' ? -35 : 0} textAnchor={cfGranularity === 'week' ? 'end' : 'middle'} height={cfGranularity === 'week' ? 45 : 30} />
+                  <YAxis stroke="#6B7280" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => { const abs = Math.abs(val); if (abs >= 1e9) return `${(val/1e9).toFixed(1)}Md`; if (abs >= 1e6) return `${(val/1e6).toFixed(1)}M`; if (abs >= 1e3) return `${(val/1e3).toFixed(0)}K`; return val; }} />
                   <Tooltip
                     content={({ active, payload, label }) => {
                       if (!active || !payload?.length) return null;
