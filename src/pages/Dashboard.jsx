@@ -13,7 +13,7 @@ import { useCashFlow } from '@/hooks/useCashFlow';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import OnboardingBanner from '@/components/onboarding/OnboardingBanner';
-import { formatCurrency } from '@/utils/currencyService';
+import { formatCurrency, formatCompactCurrency } from '@/utils/currencyService';
 import { calculateTrend, formatTrendLabel, calculateProfitMargin, getInvoiceAmount } from '@/utils/calculations';
 import { Users, Clock, FileText, TrendingUp, DollarSign, Activity, Loader2, ArrowUp, ArrowDown, Download, Package, Wrench, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -228,8 +228,9 @@ const Dashboard = () => {
 
   const isLoading = invoicesLoading || timesheetsLoading || projectsLoading || expensesLoading || cashFlowLoading;
 
+  const cc = company?.currency;
   const stats = [
-    { label: "Total Revenue", value: formatCurrency(metrics.revenue, company?.currency), icon: DollarSign, trend: formatTrendLabel(metrics.revenueTrend), trendUp: parseFloat(metrics.revenueTrend) >= 0 },
+    { label: "Total Revenue", value: formatCompactCurrency(metrics.revenue, cc), fullValue: formatCurrency(metrics.revenue, cc), icon: DollarSign, trend: formatTrendLabel(metrics.revenueTrend), trendUp: parseFloat(metrics.revenueTrend) >= 0 },
     { label: "Profit Margin", value: `${Math.round(metrics.profitMargin)}%`, icon: TrendingUp, trend: formatTrendLabel(metrics.marginTrend), trendUp: parseFloat(metrics.marginTrend) >= 0 },
     { label: "Occupancy Rate", value: `${Math.round(metrics.occupancyRate)}%`, icon: Activity, trend: formatTrendLabel(metrics.occupancyTrend), trendUp: parseFloat(metrics.occupancyTrend) >= 0 },
   ];
@@ -302,7 +303,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{stat.label}</p>
-                  <p className="text-2xl md:text-3xl font-bold text-gradient">{stat.value}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-gradient" title={stat.fullValue || stat.value}>{stat.value}</p>
                   <div className="flex items-center gap-1 mt-2">
                     {stat.trendUp ? (
                       <ArrowUp className="w-3 h-3 text-green-400" />
@@ -332,7 +333,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.productRevenue')}</p>
-                  <p className="text-2xl md:text-3xl font-bold text-blue-400">{formatCurrency(revenueByType.product, company?.currency)}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-blue-400" title={formatCurrency(revenueByType.product, cc)}>{formatCompactCurrency(revenueByType.product, cc)}</p>
                 </div>
                 <div className="p-3 rounded-xl bg-blue-500/10">
                   <Package className="w-6 h-6 text-blue-400" />
@@ -349,7 +350,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.serviceRevenue')}</p>
-                  <p className="text-2xl md:text-3xl font-bold text-emerald-400">{formatCurrency(revenueByType.service, company?.currency)}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-emerald-400" title={formatCurrency(revenueByType.service, cc)}>{formatCompactCurrency(revenueByType.service, cc)}</p>
                 </div>
                 <div className="p-3 rounded-xl bg-emerald-500/10">
                   <Wrench className="w-6 h-6 text-emerald-400" />
@@ -370,7 +371,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Total Expenses</p>
-                <p className="text-2xl md:text-3xl font-bold text-red-400">{formatCurrency(metrics.totalExpenses, company?.currency)}</p>
+                <p className="text-2xl md:text-3xl font-bold text-red-400" title={formatCurrency(metrics.totalExpenses, cc)}>{formatCompactCurrency(metrics.totalExpenses, cc)}</p>
               </div>
               <div className="p-3 rounded-xl bg-red-500/10">
                 <Wallet className="w-6 h-6 text-red-400" />
@@ -387,8 +388,8 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Net Cash Flow</p>
-                <p className={`text-2xl md:text-3xl font-bold ${metrics.netCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {formatCurrency(metrics.netCashFlow, company?.currency)}
+                <p className={`text-2xl md:text-3xl font-bold ${metrics.netCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`} title={formatCurrency(metrics.netCashFlow, cc)}>
+                  {formatCompactCurrency(metrics.netCashFlow, cc)}
                 </p>
               </div>
               <div className={`p-3 rounded-xl ${metrics.netCashFlow >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
@@ -575,7 +576,7 @@ const Dashboard = () => {
                       <p className="text-xs text-gray-500">{inv.client?.company_name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-gradient font-semibold text-sm">{formatCurrency(getInvoiceAmount(inv), company?.currency)}</p>
+                      <p className="text-gradient font-semibold text-sm" title={formatCurrency(getInvoiceAmount(inv), cc)}>{formatCompactCurrency(getInvoiceAmount(inv), cc)}</p>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                         inv.status === 'paid' ? 'bg-green-500/10 text-green-400' :
                         inv.status === 'sent' ? 'bg-blue-500/10 text-blue-400' :

@@ -119,15 +119,41 @@ export const formatCurrency = (amount, currency = 'EUR', locale = 'fr-FR') => {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount || 0);
   } catch {
     // Fallback if Intl doesn't know the currency
     const symbol = getCurrencySymbol(currency);
-    const formatted = (amount || 0).toFixed(2);
+    const formatted = Math.round(amount || 0).toLocaleString('fr-FR');
     return `${formatted} ${symbol}`;
   }
+};
+
+/**
+ * Format currency in compact notation for KPI cards (131,9M / 6,0M / 450K)
+ * @param {number} amount - Amount to format
+ * @param {string} currency - ISO 4217 currency code (default: 'EUR')
+ * @param {string} locale - Locale for formatting (default: 'fr-FR')
+ * @returns {string} Compact formatted string (e.g., "131,9M FCFA")
+ */
+export const formatCompactCurrency = (amount, currency = 'EUR', locale = 'fr-FR') => {
+  const val = Math.abs(amount || 0);
+  const sign = (amount || 0) < 0 ? '-' : '';
+  const symbol = getCurrencySymbol(currency);
+
+  let compact;
+  if (val >= 1_000_000_000) {
+    compact = (val / 1_000_000_000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + 'Md';
+  } else if (val >= 1_000_000) {
+    compact = (val / 1_000_000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + 'M';
+  } else if (val >= 1_000) {
+    compact = (val / 1_000).toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 1 }) + 'K';
+  } else {
+    compact = val.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+
+  return `${sign}${compact} ${symbol}`;
 };
 
 /**
@@ -293,6 +319,7 @@ export default {
   getExchangeRate,
   getRatesLastUpdated,
   formatCurrency,
+  formatCompactCurrency,
   getCurrencySymbol,
   getCurrencyName,
   getCurrencyFlag,
