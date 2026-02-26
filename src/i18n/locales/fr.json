@@ -58,7 +58,8 @@
     "scenarios": "Simulations Financières",
     "catalog": "Catalogue",
     "products": "Produits",
-    "categories": "Catégories"
+    "categories": "Catégories",
+    "auditComptable": "Audit Comptable"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -1375,5 +1376,30 @@
       "reminder": "Objet du rappel"
     },
     "subjectPreview": "Facture {{invoiceNumber}} de {{companyName}}"
+  },
+  "audit": {
+    "title": "Audit Comptable",
+    "subtitle": "Verification et validation automatisee de votre comptabilite",
+    "runAudit": "Lancer l'audit",
+    "running": "Audit en cours...",
+    "download": "Telecharger",
+    "score": "Score global",
+    "passed": "Passes",
+    "warnings": "Alertes",
+    "errors": "Erreurs",
+    "recommendations": "Recommandations",
+    "noAudit": "Aucun audit lance",
+    "noAuditDesc": "Selectionnez une periode et lancez l'audit pour verifier votre comptabilite.",
+    "healthWidget": "Sante Comptable",
+    "balance": "Equilibre",
+    "fiscal": "Fiscal",
+    "anomalies": "Anomalies",
+    "currentYear": "Annee en cours",
+    "previousYear": "Annee precedente",
+    "currentQuarter": "Trimestre en cours",
+    "currentMonth": "Mois en cours",
+    "urgent": "URGENT",
+    "medium": "MOYEN",
+    "info": "INFO"
   }
 }
