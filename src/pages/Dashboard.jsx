@@ -227,7 +227,7 @@ const Dashboard = () => {
     );
   };
 
-  const isLoading = invoicesLoading || timesheetsLoading || projectsLoading || expensesLoading || cashFlowLoading;
+  const isLoading = invoicesLoading || timesheetsLoading || projectsLoading || expensesLoading;
 
   const cc = company?.currency;
   const stats = [
@@ -523,7 +523,12 @@ const Dashboard = () => {
                 ))}
               </div>
             </div>
-            <div className="h-[280px] w-full">
+            <div className="h-[280px] w-full relative">
+              {cashFlowLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60 z-10 rounded-lg">
+                  <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
+                </div>
+              )}
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={cashFlowData}>
                   <defs>
@@ -541,7 +546,7 @@ const Dashboard = () => {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
-                  <XAxis dataKey="label" stroke="#6B7280" fontSize={cfGranularity === 'week' ? 9 : 11} tickLine={false} axisLine={false} interval={cfGranularity === 'week' ? 1 : 0} angle={cfGranularity === 'week' ? -35 : 0} textAnchor={cfGranularity === 'week' ? 'end' : 'middle'} height={cfGranularity === 'week' ? 45 : 30} />
+                  <XAxis dataKey="label" stroke="#6B7280" fontSize={cfGranularity === 'week' ? 8 : 11} tickLine={false} axisLine={false} interval={0} angle={cfGranularity === 'week' ? -45 : 0} textAnchor={cfGranularity === 'week' ? 'end' : 'middle'} height={cfGranularity === 'week' ? 55 : 30} />
                   <YAxis stroke="#6B7280" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => { const abs = Math.abs(val); if (abs >= 1e9) return `${(val/1e9).toFixed(1)}Md`; if (abs >= 1e6) return `${(val/1e6).toFixed(1)}M`; if (abs >= 1e3) return `${(val/1e3).toFixed(0)}K`; return val; }} />
                   <Tooltip
                     content={({ active, payload, label }) => {
