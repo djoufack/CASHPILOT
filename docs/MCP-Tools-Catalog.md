@@ -1,6 +1,6 @@
 # CashPilot MCP - Catalogue des outils disponibles
 
-> **154 outils** pour piloter votre comptabilite en langage naturel via ChatGPT, Claude ou tout client MCP.
+> **169 outils** pour piloter votre comptabilite en langage naturel via ChatGPT, Claude ou tout client MCP.
 
 ---
 
@@ -135,7 +135,7 @@
 
 ---
 
-## Operations CRUD (100 outils sur 20 tables)
+## Operations CRUD (115 outils sur 23 tables)
 
 Chaque table dispose de 5 operations : `create_`, `get_`, `list_`, `update_`, `delete_`
 
@@ -179,5 +179,5 @@ Chaque table dispose de 5 operations : `create_`, `get_`, `list_`, `update_`, `d
 | Exports reglementaires | 4 | Hand-written |
 | Factures fournisseurs | 5 | Hand-written |
 | Documents commerciaux | 5 | Hand-written |
-| Operations CRUD (20 tables) | 100 | Auto-genere |
-| **Total** | **154** | |
+| Operations CRUD (23 tables) | 115 | Auto-genere |
+| **Total** | **169** | |

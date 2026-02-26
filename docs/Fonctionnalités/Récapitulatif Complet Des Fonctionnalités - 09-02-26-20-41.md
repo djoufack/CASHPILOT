@@ -475,7 +475,7 @@ Collaboration : L'IA prépare, l'humain valide
 Originalités : Combinaison unique de 10 fonctions IA financières dans un seul outil, système de crédits granulaire, remboursement automatique en cas d'échec API
 
 29. SERVEUR MCP (Model Context Protocol) + AGENTS IA
-Description : Serveur MCP avec 154 outils (54 hand-written + 100 CRUD) permettant à des agents IA externes (Claude, ChatGPT, Gemini, Mistral) de piloter CashPilot par langage naturel ou par programmation. Outils couvrant la totalité des tables : clients, factures, paiements, comptabilité, exports, analytics, administration.
+Description : Serveur MCP avec 169 outils (54 hand-written + 115 CRUD) permettant à des agents IA externes (Claude, ChatGPT, Gemini, Mistral) de piloter CashPilot par langage naturel ou par programmation. Outils couvrant la totalité des tables : clients, factures, paiements, comptabilité, exports, analytics, administration.
 
 Utilité : Transformer CashPilot en outil pilotable par IA et automatiser des workflows complexes.
 
