@@ -44,7 +44,11 @@ const InvoiceGenerator = ({ onSuccess }) => {
   const [taxRate, setTaxRate] = useState(20);
   const [notes, setNotes] = useState('');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split('T')[0];
+  });
   const [reference, setReference] = useState('');
   const [globalDiscountType, setGlobalDiscountType] = useState('none');
   const [globalDiscountValue, setGlobalDiscountValue] = useState(0);
@@ -60,6 +64,15 @@ const InvoiceGenerator = ({ onSuccess }) => {
   const [customFields, setCustomFields] = useState([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [preSelectedIds, setPreSelectedIds] = useState([]);
+
+  // Auto-update due date when issue date changes
+  useEffect(() => {
+    if (issueDate) {
+      const d = new Date(issueDate);
+      d.setDate(d.getDate() + 30);
+      setDueDate(d.toISOString().split('T')[0]);
+    }
+  }, [issueDate]);
 
   // Read pre-selected timesheet IDs from sessionStorage (e.g. from TimesheetsPage)
   useEffect(() => {
@@ -255,6 +268,12 @@ const InvoiceGenerator = ({ onSuccess }) => {
   const selectedClient = clients.find(c => c.id === selectedClientId);
   const currency = selectedClient?.preferred_currency || selectedClient?.preferredCurrency || 'EUR';
 
+  // Per-section subtotals
+  const productSubtotal = productItems.reduce((sum, i) => sum + Number(i.quantity) * Number(i.unitPrice), 0);
+  const serviceSubtotal = serviceItems.reduce((sum, i) => sum + Number(i.quantity) * Number(i.unitPrice), 0);
+  const manualSubtotal = manualItems.reduce((sum, i) => sum + Number(i.quantity) * Number(i.unitPrice), 0);
+  const totalItemCount = allItems.length;
+
   // Grand total = TTC + shipping + adjustment
   const grandTotal = totals.totalTTC + Number(shippingFee || 0) + Number(adjustment || 0);
 
@@ -442,32 +461,79 @@ const InvoiceGenerator = ({ onSuccess }) => {
           )}
 
           {/* Step 3b: Add Products */}
-          <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
-            <h3 className="text-lg md:text-xl font-bold text-gradient flex items-center gap-2">
-              <Package className="w-5 h-5" />
-              Step 3b: {t('invoices.addProducts')}
-            </h3>
+          <div className={`bg-gray-800 p-4 md:p-6 rounded-lg border shadow-xl space-y-4 ${productItems.length > 0 ? 'border-orange-500/30' : 'border-gray-700'}`}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg md:text-xl font-bold text-gradient flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Step 3b: {t('invoices.addProducts')}
+                {productItems.length > 0 && (
+                  <span className="text-xs font-normal bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">
+                    {productItems.length} {productItems.length > 1 ? 'items' : 'item'}
+                  </span>
+                )}
+              </h3>
+              {productItems.length > 0 && (
+                <span className="text-sm text-orange-400 font-medium">
+                  {formatCurrency(productSubtotal, currency)}
+                </span>
+              )}
+            </div>
+            {productItems.length === 0 && (
+              <p className="text-sm text-gray-500">{t('invoices.searchAndAddProducts', { defaultValue: 'Search your product catalog to add items to this invoice.' })}</p>
+            )}
             <ProductPicker products={products} onAddProduct={handleAddProduct} currency={currency} />
             {renderEditableItemList(productItems, updateProductItem, removeProductItem, t('invoices.pickProduct'))}
           </div>
 
           {/* Step 3c: Add Services */}
-          <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
-            <h3 className="text-lg md:text-xl font-bold text-gradient flex items-center gap-2">
-              <Wrench className="w-5 h-5" />
-              Step 3c: {t('invoices.addServices')}
-            </h3>
+          <div className={`bg-gray-800 p-4 md:p-6 rounded-lg border shadow-xl space-y-4 ${serviceItems.length > 0 ? 'border-emerald-500/30' : 'border-gray-700'}`}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg md:text-xl font-bold text-gradient flex items-center gap-2">
+                <Wrench className="w-5 h-5" />
+                Step 3c: {t('invoices.addServices')}
+                {serviceItems.length > 0 && (
+                  <span className="text-xs font-normal bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">
+                    {serviceItems.length} {serviceItems.length > 1 ? 'items' : 'item'}
+                  </span>
+                )}
+              </h3>
+              {serviceItems.length > 0 && (
+                <span className="text-sm text-emerald-400 font-medium">
+                  {formatCurrency(serviceSubtotal, currency)}
+                </span>
+              )}
+            </div>
+            {serviceItems.length === 0 && (
+              <p className="text-sm text-gray-500">{t('invoices.searchAndAddServices', { defaultValue: 'Search your service catalog to add services to this invoice.' })}</p>
+            )}
             <ServicePicker services={services} onAddService={handleAddService} currency={currency} />
             {renderEditableItemList(serviceItems, updateServiceItem, removeServiceItem, t('invoices.pickService'))}
           </div>
 
-          <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
+          <div className={`bg-gray-800 p-4 md:p-6 rounded-lg border shadow-xl space-y-4 ${manualItems.length > 0 ? 'border-purple-500/30' : 'border-gray-700'}`}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <h3 className="text-lg md:text-xl font-bold text-gradient">Step 4: Manual Items</h3>
-              <Button onClick={addManualItem} variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700 w-full sm:w-auto">
-                <Plus className="w-4 h-4 mr-2" />{t('invoices.addManualLine')}
-              </Button>
+              <h3 className="text-lg md:text-xl font-bold text-gradient flex items-center gap-2">
+                Step 4: Manual Items
+                {manualItems.length > 0 && (
+                  <span className="text-xs font-normal bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full">
+                    {manualItems.length} {manualItems.length > 1 ? 'items' : 'item'}
+                  </span>
+                )}
+              </h3>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                {manualItems.length > 0 && (
+                  <span className="text-sm text-purple-400 font-medium">
+                    {formatCurrency(manualSubtotal, currency)}
+                  </span>
+                )}
+                <Button onClick={addManualItem} variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700 flex-1 sm:flex-none">
+                  <Plus className="w-4 h-4 mr-2" />{t('invoices.addManualLine')}
+                </Button>
+              </div>
             </div>
+            {manualItems.length === 0 && (
+              <p className="text-sm text-gray-500">{t('invoices.manualItemHint', { defaultValue: 'Add custom line items that are not in your product or service catalog.' })}</p>
+            )}
 
             {manualItems.map((item) => (
               <div key={item.id} className="bg-gray-700/30 p-3 rounded-lg space-y-2">
@@ -513,6 +579,43 @@ const InvoiceGenerator = ({ onSuccess }) => {
               </div>
             ))}
           </div>
+
+          {/* Items Summary */}
+          {totalItemCount > 0 && (
+            <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-blue-500/30 shadow-xl space-y-3">
+              <h3 className="text-lg md:text-xl font-bold text-gradient flex items-center gap-2">
+                {t('invoices.itemsSummary', { defaultValue: 'Items Summary' })}
+                <span className="text-xs font-normal bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+                  {totalItemCount} {totalItemCount > 1 ? 'items' : 'item'}
+                </span>
+              </h3>
+              <div className="divide-y divide-gray-700">
+                {allItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between py-2 text-sm">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${
+                        item.item_type === 'product' ? 'bg-orange-400' :
+                        item.item_type === 'service' ? 'bg-emerald-400' :
+                        item.item_type === 'timesheet' ? 'bg-blue-400' : 'bg-purple-400'
+                      }`} />
+                      <span className="text-white truncate">{item.description}</span>
+                      <span className="text-gray-500 shrink-0">x{Number(item.quantity).toLocaleString('fr-FR')}</span>
+                    </div>
+                    <span className="text-gray-300 font-medium shrink-0 ml-3">
+                      {formatCurrency(item.amount || (Number(item.quantity) * Number(item.unitPrice)), currency)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {totalItemCount === 0 && (
+            <div className="bg-gray-800 p-6 rounded-lg border border-dashed border-yellow-500/30 text-center">
+              <p className="text-yellow-400 text-sm font-medium">{t('invoices.noItemsYet', { defaultValue: 'No items added yet' })}</p>
+              <p className="text-gray-500 text-xs mt-1">{t('invoices.addItemsHint', { defaultValue: 'Add products, services, or manual items above to build your invoice.' })}</p>
+            </div>
+          )}
 
           <div className="bg-gray-800 p-4 md:p-6 rounded-lg border border-gray-700 shadow-xl space-y-4">
             <h3 className="text-lg md:text-xl font-bold text-gradient">Invoice Details</h3>
