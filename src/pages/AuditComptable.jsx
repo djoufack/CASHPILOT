@@ -42,11 +42,15 @@ const CheckRow = ({ check }) => {
           <p className="text-sm font-medium text-white">{check.name}</p>
           <p className="text-xs text-gray-400 mt-0.5">{check.details}</p>
         </div>
-        <span className={`text-xs px-2 py-0.5 rounded ${
-          check.severity === 'error' ? 'bg-red-400/10 text-red-400' :
-          check.severity === 'warning' ? 'bg-yellow-400/10 text-yellow-400' :
-          'bg-blue-400/10 text-blue-400'
-        }`}>{check.severity}</span>
+        {check.status === 'pass' ? (
+          <span className="text-xs px-2 py-0.5 rounded bg-green-400/10 text-green-400">ok</span>
+        ) : (
+          <span className={`text-xs px-2 py-0.5 rounded ${
+            check.severity === 'error' ? 'bg-red-400/10 text-red-400' :
+            check.severity === 'warning' ? 'bg-yellow-400/10 text-yellow-400' :
+            'bg-blue-400/10 text-blue-400'
+          }`}>{check.severity === 'error' ? 'erreur' : check.severity === 'warning' ? 'alerte' : 'info'}</span>
+        )}
         {(check.recommendation || check.items) && (
           expanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />
         )}
