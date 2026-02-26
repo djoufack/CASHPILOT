@@ -21,6 +21,7 @@ import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, Legend } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { exportDashboardPDF, exportDashboardHTML } from '@/services/exportReports';
+import AccountingHealthWidget from '@/components/AccountingHealthWidget';
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -581,6 +582,11 @@ const Dashboard = () => {
             </div>
           </motion.div>
         )}
+
+        {/* Accounting Health Widget */}
+        <div className="mb-8">
+          <AccountingHealthWidget />
+        </div>
 
         {/* Quick Actions */}
         <div className="mb-8">
