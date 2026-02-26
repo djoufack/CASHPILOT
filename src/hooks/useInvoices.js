@@ -98,6 +98,9 @@ export const useInvoices = () => {
       if (error) throw error;
 
       // Insert invoice items if provided
+      let calculatedTotalHT = 0;
+      let calculatedTotalTTC = 0;
+
       if (items.length > 0) {
         const invoiceItems = items.map(item => ({
           invoice_id: data.id,
@@ -121,13 +124,32 @@ export const useInvoices = () => {
         if (itemsError) {
           console.error('Error inserting invoice items:', itemsError);
           // Don't throw - invoice was created, items failed
+        } else {
+          // Calculate totals from the inserted items
+          const itemTotals = invoiceItems.map(item => {
+            const lineTotal = item.quantity * item.unit_price;
+            let discount = 0;
+            if (item.discount_type === 'percentage' && item.discount_value) {
+              discount = lineTotal * item.discount_value / 100;
+            } else if (item.discount_type === 'fixed' && item.discount_value) {
+              discount = item.discount_value;
+            }
+            return lineTotal - discount;
+          });
+          calculatedTotalHT = itemTotals.reduce((sum, t) => sum + t, 0);
+          const taxRate = invoiceData.tax_rate || 0;
+          calculatedTotalTTC = calculatedTotalHT * (1 + taxRate / 100);
         }
       }
 
-      // Update invoice status to 'sent' (triggers accounting journal after items exist)
+      // Round totals to 2 decimal places
+      calculatedTotalHT = Number(calculatedTotalHT.toFixed(2));
+      calculatedTotalTTC = Number(calculatedTotalTTC.toFixed(2));
+
+      // Update invoice status to 'sent' and persist calculated totals
       const { data: updatedInvoice, error: updateError } = await supabase
         .from('invoices')
-        .update({ status: 'sent' })
+        .update({ status: 'sent', total_ht: calculatedTotalHT, total_ttc: calculatedTotalTTC })
         .eq('id', data.id)
         .select()
         .single();
