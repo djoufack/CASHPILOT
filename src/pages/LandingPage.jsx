@@ -478,7 +478,7 @@ const LandingPage = () => {
             </p>
 
             <p className="hero-mcp-banner animate-in" data-delay="350">
-              <span className="highlight">Révolutionnaire</span> dans le monde de la comptabilité et la finance d'entreprise : CashPilot est aussi un <strong>serveur MCP</strong>, qui offre <strong>154 outils</strong> à tout client MCP (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop…), dont l'<strong>extraction IA de factures fournisseurs</strong> (PDF/image), pour une conversation en temps réel ou pour son intégration dans vos workflows d'automatisation (n8n, Zapier, Rube.app…).
+              <span className="highlight">Révolutionnaire</span> dans le monde de la comptabilité et la finance d'entreprise : CashPilot est aussi un <strong>serveur MCP</strong>, qui offre <strong>169 outils</strong> à tout client MCP (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop…), dont l'<strong>extraction IA de factures fournisseurs</strong> (PDF/image), pour une conversation en temps réel ou pour son intégration dans vos workflows d'automatisation (n8n, Zapier, Rube.app…).
             </p>
 
             <div className="feature-tags animate-in" data-delay="400">
@@ -504,7 +504,7 @@ const LandingPage = () => {
               </div>
               <div className="tag tag-cyan">
                 <Bot />
-                <span>Serveur MCP &bull; 154 Outils IA</span>
+                <span>Serveur MCP &bull; 169 Outils IA</span>
               </div>
               <div className="tag tag-red">
                 <Lock />
@@ -978,7 +978,7 @@ const LandingPage = () => {
                 <Bot />
               </div>
               <h3>Serveur MCP & API</h3>
-              <p>154 outils MCP (dont extraction IA factures) + API REST pour agents IA et automations</p>
+              <p>169 outils MCP (dont extraction IA factures) + API REST pour agents IA et automations</p>
             </div>
 
             <div className="feature-card" data-color="rose-red">
@@ -1071,7 +1071,7 @@ const LandingPage = () => {
             </div>
             <h2 className="section-title">Connecté à Tous Vos Agents IA</h2>
             <p className="section-description">
-              CashPilot est un <strong>serveur MCP (Model Context Protocol)</strong> avec 154 outils intégrés, dont l'<strong>extraction IA de factures fournisseurs</strong>.
+              CashPilot est un <strong>serveur MCP (Model Context Protocol)</strong> avec 169 outils intégrés, dont l'<strong>extraction IA de factures fournisseurs</strong>.
               <br />
               Pilotez votre gestion financière par la voix ou le texte, depuis n'importe quel agent IA.
             </p>
@@ -1138,10 +1138,10 @@ const LandingPage = () => {
               <div className="mcp-card-icon">
                 <Plug />
               </div>
-              <h3 className="mcp-card-title">154 Outils MCP</h3>
+              <h3 className="mcp-card-title">169 Outils MCP</h3>
               <p className="mcp-card-description">
                 Création de factures, recherche de clients, export comptable, résumé financier, extraction IA de factures fournisseurs
-                — 154 outils accessibles via le protocole MCP standard.
+                — 169 outils accessibles via le protocole MCP standard.
               </p>
             </div>
 
@@ -1250,7 +1250,7 @@ const LandingPage = () => {
               <div className="advantage-icon">
                 <Bot />
               </div>
-              <p>Serveur MCP : 154 outils dont extraction IA de factures, depuis ChatGPT, Claude, Gemini, Mistral</p>
+              <p>Serveur MCP : 169 outils dont extraction IA de factures, depuis ChatGPT, Claude, Gemini, Mistral</p>
               <div className="advantage-check">
                 <CheckCircle2 />
               </div>
