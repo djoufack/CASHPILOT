@@ -535,7 +535,10 @@ serve(async (req) => {
     function checkDuplicates(): CheckResult {
       const seen = new Map<string, any[]>();
       for (const e of entries) {
-        const key = `${e.account_code}|${e.transaction_date}|${num(e.debit)}|${num(e.credit)}`;
+        // Include entry_ref in key so distinct transactions (different invoices/expenses)
+        // with the same account, date and amount are NOT flagged as duplicates.
+        const ref = e.entry_ref || e.id; // fallback to id if no entry_ref
+        const key = `${ref}|${e.account_code}|${e.transaction_date}|${num(e.debit)}|${num(e.credit)}`;
         if (!seen.has(key)) seen.set(key, []);
         seen.get(key)!.push(e);
       }
@@ -639,13 +642,14 @@ serve(async (req) => {
       const rareAccounts = Object.entries(countByAccount)
         .filter(([_, count]) => count === 1)
         .map(([code]) => ({ account_code: code }));
-      const pass = rareAccounts.length === 0;
+      // Only flag as warning if >= 3 rarely-used accounts; 1-2 is normal for small businesses
+      const pass = rareAccounts.length < 3;
       return {
         id: 'rarely_used_accounts',
         name: 'Comptes Rarement Utilises',
         status: pass ? 'pass' : 'warning',
         severity: 'info',
-        details: pass
+        details: rareAccounts.length === 0
           ? 'Tous les comptes sont utilises plus d\'une fois.'
           : `${rareAccounts.length} compte(s) utilise(s) une seule fois sur la periode.`,
         recommendation: pass ? null : 'Verifier que les comptes a usage unique ne sont pas des erreurs de saisie de code comptable.',
