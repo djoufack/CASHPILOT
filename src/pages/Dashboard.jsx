@@ -518,6 +518,10 @@ const Dashboard = () => {
                       <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3} />
                       <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
                     </linearGradient>
+                    <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+                    </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
                   <XAxis dataKey="month" stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
@@ -544,6 +548,7 @@ const Dashboard = () => {
                   />
                   <Area type="monotone" dataKey="income" stroke="#10B981" fill="url(#incomeGradient)" name="Income" />
                   <Area type="monotone" dataKey="expenses" stroke="#EF4444" fill="url(#expenseGradient)" name="Expenses" />
+                  <Area type="monotone" dataKey="net" stroke="#F59E0B" strokeWidth={2} strokeDasharray="6 3" fill="url(#netGradient)" name="Net" />
                   <Legend />
                 </AreaChart>
               </ResponsiveContainer>
