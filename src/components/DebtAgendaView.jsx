@@ -54,7 +54,7 @@ const DebtAgendaView = ({ receivables = [], payables = [], onPay, onView, onDele
 
   const formatAmount = (amount, currency = 'EUR') => {
     const symbols = { EUR: '\u20ac', USD: '$', GBP: '\u00a3', XAF: 'FCFA', XOF: 'FCFA' };
-    return `${parseFloat(amount || 0).toFixed(2)} ${symbols[currency] || currency}`;
+    return `${parseFloat(amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${symbols[currency] || currency}`;
   };
 
   const AgendaGroup = ({ groupKey, title, records }) => {

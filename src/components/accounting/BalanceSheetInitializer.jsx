@@ -84,7 +84,7 @@ const BalanceSheetInitializer = ({ onComplete }) => {
 
   const handleSave = async () => {
     if (!validation.isBalanced) {
-      setError(`Le bilan n'est pas equilibre. Difference: ${validation.difference.toFixed(2)} EUR`);
+      setError(`Le bilan n'est pas equilibre. Difference: ${validation.difference.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR`);
       return;
     }
 
@@ -247,8 +247,8 @@ const BalanceSheetInitializer = ({ onComplete }) => {
               {validation.isBalanced ? 'Bilan equilibre' : 'Bilan non equilibre'}
             </div>
             <div className="text-xs text-gray-400">
-              Actif: {validation.totalAssets.toFixed(2)} EUR | Passif: {validation.totalLiabilitiesEquity.toFixed(2)} EUR
-              {!validation.isBalanced && ` | Difference: ${validation.difference.toFixed(2)} EUR`}
+              Actif: {validation.totalAssets.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR | Passif: {validation.totalLiabilitiesEquity.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR
+              {!validation.isBalanced && ` | Difference: ${validation.difference.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR`}
             </div>
           </div>
         </div>

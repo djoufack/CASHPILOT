@@ -174,7 +174,7 @@ const BillingSettings = () => {
              data={invoices}
              columns={[
                { header: 'Date', accessor: 'date' },
-               { header: 'Amount', accessor: (inv) => <span className="text-gradient font-medium">${inv.amount.toFixed(2)}</span> },
+               { header: 'Amount', accessor: (inv) => <span className="text-gradient font-medium">${Number(inv.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> },
                { header: 'Status', accessor: (inv) => (
                  <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 capitalize">{inv.status}</Badge>
                )},
@@ -190,7 +190,7 @@ const BillingSettings = () => {
                    <div className="flex justify-between items-center">
                      <div>
                        <p className="text-gray-400 text-sm">{inv.date}</p>
-                       <p className="text-gradient font-bold text-lg mt-1">${inv.amount.toFixed(2)}</p>
+                       <p className="text-gradient font-bold text-lg mt-1">${Number(inv.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                      </div>
                      <div className="flex items-center gap-2">
                        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 capitalize">{inv.status}</Badge>

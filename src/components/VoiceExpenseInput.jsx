@@ -234,7 +234,7 @@ const VoiceExpenseInput = ({ onExpenseDetected, onCancel }) => {
               <div>
                 <span className="text-gray-500">Montant:</span>
                 <span className="ml-2 text-white font-medium">
-                  {detectedExpense.amount ? `${detectedExpense.amount.toFixed(2)} €` : 'Non detecte'}
+                  {detectedExpense.amount ? `${Number(detectedExpense.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : 'Non detecte'}
                 </span>
               </div>
               <div>

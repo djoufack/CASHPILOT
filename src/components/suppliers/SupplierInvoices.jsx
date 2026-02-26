@@ -93,7 +93,7 @@ const SupplierInvoices = ({ supplierId }) => {
       payment_status: ps,
       statusLabel: ps.charAt(0).toUpperCase() + ps.slice(1),
       statusColor: colorMap[ps] || 'bg-gray-500/20 text-gray-400',
-      amount: `${parseFloat(inv.total_amount || 0).toFixed(2)} ${inv.currency || 'EUR'}`,
+      amount: `${parseFloat(inv.total_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${inv.currency || 'EUR'}`,
     };
   });
 
@@ -157,7 +157,7 @@ const SupplierInvoices = ({ supplierId }) => {
                       <td className="py-2 px-3 font-medium text-white">{inv.invoice_number}</td>
                       <td className="py-2 px-3 text-gray-300">{inv.invoice_date}</td>
                       <td className="py-2 px-3 text-right text-white">
-                        {parseFloat(inv.total_amount || 0).toFixed(2)} {inv.currency || 'EUR'}
+                        {parseFloat(inv.total_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {inv.currency || 'EUR'}
                       </td>
                       <td className="py-2 px-3 text-center">
                         <Select value={inv.payment_status} onValueChange={(val) => updateStatus(inv.id, val)}>

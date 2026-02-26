@@ -94,7 +94,7 @@ const DebtManagerPage = () => {
     status: r.status || 'pending',
     statusLabel: t(`debtManager.status.${r.status}`) || r.status,
     statusColor: statusColors[r.status] || 'bg-gray-500/20 text-gray-400',
-    amount: `${parseFloat(r.amount || 0).toFixed(2)} ${r.currency || 'EUR'}`,
+    amount: `${(parseFloat(r.amount || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${r.currency || 'EUR'}`,
   }));
 
   const payableKanbanItems = payables.map(p => ({
@@ -105,7 +105,7 @@ const DebtManagerPage = () => {
     status: p.status || 'pending',
     statusLabel: t(`debtManager.status.${p.status}`) || p.status,
     statusColor: statusColors[p.status] || 'bg-gray-500/20 text-gray-400',
-    amount: `${parseFloat(p.amount || 0).toFixed(2)} ${p.currency || 'EUR'}`,
+    amount: `${(parseFloat(p.amount || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${p.currency || 'EUR'}`,
   }));
 
   // Handlers
@@ -195,7 +195,8 @@ const DebtManagerPage = () => {
 
   const formatAmount = (amount, currency = 'EUR') => {
     const symbols = { EUR: '\u20ac', USD: '$', GBP: '\u00a3', XAF: 'FCFA', XOF: 'FCFA' };
-    return `${parseFloat(amount || 0).toFixed(2)} ${symbols[currency] || currency}`;
+    const formatted = (parseFloat(amount || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `${formatted} ${symbols[currency] || currency}`;
   };
 
   // ─── DASHBOARD TAB ─────────────────────────

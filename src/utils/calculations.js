@@ -41,6 +41,19 @@ export const durationToHours = (duration) => {
 };
 
 /**
+ * Format a number with thousand separators (fr-FR locale)
+ * @param {number} amount - Number to format
+ * @param {number} decimals - Decimal places (default 2)
+ * @returns {string} Formatted number (e.g., "4 471 875,00")
+ */
+export const formatNumber = (amount, decimals = 2) => {
+  return (Number(amount) || 0).toLocaleString('fr-FR', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+};
+
+/**
  * Calculate invoice totals
  * @param {Array} items - Array of invoice items
  * @param {number} taxRate - Tax rate as decimal (e.g., 0.20)
@@ -59,25 +72,27 @@ export const calculateInvoiceTotal = (items, taxRate) => {
 };
 
 /**
- * Format currency amount
+ * Format currency amount with thousand separators
  * @param {number} amount - Amount to format
- * @param {string} currency - Currency code (EUR, USD, GBP)
- * @returns {string} Formatted currency string
+ * @param {string} currency - ISO 4217 currency code (EUR, USD, XAF, etc.)
+ * @returns {string} Formatted currency string (e.g., "4 471 875,00 XAF")
  */
 export const formatCurrency = (amount, currency = 'EUR') => {
-  const symbols = {
-    EUR: '€',
-    USD: '$',
-    GBP: '£'
-  };
-
-  const formatted = (Number(amount) || 0).toFixed(2);
-  const symbol = symbols[currency] || currency;
-  
-  if (currency === 'USD') {
-    return `${symbol}${formatted}`;
+  try {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(amount) || 0);
+  } catch {
+    // Fallback for unknown currencies
+    const formatted = (Number(amount) || 0).toLocaleString('fr-FR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return `${formatted} ${currency}`;
   }
-  return `${formatted} ${symbol}`;
 };
 
 /**

@@ -4,6 +4,7 @@ import { useStockAlerts, useStockHistory } from '@/hooks/useStockHistory';
 import { useProducts, useProductCategories } from '@/hooks/useProducts';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
+import { formatNumber } from '@/utils/calculations';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -332,7 +333,7 @@ const StockManagement = () => {
             <CardTitle className="text-sm font-medium text-gray-400">Valeur du stock</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-400">{totalValue.toFixed(2)} €</div>
+            <div className="text-2xl font-bold text-green-400">{formatNumber(totalValue)} €</div>
           </CardContent>
         </Card>
       </div>
@@ -399,8 +400,8 @@ const StockManagement = () => {
                         <TableCell className="font-medium">{product.product_name}</TableCell>
                         <TableCell className="text-gray-400">{product.sku || '—'}</TableCell>
                         <TableCell className="text-gray-400">{product.category?.name || '—'}</TableCell>
-                        <TableCell className="text-right">{product.unit_price?.toFixed(2)} €</TableCell>
-                        <TableCell className="text-right text-gray-400">{product.purchase_price?.toFixed(2)} €</TableCell>
+                        <TableCell className="text-right">{formatNumber(product.unit_price || 0)} €</TableCell>
+                        <TableCell className="text-right text-gray-400">{formatNumber(product.purchase_price || 0)} €</TableCell>
                         <TableCell className="text-right font-medium">{product.stock_quantity}</TableCell>
                         <TableCell className="text-right text-gray-400">{product.min_stock_level}</TableCell>
                         <TableCell>{getStockBadge(product)}</TableCell>
