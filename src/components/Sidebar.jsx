@@ -9,7 +9,7 @@ import {
   Home, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Archive, BarChart3, Calculator, PieChart, Settings,
   Map, QrCode, FileBarChart, Database, Menu, Package,
-  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench
+  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
     { type: 'separator', label: 'Finance' },
     { path: '/app/bank-connections', label: t('nav.bankConnections') || 'Bank Connections', icon: Building2 },
     { path: '/app/cash-flow', label: t('nav.cashFlow') || 'Cash Flow', icon: TrendingUp },
+    { path: '/app/audit-comptable', label: 'Audit Comptable', icon: ShieldCheck },
     { type: 'separator', label: 'System' },
     { path: '/app/reports/generator', label: 'Reports', icon: FileBarChart },
     { path: '/app/analytics', label: 'Analytics', icon: PieChart },
