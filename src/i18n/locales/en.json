@@ -58,7 +58,8 @@
     "scenarios": "Financial Simulations",
     "catalog": "Catalog",
     "products": "Products",
-    "categories": "Categories"
+    "categories": "Categories",
+    "auditComptable": "Accounting Audit"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1388,5 +1389,30 @@
       "reminder": "Reminder subject"
     },
     "subjectPreview": "Invoice {{invoiceNumber}} from {{companyName}}"
+  },
+  "audit": {
+    "title": "Accounting Audit",
+    "subtitle": "Automated verification and validation of your accounting",
+    "runAudit": "Run audit",
+    "running": "Auditing...",
+    "download": "Download",
+    "score": "Overall score",
+    "passed": "Passed",
+    "warnings": "Warnings",
+    "errors": "Errors",
+    "recommendations": "Recommendations",
+    "noAudit": "No audit run",
+    "noAuditDesc": "Select a period and run the audit to verify your accounting.",
+    "healthWidget": "Accounting Health",
+    "balance": "Balance",
+    "fiscal": "Fiscal",
+    "anomalies": "Anomalies",
+    "currentYear": "Current year",
+    "previousYear": "Previous year",
+    "currentQuarter": "Current quarter",
+    "currentMonth": "Current month",
+    "urgent": "URGENT",
+    "medium": "MEDIUM",
+    "info": "INFO"
   }
 }
