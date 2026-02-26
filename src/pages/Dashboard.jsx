@@ -46,9 +46,9 @@ const Dashboard = () => {
   }, [user]);
 
   const { metrics, revenueData, clientRevenueData, revenueByType, revenueBreakdownData, recentInvoices, recentTimesheets } = useMemo(() => {
-    if (!invoices || !timesheets || !projects) {
+    if (!invoices || !timesheets || !projects || !expenses) {
       return {
-        metrics: { revenue: 0, profitMargin: 0, occupancyRate: 0, totalExpenses: 0, netCashFlow: 0, revenueTrend: '0', marginTrend: '0', occupancyTrend: '0' },
+        metrics: { revenue: 0, profitMargin: 0, occupancyRate: 0, totalExpenses: 0, netCashFlow: 0, revenueTrend: 0, marginTrend: 0, occupancyTrend: 0 },
         revenueData: [],
         clientRevenueData: [],
         revenueByType: { product: 0, service: 0, other: 0 },

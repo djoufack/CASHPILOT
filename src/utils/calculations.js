@@ -216,9 +216,11 @@ export const generateInvoiceNumber = () => {
  * @returns {number} Percentage change (e.g., 12.5 or -3.2)
  */
 export const calculateTrend = (current, previous) => {
-  if (previous === 0 && current === 0) return 0;
-  if (previous === 0) return current > 0 ? 100 : -100;
-  return Number((((current - previous) / Math.abs(previous)) * 100).toFixed(1));
+  const cur = Number(current) || 0;
+  const prev = Number(previous) || 0;
+  if (prev === 0 && cur === 0) return 0;
+  if (prev === 0) return cur > 0 ? 100 : -100;
+  return Number((((cur - prev) / Math.abs(prev)) * 100).toFixed(1));
 };
 
 /**
@@ -227,8 +229,9 @@ export const calculateTrend = (current, previous) => {
  * @returns {string} Formatted string like "+12.5%" or "-3.2%"
  */
 export const formatTrendLabel = (trend) => {
-  if (trend === 0 || isNaN(trend)) return '0%';
-  return `${trend > 0 ? '+' : ''}${trend}%`;
+  const t = Number(trend);
+  if (!t || isNaN(t)) return '0%';
+  return `${t > 0 ? '+' : ''}${t}%`;
 };
 
 /**
@@ -238,8 +241,10 @@ export const formatTrendLabel = (trend) => {
  * @returns {number} Profit margin percentage
  */
 export const calculateProfitMargin = (revenue, expenses) => {
-  if (revenue <= 0) return 0;
-  return Number((((revenue - expenses) / revenue) * 100).toFixed(1));
+  const rev = Number(revenue) || 0;
+  const exp = Number(expenses) || 0;
+  if (rev <= 0) return 0;
+  return Number((((rev - exp) / rev) * 100).toFixed(1));
 };
 
 /**
