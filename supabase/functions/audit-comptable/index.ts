@@ -190,8 +190,15 @@ serve(async (req) => {
     // Build lookup maps
     const accountCodeSet = new Set(accounts.map((a: any) => a.account_code));
     const accountCategoryMap: Record<string, string> = {};
+    const accountNameMap: Record<string, string> = {};
     for (const a of accounts) {
       accountCategoryMap[a.account_code] = a.account_category || 'other';
+      accountNameMap[a.account_code] = a.account_name || a.name || '';
+    }
+
+    // Enrich entries with account_name (not stored in accounting_entries table)
+    for (const e of entries) {
+      (e as any).account_name = accountNameMap[e.account_code] || '';
     }
 
     // ── Determine which categories to run ────────────────────
@@ -463,28 +470,42 @@ serve(async (req) => {
     }
 
     function checkVatReconciliation(): CheckResult {
-      // Compare invoice VAT vs VAT recorded in 445x accounts
+      // Compare invoice VAT vs VAT recorded in 4457 accounts (TVA collectee)
       const invoiceVat = invoices.reduce((s: number, inv: any) => s + (num(inv.total_ttc) - num(inv.total_ht)), 0);
-      // Sum credits on 445x accounts (TVA collectee accounts)
-      let accountVat = 0;
+      // Sum credits on 4457 accounts only (TVA collectee sur ventes)
+      // 4452 = TVA deductible (fournisseurs) — not comparable to customer invoice VAT
+      let vatCollectee = 0;
+      let has4457 = false;
       for (const e of entries) {
         const code = e.account_code || '';
-        if (code.startsWith('445')) {
-          accountVat += num(e.credit) - num(e.debit);
+        if (code.startsWith('4457')) {
+          has4457 = true;
+          vatCollectee += num(e.credit) - num(e.debit);
         }
       }
-      const diff = round2(Math.abs(invoiceVat - accountVat));
-      const pass = diff < 0.01;
-      const isWarning = diff >= 0.01;
+      // If no 4457 entries exist, TVA has not been journalized yet — pass with note
+      if (!has4457) {
+        return {
+          id: 'vat_reconciliation',
+          name: 'Rapprochement TVA',
+          status: 'pass',
+          severity: 'warning',
+          details: `TVA collectee non journalisee (aucun compte 4457). TVA factures: ${round2(invoiceVat)}.`,
+          recommendation: invoiceVat > 0 ? 'Journaliser la TVA collectee sur les factures clients dans le compte 4457.' : null,
+        };
+      }
+      const diff = round2(Math.abs(invoiceVat - vatCollectee));
+      const tolerance = Math.max(invoiceVat * 0.05, 1000); // 5% tolerance for timing differences
+      const pass = diff <= tolerance;
       return {
         id: 'vat_reconciliation',
         name: 'Rapprochement TVA',
         status: pass ? 'pass' : 'warning',
         severity: 'warning',
         details: pass
-          ? `TVA factures (${round2(invoiceVat)}) correspond aux comptes 445x (${round2(accountVat)}).`
-          : `Ecart de ${diff} entre TVA factures (${round2(invoiceVat)}) et comptes 445x (${round2(accountVat)}).`,
-        recommendation: isWarning ? 'Rapprocher la TVA des factures avec les ecritures comptables 445x. L\'ecart peut indiquer des factures non journalisees.' : null,
+          ? `TVA factures (${round2(invoiceVat)}) correspond aux comptes 4457 (${round2(vatCollectee)}).`
+          : `Ecart de ${diff} entre TVA factures (${round2(invoiceVat)}) et comptes 4457 (${round2(vatCollectee)}).`,
+        recommendation: pass ? null : 'Rapprocher la TVA collectee des factures avec les ecritures 4457. L\'ecart peut indiquer des factures non journalisees.',
       };
     }
 
@@ -539,7 +560,7 @@ serve(async (req) => {
     }
 
     function checkAbnormalAmounts(): CheckResult {
-      // Group entries by account_code, compute mean + stddev, flag > 3 sigma
+      // Group entries by account_code, compute mean + stddev, flag outliers
       const byAccount: Record<string, number[]> = {};
       for (const e of entries) {
         const code = e.account_code || '';
@@ -549,12 +570,12 @@ serve(async (req) => {
       }
       const anomalies: any[] = [];
       for (const [code, amounts] of Object.entries(byAccount)) {
-        if (amounts.length < 5) continue;
+        if (amounts.length < 10) continue; // Need sufficient sample for meaningful statistics
         const mean = amounts.reduce((s, a) => s + a, 0) / amounts.length;
         const variance = amounts.reduce((s, a) => s + (a - mean) ** 2, 0) / amounts.length;
         const stddev = Math.sqrt(variance);
         if (stddev < 0.01) continue;
-        const threshold = mean + 3 * stddev;
+        const threshold = mean + 4 * stddev; // 4-sigma for financial data (fat tails)
         for (const e of entries) {
           if (e.account_code !== code) continue;
           const amount = Math.max(num(e.debit), num(e.credit));
@@ -578,21 +599,23 @@ serve(async (req) => {
         severity: 'warning',
         details: pass
           ? 'Aucun montant anormalement eleve detecte.'
-          : `${anomalies.length} ecriture(s) avec un montant > 3 ecarts-types de la moyenne du compte.`,
+          : `${anomalies.length} ecriture(s) avec un montant > 4 ecarts-types de la moyenne du compte.`,
         recommendation: pass ? null : 'Verifier les ecritures avec des montants statistiquement anormaux. Elles peuvent indiquer une erreur de saisie.',
         items: pass ? undefined : anomalies.slice(0, 10),
       };
     }
 
     function checkRoundAmounts(): CheckResult {
-      // Entries >= 1000 where amount % 1000 == 0
+      // For OHADA (XOF/XAF — no decimals), use higher threshold to avoid false positives
+      const roundModulo = country === 'OHADA' ? 100000 : 1000;
+      const minAmount = country === 'OHADA' ? 100000 : 1000;
       const largeEntries = entries.filter((e: any) => {
         const amount = Math.max(num(e.debit), num(e.credit));
-        return amount >= 1000;
+        return amount >= minAmount;
       });
       const roundEntries = largeEntries.filter((e: any) => {
         const amount = Math.max(num(e.debit), num(e.credit));
-        return amount % 1000 === 0;
+        return amount % roundModulo === 0;
       });
       const ratio = largeEntries.length > 0 ? roundEntries.length / largeEntries.length : 0;
       const suspicious = ratio > 0.15;
