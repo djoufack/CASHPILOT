@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Plus, Trash2, Tag, Send, Truck, Settings2, ChevronDown, ChevronUp, Package, Wrench } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { useEffect } from 'react';
 
 const QuickInvoice = ({ onSuccess }) => {
   const { t } = useTranslation();
@@ -30,7 +31,11 @@ const QuickInvoice = ({ onSuccess }) => {
 
   const [clientId, setClientId] = useState('');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split('T')[0];
+  });
   const [taxRate, setTaxRate] = useState(21);
   const [notes, setNotes] = useState('');
   const [reference, setReference] = useState('');
@@ -51,6 +56,15 @@ const QuickInvoice = ({ onSuccess }) => {
   const [internalRemark, setInternalRemark] = useState('');
   const [customFields, setCustomFields] = useState([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Auto-update due date when issue date changes
+  useEffect(() => {
+    if (issueDate) {
+      const d = new Date(issueDate);
+      d.setDate(d.getDate() + 30);
+      setDueDate(d.toISOString().split('T')[0]);
+    }
+  }, [issueDate]);
 
   const addItem = () => {
     setItems([...items, {
@@ -304,7 +318,12 @@ const QuickInvoice = ({ onSuccess }) => {
       {/* Items table */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
-          <Label className="text-sm font-semibold text-gray-300">{t('invoices.description')}</Label>
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-semibold text-gray-300">{t('invoices.items', { defaultValue: 'Items' })}</Label>
+            <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">
+              {items.length} {items.length > 1 ? 'items' : 'item'}
+            </span>
+          </div>
           <Button variant="outline" size="sm" onClick={addItem} className="border-gray-600 text-gray-300 hover:bg-gray-700 h-8">
             <Plus className="w-3 h-3 mr-1" /> {t('invoices.addManualLine')}
           </Button>
