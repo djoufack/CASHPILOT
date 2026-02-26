@@ -1401,5 +1401,12 @@
     "urgent": "URGENT",
     "medium": "MOYEN",
     "info": "INFO"
+  },
+  "accounting_guard": {
+    "validated": "Ecritures validees",
+    "balanced_detail": "L'equilibre debit/credit est verifie pour {{ref}}. Votre comptabilite reste conforme.",
+    "warning_title": "Verification necessaire",
+    "imbalance_guidance": "Un desequilibre a ete detecte sur {{ref}}. Pas de panique — lancez un audit pour identifier et corriger le probleme.",
+    "see_audit": "Voir l'audit"
   }
 }
