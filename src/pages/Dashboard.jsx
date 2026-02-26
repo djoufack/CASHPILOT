@@ -146,14 +146,17 @@ const Dashboard = () => {
 
     // --- Revenue breakdown by type ---
     const revenueByType = { product: 0, service: 0, other: 0 };
+    const classifyItem = (item) => {
+      if (item.item_type === 'product' || item.product_id) return 'product';
+      if (item.item_type === 'service' || item.item_type === 'timesheet' || item.service_id) return 'service';
+      return 'other';
+    };
     billedInvoices.forEach(inv => {
       const items = inv.items || [];
       if (items.length > 0) {
         items.forEach(item => {
           const itemTotal = item.total || (item.quantity * item.unit_price) || 0;
-          if (item.item_type === 'product') revenueByType.product += itemTotal;
-          else if (item.item_type === 'service' || item.item_type === 'timesheet') revenueByType.service += itemTotal;
-          else revenueByType.other += itemTotal;
+          revenueByType[classifyItem(item)] += itemTotal;
         });
       } else {
         revenueByType.other += getInvoiceAmount(inv);
@@ -172,8 +175,9 @@ const Dashboard = () => {
       if (items.length > 0) {
         items.forEach(item => {
           const itemTotal = item.total || (item.quantity * item.unit_price) || 0;
-          if (item.item_type === 'product') revenueByMonthType[monthName].products += itemTotal;
-          else if (item.item_type === 'service' || item.item_type === 'timesheet') revenueByMonthType[monthName].services += itemTotal;
+          const cat = classifyItem(item);
+          if (cat === 'product') revenueByMonthType[monthName].products += itemTotal;
+          else if (cat === 'service') revenueByMonthType[monthName].services += itemTotal;
           else revenueByMonthType[monthName].other += itemTotal;
         });
       } else {
@@ -414,7 +418,7 @@ const Dashboard = () => {
                 <BarChart data={revenueBreakdownData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
                   <XAxis dataKey="name" stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => { const abs = Math.abs(val); if (abs >= 1e9) return `${(val/1e9).toFixed(1)}Md`; if (abs >= 1e6) return `${(val/1e6).toFixed(1)}M`; if (abs >= 1e3) return `${(val/1e3).toFixed(0)}K`; return val; }} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
                     formatter={(value, name) => [formatCurrency(value, company?.currency), name === 'products' ? t('dashboard.productRevenue') : name === 'services' ? t('dashboard.serviceRevenue') : t('dashboard.otherRevenue')]}
@@ -452,7 +456,7 @@ const Dashboard = () => {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
                     <XAxis dataKey="name" stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => { const abs = Math.abs(val); if (abs >= 1e9) return `${(val/1e9).toFixed(1)}Md`; if (abs >= 1e6) return `${(val/1e6).toFixed(1)}M`; if (abs >= 1e3) return `${(val/1e3).toFixed(0)}K`; return val; }} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
                       formatter={(value) => [formatCurrency(value, company?.currency), 'Revenue']}
@@ -481,7 +485,7 @@ const Dashboard = () => {
                   <LineChart data={clientRevenueData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
                     <XAxis dataKey="name" stroke="#6B7280" fontSize={10} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#6B7280" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#6B7280" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => { const abs = Math.abs(val); if (abs >= 1e9) return `${(val/1e9).toFixed(1)}Md`; if (abs >= 1e6) return `${(val/1e6).toFixed(1)}M`; if (abs >= 1e3) return `${(val/1e3).toFixed(0)}K`; return val; }} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
                       formatter={(value) => [formatCurrency(value, company?.currency), 'Revenue']}
