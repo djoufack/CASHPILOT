@@ -11,6 +11,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { useAuth } from '@/context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import GDPRConsentBanner from './components/GDPRConsentBanner';
+import { useAccountingGuard } from '@/hooks/useAccountingGuard';
 import './i18n/config';
 
 // Retry wrapper for lazy imports - handles chunk load failures after deployments
@@ -82,6 +83,12 @@ const AuthenticatedChatWidget = () => {
     const { user } = useAuth();
     if (!user) return null;
     return <AIChatWidget />;
+};
+
+// Real-time accounting guard — validates entries and shows toasts
+const AccountingGuard = () => {
+    useAccountingGuard();
+    return null;
 };
 
 // Wrapper to handle auth redirects
@@ -192,6 +199,7 @@ function App() {
                 <ScrollToTop />
                 <AuthWrapper />
                 <AuthenticatedChatWidget />
+                <AccountingGuard />
                 <GDPRConsentBanner />
                 <Toaster />
             </ErrorBoundary>

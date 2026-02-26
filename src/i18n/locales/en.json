@@ -1414,5 +1414,12 @@
     "urgent": "URGENT",
     "medium": "MEDIUM",
     "info": "INFO"
+  },
+  "accounting_guard": {
+    "validated": "Entries validated",
+    "balanced_detail": "Debit/credit balance verified for {{ref}}. Your accounting remains compliant.",
+    "warning_title": "Review needed",
+    "imbalance_guidance": "An imbalance was detected on {{ref}}. Don't worry — run an audit to identify and fix the issue.",
+    "see_audit": "View audit"
   }
 }
