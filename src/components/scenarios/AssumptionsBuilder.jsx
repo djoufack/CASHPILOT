@@ -313,7 +313,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
       case 'one_time':
         return new Intl.NumberFormat('fr-FR', {
           style: 'currency',
-          currency: 'EUR',
+          currency: company?.currency || 'EUR',
         }).format(params.amount || 0);
 
       case 'payment_terms':

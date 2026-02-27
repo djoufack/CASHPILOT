@@ -77,7 +77,7 @@ const FinancialAnnexes = ({
   balanceSheet,
   incomeStatement,
   companyInfo,
-  currency = 'XAF',
+  currency = 'EUR',
   period,
   onExportPDF,
 }) => {

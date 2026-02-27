@@ -45,7 +45,7 @@ const ProfileSettings = () => {
     city: '',
     postal_code: '',
     country: '',
-    currency: 'USD',
+    currency: 'EUR',
     timezone: 'UTC'
   });
 
@@ -67,7 +67,7 @@ const ProfileSettings = () => {
         city: profile.city || '',
         postal_code: profile.postal_code || '',
         country: profile.country || '',
-        currency: profile.currency || 'USD',
+        currency: profile.currency || 'EUR',
         timezone: profile.timezone || 'UTC'
       });
       if (profile.signature_url && !signatureFile) {

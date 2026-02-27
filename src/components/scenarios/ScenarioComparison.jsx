@@ -31,7 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { exportScenarioComparisonPDF } from '@/services/exportScenarioPDF';
 import { useToast } from '@/components/ui/use-toast';
 
-const ScenarioComparison = ({ scenarios }) => {
+const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
   const { getScenarioResults, compareScenarios } = useFinancialScenarios();
   const { toast } = useToast();
 
@@ -105,7 +105,7 @@ const ScenarioComparison = ({ scenarios }) => {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'EUR',
+      currency: currency,
       notation: 'compact',
       maximumFractionDigits: 1,
     }).format(value);

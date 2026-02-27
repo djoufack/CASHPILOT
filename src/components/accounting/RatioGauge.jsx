@@ -9,7 +9,8 @@ const RatioGauge = ({
   format = 'number',
   inverse = false,
   unit = '',
-  description = ''
+  description = '',
+  currency = 'EUR'
 }) => {
   const formatValue = (val) => {
     if (!val && val !== 0) return '-';
@@ -17,7 +18,7 @@ const RatioGauge = ({
       case 'percentage':
         return `${val.toFixed(1)}%`;
       case 'currency':
-        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(val);
+        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency }).format(val);
       case 'number':
       default:
         return val.toFixed(2) + (unit ? ` ${unit}` : '');

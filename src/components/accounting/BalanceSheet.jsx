@@ -9,7 +9,7 @@ import { formatCurrency } from '@/utils/calculations';
  * Professional SYSCOHADA Balance Sheet Component
  * Two views: Résumé (SYSCOHADA sections) and Détaillé (flat table for expert-comptable verification)
  */
-const BalanceSheet = ({ balanceSheet, period, currency = 'XAF', companyInfo, onExportPDF, onExportHTML }) => {
+const BalanceSheet = ({ balanceSheet, period, currency = 'EUR', companyInfo, onExportPDF, onExportHTML }) => {
   const [viewMode, setViewMode] = useState('summary'); // 'summary' | 'detailed'
 
   if (!balanceSheet) return null;

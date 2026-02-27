@@ -54,7 +54,7 @@ async function generatePDF(element, filename) {
 
 export async function exportBalanceSheetPDF(balanceSheet, companyInfo, period) {
   const { totalAssets, totalPassif, balanced, syscohada } = balanceSheet;
-  const cur = companyInfo?.currency || 'XAF';
+  const cur = companyInfo?.currency || 'EUR';
 
   function fmtCur(n) {
     try {
@@ -526,7 +526,7 @@ export async function exportFinancialDiagnosticPDF(diagnostic, companyInfo, peri
 export async function exportFinancialAnnexesPDF(annexesData, companyInfo, period) {
   const { trialBalance, netIncome } = annexesData || {};
   const tb = trialBalance || [];
-  const cur = companyInfo?.currency || 'XAF';
+  const cur = companyInfo?.currency || 'EUR';
 
   function fmtCur(n) {
     try {
