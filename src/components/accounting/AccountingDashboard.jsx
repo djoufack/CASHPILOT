@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { DollarSign, TrendingUp, TrendingDown, Receipt, AlertTriangle, FileText } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 
@@ -89,36 +89,86 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
         </Card>
       </div>
 
-      {/* Main Chart */}
-      <Card className="bg-gray-900 border-gray-800">
-        <CardHeader>
-          <CardTitle className="text-gradient">Revenus vs Charges par mois</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] w-full">
-            {monthlyData && monthlyData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="name" stroke="#9CA3AF" />
-                  <YAxis stroke="#9CA3AF" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
-                    formatter={(value) => formatCurrency(value)}
-                  />
-                  <Legend />
-                  <Bar dataKey="revenue" fill="#F59E0B" name="Revenus" />
-                  <Bar dataKey="expense" fill="#EF4444" name="Charges" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                <p>Aucune donnée pour cette période</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Revenue vs Expenses Bar Chart */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-400">Revenus vs Charges</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[280px]">
+              {monthlyData && monthlyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={monthlyData} barCategoryGap="20%">
+                    <defs>
+                      <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#F59E0B" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#F59E0B" stopOpacity={0.6} />
+                      </linearGradient>
+                      <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#EF4444" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#EF4444" stopOpacity={0.6} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                    <XAxis dataKey="name" stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
+                      formatter={(value) => formatCurrency(value)}
+                      cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                    />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#9CA3AF' }} />
+                    <Bar dataKey="revenue" fill="url(#gradRevenue)" name="Revenus" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="expense" fill="url(#gradExpense)" name="Charges" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <p className="text-sm">Aucune donnée pour cette période</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Net Income Trend Area Chart */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-400">Tendance Résultat Net</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[280px]">
+              {monthlyData && monthlyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={monthlyData.map(m => ({ ...m, net: (m.revenue || 0) - (m.expense || 0) }))}>
+                    <defs>
+                      <linearGradient id="gradNet" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#22C55E" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#22C55E" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                    <XAxis dataKey="name" stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
+                      formatter={(value) => formatCurrency(value)}
+                      cursor={{ stroke: 'rgba(255,255,255,0.1)' }}
+                    />
+                    <Area type="monotone" dataKey="net" stroke="#22C55E" strokeWidth={2} fill="url(#gradNet)" name="Résultat net" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <p className="text-sm">Aucune donnée pour cette période</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
