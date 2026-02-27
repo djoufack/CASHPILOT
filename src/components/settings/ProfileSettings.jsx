@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useProfileSettings } from '@/hooks/useProfileSettings';
 import { useAuth } from '@/context/AuthContext';
 import { checkSupabaseConnection } from '@/lib/supabase';
@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { COUNTRIES } from '@/constants/countries';
+import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, Upload, Trash2, PenTool, Bug, RefreshCw, CheckCircle2, XCircle, Camera, Lock } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
@@ -26,6 +28,14 @@ const ProfileSettings = () => {
   
   const { toast } = useToast();
   const fileInputRef = useRef(null);
+
+  const currencyOptions = useMemo(() =>
+    SUPPORTED_CURRENCIES.map(c => ({
+      value: c.code,
+      label: `${c.code} (${c.symbol})`,
+      description: c.name,
+    })),
+  []);
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -399,16 +409,14 @@ const ProfileSettings = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="currency">Default Currency</Label>
-                <Select value={formData.currency} onValueChange={(val) => handleSelectChange('currency', val)}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                    <SelectValue placeholder="Select Currency" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                    <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="EUR">EUR (€)</SelectItem>
-                    <SelectItem value="GBP">GBP (£)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={currencyOptions}
+                  value={formData.currency}
+                  onValueChange={(val) => handleSelectChange('currency', val)}
+                  placeholder="Sélectionner une devise"
+                  searchPlaceholder="Rechercher une devise..."
+                  emptyMessage="Aucune devise trouvée"
+                />
               </div>
 
               <div className="space-y-2">

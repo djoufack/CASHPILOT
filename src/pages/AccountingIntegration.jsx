@@ -81,12 +81,21 @@ const AccountingIntegration = () => {
 
   const { guardedAction, modalProps } = useCreditsGuard();
 
+  const companyCurrency = company?.currency || 'XAF';
+
   const companyInfo = company ? {
     company_name: company.company_name || company.name || 'Ma Société',
     address: company.address,
+    city: company.city,
+    postal_code: company.postal_code,
+    country: company.country,
+    registration_number: company.registration_number || company.siret,
     siret: company.siret,
-    vat_number: company.vat_number
-  } : { company_name: 'Ma Société' };
+    vat_number: company.vat_number,
+    phone: company.phone,
+    email: company.email,
+    currency: companyCurrency,
+  } : { company_name: 'Ma Société', currency: 'XAF' };
 
   // PDF export handlers — credit-guarded (5 crédits pour génération états comptables)
   const handleExportBalanceSheetPDF = () => {
@@ -330,6 +339,8 @@ const AccountingIntegration = () => {
             <BalanceSheet
               balanceSheet={balanceSheet}
               period={period}
+              currency={companyCurrency}
+              companyInfo={companyInfo}
               onExportPDF={handleExportBalanceSheetPDF}
               onExportHTML={handleExportBalanceSheetHTML}
             />

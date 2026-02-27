@@ -180,80 +180,146 @@ export const downloadHTML = (html, filename) => {
 };
 
 /**
- * Export Bilan en HTML
- * @param {Object} balanceSheet - Données du bilan
- * @param {Object} companyInfo - Informations société
- * @param {string} period - Période
+ * Export Bilan SYSCOHADA en HTML — miroir exact de l'affichage écran
+ * @param {Object} balanceSheet - Données du bilan (avec structure syscohada)
+ * @param {Object} companyInfo - Informations société (name, city, country, registration_number, currency, etc.)
+ * @param {string} period - Période (ex: "2026-01-01 - 2026-12-31")
  */
 export const exportBalanceSheetHTML = (balanceSheet, companyInfo, period) => {
+  const currency = companyInfo?.currency || 'XAF';
+  const fmt = (v) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0);
+
+  const periodLabel = typeof period === 'string' ? period : (period?.endDate ? new Date(period.endDate).toLocaleDateString('fr-FR') : '');
+  const now = new Date();
+  const printDate = `${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR')}`;
+
+  // Render a SYSCOHADA section (e.g., ACTIF IMMOBILISÉ)
+  const renderSection = (section) => {
+    if (!section.groups || section.groups.length === 0) {
+      return `
+        <tr>
+          <td colspan="3" style="padding:8px 5px;background:#f8f9fa;font-weight:bold;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#6B7280;">
+            ${section.label}
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="padding:4px 5px 4px 20px;color:#999;font-style:italic;font-size:11px;">Aucun compte</td>
+          <td style="padding:4px 5px;text-align:right;font-family:monospace;color:#999;">${fmt(0)}</td>
+        </tr>
+      `;
+    }
+
+    let html = `
+      <tr>
+        <td colspan="3" style="padding:8px 5px;background:#f8f9fa;font-weight:bold;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#374151;">
+          ${section.label}
+          <span style="float:right;font-family:monospace;font-size:12px;color:#111;">${fmt(section.total)}</span>
+        </td>
+      </tr>
+    `;
+
+    for (const group of section.groups) {
+      // Class group header (2-digit code)
+      html += `
+        <tr>
+          <td colspan="3" style="padding:6px 5px 3px 10px;font-weight:600;color:#D97706;font-size:11px;text-transform:uppercase;letter-spacing:0.03em;border-bottom:1px solid #E5E7EB;">
+            <span style="font-family:monospace;margin-right:8px;">${group.classCode}</span>${group.className}
+            <span style="float:right;font-family:monospace;font-size:11px;color:#D97706;">${fmt(group.subtotal)}</span>
+          </td>
+        </tr>
+      `;
+
+      // Individual accounts (3+ digit codes)
+      for (const account of group.accounts) {
+        const isZero = account.balance === 0;
+        html += `
+          <tr style="${isZero ? 'opacity:0.5;' : ''}">
+            <td style="padding:2px 5px 2px 25px;font-family:monospace;color:#6B7280;font-size:11px;width:12%;">${account.account_code}</td>
+            <td style="padding:2px 5px;font-size:12px;color:#111;">${account.account_name}</td>
+            <td style="padding:2px 5px;text-align:right;font-family:monospace;font-size:12px;${isZero ? 'color:#ccc;' : 'color:#111;'}">${fmt(account.balance)}</td>
+          </tr>
+        `;
+      }
+    }
+
+    return html;
+  };
+
+  // Render one side (ACTIF or PASSIF)
+  const renderSide = (title, color, sections, total) => {
+    return `
+      <div style="flex:1;min-width:0;">
+        <h2 style="color:${color};font-size:14px;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center;">
+          <span>${title}</span>
+          <span style="font-family:monospace;font-size:15px;">${fmt(total)}</span>
+        </h2>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="border-bottom:2px solid ${color};">
+              <th style="width:12%;text-align:left;padding:5px;font-size:10px;color:#888;text-transform:uppercase;">Code</th>
+              <th style="text-align:left;padding:5px;font-size:10px;color:#888;text-transform:uppercase;">Libellé</th>
+              <th style="width:22%;text-align:right;padding:5px;font-size:10px;color:#888;text-transform:uppercase;">Montant (${currency})</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sections.map(renderSection).join('')}
+            <tr style="border-top:2px solid ${color};">
+              <td colspan="2" style="padding:10px 5px;font-weight:bold;font-size:14px;">TOTAL ${title}</td>
+              <td style="padding:10px 5px;text-align:right;font-weight:bold;font-family:monospace;font-size:14px;color:${color};">${fmt(total)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  };
+
+  const { totalAssets, totalPassif, balanced, syscohada } = balanceSheet;
+  const difference = Math.abs(totalAssets - totalPassif);
+
+  // Company header
+  const companyName = companyInfo?.company_name || companyInfo?.name || 'Société';
+  const companyDetails = [
+    companyInfo?.city,
+    companyInfo?.country,
+  ].filter(Boolean).join(', ');
+
   const content = `
-    <div class="header">
-      <h1>${companyInfo.name || 'Société'}</h1>
-      <p>Bilan - Période: ${period}</p>
+    <div style="text-align:center;margin-bottom:24px;">
+      <h1 style="margin:0 0 4px;font-size:22px;color:#111;">${companyName}</h1>
+      ${companyDetails ? `<p style="margin:2px 0;font-size:12px;color:#666;">${companyDetails}</p>` : ''}
+      ${companyInfo?.registration_number ? `<p style="margin:2px 0;font-size:11px;color:#888;">N° ${companyInfo.registration_number}</p>` : ''}
+      ${companyInfo?.phone ? `<p style="margin:2px 0;font-size:11px;color:#888;">Tél: ${companyInfo.phone}</p>` : ''}
+      ${companyInfo?.email ? `<p style="margin:2px 0;font-size:11px;color:#888;">${companyInfo.email}</p>` : ''}
+      <h2 style="margin:16px 0 4px;font-size:17px;color:#333;text-transform:uppercase;letter-spacing:0.1em;">Bilan Comptable SYSCOHADA</h2>
+      ${periodLabel ? `<p style="margin:2px 0;font-size:12px;color:#666;">Exercice du ${periodLabel.replace(' - ', ' au ')}</p>` : ''}
     </div>
 
-    <div class="section">
-      <h2 class="section-title">ACTIF</h2>
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 15%">Code</th>
-            <th>Libellé</th>
-            <th style="width: 20%; text-align: right">Montant (€)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${balanceSheet.assets?.map(asset => `
-            <tr>
-              <td>${asset.code}</td>
-              <td>${asset.label}</td>
-              <td style="text-align: right">${asset.amount?.toFixed(2) || '0.00'}</td>
-            </tr>
-          `).join('') || '<tr><td colspan="3">Aucune donnée</td></tr>'}
-          <tr class="total-row">
-            <td colspan="2">TOTAL ACTIF</td>
-            <td style="text-align: right">${balanceSheet.totalAssets?.toFixed(2) || '0.00'}</td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Equilibre comptable -->
+    <div style="margin-bottom:20px;padding:10px 16px;border:2px solid ${balanced ? '#10B981' : '#EF4444'};border-radius:8px;background:${balanced ? '#ECFDF5' : '#FEF2F2'};display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:600;font-size:13px;color:${balanced ? '#059669' : '#DC2626'};">
+        ${balanced ? '&#10003; Bilan équilibré — Actif = Passif' : '&#9888; Bilan déséquilibré — Écart : ' + fmt(difference)}
+      </span>
+      <span style="font-size:12px;color:#666;">
+        Total Actif: <strong style="font-family:monospace;color:#3B82F6;">${fmt(totalAssets)}</strong>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        Total Passif: <strong style="font-family:monospace;color:#EF4444;">${fmt(totalPassif)}</strong>
+      </span>
     </div>
 
-    <div class="section">
-      <h2 class="section-title">PASSIF</h2>
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 15%">Code</th>
-            <th>Libellé</th>
-            <th style="width: 20%; text-align: right">Montant (€)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${balanceSheet.liabilities?.map(liability => `
-            <tr>
-              <td>${liability.code}</td>
-              <td>${liability.label}</td>
-              <td style="text-align: right">${liability.amount?.toFixed(2) || '0.00'}</td>
-            </tr>
-          `).join('') || '<tr><td colspan="3">Aucune donnée</td></tr>'}
-          <tr class="total-row">
-            <td colspan="2">TOTAL PASSIF</td>
-            <td style="text-align: right">${balanceSheet.totalLiabilities?.toFixed(2) || '0.00'}</td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Two columns: ACTIF | PASSIF -->
+    <div style="display:flex;gap:24px;align-items:flex-start;">
+      ${syscohada ? renderSide('ACTIF', '#3B82F6', syscohada.actif, totalAssets) : '<p>Aucune donnée SYSCOHADA</p>'}
+      ${syscohada ? renderSide('PASSIF', '#EF4444', syscohada.passif, totalPassif) : ''}
     </div>
 
-    <div class="summary">
-      <h3>Équilibre Comptable</h3>
-      <p><strong>Total Actif:</strong> ${balanceSheet.totalAssets?.toFixed(2) || '0.00'} €</p>
-      <p><strong>Total Passif:</strong> ${balanceSheet.totalLiabilities?.toFixed(2) || '0.00'} €</p>
-      <p><strong>Différence:</strong> ${(balanceSheet.totalAssets - balanceSheet.totalLiabilities)?.toFixed(2) || '0.00'} €</p>
-    </div>
+    <!-- Footer -->
+    <p style="margin-top:24px;text-align:center;font-size:10px;color:#aaa;">
+      Bilan généré le ${printDate} — CashPilot
+    </p>
   `;
 
-  const html = generateHTMLDocument(`Bilan - ${period}`, content);
-  downloadHTML(html, `bilan-${period.replace(/\//g, '-')}`);
+  const html = generateHTMLDocument(`Bilan SYSCOHADA - ${companyName}`, content);
+  downloadHTML(html, `bilan-syscohada-${(periodLabel || 'export').replace(/[\s\/]/g, '-')}`);
 };
 
 /**
