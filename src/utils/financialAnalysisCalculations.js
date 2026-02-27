@@ -71,11 +71,11 @@ function sumEntriesByAccountClass(entries, accounts, classes, startDate, endDate
     if (!matchesClass) return sum;
 
     if (debitOrCredit === 'debit') {
-      return sum + (parseFloat(entry.debit_amount) || 0);
+      return sum + (parseFloat(entry.debit) || 0);
     } else if (debitOrCredit === 'credit') {
-      return sum + (parseFloat(entry.credit_amount) || 0);
+      return sum + (parseFloat(entry.credit) || 0);
     } else {
-      return sum + (parseFloat(entry.debit_amount) || 0) - (parseFloat(entry.credit_amount) || 0);
+      return sum + (parseFloat(entry.debit) || 0) - (parseFloat(entry.credit) || 0);
     }
   }, 0);
 }
