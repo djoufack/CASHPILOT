@@ -343,7 +343,7 @@ const BankReconciliation = ({ period }) => {
           placeholder="Rechercher..."
           value={searchText}
           onChange={e => setSearchText(e.target.value)}
-          className="bg-gray-800 border-gray-700 text-white text-xs h-7 w-[200px]"
+          className="bg-gray-800 border-gray-700 text-white text-xs h-7 w-full sm:w-[200px]"
         />
       </div>
 

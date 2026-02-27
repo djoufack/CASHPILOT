@@ -33,7 +33,7 @@ const BalanceSheet = ({ balanceSheet, period, currency = 'XAF', companyInfo, onE
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
         <div>
           <h2 className="text-xl font-bold text-gradient flex items-center gap-2">
             <Scale className="w-5 h-5" /> Bilan Comptable SYSCOHADA
@@ -55,7 +55,7 @@ const BalanceSheet = ({ balanceSheet, period, currency = 'XAF', companyInfo, onE
             </p>
           )}
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
           {/* View mode toggle */}
           <div className="flex bg-gray-800 rounded-lg p-0.5 border border-gray-700">
             <button
@@ -94,7 +94,7 @@ const BalanceSheet = ({ balanceSheet, period, currency = 'XAF', companyInfo, onE
 
       {/* Equilibre comptable */}
       <Card className={`border ${balanced ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-red-500/5 border-red-500/30'}`}>
-        <CardContent className="py-3 px-4 flex items-center justify-between">
+        <CardContent className="py-3 px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             {balanced ? (
               <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -105,7 +105,7 @@ const BalanceSheet = ({ balanceSheet, period, currency = 'XAF', companyInfo, onE
               {balanced ? 'Bilan équilibré — Actif = Passif' : `Bilan déséquilibré — Écart : ${fmt(difference)}`}
             </span>
           </div>
-          <div className="flex gap-6 text-xs">
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
             <span className="text-gray-400">Total Actif: <span className="font-mono text-blue-400 font-semibold">{fmt(totalAssets)}</span></span>
             <span className="text-gray-400">Total Passif: <span className="font-mono text-red-400 font-semibold">{fmt(totalPassif)}</span></span>
           </div>

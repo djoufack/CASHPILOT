@@ -177,7 +177,7 @@ const FinancialAnnexes = ({
       {/* Header */}
       <Card className="bg-gray-900/50 border border-gray-800">
         <CardContent className="p-5">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <BookOpen className="w-6 h-6 text-amber-400" />
               <div>

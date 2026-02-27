@@ -125,7 +125,7 @@ const AnalyticsPage = () => {
                     </h1>
                     <p className="text-gray-400 text-sm md:text-base">Financial insights and performance metrics</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button
                     onClick={handleRefresh}
                     disabled={isLoading}

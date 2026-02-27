@@ -500,28 +500,30 @@ const AccountingIntegration = () => {
                         <span className="text-orange-400 font-bold">Solde: {formatNumber(account.balance)} €</span>
                       </div>
                     </div>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-gray-500 text-xs uppercase border-b border-gray-700/50">
-                          <th className="text-left p-2 pl-4">Date</th>
-                          <th className="text-left p-2">Réf.</th>
-                          <th className="text-left p-2">Description</th>
-                          <th className="text-right p-2">Débit</th>
-                          <th className="text-right p-2 pr-4">Crédit</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {account.entries.map((e, i) => (
-                          <tr key={e.id || i} className="border-b border-gray-700/30 hover:bg-gray-700/20">
-                            <td className="p-2 pl-4 text-gray-400">{e.transaction_date ? format(new Date(e.transaction_date), 'dd/MM/yyyy') : '-'}</td>
-                            <td className="p-2 font-mono text-xs text-gray-500">{e.entry_ref || '-'}</td>
-                            <td className="p-2 text-gray-300">{e.description || '-'}</td>
-                            <td className="p-2 text-right text-green-400">{parseFloat(e.debit) > 0 ? parseFloat(e.debit).toFixed(2) : ''}</td>
-                            <td className="p-2 pr-4 text-right text-red-400">{parseFloat(e.credit) > 0 ? parseFloat(e.credit).toFixed(2) : ''}</td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-gray-500 text-xs uppercase border-b border-gray-700/50">
+                            <th className="text-left p-2 pl-4">Date</th>
+                            <th className="text-left p-2">Réf.</th>
+                            <th className="text-left p-2">Description</th>
+                            <th className="text-right p-2">Débit</th>
+                            <th className="text-right p-2 pr-4">Crédit</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {account.entries.map((e, i) => (
+                            <tr key={e.id || i} className="border-b border-gray-700/30 hover:bg-gray-700/20">
+                              <td className="p-2 pl-4 text-gray-400">{e.transaction_date ? format(new Date(e.transaction_date), 'dd/MM/yyyy') : '-'}</td>
+                              <td className="p-2 font-mono text-xs text-gray-500">{e.entry_ref || '-'}</td>
+                              <td className="p-2 text-gray-300">{e.description || '-'}</td>
+                              <td className="p-2 text-right text-green-400">{parseFloat(e.debit) > 0 ? parseFloat(e.debit).toFixed(2) : ''}</td>
+                              <td className="p-2 pr-4 text-right text-red-400">{parseFloat(e.credit) > 0 ? parseFloat(e.credit).toFixed(2) : ''}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 ))
               )}
@@ -539,46 +541,48 @@ const AccountingIntegration = () => {
                 <div className="text-center py-16 text-gray-500">{t('accounting.noEntries')}</div>
               ) : (
                 <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-gray-500 text-xs uppercase border-b border-gray-700 bg-gray-750">
-                        <th className="text-left p-3">Date</th>
-                        <th className="text-left p-3">Réf.</th>
-                        <th className="text-left p-3">Journal</th>
-                        <th className="text-left p-3">Compte</th>
-                        <th className="text-left p-3">Description</th>
-                        <th className="text-right p-3">Débit</th>
-                        <th className="text-right p-3">Crédit</th>
-                        <th className="text-center p-3">Auto</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {journalBook.map((group, gi) => (
-                        group.lines.map((line, li) => (
-                          <tr key={`${gi}-${li}`} className={`border-b border-gray-700/30 hover:bg-gray-700/20 ${li === 0 ? 'border-t border-gray-600/50' : ''}`}>
-                            {li === 0 ? (
-                              <>
-                                <td className="p-2 pl-3 text-gray-400" rowSpan={group.lines.length}>{group.date ? format(new Date(group.date), 'dd/MM/yyyy') : '-'}</td>
-                                <td className="p-2 font-mono text-xs text-orange-400" rowSpan={group.lines.length}>{group.entry_ref}</td>
-                                <td className="p-2" rowSpan={group.lines.length}>
-                                  <span className="px-1.5 py-0.5 bg-gray-700 rounded text-xs text-gray-300">{group.journal}</span>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-gray-500 text-xs uppercase border-b border-gray-700 bg-gray-750">
+                          <th className="text-left p-3">Date</th>
+                          <th className="text-left p-3">Réf.</th>
+                          <th className="text-left p-3">Journal</th>
+                          <th className="text-left p-3">Compte</th>
+                          <th className="text-left p-3">Description</th>
+                          <th className="text-right p-3">Débit</th>
+                          <th className="text-right p-3">Crédit</th>
+                          <th className="text-center p-3">Auto</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {journalBook.map((group, gi) => (
+                          group.lines.map((line, li) => (
+                            <tr key={`${gi}-${li}`} className={`border-b border-gray-700/30 hover:bg-gray-700/20 ${li === 0 ? 'border-t border-gray-600/50' : ''}`}>
+                              {li === 0 ? (
+                                <>
+                                  <td className="p-2 pl-3 text-gray-400" rowSpan={group.lines.length}>{group.date ? format(new Date(group.date), 'dd/MM/yyyy') : '-'}</td>
+                                  <td className="p-2 font-mono text-xs text-orange-400" rowSpan={group.lines.length}>{group.entry_ref}</td>
+                                  <td className="p-2" rowSpan={group.lines.length}>
+                                    <span className="px-1.5 py-0.5 bg-gray-700 rounded text-xs text-gray-300">{group.journal}</span>
+                                  </td>
+                                </>
+                              ) : null}
+                              <td className="p-2 font-mono text-xs text-gray-400">{line.account_code}</td>
+                              <td className="p-2 text-gray-300">{line.description || '-'}</td>
+                              <td className="p-2 text-right text-green-400">{parseFloat(line.debit) > 0 ? parseFloat(line.debit).toFixed(2) : ''}</td>
+                              <td className="p-2 text-right text-red-400">{parseFloat(line.credit) > 0 ? parseFloat(line.credit).toFixed(2) : ''}</td>
+                              {li === 0 ? (
+                                <td className="p-2 text-center" rowSpan={group.lines.length}>
+                                  {group.is_auto ? <Zap className="w-3.5 h-3.5 text-yellow-400 inline" /> : <span className="text-gray-600">—</span>}
                                 </td>
-                              </>
-                            ) : null}
-                            <td className="p-2 font-mono text-xs text-gray-400">{line.account_code}</td>
-                            <td className="p-2 text-gray-300">{line.description || '-'}</td>
-                            <td className="p-2 text-right text-green-400">{parseFloat(line.debit) > 0 ? parseFloat(line.debit).toFixed(2) : ''}</td>
-                            <td className="p-2 text-right text-red-400">{parseFloat(line.credit) > 0 ? parseFloat(line.credit).toFixed(2) : ''}</td>
-                            {li === 0 ? (
-                              <td className="p-2 text-center" rowSpan={group.lines.length}>
-                                {group.is_auto ? <Zap className="w-3.5 h-3.5 text-yellow-400 inline" /> : <span className="text-gray-600">—</span>}
-                              </td>
-                            ) : null}
-                          </tr>
-                        ))
-                      ))}
-                    </tbody>
-                  </table>
+                              ) : null}
+                            </tr>
+                          ))
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>

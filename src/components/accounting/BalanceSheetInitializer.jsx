@@ -179,7 +179,7 @@ const BalanceSheetInitializer = ({ onComplete }) => {
               placeholder="0.00"
               value={balances[account.account_code] || ''}
               onChange={(e) => handleBalanceChange(account.account_code, e.target.value)}
-              className="w-32 text-right bg-gray-900 border-gray-700"
+              className="w-full sm:w-32 text-right bg-gray-900 border-gray-700"
             />
             <span className="text-sm text-gray-500 w-8">EUR</span>
           </div>
