@@ -35,7 +35,7 @@ import { Button } from '@/components/ui/button';
 import { exportScenarioSimulationPDF } from '@/services/exportScenarioPDF';
 import { useToast } from '@/components/ui/use-toast';
 
-const SimulationResults = ({ scenario, results, assumptions }) => {
+const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' }) => {
   const { toast } = useToast();
   const [activeChart, setActiveChart] = useState('revenue');
 
@@ -108,7 +108,7 @@ const SimulationResults = ({ scenario, results, assumptions }) => {
                   ? `${entry.value.toFixed(1)}%`
                   : new Intl.NumberFormat('fr-FR', {
                       style: 'currency',
-                      currency: 'EUR',
+                      currency: currency,
                     }).format(entry.value)
                 : entry.value}
             </p>
@@ -123,7 +123,7 @@ const SimulationResults = ({ scenario, results, assumptions }) => {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'EUR',
+      currency: currency,
       notation: 'compact',
       maximumFractionDigits: 1,
     }).format(value);

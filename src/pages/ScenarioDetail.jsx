@@ -353,6 +353,7 @@ const ScenarioDetail = () => {
               scenario={scenario}
               results={results}
               assumptions={assumptions}
+              currency={company?.currency || 'EUR'}
             />
           ) : (
             <Card>

@@ -8,7 +8,7 @@ import MarginAnalysisSection from './MarginAnalysisSection';
 import FinancingAnalysisSection from './FinancingAnalysisSection';
 import KeyRatiosSection from './KeyRatiosSection';
 
-const FinancialDiagnostic = ({ diagnostic, period, onExportPDF, onExportHTML }) => {
+const FinancialDiagnostic = ({ diagnostic, period, currency = 'EUR', onExportPDF, onExportHTML }) => {
   if (!diagnostic) {
     return (
       <Card className="bg-gray-900/50 border border-gray-800">
@@ -125,7 +125,7 @@ const FinancialDiagnostic = ({ diagnostic, period, onExportPDF, onExportHTML }) 
               <p className="text-xl font-bold text-blue-400">
                 {new Intl.NumberFormat('fr-FR', {
                   style: 'currency',
-                  currency: 'EUR'
+                  currency: currency
                 }).format(diagnostic.margins.revenue)}
               </p>
             </div>
@@ -150,7 +150,7 @@ const FinancialDiagnostic = ({ diagnostic, period, onExportPDF, onExportHTML }) 
               }`}>
                 {new Intl.NumberFormat('fr-FR', {
                   style: 'currency',
-                  currency: 'EUR',
+                  currency: currency,
                   signDisplay: 'always'
                 }).format(diagnostic.financing.operatingCashFlow)}
               </p>

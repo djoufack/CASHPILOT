@@ -28,10 +28,13 @@ function createHeader(title, scenarioName, period) {
   `;
 }
 
+/** Module-level active currency, set by each exported function before building HTML */
+let _activeCurrency = 'EUR';
+
 function formatCurrency(amount) {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
-    currency: 'EUR',
+    currency: _activeCurrency,
   }).format(amount || 0);
 }
 
@@ -62,7 +65,9 @@ async function generatePDF(element, filename) {
 // SCENARIO SIMULATION PDF
 // ============================================================================
 
-export async function exportScenarioSimulationPDF(scenario, results, assumptions) {
+export async function exportScenarioSimulationPDF(scenario, results, assumptions, { currency = 'EUR' } = {}) {
+  _activeCurrency = currency;
+
   if (!results || results.length === 0) {
     throw new Error('Aucun résultat de simulation disponible');
   }
@@ -262,7 +267,9 @@ export async function exportScenarioSimulationPDF(scenario, results, assumptions
 // SCENARIO COMPARISON PDF
 // ============================================================================
 
-export async function exportScenarioComparisonPDF(scenario1, scenario2, results1, results2, comparison) {
+export async function exportScenarioComparisonPDF(scenario1, scenario2, results1, results2, comparison, { currency = 'EUR' } = {}) {
+  _activeCurrency = currency;
+
   if (!comparison) {
     throw new Error('Données de comparaison manquantes');
   }
@@ -405,7 +412,9 @@ function downloadHTML(content, filename) {
   URL.revokeObjectURL(url);
 }
 
-export function exportScenarioSimulationHTML(scenario, results, assumptions) {
+export function exportScenarioSimulationHTML(scenario, results, assumptions, { currency = 'EUR' } = {}) {
+  _activeCurrency = currency;
+
   if (!results || results.length === 0) {
     throw new Error('Aucun résultat de simulation disponible');
   }
@@ -537,7 +546,9 @@ export function exportScenarioSimulationHTML(scenario, results, assumptions) {
   downloadHTML(content, filename);
 }
 
-export function exportScenarioComparisonHTML(scenario1, scenario2, results1, results2, comparison) {
+export function exportScenarioComparisonHTML(scenario1, scenario2, results1, results2, comparison, { currency = 'EUR' } = {}) {
+  _activeCurrency = currency;
+
   if (!comparison) {
     throw new Error('Données de comparaison manquantes');
   }

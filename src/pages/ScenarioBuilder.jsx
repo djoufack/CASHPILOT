@@ -53,6 +53,7 @@ import {
 import { format, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import useFinancialScenarios from '@/hooks/useFinancialScenarios';
+import { useCompany } from '@/hooks/useCompany';
 import { Badge } from '@/components/ui/badge';
 import ScenarioComparison from '@/components/scenarios/ScenarioComparison';
 
@@ -66,6 +67,8 @@ const ScenarioBuilder = () => {
     deleteScenario,
     createFromTemplate,
   } = useFinancialScenarios();
+  const { company } = useCompany();
+  const companyCurrency = company?.currency || 'EUR';
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
@@ -497,7 +500,7 @@ const ScenarioBuilder = () => {
 
         {/* Comparison Tab */}
         <TabsContent value="comparison" className="space-y-6">
-          <ScenarioComparison scenarios={scenarios} />
+          <ScenarioComparison scenarios={scenarios} currency={companyCurrency} />
         </TabsContent>
       </Tabs>
     </div>
