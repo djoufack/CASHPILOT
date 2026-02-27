@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark, Book, BookOpen, Zap, Activity, Settings2 } from 'lucide-react';
+import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark, Book, BookOpen, Zap, Activity, Settings2, AlertTriangle } from 'lucide-react';
 import { useAccountingData } from '@/hooks/useAccountingData';
 import { useAccountingInit } from '@/hooks/useAccountingInit';
 import { useCompany } from '@/hooks/useCompany';
@@ -75,6 +75,7 @@ const AccountingIntegration = () => {
     taxEstimate,
     monthlyData,
     financialDiagnostic,
+    consistencyWarnings,
     refresh
   } = useAccountingData(period.startDate, period.endDate);
 
@@ -265,6 +266,21 @@ const AccountingIntegration = () => {
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400 text-sm">
           Erreur : {error}
+        </div>
+      )}
+
+      {/* Consistency warnings */}
+      {consistencyWarnings && consistencyWarnings.length > 0 && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-red-400 font-medium text-sm">Incohérence comptable détectée</p>
+              {consistencyWarnings.map((w, i) => (
+                <p key={i} className="text-xs text-red-300 mt-1">{w.message}</p>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

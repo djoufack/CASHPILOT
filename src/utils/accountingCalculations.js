@@ -414,6 +414,184 @@ function distributeToAccount(account, mappings, sourceType, totalAmount, totalAc
 // ============================================================================
 
 /**
+ * Calculate revenue from accounting entries (Class 7 = Produits)
+ * Revenue accounts have credit balances in OHADA
+ */
+export function calculateRevenueFromEntries(entries, accounts, startDate, endDate) {
+  if (!entries || !accounts) return 0;
+  const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+  const accountMap = {};
+  accounts.forEach(a => { accountMap[a.account_code] = a; });
+
+  let total = 0;
+  filtered.forEach(e => {
+    const acc = accountMap[e.account_code];
+    if (!acc || !acc.account_code.startsWith('7')) return;
+    total += (parseFloat(e.credit) || 0) - (parseFloat(e.debit) || 0);
+  });
+  return total;
+}
+
+/**
+ * Calculate total expenses from accounting entries (Class 6 = Charges)
+ * Expense accounts have debit balances in OHADA
+ */
+export function calculateExpensesFromEntries(entries, accounts, startDate, endDate) {
+  if (!entries || !accounts) return 0;
+  const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+  const accountMap = {};
+  accounts.forEach(a => { accountMap[a.account_code] = a; });
+
+  let total = 0;
+  filtered.forEach(e => {
+    const acc = accountMap[e.account_code];
+    if (!acc || !acc.account_code.startsWith('6')) return;
+    total += (parseFloat(e.debit) || 0) - (parseFloat(e.credit) || 0);
+  });
+  return total;
+}
+
+/**
+ * Calculate net income from entries = Revenue - Expenses
+ */
+export function calculateNetIncomeFromEntries(entries, accounts, startDate, endDate) {
+  const revenue = calculateRevenueFromEntries(entries, accounts, startDate, endDate);
+  const expenses = calculateExpensesFromEntries(entries, accounts, startDate, endDate);
+  return revenue - expenses;
+}
+
+/**
+ * Calculate output VAT (TVA collectée) from entries
+ * Account 4431 (TVA facturée sur ventes) - credit balance
+ */
+export function calculateOutputVATFromEntries(entries, accounts, startDate, endDate) {
+  if (!entries) return 0;
+  const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+  let total = 0;
+  filtered.forEach(e => {
+    if (e.account_code && e.account_code.startsWith('4431')) {
+      total += (parseFloat(e.credit) || 0) - (parseFloat(e.debit) || 0);
+    }
+  });
+  return total;
+}
+
+/**
+ * Calculate input VAT (TVA déductible) from entries
+ * Account 445 (TVA récupérable) - debit balance
+ */
+export function calculateInputVATFromEntries(entries, accounts, startDate, endDate) {
+  if (!entries) return 0;
+  const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+  let total = 0;
+  filtered.forEach(e => {
+    if (e.account_code && (e.account_code.startsWith('4452') || e.account_code.startsWith('4456'))) {
+      total += (parseFloat(e.debit) || 0) - (parseFloat(e.credit) || 0);
+    }
+  });
+  return total;
+}
+
+/**
+ * Calculate VAT breakdown by rate from entries
+ */
+export function calculateVATBreakdownFromEntries(entries, accounts, startDate, endDate) {
+  if (!entries) return { output: [], input: [] };
+  const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+  const accountMap = {};
+  (accounts || []).forEach(a => { accountMap[a.account_code] = a; });
+
+  const outputByAccount = {};
+  const inputByAccount = {};
+
+  filtered.forEach(e => {
+    if (!e.account_code) return;
+    if (e.account_code.startsWith('4431')) {
+      const key = e.account_code;
+      if (!outputByAccount[key]) outputByAccount[key] = { account: key, name: accountMap[key]?.account_name || key, vat: 0 };
+      outputByAccount[key].vat += (parseFloat(e.credit) || 0) - (parseFloat(e.debit) || 0);
+    }
+    if (e.account_code.startsWith('4452') || e.account_code.startsWith('4456')) {
+      const key = e.account_code;
+      if (!inputByAccount[key]) inputByAccount[key] = { account: key, name: accountMap[key]?.account_name || key, vat: 0 };
+      inputByAccount[key].vat += (parseFloat(e.debit) || 0) - (parseFloat(e.credit) || 0);
+    }
+  });
+
+  return {
+    output: Object.values(outputByAccount).filter(v => Math.abs(v.vat) > 0.001),
+    input: Object.values(inputByAccount).filter(v => Math.abs(v.vat) > 0.001),
+  };
+}
+
+/**
+ * Build monthly chart data from accounting entries
+ */
+export function buildMonthlyChartDataFromEntries(entries, accounts, startDate, endDate) {
+  if (!entries || !accounts) return [];
+  const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+  const accountMap = {};
+  accounts.forEach(a => { accountMap[a.account_code] = a; });
+
+  const months = {};
+
+  filtered.forEach(e => {
+    const acc = accountMap[e.account_code];
+    if (!acc) return;
+    const d = new Date(e.transaction_date);
+    if (isNaN(d.getTime())) return;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = d.toLocaleDateString('fr-FR', { month: 'short' });
+    if (!months[key]) months[key] = { name: label, key, revenue: 0, expense: 0 };
+
+    if (acc.account_code.startsWith('7')) {
+      months[key].revenue += (parseFloat(e.credit) || 0) - (parseFloat(e.debit) || 0);
+    } else if (acc.account_code.startsWith('6')) {
+      months[key].expense += (parseFloat(e.debit) || 0) - (parseFloat(e.credit) || 0);
+    }
+  });
+
+  return Object.values(months).sort((a, b) => a.key.localeCompare(b.key));
+}
+
+/**
+ * Validate consistency between dashboard KPIs and income statement
+ * Returns warnings array (empty = consistent)
+ */
+export function validateAccountingConsistency(dashboardKPIs, incomeStatement) {
+  const warnings = [];
+  if (!incomeStatement || !dashboardKPIs) return warnings;
+
+  const threshold = 0.01;
+
+  if (Math.abs((dashboardKPIs.revenue || 0) - (incomeStatement.totalRevenue || 0)) > threshold) {
+    warnings.push({
+      type: 'revenue_mismatch',
+      message: `CA Dashboard (${dashboardKPIs.revenue?.toFixed(2)}) ≠ Compte de résultat (${incomeStatement.totalRevenue?.toFixed(2)})`,
+      severity: 'error'
+    });
+  }
+
+  if (Math.abs((dashboardKPIs.totalExpenses || 0) - (incomeStatement.totalExpenses || 0)) > threshold) {
+    warnings.push({
+      type: 'expenses_mismatch',
+      message: `Charges Dashboard (${dashboardKPIs.totalExpenses?.toFixed(2)}) ≠ Compte de résultat (${incomeStatement.totalExpenses?.toFixed(2)})`,
+      severity: 'error'
+    });
+  }
+
+  if (Math.abs((dashboardKPIs.netIncome || 0) - (incomeStatement.netIncome || 0)) > threshold) {
+    warnings.push({
+      type: 'net_income_mismatch',
+      message: `Résultat net Dashboard (${dashboardKPIs.netIncome?.toFixed(2)}) ≠ Compte de résultat (${incomeStatement.netIncome?.toFixed(2)})`,
+      severity: 'error'
+    });
+  }
+
+  return warnings;
+}
+
+/**
  * Build trial balance from real journal entries
  * Groups entries by account_code, sums debits and credits
  * @returns Array of { account_code, account_name, account_type, totalDebit, totalCredit, balance }
