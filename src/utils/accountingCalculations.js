@@ -663,7 +663,7 @@ const SYSCOHADA_ACTIF_SECTIONS = [
 ];
 const SYSCOHADA_PASSIF_SECTIONS = [
   { key: 'capitauxPropres', label: 'CAPITAUX PROPRES ET RESSOURCES ASSIMILÉES', classRange: [10, 15] },
-  { key: 'dettesFinancieres', label: 'DETTES FINANCIÈRES ET RESSOURCES ASSIMILÉES', classRange: [16, 19] },
+  { key: 'dettesFinancieres', label: 'DETTES FINANCIÈRES ET RESSOURCES ASSIMILÉES', classRange: [15, 19] },
   { key: 'passifCirculant', label: 'PASSIF CIRCULANT', classRange: [40, 49] },
   { key: 'tresoreriePassif', label: 'TRÉSORERIE-PASSIF', classRange: [50, 59] },
 ];
@@ -736,8 +736,13 @@ export function buildBalanceSheetFromEntries(accounts, entries, startDate, endDa
 
   if (!accounts || accounts.length === 0) return emptyResult;
 
-  // Build trial balance from entries (accounts with actual movements)
-  const filtered = entries && entries.length > 0 ? filterByPeriod(entries, startDate, endDate, 'transaction_date') : [];
+  // Build trial balance from ALL entries up to endDate (balance sheet is cumulative, not period-based)
+  let filtered = [];
+  if (entries && entries.length > 0 && endDate) {
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    filtered = entries.filter(e => new Date(e.transaction_date) <= end);
+  }
   const trial = filtered.length > 0 ? buildTrialBalance(filtered, accounts) : [];
 
   // Create a map of trial balances by account_code
@@ -759,7 +764,10 @@ export function buildBalanceSheetFromEntries(accounts, entries, startDate, endDa
       };
     });
 
-  // Net income calculation (for equity section)
+  // Net income = cumulative (all revenue - all expenses up to endDate)
+  // Without year-end closing entries, prior year results remain in classes 6-7.
+  // The balance sheet must include ALL prior results to stay balanced:
+  //   Actif = Passif + Capitaux Propres + Résultat Net (cumulatif)
   const revenueTotal = trial.filter(t => t.account_type === 'revenue').reduce((s, t) => s + t.balance, 0);
   const expenseTotal = trial.filter(t => t.account_type === 'expense').reduce((s, t) => s + t.balance, 0);
   const netIncome = revenueTotal - expenseTotal;
