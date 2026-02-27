@@ -804,23 +804,16 @@ export function buildBalanceSheetFromEntries(accounts, entries, startDate, endDa
   const totalAssets = actifSections.reduce((s, sec) => s + sec.total, 0);
   const totalPassif = passifSections.reduce((s, sec) => s + sec.total, 0);
 
-  // Legacy fields for backward compatibility
-  const assetAccounts = allBsAccounts.filter(a => a.account_type === 'asset');
-  const liabilityAccounts = allBsAccounts.filter(a => a.account_type === 'liability');
-  const equityAccounts = allBsAccounts.filter(a => a.account_type === 'equity');
-
-  const assets = groupTrialByCategory(assetAccounts.filter(a => Math.abs(a.balance) > 0.001));
-  const liabilities = groupTrialByCategory(liabilityAccounts.filter(a => Math.abs(a.balance) > 0.001));
-  const equity = groupTrialByCategory(equityAccounts.filter(a => Math.abs(a.balance) > 0.001));
+  // Legacy flat arrays for backward compatibility (used by financialAnalysisCalculations.js)
+  const assets = allBsAccounts.filter(a => a.account_type === 'asset');
+  const liabilities = allBsAccounts.filter(a => a.account_type === 'liability');
+  const equity = [...allBsAccounts.filter(a => a.account_type === 'equity')];
   if (Math.abs(netIncome) > 0.001) {
-    equity.push({
-      category: 'Résultat de l\'exercice',
-      accounts: [{ account_code: '12', account_name: 'Résultat net de l\'exercice', account_type: 'equity', balance: netIncome }]
-    });
+    equity.push({ account_code: '130', account_name: 'Résultat net de l\'exercice', account_type: 'equity', balance: netIncome });
   }
 
-  const totalLiabilities = liabilities.reduce((s, g) => s + g.accounts.reduce((ss, a) => ss + a.balance, 0), 0);
-  const totalEquity = equity.reduce((s, g) => s + g.accounts.reduce((ss, a) => ss + a.balance, 0), 0);
+  const totalLiabilities = liabilities.reduce((s, a) => s + a.balance, 0);
+  const totalEquity = equity.reduce((s, a) => s + a.balance, 0);
 
   return {
     assets, liabilities, equity,

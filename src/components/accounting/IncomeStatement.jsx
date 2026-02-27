@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Download, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 
-const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML }) => {
+const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, currency }) => {
   if (!incomeStatement) return null;
 
   const { revenueItems, expenseItems, totalRevenue, totalExpenses, netIncome } = incomeStatement;
@@ -21,7 +21,7 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML })
               <span className="font-mono text-xs text-gray-500 mr-2">{account.account_code}</span>
               {account.account_name}
             </span>
-            <span className="font-mono text-sm text-white">{formatCurrency(account.amount)}</span>
+            <span className="font-mono text-sm text-white">{formatCurrency(account.amount, currency)}</span>
           </div>
         ))}
       </div>
@@ -65,12 +65,12 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML })
             {revenueItems.length > 0 ? renderSection(revenueItems) : (
               <div className="flex justify-between py-1 px-2">
                 <span className="text-sm text-gray-300">Chiffre d'affaires</span>
-                <span className="font-mono text-sm text-white">{formatCurrency(totalRevenue)}</span>
+                <span className="font-mono text-sm text-white">{formatCurrency(totalRevenue, currency)}</span>
               </div>
             )}
             <div className="border-t border-green-500/30 pt-2 flex justify-between">
               <span className="font-medium text-green-400">Total Produits</span>
-              <span className="font-bold font-mono text-green-400">{formatCurrency(totalRevenue)}</span>
+              <span className="font-bold font-mono text-green-400">{formatCurrency(totalRevenue, currency)}</span>
             </div>
           </div>
 
@@ -80,12 +80,12 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML })
             {expenseItems.length > 0 ? renderSection(expenseItems) : (
               <div className="flex justify-between py-1 px-2">
                 <span className="text-sm text-gray-300">Total des charges</span>
-                <span className="font-mono text-sm text-white">{formatCurrency(totalExpenses)}</span>
+                <span className="font-mono text-sm text-white">{formatCurrency(totalExpenses, currency)}</span>
               </div>
             )}
             <div className="border-t border-red-500/30 pt-2 flex justify-between">
               <span className="font-medium text-red-400">Total Charges</span>
-              <span className="font-bold font-mono text-red-400">{formatCurrency(totalExpenses)}</span>
+              <span className="font-bold font-mono text-red-400">{formatCurrency(totalExpenses, currency)}</span>
             </div>
           </div>
 
@@ -95,7 +95,7 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML })
               Résultat Net ({isProfit ? 'Bénéfice' : 'Perte'})
             </span>
             <span className={`text-2xl font-bold font-mono ${isProfit ? 'text-green-400' : 'text-red-400'}`}>
-              {formatCurrency(netIncome)}
+              {formatCurrency(netIncome, currency)}
             </span>
           </div>
         </CardContent>

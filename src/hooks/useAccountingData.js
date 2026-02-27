@@ -3,20 +3,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import {
-  calculateRevenue,
-  calculateRevenueTTC,
-  calculateExpenses,
-  calculateNetIncome,
-  calculateOutputVAT,
-  calculateInputVAT,
-  calculateVATPayable,
-  calculateVATBreakdown,
-  buildBalanceSheet,
-  buildIncomeStatement,
+  filterByPeriod,
   estimateTax,
-  buildMonthlyChartData,
-  DEFAULT_TAX_BRACKETS,
-  // Entry-based functions
+  // Single source of truth: entry-based functions only
   buildTrialBalance,
   buildBalanceSheetFromEntries,
   buildIncomeStatementFromEntries,
@@ -164,59 +153,31 @@ export const useAccountingData = (startDate, endDate) => {
     return entries.some(e => e.is_auto === true);
   }, [entries]);
 
-  // Computed values (memoized)
+  // Computed values — SINGLE SOURCE OF TRUTH: all calculations from accounting_entries
   const computed = useMemo(() => {
     if (!startDate || !endDate) return null;
 
-    const useEntries = hasAutoEntries && entries.length > 0;
+    // All KPIs from entries (returns 0 when no entries — clean state, no estimations)
+    const revenue = calculateRevenueFromEntries(entries, accounts, startDate, endDate);
+    const revenueTTC = revenue;
+    const totalExpenses = calculateExpensesFromEntries(entries, accounts, startDate, endDate);
+    const netIncome = calculateNetIncomeFromEntries(entries, accounts, startDate, endDate);
 
-    // KPI calculations: use entry-based when auto-entries are active
-    let revenue, revenueTTC, totalExpenses, netIncome;
-    let outputVAT, inputVAT, vatPayable, vatBreakdown;
-    let taxEstimate, monthlyData;
+    const outputVAT = calculateOutputVATFromEntries(entries, accounts, startDate, endDate);
+    const inputVAT = calculateInputVATFromEntries(entries, accounts, startDate, endDate);
+    const vatPayable = outputVAT - inputVAT;
+    const vatBreakdown = calculateVATBreakdownFromEntries(entries, accounts, startDate, endDate);
 
-    if (useEntries) {
-      // Entry-based: single source of truth from accounting_entries
-      revenue = calculateRevenueFromEntries(entries, accounts, startDate, endDate);
-      revenueTTC = revenue; // In entry-based mode, entries already include TTC via separate account
-      totalExpenses = calculateExpensesFromEntries(entries, accounts, startDate, endDate);
-      netIncome = calculateNetIncomeFromEntries(entries, accounts, startDate, endDate);
+    const taxEstimate = estimateTax(netIncome > 0 ? netIncome : 0);
+    const monthlyData = buildMonthlyChartDataFromEntries(entries, accounts, startDate, endDate);
 
-      outputVAT = calculateOutputVATFromEntries(entries, accounts, startDate, endDate);
-      inputVAT = calculateInputVATFromEntries(entries, accounts, startDate, endDate);
-      vatPayable = outputVAT - inputVAT;
-      vatBreakdown = calculateVATBreakdownFromEntries(entries, accounts, startDate, endDate);
+    // Balance sheet & income statement — always entry-based
+    const balanceSheet = buildBalanceSheetFromEntries(accounts, entries, startDate, endDate);
+    const incomeStatement = buildIncomeStatementFromEntries(accounts, entries, startDate, endDate);
 
-      taxEstimate = estimateTax(netIncome > 0 ? netIncome : 0);
-      monthlyData = buildMonthlyChartDataFromEntries(entries, accounts, startDate, endDate);
-    } else {
-      // Legacy: calculate from invoices/expenses tables
-      revenue = calculateRevenue(invoices, startDate, endDate);
-      revenueTTC = calculateRevenueTTC(invoices, startDate, endDate);
-      totalExpenses = calculateExpenses(expenses, supplierInvoices, startDate, endDate);
-      netIncome = calculateNetIncome(invoices, expenses, supplierInvoices, startDate, endDate);
-
-      outputVAT = calculateOutputVAT(invoices, startDate, endDate);
-      inputVAT = calculateInputVAT(expenses, supplierInvoices, startDate, endDate);
-      vatPayable = calculateVATPayable(outputVAT, inputVAT);
-      vatBreakdown = calculateVATBreakdown(invoices, expenses, startDate, endDate);
-
-      taxEstimate = estimateTax(netIncome > 0 ? netIncome : 0);
-      monthlyData = buildMonthlyChartData(invoices, expenses, startDate, endDate);
-    }
-
-    // Balance sheet & income statement: always entry-based when available
-    let balanceSheet, incomeStatement;
-    if (useEntries) {
-      balanceSheet = buildBalanceSheetFromEntries(accounts, entries, startDate, endDate);
-      incomeStatement = buildIncomeStatementFromEntries(accounts, entries, startDate, endDate);
-    } else {
-      balanceSheet = buildBalanceSheet(accounts, invoices, expenses, supplierInvoices, mappings, startDate, endDate);
-      incomeStatement = buildIncomeStatement(accounts, invoices, expenses, supplierInvoices, mappings, startDate, endDate);
-    }
-
-    // Entry-based reports
-    const trialBalance = buildTrialBalance(entries, accounts);
+    // Trial balance, ledger, journal — ALL filtered by period
+    const filteredEntries = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+    const trialBalance = buildTrialBalance(filteredEntries, accounts);
     const generalLedger = buildGeneralLedger(entries, accounts, startDate, endDate);
     const journalBook = buildJournalBook(entries, startDate, endDate);
 
@@ -228,7 +189,7 @@ export const useAccountingData = (startDate, endDate) => {
       incomeStatement,
       startDate,
       endDate,
-      null // previousPeriodData pour comparaisons futures
+      null
     );
 
     // Consistency validation
@@ -259,7 +220,7 @@ export const useAccountingData = (startDate, endDate) => {
       financialDiagnostic,
       consistencyWarnings,
     };
-  }, [invoices, expenses, supplierInvoices, accounts, mappings, entries, hasAutoEntries, startDate, endDate]);
+  }, [accounts, entries, startDate, endDate]);
 
   return {
     loading,

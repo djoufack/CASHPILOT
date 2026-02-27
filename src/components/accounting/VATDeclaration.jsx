@@ -9,7 +9,7 @@ import { formatCurrency } from '@/utils/calculations';
 
 const COLORS = ['#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
-const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthlyData, period, onExportPDF, onExportHTML }) => {
+const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthlyData, period, onExportPDF, onExportHTML, currency }) => {
 
   // Build monthly VAT data - use real data when available
   const monthlyVATData = (monthlyData || []).map(m => {
@@ -81,7 +81,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
               <ArrowUp className="w-4 h-4" />
               <span className="text-sm font-medium">TVA collectee</span>
             </div>
-            <p className="text-2xl font-bold text-gradient">{formatCurrency(outputVAT || 0)}</p>
+            <p className="text-2xl font-bold text-gradient">{formatCurrency(outputVAT || 0, currency)}</p>
             <p className="text-xs text-gray-500 mt-1">Sur les ventes</p>
           </CardContent>
         </Card>
@@ -92,7 +92,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
               <ArrowDown className="w-4 h-4" />
               <span className="text-sm font-medium">TVA deductible</span>
             </div>
-            <p className="text-2xl font-bold text-gradient">{formatCurrency(inputVAT || 0)}</p>
+            <p className="text-2xl font-bold text-gradient">{formatCurrency(inputVAT || 0, currency)}</p>
             <p className="text-xs text-gray-500 mt-1">Sur les achats</p>
           </CardContent>
         </Card>
@@ -104,7 +104,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
               <span className="text-sm font-medium text-orange-400">TVA nette</span>
             </div>
             <p className={`text-2xl font-bold ${(vatPayable || 0) > 0 ? 'text-red-400' : 'text-green-400'}`}>
-              {formatCurrency(vatPayable || 0)}
+              {formatCurrency(vatPayable || 0, currency)}
             </p>
             <p className="text-xs text-gray-500 mt-1">
               {(vatPayable || 0) > 0 ? 'A reverser au Tresor' : 'Credit de TVA'}
@@ -141,7 +141,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                       tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
-                      formatter={(value) => formatCurrency(value)}
+                      formatter={(value) => formatCurrency(value, currency)}
                       cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                     />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#9CA3AF' }} />
@@ -183,7 +183,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                     </Pie>
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
-                      formatter={(value) => formatCurrency(value)}
+                      formatter={(value) => formatCurrency(value, currency)}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -199,7 +199,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                 <div key={i} className="flex items-center gap-2 text-xs">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                   <span className="text-gray-400 truncate">{item.name}</span>
-                  <span className="text-gray-300 ml-auto font-mono">{formatCurrency(item.value)}</span>
+                  <span className="text-gray-300 ml-auto font-mono">{formatCurrency(item.value, currency)}</span>
                 </div>
               ))}
             </div>
@@ -229,7 +229,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                         {item.name && <span className="text-xs text-gray-400">{item.name}</span>}
                       </div>
                       <div className="text-right">
-                        <span className="font-mono text-sm text-white">{formatCurrency(item.vat)}</span>
+                        <span className="font-mono text-sm text-white">{formatCurrency(item.vat, currency)}</span>
                         {base && <p className="text-xs text-gray-500">Base: {base}</p>}
                       </div>
                     </div>
@@ -238,7 +238,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                 {/* Total */}
                 <div className="flex justify-between items-center pt-2 border-t border-gray-700">
                   <span className="text-sm font-semibold text-gray-300">Total collectee</span>
-                  <span className="font-mono text-sm font-bold text-green-400">{formatCurrency(outputVAT || 0)}</span>
+                  <span className="font-mono text-sm font-bold text-green-400">{formatCurrency(outputVAT || 0, currency)}</span>
                 </div>
               </div>
             ) : (
@@ -267,7 +267,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                         {item.name && <span className="text-xs text-gray-400">{item.name}</span>}
                       </div>
                       <div className="text-right">
-                        <span className="font-mono text-sm text-white">{formatCurrency(item.vat)}</span>
+                        <span className="font-mono text-sm text-white">{formatCurrency(item.vat, currency)}</span>
                         {base && <p className="text-xs text-gray-500">Base: {base}</p>}
                       </div>
                     </div>
@@ -276,7 +276,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
                 {/* Total */}
                 <div className="flex justify-between items-center pt-2 border-t border-gray-700">
                   <span className="text-sm font-semibold text-gray-300">Total deductible</span>
-                  <span className="font-mono text-sm font-bold text-blue-400">{formatCurrency(inputVAT || 0)}</span>
+                  <span className="font-mono text-sm font-bold text-blue-400">{formatCurrency(inputVAT || 0, currency)}</span>
                 </div>
               </div>
             ) : (

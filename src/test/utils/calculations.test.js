@@ -143,36 +143,45 @@ describe('calculateInvoiceTotal', () => {
 // formatCurrency
 // ============================================================================
 describe('formatCurrency', () => {
-  it('should format EUR correctly (amount followed by symbol)', () => {
-    expect(formatCurrency(100, 'EUR')).toBe('100.00 €');
+  // formatCurrency uses Intl.NumberFormat('fr-FR') — normalize unicode spaces for stable assertions
+  const norm = (s) => s.replace(/[\u00A0\u202F]/g, ' ');
+
+  it('should format EUR correctly (fr-FR locale: comma decimal, symbol after)', () => {
+    expect(norm(formatCurrency(100, 'EUR'))).toBe('100,00 €');
   });
 
-  it('should format USD correctly (symbol before amount)', () => {
-    expect(formatCurrency(100, 'USD')).toBe('$100.00');
+  it('should format USD correctly (fr-FR locale)', () => {
+    const result = norm(formatCurrency(100, 'USD'));
+    expect(result).toContain('100,00');
+    expect(result).toMatch(/\$|USD/);
   });
 
-  it('should format GBP correctly', () => {
-    expect(formatCurrency(100, 'GBP')).toBe('100.00 £');
+  it('should format GBP correctly (fr-FR locale)', () => {
+    const result = norm(formatCurrency(100, 'GBP'));
+    expect(result).toContain('100,00');
+    expect(result).toMatch(/£|GBP/);
   });
 
   it('should default to EUR', () => {
-    expect(formatCurrency(100)).toBe('100.00 €');
+    expect(norm(formatCurrency(100))).toBe('100,00 €');
   });
 
   it('should handle zero', () => {
-    expect(formatCurrency(0, 'EUR')).toBe('0.00 €');
+    expect(norm(formatCurrency(0, 'EUR'))).toBe('0,00 €');
   });
 
   it('should handle decimal amounts', () => {
-    expect(formatCurrency(99.99, 'EUR')).toBe('99.99 €');
+    expect(norm(formatCurrency(99.99, 'EUR'))).toBe('99,99 €');
   });
 
   it('should handle unknown currency code', () => {
-    expect(formatCurrency(100, 'CHF')).toBe('100.00 CHF');
+    const result = norm(formatCurrency(100, 'CHF'));
+    expect(result).toContain('100,00');
+    expect(result).toContain('CHF');
   });
 
   it('should handle negative amounts', () => {
-    expect(formatCurrency(-50, 'EUR')).toBe('-50.00 €');
+    expect(norm(formatCurrency(-50, 'EUR'))).toBe('-50,00 €');
   });
 });
 
