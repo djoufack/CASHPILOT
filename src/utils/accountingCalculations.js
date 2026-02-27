@@ -653,57 +653,183 @@ export function buildTrialBalance(entries, accounts) {
 }
 
 /**
- * Build balance sheet from real journal entries
- * Assets = accounts with debit balance (type asset)
- * Liabilities + Equity = accounts with credit balance (type liability/equity)
+ * SYSCOHADA Balance Sheet Sections
+ * Maps 2-digit class codes to standard SYSCOHADA balance sheet sections
+ */
+const SYSCOHADA_ACTIF_SECTIONS = [
+  { key: 'actifImmobilise', label: 'ACTIF IMMOBILISÉ', classRange: [20, 29] },
+  { key: 'actifCirculant', label: 'ACTIF CIRCULANT', classRange: [30, 49] },
+  { key: 'tresorerieActif', label: 'TRÉSORERIE-ACTIF', classRange: [50, 59] },
+];
+const SYSCOHADA_PASSIF_SECTIONS = [
+  { key: 'capitauxPropres', label: 'CAPITAUX PROPRES ET RESSOURCES ASSIMILÉES', classRange: [10, 15] },
+  { key: 'dettesFinancieres', label: 'DETTES FINANCIÈRES ET RESSOURCES ASSIMILÉES', classRange: [16, 19] },
+  { key: 'passifCirculant', label: 'PASSIF CIRCULANT', classRange: [40, 49] },
+  { key: 'tresoreriePassif', label: 'TRÉSORERIE-PASSIF', classRange: [50, 59] },
+];
+
+/**
+ * Group accounts by their 2-digit class code for SYSCOHADA presentation
+ */
+function groupByClassCode(accountsList) {
+  const groups = {};
+  accountsList.forEach(a => {
+    const classCode = a.account_code.substring(0, 2);
+    if (!groups[classCode]) {
+      groups[classCode] = { classCode, className: '', accounts: [] };
+    }
+    // Use the 2-digit account name as group name (if this IS the 2-digit account, use its name)
+    if (a.account_code.length === 2 || a.account_code === classCode) {
+      groups[classCode].className = a.account_name;
+    }
+    // Only add detailed accounts (3+ digits) as line items
+    if (a.account_code.length >= 3) {
+      groups[classCode].accounts.push(a);
+    }
+  });
+  // If className not set (no 2-digit header found), use first account's category
+  Object.values(groups).forEach(g => {
+    if (!g.className && g.accounts.length > 0) {
+      g.className = g.accounts[0].account_category || g.classCode;
+    }
+    g.subtotal = g.accounts.reduce((s, a) => s + (a.balance || 0), 0);
+  });
+  return Object.values(groups).sort((a, b) => a.classCode.localeCompare(b.classCode));
+}
+
+/**
+ * Build SYSCOHADA section from grouped accounts
+ */
+function buildSyscohadaSection(allGroups, classRange, accountType) {
+  const [min, max] = classRange;
+  const filtered = allGroups.filter(g => {
+    const code = parseInt(g.classCode, 10);
+    if (code < min || code > max) return false;
+    // For shared classes (40-49, 50-59), filter by account_type
+    if (accountType && g.accounts.length > 0) {
+      return g.accounts.some(a => a.account_type === accountType);
+    }
+    return true;
+  });
+
+  // For shared classes, filter individual accounts by type
+  const result = filtered.map(g => {
+    if (!accountType) return g;
+    const accts = g.accounts.filter(a => a.account_type === accountType);
+    return { ...g, accounts: accts, subtotal: accts.reduce((s, a) => s + (a.balance || 0), 0) };
+  }).filter(g => g.accounts.length > 0 || g.className);
+
+  const total = result.reduce((s, g) => s + g.subtotal, 0);
+  return { groups: result, total };
+}
+
+/**
+ * Build balance sheet from real journal entries — SYSCOHADA structure
+ * Includes ALL accounts from the chart of accounts (even those with 0 balance)
  */
 export function buildBalanceSheetFromEntries(accounts, entries, startDate, endDate) {
-  if (!entries || entries.length === 0 || !accounts || accounts.length === 0) {
-    return { assets: [], liabilities: [], equity: [], totalAssets: 0, totalLiabilities: 0, totalEquity: 0, totalPassif: 0, balanced: true };
-  }
+  const emptyResult = {
+    assets: [], liabilities: [], equity: [],
+    totalAssets: 0, totalLiabilities: 0, totalEquity: 0, totalPassif: 0, balanced: true,
+    syscohada: null,
+  };
 
-  const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
-  const trial = buildTrialBalance(filtered, accounts);
+  if (!accounts || accounts.length === 0) return emptyResult;
 
-  const assetAccounts = trial.filter(t => t.account_type === 'asset' && Math.abs(t.balance) > 0.001);
-  const liabilityAccounts = trial.filter(t => t.account_type === 'liability' && Math.abs(t.balance) > 0.001);
-  const equityAccounts = trial.filter(t => t.account_type === 'equity' && Math.abs(t.balance) > 0.001);
+  // Build trial balance from entries (accounts with actual movements)
+  const filtered = entries && entries.length > 0 ? filterByPeriod(entries, startDate, endDate, 'transaction_date') : [];
+  const trial = filtered.length > 0 ? buildTrialBalance(filtered, accounts) : [];
 
-  // Add net income to equity (result of revenue - expense from entries)
+  // Create a map of trial balances by account_code
+  const trialMap = {};
+  trial.forEach(t => { trialMap[t.account_code] = t; });
+
+  // Build complete account list: ALL balance sheet accounts (classes 1-5) with balances
+  const balanceSheetTypes = ['asset', 'liability', 'equity'];
+  const allBsAccounts = accounts
+    .filter(a => balanceSheetTypes.includes(a.account_type))
+    .map(a => {
+      const t = trialMap[a.account_code];
+      return {
+        account_code: a.account_code,
+        account_name: a.account_name,
+        account_type: a.account_type,
+        account_category: a.account_category || '',
+        balance: t ? t.balance : 0,
+      };
+    });
+
+  // Net income calculation (for equity section)
   const revenueTotal = trial.filter(t => t.account_type === 'revenue').reduce((s, t) => s + t.balance, 0);
   const expenseTotal = trial.filter(t => t.account_type === 'expense').reduce((s, t) => s + t.balance, 0);
   const netIncome = revenueTotal - expenseTotal;
 
-  const assets = groupTrialByCategory(assetAccounts);
-  const liabilities = groupTrialByCategory(liabilityAccounts);
-  const equity = groupTrialByCategory(equityAccounts);
+  // Group by 2-digit class code
+  const allGroups = groupByClassCode(allBsAccounts);
 
-  // Add net income as a virtual equity entry
+  // Build SYSCOHADA sections
+  const actifSections = SYSCOHADA_ACTIF_SECTIONS.map(s => ({
+    ...s,
+    ...buildSyscohadaSection(allGroups, s.classRange, 'asset'),
+  }));
+  const passifSections = SYSCOHADA_PASSIF_SECTIONS.map(s => ({
+    ...s,
+    ...buildSyscohadaSection(allGroups, s.classRange,
+      s.key === 'capitauxPropres' ? 'equity' :
+      s.key === 'dettesFinancieres' ? 'liability' : 'liability'),
+  }));
+
+  // Add net income as virtual equity entry in capitaux propres
+  const cpSection = passifSections.find(s => s.key === 'capitauxPropres');
+  if (cpSection && Math.abs(netIncome) > 0.001) {
+    const resultGroup = {
+      classCode: '13',
+      className: 'RÉSULTAT NET DE L\'EXERCICE',
+      accounts: [{
+        account_code: '130',
+        account_name: `Résultat net : ${netIncome >= 0 ? 'bénéfice' : 'perte'}`,
+        account_type: 'equity',
+        balance: netIncome,
+      }],
+      subtotal: netIncome,
+    };
+    // Replace or add the 13 group
+    const idx = cpSection.groups.findIndex(g => g.classCode === '13');
+    if (idx >= 0) cpSection.groups[idx] = resultGroup;
+    else cpSection.groups.push(resultGroup);
+    cpSection.groups.sort((a, b) => a.classCode.localeCompare(b.classCode));
+    cpSection.total = cpSection.groups.reduce((s, g) => s + g.subtotal, 0);
+  }
+
+  const totalAssets = actifSections.reduce((s, sec) => s + sec.total, 0);
+  const totalPassif = passifSections.reduce((s, sec) => s + sec.total, 0);
+
+  // Legacy fields for backward compatibility
+  const assetAccounts = allBsAccounts.filter(a => a.account_type === 'asset');
+  const liabilityAccounts = allBsAccounts.filter(a => a.account_type === 'liability');
+  const equityAccounts = allBsAccounts.filter(a => a.account_type === 'equity');
+
+  const assets = groupTrialByCategory(assetAccounts.filter(a => Math.abs(a.balance) > 0.001));
+  const liabilities = groupTrialByCategory(liabilityAccounts.filter(a => Math.abs(a.balance) > 0.001));
+  const equity = groupTrialByCategory(equityAccounts.filter(a => Math.abs(a.balance) > 0.001));
   if (Math.abs(netIncome) > 0.001) {
     equity.push({
       category: 'Résultat de l\'exercice',
-      accounts: [{
-        account_code: '12',
-        account_name: 'Résultat net de l\'exercice',
-        account_type: 'equity',
-        balance: netIncome,
-      }]
+      accounts: [{ account_code: '12', account_name: 'Résultat net de l\'exercice', account_type: 'equity', balance: netIncome }]
     });
   }
 
-  const totalAssets = assets.reduce((s, g) => s + g.accounts.reduce((ss, a) => ss + a.balance, 0), 0);
   const totalLiabilities = liabilities.reduce((s, g) => s + g.accounts.reduce((ss, a) => ss + a.balance, 0), 0);
   const totalEquity = equity.reduce((s, g) => s + g.accounts.reduce((ss, a) => ss + a.balance, 0), 0);
 
   return {
-    assets,
-    liabilities,
-    equity,
+    assets, liabilities, equity,
     totalAssets,
     totalLiabilities,
     totalEquity,
-    totalPassif: totalLiabilities + totalEquity,
-    balanced: Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01,
+    totalPassif,
+    balanced: Math.abs(totalAssets - totalPassif) < 0.01,
+    syscohada: { actif: actifSections, passif: passifSections },
   };
 }
 

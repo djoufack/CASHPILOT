@@ -53,45 +53,98 @@ async function generatePDF(element, filename) {
 // ============================================================================
 
 export async function exportBalanceSheetPDF(balanceSheet, companyInfo, period) {
-  const { assets, liabilities, equity, totalAssets, totalPassif } = balanceSheet;
+  const { totalAssets, totalPassif, balanced, syscohada } = balanceSheet;
+  const cur = companyInfo?.currency || 'XAF';
 
-  const renderGroups = (groups) => groups.map(g => `
-    <tr><td colspan="2" style="padding:8px 5px;font-weight:bold;color:#F59E0B;font-size:11px;text-transform:uppercase;">${g.category}</td></tr>
-    ${g.accounts.filter(a => a.balance !== 0).map(a => `
-      <tr>
-        <td style="padding:4px 5px 4px 20px;"><span style="font-family:monospace;color:#6B7280;font-size:10px;">${a.account_code}</span> ${a.account_name}</td>
-        <td style="padding:4px 5px;text-align:right;font-family:monospace;">${formatAmount(a.balance)}</td>
-      </tr>
+  function fmtCur(n) {
+    try {
+      return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: cur, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n || 0);
+    } catch { return formatAmount(n); }
+  }
+
+  const renderSyscohadaSide = (sections) => sections.map(sec => `
+    <tr><td colspan="3" style="padding:6px 4px 3px;font-weight:bold;background:#F3F4F6;font-size:9px;text-transform:uppercase;letter-spacing:0.05em;color:#374151;">${sec.label}</td>
+    <td style="padding:6px 4px 3px;text-align:right;background:#F3F4F6;font-weight:bold;font-family:monospace;font-size:9px;color:#374151;">${fmtCur(sec.total)}</td></tr>
+    ${(sec.groups || []).map(g => `
+      <tr><td colspan="3" style="padding:4px 4px 2px 10px;font-weight:600;color:#B45309;font-size:8px;text-transform:uppercase;">
+        <span style="font-family:monospace;margin-right:4px;">${g.classCode}</span>${g.className}
+      </td>
+      <td style="padding:4px 4px 2px;text-align:right;font-family:monospace;font-size:8px;color:#B45309;font-weight:600;">${fmtCur(g.subtotal)}</td></tr>
+      ${g.accounts.map(a => `
+        <tr${a.balance === 0 ? ' style="opacity:0.5;"' : ''}>
+          <td style="padding:2px 4px 2px 20px;font-family:monospace;color:#6B7280;font-size:7px;width:10%;">${a.account_code}</td>
+          <td colspan="2" style="padding:2px 4px;font-size:8px;color:#1F2937;">${a.account_name}</td>
+          <td style="padding:2px 4px;text-align:right;font-family:monospace;font-size:8px;">${fmtCur(a.balance)}</td>
+        </tr>
+      `).join('')}
     `).join('')}
   `).join('');
 
+  // Company header with full info
+  const addr = [companyInfo?.address, companyInfo?.postal_code, companyInfo?.city, companyInfo?.country].filter(Boolean).join(', ');
+  const regNum = companyInfo?.registration_number || companyInfo?.siret || '';
+  const vatNum = companyInfo?.vat_number || '';
+  const now = new Date();
+
   const html = `
-    ${createHeader('Bilan', companyInfo, period)}
+    <div style="margin-bottom:15px;padding-bottom:12px;border-bottom:2px solid #F59E0B;">
+      <h1 style="margin:0;font-size:18px;color:#1F2937;">${companyInfo?.company_name || 'Société'}</h1>
+      ${addr ? `<p style="margin:2px 0 0;font-size:10px;color:#6B7280;">${addr}</p>` : ''}
+      ${regNum ? `<p style="margin:1px 0 0;font-size:9px;color:#9CA3AF;">N° ${regNum}${vatNum ? ` — TVA: ${vatNum}` : ''}</p>` : ''}
+      <h2 style="margin:10px 0 0;font-size:16px;color:#1F2937;">BILAN COMPTABLE SYSCOHADA</h2>
+      <p style="margin:2px 0 0;font-size:10px;color:#6B7280;">
+        Exercice du ${new Date(period.startDate).toLocaleDateString('fr-FR')} au ${new Date(period.endDate).toLocaleDateString('fr-FR')}
+      </p>
+      <p style="margin:1px 0 0;font-size:8px;color:#9CA3AF;">
+        Édité le ${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR')} — Devise: ${cur}
+      </p>
+    </div>
+
+    ${syscohada ? `
     <table style="width:100%;border-collapse:collapse;">
       <tr>
-        <td style="width:50%;vertical-align:top;padding-right:10px;">
-          <h2 style="font-size:14px;color:#3B82F6;border-bottom:1px solid #E5E7EB;padding-bottom:5px;">ACTIF</h2>
-          <table style="width:100%;border-collapse:collapse;">${renderGroups(assets)}</table>
-          <div style="border-top:2px solid #3B82F6;margin-top:10px;padding-top:8px;text-align:right;font-weight:bold;">
-            Total Actif : ${formatAmount(totalAssets)}
-          </div>
-        </td>
-        <td style="width:50%;vertical-align:top;padding-left:10px;">
-          <h2 style="font-size:14px;color:#EF4444;border-bottom:1px solid #E5E7EB;padding-bottom:5px;">PASSIF & CAPITAUX PROPRES</h2>
-          <table style="width:100%;border-collapse:collapse;">
-            ${renderGroups(liabilities)}
-            ${renderGroups(equity)}
+        <td style="width:50%;vertical-align:top;padding-right:8px;">
+          <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;">
+            <thead><tr style="background:#3B82F6;color:white;">
+              <th colspan="3" style="text-align:left;padding:6px;font-size:11px;">ACTIF</th>
+              <th style="text-align:right;padding:6px;font-size:11px;font-family:monospace;">${fmtCur(totalAssets)}</th>
+            </tr></thead>
+            <tbody>${renderSyscohadaSide(syscohada.actif)}</tbody>
+            <tfoot><tr style="border-top:2px solid #3B82F6;background:#EFF6FF;">
+              <td colspan="3" style="padding:6px;font-weight:bold;font-size:11px;">TOTAL ACTIF</td>
+              <td style="padding:6px;text-align:right;font-weight:bold;font-family:monospace;font-size:11px;color:#3B82F6;">${fmtCur(totalAssets)}</td>
+            </tr></tfoot>
           </table>
-          <div style="border-top:2px solid #EF4444;margin-top:10px;padding-top:8px;text-align:right;font-weight:bold;">
-            Total Passif : ${formatAmount(totalPassif)}
-          </div>
+        </td>
+        <td style="width:50%;vertical-align:top;padding-left:8px;">
+          <table style="width:100%;border-collapse:collapse;border:1px solid #E5E7EB;">
+            <thead><tr style="background:#EF4444;color:white;">
+              <th colspan="3" style="text-align:left;padding:6px;font-size:11px;">PASSIF</th>
+              <th style="text-align:right;padding:6px;font-size:11px;font-family:monospace;">${fmtCur(totalPassif)}</th>
+            </tr></thead>
+            <tbody>${renderSyscohadaSide(syscohada.passif)}</tbody>
+            <tfoot><tr style="border-top:2px solid #EF4444;background:#FEF2F2;">
+              <td colspan="3" style="padding:6px;font-weight:bold;font-size:11px;">TOTAL PASSIF</td>
+              <td style="padding:6px;text-align:right;font-weight:bold;font-family:monospace;font-size:11px;color:#EF4444;">${fmtCur(totalPassif)}</td>
+            </tr></tfoot>
+          </table>
         </td>
       </tr>
     </table>
+    ` : '<p>Aucune donnée SYSCOHADA disponible</p>'}
+
+    <div style="margin-top:12px;padding:8px;border:1px solid ${balanced ? '#10B981' : '#EF4444'};border-radius:4px;background:${balanced ? '#ECFDF5' : '#FEF2F2'};font-size:10px;">
+      <strong>${balanced ? '✓ Bilan équilibré' : '⚠ Bilan déséquilibré'}</strong> —
+      Actif: ${fmtCur(totalAssets)} | Passif: ${fmtCur(totalPassif)}
+      ${!balanced ? ` | Écart: ${fmtCur(Math.abs(totalAssets - totalPassif))}` : ''}
+    </div>
+    <p style="margin-top:10px;text-align:center;font-size:7px;color:#9CA3AF;">
+      Document généré par CashPilot — ${now.toLocaleDateString('fr-FR')} ${now.toLocaleTimeString('fr-FR')}
+    </p>
   `;
 
   const el = createContainer(html);
-  await generatePDF(el, `Bilan_${period?.endDate || 'export'}.pdf`);
+  await generatePDF(el, `Bilan_SYSCOHADA_${period?.endDate || 'export'}.pdf`);
 }
 
 // ============================================================================
