@@ -158,7 +158,7 @@ const ScenarioBuilder = () => {
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
               Simulations Financières
@@ -168,7 +168,7 @@ const ScenarioBuilder = () => {
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             {/* Create from template button */}
             <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
               <DialogTrigger asChild>

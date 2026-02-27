@@ -267,16 +267,16 @@ const Dashboard = () => {
       {/* Onboarding Banner - shown when accounting setup is not complete */}
       <OnboardingBanner />
 
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4 sm:p-6">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="flex justify-between items-start">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-1">
                 {t('dashboard.title')}
               </h1>
               <p className="text-gray-500 text-sm">{t('app.tagline')}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 onClick={handleExportPDF}
                 size="sm"

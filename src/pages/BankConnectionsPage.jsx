@@ -31,8 +31,8 @@ const BankConnectionsPage = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Building2 className="w-7 h-7 text-orange-400" />
@@ -79,7 +79,7 @@ const BankConnectionsPage = () => {
             const status = statusConfig[conn.status] || statusConfig.error;
             const StatusIcon = status.icon;
             return (
-              <div key={conn.id} className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 flex items-center justify-between">
+              <div key={conn.id} className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
                     <Building2 className="w-6 h-6 text-gray-400" />

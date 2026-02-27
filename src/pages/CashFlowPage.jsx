@@ -109,7 +109,7 @@ const CashFlowPage = () => {
               Track your income, expenses, and net cash flow over time
             </p>
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
             <div className="flex bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
               {[3, 6, 12].map((m) => (
                 <button

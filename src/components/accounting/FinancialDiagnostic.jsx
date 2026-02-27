@@ -83,7 +83,7 @@ const FinancialDiagnostic = ({ diagnostic, period, onExportPDF, onExportHTML }) 
       {/* Header */}
       <Card className="bg-gradient-to-br from-[#0f1528] to-[#141c33] border border-gray-800">
         <CardContent className="p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <h1 className="text-3xl font-bold text-gray-100 mb-2">
                 Diagnostic Financier
@@ -94,7 +94,7 @@ const FinancialDiagnostic = ({ diagnostic, period, onExportPDF, onExportHTML }) 
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {onExportPDF && (
                 <Button
                   onClick={onExportPDF}

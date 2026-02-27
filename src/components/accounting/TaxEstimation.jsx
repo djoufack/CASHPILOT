@@ -42,7 +42,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h2 className="text-xl font-bold text-gradient flex items-center gap-2">
             <Calculator className="w-5 h-5" /> Estimation d'impot
@@ -53,7 +53,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {onExportPDF && (
             <Button variant="outline" size="sm" onClick={onExportPDF} className="border-gray-700 text-gray-300">
               <Download className="w-4 h-4 mr-2" /> PDF
@@ -268,7 +268,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
           </CardHeader>
           <CardContent className="space-y-3">
             {brackets.map((bracket, i) => (
-              <div key={i} className="grid grid-cols-4 gap-3 items-end">
+              <div key={i} className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
                 <div className="space-y-1">
                   <Label className="text-xs text-gray-500">De</Label>
                   <Input type="number" value={bracket.min} onChange={e => updateBracket(i, 'min', e.target.value)}

@@ -58,7 +58,7 @@ const PeriodSelector = ({ startDate, endDate, onChange }) => {
       <div className="h-4 w-px bg-gray-700 hidden sm:block" />
 
       {/* Custom dates */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Input
           type="date"
           value={startDate}

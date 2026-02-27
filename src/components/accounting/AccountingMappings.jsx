@@ -278,7 +278,7 @@ const AccountingMappings = () => {
           <h3 className="text-lg font-bold text-white">Mappings comptables</h3>
           <p className="text-sm text-gray-400">Associez chaque catégorie de transaction à un compte du plan comptable.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => setShowPresetConfirm(true)} className="border-gray-700 text-gray-300 hover:text-white hover:border-purple-500">
             <Zap className="w-4 h-4 mr-2" /> Preset Belgique
           </Button>

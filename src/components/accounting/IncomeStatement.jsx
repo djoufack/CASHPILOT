@@ -31,7 +31,7 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h2 className="text-xl font-bold text-gradient flex items-center gap-2">
             {isProfit ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
@@ -43,7 +43,7 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {onExportPDF && (
             <Button variant="outline" size="sm" onClick={onExportPDF} className="border-gray-700 text-gray-300">
               <Download className="w-4 h-4 mr-2" /> Exporter PDF

@@ -177,7 +177,7 @@ const StockManagement = () => {
   return (
     <>
       <CreditsGuardModal {...modalProps} />
-      <div className="p-8 min-h-screen bg-gray-950 text-white space-y-6">
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gradient">Gestion du Stock</h1>
@@ -200,19 +200,19 @@ const StockManagement = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Rechercher..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-gray-800 border-gray-700 text-white w-[200px]"
+              className="pl-9 bg-gray-800 border-gray-700 text-white w-full sm:w-[200px]"
             />
           </div>
 
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700 text-white">
+            <SelectTrigger className="w-full sm:w-[180px] bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="Toutes catégories" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700 text-white">
@@ -380,41 +380,43 @@ const StockManagement = () => {
                   <p className="text-sm mt-1">Créez votre premier produit ou importez depuis un catalogue fournisseur.</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-800 hover:bg-transparent">
-                      <TableHead className="text-gray-400">Produit</TableHead>
-                      <TableHead className="text-gray-400">SKU</TableHead>
-                      <TableHead className="text-gray-400">Catégorie</TableHead>
-                      <TableHead className="text-gray-400 text-right">Prix vente</TableHead>
-                      <TableHead className="text-gray-400 text-right">Prix achat</TableHead>
-                      <TableHead className="text-gray-400 text-right">Stock</TableHead>
-                      <TableHead className="text-gray-400 text-right">Min</TableHead>
-                      <TableHead className="text-gray-400">Statut</TableHead>
-                      <TableHead className="text-gray-400">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedProducts.map(product => (
-                      <TableRow key={product.id} className="border-gray-800">
-                        <TableCell className="font-medium">{product.product_name}</TableCell>
-                        <TableCell className="text-gray-400">{product.sku || '—'}</TableCell>
-                        <TableCell className="text-gray-400">{product.category?.name || '—'}</TableCell>
-                        <TableCell className="text-right">{formatNumber(product.unit_price || 0)} €</TableCell>
-                        <TableCell className="text-right text-gray-400">{formatNumber(product.purchase_price || 0)} €</TableCell>
-                        <TableCell className="text-right font-medium">{product.stock_quantity}</TableCell>
-                        <TableCell className="text-right text-gray-400">{product.min_stock_level}</TableCell>
-                        <TableCell>{getStockBadge(product)}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300"
-                            onClick={() => deleteProduct(product.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-800 hover:bg-transparent">
+                        <TableHead className="text-gray-400">Produit</TableHead>
+                        <TableHead className="text-gray-400">SKU</TableHead>
+                        <TableHead className="text-gray-400">Catégorie</TableHead>
+                        <TableHead className="text-gray-400 text-right">Prix vente</TableHead>
+                        <TableHead className="text-gray-400 text-right">Prix achat</TableHead>
+                        <TableHead className="text-gray-400 text-right">Stock</TableHead>
+                        <TableHead className="text-gray-400 text-right">Min</TableHead>
+                        <TableHead className="text-gray-400">Statut</TableHead>
+                        <TableHead className="text-gray-400">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedProducts.map(product => (
+                        <TableRow key={product.id} className="border-gray-800">
+                          <TableCell className="font-medium">{product.product_name}</TableCell>
+                          <TableCell className="text-gray-400">{product.sku || '—'}</TableCell>
+                          <TableCell className="text-gray-400">{product.category?.name || '—'}</TableCell>
+                          <TableCell className="text-right">{formatNumber(product.unit_price || 0)} €</TableCell>
+                          <TableCell className="text-right text-gray-400">{formatNumber(product.purchase_price || 0)} €</TableCell>
+                          <TableCell className="text-right font-medium">{product.stock_quantity}</TableCell>
+                          <TableCell className="text-right text-gray-400">{product.min_stock_level}</TableCell>
+                          <TableCell>{getStockBadge(product)}</TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300"
+                              onClick={() => deleteProduct(product.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
               <PaginationControls
                 currentPage={pagination.currentPage}
@@ -437,7 +439,7 @@ const StockManagement = () => {
         <TabsContent value="history" className="mt-4 space-y-4">
           <div className="flex items-center gap-4">
             <Select value={historyProductId || ''} onValueChange={v => loadHistory(v)}>
-              <SelectTrigger className="w-[300px] bg-gray-800 border-gray-700 text-white">
+              <SelectTrigger className="w-full sm:w-[300px] bg-gray-800 border-gray-700 text-white">
                 <SelectValue placeholder="Sélectionnez un produit..." />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700 text-white">
