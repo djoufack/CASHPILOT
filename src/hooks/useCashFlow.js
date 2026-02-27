@@ -32,10 +32,10 @@ function buildEmptyBuckets(periodMonths, granularity) {
       for (let w = 1; w <= 4; w++) {
         const key = `${ym}-S${w}`;
         const label = `${monthLabel} S${w}`;
-        buckets[key] = { key, label, income: 0, expenses: 0, net: 0 };
+        buckets[key] = { key, month: key, label, income: 0, expenses: 0, net: 0 };
       }
     } else {
-      buckets[ym] = { key: ym, label: ym, income: 0, expenses: 0, net: 0 };
+      buckets[ym] = { key: ym, month: ym, label: monthLabel, income: 0, expenses: 0, net: 0 };
     }
   }
   return buckets;
