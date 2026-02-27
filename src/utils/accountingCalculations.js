@@ -508,14 +508,31 @@ export function calculateVATBreakdownFromEntries(entries, accounts, startDate, e
     if (!e.account_code) return;
     if (e.account_code.startsWith('4431')) {
       const key = e.account_code;
-      if (!outputByAccount[key]) outputByAccount[key] = { account: key, name: accountMap[key]?.account_name || key, vat: 0 };
+      if (!outputByAccount[key]) outputByAccount[key] = { account: key, name: accountMap[key]?.account_name || key, vat: 0, base: 0, rate: 0 };
       outputByAccount[key].vat += (parseFloat(e.credit) || 0) - (parseFloat(e.debit) || 0);
     }
     if (e.account_code.startsWith('4452') || e.account_code.startsWith('4456')) {
       const key = e.account_code;
-      if (!inputByAccount[key]) inputByAccount[key] = { account: key, name: accountMap[key]?.account_name || key, vat: 0 };
+      if (!inputByAccount[key]) inputByAccount[key] = { account: key, name: accountMap[key]?.account_name || key, vat: 0, base: 0, rate: 0 };
       inputByAccount[key].vat += (parseFloat(e.debit) || 0) - (parseFloat(e.credit) || 0);
     }
+  });
+
+  // Compute rate and base for VATDeclaration display compatibility
+  const inferRate = (name) => {
+    if (name && name.includes('18')) return 0.18;
+    if (name && name.includes('5.5')) return 0.055;
+    if (name && name.includes('10')) return 0.10;
+    if (name && name.includes('20')) return 0.20;
+    return 0.1925; // Default OHADA rate
+  };
+  Object.values(outputByAccount).forEach(v => {
+    v.rate = inferRate(v.name);
+    v.base = v.rate > 0 ? v.vat / v.rate : 0;
+  });
+  Object.values(inputByAccount).forEach(v => {
+    v.rate = inferRate(v.name);
+    v.base = v.rate > 0 ? v.vat / v.rate : 0;
   });
 
   return {
