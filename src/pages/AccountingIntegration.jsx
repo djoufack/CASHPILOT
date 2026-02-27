@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark, Book, BookOpen, Zap, Activity, Settings2, AlertTriangle } from 'lucide-react';
+import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark, Book, BookOpen, Zap, Activity, Settings2, AlertTriangle, ClipboardList, RefreshCw } from 'lucide-react';
 import { useAccountingData } from '@/hooks/useAccountingData';
 import { useAccountingInit } from '@/hooks/useAccountingInit';
 import { useCompany } from '@/hooks/useCompany';
@@ -18,13 +18,15 @@ import AccountingMappings from '@/components/accounting/AccountingMappings';
 import TaxRatesManager from '@/components/accounting/TaxRatesManager';
 import BankReconciliation from '@/components/accounting/BankReconciliation';
 import FinancialDiagnostic from '@/components/accounting/FinancialDiagnostic';
+import FinancialAnnexes from '@/components/accounting/FinancialAnnexes';
 import BalanceSheetInitializer from '@/components/accounting/BalanceSheetInitializer';
 import {
   exportBalanceSheetPDF,
   exportIncomeStatementPDF,
   exportVATDeclarationPDF,
   exportTaxEstimationPDF,
-  exportFinancialDiagnosticPDF
+  exportFinancialDiagnosticPDF,
+  exportFinancialAnnexesPDF
 } from '@/services/exportAccountingPDF';
 import {
   exportBalanceSheetHTML,
@@ -33,12 +35,17 @@ import {
   exportTaxEstimationHTML,
   exportFinancialDiagnosticHTML
 } from '@/services/exportHTML';
+import { refreshUserMappings } from '@/services/accountingInitService';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { formatNumber } from '@/utils/calculations';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 const AccountingIntegration = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const now = new Date();
   const year = now.getFullYear();
 
@@ -60,6 +67,7 @@ const AccountingIntegration = () => {
     entries,
     hasAutoEntries,
     trialBalance,
+    cumulativeTrialBalance,
     generalLedger,
     journalBook,
     // Computed
@@ -159,12 +167,42 @@ const AccountingIntegration = () => {
     );
   };
 
+  const handleExportAnnexesPDF = () => {
+    guardedAction(CREDIT_COSTS.GENERATE_BALANCE_SHEET, 'Financial Annexes PDF', () =>
+      exportFinancialAnnexesPDF(
+        { trialBalance, cumulativeTrialBalance, balanceSheet, incomeStatement, netIncome },
+        companyInfo,
+        period
+      )
+    );
+  };
+
+  const [refreshingMappings, setRefreshingMappings] = useState(false);
+  const handleRefreshMappings = async () => {
+    if (!user) return;
+    setRefreshingMappings(true);
+    try {
+      const result = await refreshUserMappings(user.id);
+      if (result.success) {
+        toast({ title: 'Mappings mis a jour', description: `${result.mappingsCount} mappings synchronises (${result.country})` });
+        refresh();
+      } else {
+        toast({ title: 'Erreur', description: result.error || 'Impossible de rafraichir les mappings', variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+    } finally {
+      setRefreshingMappings(false);
+    }
+  };
+
   const tabs = [
     { value: 'dashboard', label: 'Tableau de bord', icon: BarChart3 },
     { value: 'coa', label: 'Plan comptable', icon: FileText },
     { value: 'balance', label: 'Bilan', icon: Scale },
     { value: 'income', label: 'Compte de résultat', icon: TrendingUp },
     { value: 'diagnostic', label: 'Diagnostic Financier', icon: Activity },
+    { value: 'annexes', label: 'Annexes', icon: ClipboardList },
     { value: 'vat', label: 'TVA', icon: Receipt },
     { value: 'tax', label: 'Estimation impôt', icon: Calculator },
     { value: 'mappings', label: 'Mappings', icon: Settings },
@@ -395,8 +433,32 @@ const AccountingIntegration = () => {
             />
           </TabsContent>
 
+          {/* Financial Annexes */}
+          <TabsContent value="annexes" className="mt-6">
+            <FinancialAnnexes
+              trialBalance={trialBalance}
+              cumulativeTrialBalance={cumulativeTrialBalance}
+              balanceSheet={balanceSheet}
+              incomeStatement={incomeStatement}
+              companyInfo={companyInfo}
+              currency={companyCurrency}
+              period={period}
+              onExportPDF={handleExportAnnexesPDF}
+            />
+          </TabsContent>
+
           {/* Mappings */}
           <TabsContent value="mappings" className="mt-6">
+            <div className="mb-4 flex justify-end">
+              <button
+                onClick={handleRefreshMappings}
+                disabled={refreshingMappings}
+                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshingMappings ? 'animate-spin' : ''}`} />
+                {refreshingMappings ? 'Mise a jour...' : 'Rafraichir les mappings par defaut'}
+              </button>
+            </div>
             <AccountingMappings />
           </TabsContent>
 

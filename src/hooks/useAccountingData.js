@@ -178,6 +178,13 @@ export const useAccountingData = (startDate, endDate) => {
     // Trial balance, ledger, journal — ALL filtered by period
     const filteredEntries = filterByPeriod(entries, startDate, endDate, 'transaction_date');
     const trialBalance = buildTrialBalance(filteredEntries, accounts);
+
+    // Cumulative trial balance (all entries up to endDate) — needed for balance sheet notes (Annexes)
+    // Balance sheet accounts (classes 1-5) must show cumulative balances, not just the period
+    const cumulativeEntries = endDate
+      ? entries.filter(e => new Date(e.transaction_date) <= new Date(new Date(endDate).setHours(23, 59, 59, 999)))
+      : entries;
+    const cumulativeTrialBalance = buildTrialBalance(cumulativeEntries, accounts);
     const generalLedger = buildGeneralLedger(entries, accounts, startDate, endDate);
     const journalBook = buildJournalBook(entries, startDate, endDate);
 
@@ -215,6 +222,7 @@ export const useAccountingData = (startDate, endDate) => {
       taxEstimate,
       monthlyData,
       trialBalance,
+      cumulativeTrialBalance,
       generalLedger,
       journalBook,
       financialDiagnostic,
@@ -249,6 +257,7 @@ export const useAccountingData = (startDate, endDate) => {
       taxEstimate: { totalTax: 0, effectiveRate: 0, details: [], quarterlyPayment: 0 },
       monthlyData: [],
       trialBalance: [],
+      cumulativeTrialBalance: [],
       generalLedger: [],
       journalBook: [],
       financialDiagnostic: null,

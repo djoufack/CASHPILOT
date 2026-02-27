@@ -90,12 +90,11 @@ const MainLayout = () => {
         </div>
       </div>
 
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar — uses built-in categorized navigation */}
       <div className="hidden md:block">
         <Sidebar
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsed}
-          navItems={navItems}
         />
       </div>
 

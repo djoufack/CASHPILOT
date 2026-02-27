@@ -293,10 +293,16 @@ export function getDefaultMappings(country) {
       { source_type: 'expense', source_category: 'consulting', debit_account_code: '6324', credit_account_code: '521', description: 'Honoraires de conseil' },
       { source_type: 'expense', source_category: 'other',      debit_account_code: '658',  credit_account_code: '521', description: 'Charges diverses' },
 
-      // ---- Factures fournisseurs ----
-      { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '601',  credit_account_code: '401', description: 'Achats de marchandises' },
-      { source_type: 'supplier_invoice', source_category: 'service',  debit_account_code: '604',  credit_account_code: '401', description: 'Achats de matières et fournitures' },
-      { source_type: 'supplier_invoice', source_category: 'supply',   debit_account_code: '605',  credit_account_code: '401', description: 'Autres achats' },
+      // ---- Factures fournisseurs (inventaire permanent SYSCOHADA Art. 44) ----
+      { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '311',  credit_account_code: '401', description: 'Achats de marchandises → Stock' },
+      { source_type: 'supplier_invoice', source_category: 'service',  debit_account_code: '604',  credit_account_code: '401', description: 'Achats de services' },
+      { source_type: 'supplier_invoice', source_category: 'supply',   debit_account_code: '331',  credit_account_code: '401', description: 'Autres achats → Stock approvisionnements' },
+
+      // ---- Variation de stocks ----
+      { source_type: 'stock_variation', source_category: 'merchandise',   debit_account_code: '6031', credit_account_code: '311', description: 'Variation de stocks de marchandises' },
+      { source_type: 'stock_variation', source_category: 'materials',     debit_account_code: '6032', credit_account_code: '321', description: 'Variation de stocks de matières premières' },
+      { source_type: 'stock_variation', source_category: 'supplies',      debit_account_code: '6033', credit_account_code: '331', description: "Variation de stocks d'approvisionnements" },
+      { source_type: 'stock_variation', source_category: 'finished_goods', debit_account_code: '361', credit_account_code: '73',  description: 'Variation de stocks de produits finis' },
     ];
   }
 
@@ -334,10 +340,16 @@ export function getDefaultMappings(country) {
       { source_type: 'expense', source_category: 'consulting', debit_account_code: '6226', credit_account_code: '512', description: 'Honoraires de conseil' },
       { source_type: 'expense', source_category: 'other',      debit_account_code: '658',  credit_account_code: '512', description: 'Charges diverses de gestion' },
 
-      // ---- Factures fournisseurs ----
-      { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '601',  credit_account_code: '401', description: 'Achats marchandises' },
+      // ---- Factures fournisseurs (inventaire permanent PCG) ----
+      { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '311',  credit_account_code: '401', description: 'Achats de marchandises → Stock' },
       { source_type: 'supplier_invoice', source_category: 'service',  debit_account_code: '604',  credit_account_code: '401', description: 'Achats prestations de services' },
-      { source_type: 'supplier_invoice', source_category: 'supply',   debit_account_code: '6022', credit_account_code: '401', description: 'Achats fournitures consommables' },
+      { source_type: 'supplier_invoice', source_category: 'supply',   debit_account_code: '326',  credit_account_code: '401', description: 'Autres achats → Stock approvisionnements' },
+
+      // ---- Variation de stocks ----
+      { source_type: 'stock_variation', source_category: 'merchandise',    debit_account_code: '6037', credit_account_code: '311', description: 'Variation de stocks de marchandises' },
+      { source_type: 'stock_variation', source_category: 'materials',      debit_account_code: '6031', credit_account_code: '321', description: 'Variation de stocks de matières premières' },
+      { source_type: 'stock_variation', source_category: 'supplies',       debit_account_code: '6032', credit_account_code: '326', description: "Variation de stocks d'approvisionnements" },
+      { source_type: 'stock_variation', source_category: 'finished_goods', debit_account_code: '355',  credit_account_code: '7135', description: 'Variation de stocks de produits finis' },
     ];
   }
 
@@ -375,10 +387,16 @@ export function getDefaultMappings(country) {
     { source_type: 'expense', source_category: 'consulting', debit_account_code: '6226', credit_account_code: '550', description: 'Honoraires de conseil' },
     { source_type: 'expense', source_category: 'other',      debit_account_code: '658',  credit_account_code: '550', description: 'Charges diverses de gestion' },
 
-    // ---- Factures fournisseurs ----
-    { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '601',  credit_account_code: '440', description: 'Achats marchandises' },
+    // ---- Factures fournisseurs (inventaire permanent PCMN) ----
+    { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '340',  credit_account_code: '440', description: 'Achats de marchandises → Stock' },
     { source_type: 'supplier_invoice', source_category: 'service',  debit_account_code: '604',  credit_account_code: '440', description: 'Achats prestations de services' },
-    { source_type: 'supplier_invoice', source_category: 'supply',   debit_account_code: '6022', credit_account_code: '440', description: 'Achats fournitures consommables' },
+    { source_type: 'supplier_invoice', source_category: 'supply',   debit_account_code: '310',  credit_account_code: '440', description: 'Autres achats → Stock approvisionnements' },
+
+    // ---- Variation de stocks ----
+    { source_type: 'stock_variation', source_category: 'merchandise',    debit_account_code: '6094', credit_account_code: '340', description: 'Variation de stocks de marchandises' },
+    { source_type: 'stock_variation', source_category: 'materials',      debit_account_code: '6090', credit_account_code: '300', description: 'Variation de stocks de matières premières' },
+    { source_type: 'stock_variation', source_category: 'supplies',       debit_account_code: '6091', credit_account_code: '310', description: "Variation de stocks d'approvisionnements" },
+    { source_type: 'stock_variation', source_category: 'finished_goods', debit_account_code: '330',  credit_account_code: '713', description: 'Variation de stocks de produits finis' },
   ];
 }
 
@@ -642,5 +660,76 @@ export async function initializeAccountingFromPlan(userId, planId, countryCode) 
   } catch (err) {
     console.error('[AccountingInit] Unexpected error in initializeAccountingFromPlan:', err);
     return { success: false, accountsCount: 0, mappingsCount: 0, taxRatesCount: 0, error: err.message };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Refresh mappings for existing users
+// ---------------------------------------------------------------------------
+
+/**
+ * Refreshes default mappings for a single user.
+ * Reads their country from user_accounting_settings and upserts the latest
+ * default mappings. Existing custom mappings are preserved (upsert on conflict).
+ *
+ * @param {string} userId
+ * @returns {Promise<{ success: boolean, mappingsCount: number, country: string|null, error?: string }>}
+ */
+export async function refreshUserMappings(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('user_accounting_settings')
+      .select('country')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error || !data) {
+      return { success: false, mappingsCount: 0, country: null, error: error?.message || 'User settings not found' };
+    }
+
+    const country = data.country || 'FR';
+    const mappingsCount = await insertDefaultMappings(userId, country);
+    return { success: true, mappingsCount, country };
+  } catch (err) {
+    console.error('[AccountingInit] Error in refreshUserMappings:', err);
+    return { success: false, mappingsCount: 0, country: null, error: err.message };
+  }
+}
+
+/**
+ * Refreshes default mappings for ALL initialized users.
+ *
+ * @returns {Promise<{ usersUpdated: number, totalMappings: number, errors: string[] }>}
+ */
+export async function refreshAllUsersMappings() {
+  const errors = [];
+  let usersUpdated = 0;
+  let totalMappings = 0;
+
+  try {
+    const { data: users, error } = await supabase
+      .from('user_accounting_settings')
+      .select('user_id, country')
+      .eq('is_initialized', true);
+
+    if (error || !users) {
+      return { usersUpdated: 0, totalMappings: 0, errors: [error?.message || 'Failed to fetch users'] };
+    }
+
+    for (const u of users) {
+      const country = u.country || 'FR';
+      try {
+        const count = await insertDefaultMappings(u.user_id, country);
+        totalMappings += count;
+        usersUpdated++;
+      } catch (err) {
+        errors.push(`User ${u.user_id}: ${err.message}`);
+      }
+    }
+
+    return { usersUpdated, totalMappings, errors };
+  } catch (err) {
+    console.error('[AccountingInit] Error in refreshAllUsersMappings:', err);
+    return { usersUpdated, totalMappings, errors: [...errors, err.message] };
   }
 }

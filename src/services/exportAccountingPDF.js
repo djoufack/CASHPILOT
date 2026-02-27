@@ -518,3 +518,124 @@ export async function exportFinancialDiagnosticPDF(diagnostic, companyInfo, peri
   const el = createContainer(html);
   await generatePDF(el, `Diagnostic_Financier_${period?.endDate || 'export'}.pdf`);
 }
+
+// ============================================================================
+// FINANCIAL ANNEXES PDF (Notes aux états financiers)
+// ============================================================================
+
+export async function exportFinancialAnnexesPDF(annexesData, companyInfo, period) {
+  const { trialBalance, netIncome } = annexesData || {};
+  const tb = trialBalance || [];
+  const cur = companyInfo?.currency || 'XAF';
+
+  function fmtCur(n) {
+    try {
+      return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: cur, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n || 0);
+    } catch { return formatAmount(n); }
+  }
+
+  function groupByPrefix(prefix) {
+    return tb.filter(t => t.account_code && t.account_code.startsWith(prefix) && Math.abs(t.balance) >= 0.01);
+  }
+
+  function renderAccountRows(accounts) {
+    if (!accounts || accounts.length === 0) {
+      return '<tr><td colspan="3" style="padding:6px;font-style:italic;color:#9CA3AF;">Aucune donnee</td></tr>';
+    }
+    return accounts.map(a => `
+      <tr>
+        <td style="padding:4px 6px;font-family:monospace;font-size:9px;color:#6B7280;">${a.account_code}</td>
+        <td style="padding:4px 6px;font-size:10px;">${a.account_name || '-'}</td>
+        <td style="padding:4px 6px;text-align:right;font-family:monospace;font-size:10px;">${fmtCur(a.balance)}</td>
+      </tr>
+    `).join('');
+  }
+
+  function sectionHeader(num, title, color) {
+    return `<h3 style="font-size:13px;color:${color};border-bottom:1px solid ${color};padding-bottom:4px;margin:18px 0 8px;">
+      Note ${num} : ${title}
+    </h3>`;
+  }
+
+  const immobilisations = groupByPrefix('2');
+  const stocks = groupByPrefix('3');
+  const creances = tb.filter(t => t.account_code?.startsWith('4') && t.account_type === 'asset' && Math.abs(t.balance) >= 0.01);
+  const dettes = tb.filter(t => t.account_code?.startsWith('4') && t.account_type === 'liability' && Math.abs(t.balance) >= 0.01);
+  const tresorerie = groupByPrefix('5');
+  const ca = tb.filter(t => t.account_code?.startsWith('70') && Math.abs(t.balance) >= 0.01);
+  const charges = tb.filter(t => t.account_code && ['60','61','62','63','64','65'].some(p => t.account_code.startsWith(p)) && Math.abs(t.balance) >= 0.01);
+
+  const sum = arr => arr.reduce((s, a) => s + (a.balance || 0), 0);
+  const planName = companyInfo?.country === 'OHADA' ? 'SYSCOHADA Révisé' : companyInfo?.country === 'BE' ? 'PCMN Belge' : 'PCG Français';
+
+  const tableStyle = 'width:100%;border-collapse:collapse;margin-bottom:10px;';
+
+  const html = `
+    ${createHeader('Notes aux États Financiers', companyInfo, period)}
+
+    ${sectionHeader(1, 'Règles et méthodes comptables', '#F59E0B')}
+    <table style="${tableStyle}">
+      <tr><td style="padding:4px 6px;color:#6B7280;">Plan comptable</td><td style="padding:4px 6px;font-weight:bold;">${planName}</td></tr>
+      <tr style="background:#F9FAFB;"><td style="padding:4px 6px;color:#6B7280;">Devise</td><td style="padding:4px 6px;font-weight:bold;">${cur}</td></tr>
+      <tr><td style="padding:4px 6px;color:#6B7280;">Méthode d'inventaire</td><td style="padding:4px 6px;">Inventaire permanent</td></tr>
+      <tr style="background:#F9FAFB;"><td style="padding:4px 6px;color:#6B7280;">Convention</td><td style="padding:4px 6px;">Coût historique, continuité d'exploitation, prudence</td></tr>
+    </table>
+
+    ${sectionHeader(2, 'Immobilisations', '#3B82F6')}
+    <table style="${tableStyle}">
+      ${renderAccountRows(immobilisations)}
+      <tr style="border-top:1px solid #E5E7EB;"><td colspan="2" style="padding:6px;font-weight:bold;">Total</td><td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${fmtCur(sum(immobilisations))}</td></tr>
+    </table>
+
+    ${sectionHeader(3, 'Stocks et en-cours', '#10B981')}
+    <table style="${tableStyle}">
+      ${renderAccountRows(stocks)}
+      <tr style="border-top:1px solid #E5E7EB;"><td colspan="2" style="padding:6px;font-weight:bold;">Total</td><td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${fmtCur(sum(stocks))}</td></tr>
+    </table>
+
+    ${sectionHeader(4, 'Créances et dettes', '#8B5CF6')}
+    <p style="font-size:11px;font-weight:bold;color:#3B82F6;margin:8px 0 4px;">Créances</p>
+    <table style="${tableStyle}">
+      ${renderAccountRows(creances)}
+      <tr style="border-top:1px solid #E5E7EB;"><td colspan="2" style="padding:6px;font-weight:bold;">Total créances</td><td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${fmtCur(sum(creances))}</td></tr>
+    </table>
+    <p style="font-size:11px;font-weight:bold;color:#EF4444;margin:8px 0 4px;">Dettes</p>
+    <table style="${tableStyle}">
+      ${renderAccountRows(dettes)}
+      <tr style="border-top:1px solid #E5E7EB;"><td colspan="2" style="padding:6px;font-weight:bold;">Total dettes</td><td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${fmtCur(sum(dettes))}</td></tr>
+    </table>
+
+    ${sectionHeader(5, 'Trésorerie', '#06B6D4')}
+    <table style="${tableStyle}">
+      ${renderAccountRows(tresorerie)}
+      <tr style="border-top:1px solid #E5E7EB;"><td colspan="2" style="padding:6px;font-weight:bold;">Total</td><td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;">${fmtCur(sum(tresorerie))}</td></tr>
+    </table>
+
+    ${sectionHeader(6, "Chiffre d'affaires", '#16A34A')}
+    <table style="${tableStyle}">
+      ${renderAccountRows(ca)}
+      <tr style="border-top:1px solid #E5E7EB;"><td colspan="2" style="padding:6px;font-weight:bold;">Total CA</td><td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;color:#16A34A;">${fmtCur(sum(ca))}</td></tr>
+    </table>
+
+    ${sectionHeader(7, "Charges d'exploitation", '#DC2626')}
+    <table style="${tableStyle}">
+      ${renderAccountRows(charges)}
+      <tr style="border-top:1px solid #E5E7EB;"><td colspan="2" style="padding:6px;font-weight:bold;">Total charges</td><td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;color:#DC2626;">${fmtCur(sum(charges))}</td></tr>
+    </table>
+
+    ${sectionHeader(8, 'Résultat fiscal et impôts', '#F59E0B')}
+    <table style="${tableStyle}">
+      <tr><td style="padding:6px;">Résultat net</td><td style="padding:6px;text-align:right;font-family:monospace;font-weight:bold;color:${(netIncome || 0) >= 0 ? '#16A34A' : '#DC2626'};">${fmtCur(netIncome)}</td></tr>
+    </table>
+
+    ${sectionHeader(9, 'Engagements hors bilan', '#6B7280')}
+    <p style="font-size:10px;font-style:italic;color:#9CA3AF;">Néant. Aucun engagement hors bilan identifié à la date de clôture.</p>
+
+    <div style="margin-top:20px;padding-top:10px;border-top:1px solid #E5E7EB;text-align:center;">
+      <p style="font-size:8px;color:#9CA3AF;">Notes aux états financiers générées par CashPilot — ${new Date().toLocaleDateString('fr-FR')}</p>
+    </div>
+  `;
+
+  const el = createContainer(html);
+  await generatePDF(el, `Annexes_Comptables_${period?.endDate || 'export'}.pdf`);
+}
