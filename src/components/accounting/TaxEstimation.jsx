@@ -12,7 +12,7 @@ import { estimateTax, DEFAULT_TAX_BRACKETS } from '@/utils/accountingCalculation
 
 const COLORS = ['#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'];
 
-const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExportPDF, onExportHTML }) => {
+const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExportPDF, onExportHTML, currency }) => {
   const [brackets, setBrackets] = useState(DEFAULT_TAX_BRACKETS);
   const [customMode, setCustomMode] = useState(false);
 
@@ -76,7 +76,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
               <span className="text-sm font-medium">Benefice imposable</span>
             </div>
             <p className={`text-2xl font-bold ${netIncome >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {formatCurrency(netIncome || 0)}
+              {formatCurrency(netIncome || 0, currency)}
             </p>
           </CardContent>
         </Card>
@@ -87,7 +87,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
               <Banknote className="w-4 h-4" />
               <span className="text-sm font-medium">Impot estime</span>
             </div>
-            <p className="text-2xl font-bold text-gradient">{formatCurrency(taxEstimate?.totalTax || 0)}</p>
+            <p className="text-2xl font-bold text-gradient">{formatCurrency(taxEstimate?.totalTax || 0, currency)}</p>
             {/* Effective rate progress bar */}
             <div className="mt-3">
               <div className="flex justify-between text-xs mb-1">
@@ -111,7 +111,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
               <span className="text-sm font-medium">Revenu net apres impot</span>
             </div>
             <p className="text-2xl font-bold text-blue-400">
-              {formatCurrency(Math.max((netIncome || 0) - (taxEstimate?.totalTax || 0), 0))}
+              {formatCurrency(Math.max((netIncome || 0) - (taxEstimate?.totalTax || 0), 0), currency)}
             </p>
             <p className="text-xs text-gray-500 mt-1">Benefice - Impot</p>
           </CardContent>
@@ -149,7 +149,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
                     <div className="flex-1">
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm text-gray-300">{detail.label}</span>
-                        <span className="font-mono text-sm text-white font-medium">{formatCurrency(detail.tax)}</span>
+                        <span className="font-mono text-sm text-white font-medium">{formatCurrency(detail.tax, currency)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-gray-700 rounded-full h-1">
@@ -162,7 +162,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
                           />
                         </div>
                         <span className="text-xs text-gray-500 w-24 text-right">
-                          sur {formatCurrency(detail.taxableAmount)}
+                          sur {formatCurrency(detail.taxableAmount, currency)}
                         </span>
                       </div>
                     </div>
@@ -181,7 +181,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
             {taxEstimate?.details?.length > 0 && (
               <div className="flex justify-between items-center pt-3 mt-2 border-t border-gray-700">
                 <span className="text-sm font-semibold text-gray-300">Total impot</span>
-                <span className="font-mono text-sm font-bold text-orange-400">{formatCurrency(taxEstimate?.totalTax || 0)}</span>
+                <span className="font-mono text-sm font-bold text-orange-400">{formatCurrency(taxEstimate?.totalTax || 0, currency)}</span>
               </div>
             )}
           </CardContent>
@@ -210,7 +210,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
                     </Pie>
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
-                      formatter={(value) => formatCurrency(value)}
+                      formatter={(value) => formatCurrency(value, currency)}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -226,7 +226,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
                 <div key={i} className="flex items-center gap-2 text-xs">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                   <span className="text-gray-400 truncate">{item.name}</span>
-                  <span className="text-gray-300 ml-auto font-mono">{formatCurrency(item.value)}</span>
+                  <span className="text-gray-300 ml-auto font-mono">{formatCurrency(item.value, currency)}</span>
                 </div>
               ))}
             </div>
@@ -246,7 +246,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
             {quarters.map((q, i) => (
               <div key={i} className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 text-center">
                 <div className="text-xs text-gray-500 mb-1">{q.period}</div>
-                <div className="text-lg font-bold text-gray-100">{formatCurrency(quarterly)}</div>
+                <div className="text-lg font-bold text-gray-100">{formatCurrency(quarterly, currency)}</div>
                 <div className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1">
                   <ChevronRight className="w-3 h-3" /> Echeance: {q.due}
                 </div>
@@ -255,7 +255,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
           </div>
           <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-700">
             <span className="text-sm text-gray-400">Total annuel</span>
-            <span className="font-mono text-sm font-bold text-orange-400">{formatCurrency(taxEstimate?.totalTax || 0)}</span>
+            <span className="font-mono text-sm font-bold text-orange-400">{formatCurrency(taxEstimate?.totalTax || 0, currency)}</span>
           </div>
         </CardContent>
       </Card>

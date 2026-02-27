@@ -326,6 +326,7 @@ const AccountingIntegration = () => {
               monthlyData={monthlyData}
               accounts={accounts}
               mappings={mappings}
+              currency={companyCurrency}
             />
           </TabsContent>
 
@@ -351,6 +352,7 @@ const AccountingIntegration = () => {
             <IncomeStatement
               incomeStatement={incomeStatement}
               period={period}
+              currency={companyCurrency}
               onExportPDF={handleExportIncomeStatementPDF}
               onExportHTML={handleExportIncomeStatementHTML}
             />
@@ -375,6 +377,7 @@ const AccountingIntegration = () => {
               vatBreakdown={vatBreakdown}
               monthlyData={monthlyData}
               period={period}
+              currency={companyCurrency}
               onExportPDF={handleExportVATPDF}
               onExportHTML={handleExportVATHTML}
             />
@@ -386,6 +389,7 @@ const AccountingIntegration = () => {
               netIncome={netIncome}
               taxEstimate={taxEstimate}
               period={period}
+              currency={companyCurrency}
               onExportPDF={handleExportTaxPDF}
               onExportHTML={handleExportTaxHTML}
             />

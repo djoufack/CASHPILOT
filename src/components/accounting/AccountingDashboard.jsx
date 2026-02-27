@@ -6,7 +6,7 @@ import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { DollarSign, TrendingUp, TrendingDown, Receipt, AlertTriangle, FileText } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 
-const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, monthlyData, accounts, mappings }) => {
+const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, monthlyData, accounts, mappings, currency }) => {
   const isProfit = netIncome >= 0;
   const hasAccounts = accounts && accounts.length > 0;
   const hasMappings = mappings && mappings.length > 0;
@@ -46,7 +46,7 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
             <DollarSign className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gradient">{formatCurrency(revenue || 0)}</div>
+            <div className="text-2xl font-bold text-gradient">{formatCurrency(revenue || 0, currency)}</div>
             <p className="text-xs text-gray-500">Factures payées</p>
           </CardContent>
         </Card>
@@ -57,7 +57,7 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
             <TrendingDown className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-400">{formatCurrency(totalExpenses || 0)}</div>
+            <div className="text-2xl font-bold text-red-400">{formatCurrency(totalExpenses || 0, currency)}</div>
             <p className="text-xs text-gray-500">Dépenses + fournisseurs</p>
           </CardContent>
         </Card>
@@ -69,7 +69,7 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${isProfit ? 'text-green-400' : 'text-red-400'}`}>
-              {formatCurrency(netIncome || 0)}
+              {formatCurrency(netIncome || 0, currency)}
             </div>
             <Badge className={`text-xs mt-1 ${isProfit ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
               {isProfit ? 'Bénéfice' : 'Perte'}
@@ -83,7 +83,7 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
             <Receipt className="h-4 w-4 text-orange-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-400">{formatCurrency(vatPayable || 0)}</div>
+            <div className="text-2xl font-bold text-orange-400">{formatCurrency(vatPayable || 0, currency)}</div>
             <p className="text-xs text-gray-500">Collectée - Déductible</p>
           </CardContent>
         </Card>
@@ -116,7 +116,7 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
                     <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
-                      formatter={(value) => formatCurrency(value)}
+                      formatter={(value) => formatCurrency(value, currency)}
                       cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                     />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#9CA3AF' }} />
@@ -154,7 +154,7 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
                     <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff' }}
-                      formatter={(value) => formatCurrency(value)}
+                      formatter={(value) => formatCurrency(value, currency)}
                       cursor={{ stroke: 'rgba(255,255,255,0.1)' }}
                     />
                     <Area type="monotone" dataKey="net" stroke="#22C55E" strokeWidth={2} fill="url(#gradNet)" name="Résultat net" />
