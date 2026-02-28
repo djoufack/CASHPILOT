@@ -69,7 +69,7 @@ const PeppolPage = () => {
       const { data, error } = await supabase
         .from('invoices')
         .select(`
-          id, invoice_number, total_amount, currency, status,
+          id, invoice_number, total_ht, total_ttc, tax_rate, status,
           peppol_status, peppol_sent_at, peppol_document_id, peppol_error_message,
           client:clients(id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled)
         `)
@@ -575,7 +575,7 @@ const PeppolPage = () => {
                             )}
                           </td>
                           <td className="p-3 text-right text-gray-300 whitespace-nowrap">
-                            {formatAmount(invoice.total_amount, invoice.currency)}
+                            {formatAmount(invoice.total_ttc)}
                           </td>
                           <td className="p-3">
                             {invoice.peppol_status && invoice.peppol_status !== 'none' ? (
@@ -995,7 +995,7 @@ const PeppolPage = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Montant</span>
                   <span className="text-white font-medium">
-                    {formatAmount(selectedInvoice.total_amount, selectedInvoice.currency)}
+                    {formatAmount(selectedInvoice.total_ttc)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
