@@ -59,33 +59,36 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
 
       <Card className="bg-gray-900 border-gray-800">
         <CardContent className="p-6 space-y-6">
-          {/* PRODUITS */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-bold text-green-400 border-b border-gray-700 pb-2">Produits</h3>
-            {revenueItems.length > 0 ? renderSection(revenueItems) : (
-              <div className="flex justify-between py-1 px-2">
-                <span className="text-sm text-gray-300">Chiffre d'affaires</span>
-                <span className="font-mono text-sm text-white">{formatCurrency(totalRevenue, currency)}</span>
+          {/* PRODUITS & CHARGES — côte à côte */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* PRODUITS */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-green-400 border-b border-gray-700 pb-2">Produits</h3>
+              {revenueItems.length > 0 ? renderSection(revenueItems) : (
+                <div className="flex justify-between py-1 px-2">
+                  <span className="text-sm text-gray-300">Chiffre d'affaires</span>
+                  <span className="font-mono text-sm text-white">{formatCurrency(totalRevenue, currency)}</span>
+                </div>
+              )}
+              <div className="border-t border-green-500/30 pt-2 flex justify-between">
+                <span className="font-medium text-green-400">Total Produits</span>
+                <span className="font-bold font-mono text-green-400">{formatCurrency(totalRevenue, currency)}</span>
               </div>
-            )}
-            <div className="border-t border-green-500/30 pt-2 flex justify-between">
-              <span className="font-medium text-green-400">Total Produits</span>
-              <span className="font-bold font-mono text-green-400">{formatCurrency(totalRevenue, currency)}</span>
             </div>
-          </div>
 
-          {/* CHARGES */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-bold text-red-400 border-b border-gray-700 pb-2">Charges</h3>
-            {expenseItems.length > 0 ? renderSection(expenseItems) : (
-              <div className="flex justify-between py-1 px-2">
-                <span className="text-sm text-gray-300">Total des charges</span>
-                <span className="font-mono text-sm text-white">{formatCurrency(totalExpenses, currency)}</span>
+            {/* CHARGES */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-red-400 border-b border-gray-700 pb-2">Charges</h3>
+              {expenseItems.length > 0 ? renderSection(expenseItems) : (
+                <div className="flex justify-between py-1 px-2">
+                  <span className="text-sm text-gray-300">Total des charges</span>
+                  <span className="font-mono text-sm text-white">{formatCurrency(totalExpenses, currency)}</span>
+                </div>
+              )}
+              <div className="border-t border-red-500/30 pt-2 flex justify-between">
+                <span className="font-medium text-red-400">Total Charges</span>
+                <span className="font-bold font-mono text-red-400">{formatCurrency(totalExpenses, currency)}</span>
               </div>
-            )}
-            <div className="border-t border-red-500/30 pt-2 flex justify-between">
-              <span className="font-medium text-red-400">Total Charges</span>
-              <span className="font-bold font-mono text-red-400">{formatCurrency(totalExpenses, currency)}</span>
             </div>
           </div>
 

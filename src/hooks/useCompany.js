@@ -82,6 +82,12 @@ export const useCompany = () => {
         bank_account: companyData.bank_account || '',
         iban: companyData.iban || '',
         swift: companyData.swift || '',
+        peppol_endpoint_id: companyData.peppol_endpoint_id || null,
+        peppol_scheme_id: companyData.peppol_scheme_id || '0208',
+        peppol_ap_provider: companyData.peppol_ap_provider || 'scrada',
+        scrada_company_id: companyData.scrada_company_id || null,
+        scrada_api_key: companyData.scrada_api_key || null,
+        scrada_password: companyData.scrada_password || null,
         updated_at: new Date().toISOString()
       };
 

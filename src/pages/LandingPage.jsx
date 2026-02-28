@@ -406,8 +406,12 @@ const LandingPage = () => {
             <a href="#simulation" className="nav-link" onClick={(e) => handleSmoothScroll(e, '#simulation')}>Simulations</a>
             <a href="#audience" className="nav-link" onClick={(e) => handleSmoothScroll(e, '#audience')}>Pour qui ?</a>
             <a href="#advantages" className="nav-link" onClick={(e) => handleSmoothScroll(e, '#advantages')}>Avantages</a>
+            <a href="/pricing" className="nav-link" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>Prix</a>
             <a href="/mcp-tools.html" className="nav-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>MCP Tools</a>
             <a href="/guide/" className="nav-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>Guide</a>
+            <button className="nav-peppol-btn" onClick={() => handleNavigate('/peppol-guide')}>
+              <Globe /> Peppol
+            </button>
           </div>
           <div className="nav-actions">
             <button className="btn btn-ghost" onClick={() => handleNavigate('/login')}>Connexion</button>
@@ -429,8 +433,12 @@ const LandingPage = () => {
           <a href="#simulation" className="mobile-link" onClick={(e) => handleSmoothScroll(e, '#simulation')}>Simulations</a>
           <a href="#audience" className="mobile-link" onClick={(e) => handleSmoothScroll(e, '#audience')}>Pour qui ?</a>
           <a href="#advantages" className="mobile-link" onClick={(e) => handleSmoothScroll(e, '#advantages')}>Avantages</a>
+          <a href="/pricing" className="mobile-link" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>Prix</a>
           <a href="/mcp-tools.html" className="mobile-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>MCP Tools</a>
           <a href="/guide/" className="mobile-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>Guide</a>
+          <button className="nav-peppol-btn" style={{ fontSize: '1rem', padding: '10px 24px' }} onClick={() => { setMobileMenuActive(false); handleNavigate('/peppol-guide'); }}>
+            <Globe /> Guide Peppol
+          </button>
           <div className="mobile-actions">
             <button className="btn btn-ghost" onClick={() => handleNavigate('/login')}>Connexion</button>
             <button className="btn btn-primary" onClick={() => handleNavigate('/signup')}>Démarrer</button>
@@ -1167,6 +1175,79 @@ const LandingPage = () => {
               <CheckCircle2 />
               <span>Facture extraite par IA : Fournisseur ABC, 2 450&euro; TTC, 3 lignes. Enregistrée automatiquement.</span>
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Peppol & E-Invoicing Section */}
+      <section id="peppol" className="section section-peppol">
+        <div className="section-bg">
+          <div className="bg-gradient peppol-gradient"></div>
+          <div className="bg-mesh"></div>
+        </div>
+
+        <div className="container">
+          <div className="section-header">
+            <div className="section-badge badge-peppol">
+              <Globe />
+              <span>Peppol &amp; E-Invoicing</span>
+            </div>
+            <h2 className="section-title">Facturation Électronique via Peppol</h2>
+            <p className="section-description">
+              Envoyez et recevez vos factures sur le <strong>réseau européen Peppol</strong> directement depuis CashPilot,
+              grâce à <strong>Scrada</strong>, Access Point certifié belge. Conforme EN16931 &amp; UBL 2.1.
+            </p>
+          </div>
+
+          <div className="peppol-cards">
+            <div className="peppol-card">
+              <div className="peppol-card-glow"></div>
+              <div className="peppol-card-icon">
+                <Clock />
+              </div>
+              <h3 className="peppol-card-title">Configuration en 5 Minutes</h3>
+              <p className="peppol-card-description">
+                Créez votre compte Scrada, générez une clé API, et collez vos identifiants dans CashPilot.
+                Un clic pour tester la connexion — c'est prêt.
+              </p>
+              <span className="peppol-card-tag tag-green">Dès 2 €/mois</span>
+            </div>
+
+            <div className="peppol-card">
+              <div className="peppol-card-glow"></div>
+              <div className="peppol-card-icon" style={{ color: 'var(--accent-blue)' }}>
+                <Rocket />
+              </div>
+              <h3 className="peppol-card-title">Envoi Peppol Automatique</h3>
+              <p className="peppol-card-description">
+                CashPilot valide votre facture (13 règles EN16931), génère le XML UBL conforme,
+                et l'envoie via Scrada sur le réseau Peppol. Suivi du statut en temps réel.
+              </p>
+              <span className="peppol-card-tag tag-blue">UBL 2.1 / BIS Billing 3.0</span>
+            </div>
+
+            <div className="peppol-card">
+              <div className="peppol-card-glow"></div>
+              <div className="peppol-card-icon" style={{ color: '#a78bfa' }}>
+                <Download />
+              </div>
+              <h3 className="peppol-card-title">Réception &amp; Vérification</h3>
+              <p className="peppol-card-description">
+                Recevez les factures entrantes via Peppol et vérifiez si vos clients sont enregistrés
+                sur le réseau — en un clic depuis leur fiche.
+              </p>
+              <span className="peppol-card-tag tag-purple">B2G &amp; B2B</span>
+            </div>
+          </div>
+
+          <div className="peppol-infographic">
+            <img src="/images/peppol-scrada-guide.jpg" alt="Connexion CashPilot - Peppol via Scrada : configuration, forfaits et bénéfices" loading="lazy" />
+          </div>
+
+          <div className="peppol-cta">
+            <button className="peppol-cta-btn" onClick={() => handleNavigate('/peppol-guide')}>
+              <Globe /> Voir le Guide Complet <ArrowRight />
+            </button>
           </div>
         </div>
       </section>

@@ -71,6 +71,8 @@ const CashFlowPage = lazyRetry(() => import('@/pages/CashFlowPage'));
 const OnboardingWizard = lazyRetry(() => import('@/components/onboarding/OnboardingWizard'));
 const WebhooksPage = lazyRetry(() => import('@/pages/WebhooksPage'));
 const AuditComptable = lazyRetry(() => import('@/pages/AuditComptable'));
+const PricingPage = lazyRetry(() => import('@/pages/PricingPage'));
+const PeppolGuidePage = lazyRetry(() => import('@/pages/PeppolGuidePage'));
 
 // Lazy-loaded feature components
 const SupplierMap = lazyRetry(() => import('@/components/SupplierMap'));
@@ -109,6 +111,8 @@ const AuthWrapper = () => {
             <Route path="/signup" element={user ? <Navigate to="/app" replace /> : <Suspense fallback={<PageLoader />}><SignupPage /></Suspense>} />
             <Route path="/forgot-password" element={user ? <Navigate to="/app" replace /> : <Suspense fallback={<PageLoader />}><ForgotPasswordPage /></Suspense>} />
             <Route path="/reset-password" element={<Suspense fallback={<PageLoader />}><ResetPasswordPage /></Suspense>} />
+            <Route path="/pricing" element={<Suspense fallback={<PageLoader />}><PricingPage /></Suspense>} />
+            <Route path="/peppol-guide" element={<Suspense fallback={<PageLoader />}><PeppolGuidePage /></Suspense>} />
 
             {/* Client Portal */}
             <Route path="/client-portal/*" element={

@@ -1,17 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useBillingSettings } from '@/hooks/useBillingSettings';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
-import { CreditCard, Download, Trash2, Check, Plus } from 'lucide-react';
+import { CreditCard, Download, Trash2, Check, Plus, ExternalLink, Crown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { format } from 'date-fns';
 
 const BillingSettings = () => {
-  const { billingInfo, paymentMethods, invoices, subscription, loading, updateBilling, addPaymentMethod, deletePaymentMethod, setDefaultPaymentMethod, cancelSubscription } = useBillingSettings();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { billingInfo, paymentMethods, invoices, loading, updateBilling, addPaymentMethod, deletePaymentMethod, setDefaultPaymentMethod } = useBillingSettings();
+  const { currentPlan, subscriptionStatus, subscriptionCredits, currentPeriodEnd, daysRemaining } = useSubscription();
   const [formData, setFormData] = useState({});
 
   useEffect(() => {
@@ -27,37 +34,63 @@ const BillingSettings = () => {
     updateBilling(formData);
   };
 
+  const formatPlanPrice = (priceCents) => {
+    if (!priceCents) return '0 €';
+    return `${(priceCents / 100).toFixed(2)} €`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
         {/* Subscription Info */}
         <Card className="bg-gray-900 border-gray-800 text-white">
           <CardHeader>
-            <CardTitle>Current Plan</CardTitle>
-            <CardDescription className="text-gray-400">Manage your subscription and billing cycle.</CardDescription>
+            <CardTitle>{t('billing.currentPlan')}</CardTitle>
+            <CardDescription className="text-gray-400">{t('billing.managePlan')}</CardDescription>
           </CardHeader>
           <CardContent>
-            {subscription ? (
+            {currentPlan && subscriptionStatus === 'active' ? (
               <div className="space-y-4">
                 <div className="flex justify-between items-center pb-4 border-b border-gray-800">
                    <div>
-                      <h3 className="text-2xl font-bold text-gradient">{subscription.plan} Plan</h3>
-                      <p className="text-gray-400 text-sm">Next billing date: {subscription.next_billing}</p>
+                      <div className="flex items-center gap-2">
+                        <Crown className="w-5 h-5 text-orange-400" />
+                        <h3 className="text-2xl font-bold text-gradient">{currentPlan.name}</h3>
+                      </div>
+                      <p className="text-gray-400 text-sm mt-1">
+                        {t('billing.renewsOn')}: {currentPeriodEnd ? format(new Date(currentPeriodEnd), 'dd/MM/yyyy') : '-'}
+                      </p>
+                      <p className="text-gray-500 text-xs mt-0.5">
+                        {daysRemaining} {t('billing.daysRemaining')}
+                      </p>
                    </div>
                    <div className="text-right">
-                      <div className="text-2xl font-bold text-gradient">${subscription.price}<span className="text-sm text-gray-400 font-normal">/{subscription.interval}</span></div>
-                      <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30 border-none mt-1">Active</Badge>
+                      <div className="text-2xl font-bold text-gradient">
+                        {formatPlanPrice(currentPlan.price_cents)}
+                        <span className="text-sm text-gray-400 font-normal">/{t('pricing.month')}</span>
+                      </div>
+                      <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30 border-none mt-1">
+                        {t('billing.active')}
+                      </Badge>
                    </div>
                 </div>
+                <div className="bg-gray-800/50 rounded-lg p-3">
+                  <p className="text-sm text-gray-400">{t('subscription.subCredits')}</p>
+                  <p className="text-xl font-bold text-orange-400">{subscriptionCredits} / {currentPlan.credits_per_month}</p>
+                </div>
                 <div className="flex gap-3">
-                  <Button className="flex-1 bg-orange-500 hover:bg-orange-600">Upgrade Plan</Button>
-                  <Button variant="outline" onClick={cancelSubscription} className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">Cancel Subscription</Button>
+                  <Button onClick={() => navigate('/pricing')} className="flex-1 bg-orange-500 hover:bg-orange-600">
+                    {t('billing.changePlan')}
+                  </Button>
                 </div>
               </div>
             ) : (
               <div className="text-center py-6">
-                <p className="text-gray-400 mb-4">You don't have an active subscription.</p>
-                <Button className="bg-orange-500 hover:bg-orange-600">View Plans</Button>
+                <p className="text-gray-400 mb-4">{t('billing.noPlan')}</p>
+                <Button onClick={() => navigate('/pricing')} className="bg-orange-500 hover:bg-orange-600">
+                  {t('billing.viewPlans')}
+                  <ExternalLink className="w-4 h-4 ml-2" />
+                </Button>
               </div>
             )}
           </CardContent>
@@ -68,23 +101,23 @@ const BillingSettings = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
-                 <CardTitle>Payment Methods</CardTitle>
-                 <CardDescription className="text-gray-400">Manage your credit cards.</CardDescription>
+                 <CardTitle>{t('billing.paymentMethods')}</CardTitle>
+                 <CardDescription className="text-gray-400">{t('billing.manageCards')}</CardDescription>
               </div>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="border-gray-700"><Plus size={16} className="mr-2"/> Add Card</Button>
+                  <Button size="sm" variant="outline" className="border-gray-700"><Plus size={16} className="mr-2"/> {t('billing.addCard')}</Button>
                 </DialogTrigger>
                 <DialogContent className="bg-gray-900 border-gray-800 text-white">
-                  <DialogHeader><DialogTitle>Add New Card</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle>{t('billing.addNewCard')}</DialogTitle></DialogHeader>
                   <div className="space-y-4 py-4">
                      <div className="space-y-2">
-                        <Label>Card Number</Label>
+                        <Label>{t('billing.cardNumber')}</Label>
                         <Input placeholder="0000 0000 0000 0000" className="bg-gray-800 border-gray-700"/>
                      </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                           <Label>Expiry</Label>
+                           <Label>{t('billing.expiry')}</Label>
                            <Input placeholder="MM/YY" className="bg-gray-800 border-gray-700"/>
                         </div>
                         <div className="space-y-2">
@@ -92,7 +125,7 @@ const BillingSettings = () => {
                            <Input placeholder="123" className="bg-gray-800 border-gray-700"/>
                         </div>
                      </div>
-                     <Button onClick={() => addPaymentMethod({ number: '4242' })} className="w-full bg-blue-600">Save Card</Button>
+                     <Button onClick={() => addPaymentMethod({ number: '4242' })} className="w-full bg-blue-600">{t('billing.saveCard')}</Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -100,6 +133,9 @@ const BillingSettings = () => {
           </CardHeader>
           <CardContent>
              <div className="space-y-3">
+                {paymentMethods.length === 0 && (
+                  <p className="text-gray-500 text-sm text-center py-4">{t('billing.noPaymentMethods')}</p>
+                )}
                 {paymentMethods.map(method => (
                   <div key={method.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-800 bg-gray-900/50">
                      <div className="flex items-center gap-3">
@@ -132,33 +168,33 @@ const BillingSettings = () => {
       {/* Billing Details Form */}
       <Card className="bg-gray-900 border-gray-800 text-white">
         <CardHeader>
-           <CardTitle>Billing Information</CardTitle>
-           <CardDescription className="text-gray-400">This information will appear on your invoices.</CardDescription>
+           <CardTitle>{t('billing.billingInfo')}</CardTitle>
+           <CardDescription className="text-gray-400">{t('billing.billingInfoDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
            <form onSubmit={handleSaveBilling} className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                 <Label>Company Name</Label>
+                 <Label>{t('billing.companyName')}</Label>
                  <Input name="company_name" value={formData.company_name || ''} onChange={handleChange} className="bg-gray-800 border-gray-700 text-white" required />
               </div>
               <div className="space-y-2">
-                 <Label>VAT Number</Label>
+                 <Label>{t('billing.vatNumber')}</Label>
                  <Input name="vat_number" value={formData.vat_number || ''} onChange={handleChange} className="bg-gray-800 border-gray-700 text-white" />
               </div>
               <div className="space-y-2 md:col-span-2">
-                 <Label>Billing Address</Label>
+                 <Label>{t('billing.address')}</Label>
                  <Input name="address" value={formData.address || ''} onChange={handleChange} className="bg-gray-800 border-gray-700 text-white" required />
               </div>
               <div className="space-y-2">
-                 <Label>City</Label>
+                 <Label>{t('billing.city')}</Label>
                  <Input name="city" value={formData.city || ''} onChange={handleChange} className="bg-gray-800 border-gray-700 text-white" required />
               </div>
               <div className="space-y-2">
-                 <Label>Postal Code</Label>
+                 <Label>{t('billing.postalCode')}</Label>
                  <Input name="postal_code" value={formData.postal_code || ''} onChange={handleChange} className="bg-gray-800 border-gray-700 text-white" required />
               </div>
               <div className="md:col-span-2 flex justify-end">
-                 <Button type="submit" className="bg-orange-500 hover:bg-orange-600">Save Billing Info</Button>
+                 <Button type="submit" className="bg-orange-500 hover:bg-orange-600">{t('billing.saveBilling')}</Button>
               </div>
            </form>
         </CardContent>
@@ -167,14 +203,14 @@ const BillingSettings = () => {
       {/* Invoice History */}
       <Card className="bg-gray-900 border-gray-800 text-white">
         <CardHeader>
-           <CardTitle>Invoice History</CardTitle>
+           <CardTitle>{t('billing.invoiceHistory')}</CardTitle>
         </CardHeader>
         <CardContent>
            <ResponsiveTable
              data={invoices}
              columns={[
                { header: 'Date', accessor: 'date' },
-               { header: 'Amount', accessor: (inv) => <span className="text-gradient font-medium">${Number(inv.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> },
+               { header: 'Amount', accessor: (inv) => <span className="text-gradient font-medium">{Number(inv.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</span> },
                { header: 'Status', accessor: (inv) => (
                  <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 capitalize">{inv.status}</Badge>
                )},
@@ -190,7 +226,7 @@ const BillingSettings = () => {
                    <div className="flex justify-between items-center">
                      <div>
                        <p className="text-gray-400 text-sm">{inv.date}</p>
-                       <p className="text-gradient font-bold text-lg mt-1">${Number(inv.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                       <p className="text-gradient font-bold text-lg mt-1">{Number(inv.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
                      </div>
                      <div className="flex items-center gap-2">
                        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 capitalize">{inv.status}</Badge>
@@ -203,7 +239,7 @@ const BillingSettings = () => {
                </Card>
              )}
              loading={loading}
-             emptyMessage="No invoices found."
+             emptyMessage={t('billing.noInvoices')}
            />
         </CardContent>
       </Card>

@@ -280,6 +280,34 @@ body:hover .cursor-dot {
     width: 100%;
 }
 
+/* Peppol special nav button */
+.nav-peppol-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, #10b981, #3b82f6);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    text-decoration: none;
+}
+
+.nav-peppol-btn:hover {
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+}
+
+.nav-peppol-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
 .nav-actions {
     display: flex;
     align-items: center;
@@ -2458,5 +2486,194 @@ body:hover .cursor-dot {
 
     .mcp-example-text {
         font-size: 1.1rem;
+    }
+}
+
+/* ============================================
+   Peppol Section
+   ============================================ */
+.section-peppol {
+    position: relative;
+    overflow: hidden;
+}
+
+.peppol-gradient {
+    background: radial-gradient(ellipse at 30% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 100%, rgba(59, 130, 246, 0.06) 0%, transparent 50%);
+}
+
+.section-badge.badge-peppol {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.2));
+    border-color: rgba(16, 185, 129, 0.3);
+    color: var(--accent-green);
+}
+
+.peppol-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 50px;
+}
+
+.peppol-card {
+    position: relative;
+    background: rgba(15, 18, 41, 0.6);
+    border-radius: var(--radius-lg);
+    padding: 36px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    transition: all var(--transition-medium);
+}
+
+.peppol-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 20px 60px rgba(16, 185, 129, 0.1);
+}
+
+.peppol-card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-green), var(--accent-blue), transparent);
+    opacity: 0;
+    transition: opacity var(--transition-medium);
+}
+
+.peppol-card:hover .peppol-card-glow {
+    opacity: 1;
+}
+
+.peppol-card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    color: var(--accent-green);
+}
+
+.peppol-card-icon svg {
+    width: 26px;
+    height: 26px;
+}
+
+.peppol-card-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.peppol-card-description {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.peppol-card-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    padding: 5px 14px;
+    border-radius: var(--radius-full);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.peppol-card-tag.tag-green {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #34d399;
+}
+
+.peppol-card-tag.tag-blue {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: #60a5fa;
+}
+
+.peppol-card-tag.tag-purple {
+    background: rgba(139, 92, 246, 0.12);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    color: #a78bfa;
+}
+
+/* Peppol Infographic */
+.peppol-infographic {
+    margin-top: 40px;
+    text-align: center;
+}
+
+.peppol-infographic img {
+    max-width: 960px;
+    width: 100%;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 40px rgba(16, 185, 129, 0.06);
+}
+
+/* Peppol CTA */
+.peppol-cta {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 40px;
+}
+
+.peppol-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #10b981, #3b82f6);
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all var(--transition-medium);
+    text-decoration: none;
+}
+
+.peppol-cta-btn:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 30px rgba(16, 185, 129, 0.35);
+}
+
+.peppol-cta-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Peppol Responsive */
+@media (max-width: 1024px) {
+    .peppol-cards {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .peppol-card {
+        padding: 28px;
+    }
+
+    .peppol-infographic img {
+        border-radius: var(--radius-md);
+    }
+
+    .peppol-cta {
+        flex-direction: column;
+        align-items: center;
     }
 }

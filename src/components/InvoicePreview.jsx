@@ -4,11 +4,14 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { exportInvoiceToPDF } from '@/services/exportPDF';
-import { Download } from 'lucide-react';
+import { Download, FileCode, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/components/ui/use-toast';
 import { useCompany } from '@/hooks/useCompany';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
+import { exportUBL } from '@/services/exportUBL';
+import { usePeppolSend } from '@/hooks/usePeppolSend';
+import PeppolStatusBadge from '@/components/peppol/PeppolStatusBadge';
 import { getTheme } from '@/config/invoiceThemes';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
@@ -34,6 +37,26 @@ const InvoicePreview = ({ invoice, client, items }) => {
   const { company } = useCompany();
   const { settings } = useInvoiceSettings();
   const { guardedAction, modalProps } = useCreditsGuard();
+  const { sendViaPeppol, sending } = usePeppolSend();
+
+  const handleExportUBL = async () => {
+    try {
+      const { blob, filename } = await exportUBL(invoice, company, client, items);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: 'Success', description: t('peppol.exportUBL') });
+    } catch (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleSendPeppol = async () => {
+    await sendViaPeppol(invoice, client, items);
+  };
 
   const handleExportPDF = async () => {
     await guardedAction(
@@ -63,7 +86,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
   return (
     <div className="space-y-4">
       <CreditsGuardModal {...modalProps} />
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2 flex-wrap">
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
             onClick={handleExportPDF}
@@ -73,6 +96,30 @@ const InvoicePreview = ({ invoice, client, items }) => {
             {t('invoices.exportPDF')} ({CREDIT_COSTS.PDF_INVOICE} {t('credits.creditsLabel')})
           </Button>
         </motion.div>
+
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button onClick={handleExportUBL} variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
+            <FileCode className="w-4 h-4 mr-2" />
+            {t('peppol.exportUBL')}
+          </Button>
+        </motion.div>
+
+        {client?.peppol_endpoint_id && company?.peppol_endpoint_id && (
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              onClick={handleSendPeppol}
+              disabled={sending || invoice.peppol_status === 'sent' || invoice.peppol_status === 'delivered'}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              {sending ? t('peppol.sending') : t('peppol.sendViaPeppol')}
+            </Button>
+          </motion.div>
+        )}
+
+        {invoice.peppol_status && invoice.peppol_status !== 'none' && (
+          <PeppolStatusBadge status={invoice.peppol_status} errorMessage={invoice.peppol_error_message} />
+        )}
       </div>
 
       <div ref={invoiceRef} className="rounded-lg shadow-xl overflow-hidden">
