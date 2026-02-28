@@ -40,6 +40,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         path: '/app',
       },
       {
+        id: 'peppol',
+        label: 'Peppol e-Invoicing',
+        icon: Globe,
+        type: 'direct',
+        path: '/app/peppol',
+      },
+      {
         id: 'sales',
         label: 'Ventes',
         icon: FileText,
@@ -65,7 +72,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           { path: '/app/cash-flow', label: t('nav.cashFlow') || 'Cash Flow', icon: TrendingUp },
           { path: '/app/bank-connections', label: t('nav.bankConnections') || 'Connexions bancaires', icon: Building2 },
           { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
-          { path: '/app/peppol', label: t('nav.peppol') || 'Peppol', icon: Globe },
           { path: '/app/audit-comptable', label: 'Audit Comptable', icon: ShieldCheck },
           { path: '/app/scenarios', label: t('nav.scenarios') || 'Scénarios', icon: BarChart3 },
         ],
