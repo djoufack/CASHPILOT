@@ -10,7 +10,7 @@ import {
   Home, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, BarChart3, Calculator, PieChart, Settings,
   Map, QrCode, FileBarChart, Database, Menu, Package,
-  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck, Tag, ShoppingCart
+  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck, Tag, ShoppingCart, FileInput, Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -65,6 +65,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           { path: '/app/cash-flow', label: t('nav.cashFlow') || 'Cash Flow', icon: TrendingUp },
           { path: '/app/bank-connections', label: t('nav.bankConnections') || 'Connexions bancaires', icon: Building2 },
           { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
+          { path: '/app/peppol', label: t('nav.peppol') || 'Peppol', icon: Globe },
           { path: '/app/audit-comptable', label: 'Audit Comptable', icon: ShieldCheck },
           { path: '/app/scenarios', label: t('nav.scenarios') || 'Scénarios', icon: BarChart3 },
         ],
@@ -76,6 +77,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         type: 'category',
         items: [
           { path: '/app/purchases', label: t('purchases.title') || 'Achats', icon: ShoppingCart },
+          { path: '/app/supplier-invoices', label: t('nav.supplierInvoices') || 'Factures fournisseurs', icon: FileInput },
           { path: '/app/suppliers', label: t('common.suppliers'), icon: Truck },
           { path: '/app/suppliers/map', label: 'Map View', icon: Map },
           { path: '/app/suppliers/reports', label: t('suppliers.reports'), icon: BarChart3 },
