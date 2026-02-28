@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_ANON_KEY, SUPABASE_URL, TEST_USERS, hasPasswordAuth, requirePasswordAuth } from './test-config';
 
-const SU = 'https://rfzvrezrcigzmldgvntz.supabase.co';
-const SK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmenZyZXpyY2lnem1sZGd2bnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MjcxODIsImV4cCI6MjA4NTIwMzE4Mn0.glzebP-k0AqNHdoru-bY83mJqyS19gVSEH-hgQhuXTA';
+const SU = SUPABASE_URL;
+const SK = SUPABASE_ANON_KEY;
+const ADMIN_AUTH = hasPasswordAuth('admin') ? TEST_USERS.admin : null;
+const SCTE_AUTH = requirePasswordAuth('scte');
+const FREELANCE_AUTH = requirePasswordAuth('freelance');
 
 type TR = { id: string; description: string; status: 'PASS' | 'FAIL'; detail: string };
 
@@ -21,15 +25,24 @@ async function runAdminTests(): Promise<TR[]> {
   const sb = createClient(SU, SK, { auth: { persistSession: false } });
   const R: TR[] = [];
 
+  if (!ADMIN_AUTH) {
+    return [{
+      id: 'A1-SKIP-01',
+      description: 'Admin suite skipped',
+      status: 'PASS',
+      detail: 'Set TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD to run admin tests.',
+    }];
+  }
+
   R.push(await test('A1-AUTH-01', 'Login admin', async () => {
-    const { data, error } = await sb.auth.signInWithPassword({ email: 'admin.test@cashpilot.cloud', password: 'AdminTest@123' });
+    const { data, error } = await sb.auth.signInWithPassword({ email: ADMIN_AUTH.email, password: ADMIN_AUTH.password });
     if (error) throw error;
     return 'user_id: ' + data.user?.id;
   }));
 
   R.push(await test('A1-AUTH-02', 'Whoami', async () => {
     const { data: { user } } = await sb.auth.getUser();
-    if (!user || user.email !== 'admin.test@cashpilot.cloud') throw new Error('wrong user: ' + user?.email);
+    if (!user || user.email !== ADMIN_AUTH.email) throw new Error('wrong user: ' + user?.email);
     return 'email: ' + user.email;
   }));
 
@@ -37,7 +50,7 @@ async function runAdminTests(): Promise<TR[]> {
     await sb.auth.signOut();
     const { data: { user: u2 } } = await sb.auth.getUser();
     if (u2) throw new Error('still logged in');
-    const { error } = await sb.auth.signInWithPassword({ email: 'admin.test@cashpilot.cloud', password: 'AdminTest@123' });
+    const { error } = await sb.auth.signInWithPassword({ email: ADMIN_AUTH.email, password: ADMIN_AUTH.password });
     if (error) throw error;
     return 'Logout OK, whoami null, re-login OK';
   }));
@@ -123,7 +136,7 @@ async function runScteTests(): Promise<TR[]> {
 
   // AUTH
   R.push(await test('A2-AUTH-01', 'Login SCTE', async () => {
-    const { data, error } = await sb.auth.signInWithPassword({ email: 'scte.test@cashpilot.cloud', password: 'ScteTest@123' });
+    const { data, error } = await sb.auth.signInWithPassword({ email: SCTE_AUTH.email, password: SCTE_AUTH.password });
     if (error) throw error;
     userId = data.user?.id || '';
     return 'user_id: ' + userId;
@@ -131,13 +144,13 @@ async function runScteTests(): Promise<TR[]> {
 
   R.push(await test('A2-AUTH-02', 'Whoami', async () => {
     const { data: { user } } = await sb.auth.getUser();
-    if (!user || user.email !== 'scte.test@cashpilot.cloud') throw new Error('wrong: ' + user?.email);
+    if (!user || user.email !== SCTE_AUTH.email) throw new Error('wrong: ' + user?.email);
     return 'email: ' + user.email;
   }));
 
   R.push(await test('A2-AUTH-03', 'Login mauvais mdp', async () => {
     const tmp = createClient(SU, SK, { auth: { persistSession: false } });
-    const { error } = await tmp.auth.signInWithPassword({ email: 'scte.test@cashpilot.cloud', password: 'wrong' });
+    const { error } = await tmp.auth.signInWithPassword({ email: SCTE_AUTH.email, password: 'wrong' });
     if (!error) throw new Error('Should have failed');
     return 'Error correctly returned: ' + error.message;
   }));
@@ -379,7 +392,7 @@ async function runFreelanceTests(): Promise<TR[]> {
 
   // AUTH
   R.push(await test('A3-AUTH-01', 'Login Freelance', async () => {
-    const { data, error } = await sb.auth.signInWithPassword({ email: 'freelance.test@cashpilot.cloud', password: 'FreelanceTest@123' });
+    const { data, error } = await sb.auth.signInWithPassword({ email: FREELANCE_AUTH.email, password: FREELANCE_AUTH.password });
     if (error) throw error;
     userId = data.user?.id || '';
     return 'user_id: ' + userId;
@@ -387,7 +400,7 @@ async function runFreelanceTests(): Promise<TR[]> {
 
   R.push(await test('A3-AUTH-02', 'Whoami', async () => {
     const { data: { user } } = await sb.auth.getUser();
-    if (!user || user.email !== 'freelance.test@cashpilot.cloud') throw new Error('wrong: ' + user?.email);
+    if (!user || user.email !== FREELANCE_AUTH.email) throw new Error('wrong: ' + user?.email);
     return 'email: ' + user.email;
   }));
 
@@ -555,8 +568,8 @@ async function runRLSTests(scteResults: TR[], freelanceResults: TR[]): Promise<T
   const sbScte = createClient(SU, SK, { auth: { persistSession: false } });
   const sbFree = createClient(SU, SK, { auth: { persistSession: false } });
 
-  await sbScte.auth.signInWithPassword({ email: 'scte.test@cashpilot.cloud', password: 'ScteTest@123' });
-  await sbFree.auth.signInWithPassword({ email: 'freelance.test@cashpilot.cloud', password: 'FreelanceTest@123' });
+  await sbScte.auth.signInWithPassword({ email: SCTE_AUTH.email, password: SCTE_AUTH.password });
+  await sbFree.auth.signInWithPassword({ email: FREELANCE_AUTH.email, password: FREELANCE_AUTH.password });
 
   R.push(await test('RLS-01', 'Freelance ne voit pas factures SCTE', async () => {
     const { data } = await sbFree.from('invoices').select('invoice_number').limit(100);

@@ -1,7 +1,9 @@
 // CashPilot REST API Test Suite - Agent 2 SCTE
-const BASE = 'https://rfzvrezrcigzmldgvntz.supabase.co/functions/v1/api-v1';
-const API_KEY = 'cpk_test_scte_2026';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmenZyZXpyY2lnem1sZGd2bnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MjcxODIsImV4cCI6MjA4NTIwMzE4Mn0.glzebP-k0AqNHdoru-bY83mJqyS19gVSEH-hgQhuXTA';
+import { API_BASE_URL, SUPABASE_ANON_KEY, requireApiKey } from './test-config';
+
+const BASE = API_BASE_URL;
+const API_KEY = requireApiKey();
+const ANON_KEY = SUPABASE_ANON_KEY;
 
 type TR = { id: string; description: string; status: 'PASS' | 'FAIL'; detail: string };
 const R: TR[] = [];
