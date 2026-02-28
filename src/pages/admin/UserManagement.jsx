@@ -52,7 +52,7 @@ const UserManagement = () => {
               users.map((user) => (
                 <TableRow key={user.id} className="border-gray-800">
                   <TableCell className="font-medium text-gradient">{user.name || 'N/A'}</TableCell>
-                  <TableCell className="text-gray-300">{user.email}</TableCell>
+                  <TableCell className="text-gray-300">{user.email || 'Unavailable from client scope'}</TableCell>
                   <TableCell>
                     <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
                       {user.role}

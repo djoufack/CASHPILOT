@@ -1,7 +1,8 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { normalizeRole } from '@/lib/roles';
 
 export const useUsers = () => {
   const [users, setUsers] = useState([]);
@@ -11,23 +12,29 @@ export const useUsers = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // This requires admin privileges to see auth.users or a public wrapper
-      // Assuming we have a public 'profiles' table that syncs with users
-      // or we use an Edge Function for admin listing.
-      // For this demo, we'll fetch from the 'users' table we created in earlier steps
-      // joining with 'user_roles'
-      
-      const { data, error } = await supabase
-        .from('users') // public.users
-        .select(`
-          *,
-          role:user_roles(role)
-        `);
+      const [{ data, error }, { data: roleData, error: roleError }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, user_id, full_name, company_name, role, created_at')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('user_roles')
+          .select('user_id, role'),
+      ]);
 
       if (error) throw error;
-      setUsers(data.map(u => ({
-        ...u,
-        role: u.role?.[0]?.role || 'user'
+      if (roleError) {
+        console.warn('User roles fetch skipped:', roleError.message);
+      }
+
+      const elevatedRoles = new Map((roleData || []).map((entry) => [entry.user_id, normalizeRole(entry.role)]));
+      setUsers((data || []).map((profile) => ({
+        id: profile.id || profile.user_id,
+        user_id: profile.user_id,
+        name: profile.full_name || profile.company_name || 'Unknown user',
+        email: null,
+        role: elevatedRoles.get(profile.user_id) || normalizeRole(profile.role),
+        created_at: profile.created_at,
       })));
     } catch (err) {
       console.error(err);

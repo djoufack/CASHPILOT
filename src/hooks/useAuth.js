@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase, validateSupabaseConfig } from '@/lib/supabase';
+import { DEFAULT_ROLE, normalizeRole, sanitizeSelfSignupRole } from '@/lib/roles';
 
 export const useAuthSource = () => {
   const [user, setUser] = useState(null);
@@ -50,11 +51,19 @@ export const useAuthSource = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', authUser.id)
-        .maybeSingle();
+      const [{ data, error }, { data: roleData, error: roleError }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .maybeSingle(),
+        // user_roles is the authoritative source for elevated privileges.
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', authUser.id)
+          .maybeSingle(),
+      ]);
 
       if (error) {
         console.error("Profile fetch error:", error);
@@ -74,20 +83,25 @@ export const useAuthSource = () => {
         // Return basic user info if profile fetch fails
         const basicUser = {
             ...authUser,
-            role: 'freelance' // Default role
+            role: normalizeRole(roleData?.role || DEFAULT_ROLE)
         };
         setUser(basicUser);
         return basicUser;
       }
 
+      if (roleError) {
+        console.warn('Role fetch skipped:', roleError.message);
+      }
+
       const profile = data || {};
+      const resolvedRole = normalizeRole(roleData?.role || profile.role);
 
       const fullUser = {
         ...authUser,
         ...profile,
         id: authUser.id,
         profile_id: profile.id || null,
-        role: profile.role || 'freelance'
+        role: resolvedRole
       };
 
       setUser(fullUser);
@@ -95,7 +109,7 @@ export const useAuthSource = () => {
     } catch (err) {
       console.error('fetchUserProfile error:', err);
       // Fallback
-      setUser({ ...authUser, role: 'freelance' });
+      setUser({ ...authUser, role: DEFAULT_ROLE });
       return null;
     }
   };
@@ -184,6 +198,7 @@ export const useAuthSource = () => {
     setError(null);
 
     try {
+      const safeRole = sanitizeSelfSignupRole(role);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -202,7 +217,7 @@ export const useAuthSource = () => {
           user_id: data.user.id,
           full_name: fullName,
           company_name: companyName || null,
-          role: role || 'freelance',
+          role: safeRole,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -262,17 +277,42 @@ export const useAuthSource = () => {
     setLoading(true);
 
     try {
+      const allowedFields = [
+        'full_name',
+        'company_name',
+        'avatar_url',
+        'phone',
+        'address',
+        'city',
+        'postal_code',
+        'country',
+        'currency',
+        'timezone',
+        'signature_url',
+        'onboarding_completed',
+        'onboarding_step',
+      ];
+      const safeUpdates = Object.fromEntries(
+        allowedFields
+          .filter((field) => Object.prototype.hasOwnProperty.call(updates, field))
+          .map((field) => [field, updates[field]])
+      );
+
+      if (Object.keys(safeUpdates).length === 0) {
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({
-          ...updates,
+          ...safeUpdates,
           updated_at: new Date().toISOString()
         })
         .eq('user_id', user.id);
 
       if (error) throw error;
 
-      setUser(prev => ({ ...prev, ...updates }));
+      setUser(prev => ({ ...prev, ...safeUpdates }));
     } catch (err) {
       console.error("Update profile error:", err);
       setError(err.message);

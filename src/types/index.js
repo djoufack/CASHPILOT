@@ -6,7 +6,7 @@
  * @typedef {Object} User
  * @property {string} id
  * @property {string} email
- * @property {'admin' | 'manager' | 'freelance' | 'client'} role
+ * @property {'admin' | 'manager' | 'accountant' | 'freelance' | 'client' | 'user'} role
  * @property {string} name
  * @property {string} [avatar_url]
  * @property {number} [tjm]
@@ -70,8 +70,10 @@
 export const ROLES = {
   ADMIN: 'admin',
   MANAGER: 'manager',
+  ACCOUNTANT: 'accountant',
   FREELANCE: 'freelance',
-  CLIENT: 'client'
+  CLIENT: 'client',
+  USER: 'user'
 };
 
 export const STATUS = {

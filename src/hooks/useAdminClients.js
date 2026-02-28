@@ -28,7 +28,7 @@ export const useAdminClients = () => {
       // Active clients (all users)
       const { data: activeData, error: activeError } = await supabase
         .from('clients')
-        .select('*, profiles:user_id(email, full_name)')
+        .select('*, profiles:user_id(full_name)')
         .is('deleted_at', null)
         .order('company_name', { ascending: true });
 
@@ -37,7 +37,7 @@ export const useAdminClients = () => {
       // Archived clients (all users)
       const { data: archivedData, error: archivedError } = await supabase
         .from('clients')
-        .select('*, profiles:user_id(email, full_name)')
+        .select('*, profiles:user_id(full_name)')
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false });
 
@@ -98,7 +98,7 @@ export const useAdminClients = () => {
         .from('clients')
         .update({ deleted_at: null })
         .eq('id', id)
-        .select('*, profiles:user_id(email, full_name)')
+        .select('*, profiles:user_id(full_name)')
         .single();
 
       if (error) throw error;

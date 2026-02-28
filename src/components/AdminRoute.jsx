@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 
 const AdminRoute = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
-  const { hasPermission, loading: roleLoading } = useUserRole();
+  const { isAdmin, loading: roleLoading } = useUserRole();
 
   if (authLoading || roleLoading) {
     return (
@@ -21,8 +21,7 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Check for admin capability via permission 'all' 'manage' or explicit role check
-  if (!hasPermission('all', 'manage')) {
+  if (!isAdmin) {
     return <Navigate to="/" replace />;
   }
 

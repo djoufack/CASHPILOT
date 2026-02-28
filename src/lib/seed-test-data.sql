@@ -2,6 +2,9 @@
 -- Enable pgcrypto for UUID generation and password hashing
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- This seed is intended for isolated demo or staging environments only.
+-- Rotate the seeded passwords before any shared usage.
+
 -- Clean up existing test data (optional, be careful in production)
 -- DELETE FROM public.audit_log;
 -- DELETE FROM public.notifications;
@@ -22,43 +25,15 @@ BEGIN;
 -- 1. Create Users (Auth & Public)
 ---------------------------------------------------------------------------
 -- Defined UUIDs for stability
--- Admin: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 -- SCTE SRL: b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22
 -- Freelance: c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33
-
--- Insert Admin User
-INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, is_super_admin)
-VALUES (
-    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'admin.test@cashpilot.cloud',
-    crypt('AdminTest@123', gen_salt('bf')),
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"name":"Admin User"}',
-    now(),
-    now(),
-    'authenticated',
-    false
-) ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-VALUES (
-    gen_random_uuid(),
-    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'admin.test@cashpilot.cloud',
-    '{"sub":"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11","email":"admin.test@cashpilot.cloud"}',
-    'email',
-    now(),
-    now(),
-    now()
-) ON CONFLICT (provider, provider_id) DO NOTHING;
 
 -- Insert SCTE SRL User
 INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role)
 VALUES (
     'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22',
     'scte.test@cashpilot.cloud',
-    crypt('ScteTest@123', gen_salt('bf')),
+    crypt('CHANGE_ME_SCTE_PASSWORD', gen_salt('bf')),
     now(),
     '{"provider":"email","providers":["email"]}',
     '{"name":"SCTE Manager"}',
@@ -84,7 +59,7 @@ INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_a
 VALUES (
     'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33',
     'freelance.test@cashpilot.cloud',
-    crypt('FreelanceTest@123', gen_salt('bf')),
+    crypt('CHANGE_ME_FREELANCE_PASSWORD', gen_salt('bf')),
     now(),
     '{"provider":"email","providers":["email"]}',
     '{"name":"Freelance User"}',
@@ -108,17 +83,22 @@ VALUES (
 ---------------------------------------------------------------------------
 -- 2. User Roles & Profiles
 ---------------------------------------------------------------------------
+-- Elevated roles must be assigned server-side in public.user_roles.
+-- This seed only provisions standard users.
 INSERT INTO public.user_roles (user_id, role) VALUES
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'admin'),
 ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22', 'user'),
 ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33', 'user')
 ON CONFLICT (user_id) DO UPDATE SET role = EXCLUDED.role;
 
 INSERT INTO public.profiles (id, user_id, full_name, company_name, role, created_at, updated_at) VALUES
-('p0000000-0000-0000-0000-000000000001', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Admin User', 'CashPilot Admin', 'admin', now(), now()),
 ('p0000000-0000-0000-0000-000000000002', 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22', 'SCTE Manager', 'SCTE SRL', 'user', now(), now()),
 ('p0000000-0000-0000-0000-000000000003', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c33', 'Freelance User', 'Freelance', 'user', now(), now())
 ON CONFLICT (id) DO NOTHING;
+
+-- Optional server-side bootstrap for the first admin:
+-- INSERT INTO public.user_roles (user_id, role)
+-- SELECT id, 'admin' FROM auth.users WHERE email = 'replace-with-real-admin@example.com'
+-- ON CONFLICT (user_id) DO UPDATE SET role = EXCLUDED.role;
 
 INSERT INTO public.company (id, user_id, company_name, company_type, address, country, created_at) VALUES
 (gen_random_uuid(), 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22', 'SCTE SRL', 'SARL', 'Paris', 'France', now()),
@@ -302,7 +282,7 @@ INSERT INTO public.notifications (id, user_id, type, message, read, created_at) 
 -- 21. Audit Logs
 ---------------------------------------------------------------------------
 INSERT INTO public.audit_log (id, user_id, action, details, created_at) VALUES
-(gen_random_uuid(), 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'USER_CREATED', '{"email": "scte.test@cashpilot.cloud", "role": "user"}', now()),
+(gen_random_uuid(), 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22', 'SEED_DATA_CREATED', '{"email": "scte.test@cashpilot.cloud", "role": "user"}', now()),
 (gen_random_uuid(), 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22', 'SUPPLIER_CREATED', '{"name": "Électronique Pro"}', now());
 
 COMMIT;
