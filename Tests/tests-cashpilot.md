@@ -1,45 +1,42 @@
-# 🧪 Pour testez CASHPILOT
+# Tests CashPilot
 
-### 1️⃣ Connexion Admin
+## État live audité le 28 février 2026
 
-Email: admin.test@cashpilot.cloud
+- Aucun compte `admin.test@cashpilot.cloud` n'est provisionné sur le projet Supabase audité.
+- `scte.test@cashpilot.cloud` est présent et sa connexion a été confirmée pendant l'audit.
+- `freelance.test@cashpilot.cloud` est présent, mais le mot de passe historique documenté dans le repo n'est pas fiable.
+- Les données métier observées appartiennent surtout au tenant de démonstration `kmer.test@cashpilot.cloud`.
 
-Password: AdminTest@123
+## Comment lancer les tests maintenant
 
-Allez à Admin Dashboard
+Les scripts MCP lisent désormais leurs credentials depuis l'environnement.
 
-Voyez toutes les données de tous les utilisateurs
+Variables utiles :
 
-### 2️⃣ Connexion SCTE SRL
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `TEST_SCTE_EMAIL`
+- `TEST_SCTE_PASSWORD`
+- `TEST_FREELANCE_EMAIL`
+- `TEST_FREELANCE_PASSWORD`
+- `TEST_ADMIN_EMAIL` et `TEST_ADMIN_PASSWORD` uniquement si un admin a été bootstrapé côté serveur dans `public.user_roles`
+- `CASHPILOT_TEST_API_KEY` pour les tests REST
 
-Email: scte.test@cashpilot.cloud
+## Vérifications recommandées
 
-Password: ScteTest@123
+### SCTE
 
-Allez à Suppliers
+- Aller dans `Suppliers`
+- Vérifier que seules les données de SCTE sont visibles
+- Vérifier les factures, commandes et écritures comptables du tenant connecté
 
-Voyez UNIQUEMENT les 2 fournisseurs (Électronique Pro, Quincaillerie Générale)
+### Freelance
 
-Voyez UNIQUEMENT les commandes et factures de SCTE SRL
+- Aller dans `Suppliers`
+- Vérifier que seules les données du freelance sont visibles
+- Vérifier qu'aucune donnée SCTE n'est exposée
 
-### 3️⃣ Connexion Freelance
+### Admin
 
-Email: freelance.test@cashpilot.cloud
-
-Password: FreelanceTest@123
-
-Allez à Suppliers
-
-Voyez UNIQUEMENT les 2 fournisseurs (Logistique Express, Fournitures Bureau Plus)
-
-Voyez UNIQUEMENT les commandes et factures de Freelance
-
-### 4️⃣ Vérifiez les données
-
-Allez à Reports pour voir les graphiques
-
-Allez à Accounting pour voir les écritures comptables
-
-Allez à Notifications pour voir les notifications
-
-Allez à Settings → Audit Log pour voir l'historique
+- N'utiliser un test admin que si le rôle a été attribué serveur via `public.user_roles`
+- Vérifier explicitement la visibilité cross-tenant et les écrans `/admin`
