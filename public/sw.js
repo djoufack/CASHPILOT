@@ -1,8 +1,6 @@
 // CashPilot Service Worker
-const CACHE_NAME = 'cashpilot-v3';
+const CACHE_NAME = 'cashpilot-v4';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
 ];
 
@@ -43,6 +41,22 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // HTML navigation requests: network-first (prevents stale index.html after deploy)
+  if (request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
           return response;
         })
         .catch(() => caches.match(request))
