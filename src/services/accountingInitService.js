@@ -304,6 +304,9 @@ export function getDefaultMappings(country) {
       { source_type: 'stock_variation', source_category: 'supplies',      debit_account_code: '6033', credit_account_code: '331', description: "Variation de stocks d'approvisionnements" },
       { source_type: 'stock_variation', source_category: 'finished_goods', debit_account_code: '361', credit_account_code: '73',  description: 'Variation de stocks de produits finis' },
 
+      // ---- Achats fournisseurs (commandes) ----
+      { source_type: 'supplier_order', source_category: 'merchandise', debit_account_code: '601', credit_account_code: '401', description: 'Achat de marchandises sur commande fournisseur' },
+
       // ---- TVA ----
       { source_type: 'invoice', source_category: 'vat', debit_account_code: '411', credit_account_code: '4431', description: 'TVA collectée sur ventes' },
       { source_type: 'supplier_invoice', source_category: 'vat', debit_account_code: '4452', credit_account_code: '401', description: 'TVA déductible sur achats' },
@@ -355,6 +358,9 @@ export function getDefaultMappings(country) {
       { source_type: 'stock_variation', source_category: 'supplies',       debit_account_code: '6032', credit_account_code: '326', description: "Variation de stocks d'approvisionnements" },
       { source_type: 'stock_variation', source_category: 'finished_goods', debit_account_code: '355',  credit_account_code: '7135', description: 'Variation de stocks de produits finis' },
 
+      // ---- Achats fournisseurs (commandes) ----
+      { source_type: 'supplier_order', source_category: 'merchandise', debit_account_code: '607', credit_account_code: '401', description: 'Achat de marchandises sur commande fournisseur' },
+
       // ---- TVA ----
       { source_type: 'invoice', source_category: 'vat', debit_account_code: '411', credit_account_code: '44571', description: 'TVA collectée sur ventes' },
       { source_type: 'supplier_invoice', source_category: 'vat', debit_account_code: '44566', credit_account_code: '401', description: 'TVA déductible sur achats' },
@@ -405,6 +411,9 @@ export function getDefaultMappings(country) {
     { source_type: 'stock_variation', source_category: 'materials',      debit_account_code: '6090', credit_account_code: '300', description: 'Variation de stocks de matières premières' },
     { source_type: 'stock_variation', source_category: 'supplies',       debit_account_code: '6091', credit_account_code: '310', description: "Variation de stocks d'approvisionnements" },
     { source_type: 'stock_variation', source_category: 'finished_goods', debit_account_code: '330',  credit_account_code: '713', description: 'Variation de stocks de produits finis' },
+
+    // ---- Achats fournisseurs (commandes) ----
+    { source_type: 'supplier_order', source_category: 'merchandise', debit_account_code: '604', credit_account_code: '440', description: 'Achat de marchandises sur commande fournisseur' },
 
     // ---- TVA ----
     { source_type: 'invoice', source_category: 'vat', debit_account_code: '400', credit_account_code: '451', description: 'TVA collectée sur ventes' },
