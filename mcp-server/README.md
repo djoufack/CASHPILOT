@@ -30,8 +30,8 @@ Il suffit d'ouvrir le projet avec Claude Code et le serveur demarre automatiquem
       "command": "npx",
       "args": ["tsx", "mcp-server/src/index.ts"],
       "env": {
-        "SUPABASE_URL": "https://rfzvrezrcigzmldgvntz.supabase.co",
-        "SUPABASE_ANON_KEY": "..."
+        "SUPABASE_URL": "<your-supabase-url>",
+        "SUPABASE_ANON_KEY": "<your-supabase-anon-key>"
       }
     }
   }
@@ -49,8 +49,8 @@ Ajouter dans `~/.claude/settings.local.json` :
       "command": "npx",
       "args": ["tsx", "c:\\Github-Desktop\\CASHPILOT\\mcp-server\\src\\index.ts"],
       "env": {
-        "SUPABASE_URL": "https://rfzvrezrcigzmldgvntz.supabase.co",
-        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        "SUPABASE_URL": "<your-supabase-url>",
+        "SUPABASE_ANON_KEY": "<your-supabase-anon-key>"
       }
     }
   }
@@ -77,6 +77,24 @@ Avant d'utiliser un outil, l'utilisateur doit se connecter :
 2. Les RLS Supabase s'appliquent : chaque utilisateur ne voit que ses donnees
 3. Appeler `whoami` pour verifier le statut de connexion
 4. Appeler `logout` pour se deconnecter
+
+## Tests locaux
+
+Les scripts de test du dossier `mcp-server` lisent leur configuration depuis les variables d'environnement, avec fallback sur `mcp-server/.env`.
+
+1. Copier `mcp-server/.env.example` vers `mcp-server/.env`
+2. Renseigner `SUPABASE_URL`, `SUPABASE_ANON_KEY` et les `TEST_*`
+3. Lancer le script voulu :
+
+```bash
+cd mcp-server
+npm run test:scte
+npm run test:freelance
+npm run test:round2
+npm run test:rest
+```
+
+`npm run test:admin` ne fonctionne que si un admin a ete bootstrappe cote serveur dans `public.user_roles`.
 
 ## Outils hand-written (39)
 

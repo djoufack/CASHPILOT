@@ -1,8 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_ANON_KEY, SUPABASE_URL, requirePasswordAuth } from './test-config';
 
-const SUPA_URL = 'https://rfzvrezrcigzmldgvntz.supabase.co';
-const SUPA_KEY = '[SUPABASE_ANON_KEY_REDACTED]';
-const supabase = createClient(SUPA_URL, SUPA_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
 
 type TestResult = {id: string, description: string, status: 'PASS'|'FAIL', detail: string};
 
@@ -10,42 +9,30 @@ async function runTests() {
   const results: TestResult[] = [];
   let createdClientId = '';
   let createdInvoiceId = '';
-  const EMAIL = 'freelance.test@cashpilot.cloud';
-  const PW = 'FreelanceTest@123';
-  const ADMIN_EMAIL = 'admin.test@cashpilot.cloud';
-  const ADMIN_PW = 'AdminTest@123';
+  const { email: EMAIL, password: PW } = requirePasswordAuth('freelance');
 
   // ===== A3-AUTH =====
-  // A3-AUTH-01: Login Freelance (fallback to admin if freelance not provisioned)
-  let useAdmin = false;
+  // A3-AUTH-01: Login Freelance
   try {
-    let { data, error } = await supabase.auth.signInWithPassword({ email: EMAIL, password: PW });
-    if (error) {
-      // Freelance user not provisioned, fallback to admin
-      const adminRes = await supabase.auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PW });
-      if (adminRes.error) throw new Error('Both freelance and admin login failed: ' + error.message + ' / ' + adminRes.error.message);
-      useAdmin = true;
-      data = adminRes.data;
-      error = null;
-    }
+    const { data, error } = await supabase.auth.signInWithPassword({ email: EMAIL, password: PW });
+    if (error) throw error;
     const usr = (await supabase.auth.getUser()).data.user;
     const pass = !!usr?.id;
     results.push({id: 'A3-AUTH-01', description: 'Login Freelance', status: pass ? 'PASS' : 'FAIL',
-      detail: pass ? 'user_id: ' + usr.id + (useAdmin ? ' (admin fallback - freelance DB error)' : '') : 'Error: ' + (error?.message || 'no user')});
+      detail: pass ? 'user_id: ' + usr.id : 'Error: ' + (error?.message || 'no user')});
   } catch(e: any) { results.push({id:'A3-AUTH-01', description:'Login Freelance', status:'FAIL', detail:e?.message || String(e)}); }
 
   // A3-AUTH-02: Whoami
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    const expectedEmail = useAdmin ? ADMIN_EMAIL : EMAIL;
-    const pass = !!user && user.email === expectedEmail;
+    const pass = !!user && user.email === EMAIL;
     results.push({id: 'A3-AUTH-02', description: 'Whoami', status: pass ? 'PASS' : 'FAIL',
-      detail: pass ? 'email: ' + user.email + (useAdmin ? ' (admin fallback)' : '') : 'Not authenticated'});
+      detail: pass ? 'email: ' + user.email : 'Not authenticated'});
   } catch(e: any) { results.push({id:'A3-AUTH-02', description:'Whoami', status:'FAIL', detail:e?.message || String(e)}); }
 
   // A3-AUTH-03: Login inexistent email
   try {
-    const tempClient = createClient(SUPA_URL, SUPA_KEY);
+    const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
     const { error } = await tempClient.auth.signInWithPassword({ email: 'nexistepas@cashpilot.cloud', password: 'test' });
     const pass = !!error;
     results.push({id: 'A3-AUTH-03', description: 'Login email inexistant', status: pass ? 'PASS' : 'FAIL',

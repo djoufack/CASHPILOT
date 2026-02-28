@@ -1,9 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "fs";
-const env:Record<string,string>={};const ef=new URL("./.env",import.meta.url);
-readFileSync(ef,"utf8").split("\n").forEach(l=>{const[k,...v]=l.split("=");if(k)env[k.trim()]=v.join("=").trim();});
-const SU=env["SUPABASE_URL"]||"";const SK=env["SUPABASE_ANON_KEY"]||"";const supabase=createClient(SU,SK);
-const TE="scte.test@cashpilot.cloud",TP="ScteTest@123";
+import { SUPABASE_ANON_KEY, SUPABASE_URL, requirePasswordAuth } from "./test-config";
+const supabase=createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:false}});
+const { email: TE, password: TP } = requirePasswordAuth("scte");
 type TR={id:string;description:string;status:"PASS"|"FAIL";detail:string};const R:TR[]=[];let cCli="",cInv="",cPay="",userId="";
 function add(id:string,d:string,p:boolean,dt:string){R.push({id,description:d,status:p?"PASS":"FAIL",detail:dt});}
 async function runTests(){
