@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark, Book, BookOpen, Zap, Activity, Settings2, AlertTriangle, ClipboardList, RefreshCw } from 'lucide-react';
 import { useAccountingData } from '@/hooks/useAccountingData';
 import { useAccountingInit } from '@/hooks/useAccountingInit';
@@ -285,12 +287,30 @@ const AccountingIntegration = () => {
         </p>
       </div>
 
-      {/* Auto-journal status badge */}
-      {settings?.auto_journal_enabled && (
-        <div className="flex items-center gap-2 mb-4 px-2">
-          <Zap className="w-4 h-4 text-yellow-400" />
-          <span className="text-xs text-yellow-400 font-medium">{t('accounting.autoEnabled')}</span>
-          <span className="text-xs text-gray-500">({country === 'BE' ? 'Belgique' : country === 'OHADA' ? 'OHADA' : 'France'})</span>
+      {/* Auto-journal toggle */}
+      {isInitialized && (
+        <div className="flex items-center justify-between gap-4 p-4 rounded-lg bg-[#0f1528]/80 border border-white/10 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <Zap className={`w-5 h-5 ${settings?.auto_journal_enabled ? 'text-yellow-400' : 'text-gray-500'}`} />
+            <div>
+              <Label htmlFor="auto-journal-toggle" className="text-sm font-medium text-white cursor-pointer">
+                {t('auto_journal.auto_journal_label', 'Écritures automatiques')}
+              </Label>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {t('auto_journal.auto_journal_description', 'Génère automatiquement les écritures comptables pour factures, paiements, dépenses, achats et avoirs')}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {settings?.auto_journal_enabled && (
+              <span className="text-xs text-gray-500">({country === 'BE' ? 'Belgique' : country === 'OHADA' ? 'OHADA' : 'France'})</span>
+            )}
+            <Switch
+              id="auto-journal-toggle"
+              checked={!!settings?.auto_journal_enabled}
+              onCheckedChange={(checked) => toggleAutoJournal(checked)}
+            />
+          </div>
         </div>
       )}
 
