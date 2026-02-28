@@ -1,0 +1,795 @@
+/* ============================================
+   Peppol Guide Page — Dark Glassmorphism
+   Scoped under .peppol-guide
+   ============================================ */
+
+.peppol-guide {
+  min-height: 100vh;
+  background: #0a0e1a;
+  color: #e5e7eb;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.7;
+}
+
+/* --- Navbar --- */
+.peppol-guide .pg-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(10, 14, 26, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(107, 114, 128, 0.15);
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.peppol-guide .pg-navbar-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.peppol-guide .pg-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.peppol-guide .pg-logo svg {
+  color: #f59e0b;
+}
+
+.peppol-guide .pg-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.peppol-guide .pg-btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #d1d5db;
+  padding: 8px 20px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.peppol-guide .pg-btn-ghost:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.peppol-guide .pg-btn-primary {
+  background: linear-gradient(135deg, #f59e0b, #10b981);
+  border: none;
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+}
+
+.peppol-guide .pg-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+}
+
+/* --- Hero --- */
+.peppol-guide .pg-hero {
+  padding: 120px 24px 60px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 30% 50%, rgba(16, 185, 129, 0.06), transparent 60%),
+    radial-gradient(ellipse at 70% 50%, rgba(59, 130, 246, 0.06), transparent 60%);
+}
+
+.peppol-guide .pg-hero-inner {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.peppol-guide .pg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 18px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 9999px;
+  color: #6ee7b7;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 24px;
+}
+
+.peppol-guide .pg-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.peppol-guide .pg-hero h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #10b981, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
+  line-height: 1.15;
+}
+
+.peppol-guide .pg-hero-subtitle {
+  font-size: 1.1rem;
+  color: #9ca3af;
+  max-width: 640px;
+  margin: 0 auto 32px;
+}
+
+.peppol-guide .pg-stats {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+.peppol-guide .pg-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: rgba(15, 21, 40, 0.8);
+  border: 1px solid rgba(107, 114, 128, 0.2);
+  border-radius: 9999px;
+  color: #d1d5db;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.peppol-guide .pg-stat-pill svg {
+  width: 16px;
+  height: 16px;
+  color: #10b981;
+}
+
+.peppol-guide .pg-hero-image {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.peppol-guide .pg-hero-image img {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* --- Layout: TOC + Content --- */
+.peppol-guide .pg-layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 48px;
+}
+
+/* --- TOC Sidebar --- */
+.peppol-guide .pg-toc {
+  position: sticky;
+  top: 88px;
+  height: fit-content;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  padding: 20px;
+  background: rgba(15, 21, 40, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(107, 114, 128, 0.15);
+  border-radius: 16px;
+}
+
+.peppol-guide .pg-toc-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+.peppol-guide .pg-toc a {
+  display: block;
+  padding: 8px 12px;
+  color: #9ca3af;
+  text-decoration: none;
+  font-size: 0.82rem;
+  border-left: 2px solid transparent;
+  border-radius: 0 6px 6px 0;
+  transition: all 0.2s ease;
+  margin-bottom: 2px;
+}
+
+.peppol-guide .pg-toc a:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.peppol-guide .pg-toc a.active {
+  color: #6ee7b7;
+  border-left-color: #10b981;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+/* Mobile TOC toggle */
+.peppol-guide .pg-toc-mobile-btn {
+  display: none;
+  width: 100%;
+  padding: 12px 20px;
+  background: rgba(15, 21, 40, 0.8);
+  border: 1px solid rgba(107, 114, 128, 0.2);
+  border-radius: 12px;
+  color: #d1d5db;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 24px;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.peppol-guide .pg-toc-mobile-btn:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.peppol-guide .pg-toc-mobile-btn svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+}
+
+.peppol-guide .pg-toc-mobile-btn.open svg {
+  transform: rotate(180deg);
+}
+
+/* --- Content area --- */
+.peppol-guide .pg-content {
+  min-width: 0;
+}
+
+/* --- Section Cards --- */
+.peppol-guide .pg-section {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.03), rgba(59, 130, 246, 0.03));
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 28px;
+  scroll-margin-top: 88px;
+}
+
+.peppol-guide .pg-section h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 20px;
+  padding-left: 16px;
+  border-left: 4px solid #10b981;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.peppol-guide .pg-section h2 svg {
+  width: 20px;
+  height: 20px;
+  color: #10b981;
+}
+
+.peppol-guide .pg-section h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #6ee7b7;
+  margin: 20px 0 12px;
+}
+
+.peppol-guide .pg-section p {
+  color: #d1d5db;
+  margin-bottom: 16px;
+  max-width: 720px;
+}
+
+.peppol-guide .pg-section strong {
+  color: #fff;
+}
+
+/* --- Tables --- */
+.peppol-guide .pg-table-wrapper {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  margin: 16px 0;
+}
+
+.peppol-guide table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 500px;
+}
+
+.peppol-guide thead {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15));
+}
+
+.peppol-guide th {
+  color: #10b981;
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.peppol-guide td {
+  color: #d1d5db;
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.07);
+}
+
+.peppol-guide tr:hover td {
+  background: rgba(59, 130, 246, 0.04);
+}
+
+/* Badges in tables */
+.peppol-guide .badge-vous {
+  display: inline-block;
+  padding: 2px 10px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.peppol-guide .badge-cashpilot {
+  display: inline-block;
+  padding: 2px 10px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.peppol-guide .badge-recommended {
+  display: inline-block;
+  padding: 2px 10px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+}
+
+.peppol-guide tr.recommended {
+  background: rgba(16, 185, 129, 0.04);
+}
+
+/* --- Step cards --- */
+.peppol-guide .pg-step {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.peppol-guide .pg-step-number {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #10b981, #3b82f6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+.peppol-guide .pg-step-content {
+  flex: 1;
+}
+
+.peppol-guide .pg-step-content h3 {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.peppol-guide .pg-time-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 9999px;
+  color: #93c5fd;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.peppol-guide .pg-time-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Ordered steps inside step cards */
+.peppol-guide .pg-instructions {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  counter-reset: instruction;
+}
+
+.peppol-guide .pg-instructions li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 8px 0;
+  counter-increment: instruction;
+}
+
+.peppol-guide .pg-instructions li::before {
+  content: counter(instruction);
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  background: rgba(107, 114, 128, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d1d5db;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* --- Tips / Blockquotes --- */
+.peppol-guide .pg-tip {
+  display: flex;
+  gap: 14px;
+  padding: 16px 20px;
+  background: rgba(245, 158, 11, 0.06);
+  border-left: 3px solid #f59e0b;
+  border-radius: 0 10px 10px 0;
+  margin: 16px 0;
+}
+
+.peppol-guide .pg-tip svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: #f59e0b;
+  margin-top: 2px;
+}
+
+.peppol-guide .pg-tip p {
+  color: #fde68a;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.peppol-guide .pg-tip strong {
+  color: #fbbf24;
+}
+
+.peppol-guide .pg-warning {
+  display: flex;
+  gap: 14px;
+  padding: 16px 20px;
+  background: rgba(239, 68, 68, 0.06);
+  border-left: 3px solid #ef4444;
+  border-radius: 0 10px 10px 0;
+  margin: 16px 0;
+}
+
+.peppol-guide .pg-warning svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: #ef4444;
+  margin-top: 2px;
+}
+
+.peppol-guide .pg-warning p {
+  color: #fca5a5;
+  margin: 0;
+}
+
+/* --- Inline code --- */
+.peppol-guide code {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: #6ee7b7;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+}
+
+/* --- Usage sections with icon header --- */
+.peppol-guide .pg-usage-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.peppol-guide .pg-usage-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.peppol-guide .pg-usage-icon.blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.peppol-guide .pg-usage-icon.emerald {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+}
+
+.peppol-guide .pg-usage-icon.purple {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+}
+
+.peppol-guide .pg-usage-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Check list items */
+.peppol-guide .pg-check-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+
+.peppol-guide .pg-check-list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 6px 0;
+  color: #d1d5db;
+}
+
+.peppol-guide .pg-check-list li svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: #10b981;
+  margin-top: 3px;
+}
+
+/* Status badges */
+.peppol-guide .status-pending {
+  color: #fbbf24;
+}
+
+.peppol-guide .status-delivered {
+  color: #6ee7b7;
+}
+
+.peppol-guide .status-error {
+  color: #f87171;
+}
+
+/* --- FAQ Accordion --- */
+.peppol-guide .pg-faq-item {
+  background: rgba(15, 21, 40, 0.6);
+  border: 1px solid rgba(107, 114, 128, 0.15);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+
+.peppol-guide .pg-faq-item.open {
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.peppol-guide .pg-faq-question {
+  width: 100%;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 18px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.2s ease;
+}
+
+.peppol-guide .pg-faq-question:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.peppol-guide .pg-faq-question svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: #6b7280;
+  transition: transform 0.3s ease;
+}
+
+.peppol-guide .pg-faq-item.open .pg-faq-question svg {
+  transform: rotate(180deg);
+  color: #10b981;
+}
+
+.peppol-guide .pg-faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease;
+}
+
+.peppol-guide .pg-faq-item.open .pg-faq-answer {
+  max-height: 300px;
+}
+
+.peppol-guide .pg-faq-answer-inner {
+  padding: 0 20px 18px;
+  color: #9ca3af;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+/* --- Support cards --- */
+.peppol-guide .pg-support-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.peppol-guide .pg-support-card {
+  padding: 24px;
+  background: rgba(15, 21, 40, 0.6);
+  border: 1px solid rgba(107, 114, 128, 0.15);
+  border-radius: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.peppol-guide .pg-support-card:hover {
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.peppol-guide .pg-support-card h3 {
+  color: #fff;
+  margin-top: 0;
+}
+
+.peppol-guide .pg-support-card a {
+  color: #60a5fa;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.peppol-guide .pg-support-card a:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+/* --- Footer --- */
+.peppol-guide .pg-footer {
+  text-align: center;
+  padding: 40px 24px;
+  color: #4b5563;
+  font-size: 0.85rem;
+  border-top: 1px solid rgba(107, 114, 128, 0.1);
+}
+
+/* --- Responsive --- */
+@media (max-width: 1024px) {
+  .peppol-guide .pg-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .peppol-guide .pg-toc {
+    display: none;
+    position: static;
+    margin-bottom: 24px;
+    max-height: none;
+  }
+
+  .peppol-guide .pg-toc.mobile-open {
+    display: block;
+  }
+
+  .peppol-guide .pg-toc-mobile-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .peppol-guide .pg-hero h1 {
+    font-size: 1.8rem;
+  }
+
+  .peppol-guide .pg-hero-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .peppol-guide .pg-section {
+    padding: 24px 18px;
+  }
+
+  .peppol-guide .pg-support-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .peppol-guide .pg-step {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .peppol-guide .pg-navbar {
+    padding: 0 16px;
+  }
+
+  .peppol-guide .pg-nav-actions .pg-btn-ghost {
+    display: none;
+  }
+}

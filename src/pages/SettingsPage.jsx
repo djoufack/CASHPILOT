@@ -2,7 +2,7 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Building2, Bell, CreditCard, Users, Fingerprint, Wifi, Palette, Coins, HardDrive, ShieldAlert, Plug, Shield } from 'lucide-react';
+import { User, Building2, Bell, CreditCard, Users, Fingerprint, Wifi, Palette, Coins, HardDrive, ShieldAlert, Plug, Shield, Globe } from 'lucide-react';
 import ProfileSettings from '@/components/settings/ProfileSettings';
 import CompanySettings from '@/components/settings/CompanySettings';
 import BillingSettings from '@/components/settings/BillingSettings';
@@ -17,6 +17,7 @@ import SyncManager from '@/components/SyncManager';
 import DangerZoneSettings from '@/components/settings/DangerZoneSettings';
 import ConnectionSettings from '@/components/settings/ConnectionSettings';
 import GDPRSettings from '@/components/settings/GDPRSettings';
+import PeppolSettings from '@/components/settings/PeppolSettings';
 
 const TAB_MAP = {
   profil: 'profile',
@@ -35,6 +36,7 @@ const TAB_MAP = {
   mcp: 'connections',
   'donnees-personnelles': 'personal-data',
   'personal-data': 'personal-data',
+  peppol: 'peppol',
   gdpr: 'danger',
   danger: 'danger'
 };
@@ -88,6 +90,9 @@ const SettingsPage = () => {
           <TabsTrigger value="connections" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
             <Plug className="w-4 h-4 mr-2" /> Connexions
           </TabsTrigger>
+          <TabsTrigger value="peppol" className="data-[state=active]:bg-emerald-500/10 data-[state=active]:text-emerald-400">
+            <Globe className="w-4 h-4 mr-2" /> Peppol
+          </TabsTrigger>
           <TabsTrigger value="personal-data" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400">
             <Shield className="w-4 h-4 mr-2" /> Mes donn{'\u00e9'}es
           </TabsTrigger>
@@ -138,6 +143,10 @@ const SettingsPage = () => {
 
         <TabsContent value="connections" className="mt-6">
           <ConnectionSettings />
+        </TabsContent>
+
+        <TabsContent value="peppol" className="mt-6">
+          <PeppolSettings />
         </TabsContent>
 
         <TabsContent value="personal-data" className="mt-6">

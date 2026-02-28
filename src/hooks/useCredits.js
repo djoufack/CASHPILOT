@@ -8,12 +8,12 @@ export const useCredits = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation();
-  const [credits, setCredits] = useState({ free_credits: 0, paid_credits: 0, total_used: 0 });
+  const [credits, setCredits] = useState({ free_credits: 0, paid_credits: 0, subscription_credits: 0, total_used: 0 });
   const [packages, setPackages] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const availableCredits = credits.free_credits + credits.paid_credits;
+  const availableCredits = credits.free_credits + (credits.subscription_credits || 0) + credits.paid_credits;
 
   const fetchCredits = useCallback(async () => {
     if (!user || !supabase) return;
@@ -28,7 +28,7 @@ export const useCredits = () => {
         // No row yet, create one
         const { data: newData } = await supabase
           .from('user_credits')
-          .insert([{ user_id: user.id, free_credits: 10, paid_credits: 0, total_used: 0 }])
+          .insert([{ user_id: user.id, free_credits: 10, paid_credits: 0, subscription_credits: 0, total_used: 0 }])
           .select()
           .single();
         if (newData) setCredits(newData);
@@ -95,14 +95,19 @@ export const useCredits = () => {
     }
 
     try {
-      // Deduct from free credits first, then paid
-      let freeDeduction = Math.min(credits.free_credits, amount);
-      let paidDeduction = amount - freeDeduction;
+      // Deduct in order: free → subscription → paid
+      let remaining = amount;
+      let freeDeduction = Math.min(credits.free_credits, remaining);
+      remaining -= freeDeduction;
+      let subDeduction = Math.min(credits.subscription_credits || 0, remaining);
+      remaining -= subDeduction;
+      let paidDeduction = remaining;
 
       const { error: updateError } = await supabase
         .from('user_credits')
         .update({
           free_credits: credits.free_credits - freeDeduction,
+          subscription_credits: (credits.subscription_credits || 0) - subDeduction,
           paid_credits: credits.paid_credits - paidDeduction,
           total_used: credits.total_used + amount,
           updated_at: new Date().toISOString()

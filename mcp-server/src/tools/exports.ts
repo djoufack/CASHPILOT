@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { supabase, getUserId } from '../supabase.js';
 import { escapeXml, formatDateFacturX, formatAmount } from '../utils/sanitize.js';
+import { generateUBLInvoice, generateUBLCreditNote } from '../utils/ublGenerator.js';
 
 export function registerExportTools(server: McpServer) {
 
@@ -214,6 +215,39 @@ ${entriesXml}
 
       return {
         content: [{ type: 'text' as const, text: `Factur-X XML (${profileId}) for invoice ${inv.invoice_number}.\n\n${xml}` }]
+      };
+    }
+  );
+
+  server.tool(
+    'export_ubl',
+    'Generate Peppol BIS Billing 3.0 UBL 2.1 XML for an invoice or credit note',
+    {
+      invoice_id: z.string().describe('Invoice UUID'),
+      type: z.enum(['invoice', 'credit_note']).optional().describe('Document type (default: invoice)')
+    },
+    async ({ invoice_id, type }) => {
+      const docType = type ?? 'invoice';
+
+      const [invoiceRes, companyRes] = await Promise.all([
+        supabase.from('invoices').select('*, items:invoice_items(*)').eq('id', invoice_id).eq('user_id', getUserId()).single(),
+        supabase.from('company').select('*').eq('user_id', getUserId()).single()
+      ]);
+
+      if (invoiceRes.error) return { content: [{ type: 'text' as const, text: `Error: ${invoiceRes.error.message}` }] };
+
+      const inv = invoiceRes.data;
+      const seller = companyRes.data || {};
+
+      const { data: buyer } = await supabase.from('clients').select('*').eq('id', inv.client_id).eq('user_id', getUserId()).single();
+
+      const items = inv.items || [];
+      const xml = docType === 'credit_note'
+        ? generateUBLCreditNote(inv, seller, buyer || {}, items)
+        : generateUBLInvoice(inv, seller, buyer || {}, items);
+
+      return {
+        content: [{ type: 'text' as const, text: `UBL 2.1 ${docType === 'credit_note' ? 'CreditNote' : 'Invoice'} XML for ${inv.invoice_number} (Peppol BIS 3.0).\n\n${xml}` }]
       };
     }
   );

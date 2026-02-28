@@ -35,19 +35,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { COUNTRIES } from '@/constants/countries';
 import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
-import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard, ArchiveRestore, Archive } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard, ArchiveRestore, Archive, Globe, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import ExportButton from '@/components/ExportButton';
 import { motion } from 'framer-motion';
 import { validateEmail } from '@/utils/validation';
 import { useToast } from '@/components/ui/use-toast';
 import { Currency } from '@/types';
 import { usePagination } from '@/hooks/usePagination';
+import { usePeppolCheck } from '@/hooks/usePeppolCheck';
 import PaginationControls from '@/components/PaginationControls';
 
 const ClientManager = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { clients, loading, createClient, updateClient, deleteClient, restoreClient, fetchDeletedClients } = useClients();
+  const { checkRegistration, checking: peppolChecking, result: peppolResult, reset: resetPeppolCheck } = usePeppolCheck();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
@@ -76,6 +78,10 @@ const ClientManager = () => {
     bank_name: '',
     iban: '',
     bic_swift: '',
+    // Peppol
+    peppol_endpoint_id: '',
+    peppol_scheme_id: '0208',
+    electronic_invoicing_enabled: false,
     // Notes
     notes: ''
   };
@@ -110,6 +116,9 @@ const ClientManager = () => {
         bank_name: client.bank_name || '',
         iban: client.iban || '',
         bic_swift: client.bic_swift || '',
+        peppol_endpoint_id: client.peppol_endpoint_id || '',
+        peppol_scheme_id: client.peppol_scheme_id || '0208',
+        electronic_invoicing_enabled: client.electronic_invoicing_enabled || false,
         notes: client.notes || ''
       });
     } else {
@@ -641,6 +650,75 @@ const ClientManager = () => {
                       placeholder="BNPAFRPP"
                       className="bg-gray-700 border-gray-600 text-white w-full"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* --- Section: Peppol / E-Invoicing --- */}
+              <div>
+                <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Globe className="h-4 w-4" /> Peppol / E-Invoicing
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="peppol_endpoint_id">{t('peppol.endpointId')}</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="peppol_endpoint_id"
+                        value={formData.peppol_endpoint_id}
+                        onChange={(e) => { setFormData({ ...formData, peppol_endpoint_id: e.target.value }); resetPeppolCheck(); }}
+                        placeholder="0123456789"
+                        className="bg-gray-700 border-gray-600 text-white w-full"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!formData.peppol_endpoint_id || peppolChecking}
+                        onClick={() => checkRegistration(formData.peppol_endpoint_id)}
+                        className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 shrink-0"
+                      >
+                        {peppolChecking ? <Loader2 className="w-4 h-4 animate-spin" /> : t('peppol.checkPeppol')}
+                      </Button>
+                    </div>
+                    {peppolResult && (
+                      <span className={`flex items-center gap-1 text-xs ${peppolResult.registered ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {peppolResult.registered
+                          ? <><CheckCircle className="w-3 h-3" /> {t('peppol.checkRegistered')}</>
+                          : <><XCircle className="w-3 h-3" /> {t('peppol.checkNotRegistered')}</>
+                        }
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="peppol_scheme_id">{t('peppol.schemeId')}</Label>
+                    <Select
+                      value={formData.peppol_scheme_id}
+                      onValueChange={(val) => setFormData({ ...formData, peppol_scheme_id: val })}
+                    >
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full">
+                        <SelectValue placeholder="Scheme" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                        <SelectItem value="0208">0208 - BE (BCE/KBO)</SelectItem>
+                        <SelectItem value="0009">0009 - FR (SIRET)</SelectItem>
+                        <SelectItem value="0088">0088 - EAN/GLN</SelectItem>
+                        <SelectItem value="0190">0190 - NL (KVK)</SelectItem>
+                        <SelectItem value="9925">9925 - BE (TVA)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="electronic_invoicing_enabled"
+                        checked={formData.electronic_invoicing_enabled}
+                        onChange={(e) => setFormData({ ...formData, electronic_invoicing_enabled: e.target.checked })}
+                        className="rounded"
+                      />
+                      <Label htmlFor="electronic_invoicing_enabled">{t('peppol.enableForClient')}</Label>
+                    </div>
                   </div>
                 </div>
               </div>

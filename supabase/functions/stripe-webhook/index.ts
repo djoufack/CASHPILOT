@@ -1,5 +1,5 @@
 // Supabase Edge Function: stripe-webhook
-// Handles Stripe webhook events to credit user accounts after successful payment
+// Handles Stripe webhook events for credit purchases AND subscriptions
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno';
@@ -38,7 +38,6 @@ serve(async (req) => {
       );
     }
 
-    // Verify webhook signature
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
@@ -50,61 +49,111 @@ serve(async (req) => {
       );
     }
 
-    // Handle checkout.session.completed
+    // ========================================
+    // checkout.session.completed
+    // ========================================
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.user_id;
-      const credits = parseInt(session.metadata?.credits || '0', 10);
 
-      if (!userId || !credits) {
-        console.error('Missing metadata: user_id or credits', session.metadata);
-        return new Response(
-          JSON.stringify({ error: 'Missing metadata' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      // --- Subscription checkout ---
+      if (session.mode === 'subscription') {
+        const planSlug = session.metadata?.plan_slug;
+        const planId = session.metadata?.plan_id;
+        const creditsPerMonth = parseInt(session.metadata?.credits_per_month || '0', 10);
+        const subscriptionId = session.subscription as string;
 
-      // Check if this session was already processed (idempotency)
-      const { data: existingTx } = await supabase
-        .from('credit_transactions')
-        .select('id')
-        .eq('stripe_session_id', session.id)
-        .single();
+        if (!userId || !planSlug) {
+          console.error('Missing subscription metadata', session.metadata);
+          return new Response(
+            JSON.stringify({ error: 'Missing subscription metadata' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
 
-      if (existingTx) {
-        console.log('Session already processed:', session.id);
-        return new Response(
-          JSON.stringify({ received: true, status: 'already_processed' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+        // Retrieve subscription to get current_period_end
+        const sub = await stripe.subscriptions.retrieve(subscriptionId);
 
-      // Add credits to user
-      const { data: currentCredits } = await supabase
-        .from('user_credits')
-        .select('paid_credits')
-        .eq('user_id', userId)
-        .single();
+        // Activate subscription and credit initial month
+        const { error: updateError } = await supabase
+          .from('user_credits')
+          .update({
+            subscription_plan_id: planId,
+            stripe_subscription_id: subscriptionId,
+            stripe_customer_id: session.customer as string,
+            subscription_status: 'active',
+            subscription_credits: creditsPerMonth,
+            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId);
 
-      const currentPaid = currentCredits?.paid_credits || 0;
+        if (updateError) {
+          console.error('Failed to activate subscription:', updateError);
+          throw updateError;
+        }
 
-      const { error: updateError } = await supabase
-        .from('user_credits')
-        .update({
-          paid_credits: currentPaid + credits,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId);
+        // Log transaction
+        await supabase.from('credit_transactions').insert({
+          user_id: userId,
+          type: 'subscription',
+          amount: creditsPerMonth,
+          description: `Abonnement ${planSlug} activé — ${creditsPerMonth} crédits`,
+          stripe_session_id: session.id,
+        });
 
-      if (updateError) {
-        console.error('Failed to update credits:', updateError);
-        throw updateError;
-      }
+        console.log(`Subscription ${planSlug} activated for user ${userId} (${creditsPerMonth} credits)`);
 
-      // Log the transaction
-      const { error: txError } = await supabase
-        .from('credit_transactions')
-        .insert({
+      // --- One-time credit purchase ---
+      } else {
+        const credits = parseInt(session.metadata?.credits || '0', 10);
+
+        if (!userId || !credits) {
+          console.error('Missing metadata: user_id or credits', session.metadata);
+          return new Response(
+            JSON.stringify({ error: 'Missing metadata' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Idempotency check
+        const { data: existingTx } = await supabase
+          .from('credit_transactions')
+          .select('id')
+          .eq('stripe_session_id', session.id)
+          .single();
+
+        if (existingTx) {
+          console.log('Session already processed:', session.id);
+          return new Response(
+            JSON.stringify({ received: true, status: 'already_processed' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Add credits
+        const { data: currentCredits } = await supabase
+          .from('user_credits')
+          .select('paid_credits')
+          .eq('user_id', userId)
+          .single();
+
+        const currentPaid = currentCredits?.paid_credits || 0;
+
+        const { error: updateError } = await supabase
+          .from('user_credits')
+          .update({
+            paid_credits: currentPaid + credits,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId);
+
+        if (updateError) {
+          console.error('Failed to update credits:', updateError);
+          throw updateError;
+        }
+
+        await supabase.from('credit_transactions').insert({
           user_id: userId,
           type: 'purchase',
           amount: credits,
@@ -113,11 +162,181 @@ serve(async (req) => {
           stripe_payment_intent: session.payment_intent as string,
         });
 
-      if (txError) {
-        console.error('Failed to log transaction:', txError);
+        console.log(`Credited ${credits} credits to user ${userId} (session: ${session.id})`);
+      }
+    }
+
+    // ========================================
+    // invoice.paid — Monthly subscription renewal
+    // ========================================
+    if (event.type === 'invoice.paid') {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subscriptionId = invoice.subscription as string;
+
+      // Skip if not a subscription invoice or first invoice (handled by checkout)
+      if (!subscriptionId || invoice.billing_reason === 'subscription_create') {
+        return new Response(
+          JSON.stringify({ received: true, status: 'skipped' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
-      console.log(`Credited ${credits} credits to user ${userId} (session: ${session.id})`);
+      // Find user by stripe_subscription_id
+      const { data: userCredits } = await supabase
+        .from('user_credits')
+        .select('user_id, subscription_plan_id')
+        .eq('stripe_subscription_id', subscriptionId)
+        .single();
+
+      if (!userCredits) {
+        console.error('No user found for subscription:', subscriptionId);
+        return new Response(
+          JSON.stringify({ received: true, status: 'user_not_found' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Get plan credits
+      const { data: plan } = await supabase
+        .from('subscription_plans')
+        .select('credits_per_month, name, slug')
+        .eq('id', userCredits.subscription_plan_id)
+        .single();
+
+      if (!plan) {
+        console.error('Plan not found:', userCredits.subscription_plan_id);
+        return new Response(
+          JSON.stringify({ received: true, status: 'plan_not_found' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Retrieve subscription for period end
+      const sub = await stripe.subscriptions.retrieve(subscriptionId);
+
+      // Reset subscription credits to monthly quota
+      const { error: resetError } = await supabase
+        .from('user_credits')
+        .update({
+          subscription_credits: plan.credits_per_month,
+          subscription_status: 'active',
+          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userCredits.user_id);
+
+      if (resetError) {
+        console.error('Failed to reset subscription credits:', resetError);
+        throw resetError;
+      }
+
+      await supabase.from('credit_transactions').insert({
+        user_id: userCredits.user_id,
+        type: 'subscription_renewal',
+        amount: plan.credits_per_month,
+        description: `Renouvellement ${plan.name} — ${plan.credits_per_month} crédits`,
+      });
+
+      console.log(`Renewed ${plan.slug} for user ${userCredits.user_id} (${plan.credits_per_month} credits)`);
+    }
+
+    // ========================================
+    // customer.subscription.updated — Plan change
+    // ========================================
+    if (event.type === 'customer.subscription.updated') {
+      const subscription = event.data.object as Stripe.Subscription;
+      const userId = subscription.metadata?.user_id;
+
+      if (!userId) {
+        console.log('No user_id in subscription metadata, skipping');
+        return new Response(
+          JSON.stringify({ received: true, status: 'no_metadata' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const planSlug = subscription.metadata?.plan_slug;
+      const planId = subscription.metadata?.plan_id;
+      const creditsPerMonth = parseInt(subscription.metadata?.credits_per_month || '0', 10);
+
+      const updateData: Record<string, unknown> = {
+        subscription_status: subscription.status === 'active' ? 'active' : subscription.status,
+        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      if (planId) {
+        updateData.subscription_plan_id = planId;
+        updateData.subscription_credits = creditsPerMonth;
+      }
+
+      await supabase
+        .from('user_credits')
+        .update(updateData)
+        .eq('user_id', userId);
+
+      console.log(`Subscription updated for user ${userId}: status=${subscription.status}, plan=${planSlug}`);
+    }
+
+    // ========================================
+    // customer.subscription.deleted — Cancellation
+    // ========================================
+    if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object as Stripe.Subscription;
+      const userId = subscription.metadata?.user_id;
+
+      if (!userId) {
+        // Fallback: find by subscription ID
+        const { data: userCredits } = await supabase
+          .from('user_credits')
+          .select('user_id')
+          .eq('stripe_subscription_id', subscription.id)
+          .single();
+
+        if (userCredits) {
+          await supabase
+            .from('user_credits')
+            .update({
+              subscription_status: 'canceled',
+              subscription_credits: 0,
+              stripe_subscription_id: null,
+              subscription_plan_id: null,
+              current_period_end: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userCredits.user_id);
+
+          await supabase.from('credit_transactions').insert({
+            user_id: userCredits.user_id,
+            type: 'subscription_canceled',
+            amount: 0,
+            description: 'Abonnement annulé',
+          });
+
+          console.log(`Subscription canceled for user ${userCredits.user_id}`);
+        }
+      } else {
+        await supabase
+          .from('user_credits')
+          .update({
+            subscription_status: 'canceled',
+            subscription_credits: 0,
+            stripe_subscription_id: null,
+            subscription_plan_id: null,
+            current_period_end: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId);
+
+        await supabase.from('credit_transactions').insert({
+          user_id: userId,
+          type: 'subscription_canceled',
+          amount: 0,
+          description: 'Abonnement annulé',
+        });
+
+        console.log(`Subscription canceled for user ${userId}`);
+      }
     }
 
     return new Response(

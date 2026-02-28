@@ -1,12 +1,14 @@
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useCredits } from '@/hooks/useCredits';
 import { useAuth } from '@/context/AuthContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { createCheckoutSession, redirectToCheckout, formatPrice } from '@/services/stripeService';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { CreditCard, Coins, TrendingUp, Zap, Star, Gift } from 'lucide-react';
+import { CreditCard, Coins, TrendingUp, Zap, Star, Gift, Crown } from 'lucide-react';
 import { format } from 'date-fns';
 import { CREDIT_COSTS, CREDIT_CATEGORIES, CREDIT_COST_LABELS } from '@/hooks/useCreditsGuard';
 import ReferralSystem from '@/components/ReferralSystem';
@@ -16,7 +18,9 @@ const PACKAGE_ICONS = [Coins, Zap, Star, TrendingUp];
 const CreditsPurchase = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { credits, availableCredits, packages, transactions, fetchTransactions, loading } = useCredits();
+  const { currentPlan, subscriptionStatus, subscriptionCredits, currentPeriodEnd } = useSubscription();
   const { toast } = useToast();
   const [purchasing, setPurchasing] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -58,8 +62,50 @@ const CreditsPurchase = () => {
     setShowHistory(!showHistory);
   };
 
+  const hasActiveSubscription = subscriptionStatus === 'active' && currentPlan;
+
   return (
     <div className="space-y-6">
+      {/* Subscription banner */}
+      {hasActiveSubscription ? (
+        <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Crown className="w-6 h-6 text-orange-400 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-white">
+                {t('billing.currentPlan')}: <span className="text-orange-400">{currentPlan.name}</span>
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {t('subscription.subCredits')}: {subscriptionCredits} / {currentPlan.credits_per_month}
+                {currentPeriodEnd && (
+                  <> &middot; {t('billing.renewsOn')} {format(new Date(currentPeriodEnd), 'dd/MM/yyyy')}</>
+                )}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/pricing')}
+            className="border-gray-600 text-gray-300 hover:bg-gray-700 shrink-0"
+          >
+            {t('billing.changePlan')}
+          </Button>
+        </div>
+      ) : (
+        <div
+          className="bg-gray-800/60 rounded-lg border border-dashed border-gray-600 p-4 flex items-center justify-between cursor-pointer hover:border-orange-500/50 transition-colors"
+          onClick={() => navigate('/pricing')}
+        >
+          <div className="flex items-center gap-3">
+            <Crown className="w-5 h-5 text-gray-500 shrink-0" />
+            <p className="text-sm text-gray-400">
+              {t('billing.noPlan')} <span className="text-orange-400 font-medium">{t('billing.viewPlans')}</span>
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Credits balance */}
       <div className="bg-gradient-to-r from-orange-500/20 to-yellow-500/20 rounded-lg border border-orange-500/30 p-6">
         <div className="flex items-center justify-between">
