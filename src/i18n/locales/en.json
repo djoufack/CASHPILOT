@@ -1474,11 +1474,16 @@
     "creditPacksDesc": "Need more? Buy one-time credit packs that never expire.",
     "free": "Free",
     "month": "month",
+    "year": "year",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "monthsFree": "months free",
     "creditsPerMonth": "credits/month",
     "popular": "Popular",
     "currentPlan": "Current plan",
     "freePlan": "Current plan",
     "subscribe": "Subscribe",
+    "contactUs": "Contact us",
     "success": "Payment successful",
     "subscriptionActivated": "Your subscription is now active!",
     "cancelled": "Payment cancelled",
@@ -1486,7 +1491,36 @@
     "goToApp": "Go to app",
     "login": "Log in",
     "signup": "Sign up",
-    "footer": "All prices in EUR, excl. VAT. Subscriptions renew automatically each month. Cancel anytime."
+    "footer": "All prices in EUR, excl. VAT. Subscriptions renew automatically. Cancel anytime.",
+    "target": {
+      "free": "Discover CashPilot",
+      "starter": "Freelancers & solopreneurs",
+      "pro": "Growing SMBs",
+      "business": "Established companies",
+      "enterprise": "Large accounts & groups"
+    },
+    "noFeature": {
+      "reports": "Analytical reports",
+      "support": "Dedicated support"
+    },
+    "trust": {
+      "stripe": "Secure payments via Stripe",
+      "gdpr": "GDPR compliant",
+      "cancel": "Cancel anytime"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "q1": "How do subscription credits work?",
+      "a1": "Your subscription credits are credited each month on your renewal date. Unused credits do not roll over to the next month. Credits purchased as packs remain available indefinitely.",
+      "q2": "Can I change my plan at any time?",
+      "a2": "Yes, you can upgrade or downgrade your plan at any time. The change takes effect immediately and the amount is prorated.",
+      "q3": "How does annual billing work?",
+      "a3": "With annual billing, you pay the equivalent of 10 months instead of 12, saving 2 months. Payment is made as a single charge.",
+      "q4": "What happens if I exceed my monthly credits?",
+      "a4": "You can purchase additional credit packs at any time. These credits never expire and are used after your subscription credits.",
+      "q5": "How do I cancel my subscription?",
+      "a5": "You can cancel your subscription at any time from the billing settings. You keep access until the end of your paid period."
+    }
   },
   "subscription": {
     "subCredits": "Subscription",

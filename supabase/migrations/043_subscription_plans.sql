@@ -29,11 +29,11 @@ CREATE POLICY "subscription_plans_read_all"
 -- 2. Seed subscription plans
 -- ============================================
 INSERT INTO subscription_plans (name, slug, price_cents, currency, credits_per_month, stripe_price_id, features, sort_order) VALUES
-  ('Free',       'free',       0,    'EUR', 10,   NULL, '["10 crédits/mois", "Exports PDF", "Prévisualisation HTML"]'::jsonb, 0),
-  ('Starter',    'starter',    399,  'EUR', 100,  NULL, '["100 crédits/mois", "Exports PDF", "États financiers OHADA", "Support email"]'::jsonb, 1),
-  ('Pro',        'pro',        1499, 'EUR', 500,  NULL, '["500 crédits/mois", "Tout Starter", "Rapports analytiques", "Simulations financières", "Support prioritaire"]'::jsonb, 2),
-  ('Business',   'business',   3499, 'EUR', 1500, NULL, '["1 500 crédits/mois", "Tout Pro", "API webhooks", "Exports comptables", "Rapprochement bancaire"]'::jsonb, 3),
-  ('Enterprise', 'enterprise', 8999, 'EUR', 5000, NULL, '["5 000 crédits/mois", "Tout Business", "Peppol e-invoicing", "Multi-utilisateurs", "Support dédié"]'::jsonb, 4)
+  ('Free',       'free',       0,    'EUR', 10,   NULL, '["10 crédits/mois", "Prévisualisation HTML", "Exports PDF basiques"]'::jsonb, 0),
+  ('Starter',    'starter',    999,  'EUR', 100,  NULL, '["100 crédits/mois", "Exports PDF", "États financiers SYSCOHADA", "Gestion clients illimitée", "Support email"]'::jsonb, 1),
+  ('Pro',        'pro',        1999, 'EUR', 500,  NULL, '["500 crédits/mois", "Tout Starter inclus", "Rapports analytiques", "Simulations financières", "Tableaux de bord avancés", "Support prioritaire"]'::jsonb, 2),
+  ('Business',   'business',   3999, 'EUR', 1500, NULL, '["1 500 crédits/mois", "Tout Pro inclus", "API & Webhooks", "Exports comptables (FEC, SAF-T)", "Rapprochement bancaire", "Multi-devise"]'::jsonb, 3),
+  ('Enterprise', 'enterprise', 9999, 'EUR', 5000, NULL, '["5 000 crédits/mois", "Tout Business inclus", "Peppol e-invoicing", "Multi-utilisateurs & rôles", "Support dédié & onboarding", "SLA garanti"]'::jsonb, 4)
 ON CONFLICT (slug) DO NOTHING;
 
 -- ============================================
