@@ -74,6 +74,8 @@ const AuditComptable = lazyRetry(() => import('@/pages/AuditComptable'));
 const PricingPage = lazyRetry(() => import('@/pages/PricingPage'));
 const PeppolGuidePage = lazyRetry(() => import('@/pages/PeppolGuidePage'));
 const PurchasesPage = lazyRetry(() => import('./pages/PurchasesPage'));
+const SupplierInvoicesPage = lazyRetry(() => import('./pages/SupplierInvoicesPage'));
+const PeppolPage = lazyRetry(() => import('./pages/PeppolPage'));
 
 // Lazy-loaded feature components
 const SupplierMap = lazyRetry(() => import('@/components/SupplierMap'));
@@ -159,6 +161,8 @@ const AuthWrapper = () => {
                 <Route path="expenses" element={<Suspense fallback={<PageLoader />}><ExpensesPage /></Suspense>} />
                 <Route path="purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrdersPage /></Suspense>} />
                 <Route path="purchases" element={<Suspense fallback={<PageLoader />}><PurchasesPage /></Suspense>} />
+                <Route path="supplier-invoices" element={<Suspense fallback={<PageLoader />}><SupplierInvoicesPage /></Suspense>} />
+                <Route path="peppol" element={<Suspense fallback={<PageLoader />}><PeppolPage /></Suspense>} />
 
                 {/* Stock (produits du User) */}
                 <Route path="stock" element={<Suspense fallback={<PageLoader />}><StockManagement /></Suspense>} />
