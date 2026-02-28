@@ -71,7 +71,7 @@ const PeppolPage = () => {
         .select(`
           id, invoice_number, total_amount, currency, status,
           peppol_status, peppol_sent_at, peppol_document_id, peppol_error_message,
-          client:clients(id, name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled)
+          client:clients(id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled)
         `)
         .eq('status', 'sent')
         .order('created_at', { ascending: false });
@@ -162,7 +162,7 @@ const PeppolPage = () => {
       const q = searchQuery.toLowerCase();
       result = result.filter(inv =>
         (inv.invoice_number || '').toLowerCase().includes(q) ||
-        (inv.client?.name || '').toLowerCase().includes(q)
+        (inv.client?.company_name || inv.client?.contact_name || '').toLowerCase().includes(q)
       );
     }
 
@@ -565,7 +565,7 @@ const PeppolPage = () => {
                             {invoice.invoice_number}
                           </td>
                           <td className="p-3 text-gray-300 hidden sm:table-cell whitespace-nowrap">
-                            {client?.name || '-'}
+                            {client?.company_name || client?.contact_name || '-'}
                           </td>
                           <td className="p-3 hidden md:table-cell">
                             {hasEndpoint ? (
@@ -990,7 +990,7 @@ const PeppolPage = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Client</span>
-                  <span className="text-white">{selectedInvoice.client?.name || '-'}</span>
+                  <span className="text-white">{selectedInvoice.client?.company_name || selectedInvoice.client?.contact_name || '-'}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Montant</span>
