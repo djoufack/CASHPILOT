@@ -1,5 +1,9 @@
 # Plan de Tests Fonctionnels CashPilot - 3 Agents
 
+> Mise à jour du 28 février 2026 : ce plan est un snapshot historique.
+> Sur l'environnement Supabase audité, `admin.test@cashpilot.cloud` n'est plus provisionné.
+> Les scripts de test lisent désormais les credentials depuis l'environnement, et toute suite admin suppose un bootstrap serveur préalable dans `public.user_roles`.
+
 > **Destination :** `Plans-Implémentation/A-Implémenter/Plan-Tests-Fonctionnels-CashPilot-09-02-26.md`
 
 ---
@@ -35,9 +39,9 @@ Audit       --> Decomposition --> Execution    --> Verification  --> Validation 
 
 | Agent | Profil | Email | Mot de passe | Role |
 |-------|--------|-------|-------------|------|
-| **Agent 1 — ADMIN** | Administrateur | `admin.test@cashpilot.cloud` | `AdminTest@123` | Voit TOUTES les donnees de tous les utilisateurs |
-| **Agent 2 — SCTE SRL** | Entreprise | `scte.test@cashpilot.cloud` | `ScteTest@123` | Utilisateur business, 2 fournisseurs (Electronique Pro, Quincaillerie Generale) |
-| **Agent 3 — FREELANCE** | Independant | `freelance.test@cashpilot.cloud` | `FreelanceTest@123` | Freelance, 2 fournisseurs (Logistique Express, Fournitures Bureau Plus) |
+| **Agent 1 — ADMIN** | Administrateur | `TEST_ADMIN_EMAIL` | `TEST_ADMIN_PASSWORD` | Voit TOUTES les donnees de tous les utilisateurs |
+| **Agent 2 — SCTE SRL** | Entreprise | `TEST_SCTE_EMAIL` | `TEST_SCTE_PASSWORD` | Utilisateur business, 2 fournisseurs (Electronique Pro, Quincaillerie Generale) |
+| **Agent 3 — FREELANCE** | Independant | `TEST_FREELANCE_EMAIL` | `TEST_FREELANCE_PASSWORD` | Freelance, 2 fournisseurs (Logistique Express, Fournitures Bureau Plus) |
 
 ---
 
@@ -67,7 +71,7 @@ Audit       --> Decomposition --> Execution    --> Verification  --> Validation 
 
 | ID | Description | Etapes | Resultat attendu | PASS si |
 |----|-------------|--------|-------------------|---------|
-| A1-AUTH-01 | Login admin | `login(email: "admin.test@cashpilot.cloud", password: "AdminTest@123")` | Retourne succes + user_id | `success: true` et `user_id` non vide |
+| A1-AUTH-01 | Login admin | `login(email: env.TEST_ADMIN_EMAIL, password: env.TEST_ADMIN_PASSWORD)` | Retourne succes + user_id | `success: true` et `user_id` non vide |
 | A1-AUTH-02 | Whoami | `whoami()` | Retourne info utilisateur | `authenticated: true`, email = admin.test@... |
 | A1-AUTH-03 | Logout + re-login | `logout()` puis `whoami()` puis `login(...)` | Logout OK, whoami echoue, re-login OK | logout `success: true`, whoami `authenticated: false`, re-login `success: true` |
 
@@ -107,9 +111,9 @@ Audit       --> Decomposition --> Execution    --> Verification  --> Validation 
 
 | ID | Description | Etapes | Resultat attendu | PASS si |
 |----|-------------|--------|-------------------|---------|
-| A2-AUTH-01 | Login SCTE | `login(email: "scte.test@cashpilot.cloud", password: "ScteTest@123")` | Succes | `success: true` |
+| A2-AUTH-01 | Login SCTE | `login(email: env.TEST_SCTE_EMAIL, password: env.TEST_SCTE_PASSWORD)` | Succes | `success: true` |
 | A2-AUTH-02 | Whoami | `whoami()` | Info utilisateur | `authenticated: true`, email correct |
-| A2-AUTH-03 | Login mauvais mot de passe | `login(email: "scte.test@cashpilot.cloud", password: "wrong")` | Echec | `success: false` ou message d'erreur |
+| A2-AUTH-03 | Login mauvais mot de passe | `login(email: env.TEST_SCTE_EMAIL, password: "wrong")` | Echec | `success: false` ou message d'erreur |
 
 ### A2-INV : Factures MCP (8 tests)
 
@@ -177,7 +181,7 @@ Audit       --> Decomposition --> Execution    --> Verification  --> Validation 
 
 **Prerequis :** Obtenir une cle API pour SCTE (via table `api_keys` en DB).
 
-**Base URL :** `https://rfzvrezrcigzmldgvntz.supabase.co/functions/v1/api-v1`
+**Base URL :** `env.CASHPILOT_API_BASE` ou `<your-supabase-url>/functions/v1/api-v1`
 
 #### CRUD Resources (15 tests)
 
@@ -227,7 +231,7 @@ Audit       --> Decomposition --> Execution    --> Verification  --> Validation 
 
 | ID | Description | Etapes | Resultat attendu | PASS si |
 |----|-------------|--------|-------------------|---------|
-| A3-AUTH-01 | Login Freelance | `login(email: "freelance.test@cashpilot.cloud", password: "FreelanceTest@123")` | Succes | `success: true` |
+| A3-AUTH-01 | Login Freelance | `login(email: env.TEST_FREELANCE_EMAIL, password: env.TEST_FREELANCE_PASSWORD)` | Succes | `success: true` |
 | A3-AUTH-02 | Whoami | `whoami()` | Info utilisateur | email = freelance.test@... |
 | A3-AUTH-03 | Login email inexistant | `login(email: "nexistepas@cashpilot.cloud", password: "test")` | Echec | Message d'erreur |
 

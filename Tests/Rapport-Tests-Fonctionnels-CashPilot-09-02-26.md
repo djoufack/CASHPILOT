@@ -1,5 +1,8 @@
 # Rapport de Tests Fonctionnels CashPilot
 
+> Note du 28 février 2026 : ce rapport décrit un run historique du 9 février 2026.
+> Il ne reflète plus l'état actuel de l'environnement Supabase audité, où `admin.test@cashpilot.cloud` n'est pas provisionné et où les credentials de test sont désormais pilotés par variables d'environnement.
+
 **Date :** 2026-02-09
 **Version :** Round 4 (Final - 100%)
 **Methodologie :** Orchestration multi-agents (3 agents paralleles)
