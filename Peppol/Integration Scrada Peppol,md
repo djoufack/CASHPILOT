@@ -1,0 +1,34 @@
+Intégration Scrada Peppol — Terminée
+
+Backend (Edge Functions)
+
+peppol-send/index.ts — Envoi UBL via Scrada (credentials per-user)
+peppol-poll-status/index.ts — Polling du statut Scrada
+peppol-check/index.ts — Vérification enregistrement Peppol
+peppol-inbound/index.ts — Réception factures (list/sync/get_ubl/get_pdf)
+peppol-webhook/index.ts — Webhook Scrada
+
+Services & Adapters
+
+scradaAdapter.js — Adaptateur Scrada complet
+peppolAPService.js — Interface AP avec méthodes optionnelles
+
+Frontend (Hooks & UI)
+
+useCompany.js — Champs Scrada dans le whitelist + default scrada
+usePeppolSend.js — Polling automatique après envoi (10s x 12 = 2 min)
+usePeppolCheck.js — Hook vérification Peppol
+PeppolSettings.jsx — UI identifiants Scrada + test connexion
+ClientManager.jsx — Bouton "Vérifier" Peppol sur fiche client
+
+Infra & i18n
+
+042_scrada_credentials.sql — Migration DB
+fr.json / en.json — 16 nouvelles clés Scrada
+
+Documentation
+connexion-peppol-scrada.md — Guide utilisateur complet
+
+Résultats
+280 tests passent (8 fichiers)
+Build réussi en 33s
