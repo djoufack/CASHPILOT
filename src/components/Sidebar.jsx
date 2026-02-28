@@ -10,7 +10,7 @@ import {
   Home, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, BarChart3, Calculator, PieChart, Settings,
   Map, QrCode, FileBarChart, Database, Menu, Package,
-  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck, Tag
+  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck, Tag, ShoppingCart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ const STORAGE_KEY = 'sidebarExpandedCategories';
 const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
   const { t } = useTranslation();
   const location = useLocation();
-  const { hasPermission } = useUserRole();
+  const { isAdmin } = useUserRole();
 
   const toggleSidebar = () => {
     const newState = !isCollapsed;
@@ -75,6 +75,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         icon: Truck,
         type: 'category',
         items: [
+          { path: '/app/purchases', label: t('purchases.title') || 'Achats', icon: ShoppingCart },
           { path: '/app/suppliers', label: t('common.suppliers'), icon: Truck },
           { path: '/app/suppliers/map', label: 'Map View', icon: Map },
           { path: '/app/suppliers/reports', label: t('suppliers.reports'), icon: BarChart3 },
@@ -116,7 +117,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
       },
     ];
 
-    if (hasPermission('all', 'manage')) {
+    if (isAdmin) {
       cats.push({
         id: 'admin',
         label: 'Admin',
@@ -130,7 +131,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
     }
 
     return cats;
-  }, [t, hasPermission]);
+  }, [isAdmin, t]);
 
   // Determine which category contains the current path
   const activeCategoryId = useMemo(() => {

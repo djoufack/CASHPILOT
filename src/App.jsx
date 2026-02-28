@@ -73,6 +73,7 @@ const WebhooksPage = lazyRetry(() => import('@/pages/WebhooksPage'));
 const AuditComptable = lazyRetry(() => import('@/pages/AuditComptable'));
 const PricingPage = lazyRetry(() => import('@/pages/PricingPage'));
 const PeppolGuidePage = lazyRetry(() => import('@/pages/PeppolGuidePage'));
+const PurchasesPage = lazyRetry(() => import('./pages/PurchasesPage'));
 
 // Lazy-loaded feature components
 const SupplierMap = lazyRetry(() => import('@/components/SupplierMap'));
@@ -157,6 +158,7 @@ const AuthWrapper = () => {
                 <Route path="quotes" element={<Suspense fallback={<PageLoader />}><QuotesPage /></Suspense>} />
                 <Route path="expenses" element={<Suspense fallback={<PageLoader />}><ExpensesPage /></Suspense>} />
                 <Route path="purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrdersPage /></Suspense>} />
+                <Route path="purchases" element={<Suspense fallback={<PageLoader />}><PurchasesPage /></Suspense>} />
 
                 {/* Stock (produits du User) */}
                 <Route path="stock" element={<Suspense fallback={<PageLoader />}><StockManagement /></Suspense>} />
