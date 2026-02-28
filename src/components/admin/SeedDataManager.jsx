@@ -27,7 +27,7 @@ const SeedDataManager = () => {
               Test Users
             </CardTitle>
             <CardDescription>
-              Create standard test accounts (Admin, SCTE SRL, Freelance).
+              Create standard test accounts with generated passwords. Elevated roles must be assigned server-side.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -35,10 +35,15 @@ const SeedDataManager = () => {
               <div className="rounded-md bg-muted p-4 text-sm space-y-2">
                 <p className="font-medium">Accounts to be created:</p>
                 <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                  <li>admin.test@cashpilot.cloud (Role: Admin)</li>
                   <li>scte.test@cashpilot.cloud (Role: User)</li>
                   <li>freelance.test@cashpilot.cloud (Role: User)</li>
                 </ul>
+                <p className="text-xs text-muted-foreground">
+                  Generated passwords are shown in the operation log after creation.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Admin access is controlled by `user_roles` and cannot be bootstrapped safely from the browser.
+                </p>
               </div>
               <Button 
                 onClick={createTestUsers} 

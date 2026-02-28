@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { v4 as uuidv4 } from 'uuid';
+import { DEFAULT_ROLE } from '@/lib/roles';
 
 export const useSeedData = () => {
   const [loading, setLoading] = useState(false);
@@ -17,12 +18,15 @@ export const useSeedData = () => {
     setLoading(true);
     setProgress([]);
     addLog('Starting user creation process...', 'info');
+    addLog('Admin roles must be assigned server-side. Client-side seeding only creates standard users.', 'info');
 
     const users = [
-      { email: 'admin.test@cashpilot.cloud', password: 'AdminTest@123', role: 'admin', name: 'Admin User' },
-      { email: 'scte.test@cashpilot.cloud', password: 'ScteTest@123', role: 'user', name: 'SCTE Manager' },
-      { email: 'freelance.test@cashpilot.cloud', password: 'FreelanceTest@123', role: 'user', name: 'Freelance User' }
-    ];
+      { email: 'scte.test@cashpilot.cloud', role: DEFAULT_ROLE, name: 'SCTE Manager' },
+      { email: 'freelance.test@cashpilot.cloud', role: DEFAULT_ROLE, name: 'Freelance User' }
+    ].map((user) => ({
+      ...user,
+      password: `CashPilot#${uuidv4().replace(/-/g, '').slice(0, 12)}`
+    }));
 
     try {
       for (const userData of users) {
@@ -47,20 +51,11 @@ export const useSeedData = () => {
 
         if (authData?.user) {
           const userId = authData.user.id;
-          addLog(`User ${userData.email} created (ID: ${userId}). Assigning role...`, 'pending');
+          addLog(`User ${userData.email} created (ID: ${userId}). Syncing profile...`, 'pending');
+          addLog(`Generated password for ${userData.email}: ${userData.password}`, 'info');
 
-          // 2. Assign role in user_roles table
-          const { error: roleError } = await supabase
-            .from('user_roles')
-            .upsert({ user_id: userId, role: userData.role }, { onConflict: 'user_id' });
-
-          if (roleError) {
-            addLog(`Error assigning role to ${userData.email}: ${roleError.message}`, 'error');
-          } else {
-            addLog(`Role '${userData.role}' assigned to ${userData.email}.`, 'success');
-          }
-
-          // 3. Create profile entry (optional but recommended based on schema)
+          // The live profiles schema does not expose an email column, and elevated roles
+          // must be granted server-side through user_roles.
           const { error: profileError } = await supabase
             .from('profiles')
             .upsert({
@@ -68,14 +63,14 @@ export const useSeedData = () => {
               user_id: userId,
               full_name: userData.name,
               role: userData.role,
-              email: userData.email,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             }, { onConflict: 'user_id' }); // Assuming user_id might be unique or handle conflict appropriately
 
            if (profileError) {
-             // It's possible profiles are auto-created by triggers, so this might be redundant or fail silently
-             console.log('Profile creation note:', profileError.message);
+             addLog(`Profile sync note for ${userData.email}: ${profileError.message}`, 'error');
+           } else {
+             addLog(`Profile synchronized for ${userData.email}.`, 'success');
            }
         }
       }
@@ -104,24 +99,14 @@ export const useSeedData = () => {
     addLog('Starting database seeding...', 'info');
 
     try {
-      // Get the users we just created to link data to them
-      // We'll fetch them by email to ensure we have the IDs
       const { data: users, error: userError } = await supabase
-        .from('profiles') // Or fetch from auth if you have admin rights, but client-side restricted. 
-        // NOTE: For client-side seeding without Service Role key, we can only insert data for the CURRENTLY logged in user usually due to RLS.
-        // HOWEVER, if this is an Admin tool and RLS allows admins to write, or if we just seeded them and are logged in as admin...
-        // Let's assume the current user (Admin) has permission to write data for others or we are just creating general data.
-        // Actually, best practice for this "Test Data" button is often: "Seed data for ME (current user)" or "Seed system data".
-        
-        // Strategy: We will try to fetch the specific test users we created. 
-        // If we can't see them due to RLS, we might be limited. 
-        // Assuming Admin role has bypass or read all access on profiles.
-        .select('user_id, email, full_name');
+        .from('profiles')
+        .select('user_id, full_name');
         
       if (userError) throw userError;
 
-      const scteUser = users?.find(u => u.email === 'scte.test@cashpilot.cloud') || { user_id: (await supabase.auth.getUser()).data.user?.id }; 
-      // Fallback to current user if specific test user not found/accessible
+      const scteUser = users?.find((profile) => profile.full_name === 'SCTE Manager')
+        || { user_id: (await supabase.auth.getUser()).data.user?.id, full_name: 'Current user' };
       
       const userId = scteUser.user_id;
 
@@ -129,7 +114,7 @@ export const useSeedData = () => {
         throw new Error("Target user ID not found. Please create users first or log in.");
       }
 
-      addLog(`Seeding data for user ID: ${userId} (${scteUser.email || 'Current'})`, 'info');
+      addLog(`Seeding data for user ID: ${userId} (${scteUser.full_name || 'Current user'})`, 'info');
 
       // 1. Create Suppliers
       addLog('Creating suppliers...', 'pending');

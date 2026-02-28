@@ -22,7 +22,7 @@ const SignupPage = () => {
 
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const [role, setRole] = useState('freelance');
+  const [role] = useState('user');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
