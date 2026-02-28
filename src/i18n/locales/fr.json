@@ -1461,11 +1461,16 @@
     "creditPacksDesc": "Besoin de plus ? Achetez des packs de crédits ponctuels qui ne périment jamais.",
     "free": "Gratuit",
     "month": "mois",
+    "year": "an",
+    "monthly": "Mensuel",
+    "annual": "Annuel",
+    "monthsFree": "mois offerts",
     "creditsPerMonth": "crédits/mois",
     "popular": "Populaire",
     "currentPlan": "Plan actuel",
     "freePlan": "Plan actuel",
     "subscribe": "S'abonner",
+    "contactUs": "Nous contacter",
     "success": "Paiement réussi",
     "subscriptionActivated": "Votre abonnement est maintenant actif !",
     "cancelled": "Paiement annulé",
@@ -1473,7 +1478,36 @@
     "goToApp": "Aller à l'app",
     "login": "Connexion",
     "signup": "Créer un compte",
-    "footer": "Tous les prix sont en EUR, hors TVA. Les abonnements sont renouvelés automatiquement chaque mois. Annulez à tout moment."
+    "footer": "Tous les prix sont en EUR, hors TVA. Les abonnements sont renouvelés automatiquement. Annulez à tout moment.",
+    "target": {
+      "free": "Découvrir CashPilot",
+      "starter": "Freelances & indépendants",
+      "pro": "PME en croissance",
+      "business": "Entreprises établies",
+      "enterprise": "Grands comptes & groupes"
+    },
+    "noFeature": {
+      "reports": "Rapports analytiques",
+      "support": "Support dédié"
+    },
+    "trust": {
+      "stripe": "Paiement sécurisé via Stripe",
+      "gdpr": "Conforme RGPD",
+      "cancel": "Annulation à tout moment"
+    },
+    "faq": {
+      "title": "Questions fréquentes",
+      "q1": "Comment fonctionnent les crédits d'abonnement ?",
+      "a1": "Vos crédits d'abonnement sont crédités chaque mois à votre date de renouvellement. Les crédits non utilisés ne sont pas reportés au mois suivant. Les crédits achetés en pack restent disponibles indéfiniment.",
+      "q2": "Puis-je changer de plan à tout moment ?",
+      "a2": "Oui, vous pouvez passer à un plan supérieur ou inférieur à tout moment. Le changement prend effet immédiatement et le montant est calculé au prorata.",
+      "q3": "Comment fonctionne la facturation annuelle ?",
+      "a3": "Avec la facturation annuelle, vous payez l'équivalent de 10 mois au lieu de 12, soit 2 mois offerts. Le paiement est effectué en une seule fois.",
+      "q4": "Que se passe-t-il si je dépasse mes crédits mensuels ?",
+      "a4": "Vous pouvez acheter des packs de crédits supplémentaires à tout moment. Ces crédits ne périment jamais et sont utilisés après vos crédits d'abonnement.",
+      "q5": "Comment annuler mon abonnement ?",
+      "a5": "Vous pouvez annuler votre abonnement à tout moment depuis les paramètres de facturation. Vous conservez l'accès jusqu'à la fin de la période payée."
+    }
   },
   "subscription": {
     "subCredits": "Abonnement",
