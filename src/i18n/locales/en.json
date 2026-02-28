@@ -1422,6 +1422,15 @@
     "imbalance_guidance": "An imbalance was detected on {{ref}}. Don't worry — run an audit to identify and fix the issue.",
     "see_audit": "View audit"
   },
+  "auto_journal": {
+    "invoice_sent": "Accounting entries auto-generated for invoice {{ref}}",
+    "payment_recorded": "Accounting entries auto-generated for payment {{ref}}",
+    "expense_recorded": "Accounting entries auto-generated for expense {{ref}}",
+    "supplier_invoice_validated": "Accounting entries auto-generated for supplier invoice {{ref}}",
+    "credit_note_issued": "Accounting entries auto-generated for credit note {{ref}}",
+    "auto_journal_label": "Auto-journaling",
+    "auto_journal_description": "Automatically generate accounting entries when creating invoices, payments and expenses"
+  },
   "peppol": {
     "sendViaPeppol": "Send via Peppol",
     "exportUBL": "Export UBL Peppol",

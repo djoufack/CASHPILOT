@@ -1409,6 +1409,15 @@
     "imbalance_guidance": "Un desequilibre a ete detecte sur {{ref}}. Pas de panique — lancez un audit pour identifier et corriger le probleme.",
     "see_audit": "Voir l'audit"
   },
+  "auto_journal": {
+    "invoice_sent": "Écritures comptables générées automatiquement pour la facture {{ref}}",
+    "payment_recorded": "Écritures comptables générées pour le paiement {{ref}}",
+    "expense_recorded": "Écritures comptables générées pour la dépense {{ref}}",
+    "supplier_invoice_validated": "Écritures comptables générées pour la facture fournisseur {{ref}}",
+    "credit_note_issued": "Écritures comptables générées pour l'avoir {{ref}}",
+    "auto_journal_label": "Journalisation automatique",
+    "auto_journal_description": "Générer automatiquement les écritures comptables lors de la création de factures, paiements et dépenses"
+  },
   "peppol": {
     "sendViaPeppol": "Envoyer via Peppol",
     "exportUBL": "Exporter UBL Peppol",
