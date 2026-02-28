@@ -73,6 +73,7 @@ export async function initializeAccounting(userId, country) {
           user_id: userId,
           country,
           is_initialized: false,
+          auto_journal_enabled: true,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id' }
