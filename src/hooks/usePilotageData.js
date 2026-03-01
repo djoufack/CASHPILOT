@@ -2,7 +2,11 @@ import { useMemo } from 'react';
 import { useAccountingData } from '@/hooks/useAccountingData';
 import { useCashFlow } from '@/hooks/useCashFlow';
 import { useCompany } from '@/hooks/useCompany';
-import { computePilotageRatios, computeAlerts } from '@/utils/pilotageCalculations';
+import {
+  buildPilotageMonthlySeries,
+  computePilotageRatios,
+  computeAlerts,
+} from '@/utils/pilotageCalculations';
 import { buildTaxSynthesis } from '@/utils/taxCalculations';
 import { buildValuationSummary } from '@/utils/valuationCalculations';
 import { getSectorBenchmarks, evaluateRatio } from '@/utils/sectorBenchmarks';
@@ -10,7 +14,7 @@ import { getSectorBenchmarks, evaluateRatio } from '@/utils/sectorBenchmarks';
 export const usePilotageData = (startDate, endDate, sector = 'b2b_services', region = 'france') => {
   // 1. Get raw data from existing hooks
   const accountingData = useAccountingData(startDate, endDate);
-  const cashFlowResult = useCashFlow(12, 'month');
+  const cashFlowResult = useCashFlow({ startDate, endDate, granularity: 'month' });
   const { company } = useCompany();
 
   // 2. Compute pilotage ratios
@@ -24,8 +28,26 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
       startDate,
       endDate,
       financialDiagnostic: accountingData.financialDiagnostic,
+      region,
     });
-  }, [accountingData.balanceSheet, accountingData.incomeStatement, accountingData.entries, accountingData.accounts, accountingData.financialDiagnostic, accountingData.loading, startDate, endDate]);
+  }, [
+    accountingData.balanceSheet,
+    accountingData.incomeStatement,
+    accountingData.entries,
+    accountingData.accounts,
+    accountingData.financialDiagnostic,
+    accountingData.loading,
+    startDate,
+    endDate,
+    region,
+  ]);
+
+  const monthlyData = useMemo(() => {
+    return buildPilotageMonthlySeries(
+      accountingData.monthlyData,
+      cashFlowResult.cashFlowData
+    );
+  }, [accountingData.monthlyData, cashFlowResult.cashFlowData]);
 
   // 3. Compute alerts
   const alerts = useMemo(() => {
@@ -62,14 +84,15 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
   // 6. Tax synthesis
   const taxSynthesis = useMemo(() => {
     if (accountingData.loading) return null;
+    const preTaxIncome = accountingData.financialDiagnostic?.tax?.preTaxIncome || 0;
     return buildTaxSynthesis({
-      preTaxIncome: accountingData.netIncome || 0,
+      preTaxIncome,
       revenue: accountingData.revenue || 0,
       rdExpenses: 0, // Could be extracted from specific accounts later
       region,
       isSmallBusiness: true, // Default PME
     });
-  }, [accountingData.netIncome, accountingData.revenue, accountingData.loading, region]);
+  }, [accountingData.financialDiagnostic?.tax?.preTaxIncome, accountingData.revenue, accountingData.loading, region]);
 
   // 7. Valuation
   const valuation = useMemo(() => {
@@ -101,7 +124,8 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
     balanceSheet: accountingData.balanceSheet,
     incomeStatement: accountingData.incomeStatement,
     trialBalance: accountingData.trialBalance,
-    monthlyData: accountingData.monthlyData,
+    monthlyData,
+    rawMonthlyData: accountingData.monthlyData,
     entries: accountingData.entries,
     accounts: accountingData.accounts,
     financialDiagnostic: accountingData.financialDiagnostic,

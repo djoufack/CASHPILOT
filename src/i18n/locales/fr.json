@@ -36,7 +36,11 @@
     "calendar": "Calendrier",
     "agenda": "Agenda",
     "kanban": "Kanban",
-    "kanbanDropHere": "Déposez les éléments ici"
+    "kanbanDropHere": "Déposez les éléments ici",
+    "view": "Visualiser",
+    "print": "Imprimer",
+    "copy": "Copier",
+    "copied": "Copié"
   },
   "nav": {
     "dashboard": "Tableau de bord",
@@ -69,7 +73,7 @@
     "financeSection": "Finance",
     "systemSection": "Système",
     "management": "Gestion",
-    "peppolEInvoicing": "Facturation électronique Peppol",
+    "peppolEInvoicing": "Peppol",
     "seedData": "Données de test",
     "pilotage": "Pilotage"
   },
@@ -1755,6 +1759,7 @@
     "sending": "Envoi en cours...",
     "sentSuccess": "Facture envoyée via Peppol",
     "sendError": "Erreur lors de l'envoi Peppol",
+    "retry": "Renvoyer",
     "validationFailed": "La facture ne respecte pas les règles Peppol",
     "pollingStatus": "Vérification du statut en cours...",
     "scradaCompanyId": "Identifiant société Scrada",

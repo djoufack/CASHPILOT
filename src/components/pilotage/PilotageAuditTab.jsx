@@ -266,16 +266,20 @@ const DataSummaryRow = ({ label, value }) => (
 // Main component
 // ---------------------------------------------------------------------------
 
-const PilotageAuditTab = () => {
+const PilotageAuditTab = ({ startDate, endDate }) => {
   const { t } = useTranslation();
   const { auditResult, loading, error, runAudit, clearCache } =
-    useAuditComptable(true);
+    useAuditComptable({
+      autoLoad: true,
+      defaultPeriodStart: startDate,
+      defaultPeriodEnd: endDate,
+      cacheKey: `cashpilot_audit_cache:${startDate || 'default'}:${endDate || 'default'}`,
+    });
 
   const handleRunAudit = useCallback(() => {
-    const year = new Date().getFullYear();
-    const today = new Date().toISOString().split('T')[0];
-    runAudit(`${year}-01-01`, today);
-  }, [runAudit]);
+    if (!startDate || !endDate) return;
+    runAudit(startDate, endDate);
+  }, [endDate, runAudit, startDate]);
 
   const formattedDate = useMemo(() => {
     if (!auditResult?.generated_at) return null;

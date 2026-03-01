@@ -13,47 +13,15 @@
  */
 
 import { filterByPeriod } from './accountingCalculations';
+import {
+  calculateCapexFromEntries,
+  calculatePreTaxIncome,
+  extractFinancialPosition,
+} from './financialMetrics';
 
 // ============================================================================
 // HELPER FUNCTIONS - EXTRACTION DE COMPTES
 // ============================================================================
-
-/**
- * Extraire les comptes d'un bilan par préfixe
- */
-function extractAccountsByPrefix(balanceSheet, prefix) {
-  if (!balanceSheet) return [];
-
-  const allAccounts = [
-    ...(balanceSheet.assets || []),
-    ...(balanceSheet.liabilities || []),
-    ...(balanceSheet.equity || [])
-  ];
-
-  return allAccounts.filter(acc =>
-    acc.account_code && acc.account_code.startsWith(prefix)
-  );
-}
-
-/**
- * Sommer les soldes des comptes par préfixe
- */
-function sumAccountsByPrefix(balanceSheet, prefixes) {
-  if (!balanceSheet) return 0;
-
-  const allAccounts = [
-    ...(balanceSheet.assets || []),
-    ...(balanceSheet.liabilities || []),
-    ...(balanceSheet.equity || [])
-  ];
-
-  return allAccounts
-    .filter(acc => {
-      if (!acc.account_code) return false;
-      return prefixes.some(prefix => acc.account_code.startsWith(prefix));
-    })
-    .reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
-}
 
 /**
  * Extraire et sommer les écritures comptables par classe de compte
@@ -293,11 +261,7 @@ export function calculateCAF(netIncome, entries, accounts, startDate, endDate) {
 export function calculateWorkingCapital(balanceSheet) {
   if (!balanceSheet) return 0;
 
-  // Capitaux permanents (Classe 1: capitaux propres + dettes à long terme)
-  const permanentCapital = sumAccountsByPrefix(balanceSheet, ['1']);
-
-  // Actifs immobilisés (Classe 2)
-  const fixedAssets = sumAccountsByPrefix(balanceSheet, ['2']);
+  const { permanentCapital, fixedAssets } = extractFinancialPosition(balanceSheet);
 
   return permanentCapital - fixedAssets;
 }
@@ -310,21 +274,9 @@ export function calculateWorkingCapital(balanceSheet) {
 export function calculateBFR(balanceSheet) {
   if (!balanceSheet) return 0;
 
-  // Actifs circulants hors trésorerie
-  // Classe 3: Stocks
-  const inventory = sumAccountsByPrefix(balanceSheet, ['3']);
+  const { operatingCurrentAssets, currentLiabilities } = extractFinancialPosition(balanceSheet);
 
-  // Classe 41: Clients et comptes rattachés
-  const receivables = sumAccountsByPrefix(balanceSheet, ['41']);
-
-  // Dettes à court terme
-  // Classe 40: Fournisseurs et comptes rattachés
-  const payables = sumAccountsByPrefix(balanceSheet, ['40']);
-
-  // Classe 44: État et collectivités publiques (TVA, impôts)
-  const taxLiabilities = sumAccountsByPrefix(balanceSheet, ['44']);
-
-  return (inventory + receivables) - (payables + taxLiabilities);
+  return operatingCurrentAssets - currentLiabilities;
 }
 
 /**
@@ -350,15 +302,7 @@ export function calculateOperatingCashFlow(caf, bfrVariation) {
 export function calculateNetDebt(balanceSheet) {
   if (!balanceSheet) return 0;
 
-  // Dettes financières
-  // Classe 16: Emprunts et dettes assimilées
-  // Classe 17: Dettes rattachées à des participations
-  const financialDebt = sumAccountsByPrefix(balanceSheet, ['16', '17']);
-
-  // Trésorerie
-  // Classe 52: Banques
-  // Classe 57: Caisse
-  const cash = sumAccountsByPrefix(balanceSheet, ['52', '57']);
+  const { financialDebt, cash } = extractFinancialPosition(balanceSheet);
 
   return financialDebt - cash;
 }
@@ -396,14 +340,7 @@ export function calculateROCE(operatingResult, equity, longTermDebt) {
 export function calculateCurrentRatio(balanceSheet) {
   if (!balanceSheet) return 0;
 
-  // Actifs circulants
-  const currentAssets = sumAccountsByPrefix(balanceSheet, ['3', '4', '5']);
-
-  // Passifs courants (dettes à court terme)
-  // Classe 40: Fournisseurs
-  // Classe 44: État
-  // Plus une partie des dettes CT (simplification: on prend les 40 et 44)
-  const currentLiabilities = sumAccountsByPrefix(balanceSheet, ['40', '44']);
+  const { currentAssets, currentLiabilities } = extractFinancialPosition(balanceSheet);
 
   if (!currentLiabilities || currentLiabilities === 0) return 0;
   return currentAssets / currentLiabilities;
@@ -417,11 +354,8 @@ export function calculateCurrentRatio(balanceSheet) {
 export function calculateQuickRatio(balanceSheet) {
   if (!balanceSheet) return 0;
 
-  // Actifs circulants hors stocks
-  const quickAssets = sumAccountsByPrefix(balanceSheet, ['4', '5']);
-
-  // Passifs courants
-  const currentLiabilities = sumAccountsByPrefix(balanceSheet, ['40', '44']);
+  const { currentAssets, inventory, currentLiabilities } = extractFinancialPosition(balanceSheet);
+  const quickAssets = currentAssets - inventory;
 
   if (!currentLiabilities || currentLiabilities === 0) return 0;
   return quickAssets / currentLiabilities;
@@ -435,11 +369,7 @@ export function calculateQuickRatio(balanceSheet) {
 export function calculateCashRatio(balanceSheet) {
   if (!balanceSheet) return 0;
 
-  // Trésorerie
-  const cash = sumAccountsByPrefix(balanceSheet, ['52', '57']);
-
-  // Passifs courants
-  const currentLiabilities = sumAccountsByPrefix(balanceSheet, ['40', '44']);
+  const { cash, currentLiabilities } = extractFinancialPosition(balanceSheet);
 
   if (!currentLiabilities || currentLiabilities === 0) return 0;
   return cash / currentLiabilities;
@@ -496,9 +426,11 @@ export function buildFinancialDiagnostic(
   // Extraire valeurs de base
   const revenue = incomeStatement?.totalRevenue || 0;
   const netIncome = incomeStatement?.netIncome || 0;
-  const equity = sumAccountsByPrefix(balanceSheet, ['10']);
-  const longTermDebt = sumAccountsByPrefix(balanceSheet, ['16']);
-  const totalDebt = sumAccountsByPrefix(balanceSheet, ['16', '17']);
+  const {
+    equity,
+    longTermDebt,
+    totalDebt,
+  } = extractFinancialPosition(balanceSheet);
 
   // ========== ANALYSE DES MARGES ==========
   const grossMargin = calculateGrossMargin(entries, accounts, startDate, endDate);
@@ -519,6 +451,8 @@ export function buildFinancialDiagnostic(
     : 0;
   const operatingCashFlow = calculateOperatingCashFlow(caf, bfrVariation);
   const netDebt = calculateNetDebt(balanceSheet);
+  const capex = calculateCapexFromEntries(entries, accounts, startDate, endDate);
+  const preTaxIncome = calculatePreTaxIncome(netIncome, entries, accounts, startDate, endDate);
 
   // ========== RATIOS CLÉS ==========
   const roe = calculateROE(netIncome, equity);
@@ -546,9 +480,13 @@ export function buildFinancialDiagnostic(
       bfr,
       bfrVariation,
       operatingCashFlow,
+      capex,
       netDebt,
       equity,
       totalDebt
+    },
+    tax: {
+      preTaxIncome,
     },
     ratios: {
       profitability: {

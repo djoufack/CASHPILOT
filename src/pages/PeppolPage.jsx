@@ -13,8 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Send, Search, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, ArrowUpRight, ArrowDownLeft, Settings, ExternalLink, Zap, Globe, Wrench, Shield, FileCheck, Loader2, Activity } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Send, Search, RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle, ArrowUpRight, ArrowDownLeft, Settings, ExternalLink, Zap, Globe, Wrench, Shield, FileCheck, Loader2, Activity, MoreHorizontal, Eye, Printer, Download, RotateCcw, Copy } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import InvoicePreview from '@/components/InvoicePreview';
+import { exportUBL } from '@/services/exportUBL';
 import PeppolSettings from '@/components/settings/PeppolSettings';
 
 const PeppolPage = () => {
@@ -40,6 +43,7 @@ const PeppolPage = () => {
   const [peppolIdInput, setPeppolIdInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewingInvoice, setViewingInvoice] = useState(null);
   const [apInfo, setApInfo] = useState(null);
   const [loadingApInfo, setLoadingApInfo] = useState(false);
 
@@ -213,6 +217,61 @@ const PeppolPage = () => {
     setSendDialogOpen(false);
     setSelectedInvoice(null);
     setSelectedInvoiceItems([]);
+  };
+
+  // --- Action handlers for invoice rows ---
+  const [viewingInvoiceItems, setViewingInvoiceItems] = useState([]);
+
+  const handleViewInvoice = async (invoice) => {
+    setViewingInvoice(invoice);
+    try {
+      const { data: items } = await supabase
+        .from('invoice_items')
+        .select('*')
+        .eq('invoice_id', invoice.id);
+      setViewingInvoiceItems(items || []);
+    } catch {
+      setViewingInvoiceItems([]);
+    }
+  };
+
+  const handlePrintInvoice = async (invoice) => {
+    await handleViewInvoice(invoice);
+    // Trigger print after render
+    setTimeout(() => window.print(), 500);
+  };
+
+  const handleExportUBL = async (invoice) => {
+    try {
+      const { data: items } = await supabase
+        .from('invoice_items')
+        .select('*')
+        .eq('invoice_id', invoice.id);
+
+      await exportUBL(
+        invoice,
+        { name: company?.name, peppol_endpoint_id: company?.peppol_endpoint_id },
+        invoice.client,
+        items || []
+      );
+
+      toast({
+        title: t('peppol.exportUBL'),
+        description: `${invoice.invoice_number} — UBL XML`,
+      });
+    } catch (err) {
+      toast({
+        title: t('common.error'),
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleCopyDocumentId = (docId) => {
+    if (!docId) return;
+    navigator.clipboard.writeText(docId);
+    toast({ title: t('common.copied') || 'Copié', description: docId });
   };
 
   // --- Peppol ID check ---
@@ -602,22 +661,61 @@ const PeppolPage = () => {
                             )}
                           </td>
                           <td className="p-3 text-right">
-                            {canSend ? (
-                              <Button
-                                size="sm"
-                                onClick={() => handleOpenSendDialog(invoice)}
-                                disabled={sending}
-                                className="bg-orange-500 hover:bg-orange-600 text-white text-xs"
-                              >
-                                <Send className="w-3 h-3 mr-1" />
-                                {t('peppol.sendViaPeppol')}
-                              </Button>
-                            ) : invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent' ? (
-                              <Badge className="bg-yellow-500/20 text-yellow-400 border-0 gap-1">
-                                <RefreshCw className="w-3 h-3 animate-spin" />
-                                {t('peppol.pollingStatus')}
-                              </Badge>
-                            ) : null}
+                            <div className="flex items-center justify-end gap-1">
+                              {canSend && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleOpenSendDialog(invoice)}
+                                  disabled={sending}
+                                  className="bg-orange-500 hover:bg-orange-600 text-white text-xs"
+                                >
+                                  <Send className="w-3 h-3 mr-1" />
+                                  {t('peppol.sendViaPeppol')}
+                                </Button>
+                              )}
+                              {(invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent') && (
+                                <Badge className="bg-yellow-500/20 text-yellow-400 border-0 gap-1">
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                  {t('peppol.pollingStatus')}
+                                </Badge>
+                              )}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="bg-gray-900 border-gray-700 text-gray-200">
+                                  <DropdownMenuItem onClick={() => handleViewInvoice(invoice)} className="gap-2 cursor-pointer hover:bg-gray-800">
+                                    <Eye className="w-4 h-4 text-blue-400" />
+                                    {t('common.view') || 'Visualiser'}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handlePrintInvoice(invoice)} className="gap-2 cursor-pointer hover:bg-gray-800">
+                                    <Printer className="w-4 h-4 text-gray-400" />
+                                    {t('common.print') || 'Imprimer'}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleExportUBL(invoice)} className="gap-2 cursor-pointer hover:bg-gray-800">
+                                    <Download className="w-4 h-4 text-emerald-400" />
+                                    {t('peppol.exportUBL')}
+                                  </DropdownMenuItem>
+                                  {invoice.peppol_document_id && (
+                                    <DropdownMenuItem onClick={() => handleCopyDocumentId(invoice.peppol_document_id)} className="gap-2 cursor-pointer hover:bg-gray-800">
+                                      <Copy className="w-4 h-4 text-gray-400" />
+                                      {t('common.copy') || 'Copier'} Document ID
+                                    </DropdownMenuItem>
+                                  )}
+                                  {invoice.peppol_status === 'error' && (
+                                    <>
+                                      <DropdownMenuSeparator className="bg-gray-700" />
+                                      <DropdownMenuItem onClick={() => handleOpenSendDialog(invoice)} className="gap-2 cursor-pointer hover:bg-gray-800 text-orange-400">
+                                        <RotateCcw className="w-4 h-4" />
+                                        {t('peppol.retry') || 'Renvoyer'}
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1075,6 +1173,19 @@ const PeppolPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* --- Invoice Preview Dialog --- */}
+      {viewingInvoice && (
+        <Dialog open={!!viewingInvoice} onOpenChange={(open) => { if (!open) { setViewingInvoice(null); setViewingInvoiceItems([]); } }}>
+          <DialogContent className="w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0f1528] border-white/10 text-white p-0">
+            <InvoicePreview
+              invoice={viewingInvoice}
+              client={viewingInvoice.client}
+              items={viewingInvoiceItems}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

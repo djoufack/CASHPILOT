@@ -20,7 +20,7 @@ import {
   buildMonthlyChartDataFromEntries,
   validateAccountingConsistency,
 } from '@/utils/accountingCalculations';
-import { buildFinancialDiagnostic } from '@/utils/financialAnalysisCalculations';
+import { buildFinancialDiagnostic, calculateBFR } from '@/utils/financialAnalysisCalculations';
 
 export const useAccountingData = (startDate, endDate) => {
   const { user } = useAuth();
@@ -188,6 +188,26 @@ export const useAccountingData = (startDate, endDate) => {
     const generalLedger = buildGeneralLedger(entries, accounts, startDate, endDate);
     const journalBook = buildJournalBook(entries, startDate, endDate);
 
+    const previousPeriodData = (() => {
+      if (!startDate) return null;
+
+      const previousEndDate = new Date(`${startDate}T00:00:00`);
+      previousEndDate.setDate(previousEndDate.getDate() - 1);
+
+      const previousBalanceSheet = buildBalanceSheetFromEntries(
+        accounts,
+        entries,
+        null,
+        previousEndDate.toISOString().split('T')[0]
+      );
+
+      return {
+        financing: {
+          bfr: calculateBFR(previousBalanceSheet),
+        },
+      };
+    })();
+
     // Financial diagnostic
     const financialDiagnostic = buildFinancialDiagnostic(
       entries,
@@ -196,7 +216,7 @@ export const useAccountingData = (startDate, endDate) => {
       incomeStatement,
       startDate,
       endDate,
-      null
+      previousPeriodData
     );
 
     // Consistency validation

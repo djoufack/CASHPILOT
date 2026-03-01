@@ -123,7 +123,7 @@ const PilotagePage = () => {
                 <PilotageSimulatorTab />
               </TabsContent>
               <TabsContent value="aiAudit">
-                <PilotageAuditTab />
+                <PilotageAuditTab startDate={startDate} endDate={endDate} />
               </TabsContent>
             </div>
           </Tabs>
