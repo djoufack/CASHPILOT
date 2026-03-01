@@ -1,4 +1,4 @@
-import html2pdf from 'html2pdf.js';
+import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 
 /**
  * Export Expenses List to PDF
@@ -79,7 +79,7 @@ export const exportExpensesListPDF = async (expenses, companyInfo, filters = {})
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {
@@ -166,7 +166,7 @@ export const exportStockListPDF = async (stockItems, companyInfo) => {
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {
@@ -261,7 +261,7 @@ export const exportTimesheetsListPDF = async (timesheets, companyInfo, filters =
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {
@@ -345,7 +345,7 @@ export const exportProjectsListPDF = async (projects, companyInfo) => {
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {
@@ -444,7 +444,7 @@ export const exportDebtListPDF = async (debts, companyInfo, type = 'receivables'
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {

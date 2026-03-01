@@ -1,6 +1,6 @@
 
 import React from "react";
-import html2pdf from 'html2pdf.js';
+import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 
 /**
  * Export invoice to PDF
@@ -22,7 +22,7 @@ export const exportInvoiceToPDF = async (invoiceElement, invoiceNumber) => {
   };
 
   try {
-    await html2pdf().set(options).from(invoiceElement).save();
+    await saveElementAsPdf(invoiceElement, options);
     return true;
   } catch (error) {
     console.error('PDF export failed:', error);

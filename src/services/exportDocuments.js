@@ -1,4 +1,4 @@
-import html2pdf from 'html2pdf.js';
+import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 
 /**
  * Generate HTML content for Invoice document
@@ -480,7 +480,7 @@ export const exportInvoicePDF = async (invoice, companyInfo) => {
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {
@@ -508,7 +508,7 @@ export const exportQuotePDF = async (quote, companyInfo) => {
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {
@@ -536,7 +536,7 @@ export const exportDeliveryNotePDF = async (deliveryNote, companyInfo) => {
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {
@@ -564,7 +564,7 @@ export const exportCreditNotePDF = async (creditNote, companyInfo) => {
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {
@@ -592,7 +592,7 @@ export const exportPurchaseOrderPDF = async (purchaseOrder, companyInfo) => {
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {

@@ -1,5 +1,5 @@
 
-import html2pdf from 'html2pdf.js';
+import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 
 /**
  * Export payment receipt to PDF
@@ -24,7 +24,7 @@ export const exportReceiptToPDF = async (receiptElement, receiptNumber, date) =>
   };
 
   try {
-    await html2pdf().set(options).from(receiptElement).save();
+    await saveElementAsPdf(receiptElement, options);
     return true;
   } catch (error) {
     console.error('Receipt PDF export failed:', error);
