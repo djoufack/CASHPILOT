@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/utils/currencyService';
 import { Activity } from 'lucide-react';
 import {
   BarChart,
@@ -13,20 +14,14 @@ import {
   Cell,
 } from 'recharts';
 
-const currencyFormatter = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-  maximumFractionDigits: 0,
-});
-
-const CustomTooltip = ({ active, payload }) => {
+const CustomTooltip = ({ active, payload, currency }) => {
   if (!active || !payload?.length) return null;
   const entry = payload[0];
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 shadow-xl">
       <p className="text-xs text-gray-400">{entry.payload.label}</p>
       <p className="text-sm font-mono font-semibold text-gray-100">
-        {currencyFormatter.format(entry.value)}
+        {formatCurrency(entry.value, currency)}
       </p>
       <p className="text-xs text-gray-500">
         WACC: {(entry.payload.wacc * 100).toFixed(1)}%
@@ -39,6 +34,7 @@ const WACCSensitivityChart = ({ data }) => {
   const { t } = useTranslation();
 
   const sensitivityData = data?.valuation?.sensitivity;
+  const currency = data?.company?.currency || 'EUR';
 
   if (!sensitivityData || sensitivityData.length === 0) {
     return null;
@@ -58,7 +54,7 @@ const WACCSensitivityChart = ({ data }) => {
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" horizontal={false} />
             <XAxis
               type="number"
-              tickFormatter={(v) => currencyFormatter.format(v)}
+              tickFormatter={(v) => formatCurrency(v, currency)}
               stroke="#9ca3af"
               tick={{ fontSize: 11 }}
               axisLine={{ stroke: '#4b5563' }}
@@ -71,7 +67,7 @@ const WACCSensitivityChart = ({ data }) => {
               tick={{ fontSize: 12 }}
               axisLine={{ stroke: '#4b5563' }}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+            <Tooltip content={<CustomTooltip currency={currency} />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
             <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={28}>
               {sensitivityData.map((entry, i) => (
                 <Cell

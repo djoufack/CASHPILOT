@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Upload, FileText, AlertTriangle, CheckCircle2, Loader2, X } from 'lucide-react';
 import { parseCSV, getCSVPreview } from '@/utils/csvParser';
+import { validateChartOfAccountsImport } from '@/utils/accountingQualityChecks';
 
-const CSVImportModal = ({ open, onOpenChange, onImport }) => {
+const CSVImportModal = ({ open, onOpenChange, onImport, existingAccounts = [] }) => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [rawContent, setRawContent] = useState('');
@@ -37,11 +38,17 @@ const CSVImportModal = ({ open, onOpenChange, onImport }) => {
     reader.onload = (e) => {
       const content = e.target.result;
       setRawContent(content);
+      const parsed = parseCSV(content);
       const prev = getCSVPreview(content, 8);
-      setPreview(prev);
+      const validation = validateChartOfAccountsImport(parsed.accounts, { existingAccounts });
+      setPreview({
+        ...prev,
+        parsedAccountsCount: parsed.accounts.length,
+        validation,
+      });
     };
     reader.readAsText(f, 'UTF-8');
-  }, []);
+  }, [existingAccounts]);
 
   const handleFileChange = (e) => {
     if (e.target.files?.[0]) readFile(e.target.files[0]);
@@ -67,10 +74,17 @@ const CSVImportModal = ({ open, onOpenChange, onImport }) => {
         success: true,
         imported: importResult?.count || accounts.length,
         errors: errors.length,
+        validation: importResult?.validation || preview?.validation || null,
         message: `${importResult?.count || accounts.length} comptes importés avec succès`
       });
     } catch (err) {
-      setResult({ success: false, imported: 0, errors: 1, message: err.message });
+      setResult({
+        success: false,
+        imported: 0,
+        errors: 1,
+        validation: err.validation || preview?.validation || null,
+        message: err.message,
+      });
     } finally {
       setImporting(false);
     }
@@ -152,6 +166,64 @@ const CSVImportModal = ({ open, onOpenChange, onImport }) => {
               </div>
             )}
 
+            {preview.validation && (
+              <div className={`rounded-lg border p-3 ${
+                preview.validation.blockingIssues.length > 0
+                  ? 'bg-red-500/10 border-red-500/30'
+                  : preview.validation.warnings.length > 0
+                    ? 'bg-amber-500/10 border-amber-500/30'
+                    : 'bg-green-500/10 border-green-500/30'
+              }`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className={`text-sm font-medium ${
+                      preview.validation.blockingIssues.length > 0
+                        ? 'text-red-300'
+                        : preview.validation.warnings.length > 0
+                          ? 'text-amber-300'
+                          : 'text-green-300'
+                    }`}>
+                      Contrôle de cohérence comptable
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Région détectée: <span className="text-gray-200">{preview.validation.region}</span> •
+                      Catégories renseignées: <span className="text-gray-200"> {((preview.validation.combinedSummary?.categoryCoverage ?? 0) * 100).toFixed(0)}%</span>
+                    </p>
+                  </div>
+                  <div className="flex gap-2 text-xs">
+                    <Badge className="bg-red-500/20 text-red-300">
+                      {preview.validation.summary.blockingCount} bloquant(s)
+                    </Badge>
+                    <Badge className="bg-amber-500/20 text-amber-300">
+                      {preview.validation.summary.warningCount} alerte(s)
+                    </Badge>
+                  </div>
+                </div>
+
+                {preview.validation.issues.length > 0 ? (
+                  <div className="mt-3 space-y-2">
+                    {preview.validation.issues.slice(0, 5).map((issue) => (
+                      <div key={`${issue.code}-${issue.message}`} className="text-xs text-gray-300">
+                        <span className={issue.severity === 'critical' ? 'text-red-300 font-medium' : 'text-amber-300 font-medium'}>
+                          {issue.severity === 'critical' ? 'Bloquant' : 'Alerte'}:
+                        </span>{' '}
+                        {issue.message}
+                      </div>
+                    ))}
+                    {preview.validation.issues.length > 5 && (
+                      <p className="text-xs text-gray-500">
+                        ... et {preview.validation.issues.length - 5} autre(s) point(s)
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-green-300 mt-3">
+                    Le plan importé est exploitable pour le pilotage sans anomalie bloquante détectée.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Table preview */}
             <div className="overflow-x-auto rounded-lg border border-gray-800">
               <table className="w-full text-sm">
@@ -199,6 +271,11 @@ const CSVImportModal = ({ open, onOpenChange, onImport }) => {
               {result.success ? 'Import réussi !' : 'Erreur d\'import'}
             </h3>
             <p className="text-gray-400">{result.message}</p>
+            {result.validation && (
+              <p className="text-xs text-gray-500 mt-2">
+                {result.validation.summary.blockingCount} bloquant(s) • {result.validation.summary.warningCount} alerte(s)
+              </p>
+            )}
             {result.errors > 0 && (
               <p className="text-xs text-gray-500 mt-2">{result.errors} ligne(s) ignorée(s)</p>
             )}
@@ -218,13 +295,15 @@ const CSVImportModal = ({ open, onOpenChange, onImport }) => {
               {preview && (
                 <Button
                   onClick={handleImport}
-                  disabled={importing || preview.totalRows === 0}
+                  disabled={importing || preview.totalRows === 0 || preview.validation?.blockingIssues.length > 0}
                   className="bg-orange-500 hover:bg-orange-600"
                 >
                   {importing ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importation...</>
                   ) : (
-                    `Importer ${preview.totalRows} comptes`
+                    preview.validation?.blockingIssues.length > 0
+                      ? 'Import bloqué'
+                      : `Importer ${preview.totalRows} comptes`
                   )}
                 </Button>
               )}

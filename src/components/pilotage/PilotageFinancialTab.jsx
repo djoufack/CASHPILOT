@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { formatCurrency } from '@/utils/currencyService';
 import {
   PieChart,
   Pie,
@@ -38,18 +39,14 @@ const itemVariants = {
 
 const PIE_COLORS = ['#34d399', '#f87171', '#fbbf24'];
 
-const CustomTooltipPie = ({ active, payload }) => {
+const CustomTooltipPie = ({ active, payload, currency }) => {
   if (active && payload && payload.length) {
     const { name, value } = payload[0];
     return (
       <div className="bg-gray-900/95 border border-gray-700 rounded-lg px-3 py-2 shadow-xl">
         <p className="text-sm text-gray-300 font-medium">{name}</p>
         <p className="text-sm font-bold text-gray-100">
-          {new Intl.NumberFormat('fr-FR', {
-            style: 'currency',
-            currency: 'EUR',
-            maximumFractionDigits: 0,
-          }).format(value)}
+          {formatCurrency(value, currency)}
         </p>
       </div>
     );
@@ -73,6 +70,8 @@ const CustomTooltipArea = ({ active, payload, label, t }) => {
 
 const PilotageFinancialTab = ({ data }) => {
   const { t } = useTranslation();
+  const currency = data?.company?.currency || 'EUR';
+  const isBlocked = data?.dataQuality?.datasetStatus === 'blocked';
 
   // Prepare capital structure pie data
   const pieData = useMemo(() => {
@@ -116,6 +115,15 @@ const PilotageFinancialTab = ({ data }) => {
     }));
   }, [data?.monthlyData]);
 
+  if (isBlocked) {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-10 text-center">
+        <p className="text-red-100 text-lg font-semibold">{t('pilotage.quality.blockedTitle')}</p>
+        <p className="text-red-200/80 text-sm mt-2">{t('pilotage.quality.blockedHint')}</p>
+      </div>
+    );
+  }
+
   // No data state
   if (!data?.financialDiagnostic?.valid && !data?.monthlyData?.length) {
     return (
@@ -144,6 +152,7 @@ const PilotageFinancialTab = ({ data }) => {
           <CardContent>
             <MarginAnalysisSection
               data={data.financialDiagnostic?.margins || null}
+              currency={currency}
             />
           </CardContent>
         </Card>
@@ -160,6 +169,7 @@ const PilotageFinancialTab = ({ data }) => {
           <CardContent>
             <FinancingAnalysisSection
               data={data.financialDiagnostic?.financing || null}
+              currency={currency}
             />
           </CardContent>
         </Card>
@@ -230,7 +240,7 @@ const PilotageFinancialTab = ({ data }) => {
                         />
                       ))}
                     </Pie>
-                    <Tooltip content={<CustomTooltipPie />} />
+                    <Tooltip content={<CustomTooltipPie currency={currency} />} />
                     <Legend
                       wrapperStyle={{ color: '#9ca3af', fontSize: '0.875rem' }}
                     />

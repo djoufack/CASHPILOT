@@ -21,6 +21,7 @@ import {
   validateAccountingConsistency,
 } from '@/utils/accountingCalculations';
 import { buildFinancialDiagnostic, calculateBFR } from '@/utils/financialAnalysisCalculations';
+import { evaluateAccountingDatasetQuality } from '@/utils/accountingQualityChecks';
 
 export const useAccountingData = (startDate, endDate) => {
   const { user } = useAuth();
@@ -157,11 +158,15 @@ export const useAccountingData = (startDate, endDate) => {
   const computed = useMemo(() => {
     if (!startDate || !endDate) return null;
 
-    // All KPIs from entries (returns 0 when no entries — clean state, no estimations)
+    // Balance sheet & income statement — always entry-based
+    const balanceSheet = buildBalanceSheetFromEntries(accounts, entries, startDate, endDate);
+    const incomeStatement = buildIncomeStatementFromEntries(accounts, entries, startDate, endDate);
+
+    // All KPIs from entries/statements (returns 0 when no entries — clean state, no estimations)
     const revenue = calculateRevenueFromEntries(entries, accounts, startDate, endDate);
     const revenueTTC = revenue;
-    const totalExpenses = calculateExpensesFromEntries(entries, accounts, startDate, endDate);
-    const netIncome = calculateNetIncomeFromEntries(entries, accounts, startDate, endDate);
+    const totalExpenses = incomeStatement.totalExpenses ?? calculateExpensesFromEntries(entries, accounts, startDate, endDate);
+    const netIncome = incomeStatement.netIncome ?? calculateNetIncomeFromEntries(entries, accounts, startDate, endDate);
 
     const outputVAT = calculateOutputVATFromEntries(entries, accounts, startDate, endDate);
     const inputVAT = calculateInputVATFromEntries(entries, accounts, startDate, endDate);
@@ -170,10 +175,6 @@ export const useAccountingData = (startDate, endDate) => {
 
     const taxEstimate = estimateTax(netIncome > 0 ? netIncome : 0);
     const monthlyData = buildMonthlyChartDataFromEntries(entries, accounts, startDate, endDate);
-
-    // Balance sheet & income statement — always entry-based
-    const balanceSheet = buildBalanceSheetFromEntries(accounts, entries, startDate, endDate);
-    const incomeStatement = buildIncomeStatementFromEntries(accounts, entries, startDate, endDate);
 
     // Trial balance, ledger, journal — ALL filtered by period
     const filteredEntries = filterByPeriod(entries, startDate, endDate, 'transaction_date');
@@ -202,6 +203,7 @@ export const useAccountingData = (startDate, endDate) => {
       );
 
       return {
+        balanceSheet: previousBalanceSheet,
         financing: {
           bfr: calculateBFR(previousBalanceSheet),
         },
@@ -228,6 +230,11 @@ export const useAccountingData = (startDate, endDate) => {
       console.warn('Accounting consistency warnings:', consistencyWarnings);
     }
 
+    const qualityGate = evaluateAccountingDatasetQuality({
+      accounts,
+      entries,
+    });
+
     return {
       revenue,
       revenueTTC,
@@ -241,12 +248,14 @@ export const useAccountingData = (startDate, endDate) => {
       incomeStatement,
       taxEstimate,
       monthlyData,
+      previousBalanceSheet: previousPeriodData?.balanceSheet || null,
       trialBalance,
       cumulativeTrialBalance,
       generalLedger,
       journalBook,
       financialDiagnostic,
       consistencyWarnings,
+      qualityGate,
     };
   }, [accounts, entries, startDate, endDate]);
 
@@ -276,12 +285,14 @@ export const useAccountingData = (startDate, endDate) => {
       incomeStatement: { revenueItems: [], expenseItems: [], totalRevenue: 0, totalExpenses: 0, netIncome: 0 },
       taxEstimate: { totalTax: 0, effectiveRate: 0, details: [], quarterlyPayment: 0 },
       monthlyData: [],
+      previousBalanceSheet: null,
       trialBalance: [],
       cumulativeTrialBalance: [],
       generalLedger: [],
       journalBook: [],
       financialDiagnostic: null,
       consistencyWarnings: [],
+      qualityGate: null,
     }),
     refresh: fetchAll
   };

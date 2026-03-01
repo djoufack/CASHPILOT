@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
 const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
+const CASH_ACCOUNT_REGEX = /(banque|bank|cash|caisse|tre?sorerie)/i;
+const OPENING_ENTRY_REGEX = /^(open|opening|ouverture|solde[-_\s]?initial)/i;
 
 function toIsoDate(date) {
   return date.toISOString().split('T')[0];
@@ -40,6 +42,65 @@ function getGroupKey(dateStr, granularity) {
     return { key: `${ym}-S${week}`, label: `${monthLabel} S${week}` };
   }
   return { key: ym, label: ym };
+}
+
+function isCashAccount(account) {
+  const code = String(account?.account_code || '').trim();
+  const accountType = account?.account_type;
+  const accountText = `${account?.account_name || ''} ${account?.account_category || ''}`;
+
+  return (
+    accountType === 'asset' &&
+    (code.startsWith('5') || CASH_ACCOUNT_REGEX.test(accountText))
+  );
+}
+
+function isOpeningBalanceEntry(group) {
+  const ref = String(group?.entry_ref || '').trim();
+  if (OPENING_ENTRY_REGEX.test(ref)) return true;
+
+  return (group?.lines || []).every((line) =>
+    OPENING_ENTRY_REGEX.test(String(line?.description || '').trim())
+  );
+}
+
+function aggregateCashEntryGroups(entries = [], accountMap = new Map()) {
+  const groups = new Map();
+
+  (entries || []).forEach((entry) => {
+    const key = entry.entry_ref || entry.id;
+    const existing = groups.get(key) || {
+      key,
+      date: entry.transaction_date,
+      entry_ref: entry.entry_ref || '',
+      lines: [],
+    };
+
+    existing.lines.push(entry);
+    groups.set(key, existing);
+  });
+
+  return Array.from(groups.values()).flatMap((group) => {
+    if (isOpeningBalanceEntry(group)) {
+      return [];
+    }
+
+    const cashDelta = group.lines.reduce((sum, line) => {
+      const account = accountMap.get(line.account_code);
+      if (!isCashAccount(account)) return sum;
+
+      return sum + (parseFloat(line.debit) || 0) - (parseFloat(line.credit) || 0);
+    }, 0);
+
+    if (Math.abs(cashDelta) < 0.01) {
+      return [];
+    }
+
+    return [{
+      date: group.date,
+      delta: Math.round(cashDelta * 100) / 100,
+    }];
+  });
 }
 
 /** Build empty buckets for the time range */
@@ -99,24 +160,22 @@ export const useCashFlow = (optionsOrPeriod = 6, granularityArg = 'month') => {
         return toIsoDate(value);
       })();
 
-      // Fetch income (paid invoices) — column is "date" not "invoice_date"
-      const { data: invoices } = await supabase
-        .from('invoices')
-        .select('total_ttc, date, status')
-        .eq('user_id', user.id)
-        .in('status', ['paid', 'sent'])
-        .gte('date', resolvedStartDate)
-        .lte('date', resolvedEndDate)
-        .order('date', { ascending: true });
+      const [{ data: entries, error: entriesError }, { data: accounts, error: accountsError }] = await Promise.all([
+        supabase
+          .from('accounting_entries')
+          .select('id, entry_ref, transaction_date, account_code, debit, credit, description')
+          .eq('user_id', user.id)
+          .gte('transaction_date', resolvedStartDate)
+          .lte('transaction_date', resolvedEndDate)
+          .order('transaction_date', { ascending: true }),
+        supabase
+          .from('accounting_chart_of_accounts')
+          .select('account_code, account_name, account_category, account_type')
+          .eq('user_id', user.id),
+      ]);
 
-      // Fetch expenses — column is "expense_date" not "date"
-      const { data: expenses } = await supabase
-        .from('expenses')
-        .select('amount, expense_date, category')
-        .eq('user_id', user.id)
-        .gte('expense_date', resolvedStartDate)
-        .lte('expense_date', resolvedEndDate)
-        .order('expense_date', { ascending: true });
+      if (entriesError) throw entriesError;
+      if (accountsError) throw accountsError;
 
       // Build empty buckets based on granularity
       const buckets = buildEmptyBuckets({
@@ -126,17 +185,17 @@ export const useCashFlow = (optionsOrPeriod = 6, granularityArg = 'month') => {
         endDate: resolvedEndDate,
       });
 
-      (invoices || []).forEach(inv => {
-        const g = getGroupKey(inv.date, granularity);
-        if (g && buckets[g.key]) {
-          buckets[g.key].income += parseFloat(inv.total_ttc || 0);
-        }
-      });
+      const accountMap = new Map((accounts || []).map((account) => [account.account_code, account]));
+      const cashMovements = aggregateCashEntryGroups(entries, accountMap);
 
-      (expenses || []).forEach(exp => {
-        const g = getGroupKey(exp.expense_date, granularity);
+      cashMovements.forEach((movement) => {
+        const g = getGroupKey(movement.date, granularity);
         if (g && buckets[g.key]) {
-          buckets[g.key].expenses += parseFloat(exp.amount || 0);
+          if (movement.delta >= 0) {
+            buckets[g.key].income += movement.delta;
+          } else {
+            buckets[g.key].expenses += Math.abs(movement.delta);
+          }
         }
       });
 

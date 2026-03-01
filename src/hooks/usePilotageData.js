@@ -28,6 +28,7 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
       startDate,
       endDate,
       financialDiagnostic: accountingData.financialDiagnostic,
+      previousBalanceSheet: accountingData.previousBalanceSheet,
       region,
     });
   }, [
@@ -37,6 +38,7 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
     accountingData.accounts,
     accountingData.financialDiagnostic,
     accountingData.loading,
+    accountingData.previousBalanceSheet,
     startDate,
     endDate,
     region,
@@ -71,10 +73,10 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
       bfrToRevenue: evaluateRatio(pilotageRatios.activity?.bfrToRevenue, benchmarks.bfrToRevenue, true),
       financialIndependence: evaluateRatio(pilotageRatios.structure?.financialIndependence, benchmarks.financialIndependence, false),
       gearing: evaluateRatio(pilotageRatios.structure?.gearing, benchmarks.gearing, true),
-      currentRatio: evaluateRatio(pilotageRatios.structure?.currentRatio || accountingData.financialDiagnostic?.ratios?.liquidity?.currentRatio, benchmarks.currentRatio, false),
-      roe: evaluateRatio(pilotageRatios.profitability?.roe || accountingData.financialDiagnostic?.ratios?.profitability?.roe, benchmarks.roe, false),
+      currentRatio: evaluateRatio(pilotageRatios.structure?.currentRatio ?? accountingData.financialDiagnostic?.ratios?.liquidity?.currentRatio, benchmarks.currentRatio, false),
+      roe: evaluateRatio(pilotageRatios.profitability?.roe ?? accountingData.financialDiagnostic?.ratios?.profitability?.roe, benchmarks.roe, false),
       roa: evaluateRatio(pilotageRatios.profitability?.roa, benchmarks.roa, false),
-      roce: evaluateRatio(pilotageRatios.profitability?.roce || accountingData.financialDiagnostic?.ratios?.profitability?.roce, benchmarks.roce, false),
+      roce: evaluateRatio(pilotageRatios.profitability?.roce ?? accountingData.financialDiagnostic?.ratios?.profitability?.roce, benchmarks.roce, false),
       operatingMargin: evaluateRatio(accountingData.financialDiagnostic?.margins?.operatingMargin, benchmarks.operatingMargin, false),
       grossMargin: evaluateRatio(accountingData.financialDiagnostic?.margins?.grossMarginPercent, benchmarks.grossMargin, false),
       netMargin: evaluateRatio(accountingData.financialDiagnostic?.ratios?.profitability?.netMargin, benchmarks.netMargin, false),
@@ -112,6 +114,7 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
   const loading = accountingData.loading || cashFlowResult.loading;
   const error = accountingData.error || cashFlowResult.error;
   const dataQuality = useMemo(() => {
+    const qualityGate = accountingData.qualityGate;
     const entriesCount = accountingData.entries?.length || 0;
     const accountsCount = accountingData.accounts?.length || 0;
     const monthlyPoints = monthlyData.length;
@@ -126,6 +129,10 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
       ? 'setup'
       : !hasOperationalData
         ? 'empty'
+        : qualityGate?.reliabilityStatus === 'blocked'
+          ? 'blocked'
+          : qualityGate?.reliabilityStatus === 'warning'
+            ? 'warning'
         : 'ready';
 
     const lastEntryDate = accountingData.entries?.reduce((latest, entry) => {
@@ -147,17 +154,28 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
       monthlyPoints,
       criticalAlerts,
       warningAlerts,
+      blockingIssues: qualityGate?.blockingIssues?.length || 0,
+      dataWarnings: qualityGate?.warnings?.length || 0,
       lastEntryDate,
       periodDays,
-      preTaxReady: Number.isFinite(preTaxIncome),
-      valuationReady: ebitda > 0 && freeCashFlow > 0,
-      valuationMode: freeCashFlow > 0 ? 'full' : ebitda > 0 ? 'multiples-only' : 'unavailable',
+      preTaxReady: Number.isFinite(preTaxIncome) && qualityGate?.canRunPilotage !== false,
+      valuationReady: ebitda > 0 && freeCashFlow > 0 && qualityGate?.canRunPilotage !== false,
+      valuationMode: qualityGate?.canRunPilotage === false
+        ? 'unavailable'
+        : freeCashFlow > 0
+          ? 'full'
+          : ebitda > 0
+            ? 'multiples-only'
+            : 'unavailable',
+      qualityGate,
+      topIssues: qualityGate?.issues?.slice(0, 3) || [],
     };
   }, [
     accountingData.accounts,
     accountingData.entries,
     accountingData.financialDiagnostic?.margins?.ebitda,
     accountingData.financialDiagnostic?.tax?.preTaxIncome,
+    accountingData.qualityGate,
     alerts,
     endDate,
     monthlyData,
@@ -179,9 +197,11 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
     trialBalance: accountingData.trialBalance,
     monthlyData,
     rawMonthlyData: accountingData.monthlyData,
+    previousBalanceSheet: accountingData.previousBalanceSheet,
     entries: accountingData.entries,
     accounts: accountingData.accounts,
     financialDiagnostic: accountingData.financialDiagnostic,
+    qualityGate: accountingData.qualityGate,
 
     // Cash flow
     cashFlow: cashFlowResult,

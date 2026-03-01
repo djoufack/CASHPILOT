@@ -12,6 +12,7 @@ import ResponsiveTable from '@/components/ui/ResponsiveTable';
 import { Card, CardContent } from '@/components/ui/card';
 import CSVImportModal from './CSVImportModal';
 import pcgBelge from '@/data/pcg-belge.json';
+import { validateChartOfAccountsImport } from '@/utils/accountingQualityChecks';
 
 const TYPE_LABELS = {
   asset: { label: 'Actif', color: 'bg-blue-500/20 text-blue-400' },
@@ -66,6 +67,10 @@ const ChartOfAccounts = () => {
   const handleLoadPreset = async () => {
     setPresetLoading(true);
     try {
+      const validation = validateChartOfAccountsImport(pcgBelge, { existingAccounts: accounts, regionHint: 'belgium' });
+      if (!validation.canImport) {
+        throw new Error(validation.blockingIssues[0]?.message || 'Le plan comptable belge embarqué a échoué au contrôle de cohérence');
+      }
       await bulkCreateAccounts(pcgBelge);
       setShowPresetConfirm(false);
     } catch (err) {
@@ -240,6 +245,7 @@ const ChartOfAccounts = () => {
         open={showImport}
         onOpenChange={setShowImport}
         onImport={handleCSVImport}
+        existingAccounts={accounts}
       />
 
       {/* Preset Confirmation Dialog */}

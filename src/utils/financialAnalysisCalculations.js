@@ -18,34 +18,39 @@ import {
   calculatePreTaxIncome,
   extractFinancialPosition,
 } from './financialMetrics';
+import {
+  buildAccountSemanticIndex,
+  getNaturalEntryAmount,
+} from './accountTaxonomy';
 
-// ============================================================================
-// HELPER FUNCTIONS - EXTRACTION DE COMPTES
-// ============================================================================
-
-/**
- * Extraire et sommer les écritures comptables par classe de compte
- */
-function sumEntriesByAccountClass(entries, accounts, classes, startDate, endDate, debitOrCredit = 'both') {
+function sumEntriesByPredicate(entries, accounts, startDate, endDate, predicate, regionHint = null) {
   if (!entries || !accounts) return 0;
 
   const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+  const semanticIndex = buildAccountSemanticIndex(accounts, regionHint);
 
   return filtered.reduce((sum, entry) => {
-    const account = accounts.find(a => a.account_code === entry.account_code);
-    if (!account) return sum;
-
-    const matchesClass = classes.some(cls => account.account_code.startsWith(cls));
-    if (!matchesClass) return sum;
-
-    if (debitOrCredit === 'debit') {
-      return sum + (parseFloat(entry.debit) || 0);
-    } else if (debitOrCredit === 'credit') {
-      return sum + (parseFloat(entry.credit) || 0);
-    } else {
-      return sum + (parseFloat(entry.debit) || 0) - (parseFloat(entry.credit) || 0);
+    const classified = semanticIndex.map.get(entry.account_code);
+    if (!classified?.account || !predicate(classified.profile, classified.account, entry)) {
+      return sum;
     }
+
+    return sum + getNaturalEntryAmount(entry, classified.account.account_type);
   }, 0);
+}
+
+function getPreviousFinancialPosition(previousPeriodData, regionHint = null) {
+  if (!previousPeriodData?.balanceSheet) return null;
+  return extractFinancialPosition(previousPeriodData.balanceSheet, regionHint);
+}
+
+function averageBalance(currentValue, previousValue) {
+  const current = Number(currentValue);
+  const previous = Number(previousValue);
+
+  if (!Number.isFinite(current)) return 0;
+  if (!Number.isFinite(previous)) return current;
+  return (current + previous) / 2;
 }
 
 // ============================================================================
@@ -85,16 +90,26 @@ export function validateFinancialData(entries, accounts, balanceSheet) {
  * Formule: Chiffre d'affaires - Coût d'achat des marchandises vendues
  * OHADA: Classe 70 (Ventes) - Classe 60 (Achats)
  */
-export function calculateGrossMargin(entries, accounts, startDate, endDate) {
-  if (!entries || !accounts) return 0;
+export function calculateGrossMargin(entries, accounts, startDate, endDate, regionHint = null) {
+  const sales = sumEntriesByPredicate(
+    entries,
+    accounts,
+    startDate,
+    endDate,
+    (profile) => profile.isSalesRevenue,
+    regionHint
+  );
 
-  // Produits des ventes (Classe 70)
-  const sales = sumEntriesByAccountClass(entries, accounts, ['70'], startDate, endDate, 'credit');
+  const directCosts = sumEntriesByPredicate(
+    entries,
+    accounts,
+    startDate,
+    endDate,
+    (profile) => profile.isDirectCostExpense,
+    regionHint
+  );
 
-  // Achats de marchandises (Classe 60)
-  const purchases = sumEntriesByAccountClass(entries, accounts, ['60'], startDate, endDate, 'debit');
-
-  return sales - purchases;
+  return sales - directCosts;
 }
 
 /**
@@ -110,30 +125,26 @@ export function calculateGrossMarginPercentage(grossMargin, revenue) {
  * Formule: Produits d'exploitation - Charges d'exploitation (hors dotations)
  * OHADA: (Classe 70-76) - (Classe 60-66) [exclure Classe 68: dotations]
  */
-export function calculateEBITDA(entries, accounts, startDate, endDate) {
-  if (!entries || !accounts) return 0;
-
-  // Produits d'exploitation (Classes 70 à 76, hors 77 produits financiers)
-  const operatingRevenue = sumEntriesByAccountClass(
+export function calculateEBITDA(entries, accounts, startDate, endDate, regionHint = null) {
+  const operatingRevenue = sumEntriesByPredicate(
     entries,
     accounts,
-    ['70', '71', '72', '73', '74', '75', '76'],
     startDate,
     endDate,
-    'credit'
+    (profile) => profile.isOperatingRevenue,
+    regionHint
   );
 
-  // Charges d'exploitation (Classes 60 à 66, hors 68 dotations)
-  const operatingExpenses = sumEntriesByAccountClass(
+  const operatingCashExpenses = sumEntriesByPredicate(
     entries,
     accounts,
-    ['60', '61', '62', '63', '64', '65', '66'],
     startDate,
     endDate,
-    'debit'
+    (profile) => profile.isOperatingCashExpense,
+    regionHint
   );
 
-  return operatingRevenue - operatingExpenses;
+  return operatingRevenue - operatingCashExpenses;
 }
 
 /**
@@ -149,20 +160,18 @@ export function calculateEBITDAMargin(ebitda, revenue) {
  * Formule: EBITDA - Dotations aux amortissements et provisions
  * OHADA: EBITDA - Classe 68 (Dotations)
  */
-export function calculateOperatingResult(entries, accounts, startDate, endDate) {
-  const ebitda = calculateEBITDA(entries, accounts, startDate, endDate);
-
-  // Dotations aux amortissements et provisions (Classe 68)
-  const depreciation = sumEntriesByAccountClass(
+export function calculateOperatingResult(entries, accounts, startDate, endDate, regionHint = null) {
+  const ebitda = calculateEBITDA(entries, accounts, startDate, endDate, regionHint);
+  const operatingNonCashCharges = sumEntriesByPredicate(
     entries,
     accounts,
-    ['68'],
     startDate,
     endDate,
-    'debit'
+    (profile) => profile.isOperatingNonCashExpense,
+    regionHint
   );
 
-  return ebitda - depreciation;
+  return ebitda - operatingNonCashCharges;
 }
 
 /**
@@ -217,40 +226,28 @@ export function analyzeRevenueBreakdown(currentInvoices, previousInvoices) {
  * Formule: Résultat net + Dotations - Reprises sur provisions
  * OHADA: Résultat net + Classe 68 + Classe 69 - Classe 79
  */
-export function calculateCAF(netIncome, entries, accounts, startDate, endDate) {
+export function calculateCAF(netIncome, entries, accounts, startDate, endDate, regionHint = null) {
   if (!entries || !accounts) return netIncome || 0;
 
-  // Dotations aux amortissements (Classe 68)
-  const depreciation = sumEntriesByAccountClass(
+  const nonCashCharges = sumEntriesByPredicate(
     entries,
     accounts,
-    ['68'],
     startDate,
     endDate,
-    'debit'
+    (profile) => profile.isNonCashExpense,
+    regionHint
   );
 
-  // Dotations aux provisions (Classe 69)
-  const provisions = sumEntriesByAccountClass(
+  const reversals = sumEntriesByPredicate(
     entries,
     accounts,
-    ['69'],
     startDate,
     endDate,
-    'debit'
+    (profile) => profile.isReversalRevenue,
+    regionHint
   );
 
-  // Reprises sur provisions (Classe 79)
-  const reversals = sumEntriesByAccountClass(
-    entries,
-    accounts,
-    ['79'],
-    startDate,
-    endDate,
-    'credit'
-  );
-
-  return (netIncome || 0) + depreciation + provisions - reversals;
+  return (netIncome || 0) + nonCashCharges - reversals;
 }
 
 /**
@@ -258,10 +255,10 @@ export function calculateCAF(netIncome, entries, accounts, startDate, endDate) {
  * Formule: Capitaux permanents - Actifs immobilisés
  * OHADA: (Classe 1) - (Classe 2)
  */
-export function calculateWorkingCapital(balanceSheet) {
+export function calculateWorkingCapital(balanceSheet, regionHint = null) {
   if (!balanceSheet) return 0;
 
-  const { permanentCapital, fixedAssets } = extractFinancialPosition(balanceSheet);
+  const { permanentCapital, fixedAssets } = extractFinancialPosition(balanceSheet, regionHint);
 
   return permanentCapital - fixedAssets;
 }
@@ -271,10 +268,10 @@ export function calculateWorkingCapital(balanceSheet) {
  * Formule: (Actifs circulants - Trésorerie) - Dettes à court terme
  * OHADA: (Classe 3 + Classe 41) - (Classe 40 + Classe 44)
  */
-export function calculateBFR(balanceSheet) {
+export function calculateBFR(balanceSheet, regionHint = null) {
   if (!balanceSheet) return 0;
 
-  const { operatingCurrentAssets, currentLiabilities } = extractFinancialPosition(balanceSheet);
+  const { operatingCurrentAssets, currentLiabilities } = extractFinancialPosition(balanceSheet, regionHint);
 
   return operatingCurrentAssets - currentLiabilities;
 }
@@ -299,10 +296,10 @@ export function calculateOperatingCashFlow(caf, bfrVariation) {
  * Formule: Dettes financières - Trésorerie
  * OHADA: (Classe 16 + Classe 17) - (Classe 52 + Classe 57)
  */
-export function calculateNetDebt(balanceSheet) {
+export function calculateNetDebt(balanceSheet, regionHint = null) {
   if (!balanceSheet) return 0;
 
-  const { financialDebt, cash } = extractFinancialPosition(balanceSheet);
+  const { financialDebt, cash } = extractFinancialPosition(balanceSheet, regionHint);
 
   return financialDebt - cash;
 }
@@ -337,10 +334,10 @@ export function calculateROCE(operatingResult, equity, longTermDebt) {
  * Formule: Actifs circulants / Passifs courants
  * OHADA: (Classe 3 + 4 + 5) / Dettes à court terme
  */
-export function calculateCurrentRatio(balanceSheet) {
+export function calculateCurrentRatio(balanceSheet, regionHint = null) {
   if (!balanceSheet) return 0;
 
-  const { currentAssets, currentLiabilities } = extractFinancialPosition(balanceSheet);
+  const { currentAssets, currentLiabilities } = extractFinancialPosition(balanceSheet, regionHint);
 
   if (!currentLiabilities || currentLiabilities === 0) return 0;
   return currentAssets / currentLiabilities;
@@ -351,10 +348,10 @@ export function calculateCurrentRatio(balanceSheet) {
  * Formule: (Actifs circulants - Stocks) / Passifs courants
  * OHADA: (Classe 4 + 5) / Dettes à court terme
  */
-export function calculateQuickRatio(balanceSheet) {
+export function calculateQuickRatio(balanceSheet, regionHint = null) {
   if (!balanceSheet) return 0;
 
-  const { currentAssets, inventory, currentLiabilities } = extractFinancialPosition(balanceSheet);
+  const { currentAssets, inventory, currentLiabilities } = extractFinancialPosition(balanceSheet, regionHint);
   const quickAssets = currentAssets - inventory;
 
   if (!currentLiabilities || currentLiabilities === 0) return 0;
@@ -366,10 +363,10 @@ export function calculateQuickRatio(balanceSheet) {
  * Formule: Trésorerie / Passifs courants
  * OHADA: (Classe 52 + 57) / Dettes à court terme
  */
-export function calculateCashRatio(balanceSheet) {
+export function calculateCashRatio(balanceSheet, regionHint = null) {
   if (!balanceSheet) return 0;
 
-  const { cash, currentLiabilities } = extractFinancialPosition(balanceSheet);
+  const { cash, currentLiabilities } = extractFinancialPosition(balanceSheet, regionHint);
 
   if (!currentLiabilities || currentLiabilities === 0) return 0;
   return cash / currentLiabilities;
@@ -409,7 +406,8 @@ export function buildFinancialDiagnostic(
   incomeStatement,
   startDate,
   endDate,
-  previousPeriodData = null
+  previousPeriodData = null,
+  regionHint = null
 ) {
   // Validation des données
   const validation = validateFinancialData(entries, accounts, balanceSheet);
@@ -424,42 +422,60 @@ export function buildFinancialDiagnostic(
   }
 
   // Extraire valeurs de base
-  const revenue = incomeStatement?.totalRevenue || 0;
+  const revenue = sumEntriesByPredicate(
+    entries,
+    accounts,
+    startDate,
+    endDate,
+    (profile) => profile.isSalesRevenue,
+    regionHint
+  ) || incomeStatement?.totalRevenue || 0;
   const netIncome = incomeStatement?.netIncome || 0;
   const {
     equity,
     longTermDebt,
     totalDebt,
-  } = extractFinancialPosition(balanceSheet);
+    totalAssets,
+  } = extractFinancialPosition(balanceSheet, regionHint);
+  const previousFinancialPosition = getPreviousFinancialPosition(previousPeriodData, regionHint);
+  const averageEquity = averageBalance(equity, previousFinancialPosition?.equity);
+  const averageTotalAssets = averageBalance(totalAssets, previousFinancialPosition?.totalAssets);
+  const averageCapitalEmployed = averageBalance(
+    equity + longTermDebt,
+    previousFinancialPosition
+      ? previousFinancialPosition.equity + previousFinancialPosition.longTermDebt
+      : undefined
+  );
 
   // ========== ANALYSE DES MARGES ==========
-  const grossMargin = calculateGrossMargin(entries, accounts, startDate, endDate);
+  const grossMargin = calculateGrossMargin(entries, accounts, startDate, endDate, regionHint);
   const grossMarginPercent = calculateGrossMarginPercentage(grossMargin, revenue);
 
-  const ebitda = calculateEBITDA(entries, accounts, startDate, endDate);
+  const ebitda = calculateEBITDA(entries, accounts, startDate, endDate, regionHint);
   const ebitdaMargin = calculateEBITDAMargin(ebitda, revenue);
 
-  const operatingResult = calculateOperatingResult(entries, accounts, startDate, endDate);
+  const operatingResult = calculateOperatingResult(entries, accounts, startDate, endDate, regionHint);
   const operatingMargin = calculateOperatingMargin(operatingResult, revenue);
 
   // ========== ANALYSE DU FINANCEMENT ==========
-  const caf = calculateCAF(netIncome, entries, accounts, startDate, endDate);
-  const workingCapital = calculateWorkingCapital(balanceSheet);
-  const bfr = calculateBFR(balanceSheet);
+  const caf = calculateCAF(netIncome, entries, accounts, startDate, endDate, regionHint);
+  const workingCapital = calculateWorkingCapital(balanceSheet, regionHint);
+  const bfr = calculateBFR(balanceSheet, regionHint);
   const bfrVariation = previousPeriodData
     ? calculateBFRVariation(bfr, previousPeriodData.financing.bfr)
     : 0;
   const operatingCashFlow = calculateOperatingCashFlow(caf, bfrVariation);
-  const netDebt = calculateNetDebt(balanceSheet);
-  const capex = calculateCapexFromEntries(entries, accounts, startDate, endDate);
-  const preTaxIncome = calculatePreTaxIncome(netIncome, entries, accounts, startDate, endDate);
+  const netDebt = calculateNetDebt(balanceSheet, regionHint);
+  const capex = calculateCapexFromEntries(entries, accounts, startDate, endDate, regionHint);
+  const preTaxIncome = calculatePreTaxIncome(netIncome, entries, accounts, startDate, endDate, regionHint);
 
   // ========== RATIOS CLÉS ==========
-  const roe = calculateROE(netIncome, equity);
-  const roce = calculateROCE(operatingResult, equity, longTermDebt);
-  const currentRatio = calculateCurrentRatio(balanceSheet);
-  const quickRatio = calculateQuickRatio(balanceSheet);
-  const cashRatio = calculateCashRatio(balanceSheet);
+  const roe = calculateROE(netIncome, averageEquity);
+  const roce = calculateROCE(operatingResult, averageCapitalEmployed, 0);
+  const roa = averageTotalAssets !== 0 ? (netIncome / averageTotalAssets) * 100 : 0;
+  const currentRatio = calculateCurrentRatio(balanceSheet, regionHint);
+  const quickRatio = calculateQuickRatio(balanceSheet, regionHint);
+  const cashRatio = calculateCashRatio(balanceSheet, regionHint);
   const financialLeverage = calculateFinancialLeverage(totalDebt, equity);
 
   return {
@@ -491,6 +507,7 @@ export function buildFinancialDiagnostic(
     ratios: {
       profitability: {
         roe,
+        roa,
         roce,
         operatingMargin,
         netMargin: revenue !== 0 ? (netIncome / revenue) * 100 : 0

@@ -26,6 +26,9 @@ import {
   calculateCapexFromEntries,
   extractFinancialPosition,
 } from '@/utils/financialMetrics';
+import {
+  buildAccountSemanticIndex,
+} from '@/utils/accountTaxonomy';
 import { getTaxConfig } from '@/utils/taxCalculations';
 
 // ============================================================================
@@ -35,6 +38,20 @@ import { getTaxConfig } from '@/utils/taxCalculations';
 function normalizeAmount(value) {
   const parsed = parseFloat(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+const OPENING_ENTRY_REGEX = /^(open|opening|ouverture|solde[-_\s]?initial)/i;
+
+function formatMonthFromKey(key, fallbackLabel = null) {
+  if (typeof key !== 'string' || !/^\d{4}-\d{2}$/.test(key)) {
+    return fallbackLabel || key;
+  }
+
+  const [, month] = key.split('-');
+  const monthIndex = Number(month) - 1;
+  const labels = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  return labels[monthIndex] || fallbackLabel || key;
 }
 
 export function buildPilotageMonthlySeries(accountingMonthlyData = [], cashFlowData = []) {
@@ -47,7 +64,7 @@ export function buildPilotageMonthlySeries(accountingMonthlyData = [], cashFlowD
 
     seriesByKey.set(item.key, {
       key: item.key,
-      month: item.name || item.label || item.key,
+      month: formatMonthFromKey(item.key, item.name || item.label || item.key),
       revenue,
       expense,
       net: revenue - expense,
@@ -61,7 +78,7 @@ export function buildPilotageMonthlySeries(accountingMonthlyData = [], cashFlowD
     if (!item?.key) return;
     const existing = seriesByKey.get(item.key) || {
       key: item.key,
-      month: item.label || item.month || item.key,
+      month: formatMonthFromKey(item.key, item.label || item.month || item.key),
       revenue: 0,
       expense: 0,
       net: 0,
@@ -70,7 +87,7 @@ export function buildPilotageMonthlySeries(accountingMonthlyData = [], cashFlowD
       cashNet: 0,
     };
 
-    existing.month = item.label || existing.month;
+    existing.month = formatMonthFromKey(item.key, item.label || existing.month);
     existing.cashIn = normalizeAmount(item.income);
     existing.cashOut = normalizeAmount(item.expenses);
     existing.cashNet = normalizeAmount(item.net);
@@ -86,8 +103,104 @@ export function buildPilotageMonthlySeries(accountingMonthlyData = [], cashFlowD
       return {
         ...item,
         cumulativeCashFlow,
+        cumulativeCashNet: cumulativeCashFlow,
       };
     });
+}
+
+function averageValue(currentValue, previousValue) {
+  const current = Number(currentValue);
+  const previous = Number(previousValue);
+
+  if (!Number.isFinite(current)) return 0;
+  if (!Number.isFinite(previous)) return current;
+  return (current + previous) / 2;
+}
+
+function groupEntriesByReference(entries = []) {
+  const groups = new Map();
+
+  (entries || []).forEach((entry) => {
+    const key = entry.entry_ref || entry.id;
+    const group = groups.get(key) || {
+      entry_ref: entry.entry_ref || '',
+      lines: [],
+    };
+
+    group.lines.push(entry);
+    groups.set(key, group);
+  });
+
+  return Array.from(groups.values());
+}
+
+function isOpeningBalanceGroup(group) {
+  if (OPENING_ENTRY_REGEX.test(String(group?.entry_ref || '').trim())) {
+    return true;
+  }
+
+  return (group?.lines || []).every((line) =>
+    OPENING_ENTRY_REGEX.test(String(line?.description || '').trim())
+  );
+}
+
+function calculateInterestExpenseFromEntries(entries, accounts, startDate, endDate, regionHint) {
+  if (!entries || !accounts) return 0;
+  const semanticIndex = buildAccountSemanticIndex(accounts, regionHint);
+  return (entries || []).reduce((sum, entry) => {
+    const date = entry?.transaction_date;
+    if (startDate && date < startDate) return sum;
+    if (endDate && date > endDate) return sum;
+
+    const classified = semanticIndex.map.get(entry.account_code);
+    if (!classified?.profile?.isInterestExpense) return sum;
+
+    return sum + (parseFloat(entry.debit) || 0) - (parseFloat(entry.credit) || 0);
+  }, 0);
+}
+
+function calculateAnnualDebtServiceFromEntries(entries, accounts, startDate, endDate, regionHint) {
+  if (!entries || !accounts) return null;
+  const semanticIndex = buildAccountSemanticIndex(accounts, regionHint);
+  const filteredEntries = (entries || []).filter((entry) => {
+    const date = entry?.transaction_date;
+    if (startDate && date < startDate) return false;
+    if (endDate && date > endDate) return false;
+    return true;
+  });
+
+  let totalDebtService = 0;
+
+  groupEntriesByReference(filteredEntries).forEach((group) => {
+    if (isOpeningBalanceGroup(group)) return;
+
+    let cashOut = 0;
+    let principalRepayment = 0;
+    let interestPaid = 0;
+
+    group.lines.forEach((entry) => {
+      const classified = semanticIndex.map.get(entry.account_code);
+      if (!classified) return;
+
+      const debit = parseFloat(entry.debit) || 0;
+      const credit = parseFloat(entry.credit) || 0;
+
+      if (classified.profile.isCash) {
+        cashOut += Math.max(0, credit - debit);
+      }
+      if (classified.profile.isFinancialDebt) {
+        principalRepayment += Math.max(0, debit - credit);
+      }
+      if (classified.profile.isInterestExpense) {
+        interestPaid += Math.max(0, debit - credit);
+      }
+    });
+
+    if (cashOut <= 0) return;
+    totalDebtService += principalRepayment + interestPaid;
+  });
+
+  return totalDebtService > 0 ? totalDebtService : null;
 }
 
 // ============================================================================
@@ -104,7 +217,8 @@ export function buildPilotageMonthlySeries(accountingMonthlyData = [], cashFlowD
 export function calculateDSO(receivables, revenue) {
   const r = parseFloat(receivables);
   const rev = parseFloat(revenue);
-  if (!r || isNaN(r) || !rev || isNaN(rev) || rev === 0) return 0;
+  if (isNaN(r) || isNaN(rev)) return null;
+  if (rev === 0) return r === 0 ? 0 : null;
   return (r / rev) * 365;
 }
 
@@ -118,7 +232,8 @@ export function calculateDSO(receivables, revenue) {
 export function calculateDPO(payables, purchases) {
   const p = parseFloat(payables);
   const pur = parseFloat(purchases);
-  if (!p || isNaN(p) || !pur || isNaN(pur) || pur === 0) return 0;
+  if (isNaN(p) || isNaN(pur)) return null;
+  if (pur === 0) return p === 0 ? 0 : null;
   return (p / pur) * 365;
 }
 
@@ -132,7 +247,8 @@ export function calculateDPO(payables, purchases) {
 export function calculateStockRotationDays(inventory, cogs) {
   const inv = parseFloat(inventory);
   const c = parseFloat(cogs);
-  if (!inv || isNaN(inv) || !c || isNaN(c) || c === 0) return 0;
+  if (isNaN(inv) || isNaN(c)) return null;
+  if (c === 0) return inv === 0 ? 0 : null;
   return (inv / c) * 365;
 }
 
@@ -145,6 +261,7 @@ export function calculateStockRotationDays(inventory, cogs) {
  * @returns {number} Nombre de jours
  */
 export function calculateCCC(dso, stockRotationDays, dpo) {
+  if (dso == null || stockRotationDays == null || dpo == null) return null;
   const d = parseFloat(dso) || 0;
   const s = parseFloat(stockRotationDays) || 0;
   const p = parseFloat(dpo) || 0;
@@ -165,7 +282,8 @@ export function calculateCCC(dso, stockRotationDays, dpo) {
 export function calculateBFRToRevenue(bfr, revenue) {
   const b = parseFloat(bfr);
   const rev = parseFloat(revenue);
-  if (isNaN(b) || !rev || isNaN(rev) || rev === 0) return 0;
+  if (isNaN(b) || isNaN(rev)) return null;
+  if (rev === 0) return b === 0 ? 0 : null;
   return (b / rev) * 100;
 }
 
@@ -183,7 +301,8 @@ export function calculateBFRToRevenue(bfr, revenue) {
 export function calculateROA(netIncome, totalAssets) {
   const ni = parseFloat(netIncome);
   const ta = parseFloat(totalAssets);
-  if (isNaN(ni) || !ta || isNaN(ta) || ta === 0) return 0;
+  if (isNaN(ni) || isNaN(ta)) return null;
+  if (ta === 0) return ni === 0 ? 0 : null;
   return (ni / ta) * 100;
 }
 
@@ -221,7 +340,7 @@ export function calculateEVA(operatingResult, taxRate, wacc, capitalEmployed) {
 export function calculateInterestCoverage(ebit, interestExpense) {
   const e = parseFloat(ebit);
   const ie = parseFloat(interestExpense);
-  if (isNaN(e) || !ie || isNaN(ie) || ie === 0) return 0;
+  if (isNaN(e) || isNaN(ie) || ie === 0) return null;
   return e / ie;
 }
 
@@ -235,7 +354,7 @@ export function calculateInterestCoverage(ebit, interestExpense) {
 export function calculateDSCR(ebitda, annualDebtService) {
   const eb = parseFloat(ebitda);
   const ads = parseFloat(annualDebtService);
-  if (isNaN(eb) || !ads || isNaN(ads) || ads === 0) return 0;
+  if (isNaN(eb) || isNaN(ads) || ads === 0) return null;
   return eb / ads;
 }
 
@@ -267,7 +386,7 @@ export function calculateFreeCashFlow(operatingCashFlow, capex) {
 export function calculateCashFlowToDebt(operatingCashFlow, netDebt) {
   const ocf = parseFloat(operatingCashFlow);
   const nd = parseFloat(netDebt);
-  if (isNaN(ocf) || !nd || isNaN(nd) || nd === 0) return 0;
+  if (isNaN(ocf) || isNaN(nd) || nd === 0) return null;
   return ocf / nd;
 }
 
@@ -285,7 +404,7 @@ export function calculateCashFlowToDebt(operatingCashFlow, netDebt) {
 export function calculateFinancialIndependence(equity, totalBalance) {
   const eq = parseFloat(equity);
   const tb = parseFloat(totalBalance);
-  if (isNaN(eq) || !tb || isNaN(tb) || tb === 0) return 0;
+  if (isNaN(eq) || isNaN(tb) || tb === 0) return null;
   return (eq / tb) * 100;
 }
 
@@ -299,7 +418,7 @@ export function calculateFinancialIndependence(equity, totalBalance) {
 export function calculateStableAssetCoverage(permanentCapital, fixedAssets) {
   const pc = parseFloat(permanentCapital);
   const fa = parseFloat(fixedAssets);
-  if (isNaN(pc) || !fa || isNaN(fa) || fa === 0) return 0;
+  if (isNaN(pc) || isNaN(fa) || fa === 0) return null;
   return pc / fa;
 }
 
@@ -329,70 +448,73 @@ export function computePilotageRatios(params) {
     startDate,
     endDate,
     financialDiagnostic,
+    previousBalanceSheet,
     region = 'france',
   } = params || {};
 
-  const financialPosition = extractFinancialPosition(balanceSheet);
+  const financialPosition = extractFinancialPosition(balanceSheet, region);
+  const previousFinancialPosition = previousBalanceSheet
+    ? extractFinancialPosition(previousBalanceSheet, region)
+    : null;
 
   // --- Extraction des valeurs du bilan ---
-  const receivables = financialPosition.receivables;
-  const payables = financialPosition.tradePayables;
-  const inventory = financialPosition.inventory;
-  const equity = financialPosition.equity;
+  const receivables = averageValue(financialPosition.receivables, previousFinancialPosition?.receivables);
+  const payables = averageValue(financialPosition.tradePayables, previousFinancialPosition?.tradePayables);
+  const inventory = averageValue(financialPosition.inventory, previousFinancialPosition?.inventory);
+  const equity = averageValue(financialPosition.equity, previousFinancialPosition?.equity);
   const fixedAssets = financialPosition.fixedAssets;
   const permanentCapital = financialPosition.permanentCapital;
   const financialDebt = financialPosition.financialDebt;
   const cash = financialPosition.cash;
 
   // Total actif
-  const totalAssets = financialPosition.totalAssets;
+  const totalAssets = averageValue(financialPosition.totalAssets, previousFinancialPosition?.totalAssets);
   const totalBalance = totalAssets;
-
-  // --- Extraction des valeurs du compte de resultat ---
-  const revenue = parseFloat(incomeStatement?.totalRevenue) || 0;
-  const netIncome = parseFloat(incomeStatement?.netIncome) || 0;
-  const totalExpenses = parseFloat(incomeStatement?.totalExpenses) || 0;
-
-  // Achats (classe 60) - estimes a partir des ecritures
-  let purchases = 0;
-  if (entries && accounts) {
-    purchases = (entries || []).reduce((sum, entry) => {
-      const account = accounts.find(a => a.account_code === entry.account_code);
-      if (!account || !account.account_code.startsWith('60')) return sum;
-      return sum + (parseFloat(entry.debit) || 0);
-    }, 0);
-  }
-
-  // COGS approxime: achats (pour la rotation des stocks)
-  const cogs = purchases || 0;
-
-  // Charges financieres (classe 67) - debit side dans les ecritures
-  let interestExpense = 0;
-  if (entries && accounts) {
-    interestExpense = (entries || []).reduce((sum, entry) => {
-      const account = accounts.find(a => a.account_code === entry.account_code);
-      if (!account || !account.account_code.startsWith('67')) return sum;
-      return sum + (parseFloat(entry.debit) || 0);
-    }, 0);
-  }
 
   // --- Valeurs du diagnostic financier existant ---
   const diagnosticMargins = financialDiagnostic?.margins || {};
   const diagnosticFinancing = financialDiagnostic?.financing || {};
 
+  // --- Extraction des valeurs du compte de resultat ---
+  const revenue = parseFloat(diagnosticMargins.revenue ?? incomeStatement?.totalRevenue) || 0;
+  const netIncome = parseFloat(incomeStatement?.netIncome) || 0;
+
+  const semanticIndex = buildAccountSemanticIndex(accounts || [], region);
+
+  // Base fournisseurs: achats + services fournisseurs, pas seulement classe 60
+  const purchases = (entries || []).reduce((sum, entry) => {
+    const classified = semanticIndex.map.get(entry.account_code);
+    if (!classified?.profile?.isSupplierExpense) return sum;
+    return sum + Math.max(0, (parseFloat(entry.debit) || 0) - (parseFloat(entry.credit) || 0));
+  }, 0);
+
+  const cogs = (entries || []).reduce((sum, entry) => {
+    const classified = semanticIndex.map.get(entry.account_code);
+    if (!classified?.profile?.isDirectCostExpense) return sum;
+    return sum + Math.max(0, (parseFloat(entry.debit) || 0) - (parseFloat(entry.credit) || 0));
+  }, 0);
+
+  const interestExpense = calculateInterestExpenseFromEntries(entries, accounts, startDate, endDate, region);
+  const annualDebtService =
+    calculateAnnualDebtServiceFromEntries(entries, accounts, startDate, endDate, region);
+
   const ebitda = parseFloat(diagnosticMargins.ebitda) || 0;
   const operatingResult = parseFloat(diagnosticMargins.operatingResult) || 0;
-  const caf = parseFloat(diagnosticFinancing.caf) || 0;
   const operatingCashFlow = parseFloat(diagnosticFinancing.operatingCashFlow) || 0;
-  const capex = parseFloat(diagnosticFinancing.capex) || calculateCapexFromEntries(entries, accounts, startDate, endDate);
+  const capex = parseFloat(diagnosticFinancing.capex) || calculateCapexFromEntries(entries, accounts, startDate, endDate, region);
 
   // --- Reuse from financialAnalysisCalculations ---
-  const bfr = balanceSheet ? calculateBFR(balanceSheet) : 0;
-  const netDebt = balanceSheet ? calculateNetDebt(balanceSheet) : 0;
-  const workingCapital = balanceSheet ? calculateWorkingCapital(balanceSheet) : 0;
+  const bfr = balanceSheet ? calculateBFR(balanceSheet, region) : 0;
+  const netDebt = balanceSheet ? calculateNetDebt(balanceSheet, region) : 0;
+  const workingCapital = balanceSheet ? calculateWorkingCapital(balanceSheet, region) : 0;
 
   // Capital employe: capitaux propres + dettes financieres
-  const capitalEmployed = equity + financialDebt;
+  const capitalEmployed = averageValue(
+    financialPosition.equity + financialPosition.financialDebt,
+    previousFinancialPosition
+      ? previousFinancialPosition.equity + previousFinancialPosition.financialDebt
+      : undefined
+  );
 
   // --- Calcul des ratios ---
 
@@ -413,7 +535,7 @@ export function computePilotageRatios(params) {
 
   // Ratios de couverture
   const interestCoverage = calculateInterestCoverage(operatingResult, interestExpense);
-  const dscr = calculateDSCR(ebitda, interestExpense + (financialDebt * 0.1)); // approximation du service de la dette
+  const dscr = calculateDSCR(operatingCashFlow + capex, annualDebtService);
 
   // Ratios de tresorerie
   const freeCashFlow = calculateFreeCashFlow(operatingCashFlow, capex);
@@ -443,6 +565,7 @@ export function computePilotageRatios(params) {
       purchases,
       cogs,
       interestExpense,
+      annualDebtService,
       capitalEmployed,
       capex
     },

@@ -1,13 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/utils/currencyService';
 import { Receipt } from 'lucide-react';
-
-const currencyFormatter = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-  maximumFractionDigits: 0,
-});
 
 const percentFormatter = new Intl.NumberFormat('fr-FR', {
   style: 'percent',
@@ -36,13 +31,13 @@ const getRegionLabel = (region) => {
   return region;
 };
 
-const TaxRow = ({ label, value, isCurrency = true, isPercentage = false, highlight = false, colorClass = '' }) => {
+const TaxRow = ({ label, value, currency, isCurrency = true, isPercentage = false, highlight = false, colorClass = '' }) => {
   let formattedValue = '--';
   if (value != null) {
     if (isPercentage) {
       formattedValue = percentFormatter.format(value);
     } else if (isCurrency) {
-      formattedValue = currencyFormatter.format(value);
+      formattedValue = formatCurrency(value, currency);
     } else {
       formattedValue = String(value);
     }
@@ -70,6 +65,7 @@ const TaxSynthesisCard = ({ data, region }) => {
   const { t } = useTranslation();
   const taxSynthesis = data?.taxSynthesis;
   const isOhada = region?.toLowerCase() === 'ohada';
+  const currency = data?.company?.currency || 'EUR';
 
   return (
     <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl h-full">
@@ -91,6 +87,7 @@ const TaxSynthesisCard = ({ data, region }) => {
             <TaxRow
               label={t('pilotage.tax.resultBeforeTax')}
               value={taxSynthesis.preTaxIncome}
+              currency={currency}
             />
 
             <div className="border-t border-gray-800/50 my-2" />
@@ -99,12 +96,14 @@ const TaxSynthesisCard = ({ data, region }) => {
             <TaxRow
               label={t('pilotage.tax.taxDue')}
               value={taxSynthesis.is?.taxDue}
+              currency={currency}
             />
 
             {/* Tax credits */}
             <TaxRow
               label={t('pilotage.tax.taxCredits')}
               value={taxSynthesis.credits?.creditAmount}
+              currency={currency}
               colorClass={
                 taxSynthesis.credits?.creditAmount > 0
                   ? 'text-emerald-400'
@@ -117,6 +116,7 @@ const TaxSynthesisCard = ({ data, region }) => {
               <TaxRow
                 label={t('pilotage.tax.imf')}
                 value={taxSynthesis.imf?.amount}
+                currency={currency}
               />
             )}
 
@@ -126,6 +126,7 @@ const TaxSynthesisCard = ({ data, region }) => {
             <TaxRow
               label={t('pilotage.tax.finalTaxDue')}
               value={taxSynthesis.finalTaxDue}
+              currency={currency}
               highlight
             />
 
@@ -135,6 +136,7 @@ const TaxSynthesisCard = ({ data, region }) => {
             <TaxRow
               label={t('pilotage.tax.effectiveRate')}
               value={taxSynthesis.effectiveRate}
+              currency={currency}
               isCurrency={false}
               isPercentage
             />
@@ -143,6 +145,7 @@ const TaxSynthesisCard = ({ data, region }) => {
             <TaxRow
               label={t('pilotage.tax.theoreticalRate')}
               value={taxSynthesis.is?.theoreticalRate}
+              currency={currency}
               isCurrency={false}
               isPercentage
             />

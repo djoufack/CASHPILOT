@@ -2044,6 +2044,7 @@
       "ebitda": "EBITDA",
       "netResult": "Net Income",
       "freeCashFlow": "Free Cash Flow",
+      "netCashMovement": "Net Cash Movement",
       "valuation": "Valuation",
       "operatingMargin": "Operating Margin",
       "grossMargin": "Gross Margin",
@@ -2186,6 +2187,8 @@
       "lastEntry": "Last entry",
       "critical": "critical",
       "warnings": "warning(s)",
+      "blockingIssues": "blocking issue(s)",
+      "dataWarnings": "data warning(s)",
       "alertDetail": "The radar summarizes structural and cash-flow alerts over the selected period.",
       "preTaxReady": "Tax base ready",
       "preTaxMissing": "Tax base incomplete",
@@ -2194,6 +2197,8 @@
       "status": {
         "setup": "Setup still required",
         "empty": "Dataset still empty",
+        "warning": "Dataset requires review",
+        "blocked": "Dataset blocked",
         "ready": "Dataset ready for analysis"
       },
       "valuationMode": {
@@ -2209,6 +2214,12 @@
       "noSetupHint": "Select and initialize a chart of accounts before analyzing the 6 steering tabs.",
       "multiplesOnlyHint": "The engine currently falls back to sector multiples until free cash flow is strong enough for a credible DCF.",
       "valuationUnavailableHint": "No usable EBITDA and no positive free cash flow over the period: valuation stays intentionally conservative."
+    },
+    "quality": {
+      "blockedTitle": "Business steering blocked by accounting anomalies",
+      "warningTitle": "Business steering should be reviewed before decision-making use",
+      "blockedHint": "Fix the chart of accounts or inconsistent journal entries first. The indicators shown should not be used for decision-making until these issues are resolved.",
+      "warningHint": "The dataset remains usable, but some classifications or journal entries should be reviewed before considering the steering layer fully reliable."
     }
   }
 }

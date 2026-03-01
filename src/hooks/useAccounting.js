@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { validateChartOfAccountsImport } from '@/utils/accountingQualityChecks';
 
 export const useAccounting = () => {
   const { user } = useAuth();
@@ -29,6 +30,13 @@ export const useAccounting = () => {
   const createAccount = async (accountData) => {
     setLoading(true);
     try {
+      const validation = validateChartOfAccountsImport([accountData], { existingAccounts: accounts });
+      if (!validation.canImport) {
+        const error = new Error(validation.blockingIssues[0]?.message || "Le compte ne peut pas être créé");
+        error.validation = validation;
+        throw error;
+      }
+
       const { data, error } = await supabase
         .from('accounting_chart_of_accounts')
         .insert([{ ...accountData, user_id: user.id }])
@@ -37,7 +45,12 @@ export const useAccounting = () => {
 
       if (error) throw error;
       setAccounts(prev => [...prev, data].sort((a, b) => a.account_code.localeCompare(b.account_code)));
-      toast({ title: "Success", description: "Account created successfully" });
+      toast({
+        title: "Success",
+        description: validation.warnings.length > 0
+          ? `Account created with ${validation.warnings.length} warning(s) to review`
+          : "Account created successfully"
+      });
       return data;
     } catch (err) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -50,6 +63,16 @@ export const useAccounting = () => {
   const updateAccount = async (id, updates) => {
     setLoading(true);
     try {
+      const currentAccount = accounts.find((account) => account.id === id);
+      const nextAccount = { ...currentAccount, ...updates };
+      const otherAccounts = accounts.filter((account) => account.id !== id);
+      const validation = validateChartOfAccountsImport([nextAccount], { existingAccounts: otherAccounts });
+      if (!validation.canImport) {
+        const error = new Error(validation.blockingIssues[0]?.message || "Le compte ne peut pas être mis à jour");
+        error.validation = validation;
+        throw error;
+      }
+
       const { data, error } = await supabase
         .from('accounting_chart_of_accounts')
         .update(updates)
@@ -59,7 +82,12 @@ export const useAccounting = () => {
 
       if (error) throw error;
       setAccounts(prev => prev.map(a => a.id === id ? data : a));
-      toast({ title: "Success", description: "Account updated successfully" });
+      toast({
+        title: "Success",
+        description: validation.warnings.length > 0
+          ? `Account updated with ${validation.warnings.length} warning(s) to review`
+          : "Account updated successfully"
+      });
       return data;
     } catch (err) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -84,6 +112,13 @@ export const useAccounting = () => {
     if (!user || !accountsArray?.length) return { count: 0 };
     setLoading(true);
     try {
+      const validation = validateChartOfAccountsImport(accountsArray, { existingAccounts: accounts });
+      if (!validation.canImport) {
+        const error = new Error(validation.blockingIssues[0]?.message || "Le fichier d'import est bloqué");
+        error.validation = validation;
+        throw error;
+      }
+
       const payload = accountsArray.map(a => ({
         ...a,
         user_id: user.id
@@ -96,8 +131,13 @@ export const useAccounting = () => {
 
       if (error) throw error;
       await fetchAccounts();
-      toast({ title: "Succès", description: `${data?.length || 0} comptes importés` });
-      return { count: data?.length || 0 };
+      toast({
+        title: "Succès",
+        description: validation.warnings.length > 0
+          ? `${data?.length || 0} comptes importés, ${validation.warnings.length} point(s) à vérifier`
+          : `${data?.length || 0} comptes importés`
+      });
+      return { count: data?.length || 0, validation };
     } catch (err) {
       toast({ title: "Erreur d'import", description: err.message, variant: "destructive" });
       throw err;

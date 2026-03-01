@@ -84,7 +84,7 @@ const ActivityRatiosSection = ({ data, sector }) => {
       {/* 3. Stock Rotation */}
       <ActivityRatioCard
         label={t('pilotage.ratios.stockRotation')}
-        value={activity?.stockRotationDays || null}
+        value={activity?.stockRotationDays ?? null}
         suffix={daysSuffix}
         benchmark={benchmarks.stockRotationDays}
         evaluation={evaluations.stockRotationDays}

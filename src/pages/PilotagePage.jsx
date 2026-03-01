@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { usePilotageData } from '@/hooks/usePilotageData';
 import PilotageHeader from '@/components/pilotage/PilotageHeader';
 import PilotageSignalStrip from '@/components/pilotage/PilotageSignalStrip';
+import PilotageQualityBanner from '@/components/pilotage/PilotageQualityBanner';
 import PilotageOverviewTab from '@/components/pilotage/PilotageOverviewTab';
 import PilotageAccountingTab from '@/components/pilotage/PilotageAccountingTab';
 import PilotageFinancialTab from '@/components/pilotage/PilotageFinancialTab';
@@ -83,6 +84,10 @@ const PilotagePage = () => {
           startDate={startDate}
           endDate={endDate}
         />
+      )}
+
+      {!pilotageData.loading && (
+        <PilotageQualityBanner data={pilotageData} />
       )}
 
       {/* Loading state */}

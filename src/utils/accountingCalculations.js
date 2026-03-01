@@ -3,6 +3,11 @@
  * Pure functions for computing financial reports from raw data
  */
 
+import {
+  buildAccountSemanticIndex,
+  getNaturalEntryAmount,
+} from './accountTaxonomy';
+
 // ============================================================================
 // PERIOD FILTERING
 // ============================================================================
@@ -420,14 +425,13 @@ function distributeToAccount(account, mappings, sourceType, totalAmount, totalAc
 export function calculateRevenueFromEntries(entries, accounts, startDate, endDate) {
   if (!entries || !accounts) return 0;
   const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
-  const accountMap = {};
-  accounts.forEach(a => { accountMap[a.account_code] = a; });
+  const semanticIndex = buildAccountSemanticIndex(accounts);
 
   let total = 0;
   filtered.forEach(e => {
-    const acc = accountMap[e.account_code];
-    if (!acc || !acc.account_code.startsWith('7')) return;
-    total += (parseFloat(e.credit) || 0) - (parseFloat(e.debit) || 0);
+    const classified = semanticIndex.map.get(e.account_code);
+    if (!classified?.profile?.isSalesRevenue) return;
+    total += getNaturalEntryAmount(e, classified.account.account_type);
   });
   return total;
 }
@@ -439,14 +443,13 @@ export function calculateRevenueFromEntries(entries, accounts, startDate, endDat
 export function calculateExpensesFromEntries(entries, accounts, startDate, endDate) {
   if (!entries || !accounts) return 0;
   const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
-  const accountMap = {};
-  accounts.forEach(a => { accountMap[a.account_code] = a; });
+  const semanticIndex = buildAccountSemanticIndex(accounts);
 
   let total = 0;
   filtered.forEach(e => {
-    const acc = accountMap[e.account_code];
-    if (!acc || !acc.account_code.startsWith('6')) return;
-    total += (parseFloat(e.debit) || 0) - (parseFloat(e.credit) || 0);
+    const classified = semanticIndex.map.get(e.account_code);
+    if (!classified?.account || classified.account.account_type !== 'expense') return;
+    total += getNaturalEntryAmount(e, classified.account.account_type);
   });
   return total;
 }
@@ -455,9 +458,25 @@ export function calculateExpensesFromEntries(entries, accounts, startDate, endDa
  * Calculate net income from entries = Revenue - Expenses
  */
 export function calculateNetIncomeFromEntries(entries, accounts, startDate, endDate) {
-  const revenue = calculateRevenueFromEntries(entries, accounts, startDate, endDate);
-  const expenses = calculateExpensesFromEntries(entries, accounts, startDate, endDate);
-  return revenue - expenses;
+  if (!entries || !accounts) return 0;
+  const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+  const semanticIndex = buildAccountSemanticIndex(accounts);
+
+  let totalRevenue = 0;
+  let totalExpenses = 0;
+
+  filtered.forEach((entry) => {
+    const classified = semanticIndex.map.get(entry.account_code);
+    if (!classified?.account) return;
+
+    if (classified.account.account_type === 'revenue') {
+      totalRevenue += getNaturalEntryAmount(entry, classified.account.account_type);
+    } else if (classified.account.account_type === 'expense') {
+      totalExpenses += getNaturalEntryAmount(entry, classified.account.account_type);
+    }
+  });
+
+  return totalRevenue - totalExpenses;
 }
 
 /**
@@ -547,24 +566,23 @@ export function calculateVATBreakdownFromEntries(entries, accounts, startDate, e
 export function buildMonthlyChartDataFromEntries(entries, accounts, startDate, endDate) {
   if (!entries || !accounts) return [];
   const filtered = filterByPeriod(entries, startDate, endDate, 'transaction_date');
-  const accountMap = {};
-  accounts.forEach(a => { accountMap[a.account_code] = a; });
+  const semanticIndex = buildAccountSemanticIndex(accounts);
 
   const months = {};
 
   filtered.forEach(e => {
-    const acc = accountMap[e.account_code];
-    if (!acc) return;
+    const classified = semanticIndex.map.get(e.account_code);
+    if (!classified?.account) return;
     const d = new Date(e.transaction_date);
     if (isNaN(d.getTime())) return;
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const label = d.toLocaleDateString('fr-FR', { month: 'short' });
     if (!months[key]) months[key] = { name: label, key, revenue: 0, expense: 0 };
 
-    if (acc.account_code.startsWith('7')) {
-      months[key].revenue += (parseFloat(e.credit) || 0) - (parseFloat(e.debit) || 0);
-    } else if (acc.account_code.startsWith('6')) {
-      months[key].expense += (parseFloat(e.debit) || 0) - (parseFloat(e.credit) || 0);
+    if (classified.profile.isSalesRevenue) {
+      months[key].revenue += getNaturalEntryAmount(e, classified.account.account_type);
+    } else if (classified.account.account_type === 'expense') {
+      months[key].expense += getNaturalEntryAmount(e, classified.account.account_type);
     }
   });
 

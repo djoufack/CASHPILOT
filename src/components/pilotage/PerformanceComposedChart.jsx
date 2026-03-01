@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { formatCurrency } from '@/utils/currencyService';
 import { BarChart3 } from 'lucide-react';
 import {
   ComposedChart,
@@ -15,12 +16,6 @@ import {
   Legend,
 } from 'recharts';
 
-const currencyFormatter = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-  maximumFractionDigits: 0,
-});
-
 const TOOLTIP_STYLE = {
   backgroundColor: '#1f2937',
   border: '1px solid #374151',
@@ -33,7 +28,7 @@ const TOOLTIP_LABEL_STYLE = {
   marginBottom: 4,
 };
 
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label, currency }) => {
   if (!active || !payload?.length) return null;
 
   return (
@@ -45,7 +40,7 @@ const CustomTooltip = ({ active, payload, label }) => {
           className="text-sm"
           style={{ color: entry.color }}
         >
-          {entry.name}: {currencyFormatter.format(entry.value)}
+          {entry.name}: {formatCurrency(entry.value, currency)}
         </p>
       ))}
     </div>
@@ -54,13 +49,14 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 const PerformanceComposedChart = ({ data }) => {
   const { t } = useTranslation();
+  const currency = data?.company?.currency || 'EUR';
 
   const chartData = useMemo(() => {
     if (!data.monthlyData?.length) return [];
 
     return data.monthlyData.map((item) => ({
       ...item,
-      cumulativeCashFlow: item.cumulativeCashFlow ?? 0,
+      cashNet: item.cashNet ?? 0,
     }));
   }, [data.monthlyData]);
 
@@ -102,7 +98,7 @@ const PerformanceComposedChart = ({ data }) => {
                     : v
                 }
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip currency={currency} />} />
               <Legend
                 wrapperStyle={{ paddingTop: 12 }}
                 formatter={(value) => (
@@ -130,11 +126,11 @@ const PerformanceComposedChart = ({ data }) => {
                 maxBarSize={40}
               />
 
-              {/* Cumulative cash flow line */}
+              {/* Net cash movement line */}
               <Line
                 type="monotone"
-                dataKey="cumulativeCashFlow"
-                name={t('pilotage.kpis.freeCashFlow')}
+                dataKey="cashNet"
+                name={t('pilotage.kpis.netCashMovement')}
                 stroke="#34d399"
                 strokeWidth={2}
                 dot={{ r: 3, fill: '#34d399' }}

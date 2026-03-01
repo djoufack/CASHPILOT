@@ -7,7 +7,7 @@ import { formatCurrency } from '@/utils/calculations';
  * Section Analyse des Marges
  * Affiche: CA, Marge brute, EBE/EBITDA, Resultat d'exploitation
  */
-const MarginAnalysisSection = ({ data }) => {
+const MarginAnalysisSection = ({ data, currency = 'EUR' }) => {
   if (!data) {
     return (
       <Card className="bg-gray-900/50 border border-gray-800">
@@ -56,7 +56,7 @@ const MarginAnalysisSection = ({ data }) => {
         <p className={`text-2xl font-bold ${
           value >= 0 ? 'text-gray-100' : 'text-red-400'
         }`}>
-          {formatCurrency(value)}
+          {formatCurrency(value, currency)}
         </p>
         {percentage !== undefined && (
           <p className="text-xs text-gray-500 mt-1">
@@ -185,14 +185,14 @@ const MarginAnalysisSection = ({ data }) => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs text-gray-500">CA genere</p>
-                  <p className="text-sm font-semibold text-gray-200">{formatCurrency(revenue)}</p>
+                  <p className="text-sm font-semibold text-gray-200">{formatCurrency(revenue, currency)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Benefice d'exploitation</p>
                   <p className={`text-sm font-semibold ${
                     operatingResult >= 0 ? 'text-green-400' : 'text-red-400'
                   }`}>
-                    {formatCurrency(operatingResult)}
+                    {formatCurrency(operatingResult, currency)}
                   </p>
                 </div>
               </div>
