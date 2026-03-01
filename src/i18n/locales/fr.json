@@ -70,7 +70,8 @@
     "systemSection": "Système",
     "management": "Gestion",
     "peppolEInvoicing": "Facturation électronique Peppol",
-    "seedData": "Données de test"
+    "seedData": "Données de test",
+    "pilotage": "Pilotage"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -1989,5 +1990,170 @@
     "eligible": "Éligible Peppol",
     "notEligible": "Client sans ID Peppol",
     "refreshStatus": "Actualiser les statuts"
+  },
+  "pilotage": {
+    "title": "Pilotage d'Entreprise",
+    "subtitle": "Analyse comptable, financière et fiscale en temps réel",
+    "tabs": {
+      "overview": "Vue d'Ensemble",
+      "accounting": "Analyse Comptable",
+      "financial": "Analyse Financière",
+      "taxValuation": "Fiscalité & Valorisation",
+      "simulator": "Simulateur",
+      "aiAudit": "Audit IA"
+    },
+    "selectors": {
+      "region": "Zone géographique",
+      "sector": "Secteur d'activité",
+      "period": "Période",
+      "startDate": "Date début",
+      "endDate": "Date fin"
+    },
+    "regions": {
+      "france": "France",
+      "belgium": "Belgique",
+      "ohada": "Zone OHADA"
+    },
+    "sectors": {
+      "saas": "Logiciels & SaaS",
+      "industry": "Industrie",
+      "retail": "Commerce / Retail",
+      "construction": "Construction / BTP",
+      "b2bServices": "Services B2B"
+    },
+    "kpis": {
+      "revenue": "Chiffre d'Affaires",
+      "ebitda": "EBITDA (EBE)",
+      "netResult": "Résultat Net",
+      "freeCashFlow": "Free Cash Flow",
+      "valuation": "Valorisation",
+      "operatingMargin": "Marge Opérationnelle",
+      "grossMargin": "Marge Brute",
+      "netMargin": "Marge Nette",
+      "trend": "Tendance",
+      "vsLastMonth": "vs mois précédent"
+    },
+    "ratios": {
+      "structure": "Ratios de Structure",
+      "liquidity": "Ratios de Liquidité",
+      "activity": "Ratios d'Activité",
+      "profitability": "Ratios de Rentabilité",
+      "dso": "Délai Client (DSO)",
+      "dpo": "Délai Fournisseur (DPO)",
+      "stockRotation": "Rotation des Stocks",
+      "cashConversionCycle": "Cycle de Conversion Cash",
+      "bfrToRevenue": "BFR / CA",
+      "financialIndependence": "Indépendance Financière",
+      "gearing": "Levier (Gearing)",
+      "stableAssetCoverage": "Couverture Emplois Stables",
+      "interestCoverage": "Couverture des Intérêts (ICR)",
+      "dscr": "DSCR",
+      "cfoToDebt": "Cash-Flow / Dette",
+      "roe": "ROE (Retour sur Capitaux Propres)",
+      "roa": "ROA (Retour sur Actifs)",
+      "roce": "ROCE (Retour sur Capitaux Employés)",
+      "eva": "EVA (Valeur Économique Ajoutée)",
+      "days": "jours",
+      "currentRatio": "Liquidité Générale",
+      "quickRatio": "Liquidité Réduite",
+      "cashRatio": "Liquidité Immédiate"
+    },
+    "tax": {
+      "synthesis": "Synthèse Fiscale",
+      "resultBeforeTax": "Résultat Avant Impôt",
+      "taxDue": "Impôt sur les Sociétés (IS)",
+      "taxCredits": "Crédits d'Impôt",
+      "effectiveRate": "Taux Effectif",
+      "theoreticalRate": "Taux Théorique",
+      "imf": "Impôt Minimum Forfaitaire",
+      "finalTaxDue": "Impôt Final Dû",
+      "cir": "Crédit Impôt Recherche (CIR)",
+      "pme": "Statut PME",
+      "taxSavings": "Économies Fiscales"
+    },
+    "valuation": {
+      "title": "Valorisation de l'Entreprise",
+      "enterpriseValue": "Valeur d'Entreprise Estimée",
+      "multiplesMethod": "Méthode des Multiples",
+      "dcfMethod": "Méthode DCF",
+      "multiple": "Multiple Sectoriel",
+      "wacc": "Coût du Capital (WACC)",
+      "riskPremium": "Prime de Risque",
+      "riskFreeRate": "Taux Sans Risque",
+      "terminalValue": "Valeur Terminale",
+      "growthRate": "Taux de Croissance",
+      "sensitivity": "Analyse de Sensibilité",
+      "lowEstimate": "Estimation Basse",
+      "midEstimate": "Estimation Centrale",
+      "highEstimate": "Estimation Haute",
+      "consensus": "Consensus (Multiples + DCF)"
+    },
+    "alerts": {
+      "title": "Alertes Financières",
+      "negativeEquity": "Capitaux propres négatifs — risque de cessation de paiements",
+      "lowICR": "Couverture des intérêts insuffisante (ICR < 1)",
+      "lowDSCR": "DSCR sous le seuil de sécurité (< 1.2)",
+      "bfrDrift": "BFR en dérive — besoin en fonds de roulement excessif",
+      "negativeCF": "Cash-flow opérationnel négatif",
+      "highGearing": "Endettement élevé (Gearing > 1)",
+      "negativeProfitability": "Résultat net négatif",
+      "noAlerts": "Aucune alerte — indicateurs sains",
+      "critical": "Critique",
+      "warning": "Attention",
+      "info": "Information"
+    },
+    "benchmark": {
+      "title": "Benchmarking Sectoriel",
+      "ratio": "Ratio",
+      "actual": "Réel",
+      "target": "Cible",
+      "status": "Statut",
+      "vsTarget": "vs Cible Sectorielle",
+      "grossMargin": "Marge Brute",
+      "operatingMargin": "Marge Opérationnelle",
+      "netMargin": "Marge Nette",
+      "financialIndependence": "Indépendance Financière",
+      "gearing": "Levier (Gearing)",
+      "dso": "Délai Client (DSO)",
+      "roe": "ROE",
+      "roa": "ROA"
+    },
+    "simulator": {
+      "title": "Simulateur Financier",
+      "noScenarios": "Aucun scénario créé",
+      "createScenario": "Créer un scénario",
+      "runSimulation": "Lancer la simulation",
+      "compareScenarios": "Comparer les scénarios",
+      "goToBuilder": "Éditeur avancé",
+      "createdAt": "Créé le"
+    },
+    "audit": {
+      "title": "Audit IA Comptable",
+      "runAudit": "Lancer l'audit",
+      "lastAudit": "Dernier audit",
+      "score": "Score Santé",
+      "categories": "Catégories",
+      "noAudit": "Aucun audit effectué",
+      "auditInProgress": "Audit en cours..."
+    },
+    "financial": {
+      "marginAnalysis": "Analyse des Marges",
+      "financingAnalysis": "Analyse du Financement",
+      "profitabilityRatios": "Ratios de Rentabilité",
+      "capitalStructure": "Structure du Capital",
+      "profitabilityTrend": "Tendance de la Marge Nette",
+      "netMarginPercent": "Marge Nette (%)",
+      "month": "Mois",
+      "noTrendData": "Données mensuelles insuffisantes pour afficher la tendance"
+    },
+    "capitalStructure": "Structure du Capital",
+    "profitabilityTrend": "Tendance Rentabilité",
+    "equityLabel": "Capitaux Propres",
+    "financialDebt": "Dettes Financières",
+    "operatingDebt": "Dettes d'Exploitation",
+    "trialBalanceSummary": "Résumé Balance de Vérification",
+    "performanceChart": "Performance Globale",
+    "noData": "Aucune donnée comptable disponible",
+    "noDataHint": "Importez un plan comptable et saisissez des écritures pour activer le pilotage"
   }
 }

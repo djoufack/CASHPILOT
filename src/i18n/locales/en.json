@@ -70,7 +70,8 @@
     "systemSection": "System",
     "management": "Management",
     "peppolEInvoicing": "Peppol e-Invoicing",
-    "seedData": "Seed Data"
+    "seedData": "Seed Data",
+    "pilotage": "Business Steering"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -2002,5 +2003,170 @@
     "eligible": "Peppol Eligible",
     "notEligible": "Client without Peppol ID",
     "refreshStatus": "Refresh Statuses"
+  },
+  "pilotage": {
+    "title": "Business Steering",
+    "subtitle": "Real-time accounting, financial and tax analysis",
+    "tabs": {
+      "overview": "Overview",
+      "accounting": "Accounting Analysis",
+      "financial": "Financial Analysis",
+      "taxValuation": "Tax & Valuation",
+      "simulator": "Simulator",
+      "aiAudit": "AI Audit"
+    },
+    "selectors": {
+      "region": "Geographic zone",
+      "sector": "Business sector",
+      "period": "Period",
+      "startDate": "Start date",
+      "endDate": "End date"
+    },
+    "regions": {
+      "france": "France",
+      "belgium": "Belgium",
+      "ohada": "OHADA Zone"
+    },
+    "sectors": {
+      "saas": "Software & SaaS",
+      "industry": "Industry",
+      "retail": "Retail / Commerce",
+      "construction": "Construction",
+      "b2bServices": "B2B Services"
+    },
+    "kpis": {
+      "revenue": "Revenue",
+      "ebitda": "EBITDA",
+      "netResult": "Net Income",
+      "freeCashFlow": "Free Cash Flow",
+      "valuation": "Valuation",
+      "operatingMargin": "Operating Margin",
+      "grossMargin": "Gross Margin",
+      "netMargin": "Net Margin",
+      "trend": "Trend",
+      "vsLastMonth": "vs last month"
+    },
+    "ratios": {
+      "structure": "Structure Ratios",
+      "liquidity": "Liquidity Ratios",
+      "activity": "Activity Ratios",
+      "profitability": "Profitability Ratios",
+      "dso": "Days Sales Outstanding (DSO)",
+      "dpo": "Days Payable Outstanding (DPO)",
+      "stockRotation": "Stock Rotation",
+      "cashConversionCycle": "Cash Conversion Cycle",
+      "bfrToRevenue": "Working Capital / Revenue",
+      "financialIndependence": "Financial Independence",
+      "gearing": "Gearing (Leverage)",
+      "stableAssetCoverage": "Stable Asset Coverage",
+      "interestCoverage": "Interest Coverage Ratio (ICR)",
+      "dscr": "DSCR",
+      "cfoToDebt": "Cash Flow / Debt",
+      "roe": "ROE (Return on Equity)",
+      "roa": "ROA (Return on Assets)",
+      "roce": "ROCE (Return on Capital Employed)",
+      "eva": "EVA (Economic Value Added)",
+      "days": "days",
+      "currentRatio": "Current Ratio",
+      "quickRatio": "Quick Ratio",
+      "cashRatio": "Cash Ratio"
+    },
+    "tax": {
+      "synthesis": "Tax Summary",
+      "resultBeforeTax": "Pre-Tax Income",
+      "taxDue": "Corporate Income Tax",
+      "taxCredits": "Tax Credits",
+      "effectiveRate": "Effective Rate",
+      "theoreticalRate": "Theoretical Rate",
+      "imf": "Minimum Flat Tax",
+      "finalTaxDue": "Final Tax Due",
+      "cir": "R&D Tax Credit",
+      "pme": "SME Status",
+      "taxSavings": "Tax Savings"
+    },
+    "valuation": {
+      "title": "Company Valuation",
+      "enterpriseValue": "Estimated Enterprise Value",
+      "multiplesMethod": "Multiples Method",
+      "dcfMethod": "DCF Method",
+      "multiple": "Sector Multiple",
+      "wacc": "Cost of Capital (WACC)",
+      "riskPremium": "Risk Premium",
+      "riskFreeRate": "Risk-Free Rate",
+      "terminalValue": "Terminal Value",
+      "growthRate": "Growth Rate",
+      "sensitivity": "Sensitivity Analysis",
+      "lowEstimate": "Low Estimate",
+      "midEstimate": "Mid Estimate",
+      "highEstimate": "High Estimate",
+      "consensus": "Consensus (Multiples + DCF)"
+    },
+    "alerts": {
+      "title": "Financial Alerts",
+      "negativeEquity": "Negative equity — insolvency risk",
+      "lowICR": "Insufficient interest coverage (ICR < 1)",
+      "lowDSCR": "DSCR below safety threshold (< 1.2)",
+      "bfrDrift": "Working capital drift — excessive working capital needs",
+      "negativeCF": "Negative operating cash flow",
+      "highGearing": "High leverage (Gearing > 1)",
+      "negativeProfitability": "Negative net income",
+      "noAlerts": "No alerts — healthy indicators",
+      "critical": "Critical",
+      "warning": "Warning",
+      "info": "Info"
+    },
+    "benchmark": {
+      "title": "Sector Benchmarking",
+      "ratio": "Ratio",
+      "actual": "Actual",
+      "target": "Target",
+      "status": "Status",
+      "vsTarget": "vs Sector Target",
+      "grossMargin": "Gross Margin",
+      "operatingMargin": "Operating Margin",
+      "netMargin": "Net Margin",
+      "financialIndependence": "Financial Independence",
+      "gearing": "Gearing (Leverage)",
+      "dso": "Days Sales Outstanding (DSO)",
+      "roe": "ROE",
+      "roa": "ROA"
+    },
+    "simulator": {
+      "title": "Financial Simulator",
+      "noScenarios": "No scenarios created",
+      "createScenario": "Create a scenario",
+      "runSimulation": "Run simulation",
+      "compareScenarios": "Compare scenarios",
+      "goToBuilder": "Advanced editor",
+      "createdAt": "Created on"
+    },
+    "audit": {
+      "title": "AI Accounting Audit",
+      "runAudit": "Run audit",
+      "lastAudit": "Last audit",
+      "score": "Health Score",
+      "categories": "Categories",
+      "noAudit": "No audit performed",
+      "auditInProgress": "Audit in progress..."
+    },
+    "financial": {
+      "marginAnalysis": "Margin Analysis",
+      "financingAnalysis": "Financing Analysis",
+      "profitabilityRatios": "Profitability Ratios",
+      "capitalStructure": "Capital Structure",
+      "profitabilityTrend": "Net Margin Trend",
+      "netMarginPercent": "Net Margin (%)",
+      "month": "Month",
+      "noTrendData": "Insufficient monthly data to display trend"
+    },
+    "capitalStructure": "Capital Structure",
+    "profitabilityTrend": "Profitability Trend",
+    "equityLabel": "Equity",
+    "financialDebt": "Financial Debt",
+    "operatingDebt": "Operating Debt",
+    "trialBalanceSummary": "Trial Balance Summary",
+    "performanceChart": "Overall Performance",
+    "noData": "No accounting data available",
+    "noDataHint": "Import a chart of accounts and enter transactions to activate steering"
   }
 }

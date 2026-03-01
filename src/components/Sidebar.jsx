@@ -40,6 +40,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         path: '/app',
       },
       {
+        id: 'pilotage',
+        label: t('nav.pilotage'),
+        icon: BarChart3,
+        type: 'direct',
+        path: '/app/pilotage',
+      },
+      {
         id: 'peppol',
         label: t('nav.peppolEInvoicing'),
         icon: Globe,
