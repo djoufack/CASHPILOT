@@ -75,7 +75,7 @@ const ProfileSettings = () => {
       }
       addLog("Form populated from profile data");
     }
-  }, [profile, signatureFile]);
+  }, [addLog, profile, signatureFile]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

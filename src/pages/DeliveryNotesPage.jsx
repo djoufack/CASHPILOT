@@ -137,11 +137,12 @@ const DeliveryNotesPage = () => {
   });
 
   const pagination = usePagination({ pageSize: 20 });
+  const { setTotalCount } = pagination;
 
   // Update pagination total count when filtered notes change
   useEffect(() => {
-    pagination.setTotalCount(filteredNotes.length);
-  }, [filteredNotes.length]);
+    setTotalCount(filteredNotes.length);
+  }, [filteredNotes.length, setTotalCount]);
 
   // Client-side paginated data for the list view
   const paginatedNotes = filteredNotes.slice(pagination.from, pagination.to + 1);

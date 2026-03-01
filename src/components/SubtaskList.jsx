@@ -1,11 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useSubtasks } from '@/hooks/useSubtasks';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Trash2, Loader2, Plus, GripVertical } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SubtaskList = ({ taskId }) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -27,19 +27,19 @@ const ProjectBillingDialog = ({ open, onOpenChange, projectId, project, onSucces
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  useEffect(() => {
-    if (open && projectId) {
-      loadTimesheets();
-    }
-  }, [open, projectId]);
-
-  const loadTimesheets = async () => {
+  const loadTimesheets = useCallback(async () => {
     setLoading(true);
     const data = await fetchBillableTimesheetsForProject(projectId);
     setBillableTimesheets(data);
     setSelectedTimesheetIds(data.map(ts => ts.id)); // select all by default
     setLoading(false);
-  };
+  }, [fetchBillableTimesheetsForProject, projectId]);
+
+  useEffect(() => {
+    if (open && projectId) {
+      loadTimesheets();
+    }
+  }, [loadTimesheets, open, projectId]);
 
   // Toggle timesheet selection
   const toggleTimesheet = (id) => {

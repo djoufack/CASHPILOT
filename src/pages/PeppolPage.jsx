@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -46,7 +46,7 @@ const PeppolPage = () => {
   const isPeppolConfigured = !!(company?.peppol_endpoint_id);
 
   // --- Fetch AP account info from Scrada ---
-  const fetchApInfo = async () => {
+  const fetchApInfo = useCallback(async () => {
     if (!user) return;
     setLoadingApInfo(true);
     try {
@@ -59,10 +59,10 @@ const PeppolPage = () => {
     } finally {
       setLoadingApInfo(false);
     }
-  };
+  }, [user]);
 
   // --- Data fetching ---
-  const fetchOutboundInvoices = async () => {
+  const fetchOutboundInvoices = useCallback(async () => {
     if (!user) return;
     setLoadingInvoices(true);
     try {
@@ -88,9 +88,9 @@ const PeppolPage = () => {
     } finally {
       setLoadingInvoices(false);
     }
-  };
+  }, [toast, t, user]);
 
-  const fetchInboundLogs = async () => {
+  const fetchInboundLogs = useCallback(async () => {
     if (!user) return;
     setLoadingInbound(true);
     try {
@@ -107,9 +107,9 @@ const PeppolPage = () => {
     } finally {
       setLoadingInbound(false);
     }
-  };
+  }, [user]);
 
-  const fetchAllLogs = async () => {
+  const fetchAllLogs = useCallback(async () => {
     if (!user) return;
     setLoadingLogs(true);
     try {
@@ -126,7 +126,7 @@ const PeppolPage = () => {
     } finally {
       setLoadingLogs(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -135,7 +135,7 @@ const PeppolPage = () => {
       fetchAllLogs();
       fetchApInfo();
     }
-  }, [user]);
+  }, [fetchAllLogs, fetchApInfo, fetchInboundLogs, fetchOutboundInvoices, user]);
 
   // --- KPI calculations ---
   const kpis = useMemo(() => {
@@ -222,11 +222,11 @@ const PeppolPage = () => {
   };
 
   // --- Refresh all data ---
-  const handleRefreshAll = () => {
+  const handleRefreshAll = useCallback(() => {
     fetchOutboundInvoices();
     fetchInboundLogs();
     fetchAllLogs();
-  };
+  }, [fetchAllLogs, fetchInboundLogs, fetchOutboundInvoices]);
 
   // --- Formatting helpers ---
   const formatDate = (dateStr) => {

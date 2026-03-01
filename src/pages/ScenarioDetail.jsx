@@ -3,7 +3,7 @@
  * Shows scenario details, assumptions management, and simulation results
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,11 +59,7 @@ const ScenarioDetail = () => {
   const [isRunningSimulation, setIsRunningSimulation] = useState(false);
 
   // Load scenario details
-  useEffect(() => {
-    loadScenario();
-  }, [scenarioId]);
-
-  const loadScenario = async () => {
+  const loadScenario = useCallback(async () => {
     const data = await getScenarioWithAssumptions(scenarioId);
     if (data) {
       setScenario(data);
@@ -75,7 +71,11 @@ const ScenarioDetail = () => {
         setResults(scenarioResults);
       }
     }
-  };
+  }, [getScenarioResults, getScenarioWithAssumptions, scenarioId]);
+
+  useEffect(() => {
+    loadScenario();
+  }, [loadScenario]);
 
   // Refresh assumptions list
   const handleAssumptionsChanged = async () => {

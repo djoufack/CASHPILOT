@@ -183,11 +183,12 @@ const QuotesPage = () => {
   });
 
   const pagination = usePagination({ pageSize: 20 });
+  const { setTotalCount } = pagination;
 
   // Update pagination total count when filtered quotes change
   useEffect(() => {
-    pagination.setTotalCount(filteredQuotes.length);
-  }, [filteredQuotes.length]);
+    setTotalCount(filteredQuotes.length);
+  }, [filteredQuotes.length, setTotalCount]);
 
   // Client-side paginated data for the list view
   const paginatedQuotes = filteredQuotes.slice(pagination.from, pagination.to + 1);

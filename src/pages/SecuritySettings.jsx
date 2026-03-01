@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { Shield, ShieldCheck, ShieldOff, Loader2, Copy, CheckCircle2 } from 'lucide-react';
@@ -16,11 +16,7 @@ const SecuritySettings = () => {
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    loadMFAStatus();
-  }, []);
-
-  const loadMFAStatus = async () => {
+  const loadMFAStatus = useCallback(async () => {
     setIsLoading(true);
     try {
       const status = await getMFAStatus();
@@ -30,7 +26,11 @@ const SecuritySettings = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getMFAStatus]);
+
+  useEffect(() => {
+    loadMFAStatus();
+  }, [loadMFAStatus]);
 
   const handleEnroll = async () => {
     setIsLoading(true);

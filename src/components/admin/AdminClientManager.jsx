@@ -29,7 +29,7 @@ const AdminClientManager = () => {
 
   const getOwnerDisplay = (client) => {
     if (client.profiles) {
-      return client.profiles.full_name || client.profiles.email || 'Unknown';
+      return client.profiles.full_name || client.profiles.company_name || 'Unknown';
     }
     return client.user_id?.substring(0, 8) + '...' || 'N/A';
   };

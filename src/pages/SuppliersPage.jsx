@@ -66,7 +66,7 @@ const SuppliersPage = () => {
 
   React.useEffect(() => {
     pagination.setTotalCount(filteredSuppliers.length);
-  }, [filteredSuppliers.length]);
+  }, [filteredSuppliers.length, pagination]);
 
   const paginatedSuppliers = filteredSuppliers.slice(pagination.from, pagination.to + 1);
 

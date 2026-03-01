@@ -55,7 +55,7 @@ const TimesheetsPage = () => {
     if (window.innerWidth >= 768) {
       setView('calendar');
     }
-  }, []);
+  }, [fetchTimesheets]);
 
   const events = timesheets.map(ts => ({
     id: ts.id,

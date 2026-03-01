@@ -125,13 +125,13 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
     setStep('upload');
   };
 
-  const validateFile = (f) => {
+  const validateFile = useCallback((f) => {
     if (!f) return 'No file selected';
     if (f.size > MAX_FILE_SIZE) return t('import.fileTooLarge', 'File exceeds 5 MB');
     const ext = '.' + f.name.split('.').pop().toLowerCase();
     if (!ACCEPTED_EXTENSIONS.includes(ext)) return t('import.invalidFormat', 'Invalid format. Accepted: .xlsx, .xls, .csv');
     return null;
-  };
+  }, [t]);
 
   const processFile = useCallback(async (selectedFile) => {
     const error = validateFile(selectedFile);
@@ -185,7 +185,7 @@ const AccountingPlanImport = ({ onImportComplete, onCancel }) => {
       console.error('File parse error:', err);
       setImportError(err.message || 'Failed to parse file');
     }
-  }, [t]);
+  }, [t, validateFile]);
 
   // ---------------------------------------------------------------------------
   // Auto-detect columns

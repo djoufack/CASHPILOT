@@ -30,7 +30,7 @@ const SupplierMap = () => {
 
   useEffect(() => {
     getCurrentLocation();
-  }, []);
+  }, [getCurrentLocation]);
 
   return (
     <Card className="h-full bg-gray-900 border-gray-800 text-white flex flex-col">

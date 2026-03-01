@@ -57,9 +57,10 @@ const StockManagement = () => {
 
   useEffect(() => {
     fetchAlerts();
-  }, []);
+  }, [fetchAlerts]);
 
   const pagination = usePagination({ pageSize: 25 });
+  const { setTotalCount } = pagination;
 
   // Filter products
   const filteredProducts = products.filter(p => {
@@ -71,8 +72,8 @@ const StockManagement = () => {
   });
 
   useEffect(() => {
-    pagination.setTotalCount(filteredProducts.length);
-  }, [filteredProducts.length]);
+    setTotalCount(filteredProducts.length);
+  }, [filteredProducts.length, setTotalCount]);
 
   const paginatedProducts = filteredProducts.slice(pagination.from, pagination.to + 1);
 

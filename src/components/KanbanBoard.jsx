@@ -6,6 +6,7 @@ import {
   closestCorners,
   KeyboardSensor,
   PointerSensor,
+  useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -84,9 +85,6 @@ const KanbanColumn = ({ column, tasks, onEdit, onDelete }) => {
     </div>
   );
 };
-
-// Droppable wrapper for dnd-kit
-import { useDroppable } from '@dnd-kit/core';
 
 const KanbanBoard = ({ tasks, onEdit, onDelete, onStatusChange }) => {
   const { updateTaskStatus } = useTaskStatus();
