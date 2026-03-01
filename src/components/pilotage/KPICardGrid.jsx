@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
+import { formatCurrency } from '@/utils/currencyService';
 import {
   TrendingUp,
   BarChart3,
@@ -8,12 +9,6 @@ import {
   ArrowUpDown,
   Gem,
 } from 'lucide-react';
-
-const currencyFormatter = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-  maximumFractionDigits: 0,
-});
 
 const KPI_CONFIG = [
   {
@@ -81,10 +76,10 @@ const COLOR_MAP = {
   },
 };
 
-const KPICard = ({ icon: Icon, label, value, color }) => {
+const KPICard = ({ icon: Icon, label, value, color, currency }) => {
   const colors = COLOR_MAP[color];
   const formattedValue =
-    value != null ? currencyFormatter.format(value) : '--';
+    value != null ? formatCurrency(value, currency) : '--';
 
   return (
     <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
@@ -111,6 +106,7 @@ const KPICard = ({ icon: Icon, label, value, color }) => {
 
 const KPICardGrid = ({ data }) => {
   const { t } = useTranslation();
+  const currency = data?.company?.currency || 'EUR';
 
   const kpis = useMemo(
     () =>
@@ -131,6 +127,7 @@ const KPICardGrid = ({ data }) => {
           label={kpi.label}
           value={kpi.value}
           color={kpi.color}
+          currency={currency}
         />
       ))}
     </div>

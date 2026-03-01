@@ -20,8 +20,12 @@ function getDatasetTone(status) {
   switch (status) {
     case 'ready':
       return 'success';
+    case 'warning':
+      return 'warning';
     case 'empty':
       return 'warning';
+    case 'blocked':
+      return 'danger';
     default:
       return 'danger';
   }
@@ -69,8 +73,14 @@ const PilotageSignalStrip = ({ data, region, sector, startDate, endDate }) => {
         tone: getDatasetTone(quality.datasetStatus),
         eyebrow: t('pilotage.signal.dataCoverage'),
         title: t(`pilotage.signal.status.${quality.datasetStatus || 'setup'}`),
-        meta: `${quality.entriesCount || 0} ${t('pilotage.signal.entries')}`,
-        detail: quality.lastEntryDate
+        meta: quality.blockingIssues > 0
+          ? `${quality.blockingIssues || 0} ${t('pilotage.signal.blockingIssues')}`
+          : quality.dataWarnings > 0
+            ? `${quality.dataWarnings || 0} ${t('pilotage.signal.dataWarnings')}`
+            : `${quality.entriesCount || 0} ${t('pilotage.signal.entries')}`,
+        detail: quality.topIssues?.[0]?.message
+          ? quality.topIssues[0].message
+          : quality.lastEntryDate
           ? `${t('pilotage.signal.lastEntry')}: ${quality.lastEntryDate} · ${quality.accountsCount || 0} ${t('pilotage.signal.accounts')}`
           : `${quality.accountsCount || 0} ${t('pilotage.signal.accounts')}`,
       },

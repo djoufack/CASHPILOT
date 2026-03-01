@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import pcgBelge from '@/data/pcg-belge.json';
 import pcgFrance from '@/data/pcg-france.json';
 import pcgOhada from '@/data/pcg-ohada.json';
+import { validateChartOfAccountsImport } from '@/utils/accountingQualityChecks';
 
 // ---------------------------------------------------------------------------
 // Check initialization status
@@ -86,6 +87,17 @@ export async function initializeAccounting(userId, country) {
 
     // 2. Load the appropriate chart of accounts
     const accounts = country === 'BE' ? pcgBelge : country === 'OHADA' ? pcgOhada : pcgFrance;
+    const regionHint = country === 'BE' ? 'belgium' : country === 'OHADA' ? 'ohada' : 'france';
+    const validation = validateChartOfAccountsImport(accounts, { regionHint });
+    if (!validation.canImport) {
+      return {
+        success: false,
+        accountsCount: 0,
+        mappingsCount: 0,
+        taxRatesCount: 0,
+        error: validation.blockingIssues[0]?.message || 'Le plan comptable par défaut est invalide pour le pilotage',
+      };
+    }
 
     // 3. Bulk-insert accounts
     const accountsCount = await bulkInsertAccounts(userId, accounts);

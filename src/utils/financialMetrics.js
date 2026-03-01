@@ -1,34 +1,10 @@
 import { filterByPeriod } from './accountingCalculations';
+import {
+  buildAccountSemanticIndex,
+  getNaturalEntryAmount,
+} from './accountTaxonomy';
 
-const CASH_PREFIXES = ['5', '52', '53', '54', '55', '56', '57', '58'];
-const FIXED_ASSET_PREFIXES = ['2'];
-const INVENTORY_PREFIXES = ['3'];
-const CURRENT_ASSET_PREFIXES = ['3', '4', '5'];
-const FINANCIAL_DEBT_PREFIXES = ['16', '17'];
-
-const RECEIVABLE_REGEX = /(client|customer|receivable|debtor|creance)/i;
-const PAYABLE_REGEX = /(fournisseur|supplier|vendor|trade payable|dettes? commerciales?)/i;
-const TAX_REGEX = /(tva|tax|fiscal|imp[oô]t|etat|social|urssaf|vat)/i;
-const CASH_REGEX = /(banque|bank|cash|caisse|tre?sorerie)/i;
-const FIXED_ASSET_REGEX = /(immobil|fixed asset|asset held|property|plant|equipment)/i;
-const INVENTORY_REGEX = /(stock|inventory|marchandise)/i;
-const INCOME_TAX_REGEX = /(imp[oô]t(s)? sur (les )?(benefices|b[eé]n[eé]fices|societes|soci[eé]t[eé]s|resultat|r[eé]sultat|profit)|corporate income tax|income tax|taxe sur le r[eé]sultat|\bis\b)/i;
-
-function getAccountCode(account) {
-  return String(account?.account_code || '').trim();
-}
-
-function getAccountText(account) {
-  return `${account?.account_name || ''} ${account?.account_category || ''}`.trim();
-}
-
-function startsWithAny(code, prefixes) {
-  return prefixes.some((prefix) => code.startsWith(prefix));
-}
-
-function hasTextMatch(account, regex) {
-  return regex.test(getAccountText(account));
-}
+const OPENING_ENTRY_REGEX = /^(open|opening|ouverture|solde[-_\s]?initial)/i;
 
 function sumBalances(accounts) {
   return (accounts || []).reduce(
@@ -37,82 +13,30 @@ function sumBalances(accounts) {
   );
 }
 
-function buildAccountMap(accounts) {
-  const map = new Map();
-  (accounts || []).forEach((account) => {
-    map.set(account.account_code, account);
+function groupEntriesByReference(entries) {
+  const groups = new Map();
+
+  (entries || []).forEach((entry) => {
+    const key = entry.entry_ref || entry.id;
+    const group = groups.get(key) || {
+      entry_ref: entry.entry_ref || '',
+      lines: [],
+    };
+
+    group.lines.push(entry);
+    groups.set(key, group);
   });
-  return map;
+
+  return Array.from(groups.values());
 }
 
-function isFixedAssetAccount(account) {
-  const code = getAccountCode(account);
-  return (
-    account?.account_type === 'asset' &&
-    (startsWithAny(code, FIXED_ASSET_PREFIXES) || hasTextMatch(account, FIXED_ASSET_REGEX))
-  );
-}
+function isOpeningBalanceGroup(group) {
+  if (OPENING_ENTRY_REGEX.test(String(group?.entry_ref || '').trim())) {
+    return true;
+  }
 
-function isInventoryAccount(account) {
-  const code = getAccountCode(account);
-  return (
-    account?.account_type === 'asset' &&
-    (startsWithAny(code, INVENTORY_PREFIXES) || hasTextMatch(account, INVENTORY_REGEX))
-  );
-}
-
-function isCashAccount(account) {
-  const code = getAccountCode(account);
-  return (
-    account?.account_type === 'asset' &&
-    (startsWithAny(code, CASH_PREFIXES) || hasTextMatch(account, CASH_REGEX))
-  );
-}
-
-function isReceivableAccount(account) {
-  const code = getAccountCode(account);
-  return (
-    account?.account_type === 'asset' &&
-    (
-      code.startsWith('41') ||
-      (code.startsWith('40') && hasTextMatch(account, RECEIVABLE_REGEX)) ||
-      hasTextMatch(account, RECEIVABLE_REGEX)
-    )
-  );
-}
-
-function isFinancialDebtAccount(account) {
-  const code = getAccountCode(account);
-  return (
-    account?.account_type === 'liability' &&
-    (
-      startsWithAny(code, FINANCIAL_DEBT_PREFIXES) ||
-      /(emprunt|loan|borrow|financial debt|dette financiere)/i.test(getAccountText(account))
-    )
-  );
-}
-
-function isTradePayableAccount(account) {
-  const code = getAccountCode(account);
-  return (
-    account?.account_type === 'liability' &&
-    (
-      code.startsWith('40') ||
-      (code.startsWith('44') && hasTextMatch(account, PAYABLE_REGEX)) ||
-      hasTextMatch(account, PAYABLE_REGEX)
-    )
-  );
-}
-
-function isTaxLiabilityAccount(account) {
-  const code = getAccountCode(account);
-  return (
-    account?.account_type === 'liability' &&
-    (
-      code.startsWith('45') ||
-      (code.startsWith('44') && hasTextMatch(account, TAX_REGEX)) ||
-      hasTextMatch(account, TAX_REGEX)
-    )
+  return (group?.lines || []).every((line) =>
+    OPENING_ENTRY_REGEX.test(String(line?.description || '').trim())
   );
 }
 
@@ -125,7 +49,7 @@ export function getAllBalanceSheetAccounts(balanceSheet) {
   ];
 }
 
-export function extractFinancialPosition(balanceSheet) {
+export function extractFinancialPosition(balanceSheet, regionHint = null) {
   if (!balanceSheet) {
     return {
       assets: [],
@@ -152,30 +76,24 @@ export function extractFinancialPosition(balanceSheet) {
   const assets = balanceSheet.assets || [];
   const liabilities = balanceSheet.liabilities || [];
   const equityAccounts = balanceSheet.equity || [];
-
-  const fixedAssets = sumBalances(assets.filter(isFixedAssetAccount));
-  const inventory = sumBalances(assets.filter(isInventoryAccount));
-  const cash = sumBalances(assets.filter(isCashAccount));
-  const receivables = sumBalances(assets.filter(isReceivableAccount));
-  const currentAssets = sumBalances(
-    assets.filter((account) => {
-      const code = getAccountCode(account);
-      return startsWithAny(code, CURRENT_ASSET_PREFIXES) || (!isFixedAssetAccount(account) && account.account_type === 'asset');
-    })
+  const semanticIndex = buildAccountSemanticIndex(
+    [...assets, ...liabilities, ...equityAccounts],
+    regionHint
   );
 
-  const financialDebt = sumBalances(liabilities.filter(isFinancialDebtAccount));
-  const tradePayables = sumBalances(liabilities.filter(isTradePayableAccount));
-  const taxLiabilities = sumBalances(liabilities.filter(isTaxLiabilityAccount));
-  const currentLiabilities = sumBalances(
-    liabilities.filter((account) => {
-      const code = getAccountCode(account);
-      return code.startsWith('4') || (!isFinancialDebtAccount(account) && (isTradePayableAccount(account) || isTaxLiabilityAccount(account)));
-    })
-  );
+  const fixedAssets = sumBalances(assets.filter((account) => semanticIndex.map.get(account.account_code)?.profile?.isFixedAsset));
+  const inventory = sumBalances(assets.filter((account) => semanticIndex.map.get(account.account_code)?.profile?.isInventory));
+  const cash = sumBalances(assets.filter((account) => semanticIndex.map.get(account.account_code)?.profile?.isCash));
+  const receivables = sumBalances(assets.filter((account) => semanticIndex.map.get(account.account_code)?.profile?.isReceivable));
+  const currentAssets = sumBalances(assets.filter((account) => semanticIndex.map.get(account.account_code)?.profile?.isCurrentAsset));
+
+  const financialDebt = sumBalances(liabilities.filter((account) => semanticIndex.map.get(account.account_code)?.profile?.isFinancialDebt));
+  const tradePayables = sumBalances(liabilities.filter((account) => semanticIndex.map.get(account.account_code)?.profile?.isTradePayable));
+  const taxLiabilities = sumBalances(liabilities.filter((account) => semanticIndex.map.get(account.account_code)?.profile?.isTaxLiability));
+  const currentLiabilities = sumBalances(liabilities.filter((account) => semanticIndex.map.get(account.account_code)?.profile?.isCurrentLiability));
 
   const equity = sumBalances(equityAccounts);
-  const longTermDebt = financialDebt;
+  const longTermDebt = sumBalances(liabilities.filter((account) => semanticIndex.map.get(account.account_code)?.profile?.isLongTermFinancialDebt)) || financialDebt;
   const permanentCapital = equity + longTermDebt;
   const totalAssets = parseFloat(balanceSheet.totalAssets) || sumBalances(assets);
   const totalDebt = financialDebt;
@@ -203,65 +121,66 @@ export function extractFinancialPosition(balanceSheet) {
   };
 }
 
-export function calculateCapexFromEntries(entries, accounts, startDate, endDate) {
+export function calculateCapexFromEntries(entries, accounts, startDate, endDate, regionHint = null) {
   if (!entries || !accounts) return 0;
 
   const filteredEntries = filterByPeriod(entries, startDate, endDate, 'transaction_date');
-  const accountMap = buildAccountMap(accounts);
+  const semanticIndex = buildAccountSemanticIndex(accounts, regionHint);
+  const capex = groupEntriesByReference(filteredEntries).reduce((sum, group) => {
+    if (isOpeningBalanceGroup(group)) return sum;
 
-  const capex = filteredEntries.reduce((sum, entry) => {
-    const account = accountMap.get(entry.account_code);
-    if (!account || !isFixedAssetAccount(account)) return sum;
+    let fixedAssetDebit = 0;
+    let fixedAssetCredit = 0;
+    let hasExternalCounterpart = false;
 
-    const debit = parseFloat(entry.debit) || 0;
-    const credit = parseFloat(entry.credit) || 0;
-    return sum + (debit - credit);
+    group.lines.forEach((entry) => {
+      const classified = semanticIndex.map.get(entry.account_code);
+      if (classified?.profile?.isFixedAsset) {
+        fixedAssetDebit += parseFloat(entry.debit) || 0;
+        fixedAssetCredit += parseFloat(entry.credit) || 0;
+      } else if ((parseFloat(entry.debit) || 0) !== 0 || (parseFloat(entry.credit) || 0) !== 0) {
+        hasExternalCounterpart = true;
+      }
+    });
+
+    if (!hasExternalCounterpart) return sum;
+
+    return sum + Math.max(0, fixedAssetDebit - fixedAssetCredit);
   }, 0);
 
   return capex > 0 ? capex : 0;
 }
 
-export function calculateIncomeTaxExpense(entries, accounts, startDate, endDate) {
+export function calculateIncomeTaxExpense(entries, accounts, startDate, endDate, regionHint = null) {
   if (!entries || !accounts) return 0;
 
   const filteredEntries = filterByPeriod(entries, startDate, endDate, 'transaction_date');
-  const accountMap = buildAccountMap(accounts);
+  const semanticIndex = buildAccountSemanticIndex(accounts, regionHint);
 
   return filteredEntries.reduce((sum, entry) => {
-    const account = accountMap.get(entry.account_code);
-    if (!account || account.account_type !== 'expense') return sum;
-
-    const code = getAccountCode(account);
-    if (!code.startsWith('695') && !hasTextMatch(account, INCOME_TAX_REGEX)) {
-      return sum;
-    }
-
-    return sum + ((parseFloat(entry.debit) || 0) - (parseFloat(entry.credit) || 0));
+    const classified = semanticIndex.map.get(entry.account_code);
+    if (!classified?.profile?.isIncomeTaxExpense) return sum;
+    return sum + getNaturalEntryAmount(entry, classified.account.account_type);
   }, 0);
 }
 
-export function calculateIncomeTaxIncome(entries, accounts, startDate, endDate) {
+export function calculateIncomeTaxIncome(entries, accounts, startDate, endDate, regionHint = null) {
   if (!entries || !accounts) return 0;
 
   const filteredEntries = filterByPeriod(entries, startDate, endDate, 'transaction_date');
-  const accountMap = buildAccountMap(accounts);
+  const semanticIndex = buildAccountSemanticIndex(accounts, regionHint);
 
   return filteredEntries.reduce((sum, entry) => {
-    const account = accountMap.get(entry.account_code);
-    if (!account || account.account_type !== 'revenue') return sum;
-
-    if (!hasTextMatch(account, INCOME_TAX_REGEX)) {
-      return sum;
-    }
-
-    return sum + ((parseFloat(entry.credit) || 0) - (parseFloat(entry.debit) || 0));
+    const classified = semanticIndex.map.get(entry.account_code);
+    if (!classified?.profile?.isIncomeTaxIncome) return sum;
+    return sum + getNaturalEntryAmount(entry, classified.account.account_type);
   }, 0);
 }
 
-export function calculatePreTaxIncome(netIncome, entries, accounts, startDate, endDate) {
+export function calculatePreTaxIncome(netIncome, entries, accounts, startDate, endDate, regionHint = null) {
   const normalizedNetIncome = Number(netIncome) || 0;
-  const incomeTaxExpense = calculateIncomeTaxExpense(entries, accounts, startDate, endDate);
-  const incomeTaxIncome = calculateIncomeTaxIncome(entries, accounts, startDate, endDate);
+  const incomeTaxExpense = calculateIncomeTaxExpense(entries, accounts, startDate, endDate, regionHint);
+  const incomeTaxIncome = calculateIncomeTaxIncome(entries, accounts, startDate, endDate, regionHint);
 
   return normalizedNetIncome + incomeTaxExpense - incomeTaxIncome;
 }

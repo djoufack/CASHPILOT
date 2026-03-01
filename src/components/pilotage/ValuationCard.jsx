@@ -1,13 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/utils/currencyService';
 import { Gem } from 'lucide-react';
-
-const currencyFormatter = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-  maximumFractionDigits: 0,
-});
 
 const percentFormatter = new Intl.NumberFormat('fr-FR', {
   style: 'percent',
@@ -17,6 +12,7 @@ const percentFormatter = new Intl.NumberFormat('fr-FR', {
 
 const ValuationCard = ({ data }) => {
   const { t } = useTranslation();
+  const currency = data?.company?.currency || 'EUR';
 
   const valuation = data?.valuation;
   const multiples = valuation?.multiples;
@@ -55,7 +51,7 @@ const ValuationCard = ({ data }) => {
             {/* Headline value */}
             <div className="text-center">
               <p className="text-3xl font-bold text-orange-400">
-                {midValue != null ? currencyFormatter.format(midValue) : '--'}
+                {midValue != null ? formatCurrency(midValue, currency) : '--'}
               </p>
               <p className="text-sm text-gray-400 mt-1">
                 {t('pilotage.valuation.multiplesMethod')}
@@ -84,27 +80,27 @@ const ValuationCard = ({ data }) => {
                   <div
                     className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-orange-500 rounded-full border-2 border-gray-900"
                     style={{ left: `${positions.low}%` }}
-                    title={lowValue != null ? currencyFormatter.format(lowValue) : ''}
+                    title={lowValue != null ? formatCurrency(lowValue, currency) : ''}
                   />
                   {/* Mid marker */}
                   <div
                     className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-amber-400 rounded-full border-2 border-gray-900 z-10"
                     style={{ left: `${positions.mid}%` }}
-                    title={midValue != null ? currencyFormatter.format(midValue) : ''}
+                    title={midValue != null ? formatCurrency(midValue, currency) : ''}
                   />
                   {/* High marker */}
                   <div
                     className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-emerald-500 rounded-full border-2 border-gray-900"
                     style={{ left: `${positions.high}%` }}
-                    title={highValue != null ? currencyFormatter.format(highValue) : ''}
+                    title={highValue != null ? formatCurrency(highValue, currency) : ''}
                   />
                 </div>
                 <div className="flex justify-between text-xs font-mono text-gray-400">
-                  <span>{lowValue != null ? currencyFormatter.format(lowValue) : '--'}</span>
+                  <span>{lowValue != null ? formatCurrency(lowValue, currency) : '--'}</span>
                   <span className="font-semibold text-gray-200">
-                    {midValue != null ? currencyFormatter.format(midValue) : '--'}
+                    {midValue != null ? formatCurrency(midValue, currency) : '--'}
                   </span>
-                  <span>{highValue != null ? currencyFormatter.format(highValue) : '--'}</span>
+                  <span>{highValue != null ? formatCurrency(highValue, currency) : '--'}</span>
                 </div>
               </div>
             )}
@@ -119,7 +115,7 @@ const ValuationCard = ({ data }) => {
                 </span>
                 <span className="text-sm font-mono font-semibold text-gray-100">
                   {dcf?.dcfValue != null
-                    ? currencyFormatter.format(dcf.dcfValue)
+                    ? formatCurrency(dcf.dcfValue, currency)
                     : '--'}
                 </span>
               </div>
@@ -141,7 +137,7 @@ const ValuationCard = ({ data }) => {
                     {t('pilotage.valuation.terminalValue')}
                   </span>
                   <span className="text-sm font-mono text-gray-100">
-                    {currencyFormatter.format(dcf.terminalValue)}
+                    {formatCurrency(dcf.terminalValue, currency)}
                   </span>
                 </div>
               )}
@@ -157,11 +153,11 @@ const ValuationCard = ({ data }) => {
                   </span>
                   <span className="text-sm font-mono text-gray-100">
                     {valuation.consensus.lowValue != null
-                      ? currencyFormatter.format(valuation.consensus.lowValue)
+                      ? formatCurrency(valuation.consensus.lowValue, currency)
                       : '--'}
                     {' - '}
                     {valuation.consensus.highValue != null
-                      ? currencyFormatter.format(valuation.consensus.highValue)
+                      ? formatCurrency(valuation.consensus.highValue, currency)
                       : '--'}
                   </span>
                 </div>

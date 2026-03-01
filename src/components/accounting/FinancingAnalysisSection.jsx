@@ -7,7 +7,7 @@ import { formatCurrency } from '@/utils/calculations';
  * Section Analyse du Financement
  * Affiche: CAF, BFR, Variation BFR, Flux de tresorerie, Endettement net
  */
-const FinancingAnalysisSection = ({ data }) => {
+const FinancingAnalysisSection = ({ data, currency = 'EUR' }) => {
   if (!data) {
     return (
       <Card className="bg-gray-900/50 border border-gray-800">
@@ -53,7 +53,7 @@ const FinancingAnalysisSection = ({ data }) => {
         <p className={`text-2xl font-bold ${
           value >= 0 ? 'text-gray-100' : 'text-red-400'
         }`}>
-          {formatCurrency(value)}
+          {formatCurrency(value, currency)}
         </p>
         {subLabel && (
           <p className="text-xs text-gray-500 mt-1">{subLabel}</p>
@@ -121,7 +121,7 @@ const FinancingAnalysisSection = ({ data }) => {
             <div className="space-y-3">
               <div>
                 <p className="text-3xl font-bold text-gray-100">
-                  {formatCurrency(netDebt)}
+                  {formatCurrency(netDebt, currency)}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
                   Dettes financieres - Tresorerie
@@ -133,13 +133,13 @@ const FinancingAnalysisSection = ({ data }) => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-400">Dettes totales</span>
                   <span className="text-sm font-semibold text-red-400">
-                    {formatCurrency(totalDebt)}
+                    {formatCurrency(totalDebt, currency)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-400">Capitaux propres</span>
                   <span className="text-sm font-semibold text-green-400">
-                    {formatCurrency(equity)}
+                    {formatCurrency(equity, currency)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-gray-800">
@@ -196,7 +196,7 @@ const FinancingAnalysisSection = ({ data }) => {
                   <span className={`text-lg font-bold ${
                     workingCapital >= 0 ? 'text-green-400' : 'text-red-400'
                   }`}>
-                    {formatCurrency(workingCapital)}
+                    {formatCurrency(workingCapital, currency)}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500">
@@ -210,7 +210,7 @@ const FinancingAnalysisSection = ({ data }) => {
                   <span className={`text-lg font-bold ${
                     bfr >= 0 ? 'text-orange-400' : 'text-green-400'
                   }`}>
-                    {formatCurrency(bfr)}
+                    {formatCurrency(bfr, currency)}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500">
@@ -224,7 +224,7 @@ const FinancingAnalysisSection = ({ data }) => {
                   <span className={`text-lg font-bold ${
                     bfrVariation <= 0 ? 'text-green-400' : 'text-orange-400'
                   }`}>
-                    {bfrVariation >= 0 ? '+' : ''}{formatCurrency(bfrVariation)}
+                    {bfrVariation >= 0 ? '+' : ''}{formatCurrency(bfrVariation, currency)}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500">
@@ -245,7 +245,7 @@ const FinancingAnalysisSection = ({ data }) => {
                   <span className={`text-lg font-bold ${
                     (workingCapital - bfr) >= 0 ? 'text-green-400' : 'text-red-400'
                   }`}>
-                    {formatCurrency(workingCapital - bfr)}
+                    {formatCurrency(workingCapital - bfr, currency)}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">

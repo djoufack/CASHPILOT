@@ -2030,7 +2030,8 @@
       "revenue": "Chiffre d'Affaires",
       "ebitda": "EBITDA (EBE)",
       "netResult": "Résultat Net",
-      "freeCashFlow": "Free Cash Flow",
+      "freeCashFlow": "Cash-flow libre",
+      "netCashMovement": "Flux net de trésorerie",
       "valuation": "Valorisation",
       "operatingMargin": "Marge Opérationnelle",
       "grossMargin": "Marge Brute",
@@ -2173,6 +2174,8 @@
       "lastEntry": "Dernière écriture",
       "critical": "critique(s)",
       "warnings": "alerte(s)",
+      "blockingIssues": "blocage(s)",
+      "dataWarnings": "avertissement(s)",
       "alertDetail": "Le radar synthétise les alertes structurelles et de trésorerie sur la période.",
       "preTaxReady": "Base fiscale prête",
       "preTaxMissing": "Base fiscale incomplète",
@@ -2181,6 +2184,8 @@
       "status": {
         "setup": "Configuration à terminer",
         "empty": "Jeu de données vide",
+        "warning": "Jeu de données à surveiller",
+        "blocked": "Jeu de données bloquant",
         "ready": "Jeu de données exploitable"
       },
       "valuationMode": {
@@ -2196,6 +2201,12 @@
       "noSetupHint": "Sélectionnez un plan comptable et initialisez les comptes avant d'analyser les 6 volets du pilotage.",
       "multiplesOnlyHint": "Le moteur utilise uniquement les multiples sectoriels tant que le free cash flow n'est pas suffisamment positif pour une DCF crédible.",
       "valuationUnavailableHint": "Ni EBITDA exploitable ni free cash flow positif sur la période : la valorisation reste volontairement prudente."
+    },
+    "quality": {
+      "blockedTitle": "Pilotage bloqué par des anomalies comptables",
+      "warningTitle": "Pilotage à vérifier avant usage décisionnel",
+      "blockedHint": "Corrigez d'abord le plan comptable ou les écritures incohérentes. Les indicateurs affichés ne doivent pas servir de base de décision tant que ces points ne sont pas résolus.",
+      "warningHint": "Le dossier reste exploitable, mais certaines classifications ou écritures doivent être revues avant de considérer le pilotage comme totalement fiable."
     }
   }
 }

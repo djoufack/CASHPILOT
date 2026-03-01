@@ -217,7 +217,7 @@ export function getWACCData(region) {
  */
 export function evaluateRatio(value, benchmark, inverse = false) {
   if (benchmark == null || value == null) {
-    return 'average';
+    return null;
   }
 
   if (inverse) {

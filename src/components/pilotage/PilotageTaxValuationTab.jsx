@@ -23,6 +23,15 @@ const PilotageTaxValuationTab = ({ data, region, sector }) => {
   const { t } = useTranslation();
   const quality = data?.dataQuality;
 
+  if (quality?.datasetStatus === 'blocked') {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-10 text-center">
+        <p className="text-red-100 text-lg font-semibold">{t('pilotage.quality.blockedTitle')}</p>
+        <p className="text-red-200/80 text-sm mt-2">{t('pilotage.quality.blockedHint')}</p>
+      </div>
+    );
+  }
+
   if (!data?.taxSynthesis && !data?.valuation) {
     return (
       <div className="rounded-2xl border border-gray-800/60 bg-gray-900/40 p-10 text-center">
