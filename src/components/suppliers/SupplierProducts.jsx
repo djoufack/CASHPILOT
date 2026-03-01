@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSupplierProducts } from '@/hooks/useSupplierProducts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const SupplierProducts = ({ supplierId }) => {
+  const { t } = useTranslation();
   const { products, categories, createProduct, deleteProduct } = useSupplierProducts(supplierId);
   const { importFromSupplier } = useProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,20 +36,20 @@ const SupplierProducts = ({ supplierId }) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gradient">Catalogue Fournisseur</h3>
+        <h3 className="text-lg font-semibold text-gradient">{t('supplierProducts.title')}</h3>
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="bg-green-600 hover:bg-green-700">
-              <Plus className="mr-2 h-4 w-4" /> Add Product
+              <Plus className="mr-2 h-4 w-4" /> {t('supplierProducts.addProduct')}
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-gray-800 border-gray-700 text-white">
             <DialogHeader>
-              <DialogTitle>Add Product</DialogTitle>
+              <DialogTitle>{t('supplierProducts.addProduct')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label>Product Name</Label>
+                <Label>{t('supplierProducts.productName')}</Label>
                 <Input 
                   value={formData.product_name}
                   onChange={(e) => setFormData({...formData, product_name: e.target.value})}
@@ -57,13 +59,13 @@ const SupplierProducts = ({ supplierId }) => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                   <Label>Category</Label>
+                   <Label>{t('supplierProducts.category')}</Label>
                    <Select 
                       value={formData.category_id} 
-                      onValueChange={(val) => setFormData({...formData, category_id: val})}
+                     onValueChange={(val) => setFormData({...formData, category_id: val})}
                    >
                      <SelectTrigger className="bg-gray-700 border-gray-600">
-                       <SelectValue placeholder="Select..." />
+                       <SelectValue placeholder={t('supplierProducts.selectCategory')} />
                      </SelectTrigger>
                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
                        {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -71,7 +73,7 @@ const SupplierProducts = ({ supplierId }) => {
                    </Select>
                 </div>
                 <div className="space-y-2">
-                   <Label>SKU</Label>
+                   <Label>{t('supplierProducts.sku')}</Label>
                    <Input 
                       value={formData.sku}
                       onChange={(e) => setFormData({...formData, sku: e.target.value})}
@@ -82,7 +84,7 @@ const SupplierProducts = ({ supplierId }) => {
               
               <div className="grid grid-cols-3 gap-4">
                  <div className="space-y-2">
-                   <Label>Unit Price</Label>
+                   <Label>{t('supplierProducts.unitPrice')}</Label>
                    <Input 
                       type="number"
                       value={formData.unit_price}
@@ -91,7 +93,7 @@ const SupplierProducts = ({ supplierId }) => {
                    />
                 </div>
                  <div className="space-y-2">
-                   <Label>Stock</Label>
+                   <Label>{t('supplierProducts.stock')}</Label>
                    <Input 
                       type="number"
                       value={formData.stock_quantity}
@@ -100,7 +102,7 @@ const SupplierProducts = ({ supplierId }) => {
                    />
                 </div>
                  <div className="space-y-2">
-                   <Label>Min Stock</Label>
+                   <Label>{t('supplierProducts.minStock')}</Label>
                    <Input 
                       type="number"
                       value={formData.min_stock_level}
@@ -110,7 +112,7 @@ const SupplierProducts = ({ supplierId }) => {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-green-600">Save Product</Button>
+              <Button type="submit" className="w-full bg-green-600">{t('supplierProducts.saveProduct')}</Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -120,12 +122,12 @@ const SupplierProducts = ({ supplierId }) => {
         <Table>
           <TableHeader>
             <TableRow className="border-gray-800">
-              <TableHead className="text-gray-400">Product</TableHead>
-              <TableHead className="text-gray-400">SKU</TableHead>
-              <TableHead className="text-gray-400">Category</TableHead>
-              <TableHead className="text-gray-400">Price</TableHead>
-              <TableHead className="text-gray-400">Stock</TableHead>
-              <TableHead className="text-right text-gray-400">Actions</TableHead>
+              <TableHead className="text-gray-400">{t('supplierProducts.product')}</TableHead>
+              <TableHead className="text-gray-400">{t('supplierProducts.sku')}</TableHead>
+              <TableHead className="text-gray-400">{t('supplierProducts.category')}</TableHead>
+              <TableHead className="text-gray-400">{t('supplierProducts.price')}</TableHead>
+              <TableHead className="text-gray-400">{t('supplierProducts.stock')}</TableHead>
+              <TableHead className="text-right text-gray-400">{t('common.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -137,7 +139,7 @@ const SupplierProducts = ({ supplierId }) => {
                   <TableCell className="text-gray-400 text-xs">{product.sku}</TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="bg-gray-800 text-gray-300">
-                      {product.category?.name || 'Uncategorized'}
+                      {product.category?.name || t('supplierProducts.uncategorized')}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-gray-300">${product.unit_price}</TableCell>
@@ -155,7 +157,7 @@ const SupplierProducts = ({ supplierId }) => {
                       size="sm"
                       onClick={() => importFromSupplier({ ...product, supplier_id: supplierId })}
                       className="text-green-400 hover:text-green-300"
-                      title="Importer vers mon stock"
+                      title={t('supplierProducts.importToStock')}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -173,7 +175,7 @@ const SupplierProducts = ({ supplierId }) => {
             })}
             {products.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-gray-500 py-6">No products added yet.</TableCell>
+                <TableCell colSpan={6} className="text-center text-gray-500 py-6">{t('supplierProducts.noProducts')}</TableCell>
               </TableRow>
             )}
           </TableBody>

@@ -48,6 +48,9 @@ const initialFormData = {
 };
 
 const POCard = ({ po, onDelete, onExportPDF, onExportHTML }) => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
+
   const statusColors = {
     draft: 'bg-gray-500/20 text-gray-400 border-gray-700',
     sent: 'bg-blue-500/20 text-blue-400 border-blue-800',
@@ -57,11 +60,11 @@ const POCard = ({ po, onDelete, onExportPDF, onExportHTML }) => {
   };
 
   const statusLabels = {
-    draft: 'Brouillon',
-    sent: 'Envoyé',
-    confirmed: 'Confirmé',
-    completed: 'Terminé',
-    cancelled: 'Annulé',
+    draft: t('purchaseOrdersPage.statusDraft'),
+    sent: t('purchaseOrdersPage.statusSent'),
+    confirmed: t('purchaseOrdersPage.statusConfirmed'),
+    completed: t('purchaseOrdersPage.statusCompleted'),
+    cancelled: t('purchaseOrdersPage.statusCancelled'),
   };
 
   return (
@@ -73,14 +76,14 @@ const POCard = ({ po, onDelete, onExportPDF, onExportHTML }) => {
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-lg font-bold text-gradient">{po.po_number}</h3>
-          <p className="text-sm text-gray-400">{po.client?.company_name || 'Aucun client'}</p>
+          <p className="text-sm text-gray-400">{po.client?.company_name || t('timesheets.noClient')}</p>
         </div>
         <span className={`text-xs px-2 py-1 rounded-full border capitalize ${statusColors[po.status] || statusColors.draft}`}>
           {statusLabels[po.status] || po.status}
         </span>
       </div>
       <div className="flex justify-between items-center text-sm text-gray-400 mb-4">
-        <span>{po.date ? new Date(po.date).toLocaleDateString('fr-FR') : '—'}</span>
+        <span>{po.date ? new Date(po.date).toLocaleDateString(locale) : '—'}</span>
         <span className="text-gradient font-bold text-lg">{formatCurrency(po.total || 0)}</span>
       </div>
       {po.notes && <p className="text-xs text-gray-500 mb-4 line-clamp-2">{po.notes}</p>}
@@ -90,7 +93,7 @@ const POCard = ({ po, onDelete, onExportPDF, onExportHTML }) => {
           size="sm"
           onClick={() => onExportPDF(po)}
           className="text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
-          title="Export PDF (2 crédits)"
+          title={t('purchaseOrdersPage.exportPdfTitle', { credits: CREDIT_COSTS.PDF_PURCHASE_ORDER })}
         >
           <Download className="w-4 h-4" />
         </Button>
@@ -99,7 +102,7 @@ const POCard = ({ po, onDelete, onExportPDF, onExportHTML }) => {
           size="sm"
           onClick={() => onExportHTML(po)}
           className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20"
-          title="Export HTML (2 crédits)"
+          title={t('purchaseOrdersPage.exportHtmlTitle', { credits: CREDIT_COSTS.EXPORT_HTML })}
         >
           <FileText className="w-4 h-4" />
         </Button>
@@ -140,16 +143,16 @@ const PurchaseOrdersPage = () => {
   };
 
   const poCalendarLegend = [
-    { label: 'Draft', color: '#6b7280' },
-    { label: 'Sent', color: '#3b82f6' },
-    { label: 'Partial', color: '#eab308' },
-    { label: 'Confirmed', color: '#22c55e' },
-    { label: 'Cancelled', color: '#ef4444' },
+    { label: t('purchaseOrdersPage.statusDraft'), color: '#6b7280' },
+    { label: t('purchaseOrdersPage.statusSent'), color: '#3b82f6' },
+    { label: t('purchaseOrdersPage.statusPartial'), color: '#eab308' },
+    { label: t('purchaseOrdersPage.statusConfirmed'), color: '#22c55e' },
+    { label: t('purchaseOrdersPage.statusCancelled'), color: '#ef4444' },
   ];
 
   const poCalendarEvents = purchaseOrders.map(po => ({
     id: po.id,
-    title: `${po.po_number || ''} - ${po.client?.company_name || 'No client'}`,
+    title: `${po.po_number || ''} - ${po.client?.company_name || t('timesheets.noClient')}`,
     date: po.date,
     status: po.status || 'draft',
     resource: po,
@@ -166,13 +169,18 @@ const PurchaseOrdersPage = () => {
       cancelled: 'bg-red-500/20 text-red-400',
     };
     const statusLabels = {
-      draft: 'Brouillon', sent: 'Envoy\u00e9', partial: 'Partiel', confirmed: 'Confirm\u00e9',
-      received: 'Re\u00e7u', completed: 'Termin\u00e9', cancelled: 'Annul\u00e9',
+      draft: t('purchaseOrdersPage.statusDraft'),
+      sent: t('purchaseOrdersPage.statusSent'),
+      partial: t('purchaseOrdersPage.statusPartial'),
+      confirmed: t('purchaseOrdersPage.statusConfirmed'),
+      received: t('purchaseOrdersPage.statusReceived'),
+      completed: t('purchaseOrdersPage.statusCompleted'),
+      cancelled: t('purchaseOrdersPage.statusCancelled'),
     };
     return {
       id: po.id,
       title: po.po_number || '',
-      subtitle: po.client?.company_name || 'No client',
+      subtitle: po.client?.company_name || t('timesheets.noClient'),
       date: po.date,
       status: po.status || 'draft',
       statusLabel: statusLabels[po.status] || po.status,
@@ -182,11 +190,11 @@ const PurchaseOrdersPage = () => {
   });
 
   const poKanbanColumns = [
-    { id: 'draft', title: t('status.draft') || 'Draft', color: 'bg-gray-500/20 text-gray-400' },
-    { id: 'sent', title: t('status.sent') || 'Sent', color: 'bg-blue-500/20 text-blue-400' },
-    { id: 'confirmed', title: t('status.confirmed') || 'Confirmed', color: 'bg-green-500/20 text-green-400' },
-    { id: 'completed', title: t('status.completed') || 'Completed', color: 'bg-emerald-500/20 text-emerald-400' },
-    { id: 'cancelled', title: t('status.cancelled') || 'Cancelled', color: 'bg-red-500/20 text-red-400' },
+    { id: 'draft', title: t('purchaseOrdersPage.statusDraft'), color: 'bg-gray-500/20 text-gray-400' },
+    { id: 'sent', title: t('purchaseOrdersPage.statusSent'), color: 'bg-blue-500/20 text-blue-400' },
+    { id: 'confirmed', title: t('purchaseOrdersPage.statusConfirmed'), color: 'bg-green-500/20 text-green-400' },
+    { id: 'completed', title: t('purchaseOrdersPage.statusCompleted'), color: 'bg-emerald-500/20 text-emerald-400' },
+    { id: 'cancelled', title: t('purchaseOrdersPage.statusCancelled'), color: 'bg-red-500/20 text-red-400' },
   ];
 
   const filteredPOs = purchaseOrders.filter(po => {
@@ -310,7 +318,7 @@ const PurchaseOrdersPage = () => {
   return (
     <>
       <Helmet>
-        <title>Bons de commande - {t('app.name')}</title>
+        <title>{t('purchaseOrdersPage.title')} - {t('app.name')}</title>
       </Helmet>
       <CreditsGuardModal {...modalProps} />
 
@@ -318,12 +326,12 @@ const PurchaseOrdersPage = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">
-              Bons de commande
+              {t('purchaseOrdersPage.title')}
             </h1>
-            <p className="text-gray-400 text-sm md:text-base">Gérez vos bons de commande fournisseurs et clients</p>
+            <p className="text-gray-400 text-sm md:text-base">{t('purchaseOrdersPage.subtitle')}</p>
           </div>
           <Button onClick={handleOpenDialog} className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white">
-            <Plus className="mr-2 h-4 w-4" /> Nouveau bon de commande
+            <Plus className="mr-2 h-4 w-4" /> {t('purchaseOrdersPage.create')}
           </Button>
         </div>
 
@@ -332,7 +340,7 @@ const PurchaseOrdersPage = () => {
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
               <Input
-                placeholder="Rechercher un bon de commande..."
+                placeholder={t('purchaseOrdersPage.searchPlaceholder')}
                 className="pl-9 bg-gray-900 border-gray-800 text-white w-full"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -340,11 +348,11 @@ const PurchaseOrdersPage = () => {
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
               {[
-                { value: 'all', label: 'Tous' },
-                { value: 'draft', label: 'Brouillon' },
-                { value: 'sent', label: 'Envoyé' },
-                { value: 'confirmed', label: 'Confirmé' },
-                { value: 'completed', label: 'Terminé' },
+                { value: 'all', label: t('purchaseOrdersPage.allStatuses') },
+                { value: 'draft', label: t('purchaseOrdersPage.statusDraft') },
+                { value: 'sent', label: t('purchaseOrdersPage.statusSent') },
+                { value: 'confirmed', label: t('purchaseOrdersPage.statusConfirmed') },
+                { value: 'completed', label: t('purchaseOrdersPage.statusCompleted') },
               ].map(s => (
                 <Button
                   key={s.value}
@@ -391,10 +399,10 @@ const PurchaseOrdersPage = () => {
                     <ClipboardList className="w-12 h-12 text-orange-400" />
                   </div>
                 </div>
-                <h3 className="text-xl font-bold text-gradient mb-2">Aucun bon de commande</h3>
-                <p className="text-gray-400 mb-6">Créez votre premier bon de commande.</p>
+                <h3 className="text-xl font-bold text-gradient mb-2">{t('purchaseOrdersPage.emptyTitle')}</h3>
+                <p className="text-gray-400 mb-6">{t('purchaseOrdersPage.emptyDescription')}</p>
                 <Button onClick={handleOpenDialog} variant="outline" className="border-gray-700 text-gray-300 w-full md:w-auto">
-                  Créer un bon de commande
+                  {t('purchaseOrdersPage.create')}
                 </Button>
               </motion.div>
             ) : (
@@ -453,18 +461,18 @@ const PurchaseOrdersPage = () => {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-gradient text-xl">Nouveau bon de commande</DialogTitle>
+            <DialogTitle className="text-gradient text-xl">{t('purchaseOrdersPage.create')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Client & Dates */}
             <div className="space-y-2">
-              <Label className="text-gray-300">Client *</Label>
+              <Label className="text-gray-300">{t('quotesPage.client')} *</Label>
               <Select
                 value={formData.client_id}
                 onValueChange={(value) => setFormData({ ...formData, client_id: value })}
               >
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                  <SelectValue placeholder="Sélectionner un client" />
+                  <SelectValue placeholder={t('invoices.selectClient')} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700">
                   {clients.map(client => (
@@ -478,7 +486,7 @@ const PurchaseOrdersPage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-300">Date</Label>
+                <Label className="text-gray-300">{t('quotesPage.date')}</Label>
                 <Input
                   type="date"
                   value={formData.date}
@@ -487,7 +495,7 @@ const PurchaseOrdersPage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-gray-300">Date de livraison</Label>
+                <Label className="text-gray-300">{t('purchaseOrdersPage.deliveryDate')}</Label>
                 <Input
                   type="date"
                   value={formData.due_date}
@@ -499,19 +507,19 @@ const PurchaseOrdersPage = () => {
 
             {/* Line Items */}
             <div className="space-y-2">
-              <Label className="text-gray-300">Articles</Label>
+              <Label className="text-gray-300">{t('purchaseOrdersPage.items')}</Label>
               <div className="space-y-3">
                 {formData.items.map((item, index) => (
                   <div key={index} className="bg-gray-800/50 rounded-lg p-3 space-y-2">
                     <Input
-                      placeholder="Description"
+                      placeholder={t('invoices.description')}
                       value={item.description}
                       onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                       className="bg-gray-800 border-gray-700 text-white"
                     />
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                       <div>
-                        <Label className="text-gray-500 text-xs">Qté</Label>
+                        <Label className="text-gray-500 text-xs">{t('invoices.quantity')}</Label>
                         <Input
                           type="number"
                           min="0"
@@ -522,7 +530,7 @@ const PurchaseOrdersPage = () => {
                         />
                       </div>
                       <div>
-                        <Label className="text-gray-500 text-xs">Prix unitaire</Label>
+                        <Label className="text-gray-500 text-xs">{t('invoices.unitPrice')}</Label>
                         <Input
                           type="number"
                           min="0"
@@ -533,7 +541,7 @@ const PurchaseOrdersPage = () => {
                         />
                       </div>
                       <div>
-                        <Label className="text-gray-500 text-xs">TVA %</Label>
+                        <Label className="text-gray-500 text-xs">{t('invoices.taxRate')}</Label>
                         <Input
                           type="number"
                           min="0"
@@ -558,44 +566,44 @@ const PurchaseOrdersPage = () => {
                 ))}
               </div>
               <Button type="button" variant="outline" size="sm" onClick={addItem} className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full">
-                <Plus className="w-4 h-4 mr-2" /> Ajouter une ligne
+                <Plus className="w-4 h-4 mr-2" /> {t('purchaseOrdersPage.addLine')}
               </Button>
             </div>
 
             {/* Totals */}
             <div className="bg-gray-800/50 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between text-gray-400">
-                <span>Sous-total HT</span>
+                <span>{t('purchaseOrdersPage.subtotal')}</span>
                 <span>{formatCurrency(totalHT)}</span>
               </div>
               <div className="flex justify-between text-gray-400">
-                <span>TVA</span>
+                <span>{t('purchaseOrdersPage.vat')}</span>
                 <span>{formatCurrency(totalTax)}</span>
               </div>
               <div className="flex justify-between text-gradient font-bold text-base border-t border-gray-700 pt-2">
-                <span>Total TTC</span>
+                <span>{t('purchaseOrdersPage.totalInclVat')}</span>
                 <span>{formatCurrency(totalTTC)}</span>
               </div>
             </div>
 
             {/* Notes */}
             <div className="space-y-2">
-              <Label className="text-gray-300">Notes</Label>
+              <Label className="text-gray-300">{t('timesheets.notes')}</Label>
               <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Notes additionnelles..."
+                placeholder={t('purchaseOrdersPage.notesPlaceholder')}
                 className="bg-gray-800 border-gray-700 text-white min-h-[60px]"
               />
             </div>
 
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
-                Annuler
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={submitting || !formData.client_id} className="bg-orange-500 hover:bg-orange-600 text-white">
                 {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                Créer
+                {t('common.create')}
               </Button>
             </DialogFooter>
           </form>

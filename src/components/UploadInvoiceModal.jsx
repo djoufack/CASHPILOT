@@ -51,7 +51,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
         return;
       }
       if (selectedFile.size > 10 * 1024 * 1024) {
-        alert("File size too large (max 10MB)");
+        alert(t('invoiceExtraction.fileTooLarge'));
         return;
       }
       setFile(selectedFile);
@@ -208,7 +208,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t('suppliers.uploadInvoice') || 'Upload Supplier Invoice'}</DialogTitle>
+          <DialogTitle>{t('supplierInvoices.uploadInvoice')}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -235,10 +235,10 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
             ) : (
               <div className="space-y-2">
                 <Upload className="h-10 w-10 text-gray-400 mx-auto" />
-                <p className="text-sm text-gray-300">{t('invoiceExtraction.supportedFormats') || 'Drag & drop your invoice here'}</p>
-                <p className="text-xs text-gray-500">or</p>
+                <p className="text-sm text-gray-300">{t('invoiceExtraction.dropzone')}</p>
+                <p className="text-xs text-gray-500">{t('common.or')}</p>
                 <label className="cursor-pointer">
-                  <span className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700 transition">Browse Files</span>
+                  <span className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700 transition">{t('invoiceExtraction.browseFiles')}</span>
                   <input type="file" className="hidden" accept="application/pdf,image/jpeg,image/png" onChange={handleFileChange} />
                 </label>
                 <p className="text-xs text-gray-500 mt-2">{t('invoiceExtraction.supportedFormats')}</p>
@@ -276,18 +276,18 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
           {/* Main Form Fields */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Invoice Number</Label>
+              <Label>{t('supplierInvoices.invoiceNumber')}</Label>
               <Input value={formData.invoice_number} onChange={(e) => setFormData({...formData, invoice_number: e.target.value})}
                 required className={`bg-gray-700 border-gray-600 ${extractedData ? 'border-purple-500/50' : ''}`} />
             </div>
             <div className="space-y-2">
-              <Label>Payment Status</Label>
+              <Label>{t('supplierInvoices.status')}</Label>
               <Select value={formData.payment_status} onValueChange={(val) => setFormData({...formData, payment_status: val})}>
                 <SelectTrigger className="bg-gray-700 border-gray-600"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="pending">{t('supplierInvoices.statusPending')}</SelectItem>
+                  <SelectItem value="paid">{t('supplierInvoices.statusPaid')}</SelectItem>
+                  <SelectItem value="overdue">{t('supplierInvoices.statusOverdue')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -295,17 +295,17 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Invoice Date</Label>
+              <Label>{t('supplierInvoices.date')}</Label>
               <Input type="date" value={formData.invoice_date} onChange={(e) => setFormData({...formData, invoice_date: e.target.value})}
                 required className={`bg-gray-700 border-gray-600 ${extractedData ? 'border-purple-500/50' : ''}`} />
             </div>
             <div className="space-y-2">
-              <Label>Due Date</Label>
+              <Label>{t('supplierInvoices.dueDate')}</Label>
               <Input type="date" value={formData.due_date} onChange={(e) => setFormData({...formData, due_date: e.target.value})}
                 className={`bg-gray-700 border-gray-600 ${extractedData ? 'border-purple-500/50' : ''}`} />
             </div>
             <div className="space-y-2">
-              <Label>Total Amount</Label>
+              <Label>{t('supplierInvoices.totalAmount')}</Label>
               <Input type="number" step="0.01" value={formData.total_amount} onChange={(e) => setFormData({...formData, total_amount: e.target.value})}
                 required className={`bg-gray-700 border-gray-600 ${extractedData ? 'border-purple-500/50' : ''}`} />
             </div>
@@ -376,10 +376,10 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-gray-700 text-gray-400">
-                      <th className="py-2 px-3 text-left">Description</th>
-                      <th className="py-2 px-3 text-right">Qty</th>
-                      <th className="py-2 px-3 text-right">Unit Price</th>
-                      <th className="py-2 px-3 text-right">Total</th>
+                      <th className="py-2 px-3 text-left">{t('invoices.description')}</th>
+                      <th className="py-2 px-3 text-right">{t('invoices.quantity')}</th>
+                      <th className="py-2 px-3 text-right">{t('invoices.unitPrice')}</th>
+                      <th className="py-2 px-3 text-right">{t('invoices.total')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -400,7 +400,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
           {loading && (
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-gray-400">
-                <span>Uploading...</span>
+                <span>{t('invoiceExtraction.uploading')}</span>
                 <span>{progress}%</span>
               </div>
               <Progress value={progress} className="h-1 bg-gray-700" />
@@ -411,10 +411,10 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose} className="border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white">
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={!file || loading || extracting} className="bg-blue-600 hover:bg-blue-700">
-              {loading ? 'Uploading...' : 'Save Invoice'}
+              {loading ? t('invoiceExtraction.uploading') : t('common.save')}
             </Button>
           </DialogFooter>
         </form>

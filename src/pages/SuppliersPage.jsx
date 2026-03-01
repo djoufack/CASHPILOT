@@ -226,7 +226,7 @@ const SuppliersPage = () => {
                       <Label>Country</Label>
                       <Select value={newSupplier.country} onValueChange={(val) => setNewSupplier({...newSupplier, country: val})}>
                         <SelectTrigger className="bg-gray-700 border-gray-600">
-                          <SelectValue placeholder="Select country" />
+                          <SelectValue placeholder={t('suppliers.selectCountry')} />
                         </SelectTrigger>
                         <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
                           {COUNTRIES.map(c => (
@@ -260,7 +260,7 @@ const SuppliersPage = () => {
                         onValueChange={(val) => setNewSupplier({...newSupplier, payment_terms: val})}
                       >
                         <SelectTrigger className="bg-gray-700 border-gray-600">
-                          <SelectValue placeholder="Select terms" />
+                          <SelectValue placeholder={t('suppliers.selectTerms')} />
                         </SelectTrigger>
                         <SelectContent className="bg-gray-800 border-gray-700 text-white">
                           <SelectItem value="immediate">Immediate</SelectItem>
@@ -338,7 +338,7 @@ const SuppliersPage = () => {
                   <Textarea
                     value={newSupplier.notes}
                     onChange={(e) => setNewSupplier({...newSupplier, notes: e.target.value})}
-                    placeholder="Additional notes about this supplier..."
+                    placeholder={t('suppliers.notesPlaceholder')}
                     rows={3}
                     className="bg-gray-700 border-gray-600"
                   />
@@ -361,7 +361,7 @@ const SuppliersPage = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input 
-              placeholder="Search suppliers..." 
+              placeholder={t('suppliers.searchPlaceholder')} 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 bg-gray-800 border-gray-700 text-white"

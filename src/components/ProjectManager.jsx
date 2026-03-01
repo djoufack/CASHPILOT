@@ -147,7 +147,7 @@ const ProjectManager = ({ onProjectSelect }) => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <Input
             type="text"
-            placeholder="Search projects or clients..."
+              placeholder={t('projects.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 bg-gray-800 border-gray-700 text-white"
@@ -169,11 +169,11 @@ const ProjectManager = ({ onProjectSelect }) => {
           <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
         </div>
       ) : filteredProjects.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 bg-gray-900/50 rounded-xl border border-gray-800 border-dashed">
-          <FolderOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p className="text-lg font-medium">No projects found</p>
-          <p className="text-sm">Create a new project to get started.</p>
-        </div>
+          <div className="text-center py-12 text-gray-500 bg-gray-900/50 rounded-xl border border-gray-800 border-dashed">
+            <FolderOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p className="text-lg font-medium">{t('projects.emptyTitle')}</p>
+            <p className="text-sm">{t('projects.emptyDescription')}</p>
+          </div>
       ) : (
         <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
@@ -289,7 +289,7 @@ const ProjectManager = ({ onProjectSelect }) => {
                   onValueChange={(value) => setFormData({ ...formData, client_id: value })}
                 >
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                    <SelectValue placeholder="Select Client" />
+                    <SelectValue placeholder={t('projects.selectClient')} />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white">
                     {clients.map((client) => (
@@ -310,7 +310,7 @@ const ProjectManager = ({ onProjectSelect }) => {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
                 className="bg-gray-800 border-gray-700 text-white resize-none"
-                placeholder="Project details and objectives..."
+                placeholder={t('projects.detailsPlaceholder')}
               />
             </div>
 

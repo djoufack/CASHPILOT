@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAnomalyDetection } from '@/hooks/useAnomalyDetection';
 import { AlertTriangle, X, RefreshCw, ShieldAlert, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ const severityColors = {
 };
 
 const AnomalyAlerts = ({ autoScan = false }) => {
+  const { t } = useTranslation();
   const { anomalies, loading, lastScan, detectAnomalies, dismissAnomaly } = useAnomalyDetection();
 
   useEffect(() => {
@@ -37,7 +39,7 @@ const AnomalyAlerts = ({ autoScan = false }) => {
           className="text-gray-400 hover:text-white"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          <span className="ml-1 text-sm">Scanner</span>
+          <span className="ml-1 text-sm">{t('common.scan')}</span>
         </Button>
       </div>
 

@@ -319,7 +319,7 @@ const ProjectsPage = () => {
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
               <Input
-                placeholder="Search projects..."
+                placeholder={t('projects.searchPlaceholder')}
                 className="pl-9 bg-gray-900 border-gray-800 text-white w-full"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -438,7 +438,7 @@ const ProjectsPage = () => {
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Project description..."
+                placeholder={t('projects.descriptionPlaceholder')}
                 className="bg-gray-800 border-gray-700 text-white min-h-[80px]"
               />
             </div>
@@ -450,7 +450,7 @@ const ProjectsPage = () => {
                 onValueChange={(value) => setFormData({ ...formData, client_id: value })}
               >
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                  <SelectValue placeholder="Select a client" />
+                  <SelectValue placeholder={t('projects.selectClient')} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700">
                   {clients.map(client => (

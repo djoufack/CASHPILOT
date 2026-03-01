@@ -28,6 +28,8 @@
     "actions": "Actions",
     "status": "Statut",
     "search": "Rechercher...",
+    "scan": "Scanner",
+    "or": "ou",
     "success": "Succès",
     "error": "Erreur",
     "list": "Liste",
@@ -61,7 +63,14 @@
     "categories": "Catégories",
     "auditComptable": "Audit Comptable",
     "supplierInvoices": "Factures fournisseurs",
-    "peppol": "Peppol"
+    "peppol": "Peppol",
+    "mapView": "Vue carte",
+    "scanner": "Scanner",
+    "financeSection": "Finance",
+    "systemSection": "Système",
+    "management": "Gestion",
+    "peppolEInvoicing": "Facturation électronique Peppol",
+    "seedData": "Données de test"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -117,6 +126,7 @@
   },
   "invoices": {
     "title": "Factures",
+    "subtitle": "Créez et gérez des factures professionnelles",
     "exportPDF": "Exporter en PDF",
     "invoiceNumber": "Numéro de facture",
     "clientInfo": "Informations client",
@@ -145,7 +155,9 @@
     "noClientEmail": "Ce client n'a pas d'adresse email",
     "emailSentTo": "Facture envoyée à {{email}}",
     "statusLegend": "Légende des statuts",
-    "overdueWarning": "Cette facture est en retard de paiement"
+    "overdueWarning": "Cette facture est en retard de paiement",
+    "itemDescriptionPlaceholder": "Service ou produit",
+    "notesPlaceholder": "Conditions de paiement, notes..."
   },
   "timesheets": {
     "title": "Feuilles de temps",
@@ -194,7 +206,128 @@
     "statusLegend": "Légende des statuts",
     "task": "Tâche",
     "selectTask": "Sélectionner une tâche (Optionnel)",
-    "selectService": "Sélectionner un service (Optionnel)"
+    "selectService": "Sélectionner un service (Optionnel)",
+    "selectProject": "Sélectionner un projet (Optionnel)",
+    "descriptionPlaceholder": "Description du travail effectué...",
+    "editEntry": "Modifier l'entrée de temps",
+    "saveChanges": "Enregistrer les modifications",
+    "deleteEntry": "Supprimer l'entrée",
+    "deleteEntryDescription": "Cette action est irréversible. Cette entrée de temps sera supprimée définitivement.",
+    "noTimesheetsFound": "Aucune feuille de temps trouvée",
+    "addNewEntryHint": "Commencez par ajouter une nouvelle entrée de temps.",
+    "entryCount_one": "{{count}} entrée",
+    "entryCount_other": "{{count}} entrées",
+    "noDescription": "Aucune description"
+  },
+  "tasks": {
+    "title": "Titre",
+    "titlePlaceholder": "Ex. Concevoir la page d'accueil",
+    "status": {
+      "pending": "En attente",
+      "inProgress": "En cours",
+      "completed": "Terminée",
+      "onHold": "En pause",
+      "cancelled": "Annulée"
+    },
+    "priority": "Priorité",
+    "priorityValues": {
+      "low": "Basse",
+      "medium": "Moyenne",
+      "high": "Haute"
+    },
+    "assignedTo": "Assignée à",
+    "assignedToPlaceholder": "Jean Dupont",
+    "dueDate": "Date d'échéance",
+    "selectService": "Sélectionner un service (Optionnel)",
+    "none": "Aucun",
+    "estimatedHours": "Heures estimées",
+    "estimatedHoursPlaceholder": "Ex. 8",
+    "startedAt": "Commencée le",
+    "completedAt": "Terminée le",
+    "quoteReminder": "Rappel de devis",
+    "quoteReminderDescription": "Activez ceci quand la tâche doit aboutir à un devis client.",
+    "linkedQuote": "Devis lié",
+    "selectQuote": "Sélectionner un devis",
+    "noQuoteLinked": "Aucun devis lié pour l'instant",
+    "quoteReminderHelp": "Laissez vide jusqu'à la génération du devis. La tâche restera dans les obligations tant qu'aucun devis n'est lié ou que la tâche n'est pas terminée.",
+    "descriptionPlaceholder": "Description détaillée de la tâche...",
+    "addSubtaskPlaceholder": "Ajouter une sous-tâche...",
+    "updateTask": "Mettre à jour la tâche",
+    "createTask": "Créer la tâche",
+    "newTask": "Nouvelle tâche",
+    "editTask": "Modifier la tâche",
+    "createNewTask": "Créer une nouvelle tâche",
+    "deleteTask": "Supprimer la tâche",
+    "deleteTaskDescription": "Cette action supprimera la tâche et toutes ses sous-tâches associées.",
+    "searchPlaceholder": "Rechercher des tâches...",
+    "validation": {
+      "completedAfterStarted": "La date de fin doit être postérieure à la date de début."
+    },
+    "filters": {
+      "allStatuses": "Tous les statuts",
+      "allPriorities": "Toutes les priorités"
+    },
+    "agenda": {
+      "overdue": "En retard",
+      "today": "Aujourd'hui",
+      "tomorrow": "Demain",
+      "thisWeek": "Cette semaine",
+      "laterNoDate": "Plus tard / Sans date"
+    },
+    "emptyAgenda": "Aucune tâche trouvée. Ajoutez des tâches pour voir votre agenda."
+  },
+  "quotesPage": {
+    "title": "Devis",
+    "subtitle": "Gérez vos propositions et estimations",
+    "create": "Nouveau devis",
+    "searchPlaceholder": "Rechercher un devis...",
+    "allStatuses": "Tous",
+    "emptyTitle": "Aucun devis",
+    "emptyDescription": "Créez votre premier devis pour l'envoyer à un client.",
+    "lineItems": "Lignes",
+    "addLine": "Ajouter une ligne",
+    "subtotal": "Sous-total HT",
+    "vat": "TVA",
+    "totalInclVat": "Total TTC",
+    "notesPlaceholder": "Notes additionnelles...",
+    "exportCsv": "Exporter CSV",
+    "exportExcel": "Exporter Excel",
+    "exportPdfTitle": "Exporter en PDF ({{credits}} crédits)",
+    "exportHtmlTitle": "Exporter en HTML ({{credits}} crédits)",
+    "quoteNumber": "Numéro de devis",
+    "client": "Client",
+    "date": "Date",
+    "status": "Statut",
+    "statusDraft": "Brouillon",
+    "statusSent": "Envoyé",
+    "statusAccepted": "Accepté",
+    "statusRejected": "Rejeté",
+    "statusExpired": "Expiré"
+  },
+  "purchaseOrdersPage": {
+    "title": "Bons de commande",
+    "subtitle": "Gérez vos bons de commande fournisseurs et clients",
+    "create": "Nouveau bon de commande",
+    "searchPlaceholder": "Rechercher un bon de commande...",
+    "allStatuses": "Tous",
+    "emptyTitle": "Aucun bon de commande",
+    "emptyDescription": "Créez votre premier bon de commande.",
+    "deliveryDate": "Date de livraison",
+    "items": "Articles",
+    "addLine": "Ajouter une ligne",
+    "subtotal": "Sous-total HT",
+    "vat": "TVA",
+    "totalInclVat": "Total TTC",
+    "notesPlaceholder": "Notes additionnelles...",
+    "exportPdfTitle": "Exporter en PDF ({{credits}} crédits)",
+    "exportHtmlTitle": "Exporter en HTML ({{credits}} crédits)",
+    "statusDraft": "Brouillon",
+    "statusSent": "Envoyé",
+    "statusPartial": "Partiel",
+    "statusConfirmed": "Confirmé",
+    "statusReceived": "Reçu",
+    "statusCompleted": "Terminé",
+    "statusCancelled": "Annulé"
   },
   "services": {
     "title": "Services",
@@ -267,7 +400,11 @@
     "inProgress": "En cours",
     "onHold": "En attente",
     "completed": "Terminé",
-    "confirmed": "Confirmé"
+    "confirmed": "Confirmé",
+    "accepted": "Accepté",
+    "rejected": "Rejeté",
+    "expired": "Expiré",
+    "received": "Reçu"
   },
   "messages": {
     "success": {
@@ -317,13 +454,20 @@
     "role": "Rôle",
     "permissions": "Permissions",
     "grant": "Accorder",
-    "revoke": "Révoquer"
+    "revoke": "Révoquer",
+    "roleSearchPlaceholder": "Rechercher par nom, rôle ou identifiant utilisateur",
+    "accessLevelPlaceholder": "Sélectionner un niveau d'accès",
+    "auditSearchPlaceholder": "Rechercher une action, un acteur ou une ressource"
   },
   "suppliers": {
     "title": "Gestion des fournisseurs",
     "newSupplier": "Nouveau fournisseur",
     "stock": "Stock",
-    "reports": "Rapports"
+    "reports": "Rapports",
+    "searchPlaceholder": "Rechercher des fournisseurs...",
+    "selectCountry": "Sélectionner un pays",
+    "selectTerms": "Sélectionner des conditions",
+    "notesPlaceholder": "Notes additionnelles sur ce fournisseur..."
   },
   "supplierInvoices": {
     "title": "Factures Fournisseurs",
@@ -720,7 +864,63 @@
     "title": "Facture rapide",
     "subtitle": "Créez une facture en une seule page",
     "switchToQuick": "Mode rapide",
-    "switchToStandard": "Mode standard"
+    "switchToStandard": "Mode standard",
+    "itemDescriptionPlaceholder": "Service ou produit",
+    "notesPlaceholder": "Conditions de paiement, notes..."
+  },
+  "profileSettings": {
+    "selectCountry": "Sélectionner un pays",
+    "selectTimezone": "Sélectionner un fuseau horaire"
+  },
+  "seedDataManager": {
+    "title": "Gestionnaire de données de test",
+    "subtitle": "Gérez les utilisateurs de test et peuplez la base avec des données d'exemple pour le développement et les tests.",
+    "testUsers": "Utilisateurs de test",
+    "testUsersDescription": "Créez des comptes de test standard avec des mots de passe générés. Les rôles élevés doivent être attribués côté serveur.",
+    "accountsToCreate": "Comptes à créer :",
+    "generatedPasswords": "Les mots de passe générés s'affichent dans le journal d'opérations après création.",
+    "adminAccessNote": "L'accès admin est contrôlé par `user_roles` et ne peut pas être initialisé de façon sûre depuis le navigateur.",
+    "createTestUsers": "Créer les utilisateurs de test",
+    "seedDatabase": "Peupler la base",
+    "seedDatabaseDescription": "Peuplez les tables avec des fournisseurs, produits, commandes et logs d'exemple.",
+    "dataToGenerate": "Données à générer :",
+    "suppliersAndLocations": "Fournisseurs et emplacements",
+    "productsAndInventory": "Produits et stock",
+    "servicesAndPricing": "Services et tarification",
+    "notificationsAndAuditLogs": "Notifications et logs d'audit",
+    "operationLog": "Journal des opérations",
+    "operationLogDescription": "Statut en temps réel des opérations de seed",
+    "noOperations": "Aucune opération en cours."
+  },
+  "scanner": {
+    "title": "Scanner",
+    "cameraInactive": "Caméra inactive",
+    "startCamera": "Démarrer la caméra",
+    "stop": "Arrêter",
+    "codeDetected": "Code détecté",
+    "format": "Format",
+    "orEnterManually": "Ou saisir manuellement",
+    "enterBarcode": "Saisir un code-barres...",
+    "submit": "Valider",
+    "manualEntry": "Saisie manuelle",
+    "processedCode": "Code traité : {{code}}"
+  },
+  "supplierProducts": {
+    "title": "Catalogue fournisseur",
+    "addProduct": "Ajouter un produit",
+    "productName": "Nom du produit",
+    "category": "Catégorie",
+    "selectCategory": "Sélectionner...",
+    "sku": "SKU",
+    "unitPrice": "Prix unitaire",
+    "stock": "Stock",
+    "minStock": "Stock minimum",
+    "saveProduct": "Enregistrer le produit",
+    "product": "Produit",
+    "price": "Prix",
+    "uncategorized": "Sans catégorie",
+    "importToStock": "Importer vers mon stock",
+    "noProducts": "Aucun produit ajouté pour le moment."
   },
   "backup": {
     "title": "Sauvegarde & Restauration",
@@ -1039,10 +1239,16 @@
       "enterCode": "Entrez le code a 6 chiffres de votre application d'authentification :",
       "verify": "Verifier",
       "cancel": "Annuler",
-      "success": "L'authentification a deux facteurs a ete activee avec succes !"
+      "success": "L'authentification a deux facteurs a ete activee avec succes !",
+      "authenticatorApp": "Application d'authentification"
     }
   },
   "auth": {
+    "welcomeBack": "Bon retour, Pilote !",
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "password": "Mot de passe",
+    "loggingIn": "Authentification...",
     "forgotPassword": "Mot de passe oublié ?",
     "forgotPasswordDescription": "Entrez votre email pour recevoir un lien de réinitialisation",
     "enterYourEmail": "votre@email.com",
@@ -1094,7 +1300,11 @@
     "ibanLabel": "IBAN",
     "bicLabel": "BIC/SWIFT",
     "supportedFormats": "PDF, JPG, PNG - max 10 Mo",
-    "creditsCost": "credits"
+    "creditsCost": "crédits",
+    "fileTooLarge": "Fichier trop volumineux (max 10 Mo)",
+    "dropzone": "Glissez-déposez votre facture ici",
+    "browseFiles": "Parcourir les fichiers",
+    "uploading": "Téléversement..."
   },
   "gdpr": {
     "exportTitle": "Export de donn\u00e9es (RGPD)",
@@ -1336,7 +1546,13 @@
   },
   "projects": {
     "billProject": "Facturer le projet",
-    "noTimesheets": "Aucune feuille de temps facturable"
+    "noTimesheets": "Aucune feuille de temps facturable",
+    "searchPlaceholder": "Rechercher des projets...",
+    "descriptionPlaceholder": "Description du projet...",
+    "selectClient": "Sélectionner un client",
+    "emptyTitle": "Aucun projet trouvé",
+    "emptyDescription": "Créez un nouveau projet pour commencer.",
+    "detailsPlaceholder": "Détails et objectifs du projet..."
   },
   "pagination": {
     "showing": "Affichage",
@@ -1661,6 +1877,7 @@
     "title": "Factures Fournisseurs",
     "subtitle": "Gestion centralisée de toutes les factures fournisseurs",
     "newInvoice": "Nouvelle facture",
+    "uploadInvoice": "Téléverser une facture",
     "selectSupplier": "Sélectionnez un fournisseur",
     "selectSupplierDesc": "Choisissez le fournisseur pour cette facture",
     "totalInvoices": "Total factures",

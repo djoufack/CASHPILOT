@@ -28,6 +28,8 @@
     "actions": "Actions",
     "status": "Status",
     "search": "Search...",
+    "scan": "Scan",
+    "or": "or",
     "success": "Success",
     "error": "Error",
     "list": "List",
@@ -61,7 +63,14 @@
     "categories": "Categories",
     "auditComptable": "Accounting Audit",
     "supplierInvoices": "Supplier Invoices",
-    "peppol": "Peppol"
+    "peppol": "Peppol",
+    "mapView": "Map View",
+    "scanner": "Scanner",
+    "financeSection": "Finance",
+    "systemSection": "System",
+    "management": "Management",
+    "peppolEInvoicing": "Peppol e-Invoicing",
+    "seedData": "Seed Data"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -117,6 +126,7 @@
   },
   "invoices": {
     "title": "Invoices",
+    "subtitle": "Create and manage professional invoices",
     "exportPDF": "Export PDF",
     "invoiceNumber": "Invoice Number",
     "clientInfo": "Client Information",
@@ -158,7 +168,9 @@
     "invoiceType": "Invoice Type",
     "product": "Product",
     "service": "Service",
-    "mixed": "Mixed"
+    "mixed": "Mixed",
+    "itemDescriptionPlaceholder": "Service or product",
+    "notesPlaceholder": "Payment terms, notes..."
   },
   "timesheets": {
     "title": "Timesheets",
@@ -207,7 +219,128 @@
     "statusLegend": "Status Legend",
     "task": "Task",
     "selectTask": "Select Task (Optional)",
-    "selectService": "Select Service (Optional)"
+    "selectService": "Select Service (Optional)",
+    "selectProject": "Select Project (Optional)",
+    "descriptionPlaceholder": "Description of work performed...",
+    "editEntry": "Edit timesheet entry",
+    "saveChanges": "Save changes",
+    "deleteEntry": "Delete entry",
+    "deleteEntryDescription": "This action cannot be undone. This timesheet entry will be permanently deleted.",
+    "noTimesheetsFound": "No timesheets found",
+    "addNewEntryHint": "Start by adding a new time entry above.",
+    "entryCount_one": "{{count}} entry",
+    "entryCount_other": "{{count}} entries",
+    "noDescription": "No description"
+  },
+  "tasks": {
+    "title": "Title",
+    "titlePlaceholder": "E.g. Design homepage",
+    "status": {
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "onHold": "On Hold",
+      "cancelled": "Cancelled"
+    },
+    "priority": "Priority",
+    "priorityValues": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "assignedTo": "Assigned to",
+    "assignedToPlaceholder": "John Doe",
+    "dueDate": "Due date",
+    "selectService": "Select Service (Optional)",
+    "none": "None",
+    "estimatedHours": "Estimated hours",
+    "estimatedHoursPlaceholder": "E.g. 8",
+    "startedAt": "Started at",
+    "completedAt": "Completed at",
+    "quoteReminder": "Quote reminder",
+    "quoteReminderDescription": "Use this when the task should result in a client quote.",
+    "linkedQuote": "Linked quote",
+    "selectQuote": "Select a quote",
+    "noQuoteLinked": "No quote linked yet",
+    "quoteReminderHelp": "Keep it empty until the quote is generated. The task remains in obligations until a quote is linked or the task is completed.",
+    "descriptionPlaceholder": "Detailed task description...",
+    "addSubtaskPlaceholder": "Add a subtask...",
+    "updateTask": "Update task",
+    "createTask": "Create task",
+    "newTask": "New task",
+    "editTask": "Edit task",
+    "createNewTask": "Create new task",
+    "deleteTask": "Delete task",
+    "deleteTaskDescription": "This will delete the task and all associated subtasks.",
+    "searchPlaceholder": "Search tasks...",
+    "validation": {
+      "completedAfterStarted": "Completed date must be after the started date."
+    },
+    "filters": {
+      "allStatuses": "All statuses",
+      "allPriorities": "All priorities"
+    },
+    "agenda": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "thisWeek": "This Week",
+      "laterNoDate": "Later / No Date"
+    },
+    "emptyAgenda": "No tasks found. Add tasks to see your agenda."
+  },
+  "quotesPage": {
+    "title": "Quotes",
+    "subtitle": "Manage proposals and estimates",
+    "create": "Create Quote",
+    "searchPlaceholder": "Search quotes...",
+    "allStatuses": "All",
+    "emptyTitle": "No quotes yet",
+    "emptyDescription": "Create your first quote to send to a client.",
+    "lineItems": "Line Items",
+    "addLine": "Add Line",
+    "subtotal": "Subtotal (excl. VAT)",
+    "vat": "VAT",
+    "totalInclVat": "Total (incl. VAT)",
+    "notesPlaceholder": "Additional notes...",
+    "exportCsv": "Export CSV",
+    "exportExcel": "Export Excel",
+    "exportPdfTitle": "Export PDF ({{credits}} credits)",
+    "exportHtmlTitle": "Export HTML ({{credits}} credits)",
+    "quoteNumber": "Quote Number",
+    "client": "Client",
+    "date": "Date",
+    "status": "Status",
+    "statusDraft": "Draft",
+    "statusSent": "Sent",
+    "statusAccepted": "Accepted",
+    "statusRejected": "Rejected",
+    "statusExpired": "Expired"
+  },
+  "purchaseOrdersPage": {
+    "title": "Purchase Orders",
+    "subtitle": "Manage supplier and client purchase orders",
+    "create": "New Purchase Order",
+    "searchPlaceholder": "Search purchase orders...",
+    "allStatuses": "All",
+    "emptyTitle": "No purchase orders",
+    "emptyDescription": "Create your first purchase order.",
+    "deliveryDate": "Delivery date",
+    "items": "Items",
+    "addLine": "Add Line",
+    "subtotal": "Subtotal (excl. VAT)",
+    "vat": "VAT",
+    "totalInclVat": "Total (incl. VAT)",
+    "notesPlaceholder": "Additional notes...",
+    "exportPdfTitle": "Export PDF ({{credits}} credits)",
+    "exportHtmlTitle": "Export HTML ({{credits}} credits)",
+    "statusDraft": "Draft",
+    "statusSent": "Sent",
+    "statusPartial": "Partial",
+    "statusConfirmed": "Confirmed",
+    "statusReceived": "Received",
+    "statusCompleted": "Completed",
+    "statusCancelled": "Cancelled"
   },
   "services": {
     "title": "Services",
@@ -280,7 +413,11 @@
     "inProgress": "In Progress",
     "onHold": "On Hold",
     "completed": "Completed",
-    "confirmed": "Confirmed"
+    "confirmed": "Confirmed",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "expired": "Expired",
+    "received": "Received"
   },
   "messages": {
     "success": {
@@ -330,13 +467,20 @@
     "role": "Role",
     "permissions": "Permissions",
     "grant": "Grant",
-    "revoke": "Revoke"
+    "revoke": "Revoke",
+    "roleSearchPlaceholder": "Search by name, role, or user ID",
+    "accessLevelPlaceholder": "Select access level",
+    "auditSearchPlaceholder": "Search action, actor, or resource"
   },
   "suppliers": {
     "title": "Supplier Management",
     "newSupplier": "New Supplier",
     "stock": "Stock",
-    "reports": "Reports"
+    "reports": "Reports",
+    "searchPlaceholder": "Search suppliers...",
+    "selectCountry": "Select country",
+    "selectTerms": "Select terms",
+    "notesPlaceholder": "Additional notes about this supplier..."
   },
   "supplierInvoices": {
     "title": "Supplier Invoices",
@@ -733,7 +877,63 @@
     "title": "Quick Invoice",
     "subtitle": "Create an invoice in one page",
     "switchToQuick": "Quick Mode",
-    "switchToStandard": "Standard Mode"
+    "switchToStandard": "Standard Mode",
+    "itemDescriptionPlaceholder": "Service or product",
+    "notesPlaceholder": "Payment terms, notes..."
+  },
+  "profileSettings": {
+    "selectCountry": "Select country",
+    "selectTimezone": "Select timezone"
+  },
+  "seedDataManager": {
+    "title": "Seed Data Manager",
+    "subtitle": "Manage test users and populate the database with sample data for development and testing.",
+    "testUsers": "Test Users",
+    "testUsersDescription": "Create standard test accounts with generated passwords. Elevated roles must be assigned server-side.",
+    "accountsToCreate": "Accounts to be created:",
+    "generatedPasswords": "Generated passwords are shown in the operation log after creation.",
+    "adminAccessNote": "Admin access is controlled by `user_roles` and cannot be bootstrapped safely from the browser.",
+    "createTestUsers": "Create Test Users",
+    "seedDatabase": "Seed Database",
+    "seedDatabaseDescription": "Populate tables with sample suppliers, products, orders, and logs.",
+    "dataToGenerate": "Data to be generated:",
+    "suppliersAndLocations": "Suppliers & Locations",
+    "productsAndInventory": "Products & Inventory",
+    "servicesAndPricing": "Services & Pricing",
+    "notificationsAndAuditLogs": "Notifications & Audit Logs",
+    "operationLog": "Operation Log",
+    "operationLogDescription": "Real-time status of seed operations",
+    "noOperations": "No operations running."
+  },
+  "scanner": {
+    "title": "Scanner",
+    "cameraInactive": "Camera inactive",
+    "startCamera": "Start camera",
+    "stop": "Stop",
+    "codeDetected": "Code detected",
+    "format": "Format",
+    "orEnterManually": "Or enter manually",
+    "enterBarcode": "Enter barcode number...",
+    "submit": "Submit",
+    "manualEntry": "Manual entry",
+    "processedCode": "Processed code: {{code}}"
+  },
+  "supplierProducts": {
+    "title": "Supplier Catalog",
+    "addProduct": "Add Product",
+    "productName": "Product Name",
+    "category": "Category",
+    "selectCategory": "Select...",
+    "sku": "SKU",
+    "unitPrice": "Unit Price",
+    "stock": "Stock",
+    "minStock": "Min Stock",
+    "saveProduct": "Save Product",
+    "product": "Product",
+    "price": "Price",
+    "uncategorized": "Uncategorized",
+    "importToStock": "Import to my stock",
+    "noProducts": "No products added yet."
   },
   "backup": {
     "title": "Backup & Restore",
@@ -1052,10 +1252,16 @@
       "enterCode": "Enter the 6-digit code from your authenticator app:",
       "verify": "Verify",
       "cancel": "Cancel",
-      "success": "Two-factor authentication has been enabled successfully!"
+      "success": "Two-factor authentication has been enabled successfully!",
+      "authenticatorApp": "Authenticator app"
     }
   },
   "auth": {
+    "welcomeBack": "Welcome back, Pilot!",
+    "signIn": "Log In",
+    "signUp": "Sign Up",
+    "password": "Password",
+    "loggingIn": "Authenticating...",
     "forgotPassword": "Forgot password?",
     "forgotPasswordDescription": "Enter your email to receive a reset link",
     "enterYourEmail": "your@email.com",
@@ -1107,7 +1313,11 @@
     "ibanLabel": "IBAN",
     "bicLabel": "BIC/SWIFT",
     "supportedFormats": "PDF, JPG, PNG - max 10MB",
-    "creditsCost": "credits"
+    "creditsCost": "credits",
+    "fileTooLarge": "File too large (max 10MB)",
+    "dropzone": "Drag & drop your invoice here",
+    "browseFiles": "Browse Files",
+    "uploading": "Uploading..."
   },
   "gdpr": {
     "exportTitle": "Data Export (GDPR)",
@@ -1349,7 +1559,13 @@
   },
   "projects": {
     "billProject": "Bill Project",
-    "noTimesheets": "No billable timesheets found"
+    "noTimesheets": "No billable timesheets found",
+    "searchPlaceholder": "Search projects...",
+    "descriptionPlaceholder": "Project description...",
+    "selectClient": "Select a client",
+    "emptyTitle": "No projects found",
+    "emptyDescription": "Create a new project to get started.",
+    "detailsPlaceholder": "Project details and objectives..."
   },
   "pagination": {
     "showing": "Showing",
@@ -1674,6 +1890,7 @@
     "title": "Supplier Invoices",
     "subtitle": "Centralized management of all supplier invoices",
     "newInvoice": "New Invoice",
+    "uploadInvoice": "Upload invoice",
     "selectSupplier": "Select a supplier",
     "selectSupplierDesc": "Choose the supplier for this invoice",
     "totalInvoices": "Total Invoices",

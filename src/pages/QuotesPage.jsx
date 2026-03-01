@@ -49,12 +49,23 @@ const initialFormData = {
 };
 
 const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML }) => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
+
   const statusColors = {
     draft: 'bg-gray-500/20 text-gray-400 border-gray-700',
     sent: 'bg-blue-500/20 text-blue-400 border-blue-800',
     accepted: 'bg-green-500/20 text-green-400 border-green-800',
     rejected: 'bg-red-500/20 text-red-400 border-red-800',
     expired: 'bg-yellow-500/20 text-yellow-400 border-yellow-800',
+  };
+
+  const statusLabels = {
+    draft: t('quotesPage.statusDraft'),
+    sent: t('quotesPage.statusSent'),
+    accepted: t('quotesPage.statusAccepted'),
+    rejected: t('quotesPage.statusRejected'),
+    expired: t('quotesPage.statusExpired'),
   };
 
   return (
@@ -66,14 +77,14 @@ const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML }) => {
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-lg font-bold text-gradient">{quote.quote_number}</h3>
-          <p className="text-sm text-gray-400">{quote.client?.company_name || 'No client'}</p>
+          <p className="text-sm text-gray-400">{quote.client?.company_name || t('timesheets.noClient')}</p>
         </div>
         <span className={`text-xs px-2 py-1 rounded-full border capitalize ${statusColors[quote.status] || statusColors.draft}`}>
-          {quote.status}
+          {statusLabels[quote.status] || quote.status}
         </span>
       </div>
       <div className="flex justify-between items-center text-sm text-gray-400 mb-4">
-        <span>{quote.date ? new Date(quote.date).toLocaleDateString() : '—'}</span>
+        <span>{quote.date ? new Date(quote.date).toLocaleDateString(locale) : '—'}</span>
         <span className="text-gradient font-bold text-lg">{formatCurrency(quote.total || quote.total_ttc || 0)}</span>
       </div>
       {quote.notes && <p className="text-xs text-gray-500 mb-4 line-clamp-2">{quote.notes}</p>}
@@ -83,7 +94,7 @@ const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML }) => {
           size="sm"
           onClick={() => onExportPDF(quote)}
           className="text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
-          title="Export PDF (2 crédits)"
+          title={t('quotesPage.exportPdfTitle', { credits: CREDIT_COSTS.PDF_QUOTE })}
         >
           <Download className="w-4 h-4" />
         </Button>
@@ -92,7 +103,7 @@ const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML }) => {
           size="sm"
           onClick={() => onExportHTML(quote)}
           className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20"
-          title="Export HTML (2 crédits)"
+          title={t('quotesPage.exportHtmlTitle', { credits: CREDIT_COSTS.EXPORT_HTML })}
         >
           <FileText className="w-4 h-4" />
         </Button>
@@ -131,16 +142,16 @@ const QuotesPage = () => {
   };
 
   const quoteCalendarLegend = [
-    { label: 'Draft', color: '#6b7280' },
-    { label: 'Sent', color: '#3b82f6' },
-    { label: 'Accepted', color: '#22c55e' },
-    { label: 'Rejected', color: '#ef4444' },
-    { label: 'Expired', color: '#eab308' },
+    { label: t('quotesPage.statusDraft'), color: '#6b7280' },
+    { label: t('quotesPage.statusSent'), color: '#3b82f6' },
+    { label: t('quotesPage.statusAccepted'), color: '#22c55e' },
+    { label: t('quotesPage.statusRejected'), color: '#ef4444' },
+    { label: t('quotesPage.statusExpired'), color: '#eab308' },
   ];
 
   const quoteCalendarEvents = quotes.map(q => ({
     id: q.id,
-    title: `${q.quote_number || ''} - ${q.client?.company_name || 'No client'}`,
+    title: `${q.quote_number || ''} - ${q.client?.company_name || t('timesheets.noClient')}`,
     date: q.date,
     status: q.status || 'draft',
     resource: q,
@@ -157,21 +168,21 @@ const QuotesPage = () => {
     return {
       id: q.id,
       title: q.quote_number || '',
-      subtitle: q.client?.company_name || 'No client',
+      subtitle: q.client?.company_name || t('timesheets.noClient'),
       date: q.date,
       status: q.status || 'draft',
-      statusLabel: (q.status || 'draft').charAt(0).toUpperCase() + (q.status || 'draft').slice(1),
+      statusLabel: t(`quotesPage.status${(q.status || 'draft').charAt(0).toUpperCase()}${(q.status || 'draft').slice(1)}`),
       statusColor: statusColorMap[q.status] || 'bg-gray-500/20 text-gray-400',
       amount: formatCurrency(q.total || q.total_ttc || 0),
     };
   });
 
   const quoteKanbanColumns = [
-    { id: 'draft', title: t('status.draft') || 'Draft', color: 'bg-gray-500/20 text-gray-400' },
-    { id: 'sent', title: t('status.sent') || 'Sent', color: 'bg-blue-500/20 text-blue-400' },
-    { id: 'accepted', title: t('status.accepted') || 'Accepted', color: 'bg-green-500/20 text-green-400' },
-    { id: 'rejected', title: t('status.rejected') || 'Rejected', color: 'bg-red-500/20 text-red-400' },
-    { id: 'expired', title: t('status.expired') || 'Expired', color: 'bg-yellow-500/20 text-yellow-400' },
+    { id: 'draft', title: t('quotesPage.statusDraft'), color: 'bg-gray-500/20 text-gray-400' },
+    { id: 'sent', title: t('quotesPage.statusSent'), color: 'bg-blue-500/20 text-blue-400' },
+    { id: 'accepted', title: t('quotesPage.statusAccepted'), color: 'bg-green-500/20 text-green-400' },
+    { id: 'rejected', title: t('quotesPage.statusRejected'), color: 'bg-red-500/20 text-red-400' },
+    { id: 'expired', title: t('quotesPage.statusExpired'), color: 'bg-yellow-500/20 text-yellow-400' },
   ];
 
   const filteredQuotes = quotes.filter(q => {
@@ -295,12 +306,19 @@ const QuotesPage = () => {
 
   const handleExportList = (format) => {
     if (!quotes || quotes.length === 0) return;
+    const statusLabels = {
+      draft: t('quotesPage.statusDraft'),
+      sent: t('quotesPage.statusSent'),
+      accepted: t('quotesPage.statusAccepted'),
+      rejected: t('quotesPage.statusRejected'),
+      expired: t('quotesPage.statusExpired'),
+    };
     const exportData = quotes.map(q => ({
-      'Quote Number': q.quote_number || '',
-      'Client': q.client?.company_name || '',
-      'Total TTC': q.total || q.total_ttc || '',
-      'Status': q.status || '',
-      'Date': q.date || '',
+      [t('quotesPage.quoteNumber')]: q.quote_number || '',
+      [t('quotesPage.client')]: q.client?.company_name || '',
+      [t('invoices.totalTTC')]: q.total || q.total_ttc || '',
+      [t('quotesPage.status')]: statusLabels[q.status] || q.status || '',
+      [t('quotesPage.date')]: q.date || '',
     }));
     if (format === 'csv') {
       exportToCSV(exportData, 'quotes');
@@ -315,16 +333,16 @@ const QuotesPage = () => {
     <>
       <CreditsGuardModal {...modalProps} />
       <Helmet>
-        <title>Quotes - {t('app.name')}</title>
+        <title>{t('quotesPage.title')} - {t('app.name')}</title>
       </Helmet>
 
       <div className="container mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">
-              Quotes
+              {t('quotesPage.title')}
             </h1>
-            <p className="text-gray-400 text-sm md:text-base">Manage proposals and estimates</p>
+            <p className="text-gray-400 text-sm md:text-base">{t('quotesPage.subtitle')}</p>
           </div>
           <div className="flex gap-2 w-full md:w-auto">
             {quotes.length > 0 && (
@@ -334,7 +352,7 @@ const QuotesPage = () => {
                   size="sm"
                   variant="outline"
                   className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                  title="Export CSV"
+                  title={t('quotesPage.exportCsv')}
                 >
                   <Download className="w-4 h-4 mr-1" />
                   CSV
@@ -344,7 +362,7 @@ const QuotesPage = () => {
                   size="sm"
                   variant="outline"
                   className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                  title="Export Excel"
+                  title={t('quotesPage.exportExcel')}
                 >
                   <Download className="w-4 h-4 mr-1" />
                   Excel
@@ -352,7 +370,7 @@ const QuotesPage = () => {
               </>
             )}
             <Button onClick={handleOpenDialog} className="flex-1 md:flex-none bg-orange-500 hover:bg-orange-600 text-white">
-              <Plus className="mr-2 h-4 w-4" /> Create Quote
+              <Plus className="mr-2 h-4 w-4" /> {t('quotesPage.create')}
             </Button>
           </div>
         </div>
@@ -362,21 +380,27 @@ const QuotesPage = () => {
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
               <Input
-                placeholder="Search quotes..."
+                placeholder={t('quotesPage.searchPlaceholder')}
                 className="pl-9 bg-gray-900 border-gray-800 text-white w-full"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-              {['all', 'draft', 'sent', 'accepted', 'rejected'].map(s => (
+              {[
+                { value: 'all', label: t('quotesPage.allStatuses') },
+                { value: 'draft', label: t('quotesPage.statusDraft') },
+                { value: 'sent', label: t('quotesPage.statusSent') },
+                { value: 'accepted', label: t('quotesPage.statusAccepted') },
+                { value: 'rejected', label: t('quotesPage.statusRejected') },
+              ].map(({ value, label }) => (
                 <Button
-                  key={s}
-                  variant={filterStatus === s ? 'default' : 'outline'}
-                  onClick={() => setFilterStatus(s)}
-                  className={`capitalize flex-shrink-0 ${filterStatus === s ? 'bg-orange-500' : 'border-gray-800 text-gray-400'}`}
+                  key={value}
+                  variant={filterStatus === value ? 'default' : 'outline'}
+                  onClick={() => setFilterStatus(value)}
+                  className={`flex-shrink-0 ${filterStatus === value ? 'bg-orange-500' : 'border-gray-800 text-gray-400'}`}
                 >
-                  {s}
+                  {label}
                 </Button>
               ))}
             </div>
@@ -415,10 +439,10 @@ const QuotesPage = () => {
                     <FileSignature className="w-12 h-12 text-orange-400" />
                   </div>
                 </div>
-                <h3 className="text-xl font-bold text-gradient mb-2">No quotes yet</h3>
-                <p className="text-gray-400 mb-6">Create your first quote to send to a client.</p>
+                <h3 className="text-xl font-bold text-gradient mb-2">{t('quotesPage.emptyTitle')}</h3>
+                <p className="text-gray-400 mb-6">{t('quotesPage.emptyDescription')}</p>
                 <Button onClick={handleOpenDialog} variant="outline" className="border-gray-700 text-gray-300 w-full md:w-auto">
-                  Create Quote
+                  {t('quotesPage.create')}
                 </Button>
               </motion.div>
             ) : (
@@ -477,18 +501,18 @@ const QuotesPage = () => {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-gradient text-xl">Create Quote</DialogTitle>
+            <DialogTitle className="text-gradient text-xl">{t('quotesPage.create')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Client & Dates */}
             <div className="space-y-2">
-              <Label className="text-gray-300">Client *</Label>
+              <Label className="text-gray-300">{t('quotesPage.client')} *</Label>
               <Select
                 value={formData.client_id}
                 onValueChange={(value) => setFormData({ ...formData, client_id: value })}
               >
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                  <SelectValue placeholder="Select a client" />
+                  <SelectValue placeholder={t('invoices.selectClient')} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700">
                   {clients.map(client => (
@@ -502,7 +526,7 @@ const QuotesPage = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-300">Date</Label>
+                <Label className="text-gray-300">{t('quotesPage.date')}</Label>
                 <Input
                   type="date"
                   value={formData.date}
@@ -511,7 +535,7 @@ const QuotesPage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-gray-300">Due Date</Label>
+                <Label className="text-gray-300">{t('invoices.dueDate')}</Label>
                 <Input
                   type="date"
                   value={formData.due_date}
@@ -523,19 +547,19 @@ const QuotesPage = () => {
 
             {/* Line Items */}
             <div className="space-y-2">
-              <Label className="text-gray-300">Line Items</Label>
+              <Label className="text-gray-300">{t('quotesPage.lineItems')}</Label>
               <div className="space-y-3">
                 {formData.items.map((item, index) => (
                   <div key={index} className="bg-gray-800/50 rounded-lg p-3 space-y-2">
                     <Input
-                      placeholder="Description"
+                      placeholder={t('invoices.description')}
                       value={item.description}
                       onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                       className="bg-gray-800 border-gray-700 text-white"
                     />
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                       <div>
-                        <Label className="text-gray-500 text-xs">Qty</Label>
+                        <Label className="text-gray-500 text-xs">{t('invoices.quantity')}</Label>
                         <Input
                           type="number"
                           min="0"
@@ -546,7 +570,7 @@ const QuotesPage = () => {
                         />
                       </div>
                       <div>
-                        <Label className="text-gray-500 text-xs">Unit Price</Label>
+                        <Label className="text-gray-500 text-xs">{t('invoices.unitPrice')}</Label>
                         <Input
                           type="number"
                           min="0"
@@ -557,7 +581,7 @@ const QuotesPage = () => {
                         />
                       </div>
                       <div>
-                        <Label className="text-gray-500 text-xs">Tax %</Label>
+                        <Label className="text-gray-500 text-xs">{t('invoices.taxRate')}</Label>
                         <Input
                           type="number"
                           min="0"
@@ -582,44 +606,44 @@ const QuotesPage = () => {
                 ))}
               </div>
               <Button type="button" variant="outline" size="sm" onClick={addItem} className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full">
-                <Plus className="w-4 h-4 mr-2" /> Add Line
+                <Plus className="w-4 h-4 mr-2" /> {t('quotesPage.addLine')}
               </Button>
             </div>
 
             {/* Totals */}
             <div className="bg-gray-800/50 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between text-gray-400">
-                <span>Subtotal (excl. VAT)</span>
+                <span>{t('quotesPage.subtotal')}</span>
                 <span>{formatCurrency(totalHT)}</span>
               </div>
               <div className="flex justify-between text-gray-400">
-                <span>VAT</span>
+                <span>{t('quotesPage.vat')}</span>
                 <span>{formatCurrency(totalTax)}</span>
               </div>
               <div className="flex justify-between text-gradient font-bold text-base border-t border-gray-700 pt-2">
-                <span>Total (incl. VAT)</span>
+                <span>{t('quotesPage.totalInclVat')}</span>
                 <span>{formatCurrency(totalTTC)}</span>
               </div>
             </div>
 
             {/* Notes */}
             <div className="space-y-2">
-              <Label className="text-gray-300">Notes</Label>
+              <Label className="text-gray-300">{t('timesheets.notes')}</Label>
               <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Additional notes..."
+                placeholder={t('quotesPage.notesPlaceholder')}
                 className="bg-gray-800 border-gray-700 text-white min-h-[60px]"
               />
             </div>
 
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={submitting || !formData.client_id} className="bg-orange-500 hover:bg-orange-600 text-white">
                 {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                Create Quote
+                {t('quotesPage.create')}
               </Button>
             </DialogFooter>
           </form>

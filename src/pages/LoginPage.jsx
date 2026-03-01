@@ -31,7 +31,7 @@ const LoginPage = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!validateEmail(email)) newErrors.email = t('validation.invalidEmail') || "Invalid email address";
-    if (!password) newErrors.password = "Password is required";
+    if (!password) newErrors.password = t('auth.passwordRequired');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -145,19 +145,19 @@ const LoginPage = () => {
               <h1 className="text-4xl font-bold text-gradient mb-2 tracking-tight">
                 {t('app.name')}
               </h1>
-              <p className="text-gray-400 text-sm">Welcome back, Pilot!</p>
+              <p className="text-gray-400 text-sm">{t('auth.welcomeBack')}</p>
             </div>
 
             <div className="flex mb-8 relative bg-gray-900/50 rounded-lg p-1">
               <button className="flex-1 py-2 text-sm font-medium rounded-md transition-colors relative z-10 text-white">
-                Se connecter
+                {t('auth.signIn')}
                 <div className="absolute inset-0 bg-gray-800 rounded-md -z-10 shadow-sm" />
               </button>
               <button
                 onClick={() => navigate('/signup')}
                 className="flex-1 py-2 text-sm font-medium rounded-md transition-colors relative z-10 text-gray-400 hover:text-gray-200"
               >
-                S'inscrire
+                {t('auth.signUp')}
               </button>
             </div>
 
@@ -169,7 +169,7 @@ const LoginPage = () => {
                >
                  <CheckCircle2 className="w-16 h-16 text-green-500 animate-pulse" />
                  <h3 className="text-xl font-bold text-white">{t('mfa.loginSuccess', 'Login successful')}</h3>
-                 <p className="text-gray-400 text-sm">{t('mfa.redirecting', 'Redirecting...')}</p>
+                 <p className="text-gray-400 text-sm">{t('mfa.redirecting')}</p>
                </motion.div>
             ) : mfaRequired ? (
               <MFAVerifyStep
@@ -208,7 +208,7 @@ const LoginPage = () => {
                 
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <Label htmlFor="password" className="text-gray-300">Password</Label>
+                    <Label htmlFor="password" className="text-gray-300">{t('auth.password')}</Label>
                     <Link to="/forgot-password" className="text-xs text-orange-400 hover:text-orange-300">
                       {t('auth.forgotPassword') || 'Mot de passe oublié?'}
                     </Link>
@@ -243,10 +243,10 @@ const LoginPage = () => {
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Authentification...</span>
+                      <span>{t('auth.loggingIn')}</span>
                     </div>
                   ) : (
-                    'Log In'
+                    t('auth.signIn')
                   )}
                 </Button>
               </form>

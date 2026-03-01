@@ -183,13 +183,13 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="project">Project</Label>
+        <Label htmlFor="project">{t('timesheets.project')}</Label>
         <Select
           value={formData.project_id}
           onValueChange={(value) => setFormData({ ...formData, project_id: value, task_id: '', service_id: '' })}
         >
           <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full">
-            <SelectValue placeholder="Select Project (Optional)" />
+            <SelectValue placeholder={t('timesheets.selectProject')} />
           </SelectTrigger>
           <SelectContent className="bg-gray-700 border-gray-600 text-white">
             {filteredProjects.map((project) => (
@@ -287,7 +287,7 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           rows={3}
           className="bg-gray-700 border-gray-600 text-white resize-none w-full min-h-[80px]"
-          placeholder="Description of work performed..."
+          placeholder={t('timesheets.descriptionPlaceholder')}
         />
       </div>
 
@@ -299,7 +299,7 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
             onClick={onCancel}
             className="border-gray-600 text-gray-300 hover:bg-gray-800 w-full sm:w-auto"
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
         )}
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">

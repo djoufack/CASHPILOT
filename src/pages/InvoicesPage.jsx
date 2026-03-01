@@ -341,7 +341,7 @@ const InvoicesPage = () => {
                 <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">
                   {t('invoices.title')}
                 </h1>
-                <p className="text-gray-400 text-sm md:text-base">Create and manage professional invoices</p>
+                <p className="text-gray-400 text-sm md:text-base">{t('invoices.subtitle')}</p>
               </div>
               <div className="flex gap-2 w-full md:w-auto flex-wrap">
                 {!showGenerator && invoices.length > 0 && (

@@ -152,20 +152,20 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
       <DialogContent className="sm:max-w-[600px] bg-gray-900 border-gray-800 text-white">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-gradient">
-            Edit Timesheet Entry
+            {t('timesheets.editEntry')}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           {timesheet?.invoice_id && (
             <div className="p-3 bg-purple-900/20 border border-purple-700 rounded-lg text-purple-300 text-sm mb-4">
-              {t('timesheets.invoiced')} - {t('timesheets.invoicedInfo', 'This entry is linked to an invoice.')}
+              {t('timesheets.invoiced')} - {t('timesheets.invoicedInfo')}
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-date" className="text-gray-300">Date</Label>
+              <Label htmlFor="edit-date" className="text-gray-300">{t('timesheets.date')}</Label>
               <Input
                 id="edit-date"
                 type="date"
@@ -177,14 +177,14 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-client" className="text-gray-300">Client</Label>
+              <Label htmlFor="edit-client" className="text-gray-300">{t('timesheets.client')}</Label>
               <Select
                 value={formData.client_id?.toString()}
                 onValueChange={(value) => setFormData({ ...formData, client_id: value, project_id: '' })}
                 required
               >
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                  <SelectValue placeholder="Select Client" />
+                  <SelectValue placeholder={t('timesheets.selectClient')} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700 text-white">
                   {clients.map((client) => (
@@ -198,16 +198,16 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-project" className="text-gray-300">Project</Label>
+            <Label htmlFor="edit-project" className="text-gray-300">{t('timesheets.project')}</Label>
             <Select
               value={formData.project_id?.toString() || 'none'}
               onValueChange={(value) => setFormData({ ...formData, project_id: value === 'none' ? null : value })}
             >
               <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                <SelectValue placeholder="Select Project (Optional)" />
+                <SelectValue placeholder={t('timesheets.selectProject')} />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                <SelectItem value="none">No Project</SelectItem>
+                <SelectItem value="none">{t('timesheets.noProject')}</SelectItem>
                 {filteredProjects.map((project) => (
                   <SelectItem key={project.id} value={project.id?.toString()}>
                     {project.name}
@@ -258,7 +258,7 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-start_time" className="text-gray-300">Start Time</Label>
+              <Label htmlFor="edit-start_time" className="text-gray-300">{t('timesheets.startTime')}</Label>
               <Input
                 id="edit-start_time"
                 type="time"
@@ -270,7 +270,7 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-end_time" className="text-gray-300">End Time</Label>
+              <Label htmlFor="edit-end_time" className="text-gray-300">{t('timesheets.endTime')}</Label>
               <Input
                 id="edit-end_time"
                 type="time"
@@ -284,19 +284,19 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
 
           <div className="flex items-center space-x-2 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
             <Clock className="w-5 h-5 text-orange-400" />
-            <span className="text-sm text-gray-400">Duration:</span>
+            <span className="text-sm text-gray-400">{t('timesheets.duration')}:</span>
             <span className="text-lg font-bold text-gradient">{calculatedDuration}</span>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-notes" className="text-gray-300">Notes</Label>
+            <Label htmlFor="edit-notes" className="text-gray-300">{t('timesheets.notes')}</Label>
             <Textarea
               id="edit-notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
               className="bg-gray-800 border-gray-700 text-white resize-none"
-              placeholder="Description..."
+              placeholder={t('timesheets.descriptionPlaceholder')}
             />
           </div>
 
@@ -309,24 +309,24 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
                   className="bg-red-900/50 hover:bg-red-900 text-red-200 border border-red-900"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
+                  {t('common.delete')}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-gray-900 border-gray-800 text-white">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogTitle>{t('timesheets.deleteEntry')}</AlertDialogTitle>
                   <AlertDialogDescription className="text-gray-400">
-                    This action cannot be undone. This will permanently delete this timesheet entry.
+                    {t('timesheets.deleteEntryDescription')}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700">Cancel</AlertDialogCancel>
+                  <AlertDialogCancel className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700">{t('common.cancel')}</AlertDialogCancel>
                   <AlertDialogAction 
                     onClick={handleDelete}
                     className="bg-red-600 hover:bg-red-700 text-white border-0"
                     disabled={deleteLoading}
                   >
-                    {deleteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+                    {deleteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('common.delete')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -339,14 +339,14 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
                 onClick={onClose}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
                 disabled={loading}
                 className="bg-orange-500 hover:bg-orange-600 text-white"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('timesheets.saveChanges')}
               </Button>
             </div>
           </div>

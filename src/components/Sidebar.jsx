@@ -41,7 +41,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
       },
       {
         id: 'peppol',
-        label: 'Peppol e-Invoicing',
+        label: t('nav.peppolEInvoicing'),
         icon: Globe,
         type: 'direct',
         path: '/app/peppol',
@@ -65,14 +65,14 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
       },
       {
         id: 'finance',
-        label: 'Finance',
+        label: t('nav.financeSection'),
         icon: TrendingUp,
         type: 'category',
         items: [
           { path: '/app/cash-flow', label: t('nav.cashFlow') || 'Cash Flow', icon: TrendingUp },
           { path: '/app/bank-connections', label: t('nav.bankConnections') || 'Connexions bancaires', icon: Building2 },
           { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
-          { path: '/app/audit-comptable', label: 'Audit Comptable', icon: ShieldCheck },
+          { path: '/app/audit-comptable', label: t('nav.auditComptable'), icon: ShieldCheck },
           { path: '/app/scenarios', label: t('nav.scenarios') || 'Scénarios', icon: BarChart3 },
         ],
       },
@@ -85,7 +85,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           { path: '/app/purchases', label: t('purchases.title') || 'Achats', icon: ShoppingCart },
           { path: '/app/supplier-invoices', label: t('nav.supplierInvoices') || 'Factures fournisseurs', icon: FileInput },
           { path: '/app/suppliers', label: t('common.suppliers'), icon: Truck },
-          { path: '/app/suppliers/map', label: 'Map View', icon: Map },
+          { path: '/app/suppliers/map', label: t('nav.mapView'), icon: Map },
           { path: '/app/suppliers/reports', label: t('suppliers.reports'), icon: BarChart3 },
         ],
       },
@@ -98,19 +98,19 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           { path: '/app/stock', label: t('nav.products') || 'Produits', icon: Package },
           { path: '/app/services', label: t('services.title') || 'Services', icon: Wrench },
           { path: '/app/categories', label: t('nav.categories') || 'Catégories', icon: Tag },
-          { path: '/app/products/barcode', label: 'Scanner', icon: QrCode },
+          { path: '/app/products/barcode', label: t('nav.scanner'), icon: QrCode },
         ],
       },
       {
         id: 'management',
-        label: 'Gestion',
+        label: t('nav.management'),
         icon: Briefcase,
         type: 'category',
         items: [
           { path: '/app/projects', label: t('common.projects'), icon: Briefcase },
           { path: '/app/timesheets', label: t('common.timesheets'), icon: Clock },
-          { path: '/app/reports/generator', label: 'Reports', icon: FileBarChart },
-          { path: '/app/analytics', label: 'Analytics', icon: PieChart },
+          { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
+          { path: '/app/analytics', label: t('nav.analytics'), icon: PieChart },
         ],
       },
       {
@@ -128,12 +128,12 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
     if (isAdmin) {
       cats.push({
         id: 'admin',
-        label: 'Admin',
+        label: t('common.admin'),
         icon: Shield,
         type: 'category',
         items: [
           { path: '/admin', label: t('common.admin'), icon: Shield },
-          { path: '/admin/seed-data', label: 'Seed Data', icon: Database },
+          { path: '/admin/seed-data', label: t('nav.seedData'), icon: Database },
         ],
       });
     }
