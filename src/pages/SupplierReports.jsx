@@ -13,12 +13,12 @@ import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/utils/calculations';
 
 const SupplierReports = () => {
-  const { reportData, loading, generateReports } = useSupplierReports();
+  const { reportData, loading, error, generateReports } = useSupplierReports();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
 
   useEffect(() => {
-    generateReports();
+    void generateReports();
   }, [generateReports]);
 
   const handleExportPDF = () => {
@@ -97,6 +97,14 @@ const SupplierReports = () => {
             </CardContent>
          </Card>
       </div>
+
+      {error && (
+        <Card className="bg-red-950/30 border-red-900/50">
+          <CardContent className="py-4 text-sm text-red-200">
+            {error}
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="spending" className="w-full">
          <TabsList className="bg-gray-900 border-gray-800 w-full overflow-x-auto justify-start h-auto p-1">
