@@ -2159,6 +2159,43 @@
     "trialBalanceSummary": "Résumé Balance de Vérification",
     "performanceChart": "Performance Globale",
     "noData": "Aucune donnée comptable disponible",
-    "noDataHint": "Importez un plan comptable et saisissez des écritures pour activer le pilotage"
+    "noDataHint": "Importez un plan comptable et saisissez des écritures pour activer le pilotage",
+    "signal": {
+      "scope": "Périmètre d'analyse",
+      "dataCoverage": "Couverture des données",
+      "alertRadar": "Radar d'alertes",
+      "valuationReadiness": "Prêt pour valorisation",
+      "daysObserved": "jours analysés",
+      "periodChip": "Période",
+      "sectorChip": "Secteur",
+      "entries": "écritures",
+      "accounts": "comptes",
+      "lastEntry": "Dernière écriture",
+      "critical": "critique(s)",
+      "warnings": "alerte(s)",
+      "alertDetail": "Le radar synthétise les alertes structurelles et de trésorerie sur la période.",
+      "preTaxReady": "Base fiscale prête",
+      "preTaxMissing": "Base fiscale incomplète",
+      "valuationDetail": "Le mode affiché dépend de la qualité actuelle du cash-flow libre et de l'EBITDA.",
+      "loadingDetail": "Agrégation des écritures, cash-flows et diagnostics en cours.",
+      "status": {
+        "setup": "Configuration à terminer",
+        "empty": "Jeu de données vide",
+        "ready": "Jeu de données exploitable"
+      },
+      "valuationMode": {
+        "full": "DCF + multiples disponibles",
+        "multiples-only": "Multiples disponibles, DCF limité",
+        "unavailable": "Valorisation non exploitable"
+      }
+    },
+    "emptyStates": {
+      "noEntriesTitle": "Le plan est en place, mais aucune écriture n'alimente encore le pilotage",
+      "noEntriesHint": "Ajoutez des écritures, factures ou dépenses pour débloquer les ratios, la fiscalité et la valorisation.",
+      "noSetupTitle": "Le pilotage attend encore son socle comptable",
+      "noSetupHint": "Sélectionnez un plan comptable et initialisez les comptes avant d'analyser les 6 volets du pilotage.",
+      "multiplesOnlyHint": "Le moteur utilise uniquement les multiples sectoriels tant que le free cash flow n'est pas suffisamment positif pour une DCF crédible.",
+      "valuationUnavailableHint": "Ni EBITDA exploitable ni free cash flow positif sur la période : la valorisation reste volontairement prudente."
+    }
   }
 }

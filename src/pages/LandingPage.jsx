@@ -964,6 +964,14 @@ const LandingPage = () => {
               <p>Gestion fournisseurs + extraction IA de factures via MCP</p>
             </div>
 
+            <div className="feature-card" data-color="orange-red">
+              <div className="feature-card-icon">
+                <Target />
+              </div>
+              <h3>Pilotage Stratégique</h3>
+              <p>Centre de pilotage unifié : ratios, benchmarks sectoriels, fiscalité multi-zones et valorisation</p>
+            </div>
+
             <div className="feature-card" data-color="lime-green">
               <div className="feature-card-icon">
                 <PieChart />
@@ -1058,6 +1066,119 @@ const LandingPage = () => {
               </div>
               <h3>Export Excel/CSV Natif</h3>
               <p>Export en un clic depuis toutes les pages principales</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pilotage Stratégique Section */}
+      <section id="pilotage" className="section section-simulation">
+        <div className="section-bg">
+          <div className="bg-gradient simulation-gradient"></div>
+          <div className="bg-mesh"></div>
+        </div>
+
+        <div className="container">
+          <div className="section-header">
+            <div className="section-badge badge-amber">
+              <Target />
+              <span>Pilotage d'Entreprise</span>
+            </div>
+            <h2 className="section-title">Centre de <strong>Pilotage</strong> Stratégique</h2>
+            <p className="section-description">
+              Un tableau de bord unifié avec 6 onglets pour piloter votre entreprise en temps réel : ratios financiers, benchmarks sectoriels, fiscalité multi-zones et valorisation.
+            </p>
+          </div>
+
+          <div className="simulation-grid">
+            <div className="simulation-card">
+              <div className="sim-icon sim-orange">
+                <PieChart />
+              </div>
+              <h4 className="sim-title">Vue d'Ensemble</h4>
+              <p className="sim-question">KPIs temps réel (CA, EBITDA, Résultat Net, FCF, Valorisation), graphiques de tendances et alertes financières automatiques</p>
+            </div>
+
+            <div className="simulation-card">
+              <div className="sim-icon sim-blue">
+                <Calculator />
+              </div>
+              <h4 className="sim-title">Analyse Comptable</h4>
+              <p className="sim-question">Ratios de structure (indépendance financière, gearing) et d'activité (DSO, DPO, rotation stocks, cycle de conversion cash)</p>
+            </div>
+
+            <div className="simulation-card">
+              <div className="sim-icon sim-green">
+                <TrendingUp />
+              </div>
+              <h4 className="sim-title">Analyse Financière</h4>
+              <p className="sim-question">Marges (brute, EBITDA, opérationnelle), rentabilité (ROE, ROA, ROCE), structure du capital et tendances</p>
+            </div>
+
+            <div className="simulation-card">
+              <div className="sim-icon sim-purple">
+                <DollarSign />
+              </div>
+              <h4 className="sim-title">Fiscalité & Valorisation</h4>
+              <p className="sim-question">IS multi-zones (France, Belgique, OHADA), crédits d'impôt, valorisation par multiples EBITDA + DCF, sensibilité WACC</p>
+            </div>
+
+            <div className="simulation-card">
+              <div className="sim-icon sim-indigo">
+                <Lightbulb />
+              </div>
+              <h4 className="sim-title">Simulateur</h4>
+              <p className="sim-question">Scénarios what-if : testez l'impact de vos décisions sur la trésorerie, les marges et la valorisation</p>
+            </div>
+
+            <div className="simulation-card">
+              <div className="sim-icon sim-green">
+                <Shield />
+              </div>
+              <h4 className="sim-title">Audit IA</h4>
+              <p className="sim-question">Score de santé comptable, détection d'anomalies par catégorie, recommandations et corrections automatiques</p>
+            </div>
+          </div>
+
+          <div className="simulation-features-card">
+            <h3 className="features-card-title">Benchmarks Sectoriels Intégrés</h3>
+            <div className="features-grid">
+              <div className="feature-item feature-amber">
+                <div className="feature-icon">
+                  <Briefcase />
+                </div>
+                <div className="feature-content">
+                  <h4>5 Secteurs</h4>
+                  <p>SaaS, Industrie, Commerce, Construction, Services B2B — cibles adaptées</p>
+                </div>
+              </div>
+              <div className="feature-item feature-purple">
+                <div className="feature-icon">
+                  <Globe />
+                </div>
+                <div className="feature-content">
+                  <h4>3 Zones Géographiques</h4>
+                  <p>France, Belgique, Zone OHADA (17 pays) — fiscalité et normes locales</p>
+                </div>
+              </div>
+              <div className="feature-item feature-blue">
+                <div className="feature-icon">
+                  <BarChart3 />
+                </div>
+                <div className="feature-content">
+                  <h4>13 Ratios Comparés</h4>
+                  <p>DSO, DPO, Gearing, ROE, ROA, ROCE, marges... vs cibles sectorielles</p>
+                </div>
+              </div>
+              <div className="feature-item feature-green">
+                <div className="feature-icon">
+                  <Target />
+                </div>
+                <div className="feature-content">
+                  <h4>Scoring Automatique</h4>
+                  <p>Chaque ratio évalué : excellent, bon, moyen ou critique — en un coup d'oeil</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

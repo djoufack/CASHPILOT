@@ -111,6 +111,59 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
   // 8. Loading state
   const loading = accountingData.loading || cashFlowResult.loading;
   const error = accountingData.error || cashFlowResult.error;
+  const dataQuality = useMemo(() => {
+    const entriesCount = accountingData.entries?.length || 0;
+    const accountsCount = accountingData.accounts?.length || 0;
+    const monthlyPoints = monthlyData.length;
+    const criticalAlerts = (alerts || []).filter((alert) => alert.severity === 'critical').length;
+    const warningAlerts = (alerts || []).filter((alert) => alert.severity === 'warning').length;
+    const preTaxIncome = accountingData.financialDiagnostic?.tax?.preTaxIncome;
+    const ebitda = accountingData.financialDiagnostic?.margins?.ebitda || 0;
+    const freeCashFlow = pilotageRatios?.cashFlow?.freeCashFlow || 0;
+    const hasAccountingSetup = accountsCount > 0;
+    const hasOperationalData = entriesCount > 0;
+    const datasetStatus = !hasAccountingSetup
+      ? 'setup'
+      : !hasOperationalData
+        ? 'empty'
+        : 'ready';
+
+    const lastEntryDate = accountingData.entries?.reduce((latest, entry) => {
+      if (!entry?.transaction_date) return latest;
+      return !latest || entry.transaction_date > latest ? entry.transaction_date : latest;
+    }, null);
+
+    const periodDays = (() => {
+      if (!startDate || !endDate) return 0;
+      const start = new Date(`${startDate}T00:00:00`);
+      const end = new Date(`${endDate}T00:00:00`);
+      return Math.max(0, Math.round((end - start) / 86400000) + 1);
+    })();
+
+    return {
+      datasetStatus,
+      entriesCount,
+      accountsCount,
+      monthlyPoints,
+      criticalAlerts,
+      warningAlerts,
+      lastEntryDate,
+      periodDays,
+      preTaxReady: Number.isFinite(preTaxIncome),
+      valuationReady: ebitda > 0 && freeCashFlow > 0,
+      valuationMode: freeCashFlow > 0 ? 'full' : ebitda > 0 ? 'multiples-only' : 'unavailable',
+    };
+  }, [
+    accountingData.accounts,
+    accountingData.entries,
+    accountingData.financialDiagnostic?.margins?.ebitda,
+    accountingData.financialDiagnostic?.tax?.preTaxIncome,
+    alerts,
+    endDate,
+    monthlyData,
+    pilotageRatios?.cashFlow?.freeCashFlow,
+    startDate,
+  ]);
 
   return {
     // Loading & error
@@ -140,6 +193,7 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
     ratioEvaluations,
     taxSynthesis,
     valuation,
+    dataQuality,
 
     // Company info
     company,

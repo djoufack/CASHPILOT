@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { usePilotageData } from '@/hooks/usePilotageData';
 import PilotageHeader from '@/components/pilotage/PilotageHeader';
+import PilotageSignalStrip from '@/components/pilotage/PilotageSignalStrip';
 import PilotageOverviewTab from '@/components/pilotage/PilotageOverviewTab';
 import PilotageAccountingTab from '@/components/pilotage/PilotageAccountingTab';
 import PilotageFinancialTab from '@/components/pilotage/PilotageFinancialTab';
@@ -74,11 +75,26 @@ const PilotagePage = () => {
         onSectorChange={setSector}
       />
 
+      {!pilotageData.loading && (
+        <PilotageSignalStrip
+          data={pilotageData}
+          region={region}
+          sector={sector}
+          startDate={startDate}
+          endDate={endDate}
+        />
+      )}
+
       {/* Loading state */}
       {pilotageData.loading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-400" />
-          <span className="ml-3 text-gray-400">{t('loading.data')}</span>
+        <div className="rounded-2xl border border-gray-800/60 bg-gray-900/60 p-8">
+          <div className="flex items-center gap-3 text-gray-300">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-400" />
+            <div>
+              <p className="font-medium">{t('loading.data')}</p>
+              <p className="text-sm text-gray-500">{t('pilotage.signal.loadingDetail')}</p>
+            </div>
+          </div>
         </div>
       )}
 
