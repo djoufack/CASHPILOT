@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
@@ -22,6 +22,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Button } from '@/components/ui/button';
 import { exportDashboardPDF, exportDashboardHTML } from '@/services/exportReports';
 import AccountingHealthWidget from '@/components/AccountingHealthWidget';
+import ObligationsPanel from '@/components/dashboard/ObligationsPanel';
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -36,14 +37,31 @@ const Dashboard = () => {
   const [cfGranularity, setCfGranularity] = useState('month');
   const { cashFlowData, summary: cashFlowSummary, loading: cashFlowLoading } = useCashFlow(6, cfGranularity);
   const { guardedAction, modalProps } = useCreditsGuard();
+  const dashboardFetchersRef = useRef({
+    fetchInvoices,
+    fetchTimesheets,
+    fetchProjects,
+    fetchClients,
+    fetchExpenses,
+  });
+
+  useEffect(() => {
+    dashboardFetchersRef.current = {
+      fetchInvoices,
+      fetchTimesheets,
+      fetchProjects,
+      fetchClients,
+      fetchExpenses,
+    };
+  }, [fetchInvoices, fetchTimesheets, fetchProjects, fetchClients, fetchExpenses]);
 
   useEffect(() => {
     if (user) {
-      fetchInvoices();
-      fetchTimesheets();
-      fetchProjects();
-      fetchClients();
-      fetchExpenses();
+      dashboardFetchersRef.current.fetchInvoices();
+      dashboardFetchersRef.current.fetchTimesheets();
+      dashboardFetchersRef.current.fetchProjects();
+      dashboardFetchersRef.current.fetchClients();
+      dashboardFetchersRef.current.fetchExpenses();
     }
   }, [user]);
 
@@ -200,7 +218,7 @@ const Dashboard = () => {
       recentInvoices: [...invoices].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5),
       recentTimesheets: [...timesheets].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5),
     };
-  }, [invoices, timesheets, projects, expenses, cashFlowData]);
+  }, [invoices, timesheets, projects, expenses]);
 
   const handleExportPDF = () => {
     guardedAction(
@@ -406,6 +424,8 @@ const Dashboard = () => {
             </div>
           </motion.div>
         </div>
+
+        <ObligationsPanel />
 
         {/* Revenue Breakdown Chart */}
         {revenueBreakdownData.length > 0 && (

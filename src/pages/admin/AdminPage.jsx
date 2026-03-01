@@ -5,6 +5,8 @@ import AdminDashboard from './AdminDashboard';
 import UserManagement from './UserManagement';
 import { Shield, Users, LayoutDashboard, Key, Building2 } from 'lucide-react';
 import AdminClientManager from '@/components/admin/AdminClientManager';
+import AdminRoleManager from '@/components/admin/AdminRoleManager';
+import AdminAuditTrail from '@/components/admin/AdminAuditTrail';
 import { useTranslation } from 'react-i18next';
 
 const AdminPage = () => {
@@ -51,19 +53,11 @@ const AdminPage = () => {
         </TabsContent>
 
         <TabsContent value="roles" className="mt-6">
-          <div className="p-8 text-center bg-gray-900/50 border border-gray-800 rounded-lg text-gray-500">
-            <Key className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium text-gradient">Role Management</h3>
-            <p>Configure granular permissions for each role.</p>
-          </div>
+          <AdminRoleManager />
         </TabsContent>
         
         <TabsContent value="audit" className="mt-6">
-          <div className="p-8 text-center bg-gray-900/50 border border-gray-800 rounded-lg text-gray-500">
-            <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium text-gradient">Audit Trail</h3>
-            <p>View detailed logs of all system activities.</p>
-          </div>
+          <AdminAuditTrail />
         </TabsContent>
       </Tabs>
     </div>

@@ -3,6 +3,27 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 
+const syncLegacyTaskTitle = (payload) => {
+  const nextPayload = { ...payload };
+  const hasTitle = Object.prototype.hasOwnProperty.call(nextPayload, 'title');
+  const hasName = Object.prototype.hasOwnProperty.call(nextPayload, 'name');
+
+  if (hasTitle) {
+    const normalizedTitle = String(nextPayload.title || '').trim();
+    nextPayload.title = normalizedTitle;
+    nextPayload.name = normalizedTitle;
+    return nextPayload;
+  }
+
+  if (hasName) {
+    const normalizedName = String(nextPayload.name || '').trim();
+    nextPayload.name = normalizedName;
+    nextPayload.title = normalizedName;
+  }
+
+  return nextPayload;
+};
+
 export const useTasksForProject = (projectId, filters = {}) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -60,9 +81,10 @@ export const useTasksForProject = (projectId, filters = {}) => {
   const createTask = async (taskData) => {
     if (!supabase) throw new Error("Supabase not configured");
     try {
+      const insertPayload = syncLegacyTaskTitle(taskData);
       const { data, error } = await supabase
         .from('tasks')
-        .insert([{ ...taskData, project_id: projectId }])
+        .insert([{ ...insertPayload, project_id: projectId }])
         .select()
         .single();
 
@@ -87,9 +109,10 @@ export const useTasksForProject = (projectId, filters = {}) => {
   const updateTask = async (taskId, updates) => {
     if (!supabase) throw new Error("Supabase not configured");
     try {
+      const updatePayload = syncLegacyTaskTitle(updates);
       const { data, error } = await supabase
         .from('tasks')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update({ ...updatePayload, updated_at: new Date().toISOString() })
         .eq('id', taskId)
         .select()
         .single();

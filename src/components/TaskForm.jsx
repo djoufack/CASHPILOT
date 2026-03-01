@@ -11,11 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Loader2, Calendar as CalendarIcon, AlertTriangle } from 'lucide-react';
 import { DialogFooter } from '@/components/ui/dialog';
-import { format, isBefore, isAfter } from 'date-fns';
+import { isAfter } from 'date-fns';
 
-const TaskForm = ({ task, onSave, onCancel, loading, services = [] }) => {
+const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -30,7 +31,8 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [] }) => {
     quote_id: '',
     purchase_order_id: '',
     service_id: '',
-    estimated_hours: ''
+    estimated_hours: '',
+    requires_quote: false,
   });
 
   const [validationError, setValidationError] = useState('');
@@ -38,7 +40,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [] }) => {
   useEffect(() => {
     if (task) {
       setFormData({
-        title: task.title || '',
+        title: task.title || task.name || '',
         description: task.description || '',
         status: task.status || 'pending',
         priority: task.priority || 'medium',
@@ -51,7 +53,26 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [] }) => {
         quote_id: task.quote_id || '',
         purchase_order_id: task.purchase_order_id || '',
         service_id: task.service_id || '',
-        estimated_hours: task.estimated_hours || ''
+        estimated_hours: task.estimated_hours || '',
+        requires_quote: !!task.requires_quote,
+      });
+    } else {
+      setFormData({
+        title: '',
+        description: '',
+        status: 'pending',
+        priority: 'medium',
+        assigned_to: '',
+        due_date: '',
+        started_at: '',
+        completed_at: '',
+        color: '#3b82f6',
+        invoice_id: '',
+        quote_id: '',
+        purchase_order_id: '',
+        service_id: '',
+        estimated_hours: '',
+        requires_quote: false,
       });
     }
   }, [task]);
@@ -82,6 +103,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [] }) => {
       completed_at: formData.completed_at || null,
       service_id: formData.service_id || null,
       estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
+      requires_quote: !!formData.requires_quote,
     };
     
     onSave(cleanedData);
@@ -209,7 +231,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [] }) => {
       </div>
 
       {/* Extended Date Fields */}
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-800 pt-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-800 pt-4">
         <div className="space-y-2">
           <Label htmlFor="started_at" className="text-gray-400 text-sm">Started At</Label>
           <Input
@@ -231,6 +253,54 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [] }) => {
             className="bg-gray-900 border-gray-700 text-white text-sm w-full"
           />
         </div>
+      </div>
+
+      <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-4 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <Label htmlFor="requires_quote" className="text-gray-300">Quote reminder</Label>
+            <p className="mt-1 text-sm text-gray-500">
+              Use this when the task should result in a client quote.
+            </p>
+          </div>
+          <Switch
+            id="requires_quote"
+            checked={!!formData.requires_quote}
+            onCheckedChange={(checked) => setFormData((current) => ({
+              ...current,
+              requires_quote: !!checked,
+              quote_id: checked ? current.quote_id : '',
+            }))}
+          />
+        </div>
+
+        {formData.requires_quote && (
+          <div className="space-y-2">
+            <Label htmlFor="quote_id" className="text-gray-300">Linked quote</Label>
+            <Select
+              value={formData.quote_id || 'none'}
+              onValueChange={(value) => setFormData((current) => ({
+                ...current,
+                quote_id: value === 'none' ? '' : value,
+              }))}
+            >
+              <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-full">
+                <SelectValue placeholder="Select a quote" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                <SelectItem value="none">No quote linked yet</SelectItem>
+                {quotes.map((quote) => (
+                  <SelectItem key={quote.id} value={quote.id}>
+                    {quote.quote_number} ({quote.status || 'draft'})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">
+              Keep it empty until the quote is generated. The task will remain in obligations until a quote is linked or the task is completed.
+            </p>
+          </div>
+        )}
       </div>
       
       {validationError && (
