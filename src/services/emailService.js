@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { resolveInvoiceCurrency } from '@/utils/invoiceCurrency';
 
 /**
  * Escape HTML special characters to prevent XSS in email templates.
@@ -56,7 +57,7 @@ export const sendInvoiceEmail = async ({ invoiceId, recipientEmail, pdfBase64, i
   const clientName = client?.company_name || client?.contact_name || client?.name || '';
   const invoiceNumber = invoice?.invoice_number || invoice?.invoiceNumber || '';
   const totalTTC = Number(invoice?.total_ttc || invoice?.total || 0);
-  const currency = client?.preferred_currency || invoice?.currency || 'EUR';
+  const currency = resolveInvoiceCurrency(invoice, client);
   const dueDate = invoice?.due_date || invoice?.dueDate || 'N/A';
 
   const subject = `Facture ${escapeHtml(invoiceNumber)} de ${escapeHtml(companyName)}`;
@@ -110,7 +111,7 @@ export const sendPaymentReminder = async ({ invoiceId, recipientEmail, invoice, 
   const clientName = client?.company_name || client?.contact_name || client?.name || '';
   const invoiceNumber = invoice?.invoice_number || invoice?.invoiceNumber || '';
   const totalTTC = Number(invoice?.total_ttc || invoice?.total || 0);
-  const currency = client?.preferred_currency || invoice?.currency || 'EUR';
+  const currency = resolveInvoiceCurrency(invoice, client);
   const dueDate = invoice?.due_date || invoice?.dueDate || 'N/A';
 
   // Calculate days overdue

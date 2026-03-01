@@ -539,7 +539,12 @@ export const generateSAFTFilename = (companyInfo = {}, period = {}) => {
     ? formatDateISO(period.endDate).replace(/-/g, '')
     : formatDateISO(new Date()).replace(/-/g, '');
 
-  const timestamp = new Date().toISOString().replace(/[-:T]/g, '').substring(0, 14);
+  const timestamp = new Date()
+    .toISOString()
+    .replaceAll('-', '')
+    .replaceAll(':', '')
+    .replace('T', '')
+    .substring(0, 14);
 
   return `SAFT_${companyName}${siret ? '_' + siret : ''}_${startDate}_${endDate}_${timestamp}.xml`;
 };

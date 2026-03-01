@@ -4,6 +4,8 @@
  * Profiles: MINIMUM, BASIC, EN16931
  */
 
+import { resolveInvoiceCurrency } from '@/utils/invoiceCurrency';
+
 const FACTURX_PROFILES = {
   MINIMUM: 'urn:factur-x.eu:1p0:minimum',
   BASIC: 'urn:factur-x.eu:1p0:basic',
@@ -149,12 +151,12 @@ const generateTradeDelivery = (invoice) => {
 /**
  * Generate Trade Settlement
  */
-const generateTradeSettlement = (invoice, seller) => {
+const generateTradeSettlement = (invoice, seller, currency) => {
   const dueDate = invoice.due_date || invoice.invoice_date;
 
   return `
     <ram:ApplicableHeaderTradeSettlement>
-      <ram:InvoiceCurrencyCode>${invoice.currency || 'EUR'}</ram:InvoiceCurrencyCode>
+      <ram:InvoiceCurrencyCode>${currency}</ram:InvoiceCurrencyCode>
       ${seller.iban ? `<ram:SpecifiedTradeSettlementPaymentMeans>
         <ram:TypeCode>58</ram:TypeCode>
         <ram:PayeePartyCreditorFinancialAccount>
@@ -179,7 +181,7 @@ const generateTradeSettlement = (invoice, seller) => {
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
         <ram:LineTotalAmount>${formatAmount(invoice.total_ht || 0)}</ram:LineTotalAmount>
         <ram:TaxBasisTotalAmount>${formatAmount(invoice.total_ht || 0)}</ram:TaxBasisTotalAmount>
-        <ram:TaxTotalAmount currencyID="${invoice.currency || 'EUR'}">${formatAmount(invoice.total_vat || 0)}</ram:TaxTotalAmount>
+        <ram:TaxTotalAmount currencyID="${currency}">${formatAmount(invoice.total_vat || 0)}</ram:TaxTotalAmount>
         <ram:GrandTotalAmount>${formatAmount(invoice.total_ttc || 0)}</ram:GrandTotalAmount>
         <ram:DuePayableAmount>${formatAmount(invoice.total_ttc || 0)}</ram:DuePayableAmount>
       </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
@@ -197,13 +199,14 @@ const generateTradeSettlement = (invoice, seller) => {
  * @returns {string} Complete XML string
  */
 export const generateFacturXXml = (invoice, seller, buyer, profile = 'BASIC') => {
+  const currency = resolveInvoiceCurrency(invoice, buyer, seller);
   const xml = [
     generateHeader(invoice, profile),
     generateDocumentContext(profile),
     generateExchangedDocument(invoice),
     generateTradeHeader(invoice, seller, buyer),
     generateTradeDelivery(invoice),
-    generateTradeSettlement(invoice, seller)
+    generateTradeSettlement(invoice, seller, currency)
   ].join('');
 
   return xml;

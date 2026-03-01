@@ -65,7 +65,7 @@ export const useBankAlerts = () => {
       const today = new Date().toISOString().split('T')[0];
       const { data: overdue } = await supabase
         .from('invoices')
-        .select('invoice_number, total_ttc, due_date, client:clients(name)')
+        .select('invoice_number, total_ttc, due_date, client:clients(company_name, contact_name)')
         .eq('user_id', user.id)
         .in('status', ['sent', 'overdue'])
         .lt('due_date', today);
@@ -76,7 +76,7 @@ export const useBankAlerts = () => {
           type: 'overdue_invoice',
           severity: daysOverdue > 30 ? 'critical' : daysOverdue > 14 ? 'warning' : 'info',
           title: `Facture impay\u00E9e: ${inv.invoice_number}`,
-          description: `${inv.client?.name} - ${inv.total_ttc?.toFixed(2)}\u20AC - ${daysOverdue} jours de retard`,
+          description: `${inv.client?.company_name || inv.client?.contact_name || 'Client'} - ${inv.total_ttc?.toFixed(2)}\u20AC - ${daysOverdue} jours de retard`,
           amount: inv.total_ttc,
         });
       });

@@ -6,6 +6,8 @@
  * Counterpart to exportFacturX.js (which generates CII format).
  */
 
+import { resolveInvoiceCurrency } from '@/utils/invoiceCurrency';
+
 const PEPPOL_CUSTOMIZATION_ID = 'urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0';
 const PEPPOL_PROFILE_ID = 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0';
 
@@ -160,7 +162,7 @@ const generateInvoiceLines = (items, currency, lineTag, qtyTag) => {
  * Generate a complete UBL 2.1 Invoice XML string.
  */
 export const generateUBLInvoice = (invoice, seller, buyer, items) => {
-  const currency = invoice.currency || 'EUR';
+  const currency = resolveInvoiceCurrency(invoice, buyer, seller);
   const buyerRef = invoice.reference || invoice.invoice_number;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -182,7 +184,7 @@ export const generateUBLInvoice = (invoice, seller, buyer, items) => {
  * Generate a complete UBL 2.1 CreditNote XML string.
  */
 export const generateUBLCreditNote = (invoice, seller, buyer, items) => {
-  const currency = invoice.currency || 'EUR';
+  const currency = resolveInvoiceCurrency(invoice, buyer, seller);
   const buyerRef = invoice.reference || invoice.invoice_number;
 
   return `<?xml version="1.0" encoding="UTF-8"?>

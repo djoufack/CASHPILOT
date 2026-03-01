@@ -33,7 +33,13 @@ export const usePaymentReminders = () => {
         .from('payment_reminder_logs')
         .select(`
           *,
-          invoice:invoices(id, invoice_number, total_ttc, currency, client:clients(id, name, email)),
+          invoice:invoices(
+            id,
+            invoice_number,
+            total_ttc,
+            client_id,
+            client:clients(id, company_name, contact_name, email, preferred_currency)
+          ),
           rule:payment_reminder_rules(id, name)
         `)
         .eq('user_id', user.id)

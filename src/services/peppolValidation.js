@@ -3,6 +3,8 @@
  * Validates invoice data before UBL generation or Peppol transmission.
  */
 
+import { resolveInvoiceCurrency } from '@/utils/invoiceCurrency';
+
 const VALID_CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'HUF', 'RON', 'BGN', 'HRK', 'ISK', 'JPY', 'CAD', 'AUD'];
 
 /**
@@ -15,6 +17,9 @@ const VALID_CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN'
  */
 export const validateForPeppolBE = (invoice, seller, buyer, items) => {
   const errors = [];
+  const explicitInvoiceCurrency = typeof invoice.currency === 'string'
+    ? invoice.currency.trim().toUpperCase()
+    : '';
 
   // BR-01: Invoice number is mandatory
   if (!invoice.invoice_number) {
@@ -27,7 +32,7 @@ export const validateForPeppolBE = (invoice, seller, buyer, items) => {
   }
 
   // BR-05: Currency code must be valid ISO 4217
-  const currency = invoice.currency || 'EUR';
+  const currency = explicitInvoiceCurrency || resolveInvoiceCurrency(invoice, buyer, seller);
   if (currency.length !== 3 || !VALID_CURRENCIES.includes(currency)) {
     errors.push({ rule: 'BR-05', message: `Invalid currency code: ${currency}` });
   }

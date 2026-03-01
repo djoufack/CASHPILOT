@@ -16,7 +16,7 @@ export const useRecurringInvoices = () => {
         .from('recurring_invoices')
         .select(`
           *,
-          client:clients(id, name, email),
+          client:clients(id, company_name, contact_name, email, preferred_currency),
           line_items:recurring_invoice_line_items(*)
         `)
         .eq('user_id', user.id)
