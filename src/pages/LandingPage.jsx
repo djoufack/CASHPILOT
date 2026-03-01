@@ -415,9 +415,8 @@ const LandingPage = () => {
           </div>
           <div className="nav-actions">
             <button className="btn btn-ghost" onClick={() => handleNavigate('/login')}>Connexion</button>
-            <button className="btn btn-primary" onClick={() => handleNavigate('/signup')}>
-              Démarrer
-              <ArrowRight />
+            <button className="btn btn-primary magnetic-btn" onClick={() => handleNavigate('/signup')}>
+              Démarrer <ArrowRight />
             </button>
           </div>
           <button className="mobile-menu-btn" onClick={toggleMobileMenu}>
