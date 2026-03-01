@@ -16,6 +16,7 @@ import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/utils/calculations';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -83,6 +84,7 @@ const PurchasesPage = () => {
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
   const { toast } = useToast();
+  const companyCurrency = resolveAccountingCurrency(company);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -455,7 +457,7 @@ const PurchasesPage = () => {
                         {getStatusBadge(order.order_status)}
                       </TableCell>
                       <TableCell className="text-right font-semibold text-white">
-                        {formatCurrency(order.total_amount || 0, company?.currency)}
+                        {formatCurrency(order.total_amount || 0, companyCurrency)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -661,7 +663,7 @@ const PurchasesPage = () => {
                       <div className="h-10 flex items-center px-3 bg-gray-800/50 border border-gray-700 rounded-md text-gray-300 text-sm">
                         {formatCurrency(
                           (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0),
-                          company?.currency
+                          companyCurrency
                         )}
                       </div>
                     </div>
@@ -693,7 +695,7 @@ const PurchasesPage = () => {
             <div className="bg-gray-800/50 rounded-lg p-4 flex justify-between items-center">
               <span className="text-gray-400 font-medium">{t('purchases.totalAmount')}</span>
               <span className="text-gradient font-bold text-lg">
-                {formatCurrency(grandTotal, company?.currency)}
+                {formatCurrency(grandTotal, companyCurrency)}
               </span>
             </div>
 

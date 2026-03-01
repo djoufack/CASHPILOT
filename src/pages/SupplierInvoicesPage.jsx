@@ -12,6 +12,7 @@ import UploadInvoiceModal from '@/components/UploadInvoiceModal';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/utils/calculations';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
 import { Button } from '@/components/ui/button';
@@ -92,7 +93,7 @@ const SupplierInvoicesPage = () => {
   // Pagination
   const pagination = usePagination({ pageSize: 25 });
 
-  const currency = company?.currency || 'EUR';
+  const currency = resolveAccountingCurrency(company);
 
   // ---------- DATA FETCHING ----------
 

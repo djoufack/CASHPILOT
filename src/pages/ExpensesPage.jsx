@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { Button } from '@/components/ui/button';
@@ -32,9 +33,10 @@ const ExpensesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  const companyCurrency = resolveAccountingCurrency(company);
 
   // Get company currency symbol
-  const currencySymbol = getCurrencySymbol(company?.currency || 'EUR');
+  const currencySymbol = getCurrencySymbol(companyCurrency);
 
   const emptyForm = {
     description: '',
@@ -146,7 +148,7 @@ const ExpensesPage = () => {
     status: exp.category || 'general',
     statusLabel: (exp.category || 'general').charAt(0).toUpperCase() + (exp.category || 'general').slice(1),
     statusColor: 'bg-orange-500/20 text-orange-400',
-    amount: formatCurrency(exp.amount || 0),
+    amount: formatCurrency(exp.amount || 0, companyCurrency),
   }));
 
   if (loading && expenses.length === 0) {
@@ -206,7 +208,7 @@ const ExpensesPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/50">
             <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Total des dépenses</p>
-            <p className="text-2xl font-bold text-gradient">{formatCurrency(totalExpenses)}</p>
+            <p className="text-2xl font-bold text-gradient">{formatCurrency(totalExpenses, companyCurrency)}</p>
           </div>
           <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/50">
             <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Nombre de dépenses</p>
@@ -215,7 +217,7 @@ const ExpensesPage = () => {
           <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/50">
             <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Moyenne par dépense</p>
             <p className="text-2xl font-bold text-gradient">
-              {filteredExpenses.length > 0 ? formatCurrency(totalExpenses / filteredExpenses.length) : formatCurrency(0)}
+              {filteredExpenses.length > 0 ? formatCurrency(totalExpenses / filteredExpenses.length, companyCurrency) : formatCurrency(0, companyCurrency)}
             </p>
           </div>
         </div>
@@ -275,7 +277,7 @@ const ExpensesPage = () => {
                           <td className="p-4 text-gradient font-medium">{exp.description || '—'}</td>
                           <td className="p-4 text-gray-400 hidden md:table-cell capitalize">{exp.category || '—'}</td>
                           <td className="p-4 text-gray-400 hidden lg:table-cell">{exp.supplier_name || '—'}</td>
-                          <td className="p-4 text-right text-gradient font-semibold">{formatCurrency(exp.amount || 0)}</td>
+                          <td className="p-4 text-right text-gradient font-semibold">{formatCurrency(exp.amount || 0, companyCurrency)}</td>
                         </tr>
                       ))}
                     </tbody>

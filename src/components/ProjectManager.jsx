@@ -5,6 +5,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useClients } from '@/hooks/useClients';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,6 +45,7 @@ const ProjectManager = ({ onProjectSelect }) => {
   const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const { clients } = useClients();
   const { company } = useCompany();
+  const companyCurrency = resolveAccountingCurrency(company);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
@@ -52,7 +54,7 @@ const ProjectManager = ({ onProjectSelect }) => {
   const [saveLoading, setSaveLoading] = useState(false);
 
   // Get company currency symbol
-  const currencySymbol = getCurrencySymbol(company?.currency || 'EUR');
+  const currencySymbol = getCurrencySymbol(companyCurrency);
 
   const [formData, setFormData] = useState({
     name: '',

@@ -14,6 +14,7 @@ import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { formatCurrency, formatCompactCurrency } from '@/utils/currencyService';
 import { calculateTrend, formatTrendLabel, calculateProfitMargin, getInvoiceAmount } from '@/utils/calculations';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { Users, Clock, FileText, TrendingUp, DollarSign, Activity, Loader2, ArrowUp, ArrowDown, Download, Package, Wrench, Wallet, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -36,6 +37,7 @@ const Dashboard = () => {
   const [cfGranularity, setCfGranularity] = useState('month');
   const { cashFlowData, summary: cashFlowSummary, loading: cashFlowLoading } = useCashFlow(6, cfGranularity);
   const { guardedAction, modalProps } = useCreditsGuard();
+  const companyCurrency = resolveAccountingCurrency(company);
   const dashboardFetchersRef = useRef({
     fetchInvoices,
     fetchTimesheets,
@@ -253,7 +255,7 @@ const Dashboard = () => {
 
   const isLoading = invoicesLoading || timesheetsLoading || projectsLoading || expensesLoading;
 
-  const cc = company?.currency;
+  const cc = companyCurrency;
   const stats = [
     { label: t('dashboard.totalRevenue'), value: formatCompactCurrency(metrics.revenue, cc), fullValue: formatCurrency(metrics.revenue, cc), icon: DollarSign, trend: formatTrendLabel(metrics.revenueTrend), trendUp: parseFloat(metrics.revenueTrend) >= 0 },
     { label: t('dashboard.profitMargin'), value: `${Math.round(metrics.profitMargin)}%`, icon: TrendingUp, trend: formatTrendLabel(metrics.marginTrend), trendUp: parseFloat(metrics.marginTrend) >= 0 },
@@ -509,7 +511,7 @@ const Dashboard = () => {
                                     <span className="text-gray-400 text-xs">{nameMap[p.dataKey]}</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-white text-xs font-semibold tabular-nums">{formatCurrency(p.value, company?.currency)}</span>
+                                    <span className="text-white text-xs font-semibold tabular-nums">{formatCurrency(p.value, companyCurrency)}</span>
                                     <span className="text-gray-500 text-[10px] w-8 text-right">{pct}%</span>
                                   </div>
                                 </div>
@@ -519,7 +521,7 @@ const Dashboard = () => {
                           {payload.filter(p => p.value > 0).length > 1 && (
                             <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-700/50">
                               <span className="text-gray-500 text-xs">{t('dashboard.totalLabel')}</span>
-                              <span className="text-white text-xs font-bold tabular-nums">{formatCurrency(total, company?.currency)}</span>
+                              <span className="text-white text-xs font-bold tabular-nums">{formatCurrency(total, companyCurrency)}</span>
                             </div>
                           )}
                         </div>
@@ -558,7 +560,7 @@ const Dashboard = () => {
                     <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => { const abs = Math.abs(val); if (abs >= 1e9) return `${(val/1e9).toFixed(1)}Md`; if (abs >= 1e6) return `${(val/1e6).toFixed(1)}M`; if (abs >= 1e3) return `${(val/1e3).toFixed(0)}K`; return val; }} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
-                      formatter={(value) => [formatCurrency(value, company?.currency), t('dashboard.revenueLabel')]}
+                      formatter={(value) => [formatCurrency(value, companyCurrency), t('dashboard.revenueLabel')]}
                     />
                     <Area type="monotone" dataKey="revenue" stroke="#F59E0B" strokeWidth={2} fill="url(#revenueGradient)" />
                   </AreaChart>
@@ -587,7 +589,7 @@ const Dashboard = () => {
                     <YAxis stroke="#6B7280" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => { const abs = Math.abs(val); if (abs >= 1e9) return `${(val/1e9).toFixed(1)}Md`; if (abs >= 1e6) return `${(val/1e6).toFixed(1)}M`; if (abs >= 1e3) return `${(val/1e3).toFixed(0)}K`; return val; }} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
-                      formatter={(value) => [formatCurrency(value, company?.currency), t('dashboard.revenueLabel')]}
+                      formatter={(value) => [formatCurrency(value, companyCurrency), t('dashboard.revenueLabel')]}
                     />
                     <Line type="monotone" dataKey="amount" stroke="#F59E0B" strokeWidth={2} dot={{ fill: '#F59E0B', strokeWidth: 0, r: 3 }} />
                   </LineChart>

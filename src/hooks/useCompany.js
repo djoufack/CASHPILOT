@@ -4,6 +4,16 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 
+const resolveCompanyAccountingCurrency = (companyData = {}, currentCompany = null) => {
+  const rawValue =
+    companyData.accounting_currency ||
+    companyData.currency ||
+    currentCompany?.accounting_currency ||
+    'EUR';
+
+  return String(rawValue).trim().toUpperCase() || 'EUR';
+};
+
 export const useCompany = () => {
   const { user } = useAuth();
   const [company, setCompany] = useState(null);
@@ -63,6 +73,7 @@ export const useCompany = () => {
 
       console.log('🔍 saveCompany received data:', companyData);
       console.log('🔍 Currency from companyData:', companyData.currency);
+      const accountingCurrency = resolveCompanyAccountingCurrency(companyData, company);
 
       // Explicit field whitelist — only send columns that exist in the DB
       const companyFields = {
@@ -74,7 +85,7 @@ export const useCompany = () => {
         city: companyData.city || '',
         postal_code: companyData.postal_code || '',
         country: companyData.country || '',
-        currency: companyData.currency || 'EUR',
+        currency: accountingCurrency,
         phone: companyData.phone || '',
         email: companyData.email || '',
         website: companyData.website || '',
@@ -90,6 +101,10 @@ export const useCompany = () => {
         scrada_password: companyData.scrada_password || null,
         updated_at: new Date().toISOString()
       };
+      const companyFieldsWithAccountingCurrency = {
+        ...companyFields,
+        accounting_currency: accountingCurrency,
+      };
 
       // Ensure company_type is always a valid value
       if (!['freelance', 'company'].includes(companyFields.company_type)) {
@@ -103,29 +118,34 @@ export const useCompany = () => {
 
       if (company?.id) {
         // Update existing
-        const { data, error } = await supabase
+        const response = await supabase
           .from('company')
-          .update(companyFields)
+          .update(companyFieldsWithAccountingCurrency)
           .eq('id', company.id)
           .select()
           .single();
 
-        if (error) throw error;
-        result = data;
+        if (response.error) throw response.error;
+        result = response.data;
         console.log('✅ DB Update result:', result);
-        console.log('✅ Currency in result:', result?.currency);
+        console.log('✅ Accounting currency in result:', result?.accounting_currency);
       } else {
         // Create new
-        const { data, error } = await supabase
+        const baseInsertFields = {
+          ...companyFields,
+          user_id: user.id,
+          created_at: new Date().toISOString(),
+        };
+        const response = await supabase
           .from('company')
-          .insert([{ ...companyFields, user_id: user.id, created_at: new Date().toISOString() }])
+          .insert([{ ...baseInsertFields, accounting_currency: accountingCurrency }])
           .select()
           .single();
 
-        if (error) throw error;
-        result = data;
+        if (response.error) throw response.error;
+        result = response.data;
         console.log('✅ DB Insert result:', result);
-        console.log('✅ Currency in result:', result?.currency);
+        console.log('✅ Accounting currency in result:', result?.accounting_currency);
       }
 
       setCompany(result);

@@ -43,6 +43,7 @@ import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { formatNumber } from '@/utils/calculations';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 
 const AccountingIntegration = () => {
   const { t } = useTranslation();
@@ -91,7 +92,7 @@ const AccountingIntegration = () => {
 
   const { guardedAction, modalProps } = useCreditsGuard();
 
-  const companyCurrency = company?.currency || 'EUR';
+  const companyCurrency = resolveAccountingCurrency(company);
 
   const companyInfo = company ? {
     company_name: company.company_name || company.name || 'Ma Société',
@@ -516,9 +517,9 @@ const AccountingIntegration = () => {
                         <span className="text-white font-medium">{account.account_name}</span>
                       </div>
                       <div className="text-sm">
-                        <span className="text-green-400 mr-4">D: {formatNumber(account.totalDebit)} €</span>
-                        <span className="text-red-400 mr-4">C: {formatNumber(account.totalCredit)} €</span>
-                        <span className="text-orange-400 font-bold">Solde: {formatNumber(account.balance)} €</span>
+                        <span className="text-green-400 mr-4">D: {formatNumber(account.totalDebit)} {companyCurrency}</span>
+                        <span className="text-red-400 mr-4">C: {formatNumber(account.totalCredit)} {companyCurrency}</span>
+                        <span className="text-orange-400 font-bold">Solde: {formatNumber(account.balance)} {companyCurrency}</span>
                       </div>
                     </div>
                     <div className="overflow-x-auto">

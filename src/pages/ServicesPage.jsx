@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useServices, useServiceCategories } from '@/hooks/useServices';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatNumber } from '@/utils/calculations';
 import { exportToCSV, exportToExcel } from '@/utils/exportService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,8 +25,9 @@ const ServicesPage = () => {
   const { services, loading, createService, updateService, deleteService } = useServices();
   const { categories, createCategory, deleteCategory } = useServiceCategories();
   const { company } = useCompany();
+  const companyCurrency = resolveAccountingCurrency(company);
 
-  const currencySymbol = getCurrencySymbol(company?.currency || 'EUR');
+  const currencySymbol = getCurrencySymbol(companyCurrency);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
