@@ -175,7 +175,6 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
         payment_status,
         total_ttc,
         balance_due,
-        currency,
         client:clients(id, company_name, contact_name)
       `)
       .eq('user_id', userId)
@@ -211,7 +210,6 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
           payment_status,
           total_amount,
           total_ttc,
-          currency,
           supplier_id,
           supplier:suppliers(id, company_name)
         `)
@@ -273,7 +271,7 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
         dueDate: invoice.due_date,
         dueBucket,
         amount,
-        amountLabel: formatMoney(amount, invoice.currency || currency, locale),
+        amountLabel: formatMoney(amount, currency, locale),
         href: '/app/invoices',
         ctaLabel: 'Ouvrir les factures',
       };
@@ -295,7 +293,7 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
         dueDate: invoice.due_date,
         dueBucket,
         amount,
-        amountLabel: formatMoney(amount, invoice.currency || currency, locale),
+        amountLabel: formatMoney(amount, currency, locale),
         href: '/app/supplier-invoices',
         ctaLabel: 'Ouvrir les achats',
       };
