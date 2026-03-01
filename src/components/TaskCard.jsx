@@ -112,7 +112,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
             </DropdownMenu>
 
             <h3 className={`font-semibold text-lg text-gradient ${task.status === 'completed' || task.status === 'cancelled' ? 'line-through !text-gray-500' : ''}`}>
-              {task.title}
+              {task.title || task.name}
             </h3>
           </div>
           {task.description && (
@@ -210,6 +210,18 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
              <div className="p-1.5 rounded bg-purple-900/30 text-purple-400 border border-purple-800">
                <FileSignature className="w-3.5 h-3.5" />
              </div>
+          )}
+          {task.requires_quote && !task.quote_id && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <div className="p-1.5 rounded bg-amber-900/30 text-amber-400 border border-amber-800">
+                    <FileSignature className="w-3.5 h-3.5" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>Quote still required</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
           {task.purchase_order_id && (
              <div className="p-1.5 rounded bg-orange-900/30 text-orange-400 border border-orange-800">
