@@ -232,6 +232,44 @@ export const useAuthSource = () => {
         } else {
           await fetchUserProfile(data.user);
         }
+
+        // Claim any pending subscription for this email
+        try {
+          const { data: pending } = await supabase
+            .from('pending_subscriptions')
+            .select('*')
+            .eq('stripe_customer_email', email)
+            .is('claimed_by', null)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (pending) {
+            // Initialize user_credits row if needed
+            await supabase.from('user_credits').upsert({
+              user_id: data.user.id,
+              free_credits: 10,
+              paid_credits: 0,
+              subscription_credits: pending.credits_per_month,
+              subscription_plan_id: pending.plan_id,
+              stripe_customer_id: pending.stripe_customer_id,
+              stripe_subscription_id: pending.stripe_subscription_id,
+              subscription_status: 'active',
+              current_period_end: pending.current_period_end,
+            }, { onConflict: 'user_id' });
+
+            // Mark pending subscription as claimed
+            await supabase
+              .from('pending_subscriptions')
+              .update({ claimed_by: data.user.id, claimed_at: new Date().toISOString() })
+              .eq('id', pending.id);
+
+            console.log(`Claimed pending subscription ${pending.plan_slug} for new user`);
+          }
+        } catch (pendingErr) {
+          // Non-blocking: don't fail signup if claim fails
+          console.error('Failed to claim pending subscription:', pendingErr);
+        }
       }
 
       return data;

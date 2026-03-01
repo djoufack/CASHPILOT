@@ -62,11 +62,12 @@ serve(async (req) => {
         const planId = session.metadata?.plan_id;
         const creditsPerMonth = parseInt(session.metadata?.credits_per_month || '0', 10);
         const subscriptionId = session.subscription as string;
+        const isGuest = session.metadata?.guest === 'true';
 
-        if (!userId || !planSlug) {
-          console.error('Missing subscription metadata', session.metadata);
+        if (!planSlug) {
+          console.error('Missing plan_slug in metadata', session.metadata);
           return new Response(
-            JSON.stringify({ error: 'Missing subscription metadata' }),
+            JSON.stringify({ error: 'Missing plan_slug metadata' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -74,35 +75,61 @@ serve(async (req) => {
         // Retrieve subscription to get current_period_end
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
 
-        // Activate subscription and credit initial month
-        const { error: updateError } = await supabase
-          .from('user_credits')
-          .update({
-            subscription_plan_id: planId,
-            stripe_subscription_id: subscriptionId,
-            stripe_customer_id: session.customer as string,
-            subscription_status: 'active',
-            subscription_credits: creditsPerMonth,
-            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', userId);
+        if (isGuest || !userId) {
+          // --- Guest checkout: store as pending subscription ---
+          const customerEmail = session.customer_details?.email || session.customer_email || '';
 
-        if (updateError) {
-          console.error('Failed to activate subscription:', updateError);
-          throw updateError;
+          const { error: pendingError } = await supabase
+            .from('pending_subscriptions')
+            .insert({
+              stripe_customer_email: customerEmail,
+              stripe_customer_id: session.customer as string || null,
+              stripe_subscription_id: subscriptionId,
+              plan_slug: planSlug,
+              plan_id: planId,
+              credits_per_month: creditsPerMonth,
+              billing_interval: session.metadata?.billing_interval || 'monthly',
+              current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+              stripe_session_id: session.id,
+            });
+
+          if (pendingError) {
+            console.error('Failed to store pending subscription:', pendingError);
+            throw pendingError;
+          }
+
+          console.log(`Guest subscription ${planSlug} stored as pending for ${customerEmail}`);
+        } else {
+          // --- Authenticated user checkout ---
+          const { error: updateError } = await supabase
+            .from('user_credits')
+            .update({
+              subscription_plan_id: planId,
+              stripe_subscription_id: subscriptionId,
+              stripe_customer_id: session.customer as string,
+              subscription_status: 'active',
+              subscription_credits: creditsPerMonth,
+              current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId);
+
+          if (updateError) {
+            console.error('Failed to activate subscription:', updateError);
+            throw updateError;
+          }
+
+          // Log transaction
+          await supabase.from('credit_transactions').insert({
+            user_id: userId,
+            type: 'subscription',
+            amount: creditsPerMonth,
+            description: `Abonnement ${planSlug} activé — ${creditsPerMonth} crédits`,
+            stripe_session_id: session.id,
+          });
+
+          console.log(`Subscription ${planSlug} activated for user ${userId} (${creditsPerMonth} credits)`);
         }
-
-        // Log transaction
-        await supabase.from('credit_transactions').insert({
-          user_id: userId,
-          type: 'subscription',
-          amount: creditsPerMonth,
-          description: `Abonnement ${planSlug} activé — ${creditsPerMonth} crédits`,
-          stripe_session_id: session.id,
-        });
-
-        console.log(`Subscription ${planSlug} activated for user ${userId} (${creditsPerMonth} credits)`);
 
       // --- One-time credit purchase ---
       } else {

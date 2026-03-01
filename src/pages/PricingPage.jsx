@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useCredits } from '@/hooks/useCredits';
 import { createCheckoutSession, redirectToCheckout as redirectToCreditCheckout, formatPrice } from '@/services/stripeService';
+import { createSubscriptionCheckout } from '@/services/subscriptionService';
 import { useToast } from '@/components/ui/use-toast';
 import {
   Coins, Zap, Star, TrendingUp, Crown,
@@ -68,17 +69,29 @@ const PricingPage = () => {
     }
   }, [searchParams, toast, t]);
 
-  const handleSubscribe = (planSlug) => {
-    if (!user) {
-      navigate(`/signup?redirect=/pricing&plan=${planSlug}`);
-      return;
-    }
+  const handleSubscribe = async (planSlug) => {
     if (planSlug === 'free') return;
     if (planSlug === 'enterprise') {
       window.location.href = 'mailto:contact@cashpilot.tech?subject=Enterprise Plan';
       return;
     }
-    subscribe(planSlug, billingPeriod === 'annual' ? 'yearly' : 'monthly');
+
+    const interval = billingPeriod === 'annual' ? 'yearly' : 'monthly';
+
+    if (user) {
+      // Authenticated user: normal flow
+      subscribe(planSlug, interval);
+    } else {
+      // Guest checkout: send directly to Stripe (Stripe collects email)
+      try {
+        const session = await createSubscriptionCheckout({ planSlug, billingInterval: interval });
+        if (session.url) {
+          window.location.href = session.url;
+        }
+      } catch (err) {
+        toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
+      }
+    }
   };
 
   const handleBuyCredits = async (pkg) => {
