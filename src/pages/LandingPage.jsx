@@ -402,20 +402,20 @@ const LandingPage = () => {
             <span>CashPilot</span>
           </a>
           <div className="nav-links">
-            <a href="#features" className="nav-link" onClick={(e) => handleSmoothScroll(e, '#features')}>Fonctionnalités</a>
-            <a href="#simulation" className="nav-link" onClick={(e) => handleSmoothScroll(e, '#simulation')}>Simulations</a>
-            <a href="#audience" className="nav-link" onClick={(e) => handleSmoothScroll(e, '#audience')}>Pour qui ?</a>
-            <a href="#advantages" className="nav-link" onClick={(e) => handleSmoothScroll(e, '#advantages')}>Avantages</a>
-            <a href="/pricing" className="nav-link" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>Prix</a>
-            <a href="/mcp-tools.html" className="nav-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>MCP Tools</a>
-            <a href="/guide/" className="nav-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>Guide</a>
-            <button className="nav-peppol-btn" onClick={() => handleNavigate('/peppol-guide')}>
+            <a href="#features" className="nav-prismatic" onClick={(e) => handleSmoothScroll(e, '#features')}>Fonctionnalités</a>
+            <a href="#simulation" className="nav-prismatic" onClick={(e) => handleSmoothScroll(e, '#simulation')}>Simulations</a>
+            <a href="#audience" className="nav-prismatic" onClick={(e) => handleSmoothScroll(e, '#audience')}>Pour qui ?</a>
+            <a href="#advantages" className="nav-prismatic" onClick={(e) => handleSmoothScroll(e, '#advantages')}>Avantages</a>
+            <a href="/pricing" className="nav-prismatic" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>Prix</a>
+            <a href="/mcp-tools.html" className="nav-prismatic" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>MCP Tools</a>
+            <a href="/guide/" className="nav-prismatic" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>Guide</a>
+            <button className="nav-peppol-btn nav-prismatic" onClick={() => handleNavigate('/peppol-guide')}>
               <Globe /> Peppol
             </button>
           </div>
           <div className="nav-actions">
-            <button className="btn btn-ghost" onClick={() => handleNavigate('/login')}>Connexion</button>
-            <button className="btn btn-primary magnetic-btn" onClick={() => handleNavigate('/signup')}>
+            <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>Connexion</button>
+            <button className="btn btn-primary nav-prismatic magnetic-btn" onClick={() => handleNavigate('/signup')}>
               Démarrer <ArrowRight />
             </button>
           </div>
@@ -435,12 +435,12 @@ const LandingPage = () => {
           <a href="/pricing" className="mobile-link" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>Prix</a>
           <a href="/mcp-tools.html" className="mobile-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>MCP Tools</a>
           <a href="/guide/" className="mobile-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>Guide</a>
-          <button className="nav-peppol-btn" style={{ fontSize: '1rem', padding: '10px 24px' }} onClick={() => { setMobileMenuActive(false); handleNavigate('/peppol-guide'); }}>
+          <button className="nav-peppol-btn nav-prismatic" onClick={() => { setMobileMenuActive(false); handleNavigate('/peppol-guide'); }}>
             <Globe /> Guide Peppol
           </button>
           <div className="mobile-actions">
-            <button className="btn btn-ghost" onClick={() => handleNavigate('/login')}>Connexion</button>
-            <button className="btn btn-primary" onClick={() => handleNavigate('/signup')}>Démarrer</button>
+            <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>Connexion</button>
+            <button className="btn btn-primary nav-prismatic" onClick={() => handleNavigate('/signup')}>Démarrer</button>
           </div>
         </div>
       </div>

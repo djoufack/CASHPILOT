@@ -269,6 +269,93 @@ body:hover .cursor-dot {
     -webkit-text-fill-color: transparent;
 }
 
+/* --- Prismatic border - shared style for ALL nav buttons --- */
+@keyframes prismatic-shimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.nav-prismatic {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: rgba(255, 255, 255, 0.65);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(59, 130, 246, 0.08));
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+/* Animated prismatic gradient border */
+.nav-prismatic::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+        135deg,
+        rgba(245, 158, 11, 0.6),
+        rgba(16, 185, 129, 0.45),
+        rgba(59, 130, 246, 0.45),
+        rgba(139, 92, 246, 0.6)
+    );
+    background-size: 200% 200%;
+    animation: prismatic-shimmer 4s ease infinite;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: -1;
+}
+
+/* Inner glow on hover */
+.nav-prismatic::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(
+        135deg,
+        rgba(245, 158, 11, 0.12),
+        rgba(16, 185, 129, 0.08),
+        rgba(139, 92, 246, 0.12)
+    );
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    z-index: -2;
+}
+
+.nav-prismatic:hover {
+    color: #fff;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.15));
+    transform: translateY(-2px) scale(1.02);
+    box-shadow:
+        0 0 20px rgba(139, 92, 246, 0.2),
+        0 8px 24px rgba(59, 130, 246, 0.12);
+}
+
+.nav-prismatic:hover::after {
+    opacity: 1;
+}
+
+.nav-prismatic svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* --- Nav Links --- */
 .nav-links {
     display: flex;
@@ -276,85 +363,13 @@ body:hover .cursor-dot {
     gap: 4px;
 }
 
-.nav-link {
-    color: rgba(255, 255, 255, 0.55);
-    text-decoration: none;
-    font-size: 0.82rem;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    position: relative;
-    padding: 7px 14px;
-    border-radius: 10px;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    white-space: nowrap;
-}
-
-.nav-link::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 10px;
-    background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.12), transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
-.nav-link:hover {
-    color: rgba(255, 255, 255, 0.95);
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.nav-link:hover::after {
-    opacity: 1;
-}
-
-/* --- Peppol Badge --- */
-.nav-peppol-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 16px;
-    background: rgba(16, 185, 129, 0.1);
+/* --- Peppol accent color override --- */
+.nav-peppol-btn.nav-prismatic {
     color: #34d399;
-    font-size: 0.82rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    border: 1px solid rgba(16, 185, 129, 0.2);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    font-family: inherit;
-    text-decoration: none;
-    position: relative;
-    overflow: hidden;
 }
 
-.nav-peppol-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.2), transparent 70%);
-    opacity: 0;
-    transition: opacity 0.35s ease;
-}
-
-.nav-peppol-btn:hover {
+.nav-peppol-btn.nav-prismatic:hover {
     color: #6ee7b7;
-    background: rgba(16, 185, 129, 0.15);
-    border-color: rgba(16, 185, 129, 0.35);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
-}
-
-.nav-peppol-btn:hover::before {
-    opacity: 1;
-}
-
-.nav-peppol-btn svg {
-    width: 13px;
-    height: 13px;
 }
 
 /* --- Action Buttons --- */
@@ -365,66 +380,15 @@ body:hover .cursor-dot {
     flex-shrink: 0;
 }
 
-/* Connexion - Frosted glass button */
-.nav-actions .btn-ghost {
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 8px 20px;
-    font-size: 0.82rem;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    position: relative;
-    overflow: hidden;
-}
-
-.nav-actions .btn-ghost::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(ellipse at 50% 0%, rgba(139, 92, 246, 0.15), transparent 70%);
-    opacity: 0;
-    transition: opacity 0.35s ease;
-}
-
-.nav-actions .btn-ghost:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
-.nav-actions .btn-ghost:hover::before {
-    opacity: 1;
-}
-
-/* Démarrer - Aurora CTA with prismatic border */
-.nav-actions .btn-primary {
-    position: relative;
-    padding: 8px 22px;
-    font-size: 0.82rem;
+/* Démarrer CTA - bolder version of shared style */
+.nav-actions .btn-primary.nav-prismatic {
     font-weight: 600;
     letter-spacing: 0.02em;
-    color: #fff;
+    padding: 8px 22px;
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(59, 130, 246, 0.25));
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    overflow: hidden;
-    isolation: isolate;
 }
 
-.nav-actions .btn-primary::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
+.nav-actions .btn-primary.nav-prismatic::before {
     background: linear-gradient(
         135deg,
         rgba(245, 158, 11, 0.8),
@@ -432,60 +396,18 @@ body:hover .cursor-dot {
         rgba(59, 130, 246, 0.6),
         rgba(139, 92, 246, 0.8)
     );
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    transition: opacity 0.35s ease;
-    z-index: -1;
+    background-size: 200% 200%;
+    animation: prismatic-shimmer 4s ease infinite;
 }
 
-.nav-actions .btn-primary::after {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    background: linear-gradient(
-        135deg,
-        rgba(245, 158, 11, 0.15),
-        rgba(16, 185, 129, 0.1),
-        rgba(139, 92, 246, 0.15)
-    );
-    opacity: 0;
-    transition: opacity 0.35s ease;
-    z-index: -2;
-}
-
-.nav-actions .btn-primary:hover {
-    transform: translateY(-2px) scale(1.02);
+.nav-actions .btn-primary.nav-prismatic:hover {
     box-shadow:
         0 0 20px rgba(139, 92, 246, 0.25),
         0 8px 32px rgba(59, 130, 246, 0.15);
 }
 
-.nav-actions .btn-primary:hover::after {
-    opacity: 1;
-}
-
-.nav-actions .btn-primary svg {
-    width: 15px;
-    height: 15px;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.nav-actions .btn-primary:hover svg {
+.nav-actions .btn-primary.nav-prismatic:hover svg {
     transform: translateX(3px);
-}
-
-/* Prismatic shimmer animation on CTA */
-@keyframes prismatic-shimmer {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-.nav-actions .btn-primary::before {
-    background-size: 200% 200%;
-    animation: prismatic-shimmer 4s ease infinite;
 }
 
 /* --- Mobile Menu Button --- */
@@ -568,64 +490,28 @@ body:hover .cursor-dot {
     border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.mobile-actions .btn-ghost {
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+/* Mobile prismatic buttons */
+.mobile-actions .nav-prismatic {
+    padding: 14px 28px;
+    font-size: 1rem;
     border-radius: 14px;
-    padding: 14px 28px;
-    font-size: 1rem;
-    font-weight: 500;
+    justify-content: center;
+    width: 100%;
 }
 
-.mobile-actions .btn-ghost:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-}
-
-.mobile-actions .btn-primary {
-    position: relative;
-    padding: 14px 28px;
-    font-size: 1rem;
+.mobile-actions .btn-primary.nav-prismatic {
     font-weight: 600;
-    color: #fff;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(59, 130, 246, 0.25));
-    border: none;
-    border-radius: 14px;
-    overflow: hidden;
-    isolation: isolate;
 }
 
-.mobile-actions .btn-primary::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(
-        135deg,
-        rgba(245, 158, 11, 0.8),
-        rgba(16, 185, 129, 0.6),
-        rgba(59, 130, 246, 0.6),
-        rgba(139, 92, 246, 0.8)
-    );
-    background-size: 200% 200%;
-    animation: prismatic-shimmer 4s ease infinite;
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    z-index: -1;
-}
-
-/* Mobile Peppol button harmonization */
-.mobile-menu-content .nav-peppol-btn {
+/* Mobile Peppol button */
+.mobile-menu-content .nav-peppol-btn.nav-prismatic {
     padding: 14px 28px;
     font-size: 1rem;
     border-radius: 14px;
     justify-content: center;
 }
 
-.mobile-menu-content .nav-peppol-btn svg {
+.mobile-menu-content .nav-peppol-btn.nav-prismatic svg {
     width: 18px;
     height: 18px;
 }
@@ -634,7 +520,7 @@ body:hover .cursor-dot {
     .nav-links {
         gap: 2px;
     }
-    .nav-link {
+    .nav-links .nav-prismatic {
         padding: 7px 10px;
         font-size: 0.78rem;
     }
