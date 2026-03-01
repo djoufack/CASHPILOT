@@ -109,7 +109,7 @@ const PurchasesPage = () => {
   // Fetch stock alerts on mount
   useEffect(() => {
     if (user) fetchAlerts();
-  }, [user]);
+  }, [fetchAlerts, user]);
 
   // Filter orders
   const filteredOrders = orders.filter(order => {
@@ -124,7 +124,7 @@ const PurchasesPage = () => {
   // Update pagination when filtered results change
   useEffect(() => {
     pagination.setTotalCount(filteredOrders.length);
-  }, [filteredOrders.length]);
+  }, [filteredOrders.length, pagination]);
 
   const paginatedOrders = filteredOrders.slice(pagination.from, pagination.to + 1);
 

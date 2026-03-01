@@ -3,7 +3,7 @@
  * Compare two or more scenarios side by side with charts and metrics
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,19 +46,12 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
   const completedScenarios = scenarios.filter(s => s.status === 'completed');
 
   // Load scenario results
-  const loadScenarioResults = async (scenarioId, setResults) => {
+  const loadScenarioResults = useCallback(async (scenarioId, setResults) => {
     const results = await getScenarioResults(scenarioId);
     setResults(results);
-  };
+  }, [getScenarioResults]);
 
-  // Run comparison when both scenarios are selected
-  useEffect(() => {
-    if (scenario1Id && scenario2Id && scenario1Id !== scenario2Id) {
-      runComparison();
-    }
-  }, [scenario1Id, scenario2Id]);
-
-  const runComparison = async () => {
+  const runComparison = useCallback(async () => {
     setLoading(true);
     try {
       // Load results for both scenarios
@@ -75,7 +68,14 @@ const ScenarioComparison = ({ scenarios, currency = 'EUR' }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [compareScenarios, loadScenarioResults, scenario1Id, scenario2Id]);
+
+  // Run comparison when both scenarios are selected
+  useEffect(() => {
+    if (scenario1Id && scenario2Id && scenario1Id !== scenario2Id) {
+      runComparison();
+    }
+  }, [runComparison, scenario1Id, scenario2Id]);
 
   // Handle PDF export
   const handleExportPDF = async () => {

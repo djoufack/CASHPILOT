@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
@@ -51,7 +51,7 @@ const AnalyticsPage = () => {
     loading: loadingExpenses 
   } = useExpenses();
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     try {
       await Promise.all([
         fetchInvoices(),
@@ -69,13 +69,13 @@ const AnalyticsPage = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [fetchExpenses, fetchInvoices, fetchTimesheets, t, toast]);
 
   useEffect(() => {
     if (user) {
       handleRefresh();
     }
-  }, [user]);
+  }, [handleRefresh, user]);
 
   // Calculations
   const chartData = useMemo(() => {

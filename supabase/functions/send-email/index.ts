@@ -88,8 +88,15 @@ serve(async (req) => {
       await supabase.from('audit_log').insert({
         user_id: effectiveUserId,
         action: 'email_sent',
-        resource: 'email',
-        new_data: { to, subject, resend_id: result.id, has_attachment: !!(attachments && attachments.length > 0) },
+        details: {
+          resource: 'email',
+          new_data: {
+            to,
+            subject,
+            resend_id: result.id,
+            has_attachment: !!(attachments && attachments.length > 0),
+          },
+        },
       });
     }
 

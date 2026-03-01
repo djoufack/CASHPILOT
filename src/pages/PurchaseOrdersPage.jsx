@@ -198,11 +198,12 @@ const PurchaseOrdersPage = () => {
   });
 
   const pagination = usePagination({ pageSize: 20 });
+  const { setTotalCount } = pagination;
 
   // Update pagination total count when filtered POs change
   useEffect(() => {
-    pagination.setTotalCount(filteredPOs.length);
-  }, [filteredPOs.length]);
+    setTotalCount(filteredPOs.length);
+  }, [filteredPOs.length, setTotalCount]);
 
   // Client-side paginated data for the list view
   const paginatedPOs = filteredPOs.slice(pagination.from, pagination.to + 1);

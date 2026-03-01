@@ -13,7 +13,7 @@ const BiometricSettings = () => {
 
   React.useEffect(() => {
     isAvailable().then(setAvailable);
-  }, []);
+  }, [isAvailable]);
 
   const handleRegister = async () => {
     await register();

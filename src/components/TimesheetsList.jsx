@@ -4,9 +4,19 @@ import { format, parseISO, isValid } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Edit, Trash2, Clock, CalendarDays, Briefcase, User } from 'lucide-react';
-import { CheckSquare, Square, FileText, DollarSign } from 'lucide-react';
-import { Loader2 } from 'lucide-react';
+import {
+  CalendarDays,
+  Briefcase,
+  CheckSquare,
+  Clock,
+  DollarSign,
+  Edit,
+  FileText,
+  Loader2,
+  Square,
+  Trash2,
+  User,
+} from 'lucide-react';
 import TimesheetEditModal from './TimesheetEditModal';
 
 const STATUS_COLORS = {

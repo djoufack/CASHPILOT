@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useClients } from '@/hooks/useClients';
@@ -19,8 +19,6 @@ import {
 } from '@/components/ui/select';
 import { Plus, Trash2, Tag, Send, Truck, Settings2, ChevronDown, ChevronUp, Package, Wrench } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { useEffect } from 'react';
-
 const QuickInvoice = ({ onSuccess }) => {
   const { t } = useTranslation();
   const { createInvoice } = useInvoices();

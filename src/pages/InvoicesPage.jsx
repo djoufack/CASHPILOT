@@ -1,6 +1,5 @@
 
-import React from "react";
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import InvoiceGenerator from '@/components/InvoiceGenerator';
@@ -77,13 +76,14 @@ const InvoicesPage = () => {
   const [emailModalInvoice, setEmailModalInvoice] = useState(null);
   const [emailModalAddress, setEmailModalAddress] = useState('');
   const pagination = usePagination({ pageSize: 20 });
+  const { setTotalCount } = pagination;
 
   // Update pagination total count when invoices change
   useEffect(() => {
     if (invoices) {
-      pagination.setTotalCount(invoices.length);
+      setTotalCount(invoices.length);
     }
-  }, [invoices]);
+  }, [invoices, setTotalCount]);
 
   // Client-side paginated data for the list/table view
   const paginatedInvoices = invoices.slice(pagination.from, pagination.to + 1);

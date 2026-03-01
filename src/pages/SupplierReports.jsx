@@ -19,7 +19,7 @@ const SupplierReports = () => {
 
   useEffect(() => {
     generateReports();
-  }, []);
+  }, [generateReports]);
 
   const handleExportPDF = () => {
     guardedAction(

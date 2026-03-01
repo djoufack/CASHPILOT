@@ -27,7 +27,7 @@ import ReceiptPreview from '@/components/ReceiptPreview';
 
 const PaymentHistory = ({ invoiceId = null, clientId = null, invoice = null }) => {
   const { t } = useTranslation();
-  const { payments, fetchPayments, fetchPaymentsByInvoice, fetchPaymentsByClient, deletePayment, updateReceiptInfo } = usePayments();
+  const { payments, fetchPaymentsByInvoice, fetchPaymentsByClient, deletePayment, updateReceiptInfo } = usePayments();
   const { clients } = useClients();
   const [localPayments, setLocalPayments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -51,7 +51,7 @@ const PaymentHistory = ({ invoiceId = null, clientId = null, invoice = null }) =
       setLoading(false);
     };
     load();
-  }, [invoiceId, clientId]);
+  }, [clientId, fetchPaymentsByClient, fetchPaymentsByInvoice, invoiceId, payments]);
 
   const handleViewReceipt = async (payment) => {
     if (!payment.receipt_generated_at) {

@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const TaskManager = ({ projectId }) => {
+const TaskManager = ({ projectId, quotes = [] }) => {
   const [filters, setFilters] = useState({ status: 'all', priority: 'all', search: '' });
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasksForProject(projectId, filters);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -125,7 +125,7 @@ const TaskManager = ({ projectId }) => {
           <DialogHeader>
             <DialogTitle>{editingTask ? 'Edit Task' : 'Create New Task'}</DialogTitle>
           </DialogHeader>
-          <TaskForm task={editingTask} onSave={handleSave} onCancel={() => setIsFormOpen(false)} />
+          <TaskForm task={editingTask} onSave={handleSave} onCancel={() => setIsFormOpen(false)} quotes={quotes} />
         </DialogContent>
       </Dialog>
 

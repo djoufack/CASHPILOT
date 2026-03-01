@@ -165,7 +165,7 @@ const SupplierInvoicesPage = () => {
   // Pagination sync
   useEffect(() => {
     pagination.setTotalCount(filteredInvoices.length);
-  }, [filteredInvoices.length]);
+  }, [filteredInvoices.length, pagination]);
 
   const paginatedInvoices = filteredInvoices.slice(
     pagination.from,

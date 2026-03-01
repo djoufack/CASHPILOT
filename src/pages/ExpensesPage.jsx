@@ -83,6 +83,7 @@ const ExpensesPage = () => {
   };
 
   const pagination = usePagination({ pageSize: 25 });
+  const { setTotalCount } = pagination;
 
   const filteredExpenses = expenses.filter(exp =>
     (exp.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,8 +93,8 @@ const ExpensesPage = () => {
 
   // Update pagination when filtered expenses change
   React.useEffect(() => {
-    pagination.setTotalCount(filteredExpenses.length);
-  }, [filteredExpenses.length]);
+    setTotalCount(filteredExpenses.length);
+  }, [filteredExpenses.length, setTotalCount]);
 
   const paginatedExpenses = filteredExpenses.slice(pagination.from, pagination.to + 1);
 

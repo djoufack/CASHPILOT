@@ -5,7 +5,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCheck, Trash2, Bell, AlertTriangle, FileText, Package, Settings, CreditCard, Users, Clock } from 'lucide-react';
+import { CheckCheck, Trash2, Bell, AlertTriangle, FileText, Package, Settings, CreditCard, Users, Clock, Receipt } from 'lucide-react';
 
 const NotificationCenter = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, loading } = useNotifications();
@@ -21,6 +21,9 @@ const NotificationCenter = () => {
       case 'payment': return <CreditCard className="h-5 w-5 text-emerald-500" />;
       case 'client': return <Users className="h-5 w-5 text-purple-500" />;
       case 'reminder': return <Clock className="h-5 w-5 text-amber-500" />;
+      case 'obligation_receivables': return <FileText className="h-5 w-5 text-emerald-500" />;
+      case 'obligation_payables': return <Receipt className="h-5 w-5 text-orange-500" />;
+      case 'obligation_quotes': return <Clock className="h-5 w-5 text-violet-500" />;
       default: return <Bell className="h-5 w-5 text-gray-400" />;
     }
   };

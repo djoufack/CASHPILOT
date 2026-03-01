@@ -1,6 +1,5 @@
 
-import React from "react";
-import { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useClients } from '@/hooks/useClients';
 import { Button } from '@/components/ui/button';
@@ -198,6 +197,7 @@ const ClientManager = () => {
   };
 
   const pagination = usePagination({ pageSize: 25 });
+  const { setTotalCount } = pagination;
 
   const filteredClients = clients.filter(client =>
     (client.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -205,9 +205,9 @@ const ClientManager = () => {
   );
 
   // Update pagination when filtered clients change
-  React.useEffect(() => {
-    pagination.setTotalCount(filteredClients.length);
-  }, [filteredClients.length]);
+  useEffect(() => {
+    setTotalCount(filteredClients.length);
+  }, [filteredClients.length, setTotalCount]);
 
   const paginatedClients = filteredClients.slice(pagination.from, pagination.to + 1);
 

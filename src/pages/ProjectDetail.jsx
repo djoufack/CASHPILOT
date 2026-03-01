@@ -12,6 +12,7 @@ import CalendarView from '@/components/CalendarView';
 import AgendaView from '@/components/AgendaView';
 import TaskForm from '@/components/TaskForm';
 import ProjectBillingDialog from '@/components/ProjectBillingDialog';
+import { useClientQuotes } from '@/hooks/useClientQuotes';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -27,6 +28,7 @@ const ProjectDetail = () => {
   const [project, setProject] = useState(null);
   const { tasks, loading, createTask, updateTask, deleteTask, refreshTasks } = useTasksForProject(projectId);
   const { status: calculatedStatus, stats } = useProjectStatus(projectId);
+  const { quotes: projectQuotes } = useClientQuotes(project?.client_id);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
@@ -130,7 +132,7 @@ const ProjectDetail = () => {
             </div>
 
             <TabsContent value="list" className="focus:outline-none">
-              <TaskManager projectId={projectId} />
+              <TaskManager projectId={projectId} quotes={projectQuotes} />
             </TabsContent>
 
             <TabsContent value="kanban" className="focus:outline-none overflow-x-auto">
@@ -176,7 +178,7 @@ const ProjectDetail = () => {
             <DialogHeader>
               <DialogTitle>{editingTask ? 'Edit Task' : 'Create New Task'}</DialogTitle>
             </DialogHeader>
-            <TaskForm task={editingTask} onSave={handleSave} onCancel={() => setIsFormOpen(false)} />
+            <TaskForm task={editingTask} onSave={handleSave} onCancel={() => setIsFormOpen(false)} quotes={projectQuotes} />
           </DialogContent>
         </Dialog>
 

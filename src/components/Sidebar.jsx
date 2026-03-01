@@ -163,8 +163,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
 
   // Auto-expand the category containing the active page
   useEffect(() => {
-    if (activeCategoryId && !expandedCategories[activeCategoryId]) {
+    if (activeCategoryId) {
       setExpandedCategories(prev => {
+        if (prev[activeCategoryId]) {
+          return prev;
+        }
         const next = { ...prev, [activeCategoryId]: true };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
         return next;

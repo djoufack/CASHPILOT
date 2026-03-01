@@ -5,7 +5,7 @@ import { useUsers } from '@/hooks/useUsers';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { RefreshCw, ShieldCheck } from 'lucide-react';
 
 const UserManagement = () => {
   const { t } = useTranslation();
@@ -13,15 +13,32 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gradient">{t('admin.users')}</h2>
-        <Button className="bg-orange-500 hover:bg-orange-600">
-          <Plus className="w-4 h-4 mr-2" /> {t('admin.addUser')}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-gradient">{t('admin.users')}</h2>
+          <p className="text-sm text-gray-400 mt-1">
+            Profile directory only. Elevated access is managed in the Roles and permissions tab.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={fetchUsers}
+          className="border-gray-700 text-gray-300 hover:bg-gray-800"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" /> Refresh
         </Button>
+      </div>
+
+      <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-4 text-sm text-gray-300 flex items-start gap-3">
+        <ShieldCheck className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
+        <div>
+          User emails are intentionally not exposed from the client scope.
+          Access elevation is server-authoritative through <code>public.user_roles</code>.
+        </div>
       </div>
 
       <div className="border border-gray-800 rounded-lg overflow-hidden">
@@ -32,19 +49,18 @@ const UserManagement = () => {
               <TableHead className="text-gray-400">Email</TableHead>
               <TableHead className="text-gray-400">{t('admin.role')}</TableHead>
               <TableHead className="text-gray-400">Created</TableHead>
-              <TableHead className="text-right text-gray-400">{t('common.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="bg-gray-900/50">
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                   Loading users...
                 </TableCell>
               </TableRow>
             ) : users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                   No users found.
                 </TableCell>
               </TableRow>
@@ -60,14 +76,6 @@ const UserManagement = () => {
                   </TableCell>
                   <TableCell className="text-gray-400">
                     {new Date(user.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-orange-400 hover:text-orange-300">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400 hover:text-red-300">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))

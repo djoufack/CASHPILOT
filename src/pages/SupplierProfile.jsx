@@ -1,12 +1,11 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { MapPin, Phone, Mail, Globe, ArrowLeft, CreditCard, FileText, Building2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import SupplierServices from '@/components/suppliers/SupplierServices';
 import SupplierProducts from '@/components/suppliers/SupplierProducts';
 import SupplierInvoices from '@/components/suppliers/SupplierInvoices';
@@ -24,7 +23,7 @@ const SupplierProfile = () => {
       setLoading(false);
     };
     fetch();
-  }, [id]);
+  }, [getSupplierById, id]);
 
   if (loading) return <div className="p-8 text-white">Loading...</div>;
   if (!supplier) return <div className="p-8 text-white">Supplier not found</div>;

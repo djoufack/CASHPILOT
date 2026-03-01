@@ -174,11 +174,12 @@ const ProjectsPage = () => {
   });
 
   const pagination = usePagination({ pageSize: 20 });
+  const { setTotalCount } = pagination;
 
   // Update pagination total count when filtered projects change
   useEffect(() => {
-    pagination.setTotalCount(filteredProjects.length);
-  }, [filteredProjects.length]);
+    setTotalCount(filteredProjects.length);
+  }, [filteredProjects.length, setTotalCount]);
 
   // Client-side paginated data for the list view
   const paginatedProjects = filteredProjects.slice(pagination.from, pagination.to + 1);

@@ -16,6 +16,9 @@ const NotificationCenter = () => {
       case 'payment': return '\u{1F4B0}';
       case 'invoice': return '\u{1F4C4}';
       case 'reminder': return '\u23F0';
+      case 'obligation_receivables': return '\u{1F4C4}';
+      case 'obligation_payables': return '\u{1F9FE}';
+      case 'obligation_quotes': return '\u{1F4DD}';
       case 'alert': return '\u26A0\uFE0F';
       default: return '\u{1F514}';
     }

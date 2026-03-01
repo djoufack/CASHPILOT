@@ -6,12 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { FileText, Download, Loader2 } from 'lucide-react';
-import html2pdf from 'html2pdf.js';
 import { useToast } from '@/components/ui/use-toast';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { useCompany } from '@/hooks/useCompany';
 import { exportReportHTML } from '@/services/exportReports';
+import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 
 const ReportGenerator = () => {
   const { t } = useTranslation();
@@ -61,7 +61,7 @@ const ReportGenerator = () => {
         };
 
         try {
-          await html2pdf().set(opt).from(element).save();
+          await saveElementAsPdf(element, opt);
           toast({ title: "Success", description: "Report downloaded successfully." });
         } catch (err) {
           console.error(err);

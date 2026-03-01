@@ -3,11 +3,12 @@ import Sidebar from './Sidebar';
 import TopNavBar from './TopNavBar';
 import { Outlet } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import OnboardingBanner from './onboarding/OnboardingBanner';
 import { useTranslation } from 'react-i18next';
+import { useObligationNotifications } from '@/hooks/useObligationNotifications';
 import {
+  Menu,
   LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Package, BarChart3, Calculator, PieChart, Settings,
   FileMinus, PackageCheck, Wallet, TrendingUp, Building2, RefreshCw, Shield,
@@ -18,6 +19,7 @@ const MainLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t } = useTranslation();
+  useObligationNotifications();
 
   useEffect(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
