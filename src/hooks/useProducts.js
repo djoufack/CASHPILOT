@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -15,7 +14,7 @@ export const useProducts = () => {
 
   const [totalCount, setTotalCount] = useState(0);
 
-  const fetchProducts = async ({ page, pageSize } = {}) => {
+  const fetchProducts = useCallback(async ({ page, pageSize } = {}) => {
     if (!user || !supabase) return;
     setLoading(true);
     setError(null);
@@ -50,7 +49,7 @@ export const useProducts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, user]);
 
   const createProduct = async (productData) => {
     if (!user || !supabase) return;
@@ -170,7 +169,7 @@ export const useProducts = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, [user]);
+  }, [fetchProducts]);
 
   return {
     products,
@@ -191,7 +190,7 @@ export const useProductCategories = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
@@ -207,7 +206,7 @@ export const useProductCategories = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const createCategory = async (name, description = '') => {
     if (!user || !supabase) return;
@@ -265,7 +264,7 @@ export const useProductCategories = () => {
 
   useEffect(() => {
     fetchCategories();
-  }, [user]);
+  }, [fetchCategories]);
 
   return { categories, loading, fetchCategories, createCategory, updateCategory, deleteCategory };
 };

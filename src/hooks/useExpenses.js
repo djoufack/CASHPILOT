@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
@@ -15,7 +15,7 @@ export const useExpenses = () => {
 
   const [totalCount, setTotalCount] = useState(0);
 
-  const fetchExpenses = async ({ page, pageSize } = {}) => {
+  const fetchExpenses = useCallback(async ({ page, pageSize } = {}) => {
     if (!user) return;
     if (!supabase) {
       console.warn("Supabase not configured");
@@ -50,7 +50,7 @@ export const useExpenses = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const createExpense = async (expenseData) => {
     if (!user) return;
@@ -93,7 +93,7 @@ export const useExpenses = () => {
 
   useEffect(() => {
     fetchExpenses();
-  }, [user]);
+  }, [fetchExpenses]);
 
   return {
     expenses,

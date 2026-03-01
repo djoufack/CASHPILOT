@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -9,7 +8,7 @@ export const useSupplierServices = (supplierId) => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
 
-  const fetchServices = async () => {
+  const fetchServices = useCallback(async () => {
     if (!supplierId) return;
     setLoading(true);
     try {
@@ -31,7 +30,7 @@ export const useSupplierServices = (supplierId) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supplierId, toast]);
 
   const createService = async (serviceData) => {
     setLoading(true);
@@ -123,7 +122,7 @@ export const useSupplierServices = (supplierId) => {
 
   useEffect(() => {
     if(supplierId) fetchServices();
-  }, [supplierId]);
+  }, [fetchServices, supplierId]);
 
   return {
     services,

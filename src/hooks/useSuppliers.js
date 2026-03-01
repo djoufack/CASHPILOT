@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
@@ -15,7 +15,7 @@ export const useSuppliers = () => {
 
   const [totalCount, setTotalCount] = useState(0);
 
-  const fetchSuppliers = async ({ page, pageSize } = {}) => {
+  const fetchSuppliers = useCallback(async ({ page, pageSize } = {}) => {
     if (!user) return;
     setLoading(true);
     try {
@@ -48,9 +48,9 @@ export const useSuppliers = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, user]);
 
-  const getSupplierById = async (id) => {
+  const getSupplierById = useCallback(async (id) => {
     if (!user) return null;
     try {
       const { data, error } = await supabase
@@ -65,7 +65,7 @@ export const useSuppliers = () => {
       console.error("Error fetching supplier:", err);
       return null;
     }
-  };
+  }, [user]);
 
   const createSupplier = async (supplierData) => {
     if (!user) return;
@@ -166,7 +166,7 @@ export const useSuppliers = () => {
 
   useEffect(() => {
     fetchSuppliers();
-  }, [user]);
+  }, [fetchSuppliers]);
 
   return {
     suppliers,

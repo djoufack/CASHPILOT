@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -13,15 +13,7 @@ export const useCompany = () => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (user) {
-      fetchCompany();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
-  const fetchCompany = async () => {
+  const fetchCompany = useCallback(async () => {
     if (!user || !supabase) {
       setLoading(false);
       return;
@@ -52,7 +44,15 @@ export const useCompany = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchCompany();
+    } else {
+      setLoading(false);
+    }
+  }, [fetchCompany, user]);
 
   const saveCompany = async (companyData) => {
     if (!user || !supabase) return false;

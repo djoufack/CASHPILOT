@@ -20,31 +20,70 @@ export const useAdminClients = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
+  const mergeOwnerProfiles = useCallback(async (clientRows) => {
+    if (!supabase || !clientRows?.length) {
+      return clientRows || [];
+    }
+
+    const userIds = [...new Set(clientRows.map((client) => client.user_id).filter(Boolean))];
+    if (!userIds.length) {
+      return clientRows;
+    }
+
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, company_name')
+      .in('user_id', userIds);
+
+    if (profileError) {
+      console.warn('Admin client owner fetch skipped:', profileError.message);
+      return clientRows;
+    }
+
+    const profilesByUserId = new Map(
+      (profileData || []).map((profile) => [profile.user_id, profile])
+    );
+
+    return clientRows.map((client) => ({
+      ...client,
+      profiles: profilesByUserId.get(client.user_id) || null,
+    }));
+  }, []);
+
   const fetchAllClients = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     setError(null);
     try {
-      // Active clients (all users)
-      const { data: activeData, error: activeError } = await supabase
-        .from('clients')
-        .select('*, profiles:user_id(full_name)')
-        .is('deleted_at', null)
-        .order('company_name', { ascending: true });
+      const [
+        { data: activeData, error: activeError },
+        { data: archivedData, error: archivedError },
+      ] = await Promise.all([
+        supabase
+          .from('clients')
+          .select('*')
+          .is('deleted_at', null)
+          .order('company_name', { ascending: true }),
+        supabase
+          .from('clients')
+          .select('*')
+          .not('deleted_at', 'is', null)
+          .order('deleted_at', { ascending: false }),
+      ]);
 
       if (activeError) throw activeError;
-
-      // Archived clients (all users)
-      const { data: archivedData, error: archivedError } = await supabase
-        .from('clients')
-        .select('*, profiles:user_id(full_name)')
-        .not('deleted_at', 'is', null)
-        .order('deleted_at', { ascending: false });
-
       if (archivedError) throw archivedError;
 
-      setClients(activeData || []);
-      setArchivedClients(archivedData || []);
+      const hydratedClients = await mergeOwnerProfiles([
+        ...(activeData || []),
+        ...(archivedData || []),
+      ]);
+      const hydratedClientsById = new Map(
+        hydratedClients.map((client) => [client.id, client])
+      );
+
+      setClients((activeData || []).map((client) => hydratedClientsById.get(client.id) || client));
+      setArchivedClients((archivedData || []).map((client) => hydratedClientsById.get(client.id) || client));
     } catch (err) {
       setError(err.message);
       toast({
@@ -55,7 +94,7 @@ export const useAdminClients = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, t]);
+  }, [mergeOwnerProfiles, user, toast, t]);
 
   const archiveClient = async (id) => {
     if (!supabase) throw new Error('Supabase not configured');
@@ -98,16 +137,22 @@ export const useAdminClients = () => {
         .from('clients')
         .update({ deleted_at: null })
         .eq('id', id)
-        .select('*, profiles:user_id(full_name)')
+        .select('*')
         .single();
 
       if (error) throw error;
 
-      logAction('admin_restore', 'client', { id }, data);
+      const previousArchivedClient = archivedClients.find((client) => client.id === id);
+      const restoredClient = {
+        ...data,
+        profiles: previousArchivedClient?.profiles || null,
+      };
+
+      logAction('admin_restore', 'client', { id }, restoredClient);
 
       // Move from archived to active in local state
       setArchivedClients(archivedClients.filter((c) => c.id !== id));
-      setClients([...clients, data].sort((a, b) =>
+      setClients([...clients, restoredClient].sort((a, b) =>
         (a.company_name || '').localeCompare(b.company_name || '')
       ));
 
@@ -115,7 +160,7 @@ export const useAdminClients = () => {
         title: 'Success',
         description: t('admin.clientRestored', 'Client restauré avec succès'),
       });
-      return data;
+      return restoredClient;
     } catch (err) {
       toast({
         title: t('admin.errorRestoring', 'Erreur restauration'),

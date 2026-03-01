@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,15 +10,7 @@ export const usePaymentTerms = () => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (user) {
-      fetchPaymentTerms();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
-  const fetchPaymentTerms = async () => {
+  const fetchPaymentTerms = useCallback(async () => {
     if (!user || !supabase) {
       setLoading(false);
       return;
@@ -41,7 +32,15 @@ export const usePaymentTerms = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchPaymentTerms();
+    } else {
+      setLoading(false);
+    }
+  }, [fetchPaymentTerms, user]);
 
   const createPaymentTerm = async (termData) => {
     if (!user || !supabase) return null;

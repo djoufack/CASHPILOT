@@ -42,12 +42,16 @@ export const usePagination = (options = {}) => {
     setCurrentPage(1); // Reset to first page
   }, []);
 
+  const updateTotalCount = useCallback((count) => {
+    setTotalCount(count);
+  }, []);
+
   const reset = useCallback(() => {
     setCurrentPage(1);
     setTotalCount(0);
   }, []);
 
-  return {
+  return useMemo(() => ({
     currentPage,
     pageSize,
     totalCount,
@@ -58,14 +62,27 @@ export const usePagination = (options = {}) => {
     nextPage,
     prevPage,
     changePageSize,
-    setTotalCount,
+    setTotalCount: updateTotalCount,
     reset,
     hasNextPage: currentPage < totalPages,
     hasPrevPage: currentPage > 1,
     pageSizeOptions: PAGE_SIZE_OPTIONS,
     // Helper for Supabase: add to select() options
     rangeArgs: { from, to },
-  };
+  }), [
+    currentPage,
+    pageSize,
+    totalCount,
+    totalPages,
+    from,
+    to,
+    goToPage,
+    nextPage,
+    prevPage,
+    changePageSize,
+    updateTotalCount,
+    reset,
+  ]);
 };
 
 export default usePagination;

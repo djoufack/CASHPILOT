@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const SHORTCUTS = [
@@ -17,8 +17,8 @@ const SHORTCUTS = [
 
 export const useKeyboardShortcuts = (customHandlers = {}) => {
   const navigate = useNavigate();
-  let pendingKey = null;
-  let pendingTimeout = null;
+  const pendingKeyRef = useRef(null);
+  const pendingTimeoutRef = useRef(null);
 
   const handleKeyDown = useCallback((e) => {
     // Don't trigger in input fields
@@ -28,9 +28,9 @@ export const useKeyboardShortcuts = (customHandlers = {}) => {
     const key = e.key.toLowerCase();
 
     // Handle two-key combos (g+x)
-    if (pendingKey === 'g') {
-      clearTimeout(pendingTimeout);
-      pendingKey = null;
+    if (pendingKeyRef.current === 'g') {
+      clearTimeout(pendingTimeoutRef.current);
+      pendingKeyRef.current = null;
 
       const shortcut = SHORTCUTS.find(s => s.key === `g+${key}`);
       if (shortcut && shortcut.action === 'navigate') {
@@ -41,8 +41,10 @@ export const useKeyboardShortcuts = (customHandlers = {}) => {
     }
 
     if (key === 'g') {
-      pendingKey = 'g';
-      pendingTimeout = setTimeout(() => { pendingKey = null; }, 500);
+      pendingKeyRef.current = 'g';
+      pendingTimeoutRef.current = setTimeout(() => {
+        pendingKeyRef.current = null;
+      }, 500);
       return;
     }
 
@@ -56,7 +58,10 @@ export const useKeyboardShortcuts = (customHandlers = {}) => {
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(pendingTimeoutRef.current);
+    };
   }, [handleKeyDown]);
 
   return { shortcuts: SHORTCUTS };

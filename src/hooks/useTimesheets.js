@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +22,7 @@ export const useTimesheets = () => {
     return Math.max(0, end - start);
   };
 
-  const fetchTimesheets = async (filters = {}) => {
+  const fetchTimesheets = useCallback(async (filters = {}) => {
     if (!user) return;
     if (!supabase) {
       console.warn("Supabase not configured");
@@ -65,7 +65,7 @@ export const useTimesheets = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t, toast, user]);
 
   const createTimesheet = async (timesheetData) => {
     if (!user) return;
@@ -259,7 +259,7 @@ export const useTimesheets = () => {
 
   useEffect(() => {
     fetchTimesheets();
-  }, [user]);
+  }, [fetchTimesheets]);
 
   return {
     timesheets,

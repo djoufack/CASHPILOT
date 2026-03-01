@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +14,7 @@ export const useDeliveryNotes = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
-  const fetchDeliveryNotes = async () => {
+  const fetchDeliveryNotes = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
@@ -40,7 +40,7 @@ export const useDeliveryNotes = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t, toast, user]);
 
   const createDeliveryNote = async (deliveryData, items = []) => {
     if (!user || !supabase) throw new Error('Not authenticated');
@@ -135,7 +135,7 @@ export const useDeliveryNotes = () => {
 
   useEffect(() => {
     fetchDeliveryNotes();
-  }, [user]);
+  }, [fetchDeliveryNotes]);
 
   return {
     deliveryNotes,

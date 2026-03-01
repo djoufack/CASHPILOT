@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +19,7 @@ export const useInvoices = () => {
 
   const [totalCount, setTotalCount] = useState(0);
 
-  const fetchInvoices = async (filters = {}, { page, pageSize } = {}) => {
+  const fetchInvoices = useCallback(async (filters = {}, { page, pageSize } = {}) => {
     if (!user) return;
     if (!supabase) {
       console.warn("Supabase not configured");
@@ -69,7 +69,7 @@ export const useInvoices = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, user]);
 
   const createInvoice = async (invoiceData, items = []) => {
     if (!user) return;
@@ -341,7 +341,7 @@ export const useInvoices = () => {
 
   useEffect(() => {
     fetchInvoices();
-  }, [user]);
+  }, [fetchInvoices]);
 
   return {
     invoices,

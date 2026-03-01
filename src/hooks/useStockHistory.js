@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -105,7 +105,7 @@ export const useStockAlerts = () => {
     const [alerts, setAlerts] = useState([]);
     const { user } = useAuth();
 
-    const fetchAlerts = async (categoryId = null) => {
+    const fetchAlerts = useCallback(async (categoryId = null) => {
         if(!user) return;
         try {
             const { data, error } = await supabase
@@ -130,9 +130,9 @@ export const useStockAlerts = () => {
             console.error(err);
             return [];
         }
-    };
+    }, [user]);
 
-    const resolveAlert = async (alertId) => {
+    const resolveAlert = useCallback(async (alertId) => {
         try {
             await supabase
               .from('stock_alerts')
@@ -142,7 +142,7 @@ export const useStockAlerts = () => {
         } catch (err) {
             console.error(err);
         }
-    };
+    }, []);
 
     return { alerts, fetchAlerts, resolveAlert };
 };

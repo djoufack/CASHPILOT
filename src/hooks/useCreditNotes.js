@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +14,7 @@ export const useCreditNotes = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
-  const fetchCreditNotes = async () => {
+  const fetchCreditNotes = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
@@ -40,7 +40,7 @@ export const useCreditNotes = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t, toast, user]);
 
   const createCreditNote = async (creditNoteData, items = []) => {
     if (!user || !supabase) throw new Error('Not authenticated');
@@ -138,7 +138,7 @@ export const useCreditNotes = () => {
 
   useEffect(() => {
     fetchCreditNotes();
-  }, [user]);
+  }, [fetchCreditNotes]);
 
   return {
     creditNotes,
