@@ -4,6 +4,29 @@ import { useAuth } from '@/context/AuthContext';
 
 const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+function toIsoDate(date) {
+  return date.toISOString().split('T')[0];
+}
+
+function resolveParams(optionsOrPeriod, granularityArg) {
+  if (typeof optionsOrPeriod === 'object' && optionsOrPeriod !== null) {
+    const options = optionsOrPeriod;
+    return {
+      periodMonths: options.periodMonths ?? 6,
+      granularity: options.granularity ?? 'month',
+      startDate: options.startDate ?? null,
+      endDate: options.endDate ?? null,
+    };
+  }
+
+  return {
+    periodMonths: optionsOrPeriod ?? 6,
+    granularity: granularityArg ?? 'month',
+    startDate: null,
+    endDate: null,
+  };
+}
+
 /** Get grouping key + display label from a date string */
 function getGroupKey(dateStr, granularity) {
   if (!dateStr) return null;
@@ -20,13 +43,25 @@ function getGroupKey(dateStr, granularity) {
 }
 
 /** Build empty buckets for the time range */
-function buildEmptyBuckets(periodMonths, granularity) {
+function buildEmptyBuckets({ periodMonths, granularity, startDate, endDate }) {
   const buckets = {};
-  const now = new Date();
-  for (let i = periodMonths; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const monthLabel = MONTH_NAMES[d.getMonth()];
+  let rangeStart = null;
+  let rangeEnd = null;
+
+  if (startDate && endDate) {
+    rangeStart = new Date(`${startDate}T00:00:00`);
+    rangeEnd = new Date(`${endDate}T00:00:00`);
+  } else {
+    rangeEnd = new Date();
+    rangeStart = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth() - periodMonths, 1);
+  }
+
+  const cursor = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
+  const lastMonth = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), 1);
+
+  while (cursor <= lastMonth) {
+    const ym = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`;
+    const monthLabel = MONTH_NAMES[cursor.getMonth()];
 
     if (granularity === 'week') {
       for (let w = 1; w <= 4; w++) {
@@ -37,22 +72,32 @@ function buildEmptyBuckets(periodMonths, granularity) {
     } else {
       buckets[ym] = { key: ym, month: ym, label: monthLabel, income: 0, expenses: 0, net: 0 };
     }
+
+    cursor.setMonth(cursor.getMonth() + 1);
   }
+
   return buckets;
 }
 
-export const useCashFlow = (periodMonths = 6, granularity = 'month') => {
+export const useCashFlow = (optionsOrPeriod = 6, granularityArg = 'month') => {
   const { user } = useAuth();
+  const { periodMonths, granularity, startDate, endDate } = resolveParams(optionsOrPeriod, granularityArg);
   const [cashFlowData, setCashFlowData] = useState([]);
   const [summary, setSummary] = useState({ totalIn: 0, totalOut: 0, net: 0 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const fetchCashFlow = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    setError(null);
     try {
-      const startDate = new Date();
-      startDate.setMonth(startDate.getMonth() - periodMonths);
+      const resolvedEndDate = endDate || toIsoDate(new Date());
+      const resolvedStartDate = startDate || (() => {
+        const value = new Date();
+        value.setMonth(value.getMonth() - periodMonths);
+        return toIsoDate(value);
+      })();
 
       // Fetch income (paid invoices) — column is "date" not "invoice_date"
       const { data: invoices } = await supabase
@@ -60,7 +105,8 @@ export const useCashFlow = (periodMonths = 6, granularity = 'month') => {
         .select('total_ttc, date, status')
         .eq('user_id', user.id)
         .in('status', ['paid', 'sent'])
-        .gte('date', startDate.toISOString().split('T')[0])
+        .gte('date', resolvedStartDate)
+        .lte('date', resolvedEndDate)
         .order('date', { ascending: true });
 
       // Fetch expenses — column is "expense_date" not "date"
@@ -68,11 +114,17 @@ export const useCashFlow = (periodMonths = 6, granularity = 'month') => {
         .from('expenses')
         .select('amount, expense_date, category')
         .eq('user_id', user.id)
-        .gte('expense_date', startDate.toISOString().split('T')[0])
+        .gte('expense_date', resolvedStartDate)
+        .lte('expense_date', resolvedEndDate)
         .order('expense_date', { ascending: true });
 
       // Build empty buckets based on granularity
-      const buckets = buildEmptyBuckets(periodMonths, granularity);
+      const buckets = buildEmptyBuckets({
+        periodMonths,
+        granularity,
+        startDate: resolvedStartDate,
+        endDate: resolvedEndDate,
+      });
 
       (invoices || []).forEach(inv => {
         const g = getGroupKey(inv.date, granularity);
@@ -102,10 +154,11 @@ export const useCashFlow = (periodMonths = 6, granularity = 'month') => {
       setSummary({ totalIn, totalOut, net: totalIn - totalOut });
     } catch (err) {
       console.error('fetchCashFlow error:', err);
+      setError(err.message || 'Unable to fetch cash flow');
     } finally {
       setLoading(false);
     }
-  }, [user, periodMonths, granularity]);
+  }, [user, periodMonths, granularity, startDate, endDate]);
 
   useEffect(() => {
     fetchCashFlow();
@@ -135,5 +188,5 @@ export const useCashFlow = (periodMonths = 6, granularity = 'month') => {
     return projections;
   }, [cashFlowData]);
 
-  return { cashFlowData, summary, loading, forecast, refresh: fetchCashFlow };
+  return { cashFlowData, summary, loading, error, forecast, refresh: fetchCashFlow };
 };

@@ -90,7 +90,7 @@ const TaxSynthesisCard = ({ data, region }) => {
             {/* Pre-tax income */}
             <TaxRow
               label={t('pilotage.tax.resultBeforeTax')}
-              value={data?.netIncome}
+              value={taxSynthesis.preTaxIncome}
             />
 
             <div className="border-t border-gray-800/50 my-2" />

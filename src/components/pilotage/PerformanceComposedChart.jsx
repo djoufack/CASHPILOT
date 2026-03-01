@@ -58,14 +58,10 @@ const PerformanceComposedChart = ({ data }) => {
   const chartData = useMemo(() => {
     if (!data.monthlyData?.length) return [];
 
-    let cumulativeCashFlow = 0;
-    return data.monthlyData.map((item) => {
-      cumulativeCashFlow += (item.net || 0);
-      return {
-        ...item,
-        cumulativeCashFlow,
-      };
-    });
+    return data.monthlyData.map((item) => ({
+      ...item,
+      cumulativeCashFlow: item.cumulativeCashFlow ?? 0,
+    }));
   }, [data.monthlyData]);
 
   const hasData = chartData.length > 0;

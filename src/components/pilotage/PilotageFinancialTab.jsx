@@ -111,8 +111,8 @@ const PilotageFinancialTab = ({ data }) => {
     if (!data?.monthlyData || data.monthlyData.length <= 1) return [];
 
     return data.monthlyData.map((m) => ({
-      month: m.month,
-      margin: m.revenue > 0 ? (m.net / m.revenue) * 100 : 0,
+      month: m.month || m.name || m.key,
+      margin: m.revenue > 0 ? ((m.net ?? (m.revenue - m.expense)) / m.revenue) * 100 : 0,
     }));
   }, [data?.monthlyData]);
 

@@ -22,40 +22,72 @@ import {
   calculateNetDebt,
   calculateWorkingCapital
 } from '@/utils/financialAnalysisCalculations';
+import {
+  calculateCapexFromEntries,
+  extractFinancialPosition,
+} from '@/utils/financialMetrics';
+import { getTaxConfig } from '@/utils/taxCalculations';
 
 // ============================================================================
 // HELPER - EXTRACTION DE COMPTES
 // ============================================================================
 
-/**
- * Sommer les soldes des comptes par prefixe dans une section du bilan
- * @param {Array} accountsList - Liste de comptes (assets, liabilities ou equity)
- * @param {string[]} prefixes - Prefixes de comptes a chercher
- * @returns {number}
- */
-function sumByPrefix(accountsList, prefixes) {
-  if (!Array.isArray(accountsList)) return 0;
-  return accountsList
-    .filter(acc => {
-      if (!acc || !acc.account_code) return false;
-      return prefixes.some(p => acc.account_code.startsWith(p));
-    })
-    .reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+function normalizeAmount(value) {
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
-/**
- * Sommer les soldes dans toutes les sections du bilan par prefixe
- * @param {Object} balanceSheet
- * @param {string[]} prefixes
- * @returns {number}
- */
-function sumAllByPrefix(balanceSheet, prefixes) {
-  if (!balanceSheet) return 0;
-  return (
-    sumByPrefix(balanceSheet.assets, prefixes) +
-    sumByPrefix(balanceSheet.liabilities, prefixes) +
-    sumByPrefix(balanceSheet.equity, prefixes)
-  );
+export function buildPilotageMonthlySeries(accountingMonthlyData = [], cashFlowData = []) {
+  const seriesByKey = new Map();
+
+  (accountingMonthlyData || []).forEach((item) => {
+    if (!item?.key) return;
+    const revenue = normalizeAmount(item.revenue);
+    const expense = normalizeAmount(item.expense);
+
+    seriesByKey.set(item.key, {
+      key: item.key,
+      month: item.name || item.label || item.key,
+      revenue,
+      expense,
+      net: revenue - expense,
+      cashIn: 0,
+      cashOut: 0,
+      cashNet: 0,
+    });
+  });
+
+  (cashFlowData || []).forEach((item) => {
+    if (!item?.key) return;
+    const existing = seriesByKey.get(item.key) || {
+      key: item.key,
+      month: item.label || item.month || item.key,
+      revenue: 0,
+      expense: 0,
+      net: 0,
+      cashIn: 0,
+      cashOut: 0,
+      cashNet: 0,
+    };
+
+    existing.month = item.label || existing.month;
+    existing.cashIn = normalizeAmount(item.income);
+    existing.cashOut = normalizeAmount(item.expenses);
+    existing.cashNet = normalizeAmount(item.net);
+    seriesByKey.set(item.key, existing);
+  });
+
+  let cumulativeCashFlow = 0;
+
+  return Array.from(seriesByKey.values())
+    .sort((left, right) => left.key.localeCompare(right.key))
+    .map((item) => {
+      cumulativeCashFlow += item.cashNet;
+      return {
+        ...item,
+        cumulativeCashFlow,
+      };
+    });
 }
 
 // ============================================================================
@@ -296,39 +328,24 @@ export function computePilotageRatios(params) {
     accounts,
     startDate,
     endDate,
-    financialDiagnostic
+    financialDiagnostic,
+    region = 'france',
   } = params || {};
 
+  const financialPosition = extractFinancialPosition(balanceSheet);
+
   // --- Extraction des valeurs du bilan ---
-
-  // Creances clients: prefixe '41' (actifs)
-  const receivables = sumByPrefix(balanceSheet?.assets, ['41']);
-
-  // Dettes fournisseurs: prefixe '40' (passifs)
-  const payables = sumByPrefix(balanceSheet?.liabilities, ['40']);
-
-  // Stocks: prefixe '3' (actifs)
-  const inventory = sumByPrefix(balanceSheet?.assets, ['3']);
-
-  // Capitaux propres: prefixe '10' (equity)
-  const equity = sumByPrefix(balanceSheet?.equity, ['10']);
-
-  // Actifs immobilises: prefixe '2' (actifs)
-  const fixedAssets = sumByPrefix(balanceSheet?.assets, ['2']);
-
-  // Capitaux permanents: prefixe '1' (liabilities + equity)
-  const permanentCapital =
-    sumByPrefix(balanceSheet?.liabilities, ['1']) +
-    sumByPrefix(balanceSheet?.equity, ['1']);
-
-  // Dettes financieres: prefixe '16', '17'
-  const financialDebt = sumAllByPrefix(balanceSheet, ['16', '17']);
-
-  // Tresorerie: prefixe '52', '57'
-  const cash = sumAllByPrefix(balanceSheet, ['52', '57']);
+  const receivables = financialPosition.receivables;
+  const payables = financialPosition.tradePayables;
+  const inventory = financialPosition.inventory;
+  const equity = financialPosition.equity;
+  const fixedAssets = financialPosition.fixedAssets;
+  const permanentCapital = financialPosition.permanentCapital;
+  const financialDebt = financialPosition.financialDebt;
+  const cash = financialPosition.cash;
 
   // Total actif
-  const totalAssets = parseFloat(balanceSheet?.totalAssets) || 0;
+  const totalAssets = financialPosition.totalAssets;
   const totalBalance = totalAssets;
 
   // --- Extraction des valeurs du compte de resultat ---
@@ -367,6 +384,7 @@ export function computePilotageRatios(params) {
   const operatingResult = parseFloat(diagnosticMargins.operatingResult) || 0;
   const caf = parseFloat(diagnosticFinancing.caf) || 0;
   const operatingCashFlow = parseFloat(diagnosticFinancing.operatingCashFlow) || 0;
+  const capex = parseFloat(diagnosticFinancing.capex) || calculateCapexFromEntries(entries, accounts, startDate, endDate);
 
   // --- Reuse from financialAnalysisCalculations ---
   const bfr = balanceSheet ? calculateBFR(balanceSheet) : 0;
@@ -388,8 +406,8 @@ export function computePilotageRatios(params) {
   // Ratios de rentabilite
   const roa = calculateROA(netIncome, totalAssets);
 
-  // EVA - taux IS par defaut 25% (OHADA), WACC par defaut 10%
-  const defaultTaxRate = 0.25;
+  // EVA - taux IS aligne sur la zone fiscale selectionnee
+  const defaultTaxRate = getTaxConfig(region).corporateRate;
   const defaultWacc = 0.10;
   const eva = calculateEVA(operatingResult, defaultTaxRate, defaultWacc, capitalEmployed);
 
@@ -398,7 +416,7 @@ export function computePilotageRatios(params) {
   const dscr = calculateDSCR(ebitda, interestExpense + (financialDebt * 0.1)); // approximation du service de la dette
 
   // Ratios de tresorerie
-  const freeCashFlow = calculateFreeCashFlow(operatingCashFlow, 0); // CAPEX non disponible par defaut
+  const freeCashFlow = calculateFreeCashFlow(operatingCashFlow, capex);
   const cashFlowToDebt = calculateCashFlowToDebt(operatingCashFlow, netDebt);
 
   // Ratios de structure financiere
@@ -425,7 +443,8 @@ export function computePilotageRatios(params) {
       purchases,
       cogs,
       interestExpense,
-      capitalEmployed
+      capitalEmployed,
+      capex
     },
 
     // Ratios de rotation / activite
