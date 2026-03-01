@@ -12,16 +12,16 @@
  * - Classe 7: Produits
  */
 
-import { filterByPeriod } from './accountingCalculations';
+import { filterByPeriod } from './accountingCalculations.js';
 import {
   calculateCapexFromEntries,
   calculatePreTaxIncome,
   extractFinancialPosition,
-} from './financialMetrics';
+} from './financialMetrics.js';
 import {
   buildAccountSemanticIndex,
   getNaturalEntryAmount,
-} from './accountTaxonomy';
+} from './accountTaxonomy.js';
 
 function sumEntriesByPredicate(entries, accounts, startDate, endDate, predicate, regionHint = null) {
   if (!entries || !accounts) return 0;

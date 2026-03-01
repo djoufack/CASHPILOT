@@ -1,4 +1,5 @@
 import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
+import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
 
 export const OBLIGATION_LOOKAHEAD_DAYS = 7;
 
@@ -181,7 +182,7 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
       .order('due_date', { ascending: true, nullsFirst: false }),
     supabase
       .from('company')
-      .select('currency')
+      .select('accounting_currency')
       .eq('user_id', userId)
       .maybeSingle(),
     supabase
@@ -253,7 +254,7 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
 
   const projectsById = new Map((projectRows || []).map((project) => [project.id, project]));
   const clientsById = new Map((clientRows || []).map((client) => [client.id, client]));
-  const currency = companyData?.currency || 'EUR';
+  const currency = resolveAccountingCurrency(companyData);
 
   const customerObligations = (invoiceData || [])
     .filter(isOpenCustomerInvoice)

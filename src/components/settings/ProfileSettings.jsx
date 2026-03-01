@@ -9,8 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { COUNTRIES } from '@/constants/countries';
-import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
+import { useReferenceData } from '@/contexts/ReferenceDataContext';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, Upload, Trash2, PenTool, Bug, RefreshCw, CheckCircle2, XCircle, Camera, Lock } from 'lucide-react';
@@ -27,18 +26,11 @@ const ProfileSettings = () => {
     saveProfile, updateAvatar, deleteAvatar, deleteSignature,
     debugLogs, addLog, clearLogs 
   } = useProfileSettings();
+  const { countryOptions, currencyOptions, loading: referenceLoading } = useReferenceData();
   
   const { toast } = useToast();
   const fileInputRef = useRef(null);
 
-  const currencyOptions = useMemo(() =>
-    SUPPORTED_CURRENCIES.map(c => ({
-      value: c.code,
-      label: `${c.code} (${c.symbol})`,
-      description: c.name,
-    })),
-  []);
-  
   const [formData, setFormData] = useState({
     full_name: '',
     // email removed from state to prevent accidental submission
@@ -206,7 +198,7 @@ const ProfileSettings = () => {
     }
   };
 
-  if (loading) {
+  if (loading || referenceLoading) {
     return (
       <div className="p-12 flex flex-col justify-center items-center h-full gap-4">
         <Loader2 className="w-12 h-12 animate-spin text-orange-400" />
@@ -402,8 +394,8 @@ const ProfileSettings = () => {
                       <SelectValue placeholder={t('profileSettings.selectCountry')} />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
-                    {COUNTRIES.map(c => (
-                      <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                    {countryOptions.map((country) => (
+                      <SelectItem key={country.value} value={country.value}>{country.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

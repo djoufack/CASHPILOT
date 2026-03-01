@@ -5,6 +5,7 @@
  * SAF-T is an international standard for electronic exchange of accounting data
  * from organizations to tax authorities or external auditors.
  */
+import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
 
 // ========== UTILITY FUNCTIONS ==========
 
@@ -109,7 +110,7 @@ const generateHeader = (companyInfo = {}, period = {}) => {
           ${companyInfo.phone ? `<Telephone>${escapeXml(companyInfo.phone)}</Telephone>` : ''}
         </Contact>` : ''}
       </Company>
-      <DefaultCurrencyCode>${escapeXml(companyInfo.currency || 'EUR')}</DefaultCurrencyCode>
+      <DefaultCurrencyCode>${escapeXml(resolveAccountingCurrency(companyInfo))}</DefaultCurrencyCode>
       <SelectionCriteria>
         <SelectionStartDate>${formatDateISO(period.startDate || new Date(now.getFullYear(), 0, 1))}</SelectionStartDate>
         <SelectionEndDate>${formatDateISO(period.endDate || now)}</SelectionEndDate>

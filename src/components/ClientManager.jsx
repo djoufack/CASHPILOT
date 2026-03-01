@@ -32,8 +32,7 @@ import {
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { COUNTRIES } from '@/constants/countries';
-import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
+import { useReferenceData } from '@/contexts/ReferenceDataContext';
 import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard, ArchiveRestore, Archive, Globe, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import ExportButton from '@/components/ExportButton';
 import { motion } from 'framer-motion';
@@ -49,6 +48,7 @@ const ClientManager = () => {
   const { toast } = useToast();
   const { clients, loading, createClient, updateClient, deleteClient, restoreClient, fetchDeletedClients } = useClients();
   const { checkRegistration, checking: peppolChecking, result: peppolResult, reset: resetPeppolCheck } = usePeppolCheck();
+  const { countryOptions, currencyOptions } = useReferenceData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
@@ -87,14 +87,6 @@ const ClientManager = () => {
   const [formData, setFormData] = useState(emptyFormData);
 
   // Format currency options for SearchableSelect
-  const currencyOptions = useMemo(() =>
-    SUPPORTED_CURRENCIES.map(c => ({
-      value: c.code,
-      label: `${c.symbol} ${c.code} - ${c.name}`
-    })),
-    []
-  );
-
   const handleOpenDialog = (client = null) => {
     if (client) {
       setEditingClient(client);
@@ -545,8 +537,8 @@ const ClientManager = () => {
                         <SelectValue placeholder="Sélectionner un pays" />
                       </SelectTrigger>
                       <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
-                        {COUNTRIES.map(c => (
-                          <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                        {countryOptions.map((country) => (
+                          <SelectItem key={country.value} value={country.value}>{country.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

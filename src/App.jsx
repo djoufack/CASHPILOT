@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import GDPRConsentBanner from './components/GDPRConsentBanner';
 import { useAccountingGuard } from '@/hooks/useAccountingGuard';
+import UserPreferenceSync from '@/components/UserPreferenceSync';
 import './i18n/config';
 
 // Retry wrapper for lazy imports - handles chunk load failures after deployments
@@ -212,6 +213,7 @@ function App() {
                 <AuthWrapper />
                 <AuthenticatedChatWidget />
                 <AccountingGuard />
+                <UserPreferenceSync />
                 <GDPRConsentBanner />
                 <Toaster />
             </ErrorBoundary>

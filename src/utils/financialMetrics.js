@@ -1,8 +1,8 @@
-import { filterByPeriod } from './accountingCalculations';
+import { filterByPeriod } from './accountingCalculations.js';
 import {
   buildAccountSemanticIndex,
   getNaturalEntryAmount,
-} from './accountTaxonomy';
+} from './accountTaxonomy.js';
 
 const OPENING_ENTRY_REGEX = /^(open|opening|ouverture|solde[-_\s]?initial)/i;
 

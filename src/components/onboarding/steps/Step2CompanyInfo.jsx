@@ -5,8 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { COUNTRIES } from '@/constants/countries';
-import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
+import { useReferenceData } from '@/contexts/ReferenceDataContext';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -20,6 +19,7 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { countryOptions, currencyOptions } = useReferenceData();
   const [form, setForm] = useState({
     company_name: '',
     company_type: 'freelance',
@@ -35,19 +35,6 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
     ...wizardData.companyInfo,
   });
   const [saving, setSaving] = useState(false);
-
-  const countryOptions = useMemo(() =>
-    COUNTRIES.map(c => ({ value: c.code, label: c.label })),
-    []
-  );
-
-  const currencyOptions = useMemo(() =>
-    SUPPORTED_CURRENCIES.map(c => ({
-      value: c.code,
-      label: `${c.symbol} ${c.code} - ${c.name}`
-    })),
-    []
-  );
 
   useEffect(() => {
     if (!user || !supabase) return;
@@ -65,7 +52,7 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
         setForm(prev => ({
           ...prev,
           ...data,
-          currency: data.accounting_currency || data.currency || prev.currency,
+          currency: data.accounting_currency || prev.currency,
         }));
       }
     };
