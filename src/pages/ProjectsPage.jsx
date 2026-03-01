@@ -16,6 +16,7 @@ import PaginationControls from '@/components/PaginationControls';
 import { format, parseISO } from 'date-fns';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportProjectsListPDF, exportProjectsListHTML } from '@/services/exportListsPDF';
@@ -110,9 +111,10 @@ const ProjectsPage = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [submitting, setSubmitting] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  const companyCurrency = resolveAccountingCurrency(company);
 
   // Get company currency symbol
-  const currencySymbol = getCurrencySymbol(company?.currency || 'EUR');
+  const currencySymbol = getCurrencySymbol(companyCurrency);
 
   const projectCalendarStatusColors = {
     active: { bg: '#f97316', border: '#ea580c', text: '#fff' },

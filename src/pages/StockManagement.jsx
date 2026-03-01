@@ -4,6 +4,7 @@ import { useStockAlerts, useStockHistory } from '@/hooks/useStockHistory';
 import { useProducts, useProductCategories } from '@/hooks/useProducts';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatNumber } from '@/utils/calculations';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
@@ -31,9 +32,10 @@ const StockManagement = () => {
   const { categories } = useProductCategories();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
+  const companyCurrency = resolveAccountingCurrency(company);
 
   // Get company currency symbol
-  const currencySymbol = getCurrencySymbol(company?.currency || 'EUR');
+  const currencySymbol = getCurrencySymbol(companyCurrency);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -334,7 +336,7 @@ const StockManagement = () => {
             <CardTitle className="text-sm font-medium text-gray-400">Valeur du stock</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-400">{formatNumber(totalValue)} €</div>
+            <div className="text-2xl font-bold text-green-400">{formatNumber(totalValue)} {currencySymbol}</div>
           </CardContent>
         </Card>
       </div>
@@ -402,8 +404,8 @@ const StockManagement = () => {
                           <TableCell className="font-medium">{product.product_name}</TableCell>
                           <TableCell className="text-gray-400">{product.sku || '—'}</TableCell>
                           <TableCell className="text-gray-400">{product.category?.name || '—'}</TableCell>
-                          <TableCell className="text-right">{formatNumber(product.unit_price || 0)} €</TableCell>
-                          <TableCell className="text-right text-gray-400">{formatNumber(product.purchase_price || 0)} €</TableCell>
+                          <TableCell className="text-right">{formatNumber(product.unit_price || 0)} {currencySymbol}</TableCell>
+                          <TableCell className="text-right text-gray-400">{formatNumber(product.purchase_price || 0)} {currencySymbol}</TableCell>
                           <TableCell className="text-right font-medium">{product.stock_quantity}</TableCell>
                           <TableCell className="text-right text-gray-400">{product.min_stock_level}</TableCell>
                           <TableCell>{getStockBadge(product)}</TableCell>

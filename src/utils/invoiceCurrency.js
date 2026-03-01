@@ -11,12 +11,13 @@ const collectCurrencyCandidates = (entity) => {
   if (!entity || typeof entity !== 'object') return [];
 
   return [
+    entity.accounting_currency,
     entity.currency,
     entity.preferred_currency,
     entity.default_currency,
     entity.client?.preferred_currency,
     entity.client?.currency,
-    entity.company?.currency,
+    entity.company?.accounting_currency,
   ];
 };
 

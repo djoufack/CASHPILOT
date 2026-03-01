@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +11,12 @@ import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { COUNTRIES } from '@/constants/countries';
+import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
 import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
 import { Loader2, Upload, Trash2, Camera, Building2, MapPin, FileText, CreditCard, Globe, DollarSign } from 'lucide-react';
 
 const CompanySettings = () => {
+  const { t } = useTranslation();
   const {
     company, loading, saving, uploading,
     saveCompany, uploadLogo, deleteLogo
@@ -57,7 +60,7 @@ const CompanySettings = () => {
         city: company.city || '',
         postal_code: company.postal_code || '',
         country: company.country || '',
-        currency: company.currency || 'EUR',
+        currency: resolveAccountingCurrency(company),
         phone: company.phone || '',
         email: company.email || '',
         website: company.website || '',
@@ -201,7 +204,7 @@ const CompanySettings = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="currency">Devise de travail *</Label>
+                <Label htmlFor="currency">{t('profileSettings.accountingCurrencyLabel')}</Label>
                 <SearchableSelect
                   options={currencyOptions}
                   value={formData.currency}
@@ -211,6 +214,9 @@ const CompanySettings = () => {
                   emptyMessage="Aucune devise trouvée"
                   className="bg-gray-800 border-gray-700 text-white"
                 />
+                <p className="text-xs text-gray-500">
+                  {t('profileSettings.accountingCurrencyHelp')}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="registration_number">SIRET / N° d'enregistrement</Label>
