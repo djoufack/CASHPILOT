@@ -69,6 +69,13 @@ describe('validateForPeppolBE', () => {
     expect(result.errors).toContainEqual(expect.objectContaining({ rule: 'BR-05' }));
   });
 
+  it('BR-05: accepts buyer preferred currency when invoice currency is absent', () => {
+    const inv = { ...validInvoice, currency: undefined };
+    const buyer = { ...validBuyer, preferred_currency: 'USD' };
+    const result = validateForPeppolBE(inv, validSeller, buyer, validItems);
+    expect(result.isValid).toBe(true);
+  });
+
   it('BR-06: requires seller name', () => {
     const seller = { ...validSeller, company_name: '' };
     const result = validateForPeppolBE(validInvoice, seller, validBuyer, validItems);

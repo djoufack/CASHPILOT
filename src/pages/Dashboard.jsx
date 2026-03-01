@@ -12,7 +12,6 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { useCashFlow } from '@/hooks/useCashFlow';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
-import OnboardingBanner from '@/components/onboarding/OnboardingBanner';
 import { formatCurrency, formatCompactCurrency } from '@/utils/currencyService';
 import { calculateTrend, formatTrendLabel, calculateProfitMargin, getInvoiceAmount } from '@/utils/calculations';
 import { Users, Clock, FileText, TrendingUp, DollarSign, Activity, Loader2, ArrowUp, ArrowDown, Download, Package, Wrench, Wallet, Calendar } from 'lucide-react';
@@ -281,9 +280,6 @@ const Dashboard = () => {
       <Helmet>
         <title>{t('dashboard.title')} - {t('app.name')}</title>
       </Helmet>
-
-      {/* Onboarding Banner - shown when accounting setup is not complete */}
-      <OnboardingBanner />
 
       <div className="container mx-auto p-4 sm:p-6">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">

@@ -45,8 +45,8 @@ export const useTasksForProject = (projectId, filters = {}) => {
           *,
           subtasks (count),
           service:services(id, service_name, hourly_rate, pricing_type),
-          invoice:invoices(id, invoice_number, total),
-          quote:quotes(id, quote_number, total),
+          invoice:invoices(id, invoice_number, total_ttc),
+          quote:quotes(id, quote_number, total_ttc),
           purchase_order:purchase_orders(id, po_number, total)
         `)
         .eq('project_id', projectId)

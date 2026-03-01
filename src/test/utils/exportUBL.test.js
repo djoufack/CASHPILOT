@@ -122,6 +122,18 @@ describe('generateUBLInvoice', () => {
     expect(lineCount).toBe(2);
   });
 
+  it('falls back to buyer preferred currency when invoice currency is absent', () => {
+    const xml = generateUBLInvoice(
+      { ...invoice, currency: undefined },
+      seller,
+      { ...buyer, preferred_currency: 'USD' },
+      items
+    );
+
+    expect(xml).toContain('<cbc:DocumentCurrencyCode>USD</cbc:DocumentCurrencyCode>');
+    expect(xml).toContain('currencyID="USD"');
+  });
+
   it('escapes XML special characters', () => {
     const specialItems = [
       { description: 'Service <A> & "B"', quantity: 1, unit_price: 100, total: 100, tax_rate: 21 },
