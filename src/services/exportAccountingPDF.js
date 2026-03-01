@@ -1,5 +1,5 @@
 
-import html2pdf from 'html2pdf.js';
+import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 
 const PDF_OPTIONS = {
   margin: 10,
@@ -42,7 +42,7 @@ function createContainer(html) {
 
 async function generatePDF(element, filename) {
   try {
-    await html2pdf().set({ ...PDF_OPTIONS, filename }).from(element).save();
+    await saveElementAsPdf(element, { ...PDF_OPTIONS, filename });
   } finally {
     document.body.removeChild(element);
   }

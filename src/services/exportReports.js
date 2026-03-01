@@ -1,35 +1,16 @@
-import html2pdf from 'html2pdf.js';
-import html2canvas from 'html2canvas';
+import { captureElementAsImage, saveElementAsPdf } from '@/services/pdfExportRuntime';
 
 /**
  * Capture chart/element as image
  */
-const captureElementAsImage = async (elementId) => {
-  const element = document.getElementById(elementId);
-  if (!element) return null;
-
-  try {
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#111827' // gray-900
-    });
-    return canvas.toDataURL('image/png');
-  } catch (error) {
-    console.error('Failed to capture element:', error);
-    return null;
-  }
-};
-
 /**
  * Export Analytics Dashboard to PDF
  */
 export const exportAnalyticsPDF = async (data, companyInfo) => {
   // Capture charts as images
-  const revenueChartImg = await captureElementAsImage('revenue-chart');
-  const expensesChartImg = await captureElementAsImage('expenses-chart');
-  const clientsChartImg = await captureElementAsImage('clients-chart');
+  const revenueChartImg = await captureElementAsImage('revenue-chart', { backgroundColor: '#111827' });
+  const expensesChartImg = await captureElementAsImage('expenses-chart', { backgroundColor: '#111827' });
+  const clientsChartImg = await captureElementAsImage('clients-chart', { backgroundColor: '#111827' });
 
   const content = `
     <div style="font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px;">
@@ -94,7 +75,7 @@ export const exportAnalyticsPDF = async (data, companyInfo) => {
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {
@@ -174,7 +155,7 @@ export const exportSupplierReportPDF = async (reportData, companyInfo) => {
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {
@@ -392,7 +373,7 @@ export const exportDashboardPDF = async (data, companyInfo) => {
   };
 
   try {
-    await html2pdf().set(options).from(tempDiv).save();
+    await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
     return true;
   } catch (error) {
