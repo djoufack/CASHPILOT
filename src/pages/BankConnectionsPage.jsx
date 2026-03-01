@@ -1,118 +1,566 @@
-import React, { useState } from 'react';
-import { useBankConnections } from '@/hooks/useBankConnections';
-import { Building2, Plus, Trash2, RefreshCw, Loader2, CheckCircle2, XCircle, Clock, Wallet } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import {
+  Building2,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  Plus,
+  RefreshCw,
+  ShieldAlert,
+  Trash2,
+  Wallet,
+  XCircle,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useBankConnections } from '@/hooks/useBankConnections';
+import { useCompany } from '@/hooks/useCompany';
+import { useReferenceData } from '@/contexts/ReferenceDataContext';
 import { formatNumber } from '@/utils/calculations';
+
+const DEFAULT_COUNTRY = 'BE';
 
 const statusConfig = {
   active: { color: 'text-green-400 bg-green-500/10', icon: CheckCircle2, label: 'Connecté' },
   pending: { color: 'text-yellow-400 bg-yellow-500/10', icon: Clock, label: 'En attente' },
-  expired: { color: 'text-red-400 bg-red-500/10', icon: XCircle, label: 'Expiré' },
+  expired: { color: 'text-red-400 bg-red-500/10', icon: XCircle, label: 'Consentement expiré' },
   revoked: { color: 'text-gray-400 bg-gray-500/10', icon: XCircle, label: 'Déconnecté' },
-  error: { color: 'text-red-400 bg-red-500/10', icon: XCircle, label: 'Erreur' },
+  error: { color: 'text-red-400 bg-red-500/10', icon: ShieldAlert, label: 'Erreur' },
 };
 
-const BankConnectionsPage = () => {
-  const { connections, loading, initiateConnection, disconnectBank, totalBalance, refresh } = useBankConnections();
-  const { t } = useTranslation();
-  const [connecting, setConnecting] = useState(false);
+function formatDateTime(value) {
+  if (!value) {
+    return 'Jamais';
+  }
 
-  const handleConnect = async () => {
-    setConnecting(true);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'Jamais';
+  }
+
+  return date.toLocaleString('fr-FR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  });
+}
+
+function normalizeCountryCode(value) {
+  return String(value || DEFAULT_COUNTRY).trim().toUpperCase() || DEFAULT_COUNTRY;
+}
+
+const BankConnectionsPage = () => {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const { company } = useCompany();
+  const { countryOptions } = useReferenceData();
+  const {
+    connections,
+    loading,
+    listInstitutions,
+    initiateConnection,
+    disconnectBank,
+    syncConnection,
+    totalBalance,
+    refresh,
+  } = useBankConnections();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [isConnectDialogOpen, setConnectDialogOpen] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState(DEFAULT_COUNTRY);
+  const [institutions, setInstitutions] = useState([]);
+  const [institutionsLoading, setInstitutionsLoading] = useState(false);
+  const [institutionsError, setInstitutionsError] = useState(null);
+  const [institutionSearch, setInstitutionSearch] = useState('');
+  const [connectingInstitutionId, setConnectingInstitutionId] = useState(null);
+  const [syncingConnectionId, setSyncingConnectionId] = useState(null);
+  const [syncingAll, setSyncingAll] = useState(false);
+  const deferredSearch = useDeferredValue(institutionSearch);
+
+  useEffect(() => {
+    if (!company?.country) {
+      return;
+    }
+
+    setSelectedCountry((previous) => {
+      if (previous && previous !== DEFAULT_COUNTRY) {
+        return previous;
+      }
+
+      return normalizeCountryCode(company.country);
+    });
+  }, [company?.country]);
+
+  useEffect(() => {
+    const linked = searchParams.get('linked');
+    const error = searchParams.get('error');
+    const message = searchParams.get('message');
+
+    if (!linked && !error) {
+      return;
+    }
+
+    if (linked === '1') {
+      const accounts = Number(searchParams.get('accounts') || 0);
+      const synced = Number(searchParams.get('synced') || 0);
+      toast({
+        title: 'Banque connectée',
+        description: `${accounts} compte(s) relié(s), ${synced} transaction(s) synchronisée(s).`,
+      });
+    }
+
+    if (error) {
+      toast({
+        title: 'Connexion bancaire échouée',
+        description: message || error,
+        variant: 'destructive',
+      });
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('linked');
+    nextParams.delete('accounts');
+    nextParams.delete('synced');
+    nextParams.delete('error');
+    nextParams.delete('message');
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams, toast]);
+
+  const loadInstitutions = async (countryCode, { force = false } = {}) => {
+    setInstitutionsLoading(true);
+    setInstitutionsError(null);
+
     try {
-      // Default to Belgian banks - could add institution picker later
-      await initiateConnection('SANDBOXFINANCE_SFIN0000');
+      const rows = await listInstitutions(countryCode, { force });
+      setInstitutions(rows);
     } catch (err) {
-      console.error('Connection error:', err);
+      setInstitutions([]);
+      setInstitutionsError(err?.message || 'Impossible de charger les banques disponibles.');
     } finally {
-      setConnecting(false);
+      setInstitutionsLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (!isConnectDialogOpen) {
+      return;
+    }
+
+    loadInstitutions(selectedCountry);
+  }, [isConnectDialogOpen, selectedCountry]);
+
+  const filteredInstitutions = useMemo(() => {
+    const normalizedTerm = deferredSearch.trim().toLowerCase();
+    if (!normalizedTerm) {
+      return institutions.slice(0, 80);
+    }
+
+    return institutions
+      .filter((institution) => {
+        const haystack = `${institution.name} ${institution.bic}`.toLowerCase();
+        return haystack.includes(normalizedTerm);
+      })
+      .slice(0, 80);
+  }, [deferredSearch, institutions]);
+
+  const activeConnections = useMemo(
+    () => connections.filter((connection) => connection.status === 'active' && connection.account_id),
+    [connections]
+  );
+
+  const balanceCurrencies = useMemo(
+    () => [...new Set(activeConnections.map((connection) => String(connection.account_currency || 'EUR').toUpperCase()))],
+    [activeConnections]
+  );
+
+  const hasMixedCurrencies = balanceCurrencies.length > 1;
+
+  const countrySelectOptions = useMemo(() => {
+    if (countryOptions?.length) {
+      return countryOptions;
+    }
+
+    return [
+      { value: 'BE', label: 'Belgique' },
+      { value: 'FR', label: 'France' },
+      { value: 'DE', label: 'Allemagne' },
+      { value: 'ES', label: 'Espagne' },
+      { value: 'IT', label: 'Italie' },
+      { value: 'NL', label: 'Pays-Bas' },
+    ];
+  }, [countryOptions]);
+
+  const handleOpenConnectDialog = () => {
+    setInstitutionSearch('');
+    setInstitutions([]);
+    setInstitutionsError(null);
+    setConnectDialogOpen(true);
+  };
+
+  const handleConnectInstitution = async (institution) => {
+    setConnectingInstitutionId(institution.id);
+    try {
+      await initiateConnection({
+        institutionId: institution.id,
+        institutionName: institution.name,
+        country: selectedCountry,
+      });
+    } catch (err) {
+      toast({
+        title: 'Connexion bancaire impossible',
+        description: err?.message || 'La demande d’autorisation bancaire a échoué.',
+        variant: 'destructive',
+      });
+      setConnectingInstitutionId(null);
+    }
+  };
+
+  const handleSyncConnection = async (connection) => {
+    setSyncingConnectionId(connection.id);
+    try {
+      const result = await syncConnection(connection.id);
+      toast({
+        title: 'Synchronisation terminée',
+        description: `${connection.institution_name || connection.account_name || 'Compte'}: ${Number(result?.synced || 0)} transaction(s) synchronisée(s).`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Synchronisation échouée',
+        description: err?.message || 'La synchronisation bancaire a échoué.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSyncingConnectionId(null);
+    }
+  };
+
+  const handleSyncAll = async () => {
+    if (!activeConnections.length) {
+      return;
+    }
+
+    setSyncingAll(true);
+    let syncedTotal = 0;
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const connection of activeConnections) {
+      try {
+        const result = await syncConnection(connection.id);
+        syncedTotal += Number(result?.synced || 0);
+        successCount += 1;
+      } catch {
+        failureCount += 1;
+      }
+    }
+
+    setSyncingAll(false);
+
+    if (failureCount > 0) {
+      toast({
+        title: 'Synchronisation partielle',
+        description: `${successCount} compte(s) synchronisé(s), ${failureCount} en échec, ${syncedTotal} transaction(s) importée(s).`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    toast({
+      title: 'Synchronisation complète',
+      description: `${successCount} compte(s) synchronisé(s), ${syncedTotal} transaction(s) importée(s).`,
+    });
+  };
+
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div className="space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Building2 className="w-7 h-7 text-orange-400" />
-            Connexions Bancaires
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-white">
+            <Building2 className="h-7 w-7 text-orange-400" />
+            {t('nav.bankConnections', 'Connexions Bancaires')}
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Connectez vos comptes bancaires via GoCardless</p>
+          <p className="mt-1 text-sm text-gray-400">
+            Connectez vos comptes via GoCardless, synchronisez les transactions et préparez la réconciliation.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={refresh} className="text-gray-400 hover:text-white">
-            <RefreshCw className="w-4 h-4" />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="ghost"
+            onClick={() => refresh()}
+            className="text-gray-300 hover:text-white"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Actualiser
           </Button>
-          <Button onClick={handleConnect} disabled={connecting} className="bg-orange-500 hover:bg-orange-600">
-            {connecting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+          <Button
+            variant="outline"
+            onClick={handleSyncAll}
+            disabled={syncingAll || activeConnections.length === 0}
+            className="border-gray-700 bg-gray-900 text-white hover:bg-gray-800"
+          >
+            {syncingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Synchroniser tout
+          </Button>
+          <Button onClick={handleOpenConnectDialog} className="bg-orange-500 hover:bg-orange-600">
+            <Plus className="mr-2 h-4 w-4" />
             Connecter une banque
           </Button>
         </div>
       </div>
 
-      {/* Total balance card */}
-      <div className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/20 rounded-xl p-6">
-        <div className="flex items-center gap-3">
-          <Wallet className="w-8 h-8 text-orange-400" />
-          <div>
-            <p className="text-sm text-gray-400">Solde total</p>
-            <p className="text-3xl font-bold text-white">{formatNumber(totalBalance)} €</p>
+      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <div className="rounded-xl border border-orange-500/20 bg-gradient-to-r from-orange-500/10 to-amber-500/10 p-6">
+          <div className="flex items-center gap-3">
+            <Wallet className="h-8 w-8 text-orange-400" />
+            <div>
+              <p className="text-sm text-gray-400">Soldes synchronisés</p>
+              <p className="text-3xl font-bold text-white">
+                {formatNumber(totalBalance)} {balanceCurrencies[0] || 'EUR'}
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                {hasMixedCurrencies
+                  ? `Somme brute multi-devises (${balanceCurrencies.join(', ')}), sans conversion.`
+                  : 'Total agrégé des comptes actifs déjà synchronisés.'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6">
+          <p className="text-sm text-gray-400">État du parc bancaire</p>
+          <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
+              <p className="text-2xl font-semibold text-white">{connections.length}</p>
+              <p className="text-xs text-gray-500">Connexions</p>
+            </div>
+            <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
+              <p className="text-2xl font-semibold text-green-400">
+                {connections.filter((connection) => connection.status === 'active').length}
+              </p>
+              <p className="text-xs text-gray-500">Actives</p>
+            </div>
+            <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
+              <p className="text-2xl font-semibold text-yellow-400">
+                {connections.filter((connection) => connection.status === 'pending').length}
+              </p>
+              <p className="text-xs text-gray-500">En attente</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Connections list */}
       {loading ? (
-        <div className="text-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-orange-400 mx-auto" />
+        <div className="py-12 text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-orange-400" />
         </div>
       ) : connections.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <Building2 className="w-16 h-16 mx-auto mb-4 text-gray-700" />
-          <p className="text-lg">Aucune banque connectée</p>
-          <p className="text-sm mt-1">Connectez votre premier compte pour synchroniser vos transactions</p>
+        <div className="rounded-xl border border-dashed border-gray-800 bg-gray-900/40 py-12 text-center text-gray-500">
+          <Building2 className="mx-auto mb-4 h-16 w-16 text-gray-700" />
+          <p className="text-lg text-white">Aucune banque connectée</p>
+          <p className="mt-1 text-sm">Connectez votre premier compte pour importer soldes et transactions.</p>
         </div>
       ) : (
         <div className="grid gap-4">
-          {connections.map(conn => {
-            const status = statusConfig[conn.status] || statusConfig.error;
+          {connections.map((connection) => {
+            const status = statusConfig[connection.status] || statusConfig.error;
             const StatusIcon = status.icon;
+            const isSyncing = syncingConnectionId === connection.id;
+
             return (
-              <div key={conn.id} className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
-                    <Building2 className="w-6 h-6 text-gray-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-medium">{conn.institution_name || conn.account_name || 'Compte bancaire'}</h3>
-                    <p className="text-sm text-gray-400">{conn.account_iban || 'IBAN non disponible'}</p>
-                    <div className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full mt-1 ${status.color}`}>
-                      <StatusIcon className="w-3 h-3" />
-                      {status.label}
+              <div
+                key={connection.id}
+                className="rounded-xl border border-gray-800 bg-gray-900/60 p-4"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-gray-800">
+                      {connection.institution_logo ? (
+                        <img
+                          src={connection.institution_logo}
+                          alt=""
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <Building2 className="h-6 w-6 text-gray-400" />
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-medium text-white">
+                          {connection.account_name || connection.institution_name || 'Compte bancaire'}
+                        </h3>
+                        <div className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${status.color}`}>
+                          <StatusIcon className="h-3 w-3" />
+                          {status.label}
+                        </div>
+                      </div>
+                      <p className="mt-1 text-sm text-gray-400">
+                        {connection.institution_name || 'Institution bancaire'}
+                        {connection.account_iban ? ` • ${connection.account_iban}` : ' • IBAN non disponible'}
+                      </p>
+                      <div className="mt-3 grid gap-1 text-xs text-gray-500 sm:grid-cols-2">
+                        <p>Dernière synchro: {formatDateTime(connection.last_sync_at)}</p>
+                        <p>Consentement jusqu’au: {formatDateTime(connection.expires_at)}</p>
+                      </div>
+                      {connection.sync_error ? (
+                        <p className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                          {connection.sync_error}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  {conn.account_balance != null && (
-                    <p className={`text-lg font-semibold ${conn.account_balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {formatNumber(conn.account_balance)} {conn.account_currency || '€'}
-                    </p>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => disconnectBank(conn.id)}
-                    className="text-gray-500 hover:text-red-400"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+
+                  <div className="flex min-w-[220px] flex-col items-start gap-3 lg:items-end">
+                    {connection.account_balance != null ? (
+                      <p className={`text-lg font-semibold ${Number(connection.account_balance) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatNumber(connection.account_balance)} {String(connection.account_currency || 'EUR').toUpperCase()}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-500">Solde non disponible</p>
+                    )}
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={connection.status !== 'active' || !connection.account_id || isSyncing}
+                        onClick={() => handleSyncConnection(connection)}
+                        className="border-gray-700 bg-gray-950 text-white hover:bg-gray-800"
+                      >
+                        {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                        Synchroniser
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => disconnectBank(connection.id)}
+                        className="text-gray-400 hover:text-red-400"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Retirer
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
       )}
+
+      <Dialog open={isConnectDialogOpen} onOpenChange={setConnectDialogOpen}>
+        <DialogContent className="max-w-3xl border-gray-800 bg-gray-950 text-white">
+          <DialogHeader>
+            <DialogTitle>Connecter une banque</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Sélectionnez un pays puis votre institution bancaire pour lancer l’autorisation GoCardless.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+            <div className="space-y-2">
+              <Label htmlFor="bank-country">Pays de la banque</Label>
+              <Select
+                value={selectedCountry}
+                onValueChange={(value) => setSelectedCountry(normalizeCountryCode(value))}
+              >
+                <SelectTrigger id="bank-country" className="border-gray-700 bg-gray-900 text-white">
+                  <SelectValue placeholder="Choisir un pays" />
+                </SelectTrigger>
+                <SelectContent className="border-gray-800 bg-gray-950 text-white">
+                  {countrySelectOptions.map((country) => (
+                    <SelectItem key={country.value} value={country.value}>
+                      {country.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bank-search">Rechercher une banque</Label>
+              <Input
+                id="bank-search"
+                value={institutionSearch}
+                onChange={(event) => setInstitutionSearch(event.target.value)}
+                placeholder="Nom de la banque ou BIC"
+                className="border-gray-700 bg-gray-900 text-white"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <p>
+              {institutionsLoading
+                ? 'Chargement des institutions…'
+                : `${institutions.length} institution(s) trouvée(s) pour ${selectedCountry}.`}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => loadInstitutions(selectedCountry, { force: true })}
+              className="text-gray-400 hover:text-white"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Recharger
+            </Button>
+          </div>
+
+          <div className="max-h-[420px] overflow-y-auto rounded-xl border border-gray-800 bg-gray-900/50">
+            {institutionsLoading ? (
+              <div className="py-12 text-center">
+                <Loader2 className="mx-auto h-8 w-8 animate-spin text-orange-400" />
+              </div>
+            ) : institutionsError ? (
+              <div className="px-4 py-8 text-center text-sm text-red-300">{institutionsError}</div>
+            ) : filteredInstitutions.length === 0 ? (
+              <div className="px-4 py-8 text-center text-sm text-gray-500">
+                Aucune institution ne correspond à cette recherche.
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-800">
+                {filteredInstitutions.map((institution) => (
+                  <div key={institution.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-gray-800">
+                        {institution.logo ? (
+                          <img src={institution.logo} alt="" className="h-full w-full object-contain" />
+                        ) : (
+                          <Building2 className="h-5 w-5 text-gray-400" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">{institution.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {institution.bic || 'BIC non communiqué'}
+                          {institution.transactionTotalDays > 0 ? ` • ${institution.transactionTotalDays} jours d’historique` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => handleConnectInstitution(institution)}
+                      disabled={Boolean(connectingInstitutionId)}
+                      className="bg-orange-500 hover:bg-orange-600"
+                    >
+                      {connectingInstitutionId === institution.id ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Plus className="mr-2 h-4 w-4" />
+                      )}
+                      Connecter
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

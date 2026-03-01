@@ -8,6 +8,266 @@ const corsHeaders = {
 
 const GOCARDLESS_BASE = 'https://bankaccountdata.gocardless.com/api/v2';
 
+function jsonResponse(payload: unknown, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+async function readJsonResponse(response: Response) {
+  const rawBody = await response.text();
+  if (!rawBody) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawBody);
+  } catch {
+    return { raw: rawBody };
+  }
+}
+
+function extractErrorMessage(payload: unknown, fallbackMessage: string) {
+  if (typeof payload === 'string' && payload.trim()) {
+    return payload;
+  }
+
+  if (payload && typeof payload === 'object') {
+    const candidates = ['summary', 'detail', 'error', 'message'];
+    for (const key of candidates) {
+      const value = (payload as Record<string, unknown>)[key];
+      if (typeof value === 'string' && value.trim()) {
+        return value;
+      }
+    }
+  }
+
+  return fallbackMessage;
+}
+
+async function fetchGoCardlessToken(secretId: string, secretKey: string) {
+  const response = await fetch(`${GOCARDLESS_BASE}/token/new/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret_id: secretId, secret_key: secretKey }),
+  });
+
+  const payload = await readJsonResponse(response);
+  if (!response.ok || !payload?.access) {
+    throw new Error(extractErrorMessage(payload, 'Failed to get GoCardless token'));
+  }
+
+  return payload.access as string;
+}
+
+async function fetchGoCardless(accessToken: string, path: string, options: RequestInit = {}) {
+  const response = await fetch(`${GOCARDLESS_BASE}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+
+  const payload = await readJsonResponse(response);
+  if (!response.ok) {
+    const error = new Error(extractErrorMessage(payload, `GoCardless API error: ${response.status}`)) as Error & {
+      status?: number;
+      details?: unknown;
+    };
+    error.status = response.status;
+    error.details = payload;
+    throw error;
+  }
+
+  return payload;
+}
+
+function normalizeCountryCode(value: unknown) {
+  return String(value || 'BE').trim().toUpperCase() || 'BE';
+}
+
+function resolveRequisitionStatus(status: string) {
+  if (status === 'LN') {
+    return 'active';
+  }
+
+  if (status === 'EX') {
+    return 'expired';
+  }
+
+  if (status === 'RJ') {
+    return 'error';
+  }
+
+  return 'pending';
+}
+
+function resolveBalance(balancePayload: any) {
+  const balances = balancePayload?.balances || [];
+  const preferredBalance =
+    balances.find((entry: any) => entry.balanceType === 'interimBooked') ||
+    balances.find((entry: any) => entry.balanceType === 'closingBooked') ||
+    balances[0];
+
+  return Number.parseFloat(preferredBalance?.balanceAmount?.amount || '0') || 0;
+}
+
+async function recordSyncHistory(
+  supabase: ReturnType<typeof createClient>,
+  {
+    bankConnectionId,
+    userId,
+    syncType = 'transactions',
+    status = 'success',
+    transactionsSynced = 0,
+    errorMessage = null,
+  }: {
+    bankConnectionId: string;
+    userId: string;
+    syncType?: 'transactions' | 'balance' | 'full';
+    status?: 'success' | 'partial' | 'error';
+    transactionsSynced?: number;
+    errorMessage?: string | null;
+  }
+) {
+  await supabase.from('bank_sync_history').insert({
+    bank_connection_id: bankConnectionId,
+    user_id: userId,
+    sync_type: syncType,
+    status,
+    transactions_synced: transactionsSynced,
+    error_message: errorMessage,
+    completed_at: new Date().toISOString(),
+  });
+}
+
+async function syncConnectionTransactions(
+  supabase: ReturnType<typeof createClient>,
+  {
+    connection,
+    userId,
+    accessToken,
+    syncType = 'transactions',
+  }: {
+    connection: any;
+    userId: string;
+    accessToken: string;
+    syncType?: 'transactions' | 'balance' | 'full';
+  }
+) {
+  if (!connection?.account_id) {
+    throw new Error('No account linked to this connection');
+  }
+
+  try {
+    const txData = await fetchGoCardless(accessToken, `/accounts/${connection.account_id}/transactions/`);
+    const booked = txData?.transactions?.booked || [];
+    const pending = txData?.transactions?.pending || [];
+    const balanceData = await fetchGoCardless(accessToken, `/accounts/${connection.account_id}/balances/`);
+    const currentBalance = resolveBalance(balanceData);
+
+    let syncedCount = 0;
+    for (const transaction of booked) {
+      const transactionDate = transaction.bookingDate || transaction.valueDate;
+      if (!transactionDate) {
+        continue;
+      }
+
+      const externalId =
+        transaction.transactionId ||
+        transaction.internalTransactionId ||
+        `${transactionDate}_${transaction.transactionAmount?.amount || 0}_${syncedCount}`;
+
+      const amount = Number.parseFloat(transaction.transactionAmount?.amount || '0') || 0;
+
+      const { error: upsertError } = await supabase
+        .from('bank_transactions')
+        .upsert({
+          user_id: userId,
+          bank_connection_id: connection.id,
+          external_id: externalId,
+          date: transactionDate,
+          booking_date: transaction.bookingDate || null,
+          value_date: transaction.valueDate || null,
+          amount,
+          currency: transaction.transactionAmount?.currency || connection.account_currency || 'EUR',
+          description: transaction.remittanceInformationUnstructured || transaction.additionalInformation || '',
+          reference: transaction.endToEndId || transaction.transactionId || null,
+          creditor_name: transaction.creditorName || null,
+          debtor_name: transaction.debtorName || null,
+          remittance_info: transaction.remittanceInformationUnstructured || null,
+          raw_data: transaction,
+          reconciliation_status: 'unreconciled',
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'bank_connection_id,external_id',
+          ignoreDuplicates: false,
+        });
+
+      if (!upsertError) {
+        syncedCount += 1;
+      }
+    }
+
+    await supabase
+      .from('bank_connections')
+      .update({
+        status: 'active',
+        account_balance: currentBalance,
+        last_sync_at: new Date().toISOString(),
+        sync_error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', connection.id);
+
+    await recordSyncHistory(supabase, {
+      bankConnectionId: connection.id,
+      userId,
+      syncType,
+      status: 'success',
+      transactionsSynced: syncedCount,
+    });
+
+    return {
+      synced: syncedCount,
+      totalBooked: booked.length,
+      totalPending: pending.length,
+      balance: currentBalance,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown sync error';
+    const errorStatus = typeof error === 'object' && error && 'status' in error
+      ? Number((error as { status?: number }).status || 0)
+      : 0;
+
+    await supabase
+      .from('bank_connections')
+      .update({
+        status: errorStatus === 401 || errorStatus === 403 ? 'expired' : 'error',
+        sync_error: errorMessage,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', connection.id);
+
+    await recordSyncHistory(supabase, {
+      bankConnectionId: connection.id,
+      userId,
+      syncType,
+      status: 'error',
+      transactionsSynced: 0,
+      errorMessage,
+    });
+
+    throw error;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -16,69 +276,68 @@ serve(async (req) => {
   try {
     const secretId = Deno.env.get('GOCARDLESS_SECRET_ID');
     const secretKey = Deno.env.get('GOCARDLESS_SECRET_KEY');
-    if (!secretId || !secretKey) throw new Error('GoCardless credentials not configured');
+    if (!secretId || !secretKey) {
+      throw new Error('GoCardless credentials not configured');
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // --- JWT Authentication ---
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Missing or invalid Authorization header' }, 401);
     }
-    const token = authHeader.replace('Bearer ', '');
 
-    // Create a client with the anon key to verify the user's JWT
-    const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseAuth = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
-    const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser();
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabaseAuth.auth.getUser();
 
     if (authError || !authUser) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Invalid or expired token' }, 401);
     }
+
     const verifiedUserId = authUser.id;
-    // --- End JWT Authentication ---
+    const {
+      action,
+      institutionId,
+      institutionName,
+      redirectUrl,
+      requisitionId,
+      connectionId,
+      country,
+    } = await req.json();
 
-    const { action, institutionId, institutionName, redirectUrl, requisitionId, connectionId, accountId, country } = await req.json();
-
-    // Get access token
-    const tokenRes = await fetch(`${GOCARDLESS_BASE}/token/new/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret_id: secretId, secret_key: secretKey }),
-    });
-    if (!tokenRes.ok) throw new Error('Failed to get GoCardless token');
-    const { access: accessToken } = await tokenRes.json();
-
-    const headers = {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    };
+    const accessToken = await fetchGoCardlessToken(secretId, secretKey);
 
     switch (action) {
       case 'list-institutions': {
-        const instCountry = country || institutionId || 'BE';
-        const res = await fetch(`${GOCARDLESS_BASE}/institutions/?country=${instCountry}`, { headers });
-        const institutions = await res.json();
-        return new Response(
-          JSON.stringify({ success: true, institutions }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        const institutionCountry = normalizeCountryCode(country);
+        const institutions = await fetchGoCardless(
+          accessToken,
+          `/institutions/?country=${encodeURIComponent(institutionCountry)}`
         );
+
+        return jsonResponse({
+          success: true,
+          institutions: Array.isArray(institutions) ? institutions : [],
+        });
       }
 
       case 'create-requisition': {
-        // Create end-user agreement
-        const agreementRes = await fetch(`${GOCARDLESS_BASE}/agreements/enduser/`, {
+        if (!institutionId) {
+          return jsonResponse({ error: 'Missing institutionId' }, 400);
+        }
+
+        const institutionDetails = await fetchGoCardless(accessToken, `/institutions/${institutionId}/`).catch(() => null);
+        const agreement = await fetchGoCardless(accessToken, '/agreements/enduser/', {
           method: 'POST',
-          headers,
           body: JSON.stringify({
             institution_id: institutionId,
             max_historical_days: 90,
@@ -86,241 +345,226 @@ serve(async (req) => {
             access_scope: ['balances', 'details', 'transactions'],
           }),
         });
-        const agreement = await agreementRes.json();
 
-        // Create requisition (bank link)
-        const reqRes = await fetch(`${GOCARDLESS_BASE}/requisitions/`, {
+        const requisition = await fetchGoCardless(accessToken, '/requisitions/', {
           method: 'POST',
-          headers,
           body: JSON.stringify({
-            redirect: redirectUrl || `${Deno.env.get('APP_URL') || 'https://cashpilot.app'}/app/bank-callback`,
+            redirect: redirectUrl || `${Deno.env.get('APP_URL') || 'https://cashpilot.tech'}/app/bank-callback`,
             institution_id: institutionId,
             agreement: agreement.id,
             user_language: 'FR',
           }),
         });
-        const requisition = await reqRes.json();
 
-        // Resolve institution name: use provided name, or look it up from GoCardless API
-        let resolvedInstitutionName = institutionName || null;
-        if (!resolvedInstitutionName && institutionId) {
-          try {
-            const instRes = await fetch(`${GOCARDLESS_BASE}/institutions/${institutionId}/`, { headers });
-            if (instRes.ok) {
-              const instData = await instRes.json();
-              resolvedInstitutionName = instData.name || institutionId;
-            }
-          } catch {
-            // Fallback: use institutionId if lookup fails
-            resolvedInstitutionName = institutionId;
-          }
-        }
-
-        // Store in database
         await supabase.from('bank_connections').insert({
           user_id: verifiedUserId,
           institution_id: institutionId,
-          institution_name: resolvedInstitutionName || institutionId,
+          institution_name: institutionName || institutionDetails?.name || institutionId,
+          institution_logo: institutionDetails?.logo || null,
           requisition_id: requisition.id,
           agreement_id: agreement.id,
           status: 'pending',
+          sync_error: null,
           expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
         });
 
-        return new Response(
-          JSON.stringify({ success: true, link: requisition.link, requisition_id: requisition.id }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return jsonResponse({
+          success: true,
+          link: requisition.link,
+          requisition_id: requisition.id,
+          country: normalizeCountryCode(country),
+        });
       }
 
       case 'complete-requisition': {
-        // After user returns from bank, fetch account details
-        const reqRes = await fetch(`${GOCARDLESS_BASE}/requisitions/${requisitionId}/`, { headers });
-        const requisition = await reqRes.json();
-
-        if (requisition.status !== 'LN') {
-          return new Response(
-            JSON.stringify({ error: 'Requisition not linked', status: requisition.status }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+        if (!requisitionId) {
+          return jsonResponse({ error: 'Missing requisitionId' }, 400);
         }
 
-        const accounts = requisition.accounts || [];
-        const results = [];
+        const requisition = await fetchGoCardless(accessToken, `/requisitions/${requisitionId}/`);
+        const mappedStatus = resolveRequisitionStatus(requisition.status);
+        const nowIso = new Date().toISOString();
 
-        for (const accountId of accounts) {
-          const detailsRes = await fetch(`${GOCARDLESS_BASE}/accounts/${accountId}/details/`, { headers });
-          const details = await detailsRes.json();
-          const balancesRes = await fetch(`${GOCARDLESS_BASE}/accounts/${accountId}/balances/`, { headers });
-          const balances = await balancesRes.json();
+        const { data: existingConnections } = await supabase
+          .from('bank_connections')
+          .select('*')
+          .eq('user_id', verifiedUserId)
+          .eq('requisition_id', requisitionId)
+          .order('created_at', { ascending: true });
 
-          const balance = balances.balances?.[0]?.balanceAmount?.amount || 0;
-
+        if (mappedStatus !== 'active') {
           await supabase
             .from('bank_connections')
             .update({
-              status: 'active',
-              account_id: accountId,
-              account_iban: details.account?.iban || '',
-              account_name: details.account?.name || details.account?.ownerName || '',
-              account_currency: details.account?.currency || 'EUR',
-              account_balance: parseFloat(balance),
-              last_sync_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
+              status: mappedStatus,
+              sync_error: mappedStatus === 'expired'
+                ? 'Le consentement bancaire a expiré avant la finalisation.'
+                : 'L’autorisation bancaire n’est pas encore finalisée.',
+              updated_at: nowIso,
             })
+            .eq('user_id', verifiedUserId)
             .eq('requisition_id', requisitionId);
 
-          results.push({ accountId, iban: details.account?.iban, balance });
+          return jsonResponse({
+            error: mappedStatus === 'expired'
+              ? 'Bank authorization expired before completion'
+              : 'Requisition not linked yet',
+            status: requisition.status,
+          }, mappedStatus === 'expired' ? 410 : 409);
         }
 
-        return new Response(
-          JSON.stringify({ success: true, accounts: results }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        const accounts = requisition.accounts || [];
+        if (!accounts.length) {
+          await supabase
+            .from('bank_connections')
+            .update({
+              status: 'error',
+              sync_error: 'No account returned by GoCardless for this requisition.',
+              updated_at: nowIso,
+            })
+            .eq('user_id', verifiedUserId)
+            .eq('requisition_id', requisitionId);
+
+          return jsonResponse({ error: 'No bank account returned by GoCardless' }, 422);
+        }
+
+        const seedConnection = existingConnections?.[0] || null;
+        const resolvedInstitutionId = seedConnection?.institution_id || requisition.institution_id || institutionId;
+        const institutionDetails = resolvedInstitutionId
+          ? await fetchGoCardless(accessToken, `/institutions/${resolvedInstitutionId}/`).catch(() => null)
+          : null;
+        const availableConnections = [...(existingConnections || [])];
+        let placeholderConnection = availableConnections.find((connection) => !connection.account_id) || null;
+        const results = [];
+
+        for (const accountId of accounts) {
+          const accountDetails = await fetchGoCardless(accessToken, `/accounts/${accountId}/details/`);
+          const balanceDetails = await fetchGoCardless(accessToken, `/accounts/${accountId}/balances/`);
+          const accountBalance = resolveBalance(balanceDetails);
+
+          const basePayload = {
+            institution_id: resolvedInstitutionId || seedConnection?.institution_id || 'UNKNOWN',
+            institution_name:
+              seedConnection?.institution_name ||
+              institutionDetails?.name ||
+              institutionName ||
+              resolvedInstitutionId ||
+              'Institution bancaire',
+            institution_logo: seedConnection?.institution_logo || institutionDetails?.logo || null,
+            requisition_id: requisitionId,
+            agreement_id: seedConnection?.agreement_id || requisition.agreement || null,
+            status: 'active',
+            account_id: accountId,
+            account_iban: accountDetails?.account?.iban || '',
+            account_name:
+              accountDetails?.account?.name ||
+              accountDetails?.account?.ownerName ||
+              accountDetails?.account?.iban ||
+              `Compte ${accountId}`,
+            account_currency: accountDetails?.account?.currency || 'EUR',
+            account_balance: accountBalance,
+            sync_error: null,
+            last_sync_at: nowIso,
+            expires_at: seedConnection?.expires_at || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: nowIso,
+          };
+
+          const existingAccountConnection = availableConnections.find((connection) => connection.account_id === accountId) || null;
+          let persistedConnection = existingAccountConnection;
+
+          if (existingAccountConnection) {
+            const { data } = await supabase
+              .from('bank_connections')
+              .update(basePayload)
+              .eq('id', existingAccountConnection.id)
+              .eq('user_id', verifiedUserId)
+              .select('*')
+              .single();
+            persistedConnection = data;
+          } else if (placeholderConnection) {
+            const { data } = await supabase
+              .from('bank_connections')
+              .update(basePayload)
+              .eq('id', placeholderConnection.id)
+              .eq('user_id', verifiedUserId)
+              .select('*')
+              .single();
+            persistedConnection = data;
+            placeholderConnection = null;
+          } else {
+            const { data } = await supabase
+              .from('bank_connections')
+              .insert({
+                user_id: verifiedUserId,
+                ...basePayload,
+              })
+              .select('*')
+              .single();
+            persistedConnection = data;
+            availableConnections.push(data);
+          }
+
+          const sync = await syncConnectionTransactions(supabase, {
+            connection: persistedConnection,
+            userId: verifiedUserId,
+            accessToken,
+            syncType: 'full',
+          });
+
+          results.push({
+            connection_id: persistedConnection.id,
+            accountId,
+            iban: persistedConnection.account_iban,
+            balance: persistedConnection.account_balance,
+            currency: persistedConnection.account_currency,
+            sync,
+          });
+        }
+
+        return jsonResponse({
+          success: true,
+          requisition_id: requisitionId,
+          accounts: results,
+        });
       }
 
       case 'sync-transactions': {
-        // Sync transactions for a specific bank connection
         if (!connectionId) {
-          return new Response(
-            JSON.stringify({ error: 'Missing connectionId' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return jsonResponse({ error: 'Missing connectionId' }, 400);
         }
 
-        // Get the bank connection (scoped to verified user)
-        const { data: connection, error: connError } = await supabase
+        const { data: connection, error: connectionError } = await supabase
           .from('bank_connections')
           .select('*')
           .eq('id', connectionId)
           .eq('user_id', verifiedUserId)
-          .single();
+          .maybeSingle();
 
-        if (connError || !connection) {
-          return new Response(
-            JSON.stringify({ error: 'Bank connection not found' }),
-            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+        if (connectionError || !connection) {
+          return jsonResponse({ error: 'Bank connection not found' }, 404);
         }
 
-        if (!connection.account_id) {
-          return new Response(
-            JSON.stringify({ error: 'No account linked to this connection' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        // Fetch transactions from GoCardless
-        const txRes = await fetch(
-          `${GOCARDLESS_BASE}/accounts/${connection.account_id}/transactions/`,
-          { headers }
-        );
-
-        if (!txRes.ok) {
-          const errBody = await txRes.text();
-          // Update sync error
-          await supabase
-            .from('bank_connections')
-            .update({ sync_error: `GoCardless API error: ${txRes.status}`, updated_at: new Date().toISOString() })
-            .eq('id', connectionId);
-
-          return new Response(
-            JSON.stringify({ error: `Failed to fetch transactions: ${txRes.status}`, details: errBody }),
-            { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        const txData = await txRes.json();
-        const booked = txData.transactions?.booked || [];
-        const pending = txData.transactions?.pending || [];
-
-        // Also update balance
-        const balRes = await fetch(
-          `${GOCARDLESS_BASE}/accounts/${connection.account_id}/balances/`,
-          { headers }
-        );
-        let currentBalance = connection.account_balance;
-        if (balRes.ok) {
-          const balData = await balRes.json();
-          currentBalance = parseFloat(balData.balances?.[0]?.balanceAmount?.amount || currentBalance);
-        }
-
-        // Upsert booked transactions into bank_transactions
-        let syncedCount = 0;
-        for (const tx of booked) {
-          const externalId = tx.transactionId || tx.internalTransactionId || `${tx.bookingDate}_${tx.transactionAmount?.amount}_${syncedCount}`;
-          const amount = parseFloat(tx.transactionAmount?.amount || '0');
-
-          const { error: upsertError } = await supabase
-            .from('bank_transactions')
-            .upsert({
-              user_id: verifiedUserId,
-              bank_connection_id: connectionId,
-              external_id: externalId,
-              date: tx.bookingDate || tx.valueDate,
-              booking_date: tx.bookingDate || null,
-              value_date: tx.valueDate || null,
-              amount,
-              currency: tx.transactionAmount?.currency || connection.account_currency || 'EUR',
-              description: tx.remittanceInformationUnstructured || tx.additionalInformation || '',
-              reference: tx.endToEndId || tx.transactionId || null,
-              creditor_name: tx.creditorName || null,
-              debtor_name: tx.debtorName || null,
-              remittance_info: tx.remittanceInformationUnstructured || null,
-              raw_data: tx,
-              reconciliation_status: 'unreconciled',
-              updated_at: new Date().toISOString(),
-            }, {
-              onConflict: 'bank_connection_id,external_id',
-              ignoreDuplicates: false,
-            });
-
-          if (!upsertError) syncedCount++;
-        }
-
-        // Update the bank connection
-        await supabase
-          .from('bank_connections')
-          .update({
-            account_balance: currentBalance,
-            last_sync_at: new Date().toISOString(),
-            sync_error: null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', connectionId);
-
-        // Record sync history
-        await supabase.from('bank_sync_history').insert({
-          bank_connection_id: connectionId,
-          user_id: verifiedUserId,
-          sync_type: 'transactions',
-          status: 'success',
-          transactions_synced: syncedCount,
-          completed_at: new Date().toISOString(),
+        const sync = await syncConnectionTransactions(supabase, {
+          connection,
+          userId: verifiedUserId,
+          accessToken,
+          syncType: 'transactions',
         });
 
-        return new Response(
-          JSON.stringify({
-            success: true,
-            synced: syncedCount,
-            totalBooked: booked.length,
-            totalPending: pending.length,
-            balance: currentBalance,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return jsonResponse({
+          success: true,
+          connection_id: connectionId,
+          ...sync,
+        });
       }
 
       default:
-        return new Response(
-          JSON.stringify({ error: `Unknown action: ${action}` }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return jsonResponse({ error: `Unknown action: ${action}` }, 400);
     }
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    return jsonResponse(
+      { error: error instanceof Error ? error.message : 'Unexpected error' },
+      500
     );
   }
 });
