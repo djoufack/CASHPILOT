@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatCurrency } from '@/utils/currencyService';
 import { Activity } from 'lucide-react';
 import {
@@ -34,7 +35,7 @@ const WACCSensitivityChart = ({ data }) => {
   const { t } = useTranslation();
 
   const sensitivityData = data?.valuation?.sensitivity;
-  const currency = data?.company?.currency || 'EUR';
+  const currency = resolveAccountingCurrency(data?.company);
 
   if (!sensitivityData || sensitivityData.length === 0) {
     return null;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatCurrency } from '@/utils/currencyService';
 import { Receipt } from 'lucide-react';
 
@@ -65,7 +66,7 @@ const TaxSynthesisCard = ({ data, region }) => {
   const { t } = useTranslation();
   const taxSynthesis = data?.taxSynthesis;
   const isOhada = region?.toLowerCase() === 'ohada';
-  const currency = data?.company?.currency || 'EUR';
+  const currency = resolveAccountingCurrency(data?.company);
 
   return (
     <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl h-full">

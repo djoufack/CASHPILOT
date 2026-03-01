@@ -410,7 +410,7 @@ const ProfileSettings = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="currency">Default Currency</Label>
+                <Label htmlFor="currency">{t('profileSettings.displayCurrencyLabel')}</Label>
                 <SearchableSelect
                   options={currencyOptions}
                   value={formData.currency}
@@ -419,6 +419,9 @@ const ProfileSettings = () => {
                   searchPlaceholder="Rechercher une devise..."
                   emptyMessage="Aucune devise trouvée"
                 />
+                <p className="text-xs text-gray-500">
+                  {t('profileSettings.displayCurrencyHelp')}
+                </p>
               </div>
 
               <div className="space-y-2">

@@ -911,7 +911,11 @@
   },
   "profileSettings": {
     "selectCountry": "Sélectionner un pays",
-    "selectTimezone": "Sélectionner un fuseau horaire"
+    "selectTimezone": "Sélectionner un fuseau horaire",
+    "displayCurrencyLabel": "Devise d'affichage utilisateur",
+    "displayCurrencyHelp": "Cette préférence sert à l'affichage personnel de certaines vues. La comptabilité et le pilotage restent basés sur la devise de la société tant qu'aucune conversion traçable n'est activée.",
+    "accountingCurrencyLabel": "Devise comptable et de pilotage *",
+    "accountingCurrencyHelp": "Cette devise fait foi pour la comptabilité, les graphiques et les analyses tant qu'aucun moteur de conversion officiel n'est appliqué."
   },
   "seedDataManager": {
     "title": "Gestionnaire de données de test",
@@ -2207,6 +2211,108 @@
       "warningTitle": "Pilotage à vérifier avant usage décisionnel",
       "blockedHint": "Corrigez d'abord le plan comptable ou les écritures incohérentes. Les indicateurs affichés ne doivent pas servir de base de décision tant que ces points ne sont pas résolus.",
       "warningHint": "Le dossier reste exploitable, mais certaines classifications ou écritures doivent être revues avant de considérer le pilotage comme totalement fiable."
+    },
+    "guide": {
+      "title": "Guide d'utilisation du pilotage",
+      "subtitle": "À lire avant d'interpréter les ratios, la fiscalité ou la valorisation.",
+      "summary": "Le pilotage CashPilot consolide les écritures comptables, les journaux issus des flux métier et les paramètres FR / BE / OHADA pour fournir une lecture de gestion. Les chiffres affichés sont utiles pour piloter l'entreprise, à condition que le dossier comptable soit propre, complet et relu quand l'application signale un risque.",
+      "currentStatusLabel": "Statut actuel du dossier",
+      "currentStatusHelp": "Le statut ci-dessus résume si le dossier est prêt, à surveiller ou à bloquer avant usage décisionnel.",
+      "currentValuationLabel": "Mode actuel de valorisation",
+      "currentValuationHelp": "La valorisation dépend de la qualité du résultat, du cash-flow et des données comptables disponibles sur la période.",
+      "sections": {
+        "functioning": {
+          "title": "Ce que le pilotage fait aujourd'hui",
+          "intro": "Le moteur calcule tous les onglets à partir d'une même base comptable et d'une même période.",
+          "points": [
+            "Les 6 onglets partagent la même période, la même zone comptable et le même secteur pour rester cohérents entre eux.",
+            "Les KPI, ratios, alertes, synthèses fiscales et valorisations sont recalculés à chaque changement de période ou de données source.",
+            "Les indicateurs se basent d'abord sur la comptabilité et les écritures journalisées, pas sur des saisies marketing ou de simples estimations."
+          ]
+        },
+        "data": {
+          "title": "Données réellement utilisées",
+          "intro": "Le pilotage ne vaut que par la qualité des données qui l'alimentent.",
+          "points": [
+            "Un plan comptable initialisé, avec des comptes classés correctement par type et catégorie.",
+            "Des écritures datées, équilibrées, reliées à des comptes existants et sans mélange incohérent de référentiels.",
+            "Les journaux issus des factures, dépenses, paiements, encaissements et décaissements quand ils existent dans le dossier.",
+            "Le choix de la zone FR / Belgique / OHADA et du secteur, utilisé pour les règles d'analyse et les benchmarks."
+          ]
+        },
+        "conditions": {
+          "title": "Conditions d'utilisation recommandées",
+          "intro": "Utilisez le pilotage comme outil de gestion seulement si ces conditions sont réunies.",
+          "points": [
+            "Privilégiez un dossier en statut \"jeu de données exploitable\". En statut warning, relisez les anomalies. En statut blocked, n'utilisez pas le pilotage pour décider.",
+            "Au premier usage sur une entreprise réelle, comparez au moins le chiffre d'affaires, le résultat net, les capitaux propres, la dette financière et le BFR avec les chiffres du comptable.",
+            "Travaillez sur une période complète et cohérente avec l'analyse demandée: mois clos, trimestre clos ou exercice en cours clairement assumé.",
+            "Vérifiez la devise, la zone comptable et le secteur avant d'interpréter les ratios, la fiscalité ou la valorisation."
+          ]
+        },
+        "limits": {
+          "title": "Ce que le pilotage ne remplace pas",
+          "intro": "Le module aide à piloter; il ne se substitue pas aux obligations légales ni au jugement professionnel.",
+          "points": [
+            "Il ne remplace ni une clôture comptable, ni une liasse fiscale, ni une déclaration d'impôt, ni un audit légal.",
+            "Une valorisation DCF ou par multiples reste une estimation de gestion, pas un prix ferme de transaction ou d'investissement.",
+            "Si le dossier est partiel, repris en cours d'année, fortement reclassé ou encore en nettoyage, les indicateurs doivent être relus par un comptable.",
+            "En cas de doute sur un ratio sensible, fiez-vous d'abord à la donnée source et au contrôle métier plutôt qu'à un seul graphique."
+          ]
+        }
+      }
+    },
+    "dataRequirements": {
+      "allReadyTitle": "Toutes les analyses de cet onglet sont alimentées par les données disponibles",
+      "allReadyBody": "Les blocs affichés ci-dessous disposent des données minimales nécessaires dans la base de données.",
+      "summaryTitle": "Disponibilité réelle des analyses",
+      "summaryBody": "CashPilot n'affiche les analyses que si les données nécessaires existent en base. Les blocs ci-dessous signalent ce qui manque encore.",
+      "fallbackTitle": "Analyse",
+      "partialTitle": "{{item}} disponible partiellement",
+      "partialBody": "Une partie de l'analyse peut être calculée, mais certains résultats ou graphiques restent limités faute de données suffisantes en base.",
+      "unavailableTitle": "{{item}} indisponible",
+      "unavailableBody": "Cette analyse n'est pas affichée, car la base de données ne contient pas encore toutes les données nécessaires pour produire un résultat fiable.",
+      "missingInputsLabel": "Données manquantes",
+      "status": {
+        "partial": "Partiel",
+        "unavailable": "Indisponible"
+      },
+      "items": {
+        "kpis": "KPI de pilotage",
+        "performanceChart": "Graphique de performance globale",
+        "ratioStatus": "Synthèse des ratios clés",
+        "alerts": "Radar d'alertes financières",
+        "structureRatios": "Ratios de structure",
+        "liquidityRatios": "Ratios de liquidité",
+        "activityRatios": "Ratios d'activité",
+        "trialBalance": "Balance de vérification",
+        "marginAnalysis": "Analyse des marges",
+        "financingAnalysis": "Analyse du financement",
+        "profitabilityRatios": "Ratios de rentabilité",
+        "capitalStructure": "Structure du capital",
+        "profitabilityTrend": "Tendance de rentabilité",
+        "taxSynthesis": "Synthèse fiscale",
+        "valuation": "Valorisation",
+        "sensitivity": "Sensibilité WACC / valorisation",
+        "benchmark": "Benchmark sectoriel"
+      },
+      "inputs": {
+        "chartOfAccounts": "Plan comptable",
+        "journalEntries": "Écritures comptables",
+        "balanceSheet": "Bilan",
+        "incomeStatement": "Compte de résultat",
+        "monthlySeries": "Séries mensuelles",
+        "cashSeries": "Flux de trésorerie",
+        "structureRatios": "Ratios de structure",
+        "activityRatios": "Ratios d'activité",
+        "liquidityRatios": "Ratios de liquidité",
+        "profitabilityRatios": "Ratios de rentabilité",
+        "financingData": "Données de financement",
+        "trialBalance": "Balance de vérification",
+        "taxBase": "Base fiscale",
+        "valuationInputs": "Inputs de valorisation",
+        "benchmarkReference": "Référentiel sectoriel"
+      }
     }
   }
 }

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatCurrency } from '@/utils/currencyService';
 import { BarChart3 } from 'lucide-react';
 import {
@@ -40,7 +41,7 @@ const CustomTooltip = ({ active, payload, label, currency }) => {
           className="text-sm"
           style={{ color: entry.color }}
         >
-          {entry.name}: {formatCurrency(entry.value, currency)}
+          {entry.name}: {entry.value == null ? '--' : formatCurrency(entry.value, currency)}
         </p>
       ))}
     </div>
@@ -49,14 +50,14 @@ const CustomTooltip = ({ active, payload, label, currency }) => {
 
 const PerformanceComposedChart = ({ data }) => {
   const { t } = useTranslation();
-  const currency = data?.company?.currency || 'EUR';
+  const currency = resolveAccountingCurrency(data?.company);
 
   const chartData = useMemo(() => {
     if (!data.monthlyData?.length) return [];
 
     return data.monthlyData.map((item) => ({
       ...item,
-      cashNet: item.cashNet ?? 0,
+      cashNet: item.cashAvailable ? item.cashNet : null,
     }));
   }, [data.monthlyData]);
 

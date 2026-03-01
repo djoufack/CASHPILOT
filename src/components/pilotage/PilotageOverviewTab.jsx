@@ -5,6 +5,8 @@ import KPICardGrid from './KPICardGrid';
 import PerformanceComposedChart from './PerformanceComposedChart';
 import RatioStatusGrid from './RatioStatusGrid';
 import AlertsPanel from './AlertsPanel';
+import PilotageAvailabilitySummary from './PilotageAvailabilitySummary';
+import PilotageUnavailableState from './PilotageUnavailableState';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -26,6 +28,8 @@ const itemVariants = {
 const PilotageOverviewTab = ({ data }) => {
   const { t } = useTranslation();
   const quality = data?.dataQuality;
+  const availability = data?.analysisAvailability?.overview;
+  const availabilityItems = availability ? Object.values(availability) : [];
 
   if (quality?.datasetStatus === 'blocked') {
     return (
@@ -63,19 +67,39 @@ const PilotageOverviewTab = ({ data }) => {
       className="space-y-6"
     >
       <motion.div variants={itemVariants}>
-        <KPICardGrid data={data} />
+        <PilotageAvailabilitySummary items={availabilityItems} />
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <PerformanceComposedChart data={data} />
+        {availability?.kpis?.status === 'unavailable' ? (
+          <PilotageUnavailableState item={availability.kpis} />
+        ) : (
+          <KPICardGrid data={data} />
+        )}
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        {availability?.performanceChart?.status === 'unavailable' ? (
+          <PilotageUnavailableState item={availability.performanceChart} />
+        ) : (
+          <PerformanceComposedChart data={data} />
+        )}
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div variants={itemVariants}>
-          <RatioStatusGrid data={data} />
+          {availability?.ratioStatus?.status === 'unavailable' ? (
+            <PilotageUnavailableState item={availability.ratioStatus} />
+          ) : (
+            <RatioStatusGrid data={data} />
+          )}
         </motion.div>
         <motion.div variants={itemVariants}>
-          <AlertsPanel alerts={data.alerts} />
+          {availability?.alerts?.status === 'unavailable' ? (
+            <PilotageUnavailableState item={availability.alerts} />
+          ) : (
+            <AlertsPanel alerts={data.alerts} />
+          )}
         </motion.div>
       </div>
     </motion.div>

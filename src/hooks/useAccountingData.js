@@ -23,6 +23,56 @@ import {
 import { buildFinancialDiagnostic, calculateBFR } from '@/utils/financialAnalysisCalculations';
 import { evaluateAccountingDatasetQuality } from '@/utils/accountingQualityChecks';
 
+const OPTIONAL_SCHEMA_ERROR_CODES = new Set(['42P01', '42703', 'PGRST204']);
+
+function resolvePeriodBounds(startDate, endDate) {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const fiscalYearStart = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+
+  return {
+    startDate: startDate || fiscalYearStart,
+    endDate: endDate || today,
+  };
+}
+
+function isOptionalSchemaError(error) {
+  if (!error) return false;
+  if (OPTIONAL_SCHEMA_ERROR_CODES.has(error.code)) return true;
+
+  const message = String(error.message || '').toLowerCase();
+  return (
+    message.includes('does not exist') ||
+    message.includes('could not find') ||
+    message.includes('accounting_currency')
+  );
+}
+
+function unwrapRequiredResponse(response, resourceName) {
+  if (response?.error) {
+    const error = new Error(`${resourceName}: ${response.error.message}`);
+    error.code = response.error.code;
+    throw error;
+  }
+
+  return response?.data ?? [];
+}
+
+function unwrapOptionalResponse(response, resourceName, fallbackValue) {
+  if (response?.error) {
+    if (isOptionalSchemaError(response.error)) {
+      console.warn(`Optional Supabase resource unavailable for ${resourceName}:`, response.error.message);
+      return fallbackValue;
+    }
+
+    const error = new Error(`${resourceName}: ${response.error.message}`);
+    error.code = response.error.code;
+    throw error;
+  }
+
+  return response?.data ?? fallbackValue;
+}
+
 export const useAccountingData = (startDate, endDate) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -36,6 +86,8 @@ export const useAccountingData = (startDate, endDate) => {
   const [mappings, setMappings] = useState([]);
   const [taxRates, setTaxRates] = useState([]);
   const [entries, setEntries] = useState([]);
+  const [accountingSettings, setAccountingSettings] = useState(null);
+  const period = useMemo(() => resolvePeriodBounds(startDate, endDate), [startDate, endDate]);
 
   const fetchAll = useCallback(async () => {
     if (!user || !supabase) {
@@ -47,24 +99,48 @@ export const useAccountingData = (startDate, endDate) => {
       setLoading(true);
       setError(null);
 
-      const [invRes, expRes, supRes, accRes, mapRes, taxRes, entRes] = await Promise.all([
-        supabase.from('invoices').select('*').order('date', { ascending: false }),
-        supabase.from('expenses').select('*').order('date', { ascending: false }),
-        (async () => { try { return await supabase.from('supplier_invoices').select('*').order('created_at', { ascending: false }); } catch { return { data: [], error: null }; } })(),
-        supabase.from('accounting_chart_of_accounts').select('*').order('account_code', { ascending: true }),
-        supabase.from('accounting_mappings').select('*'),
-        supabase.from('accounting_tax_rates').select('*'),
+      const [invRes, expRes, supRes, accRes, mapRes, taxRes, entRes, settingsRes] = await Promise.all([
+        supabase.from('invoices').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+        supabase.from('expenses').select('*').eq('user_id', user.id).order('expense_date', { ascending: false }),
+        (async () => {
+          try {
+            return await supabase
+              .from('supplier_invoices')
+              .select('*')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false });
+          } catch {
+            return { data: [], error: null };
+          }
+        })(),
+        supabase
+          .from('accounting_chart_of_accounts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('account_code', { ascending: true }),
+        supabase.from('accounting_mappings').select('*').eq('user_id', user.id),
+        supabase.from('accounting_tax_rates').select('*').eq('user_id', user.id),
         // Fetch accounting entries
-        supabase.from('accounting_entries').select('*').order('transaction_date', { ascending: false }),
+        supabase
+          .from('accounting_entries')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('transaction_date', { ascending: false }),
+        supabase
+          .from('user_accounting_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle(),
       ]);
 
-      setInvoices(invRes.data || []);
-      setExpenses(expRes.data || []);
-      setSupplierInvoices(supRes?.data || []);
-      setAccounts(accRes.data || []);
-      setMappings(mapRes.data || []);
-      setTaxRates(taxRes.data || []);
-      setEntries(entRes.data || []);
+      setInvoices(unwrapRequiredResponse(invRes, 'invoices'));
+      setExpenses(unwrapRequiredResponse(expRes, 'expenses'));
+      setSupplierInvoices(unwrapOptionalResponse(supRes, 'supplier_invoices', []));
+      setAccounts(unwrapRequiredResponse(accRes, 'accounting_chart_of_accounts'));
+      setMappings(unwrapRequiredResponse(mapRes, 'accounting_mappings'));
+      setTaxRates(unwrapRequiredResponse(taxRes, 'accounting_tax_rates'));
+      setEntries(unwrapRequiredResponse(entRes, 'accounting_entries'));
+      setAccountingSettings(unwrapOptionalResponse(settingsRes, 'user_accounting_settings', null));
     } catch (err) {
       console.error('Error fetching accounting data:', err);
       setError(err.message);
@@ -156,43 +232,43 @@ export const useAccountingData = (startDate, endDate) => {
 
   // Computed values — SINGLE SOURCE OF TRUTH: all calculations from accounting_entries
   const computed = useMemo(() => {
-    if (!startDate || !endDate) return null;
+    if (!period.startDate || !period.endDate) return null;
 
     // Balance sheet & income statement — always entry-based
-    const balanceSheet = buildBalanceSheetFromEntries(accounts, entries, startDate, endDate);
-    const incomeStatement = buildIncomeStatementFromEntries(accounts, entries, startDate, endDate);
+    const balanceSheet = buildBalanceSheetFromEntries(accounts, entries, period.startDate, period.endDate);
+    const incomeStatement = buildIncomeStatementFromEntries(accounts, entries, period.startDate, period.endDate);
 
     // All KPIs from entries/statements (returns 0 when no entries — clean state, no estimations)
-    const revenue = calculateRevenueFromEntries(entries, accounts, startDate, endDate);
+    const revenue = calculateRevenueFromEntries(entries, accounts, period.startDate, period.endDate);
     const revenueTTC = revenue;
-    const totalExpenses = incomeStatement.totalExpenses ?? calculateExpensesFromEntries(entries, accounts, startDate, endDate);
-    const netIncome = incomeStatement.netIncome ?? calculateNetIncomeFromEntries(entries, accounts, startDate, endDate);
+    const totalExpenses = incomeStatement.totalExpenses ?? calculateExpensesFromEntries(entries, accounts, period.startDate, period.endDate);
+    const netIncome = incomeStatement.netIncome ?? calculateNetIncomeFromEntries(entries, accounts, period.startDate, period.endDate);
 
-    const outputVAT = calculateOutputVATFromEntries(entries, accounts, startDate, endDate);
-    const inputVAT = calculateInputVATFromEntries(entries, accounts, startDate, endDate);
+    const outputVAT = calculateOutputVATFromEntries(entries, accounts, period.startDate, period.endDate);
+    const inputVAT = calculateInputVATFromEntries(entries, accounts, period.startDate, period.endDate);
     const vatPayable = outputVAT - inputVAT;
-    const vatBreakdown = calculateVATBreakdownFromEntries(entries, accounts, startDate, endDate);
+    const vatBreakdown = calculateVATBreakdownFromEntries(entries, accounts, period.startDate, period.endDate);
 
     const taxEstimate = estimateTax(netIncome > 0 ? netIncome : 0);
-    const monthlyData = buildMonthlyChartDataFromEntries(entries, accounts, startDate, endDate);
+    const monthlyData = buildMonthlyChartDataFromEntries(entries, accounts, period.startDate, period.endDate);
 
     // Trial balance, ledger, journal — ALL filtered by period
-    const filteredEntries = filterByPeriod(entries, startDate, endDate, 'transaction_date');
+    const filteredEntries = filterByPeriod(entries, period.startDate, period.endDate, 'transaction_date');
     const trialBalance = buildTrialBalance(filteredEntries, accounts);
 
     // Cumulative trial balance (all entries up to endDate) — needed for balance sheet notes (Annexes)
     // Balance sheet accounts (classes 1-5) must show cumulative balances, not just the period
-    const cumulativeEntries = endDate
-      ? entries.filter(e => new Date(e.transaction_date) <= new Date(new Date(endDate).setHours(23, 59, 59, 999)))
+    const cumulativeEntries = period.endDate
+      ? entries.filter(e => new Date(e.transaction_date) <= new Date(new Date(period.endDate).setHours(23, 59, 59, 999)))
       : entries;
     const cumulativeTrialBalance = buildTrialBalance(cumulativeEntries, accounts);
-    const generalLedger = buildGeneralLedger(entries, accounts, startDate, endDate);
-    const journalBook = buildJournalBook(entries, startDate, endDate);
+    const generalLedger = buildGeneralLedger(entries, accounts, period.startDate, period.endDate);
+    const journalBook = buildJournalBook(entries, period.startDate, period.endDate);
 
     const previousPeriodData = (() => {
-      if (!startDate) return null;
+      if (!period.startDate) return null;
 
-      const previousEndDate = new Date(`${startDate}T00:00:00`);
+      const previousEndDate = new Date(`${period.startDate}T00:00:00`);
       previousEndDate.setDate(previousEndDate.getDate() - 1);
 
       const previousBalanceSheet = buildBalanceSheetFromEntries(
@@ -216,8 +292,8 @@ export const useAccountingData = (startDate, endDate) => {
       accounts,
       balanceSheet,
       incomeStatement,
-      startDate,
-      endDate,
+      period.startDate,
+      period.endDate,
       previousPeriodData
     );
 
@@ -257,11 +333,13 @@ export const useAccountingData = (startDate, endDate) => {
       consistencyWarnings,
       qualityGate,
     };
-  }, [accounts, entries, startDate, endDate]);
+  }, [accounts, entries, period.endDate, period.startDate]);
 
   return {
     loading,
     error,
+    period,
+    accountingSettings,
     // Raw data
     invoices,
     expenses,

@@ -47,13 +47,15 @@ import {
 import useFinancialScenarios from '@/hooks/useFinancialScenarios';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 
 const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) => {
   const { addAssumption, updateAssumption, deleteAssumption } = useFinancialScenarios();
   const { company } = useCompany();
+  const companyCurrency = resolveAccountingCurrency(company);
 
   // Get company currency symbol
-  const currencySymbol = getCurrencySymbol(company?.currency || 'EUR');
+  const currencySymbol = getCurrencySymbol(companyCurrency);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAssumption, setEditingAssumption] = useState(null);
@@ -313,7 +315,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
       case 'one_time':
         return new Intl.NumberFormat('fr-FR', {
           style: 'currency',
-          currency: company?.currency || 'EUR',
+          currency: companyCurrency,
         }).format(params.amount || 0);
 
       case 'payment_terms':

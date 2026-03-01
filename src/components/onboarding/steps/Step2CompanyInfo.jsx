@@ -12,6 +12,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft, ArrowRight, Building2 } from 'lucide-react';
 
+const isMissingAccountingCurrencyColumn = (error) =>
+  error?.code === 'PGRST204' ||
+  String(error?.message || '').includes('accounting_currency');
+
 const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -48,13 +52,21 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
   useEffect(() => {
     if (!user || !supabase) return;
     const loadCompany = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('company')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
+      if (error) {
+        console.error('Error loading company during onboarding:', error);
+        return;
+      }
       if (data) {
-        setForm(prev => ({ ...prev, ...data }));
+        setForm(prev => ({
+          ...prev,
+          ...data,
+          currency: data.accounting_currency || data.currency || prev.currency,
+        }));
       }
     };
     loadCompany();
@@ -79,23 +91,46 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
 
     setSaving(true);
     try {
+      let nextCompanyInfo = form;
+
       if (supabase && user) {
-        const { error } = await supabase
+        const accountingCurrency = String(form.currency || 'EUR').trim().toUpperCase() || 'EUR';
+        const basePayload = {
+          user_id: user.id,
+          ...form,
+          currency: accountingCurrency,
+          updated_at: new Date().toISOString(),
+        };
+        let response = await supabase
           .from('company')
           .upsert({
-            user_id: user.id,
-            ...form,
-            updated_at: new Date().toISOString(),
+            ...basePayload,
+            accounting_currency: accountingCurrency,
           }, { onConflict: 'user_id' });
+
+        if (response.error && isMissingAccountingCurrencyColumn(response.error)) {
+          response = await supabase
+            .from('company')
+            .upsert(basePayload, { onConflict: 'user_id' });
+        }
+
+        const { error } = response;
         if (error) {
           toast({
             title: t('messages.error.companySaveFailed', 'Erreur de sauvegarde'),
             description: t('messages.error.companySaveDescription', "Impossible de sauvegarder les informations de l'entreprise. Veuillez reessayer."),
             variant: "destructive"
           });
+          return;
         }
+
+        nextCompanyInfo = {
+          ...form,
+          currency: accountingCurrency,
+        };
       }
-      updateWizardData('companyInfo', form);
+
+      updateWizardData('companyInfo', nextCompanyInfo);
       onNext();
     } catch (err) {
       toast({
@@ -215,7 +250,9 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
         </div>
 
         <div className="space-y-1">
-          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.currency', 'Devise de travail')}</Label>
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>
+            {t('profileSettings.accountingCurrencyLabel')}
+          </Label>
           <SearchableSelect
             options={currencyOptions}
             value={form.currency}
@@ -224,6 +261,9 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
             searchPlaceholder="Rechercher une devise..."
             emptyMessage="Aucune devise trouvee"
           />
+          <p className="text-xs" style={{ color: '#8b92a8' }}>
+            {t('profileSettings.accountingCurrencyHelp')}
+          </p>
         </div>
 
         <div className="sm:col-span-2 space-y-1">

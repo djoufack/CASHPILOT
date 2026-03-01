@@ -5,7 +5,7 @@ import { Globe, Briefcase, Calendar } from 'lucide-react';
 
 const PilotageHeader = ({
   startDate, endDate, onStartDateChange, onEndDateChange,
-  region, onRegionChange, sector, onSectorChange
+  region, onRegionChange, regionLocked = false, sector, onSectorChange
 }) => {
   const { t } = useTranslation();
 
@@ -36,7 +36,8 @@ const PilotageHeader = ({
             <select
               value={region}
               onChange={(e) => onRegionChange(e.target.value)}
-              className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:ring-1 focus:ring-orange-500/50 focus:border-orange-500/50 outline-none"
+              disabled={regionLocked}
+              className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:ring-1 focus:ring-orange-500/50 focus:border-orange-500/50 outline-none disabled:cursor-not-allowed disabled:opacity-70"
             >
               {regions.map(r => (
                 <option key={r.value} value={r.value}>{r.label}</option>
