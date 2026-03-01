@@ -6,7 +6,7 @@
 import {
   buildAccountSemanticIndex,
   getNaturalEntryAmount,
-} from './accountTaxonomy';
+} from './accountTaxonomy.js';
 
 // ============================================================================
 // PERIOD FILTERING

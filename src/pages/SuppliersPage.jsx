@@ -22,13 +22,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { COUNTRIES } from '@/constants/countries';
+import { useReferenceData } from '@/contexts/ReferenceDataContext';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
 
 const SuppliersPage = () => {
   const { t } = useTranslation();
   const { suppliers, loading, createSupplier, deleteSupplier } = useSuppliers();
+  const { countryOptions, currencyOptions } = useReferenceData();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const emptySupplier = {
@@ -229,8 +230,8 @@ const SuppliersPage = () => {
                           <SelectValue placeholder={t('suppliers.selectCountry')} />
                         </SelectTrigger>
                         <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
-                          {COUNTRIES.map(c => (
-                            <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                          {countryOptions.map((country) => (
+                            <SelectItem key={country.value} value={country.value}>{country.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -282,12 +283,12 @@ const SuppliersPage = () => {
                         <SelectTrigger className="bg-gray-700 border-gray-600">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                          <SelectItem value="EUR">EUR - Euro</SelectItem>
-                          <SelectItem value="USD">USD - US Dollar</SelectItem>
-                          <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                          <SelectItem value="CHF">CHF - Swiss Franc</SelectItem>
-                          <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                        <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
+                          {currencyOptions.map((currency) => (
+                            <SelectItem key={currency.value} value={currency.value}>
+                              {currency.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

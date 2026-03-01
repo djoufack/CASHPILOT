@@ -11,7 +11,7 @@ import { Plus, Trash2, Upload, Search, FileText, BookOpen, Loader2 } from 'lucid
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
 import { Card, CardContent } from '@/components/ui/card';
 import CSVImportModal from './CSVImportModal';
-import pcgBelge from '@/data/pcg-belge.json';
+import { getGlobalAccountingPlanAccounts } from '@/services/referenceDataService';
 import { validateChartOfAccountsImport } from '@/utils/accountingQualityChecks';
 
 const TYPE_LABELS = {
@@ -67,11 +67,12 @@ const ChartOfAccounts = () => {
   const handleLoadPreset = async () => {
     setPresetLoading(true);
     try {
-      const validation = validateChartOfAccountsImport(pcgBelge, { existingAccounts: accounts, regionHint: 'belgium' });
+      const presetAccounts = await getGlobalAccountingPlanAccounts('BE');
+      const validation = validateChartOfAccountsImport(presetAccounts, { existingAccounts: accounts, regionHint: 'belgium' });
       if (!validation.canImport) {
-        throw new Error(validation.blockingIssues[0]?.message || 'Le plan comptable belge embarqué a échoué au contrôle de cohérence');
+        throw new Error(validation.blockingIssues[0]?.message || 'Le plan comptable belge Supabase a échoué au contrôle de cohérence');
       }
-      await bulkCreateAccounts(pcgBelge);
+      await bulkCreateAccounts(presetAccounts);
       setShowPresetConfirm(false);
     } catch (err) {
       console.error('Erreur chargement plan comptable:', err);

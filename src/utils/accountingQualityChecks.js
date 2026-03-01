@@ -1,7 +1,7 @@
 import {
   buildAccountSemanticIndex,
   detectAccountingRegion,
-} from './accountTaxonomy';
+} from './accountTaxonomy.js';
 
 const VALID_ACCOUNT_TYPES = new Set(['asset', 'liability', 'equity', 'revenue', 'expense']);
 const CRITICAL_SEVERITY = 'critical';

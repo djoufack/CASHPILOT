@@ -3,17 +3,38 @@
  *
  * Initializes the accounting module for a new user by:
  *  1. Checking if the user is already initialized
- *  2. Loading the appropriate chart of accounts (PCG belge or PCG français)
- *  3. Creating default accounting mappings
- *  4. Creating default tax rates
+ *  2. Loading the seeded reference chart of accounts from Supabase
+ *  3. Creating default accounting mappings from Supabase templates
+ *  4. Creating default tax rates from Supabase templates
  *  5. Marking the user as initialized
  */
 
 import { supabase } from '@/lib/supabase';
-import pcgBelge from '@/data/pcg-belge.json';
-import pcgFrance from '@/data/pcg-france.json';
-import pcgOhada from '@/data/pcg-ohada.json';
+import {
+  getAccountingMappingTemplates,
+  getAccountingTaxRateTemplates,
+  getGlobalAccountingPlanAccounts,
+} from '@/services/referenceDataService';
 import { validateChartOfAccountsImport } from '@/utils/accountingQualityChecks';
+
+const resolveRegionHint = (country) => {
+  if (country === 'BE') return 'belgium';
+  if (country === 'OHADA') return 'ohada';
+  return 'france';
+};
+
+async function loadReferenceAccounts(country) {
+  const accounts = await getGlobalAccountingPlanAccounts(country);
+  return (accounts || []).map((account) => ({
+    account_code: account.account_code,
+    account_name: account.account_name,
+    account_type: account.account_type,
+    account_category: account.account_category || null,
+    parent_code: account.parent_code || null,
+    description: account.description || null,
+    is_header: Boolean(account.is_header),
+  }));
+}
 
 // ---------------------------------------------------------------------------
 // Check initialization status
@@ -61,12 +82,11 @@ export async function checkAccountingInitialized(userId) {
  * Initializes the full accounting module for the given user and country.
  *
  * @param {string} userId
- * @param {string} country – "BE" for Belgium, "FR" for France
+ * @param {string} country
  * @returns {Promise<{ success: boolean, accountsCount: number, mappingsCount: number, taxRatesCount: number, error?: string }>}
  */
 export async function initializeAccounting(userId, country) {
   try {
-    // 1. Upsert user_accounting_settings (mark as NOT initialized yet)
     const { error: settingsError } = await supabase
       .from('user_accounting_settings')
       .upsert(
@@ -85,30 +105,34 @@ export async function initializeAccounting(userId, country) {
       return { success: false, accountsCount: 0, mappingsCount: 0, taxRatesCount: 0, error: settingsError.message };
     }
 
-    // 2. Load the appropriate chart of accounts
-    const accounts = country === 'BE' ? pcgBelge : country === 'OHADA' ? pcgOhada : pcgFrance;
-    const regionHint = country === 'BE' ? 'belgium' : country === 'OHADA' ? 'ohada' : 'france';
-    const validation = validateChartOfAccountsImport(accounts, { regionHint });
+    const accounts = await loadReferenceAccounts(country);
+    if (accounts.length === 0) {
+      return {
+        success: false,
+        accountsCount: 0,
+        mappingsCount: 0,
+        taxRatesCount: 0,
+        error: 'Aucun plan comptable de référence n’est disponible dans Supabase pour ce pays',
+      };
+    }
+
+    const validation = validateChartOfAccountsImport(accounts, {
+      regionHint: resolveRegionHint(country),
+    });
     if (!validation.canImport) {
       return {
         success: false,
         accountsCount: 0,
         mappingsCount: 0,
         taxRatesCount: 0,
-        error: validation.blockingIssues[0]?.message || 'Le plan comptable par défaut est invalide pour le pilotage',
+        error: validation.blockingIssues[0]?.message || 'Le plan comptable de référence est invalide pour le pilotage',
       };
     }
 
-    // 3. Bulk-insert accounts
     const accountsCount = await bulkInsertAccounts(userId, accounts);
-
-    // 4. Insert default mappings
     const mappingsCount = await insertDefaultMappings(userId, country);
-
-    // 5. Insert default tax rates
     const taxRatesCount = await insertDefaultTaxRates(userId, country);
 
-    // 6. Mark user as initialized
     const { error: finalizeError } = await supabase
       .from('user_accounting_settings')
       .update({
@@ -139,42 +163,34 @@ export async function initializeAccounting(userId, country) {
 // Bulk insert accounts
 // ---------------------------------------------------------------------------
 
-/**
- * Upserts all accounts from a PCG file into accounting_chart_of_accounts.
- * Processes in batches of 200 to stay within Supabase limits.
- *
- * @param {string} userId
- * @param {Array<object>} accounts
- * @returns {Promise<number>} Number of accounts inserted / updated
- */
 async function bulkInsertAccounts(userId, accounts) {
   const BATCH_SIZE = 200;
   let totalInserted = 0;
 
-  const rows = accounts.map((acc) => ({
+  const rows = accounts.map((account) => ({
     user_id: userId,
-    account_code: acc.account_code,
-    account_name: acc.account_name,
-    account_type: acc.account_type,
-    account_category: acc.account_category || null,
-    parent_code: acc.parent_code || null,
+    account_code: account.account_code,
+    account_name: account.account_name,
+    account_type: account.account_type,
+    account_category: account.account_category || null,
+    parent_code: account.parent_code || null,
   }));
 
-  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-    const batch = rows.slice(i, i + BATCH_SIZE);
+  for (let index = 0; index < rows.length; index += BATCH_SIZE) {
+    const batch = rows.slice(index, index + BATCH_SIZE);
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('accounting_chart_of_accounts')
         .upsert(batch, { onConflict: 'user_id,account_code' });
 
       if (error) {
-        console.error(`[AccountingInit] Error inserting accounts batch ${i / BATCH_SIZE + 1}:`, error.message);
+        console.error(`[AccountingInit] Error inserting accounts batch ${index / BATCH_SIZE + 1}:`, error.message);
       } else {
         totalInserted += batch.length;
       }
     } catch (err) {
-      console.error(`[AccountingInit] Unexpected error in account batch ${i / BATCH_SIZE + 1}:`, err);
+      console.error(`[AccountingInit] Unexpected error in account batch ${index / BATCH_SIZE + 1}:`, err);
     }
   }
 
@@ -185,27 +201,24 @@ async function bulkInsertAccounts(userId, accounts) {
 // Insert default mappings
 // ---------------------------------------------------------------------------
 
-/**
- * Upserts default accounting mappings for the given country.
- *
- * @param {string} userId
- * @param {string} country
- * @returns {Promise<number>} Number of mappings inserted / updated
- */
 async function insertDefaultMappings(userId, country) {
-  const mappings = getDefaultMappings(country);
+  const mappings = await getDefaultMappings(country);
 
-  const rows = mappings.map((m) => ({
+  if (mappings.length === 0) {
+    return 0;
+  }
+
+  const rows = mappings.map((mapping) => ({
     user_id: userId,
-    source_type: m.source_type,
-    source_category: m.source_category,
-    debit_account_code: m.debit_account_code,
-    credit_account_code: m.credit_account_code,
-    description: m.description,
+    source_type: mapping.source_type,
+    source_category: mapping.source_category,
+    debit_account_code: mapping.debit_account_code,
+    credit_account_code: mapping.credit_account_code,
+    description: mapping.description,
   }));
 
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('accounting_mappings')
       .upsert(rows, { onConflict: 'user_id,source_type,source_category' });
 
@@ -225,27 +238,24 @@ async function insertDefaultMappings(userId, country) {
 // Insert default tax rates
 // ---------------------------------------------------------------------------
 
-/**
- * Upserts default tax rates for the given country.
- *
- * @param {string} userId
- * @param {string} country
- * @returns {Promise<number>} Number of tax rates inserted / updated
- */
 async function insertDefaultTaxRates(userId, country) {
-  const taxRates = getDefaultTaxRates(country);
+  const taxRates = await getDefaultTaxRates(country);
 
-  const rows = taxRates.map((t) => ({
+  if (taxRates.length === 0) {
+    return 0;
+  }
+
+  const rows = taxRates.map((taxRate) => ({
     user_id: userId,
-    name: t.name,
-    rate: t.rate,
-    tax_type: t.tax_type,
-    account_code: t.account_code,
-    is_default: t.is_default,
+    name: taxRate.name,
+    rate: taxRate.rate,
+    tax_type: taxRate.tax_type,
+    account_code: taxRate.account_code,
+    is_default: taxRate.is_default,
   }));
 
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('accounting_tax_rates')
       .upsert(rows, { onConflict: 'user_id,name' });
 
@@ -262,227 +272,27 @@ async function insertDefaultTaxRates(userId, country) {
 }
 
 // ---------------------------------------------------------------------------
-// Default mapping data
+// Default template readers
 // ---------------------------------------------------------------------------
 
 /**
  * Returns the default accounting mappings for the given country.
  *
- * @param {string} country – "BE" | "FR"
- * @returns {Array<object>}
+ * @param {string} country
+ * @returns {Promise<Array<object>>}
  */
-export function getDefaultMappings(country) {
-  if (country === 'OHADA') {
-    return [
-      // ---- Factures clients (ventes) ----
-      { source_type: 'invoice', source_category: 'revenue',  debit_account_code: '411',  credit_account_code: '701',  description: 'Ventes de marchandises' },
-      { source_type: 'invoice', source_category: 'service',  debit_account_code: '411',  credit_account_code: '706',  description: 'Services vendus' },
-      { source_type: 'invoice', source_category: 'product',  debit_account_code: '411',  credit_account_code: '702',  description: 'Ventes de produits finis' },
-
-      // ---- Paiements ----
-      { source_type: 'payment', source_category: 'cash',          debit_account_code: '571', credit_account_code: '411', description: 'Encaissement client - espèces' },
-      { source_type: 'payment', source_category: 'bank_transfer', debit_account_code: '521', credit_account_code: '411', description: 'Encaissement client - virement' },
-      { source_type: 'payment', source_category: 'card',          debit_account_code: '521', credit_account_code: '411', description: 'Encaissement client - carte' },
-      { source_type: 'payment', source_category: 'check',         debit_account_code: '513', credit_account_code: '411', description: 'Encaissement client - chèque' },
-
-      // ---- Avoirs ----
-      { source_type: 'credit_note', source_category: 'general', debit_account_code: '701', credit_account_code: '411', description: 'Avoir client' },
-
-      // ---- Dépenses ----
-      { source_type: 'expense', source_category: 'general',    debit_account_code: '638',  credit_account_code: '521', description: 'Autres charges externes' },
-      { source_type: 'expense', source_category: 'office',     debit_account_code: '6053', credit_account_code: '521', description: 'Fournitures de bureau' },
-      { source_type: 'expense', source_category: 'travel',     debit_account_code: '6371', credit_account_code: '521', description: 'Voyages et déplacements' },
-      { source_type: 'expense', source_category: 'meals',      debit_account_code: '636',  credit_account_code: '521', description: 'Frais de réceptions' },
-      { source_type: 'expense', source_category: 'transport',  debit_account_code: '618',  credit_account_code: '521', description: 'Autres frais de transport' },
-      { source_type: 'expense', source_category: 'software',   debit_account_code: '634',  credit_account_code: '521', description: 'Redevances pour logiciels' },
-      { source_type: 'expense', source_category: 'hardware',   debit_account_code: '6054', credit_account_code: '521', description: 'Fournitures informatiques' },
-      { source_type: 'expense', source_category: 'marketing',  debit_account_code: '627',  credit_account_code: '521', description: 'Publicité et relations publiques' },
-      { source_type: 'expense', source_category: 'legal',      debit_account_code: '6324', credit_account_code: '521', description: 'Honoraires' },
-      { source_type: 'expense', source_category: 'insurance',  debit_account_code: '625',  credit_account_code: '521', description: "Primes d'assurance" },
-      { source_type: 'expense', source_category: 'rent',       debit_account_code: '6222', credit_account_code: '521', description: 'Locations de bâtiments' },
-      { source_type: 'expense', source_category: 'utilities',  debit_account_code: '6051', credit_account_code: '521', description: 'Eau, énergie' },
-      { source_type: 'expense', source_category: 'telecom',    debit_account_code: '628',  credit_account_code: '521', description: 'Frais de télécommunications' },
-      { source_type: 'expense', source_category: 'training',   debit_account_code: '633',  credit_account_code: '521', description: 'Formation du personnel' },
-      { source_type: 'expense', source_category: 'consulting', debit_account_code: '6324', credit_account_code: '521', description: 'Honoraires de conseil' },
-      { source_type: 'expense', source_category: 'other',      debit_account_code: '658',  credit_account_code: '521', description: 'Charges diverses' },
-
-      // ---- Factures fournisseurs (inventaire permanent SYSCOHADA Art. 44) ----
-      { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '311',  credit_account_code: '401', description: 'Achats de marchandises → Stock' },
-      { source_type: 'supplier_invoice', source_category: 'service',  debit_account_code: '604',  credit_account_code: '401', description: 'Achats de services' },
-      { source_type: 'supplier_invoice', source_category: 'supply',   debit_account_code: '331',  credit_account_code: '401', description: 'Autres achats → Stock approvisionnements' },
-
-      // ---- Variation de stocks ----
-      { source_type: 'stock_variation', source_category: 'merchandise',   debit_account_code: '6031', credit_account_code: '311', description: 'Variation de stocks de marchandises' },
-      { source_type: 'stock_variation', source_category: 'materials',     debit_account_code: '6032', credit_account_code: '321', description: 'Variation de stocks de matières premières' },
-      { source_type: 'stock_variation', source_category: 'supplies',      debit_account_code: '6033', credit_account_code: '331', description: "Variation de stocks d'approvisionnements" },
-      { source_type: 'stock_variation', source_category: 'finished_goods', debit_account_code: '361', credit_account_code: '73',  description: 'Variation de stocks de produits finis' },
-
-      // ---- Achats fournisseurs (commandes) ----
-      { source_type: 'supplier_order', source_category: 'merchandise', debit_account_code: '601', credit_account_code: '401', description: 'Achat de marchandises sur commande fournisseur' },
-
-      // ---- TVA ----
-      { source_type: 'invoice', source_category: 'vat', debit_account_code: '411', credit_account_code: '4431', description: 'TVA collectée sur ventes' },
-      { source_type: 'supplier_invoice', source_category: 'vat', debit_account_code: '4452', credit_account_code: '401', description: 'TVA déductible sur achats' },
-    ];
-  }
-
-  if (country === 'FR') {
-    return [
-      // ---- Factures clients (ventes) ----
-      { source_type: 'invoice', source_category: 'revenue',  debit_account_code: '411',  credit_account_code: '701',   description: 'Ventes de marchandises' },
-      { source_type: 'invoice', source_category: 'service',  debit_account_code: '411',  credit_account_code: '706',   description: 'Prestations de services' },
-      { source_type: 'invoice', source_category: 'product',  debit_account_code: '411',  credit_account_code: '701',   description: 'Ventes de produits finis' },
-
-      // ---- Paiements ----
-      { source_type: 'payment', source_category: 'cash',          debit_account_code: '512', credit_account_code: '411', description: 'Encaissement client - espèces' },
-      { source_type: 'payment', source_category: 'bank_transfer', debit_account_code: '512', credit_account_code: '411', description: 'Encaissement client - virement' },
-      { source_type: 'payment', source_category: 'card',          debit_account_code: '512', credit_account_code: '411', description: 'Encaissement client - carte' },
-      { source_type: 'payment', source_category: 'check',         debit_account_code: '512', credit_account_code: '411', description: 'Encaissement client - chèque' },
-
-      // ---- Avoirs ----
-      { source_type: 'credit_note', source_category: 'general', debit_account_code: '701', credit_account_code: '411', description: 'Avoir client' },
-
-      // ---- Dépenses ----
-      { source_type: 'expense', source_category: 'general',    debit_account_code: '6180', credit_account_code: '512', description: 'Frais généraux divers' },
-      { source_type: 'expense', source_category: 'office',     debit_account_code: '6064', credit_account_code: '512', description: 'Fournitures administratives' },
-      { source_type: 'expense', source_category: 'travel',     debit_account_code: '6251', credit_account_code: '512', description: 'Voyages et déplacements' },
-      { source_type: 'expense', source_category: 'meals',      debit_account_code: '6257', credit_account_code: '512', description: 'Réceptions et frais de repas' },
-      { source_type: 'expense', source_category: 'transport',  debit_account_code: '6241', credit_account_code: '512', description: 'Transport de biens et matériel' },
-      { source_type: 'expense', source_category: 'software',   debit_account_code: '6116', credit_account_code: '512', description: 'Logiciels et abonnements numériques' },
-      { source_type: 'expense', source_category: 'hardware',   debit_account_code: '6063', credit_account_code: '512', description: 'Matériel informatique (petit équipement)' },
-      { source_type: 'expense', source_category: 'marketing',  debit_account_code: '6231', credit_account_code: '512', description: 'Publicité et marketing' },
-      { source_type: 'expense', source_category: 'legal',      debit_account_code: '6226', credit_account_code: '512', description: 'Honoraires juridiques et comptables' },
-      { source_type: 'expense', source_category: 'insurance',  debit_account_code: '616',  credit_account_code: '512', description: "Primes d'assurance" },
-      { source_type: 'expense', source_category: 'rent',       debit_account_code: '6132', credit_account_code: '512', description: 'Loyers immobiliers' },
-      { source_type: 'expense', source_category: 'utilities',  debit_account_code: '6061', credit_account_code: '512', description: 'Énergie (eau, gaz, électricité)' },
-      { source_type: 'expense', source_category: 'telecom',    debit_account_code: '626',  credit_account_code: '512', description: 'Téléphone et Internet' },
-      { source_type: 'expense', source_category: 'training',   debit_account_code: '6333', credit_account_code: '512', description: 'Formation professionnelle' },
-      { source_type: 'expense', source_category: 'consulting', debit_account_code: '6226', credit_account_code: '512', description: 'Honoraires de conseil' },
-      { source_type: 'expense', source_category: 'other',      debit_account_code: '658',  credit_account_code: '512', description: 'Charges diverses de gestion' },
-
-      // ---- Factures fournisseurs (inventaire permanent PCG) ----
-      { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '311',  credit_account_code: '401', description: 'Achats de marchandises → Stock' },
-      { source_type: 'supplier_invoice', source_category: 'service',  debit_account_code: '604',  credit_account_code: '401', description: 'Achats prestations de services' },
-      { source_type: 'supplier_invoice', source_category: 'supply',   debit_account_code: '326',  credit_account_code: '401', description: 'Autres achats → Stock approvisionnements' },
-
-      // ---- Variation de stocks ----
-      { source_type: 'stock_variation', source_category: 'merchandise',    debit_account_code: '6037', credit_account_code: '311', description: 'Variation de stocks de marchandises' },
-      { source_type: 'stock_variation', source_category: 'materials',      debit_account_code: '6031', credit_account_code: '321', description: 'Variation de stocks de matières premières' },
-      { source_type: 'stock_variation', source_category: 'supplies',       debit_account_code: '6032', credit_account_code: '326', description: "Variation de stocks d'approvisionnements" },
-      { source_type: 'stock_variation', source_category: 'finished_goods', debit_account_code: '355',  credit_account_code: '7135', description: 'Variation de stocks de produits finis' },
-
-      // ---- Achats fournisseurs (commandes) ----
-      { source_type: 'supplier_order', source_category: 'merchandise', debit_account_code: '607', credit_account_code: '401', description: 'Achat de marchandises sur commande fournisseur' },
-
-      // ---- TVA ----
-      { source_type: 'invoice', source_category: 'vat', debit_account_code: '411', credit_account_code: '44571', description: 'TVA collectée sur ventes' },
-      { source_type: 'supplier_invoice', source_category: 'vat', debit_account_code: '44566', credit_account_code: '401', description: 'TVA déductible sur achats' },
-    ];
-  }
-
-  // Default: Belgium (BE)
-  return [
-    // ---- Factures clients (ventes) ----
-    { source_type: 'invoice', source_category: 'revenue',  debit_account_code: '400',  credit_account_code: '700',   description: 'Ventes de marchandises' },
-    { source_type: 'invoice', source_category: 'service',  debit_account_code: '400',  credit_account_code: '7061',  description: 'Prestations de services' },
-    { source_type: 'invoice', source_category: 'product',  debit_account_code: '400',  credit_account_code: '701',   description: 'Ventes de produits finis' },
-
-    // ---- Paiements ----
-    { source_type: 'payment', source_category: 'cash',          debit_account_code: '550', credit_account_code: '400', description: 'Encaissement client - espèces' },
-    { source_type: 'payment', source_category: 'bank_transfer', debit_account_code: '550', credit_account_code: '400', description: 'Encaissement client - virement' },
-    { source_type: 'payment', source_category: 'card',          debit_account_code: '550', credit_account_code: '400', description: 'Encaissement client - carte' },
-    { source_type: 'payment', source_category: 'check',         debit_account_code: '550', credit_account_code: '400', description: 'Encaissement client - chèque' },
-
-    // ---- Avoirs ----
-    { source_type: 'credit_note', source_category: 'general', debit_account_code: '700', credit_account_code: '400', description: 'Avoir client' },
-
-    // ---- Dépenses ----
-    { source_type: 'expense', source_category: 'general',    debit_account_code: '6180', credit_account_code: '550', description: 'Frais généraux divers' },
-    { source_type: 'expense', source_category: 'office',     debit_account_code: '6064', credit_account_code: '550', description: 'Fournitures administratives' },
-    { source_type: 'expense', source_category: 'travel',     debit_account_code: '6251', credit_account_code: '550', description: 'Voyages et déplacements' },
-    { source_type: 'expense', source_category: 'meals',      debit_account_code: '6257', credit_account_code: '550', description: 'Réceptions et frais de repas' },
-    { source_type: 'expense', source_category: 'transport',  debit_account_code: '6241', credit_account_code: '550', description: 'Transport de biens et matériel' },
-    { source_type: 'expense', source_category: 'software',   debit_account_code: '6116', credit_account_code: '550', description: 'Logiciels et abonnements numériques' },
-    { source_type: 'expense', source_category: 'hardware',   debit_account_code: '6063', credit_account_code: '550', description: 'Matériel informatique (petit équipement)' },
-    { source_type: 'expense', source_category: 'marketing',  debit_account_code: '6231', credit_account_code: '550', description: 'Publicité et marketing' },
-    { source_type: 'expense', source_category: 'legal',      debit_account_code: '6226', credit_account_code: '550', description: 'Honoraires juridiques et comptables' },
-    { source_type: 'expense', source_category: 'insurance',  debit_account_code: '616',  credit_account_code: '550', description: "Primes d'assurance" },
-    { source_type: 'expense', source_category: 'rent',       debit_account_code: '6132', credit_account_code: '550', description: 'Loyers immobiliers' },
-    { source_type: 'expense', source_category: 'utilities',  debit_account_code: '6061', credit_account_code: '550', description: 'Énergie (eau, gaz, électricité)' },
-    { source_type: 'expense', source_category: 'telecom',    debit_account_code: '626',  credit_account_code: '550', description: 'Téléphone et Internet' },
-    { source_type: 'expense', source_category: 'training',   debit_account_code: '6333', credit_account_code: '550', description: 'Formation professionnelle' },
-    { source_type: 'expense', source_category: 'consulting', debit_account_code: '6226', credit_account_code: '550', description: 'Honoraires de conseil' },
-    { source_type: 'expense', source_category: 'other',      debit_account_code: '658',  credit_account_code: '550', description: 'Charges diverses de gestion' },
-
-    // ---- Factures fournisseurs (inventaire permanent PCMN) ----
-    { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '340',  credit_account_code: '440', description: 'Achats de marchandises → Stock' },
-    { source_type: 'supplier_invoice', source_category: 'service',  debit_account_code: '604',  credit_account_code: '440', description: 'Achats prestations de services' },
-    { source_type: 'supplier_invoice', source_category: 'supply',   debit_account_code: '310',  credit_account_code: '440', description: 'Autres achats → Stock approvisionnements' },
-
-    // ---- Variation de stocks ----
-    { source_type: 'stock_variation', source_category: 'merchandise',    debit_account_code: '6094', credit_account_code: '340', description: 'Variation de stocks de marchandises' },
-    { source_type: 'stock_variation', source_category: 'materials',      debit_account_code: '6090', credit_account_code: '300', description: 'Variation de stocks de matières premières' },
-    { source_type: 'stock_variation', source_category: 'supplies',       debit_account_code: '6091', credit_account_code: '310', description: "Variation de stocks d'approvisionnements" },
-    { source_type: 'stock_variation', source_category: 'finished_goods', debit_account_code: '330',  credit_account_code: '713', description: 'Variation de stocks de produits finis' },
-
-    // ---- Achats fournisseurs (commandes) ----
-    { source_type: 'supplier_order', source_category: 'merchandise', debit_account_code: '604', credit_account_code: '440', description: 'Achat de marchandises sur commande fournisseur' },
-
-    // ---- TVA ----
-    { source_type: 'invoice', source_category: 'vat', debit_account_code: '400', credit_account_code: '451', description: 'TVA collectée sur ventes' },
-    { source_type: 'supplier_invoice', source_category: 'vat', debit_account_code: '411', credit_account_code: '440', description: 'TVA déductible sur achats' },
-  ];
+export async function getDefaultMappings(country) {
+  return getAccountingMappingTemplates(country);
 }
-
-// ---------------------------------------------------------------------------
-// Default tax rate data
-// ---------------------------------------------------------------------------
 
 /**
  * Returns the default tax rates for the given country.
  *
- * @param {string} country – "BE" | "FR"
- * @returns {Array<object>}
+ * @param {string} country
+ * @returns {Promise<Array<object>>}
  */
-export function getDefaultTaxRates(country) {
-  if (country === 'OHADA') {
-    return [
-      // TVA collectée (output) — taux le plus courant zone OHADA : 18%
-      { name: 'TVA 18%',   rate: 0.18,  tax_type: 'output', account_code: '4431', is_default: true },
-      { name: 'TVA 19.25%', rate: 0.1925, tax_type: 'output', account_code: '4431', is_default: false },
-      { name: 'TVA 0% (exonéré)', rate: 0, tax_type: 'output', account_code: '4431', is_default: false },
-      // TVA déductible (input)
-      { name: 'TVA récupérable 18%',    rate: 0.18,   tax_type: 'input', account_code: '4452', is_default: true },
-      { name: 'TVA récupérable 19.25%', rate: 0.1925, tax_type: 'input', account_code: '4452', is_default: false },
-    ];
-  }
-
-  if (country === 'FR') {
-    return [
-      // TVA collectée (output)
-      { name: 'TVA 20%',   rate: 0.20,  tax_type: 'output', account_code: '44571', is_default: true },
-      { name: 'TVA 10%',   rate: 0.10,  tax_type: 'output', account_code: '44571', is_default: false },
-      { name: 'TVA 5.5%',  rate: 0.055, tax_type: 'output', account_code: '44571', is_default: false },
-      { name: 'TVA 2.1%',  rate: 0.021, tax_type: 'output', account_code: '44571', is_default: false },
-      // TVA déductible (input)
-      { name: 'TVA déductible 20%',  rate: 0.20,  tax_type: 'input', account_code: '44566', is_default: true },
-      { name: 'TVA déductible 10%',  rate: 0.10,  tax_type: 'input', account_code: '44566', is_default: false },
-      { name: 'TVA déductible 5.5%', rate: 0.055, tax_type: 'input', account_code: '44566', is_default: false },
-    ];
-  }
-
-  // Default: Belgium (BE)
-  return [
-    // TVA collectée (output)
-    { name: 'TVA 21%', rate: 0.21, tax_type: 'output', account_code: '4510', is_default: true },
-    { name: 'TVA 12%', rate: 0.12, tax_type: 'output', account_code: '4510', is_default: false },
-    { name: 'TVA 6%',  rate: 0.06, tax_type: 'output', account_code: '4510', is_default: false },
-    { name: 'TVA 0%',  rate: 0,    tax_type: 'output', account_code: '4510', is_default: false },
-    // TVA déductible (input)
-    { name: 'TVA déductible 21%', rate: 0.21, tax_type: 'input', account_code: '4110', is_default: true },
-    { name: 'TVA déductible 12%', rate: 0.12, tax_type: 'input', account_code: '4110', is_default: false },
-    { name: 'TVA déductible 6%',  rate: 0.06, tax_type: 'input', account_code: '4110', is_default: false },
-  ];
+export async function getDefaultTaxRates(country) {
+  return getAccountingTaxRateTemplates(country);
 }
 
 // ---------------------------------------------------------------------------
@@ -492,13 +302,12 @@ export function getDefaultTaxRates(country) {
 /**
  * Copies accounts from a template accounting plan to a new personal plan for the user.
  *
- * @param {string} fromPlanId - The source template plan ID
- * @param {string} userId - The user ID
+ * @param {string} fromPlanId
+ * @param {string} userId
  * @returns {Promise<{ success: boolean, planId: string|null, accountsCopied: number, error?: string }>}
  */
 export async function copyPlanAccounts(fromPlanId, userId) {
   try {
-    // 1. Fetch the source plan metadata
     const { data: sourcePlan, error: planError } = await supabase
       .from('accounting_plans')
       .select('*')
@@ -514,12 +323,12 @@ export async function copyPlanAccounts(fromPlanId, userId) {
       };
     }
 
-    // 2. Fetch all accounts from the source plan
     const { data: sourceAccounts, error: accountsError } = await supabase
       .from('accounting_plan_accounts')
       .select('*')
       .eq('plan_id', fromPlanId)
-      .order('account_code');
+      .order('sort_order', { ascending: true })
+      .order('account_code', { ascending: true });
 
     if (accountsError) {
       return {
@@ -539,7 +348,6 @@ export async function copyPlanAccounts(fromPlanId, userId) {
       };
     }
 
-    // 3. Create a personal plan for the user
     const { data: newPlan, error: newPlanError } = await supabase
       .from('accounting_plans')
       .insert({
@@ -564,28 +372,27 @@ export async function copyPlanAccounts(fromPlanId, userId) {
       };
     }
 
-    // 4. Copy all accounts to the personal plan (in batches of 200)
     const BATCH_SIZE = 200;
     let totalCopied = 0;
 
-    const rows = sourceAccounts.map((acc) => ({
+    const rows = sourceAccounts.map((account) => ({
       plan_id: newPlan.id,
-      account_code: acc.account_code,
-      account_name: acc.account_name,
-      account_type: acc.account_type,
-      account_category: acc.account_category || null,
-      parent_code: acc.parent_code || null,
-      is_active: acc.is_active !== false,
+      account_code: account.account_code,
+      account_name: account.account_name,
+      account_type: account.account_type,
+      account_category: account.account_category || null,
+      parent_code: account.parent_code || null,
+      is_active: account.is_active !== false,
     }));
 
-    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-      const batch = rows.slice(i, i + BATCH_SIZE);
+    for (let index = 0; index < rows.length; index += BATCH_SIZE) {
+      const batch = rows.slice(index, index + BATCH_SIZE);
       const { error: insertError } = await supabase
         .from('accounting_plan_accounts')
         .insert(batch);
 
       if (insertError) {
-        console.error(`[AccountingInit] Error copying accounts batch ${Math.floor(i / BATCH_SIZE) + 1}:`, insertError.message);
+        console.error(`[AccountingInit] Error copying accounts batch ${Math.floor(index / BATCH_SIZE) + 1}:`, insertError.message);
       } else {
         totalCopied += batch.length;
       }
@@ -613,20 +420,16 @@ export async function copyPlanAccounts(fromPlanId, userId) {
 
 /**
  * Initializes accounting from a specific plan ID and country code.
- * This is an alternative entry point that copies accounts from a plan template
- * and then initializes mappings and tax rates.
  *
  * @param {string} userId
- * @param {string} planId - The accounting plan to copy from
- * @param {string} countryCode - "BE" | "FR" | "OHADA"
+ * @param {string} planId
+ * @param {string} countryCode
  * @returns {Promise<{ success: boolean, accountsCount: number, mappingsCount: number, taxRatesCount: number, error?: string }>}
  */
 export async function initializeAccountingFromPlan(userId, planId, countryCode) {
   try {
-    // Map country code to the format used by existing functions
     const country = countryCode || 'FR';
 
-    // 1. Upsert user_accounting_settings
     const { error: settingsError } = await supabase
       .from('user_accounting_settings')
       .upsert(
@@ -645,32 +448,37 @@ export async function initializeAccountingFromPlan(userId, planId, countryCode) 
       return { success: false, accountsCount: 0, mappingsCount: 0, taxRatesCount: 0, error: settingsError.message };
     }
 
-    // 2. Copy plan accounts to user's chart of accounts
     let accountsCount = 0;
     if (planId) {
-      const { data: planAccounts, error: fetchErr } = await supabase
+      const { data: planAccounts, error: fetchError } = await supabase
         .from('accounting_plan_accounts')
         .select('*')
-        .eq('plan_id', planId);
+        .eq('plan_id', planId)
+        .order('sort_order', { ascending: true })
+        .order('account_code', { ascending: true });
 
-      if (!fetchErr && planAccounts && planAccounts.length > 0) {
+      if (!fetchError && planAccounts && planAccounts.length > 0) {
         accountsCount = await bulkInsertAccounts(userId, planAccounts);
       }
     }
 
-    // If no accounts were copied from the plan, fall back to static data
     if (accountsCount === 0) {
-      const accounts = country === 'BE' ? pcgBelge : country === 'OHADA' ? pcgOhada : pcgFrance;
-      accountsCount = await bulkInsertAccounts(userId, accounts);
+      const referenceAccounts = await loadReferenceAccounts(country);
+      if (referenceAccounts.length === 0) {
+        return {
+          success: false,
+          accountsCount: 0,
+          mappingsCount: 0,
+          taxRatesCount: 0,
+          error: 'Aucun plan comptable de référence n’est disponible dans Supabase pour ce pays',
+        };
+      }
+      accountsCount = await bulkInsertAccounts(userId, referenceAccounts);
     }
 
-    // 3. Insert default mappings
     const mappingsCount = await insertDefaultMappings(userId, country);
-
-    // 4. Insert default tax rates
     const taxRatesCount = await insertDefaultTaxRates(userId, country);
 
-    // 5. Mark user as initialized
     const { error: finalizeError } = await supabase
       .from('user_accounting_settings')
       .update({
@@ -703,8 +511,6 @@ export async function initializeAccountingFromPlan(userId, planId, countryCode) 
 
 /**
  * Refreshes default mappings for a single user.
- * Reads their country from user_accounting_settings and upserts the latest
- * default mappings. Existing custom mappings are preserved (upsert on conflict).
  *
  * @param {string} userId
  * @returns {Promise<{ success: boolean, mappingsCount: number, country: string|null, error?: string }>}
@@ -731,7 +537,7 @@ export async function refreshUserMappings(userId) {
 }
 
 /**
- * Refreshes default mappings for ALL initialized users.
+ * Refreshes default mappings for all initialized users.
  *
  * @returns {Promise<{ usersUpdated: number, totalMappings: number, errors: string[] }>}
  */
@@ -750,14 +556,14 @@ export async function refreshAllUsersMappings() {
       return { usersUpdated: 0, totalMappings: 0, errors: [error?.message || 'Failed to fetch users'] };
     }
 
-    for (const u of users) {
-      const country = u.country || 'FR';
+    for (const user of users) {
+      const country = user.country || 'FR';
       try {
-        const count = await insertDefaultMappings(u.user_id, country);
+        const count = await insertDefaultMappings(user.user_id, country);
         totalMappings += count;
-        usersUpdated++;
+        usersUpdated += 1;
       } catch (err) {
-        errors.push(`User ${u.user_id}: ${err.message}`);
+        errors.push(`User ${user.user_id}: ${err.message}`);
       }
     }
 

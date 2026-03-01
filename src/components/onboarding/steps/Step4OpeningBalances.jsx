@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, ArrowRight, PiggyBank, HelpCircle, MinusCircle } from 'lucide-react';
-import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
+import { useReferenceData } from '@/contexts/ReferenceDataContext';
 
 const BALANCE_FIELDS = [
   {
@@ -59,12 +59,13 @@ const BALANCE_FIELDS = [
 
 const Step4OpeningBalances = ({ onNext, onBack, wizardData, updateWizardData }) => {
   const { t } = useTranslation();
+  const { getCurrencySymbol } = useReferenceData();
   const [balances, setBalances] = useState(wizardData.openingBalances || {});
   const [skippedFields, setSkippedFields] = useState({});
   const [showTooltip, setShowTooltip] = useState(null);
 
   const selectedCurrency = wizardData.companyInfo?.currency || 'EUR';
-  const currencySymbol = SUPPORTED_CURRENCIES.find(c => c.code === selectedCurrency)?.symbol || selectedCurrency;
+  const currencySymbol = getCurrencySymbol(selectedCurrency);
 
   const handleChange = (key, value) => {
     const numValue = value.replace(/[^\d.,]/g, '').replace(',', '.');

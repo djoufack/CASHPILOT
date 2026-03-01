@@ -1,3 +1,4 @@
+import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
 
 /**
  * Service générique pour export de documents en HTML standalone téléchargeable
@@ -186,7 +187,7 @@ export const downloadHTML = (html, filename) => {
  * @param {string} period - Période (ex: "2026-01-01 - 2026-12-31")
  */
 export const exportBalanceSheetHTML = (balanceSheet, companyInfo, period) => {
-  const currency = companyInfo?.currency || 'EUR';
+  const currency = resolveAccountingCurrency(companyInfo);
   const fmt = (v) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0);
 
   const periodLabel = typeof period === 'string' ? period : (period?.endDate ? new Date(period.endDate).toLocaleDateString('fr-FR') : '');

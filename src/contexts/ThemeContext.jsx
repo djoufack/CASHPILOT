@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 const ThemeContext = createContext();
-
-const STORAGE_KEY = 'cashpilot-theme';
 
 /**
  * Resolves the effective theme based on the user's preference.
@@ -16,11 +15,16 @@ function resolveTheme(preference) {
 }
 
 export const ThemeProvider = ({ children }) => {
+  const { user, updateProfile } = useAuth();
+  const normalizeThemePreference = useCallback((value) => {
+    if (value === 'light' || value === 'dark' || value === 'system') {
+      return value;
+    }
+    return 'dark';
+  }, []);
+
   // theme preference: 'light' | 'dark' | 'system'
-  const [themePreference, setThemePreference] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved || 'dark';
-  });
+  const [themePreference, setThemePreference] = useState(() => normalizeThemePreference(user?.theme_preference));
 
   // resolved theme: 'light' | 'dark' (actual applied theme)
   const [resolvedTheme, setResolvedTheme] = useState(() => resolveTheme(themePreference));
@@ -42,8 +46,11 @@ export const ThemeProvider = ({ children }) => {
   useEffect(() => {
     const effective = resolveTheme(themePreference);
     applyTheme(effective);
-    localStorage.setItem(STORAGE_KEY, themePreference);
   }, [themePreference, applyTheme]);
+
+  useEffect(() => {
+    setThemePreference(normalizeThemePreference(user?.theme_preference));
+  }, [normalizeThemePreference, user?.id, user?.theme_preference]);
 
   // Watch for system theme changes when preference is 'system'
   useEffect(() => {
@@ -59,8 +66,15 @@ export const ThemeProvider = ({ children }) => {
   }, [themePreference, applyTheme]);
 
   const setTheme = useCallback((newTheme) => {
-    setThemePreference(newTheme);
-  }, []);
+    const nextTheme = normalizeThemePreference(newTheme);
+    setThemePreference(nextTheme);
+
+    if (user?.id) {
+      updateProfile({ theme_preference: nextTheme }, { silent: true }).catch((error) => {
+        console.error('Failed to persist theme preference:', error);
+      });
+    }
+  }, [normalizeThemePreference, updateProfile, user?.id]);
 
   const toggleTheme = useCallback(() => {
     setThemePreference(prev => {

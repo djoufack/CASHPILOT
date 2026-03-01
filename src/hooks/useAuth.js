@@ -272,9 +272,11 @@ export const useAuthSource = () => {
     }
   };
 
-  const updateProfile = async (updates) => {
+  const updateProfile = async (updates, { silent = false } = {}) => {
     if (!supabase || !user) return;
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
 
     try {
       const allowedFields = [
@@ -291,6 +293,8 @@ export const useAuthSource = () => {
         'signature_url',
         'onboarding_completed',
         'onboarding_step',
+        'language_code',
+        'theme_preference',
       ];
       const safeUpdates = Object.fromEntries(
         allowedFields
@@ -318,7 +322,9 @@ export const useAuthSource = () => {
       setError(err.message);
       throw err;
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 

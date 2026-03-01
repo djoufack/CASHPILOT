@@ -10,9 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { COUNTRIES } from '@/constants/countries';
+import { useReferenceData } from '@/contexts/ReferenceDataContext';
 import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
-import { SUPPORTED_CURRENCIES } from '@/utils/currencyService';
 import { Loader2, Upload, Trash2, Camera, Building2, MapPin, FileText, CreditCard, Globe, DollarSign } from 'lucide-react';
 
 const CompanySettings = () => {
@@ -21,14 +20,9 @@ const CompanySettings = () => {
     company, loading, saving, uploading,
     saveCompany, uploadLogo, deleteLogo
   } = useCompany();
+  const { countryOptions, currencyOptions, loading: referenceLoading } = useReferenceData();
 
   const logoInputRef = useRef(null);
-
-  // Currency options for SearchableSelect
-  const currencyOptions = SUPPORTED_CURRENCIES.map(c => ({
-    value: c.code,
-    label: `${c.symbol} ${c.code} - ${c.name}`
-  }));
 
   const [formData, setFormData] = useState({
     company_name: '',
@@ -100,7 +94,7 @@ const CompanySettings = () => {
     }
   };
 
-  if (loading) {
+  if (loading || referenceLoading) {
     return (
       <div className="p-12 flex flex-col justify-center items-center h-full gap-4">
         <Loader2 className="w-12 h-12 animate-spin text-orange-400" />
@@ -266,8 +260,8 @@ const CompanySettings = () => {
                     <SelectValue placeholder="Sélectionner" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
-                    {COUNTRIES.map(c => (
-                      <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                    {countryOptions.map((country) => (
+                      <SelectItem key={country.value} value={country.value}>{country.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

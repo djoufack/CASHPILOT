@@ -4,56 +4,10 @@
 // Supports: EBITDA multiples method & simplified DCF method
 // ============================================================================
 
-// ---------------------------------------------------------------------------
-// Sector EBITDA multiples database
-// ---------------------------------------------------------------------------
-const SECTOR_MULTIPLES = {
-  france: {
-    saas:         { low: 8,   mid: 12,  high: 18  },
-    industry:     { low: 4,   mid: 6,   high: 8   },
-    retail:       { low: 3,   mid: 5,   high: 7   },
-    construction: { low: 3,   mid: 4.5, high: 6   },
-    b2b_services: { low: 5,   mid: 7,   high: 10  },
-  },
-  belgium: {
-    saas:         { low: 7,   mid: 11,  high: 16  },
-    industry:     { low: 4,   mid: 5.5, high: 7.5 },
-    retail:       { low: 3,   mid: 4.5, high: 6.5 },
-    construction: { low: 2.5, mid: 4,   high: 5.5 },
-    b2b_services: { low: 4.5, mid: 6.5, high: 9   },
-  },
-  ohada: {
-    saas:         { low: 5,   mid: 8,   high: 12  },
-    industry:     { low: 3,   mid: 4.5, high: 6   },
-    retail:       { low: 2,   mid: 3.5, high: 5   },
-    construction: { low: 2,   mid: 3,   high: 4.5 },
-    b2b_services: { low: 3,   mid: 5,   high: 7   },
-  },
-};
-
-// ---------------------------------------------------------------------------
-// WACC parameters by region
-// ---------------------------------------------------------------------------
-const WACC_PARAMS = {
-  france: {
-    riskFreeRate: 0.03,
-    equityPremium: 0.055,
-    beta: 1.0,
-    description: 'France (zone euro) - Taux sans risque OAT 10 ans',
-  },
-  belgium: {
-    riskFreeRate: 0.028,
-    equityPremium: 0.05,
-    beta: 1.0,
-    description: 'Belgique (zone euro) - OLO 10 ans',
-  },
-  ohada: {
-    riskFreeRate: 0.05,
-    equityPremium: 0.10,
-    beta: 1.2,
-    description: 'Zone OHADA - Prime de risque pays elevee',
-  },
-};
+import {
+  getRegionWaccMetadata,
+  getSectorMultiplesMetadata,
+} from '@/services/referenceDataService';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -75,34 +29,27 @@ function isValidNumber(val) {
 /**
  * Get sector-specific EBITDA multiples by sector and region.
  *
- * @param {string} sector - 'saas' | 'industry' | 'retail' | 'construction' | 'b2b_services'
- * @param {string} region - 'france' | 'belgium' | 'ohada'
+ * @param {string} sector
+ * @param {string} region
  * @returns {{ low: number, mid: number, high: number }}
  */
 export function getSectorMultiples(sector, region) {
-  const regionData = SECTOR_MULTIPLES[region];
-  if (!regionData) {
-    return { low: 0, mid: 0, high: 0 };
-  }
-  const multiples = regionData[sector];
+  const multiples = getSectorMultiplesMetadata(sector, region);
   if (!multiples) {
     return { low: 0, mid: 0, high: 0 };
   }
+
   return { ...multiples };
 }
 
 /**
  * Get WACC (Weighted Average Cost of Capital) by region.
  *
- * France:  risk-free 3.0%, premium 5.5%, beta 1.0 -> WACC ~8.5%
- * Belgium: risk-free 2.8%, premium 5.0%, beta 1.0 -> WACC ~7.8%
- * OHADA:   risk-free 5.0%, premium 10.0%, beta 1.2 -> WACC ~17.0%
- *
- * @param {string} region - 'france' | 'belgium' | 'ohada'
+ * @param {string} region
  * @returns {{ riskFreeRate: number, equityPremium: number, beta: number, wacc: number, description: string }}
  */
 export function getWACCByRegion(region) {
-  const params = WACC_PARAMS[region];
+  const params = getRegionWaccMetadata(region);
   if (!params) {
     return {
       riskFreeRate: 0,
@@ -113,25 +60,21 @@ export function getWACCByRegion(region) {
     };
   }
 
-  const { riskFreeRate, equityPremium, beta, description } = params;
-  // CAPM: WACC = riskFreeRate + beta * equityPremium
-  const wacc = riskFreeRate + beta * equityPremium;
-
   return {
-    riskFreeRate,
-    equityPremium,
-    beta,
-    wacc: Math.round(wacc * 10000) / 10000, // 4 decimal precision
-    description,
+    riskFreeRate: params.riskFree / 100,
+    equityPremium: params.premium / 100,
+    beta: params.beta,
+    wacc: params.wacc / 100,
+    description: '',
   };
 }
 
 /**
  * Calculate enterprise value using the EBITDA multiples method.
  *
- * @param {number} ebitda - Annual EBITDA
- * @param {string} sector - Sector key
- * @param {string} region - Region key
+ * @param {number} ebitda
+ * @param {string} sector
+ * @param {string} region
  * @returns {{ lowValue: number, midValue: number, highValue: number, multiple: { low: number, mid: number, high: number } }}
  */
 export function calculateMultiplesValuation(ebitda, sector, region) {
@@ -162,16 +105,10 @@ export function calculateMultiplesValuation(ebitda, sector, region) {
 /**
  * Calculate enterprise value using the simplified DCF (Discounted Cash Flow) method.
  *
- * Method:
- *  1. Project FCF for N years using the growth rate
- *  2. Calculate terminal value = FCF_n * (1 + g) / (wacc - g)   (Gordon Growth Model)
- *  3. Discount all cash flows to present value
- *  4. Sum = enterprise value
- *
- * @param {number} freeCashFlow - Current year FCF
- * @param {number} wacc - WACC as decimal (e.g. 0.085 for 8.5%)
- * @param {number} [growthRate=0.02] - Terminal growth rate as decimal
- * @param {number} [years=5] - Projection period
+ * @param {number} freeCashFlow
+ * @param {number} wacc
+ * @param {number} [growthRate=0.02]
+ * @param {number} [years=5]
  * @returns {{ dcfValue: number, terminalValue: number, presentValueCashFlows: number, projections: Array<{ year: number, fcf: number, discountFactor: number, presentValue: number }> }}
  */
 export function calculateDCFValuation(freeCashFlow, wacc, growthRate = 0.02, years = 5) {
@@ -195,7 +132,6 @@ export function calculateDCFValuation(freeCashFlow, wacc, growthRate = 0.02, yea
     return empty;
   }
 
-  // Gordon model is invalid when wacc <= growthRate
   if (wacc <= growthRate) {
     return empty;
   }
@@ -203,8 +139,7 @@ export function calculateDCFValuation(freeCashFlow, wacc, growthRate = 0.02, yea
   const projections = [];
   let cumulativePV = 0;
 
-  // Step 1 & 3: Project FCFs and discount to present value
-  for (let y = 1; y <= years; y++) {
+  for (let y = 1; y <= years; y += 1) {
     const fcf = freeCashFlow * Math.pow(1 + growthRate, y);
     const discountFactor = 1 / Math.pow(1 + wacc, y);
     const presentValue = fcf * discountFactor;
@@ -219,13 +154,11 @@ export function calculateDCFValuation(freeCashFlow, wacc, growthRate = 0.02, yea
     cumulativePV += presentValue;
   }
 
-  // Step 2: Terminal value (Gordon Growth Model)
   const lastFCF = freeCashFlow * Math.pow(1 + growthRate, years);
   const terminalValueUndiscounted = (lastFCF * (1 + growthRate)) / (wacc - growthRate);
   const terminalDiscountFactor = 1 / Math.pow(1 + wacc, years);
   const terminalValuePV = terminalValueUndiscounted * terminalDiscountFactor;
 
-  // Step 4: Total enterprise value
   const presentValueCashFlows = Math.round(cumulativePV);
   const terminalValue = Math.round(terminalValuePV);
   const dcfValue = presentValueCashFlows + terminalValue;
@@ -239,12 +172,11 @@ export function calculateDCFValuation(freeCashFlow, wacc, growthRate = 0.02, yea
 }
 
 /**
- * Calculate WACC sensitivity -- show enterprise value at different WACC levels.
- * Returns 7 data points: base-3%, base-2%, base-1%, base, base+1%, base+2%, base+3%.
+ * Calculate WACC sensitivity.
  *
- * @param {number} freeCashFlow - Current year FCF
- * @param {number} baseWacc - Base WACC as decimal
- * @param {number} [growthRate=0.02] - Terminal growth rate as decimal
+ * @param {number} freeCashFlow
+ * @param {number} baseWacc
+ * @param {number} [growthRate=0.02]
  * @returns {Array<{ wacc: number, waccPercent: string, value: number, label: string }>}
  */
 export function calculateWACCSensitivity(freeCashFlow, baseWacc, growthRate = 0.02) {
@@ -264,7 +196,6 @@ export function calculateWACCSensitivity(freeCashFlow, baseWacc, growthRate = 0.
   for (const offset of offsets) {
     const adjustedWacc = baseWacc + offset;
 
-    // Skip if adjusted WACC is invalid (must be positive and greater than growth rate)
     if (adjustedWacc <= 0 || adjustedWacc <= growthRate) {
       continue;
     }
@@ -289,12 +220,12 @@ export function calculateWACCSensitivity(freeCashFlow, baseWacc, growthRate = 0.
  * and WACC data into a single object.
  *
  * @param {Object} params
- * @param {number} params.ebitda - Annual EBITDA
- * @param {number} params.freeCashFlow - Current year FCF
- * @param {string} params.sector - Sector key
- * @param {string} params.region - Region key
- * @param {number} [params.growthRate=0.02] - Terminal growth rate as decimal
- * @returns {Object} Complete valuation with both methods, sensitivity, WACC data
+ * @param {number} params.ebitda
+ * @param {number} params.freeCashFlow
+ * @param {string} params.sector
+ * @param {string} params.region
+ * @param {number} [params.growthRate=0.02]
+ * @returns {Object}
  */
 export function buildValuationSummary(params) {
   const {
@@ -305,19 +236,11 @@ export function buildValuationSummary(params) {
     growthRate = 0.02,
   } = params || {};
 
-  // WACC for the region
   const waccData = getWACCByRegion(region);
-
-  // Method 1: EBITDA Multiples
   const multiplesValuation = calculateMultiplesValuation(ebitda, sector, region);
-
-  // Method 2: DCF
   const dcfValuation = calculateDCFValuation(freeCashFlow, waccData.wacc, growthRate);
-
-  // Sensitivity analysis
   const sensitivity = calculateWACCSensitivity(freeCashFlow, waccData.wacc, growthRate);
 
-  // Consensus range: blend multiples mid with DCF value
   let consensusLow = 0;
   let consensusMid = 0;
   let consensusHigh = 0;

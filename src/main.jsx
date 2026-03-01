@@ -5,15 +5,18 @@ import App from '@/App';
 import '@/index.css';
 import '@/styles/light-theme.css';
 import { AuthProvider } from '@/context/AuthContext';
+import { ReferenceDataProvider } from '@/contexts/ReferenceDataContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import OnboardingTour from '@/components/OnboardingTour';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <AuthProvider>
-    <ThemeProvider>
-      <App />
-      <OnboardingTour />
-    </ThemeProvider>
+    <ReferenceDataProvider>
+      <ThemeProvider>
+        <App />
+        <OnboardingTour />
+      </ThemeProvider>
+    </ReferenceDataProvider>
   </AuthProvider>
 );
 

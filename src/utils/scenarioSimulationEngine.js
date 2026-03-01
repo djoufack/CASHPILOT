@@ -3,7 +3,7 @@
  * Calculates financial projections based on scenarios and assumptions
  */
 
-import { buildFinancialDiagnostic } from './financialAnalysisCalculations';
+import { buildFinancialDiagnostic } from './financialAnalysisCalculations.js';
 import { addMonths, format, isSameMonth, parseISO } from 'date-fns';
 
 export class FinancialSimulationEngine {

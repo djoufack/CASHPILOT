@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useAccountingData } from '@/hooks/useAccountingData';
 import { useCashFlow } from '@/hooks/useCashFlow';
 import { useCompany } from '@/hooks/useCompany';
+import { useReferenceData } from '@/contexts/ReferenceDataContext';
 import {
   buildPilotageMonthlySeries,
   computePilotageRatios,
@@ -36,6 +37,7 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
   const accountingData = useAccountingData(startDate, endDate);
   const cashFlowResult = useCashFlow({ startDate, endDate, granularity: 'month' });
   const { company, loading: companyLoading, error: companyError } = useCompany();
+  const { loading: referenceLoading, error: referenceError } = useReferenceData();
   const resolvedContext = useMemo(() => resolvePilotageRegion({
     accountingCountry: accountingData.accountingSettings?.country,
     companyCountry: company?.country,
@@ -131,7 +133,7 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
 
   // 7. Valuation
   const valuation = useMemo(() => {
-    if (accountingData.loading || !accountingData.financialDiagnostic) return null;
+    if (accountingData.loading || referenceLoading || !accountingData.financialDiagnostic) return null;
     const ebitda = accountingData.financialDiagnostic?.margins?.ebitda || 0;
     const fcf = pilotageRatios?.cashFlow?.freeCashFlow || 0;
     return buildValuationSummary({
@@ -141,11 +143,11 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
       region: effectiveRegion,
       growthRate: 0.02,
     });
-  }, [accountingData.financialDiagnostic, accountingData.loading, pilotageRatios, effectiveSector, effectiveRegion]);
+  }, [accountingData.financialDiagnostic, accountingData.loading, pilotageRatios, effectiveSector, effectiveRegion, referenceLoading]);
 
   // 8. Loading state
-  const loading = accountingData.loading || cashFlowResult.loading || companyLoading;
-  const error = accountingData.error || cashFlowResult.error || companyError;
+  const loading = accountingData.loading || cashFlowResult.loading || companyLoading || referenceLoading;
+  const error = accountingData.error || cashFlowResult.error || companyError || referenceError;
   const dataQuality = useMemo(() => {
     const qualityGate = accountingData.qualityGate;
     const entriesCount = accountingData.entries?.length || 0;
