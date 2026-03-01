@@ -350,6 +350,7 @@ describe('buildPilotageMonthlySeries', () => {
         revenue: 1000,
         expense: 600,
         net: 400,
+        cashAvailable: true,
         cashIn: 900,
         cashOut: 650,
         cashNet: 250,
@@ -362,11 +363,34 @@ describe('buildPilotageMonthlySeries', () => {
         revenue: 2000,
         expense: 1500,
         net: 500,
+        cashAvailable: true,
         cashIn: 1800,
         cashOut: 1400,
         cashNet: 400,
         cumulativeCashFlow: 650,
         cumulativeCashNet: 650,
+      },
+    ]);
+  });
+
+  it('keeps cash metrics unavailable when no cash-flow series exists', () => {
+    const series = buildPilotageMonthlySeries([
+      { key: '2026-01', name: 'janv.', revenue: 1000, expense: 600 },
+    ]);
+
+    expect(series).toEqual([
+      {
+        key: '2026-01',
+        month: 'Jan',
+        revenue: 1000,
+        expense: 600,
+        net: 400,
+        cashAvailable: false,
+        cashIn: null,
+        cashOut: null,
+        cashNet: null,
+        cumulativeCashFlow: null,
+        cumulativeCashNet: null,
       },
     ]);
   });

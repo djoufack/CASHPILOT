@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatCurrency } from '@/utils/currencyService';
 import {
   TrendingUp,
@@ -106,7 +107,7 @@ const KPICard = ({ icon: Icon, label, value, color, currency }) => {
 
 const KPICardGrid = ({ data }) => {
   const { t } = useTranslation();
-  const currency = data?.company?.currency || 'EUR';
+  const currency = resolveAccountingCurrency(data?.company);
 
   const kpis = useMemo(
     () =>

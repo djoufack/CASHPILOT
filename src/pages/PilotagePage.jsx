@@ -6,6 +6,7 @@ import { usePilotageData } from '@/hooks/usePilotageData';
 import PilotageHeader from '@/components/pilotage/PilotageHeader';
 import PilotageSignalStrip from '@/components/pilotage/PilotageSignalStrip';
 import PilotageQualityBanner from '@/components/pilotage/PilotageQualityBanner';
+import PilotageUsageGuide from '@/components/pilotage/PilotageUsageGuide';
 import PilotageOverviewTab from '@/components/pilotage/PilotageOverviewTab';
 import PilotageAccountingTab from '@/components/pilotage/PilotageAccountingTab';
 import PilotageFinancialTab from '@/components/pilotage/PilotageFinancialTab';
@@ -35,6 +36,9 @@ const PilotagePage = () => {
 
   // Orchestrator hook
   const pilotageData = usePilotageData(startDate, endDate, sector, region);
+  const effectiveRegion = pilotageData.region || region;
+  const effectiveSector = pilotageData.sector || sector;
+  const regionLocked = Boolean(pilotageData.regionSource && pilotageData.regionSource !== 'fallback');
 
   const tabs = useMemo(() => [
     { id: 'overview', label: t('pilotage.tabs.overview'), icon: Eye },
@@ -70,17 +74,18 @@ const PilotagePage = () => {
         endDate={endDate}
         onStartDateChange={setStartDate}
         onEndDateChange={setEndDate}
-        region={region}
+        region={effectiveRegion}
         onRegionChange={setRegion}
-        sector={sector}
+        regionLocked={regionLocked}
+        sector={effectiveSector}
         onSectorChange={setSector}
       />
 
       {!pilotageData.loading && (
         <PilotageSignalStrip
           data={pilotageData}
-          region={region}
-          sector={sector}
+          region={effectiveRegion}
+          sector={effectiveSector}
           startDate={startDate}
           endDate={endDate}
         />
@@ -88,6 +93,10 @@ const PilotagePage = () => {
 
       {!pilotageData.loading && (
         <PilotageQualityBanner data={pilotageData} />
+      )}
+
+      {!pilotageData.loading && (
+        <PilotageUsageGuide data={pilotageData} />
       )}
 
       {/* Loading state */}
@@ -132,13 +141,13 @@ const PilotagePage = () => {
                 <PilotageOverviewTab data={pilotageData} />
               </TabsContent>
               <TabsContent value="accounting">
-                <PilotageAccountingTab data={pilotageData} sector={sector} />
+                <PilotageAccountingTab data={pilotageData} sector={effectiveSector} />
               </TabsContent>
               <TabsContent value="financial">
                 <PilotageFinancialTab data={pilotageData} />
               </TabsContent>
               <TabsContent value="taxValuation">
-                <PilotageTaxValuationTab data={pilotageData} region={region} sector={sector} />
+                <PilotageTaxValuationTab data={pilotageData} region={effectiveRegion} sector={effectiveSector} />
               </TabsContent>
               <TabsContent value="simulator">
                 <PilotageSimulatorTab />

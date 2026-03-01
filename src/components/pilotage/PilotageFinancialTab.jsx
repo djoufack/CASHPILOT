@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatCurrency } from '@/utils/currencyService';
 import {
   PieChart,
@@ -19,6 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import MarginAnalysisSection from '@/components/accounting/MarginAnalysisSection';
 import FinancingAnalysisSection from '@/components/accounting/FinancingAnalysisSection';
 import RatioGauge from '@/components/accounting/RatioGauge';
+import PilotageAvailabilitySummary from './PilotageAvailabilitySummary';
+import PilotageUnavailableState from './PilotageUnavailableState';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -70,8 +73,10 @@ const CustomTooltipArea = ({ active, payload, label, t }) => {
 
 const PilotageFinancialTab = ({ data }) => {
   const { t } = useTranslation();
-  const currency = data?.company?.currency || 'EUR';
+  const currency = resolveAccountingCurrency(data?.company);
   const isBlocked = data?.dataQuality?.datasetStatus === 'blocked';
+  const availability = data?.analysisAvailability?.financial;
+  const availabilityItems = availability ? Object.values(availability) : [];
 
   // Prepare capital structure pie data
   const pieData = useMemo(() => {
@@ -141,8 +146,15 @@ const PilotageFinancialTab = ({ data }) => {
       animate="visible"
       className="space-y-6"
     >
+      <motion.div variants={itemVariants}>
+        <PilotageAvailabilitySummary items={availabilityItems} />
+      </motion.div>
+
       {/* Section 1: Margin Analysis */}
       <motion.div variants={itemVariants}>
+        {availability?.margins?.status === 'unavailable' ? (
+          <PilotageUnavailableState item={availability.margins} />
+        ) : (
         <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
           <CardHeader>
             <CardTitle className="text-orange-400">
@@ -156,10 +168,14 @@ const PilotageFinancialTab = ({ data }) => {
             />
           </CardContent>
         </Card>
+        )}
       </motion.div>
 
       {/* Section 2: Financing Analysis */}
       <motion.div variants={itemVariants}>
+        {availability?.financing?.status === 'unavailable' ? (
+          <PilotageUnavailableState item={availability.financing} />
+        ) : (
         <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
           <CardHeader>
             <CardTitle className="text-orange-400">
@@ -173,10 +189,14 @@ const PilotageFinancialTab = ({ data }) => {
             />
           </CardContent>
         </Card>
+        )}
       </motion.div>
 
       {/* Section 3: Profitability Ratios */}
       <motion.div variants={itemVariants}>
+        {availability?.profitability?.status === 'unavailable' ? (
+          <PilotageUnavailableState item={availability.profitability} />
+        ) : (
         <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
           <CardHeader>
             <CardTitle className="text-orange-400">
@@ -206,10 +226,15 @@ const PilotageFinancialTab = ({ data }) => {
             </div>
           </CardContent>
         </Card>
+        )}
       </motion.div>
 
       {/* Section 4: Capital Structure PieChart */}
-      {pieData.length > 0 && (
+      {availability?.capitalStructure?.status === 'unavailable' ? (
+        <motion.div variants={itemVariants}>
+          <PilotageUnavailableState item={availability.capitalStructure} />
+        </motion.div>
+      ) : pieData.length > 0 && (
         <motion.div variants={itemVariants}>
           <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
             <CardHeader>
@@ -253,7 +278,11 @@ const PilotageFinancialTab = ({ data }) => {
       )}
 
       {/* Section 5: Profitability Trend AreaChart */}
-      {trendData.length > 1 ? (
+      {availability?.profitabilityTrend?.status === 'unavailable' ? (
+        <motion.div variants={itemVariants}>
+          <PilotageUnavailableState item={availability.profitabilityTrend} />
+        </motion.div>
+      ) : trendData.length > 1 ? (
         <motion.div variants={itemVariants}>
           <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
             <CardHeader>

@@ -30,10 +30,30 @@ import {
   exportScenarioSimulationPDF,
   exportScenarioSimulationHTML,
 } from '@/services/exportScenarioPDF';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import AssumptionsBuilder from '@/components/scenarios/AssumptionsBuilder';
 import SimulationResults from '@/components/scenarios/SimulationResults';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { extractFinancialPosition } from '@/utils/financialMetrics';
+import { resolvePilotageRegion } from '@/utils/pilotagePreferences';
+
+function getAnnualizationFactor(startDate, endDate) {
+  if (!startDate || !endDate) {
+    return 1;
+  }
+
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  const durationMs = end.getTime() - start.getTime();
+
+  if (!Number.isFinite(durationMs) || durationMs < 0) {
+    return 1;
+  }
+
+  const periodDays = Math.max(1, Math.round(durationMs / 86400000) + 1);
+  return 365 / periodDays;
+}
 
 const ScenarioDetail = () => {
   const { scenarioId } = useParams();
@@ -48,9 +68,16 @@ const ScenarioDetail = () => {
   } = useFinancialScenarios();
 
   // Get current financial state from accounting data
-  const { financialDiagnostic, balanceSheet } = useAccountingData();
+  const {
+    financialDiagnostic,
+    balanceSheet,
+    totalExpenses,
+    accountingSettings,
+    period,
+  } = useAccountingData();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
+  const scenarioCurrency = resolveAccountingCurrency(company);
 
   const [scenario, setScenario] = useState(null);
   const [assumptions, setAssumptions] = useState([]);
@@ -87,7 +114,7 @@ const ScenarioDetail = () => {
     if (!scenario) return;
 
     // Validate that we have financial data
-    if (!financialDiagnostic || !balanceSheet) {
+    if (!financialDiagnostic || financialDiagnostic.valid === false || !balanceSheet) {
       toast({
         title: 'Données manquantes',
         description: 'Assurez-vous d\'avoir des données comptables avant de lancer une simulation',
@@ -96,27 +123,42 @@ const ScenarioDetail = () => {
       return;
     }
 
+    const annualizationFactor = getAnnualizationFactor(period?.startDate, period?.endDate);
+    const annualRevenue = (financialDiagnostic.margins?.revenue || 0) * annualizationFactor;
+    const annualExpenses = financialDiagnostic.margins
+      ? Math.max(
+          0,
+          ((financialDiagnostic.margins.revenue || 0) - (financialDiagnostic.margins.ebitda || 0)) *
+            annualizationFactor
+        )
+      : (totalExpenses || 0) * annualizationFactor;
+    const scenarioRegion = resolvePilotageRegion({
+      accountingCountry: accountingSettings?.country,
+      companyCountry: company?.country,
+    }).region;
+    const financialPosition = extractFinancialPosition(balanceSheet, scenarioRegion);
+
     // Build current financial state from diagnostic
     const currentFinancialState = {
       // Revenue components
-      revenue: financialDiagnostic.margins?.revenue * 12 || 0,
+      revenue: annualRevenue,
       avgPrice: 100, // Default, could be calculated from invoices
-      volume: (financialDiagnostic.margins?.revenue * 12) / 100 || 0,
+      volume: annualRevenue / 100 || 0,
 
       // Expense components
-      expenses: financialDiagnostic.margins?.expenses * 12 || 0,
-      fixedExpenses: financialDiagnostic.margins?.expenses * 12 * 0.6 || 0,
-      variableExpenses: financialDiagnostic.margins?.expenses * 12 * 0.3 || 0,
-      salaries: financialDiagnostic.margins?.expenses * 12 * 0.1 || 0,
+      expenses: annualExpenses,
+      fixedExpenses: annualExpenses * 0.6,
+      variableExpenses: annualExpenses * 0.3,
+      salaries: annualExpenses * 0.1,
 
       // Balance sheet items
-      cash: balanceSheet.cash || 0,
-      receivables: balanceSheet.receivables || 0,
-      payables: balanceSheet.payables || 0,
-      inventory: balanceSheet.inventory || 0,
-      fixedAssets: balanceSheet.fixedAssets || 0,
-      equity: balanceSheet.equity || 0,
-      debt: balanceSheet.debt || 0,
+      cash: financialPosition.cash || 0,
+      receivables: financialPosition.receivables || 0,
+      payables: financialPosition.tradePayables || 0,
+      inventory: financialPosition.inventory || 0,
+      fixedAssets: financialPosition.fixedAssets || 0,
+      equity: financialPosition.equity || 0,
+      debt: financialPosition.totalDebt || 0,
 
       // Working capital
       bfr: financialDiagnostic.financing?.bfr || 0,
@@ -215,7 +257,7 @@ const ScenarioDetail = () => {
             <p className="text-gray-600 mb-6">
               Le scénario demandé n'existe pas ou vous n'y avez pas accès
             </p>
-            <Button onClick={() => navigate('/scenarios')}>
+            <Button onClick={() => navigate('/app/scenarios')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Retour aux scénarios
             </Button>
@@ -233,7 +275,7 @@ const ScenarioDetail = () => {
       <div className="mb-6">
         <Button
           variant="ghost"
-          onClick={() => navigate('/scenarios')}
+          onClick={() => navigate('/app/scenarios')}
           className="mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -353,7 +395,7 @@ const ScenarioDetail = () => {
               scenario={scenario}
               results={results}
               assumptions={assumptions}
-              currency={company?.currency || 'EUR'}
+              currency={scenarioCurrency}
             />
           ) : (
             <Card>

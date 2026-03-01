@@ -68,9 +68,10 @@ export function buildPilotageMonthlySeries(accountingMonthlyData = [], cashFlowD
       revenue,
       expense,
       net: revenue - expense,
-      cashIn: 0,
-      cashOut: 0,
-      cashNet: 0,
+      cashIn: null,
+      cashOut: null,
+      cashNet: null,
+      cashAvailable: false,
     });
   });
 
@@ -82,15 +83,17 @@ export function buildPilotageMonthlySeries(accountingMonthlyData = [], cashFlowD
       revenue: 0,
       expense: 0,
       net: 0,
-      cashIn: 0,
-      cashOut: 0,
-      cashNet: 0,
+      cashIn: null,
+      cashOut: null,
+      cashNet: null,
+      cashAvailable: false,
     };
 
     existing.month = formatMonthFromKey(item.key, item.label || existing.month);
     existing.cashIn = normalizeAmount(item.income);
     existing.cashOut = normalizeAmount(item.expenses);
     existing.cashNet = normalizeAmount(item.net);
+    existing.cashAvailable = true;
     seriesByKey.set(item.key, existing);
   });
 
@@ -99,11 +102,13 @@ export function buildPilotageMonthlySeries(accountingMonthlyData = [], cashFlowD
   return Array.from(seriesByKey.values())
     .sort((left, right) => left.key.localeCompare(right.key))
     .map((item) => {
-      cumulativeCashFlow += item.cashNet;
+      if (item.cashAvailable && Number.isFinite(item.cashNet)) {
+        cumulativeCashFlow += item.cashNet;
+      }
       return {
         ...item,
-        cumulativeCashFlow,
-        cumulativeCashNet: cumulativeCashFlow,
+        cumulativeCashFlow: item.cashAvailable ? cumulativeCashFlow : null,
+        cumulativeCashNet: item.cashAvailable ? cumulativeCashFlow : null,
       };
     });
 }

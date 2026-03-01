@@ -6,6 +6,8 @@ import { Landmark, Activity, BookOpen } from 'lucide-react';
 import KeyRatiosSection from '@/components/accounting/KeyRatiosSection';
 import StructureRatiosSection from './StructureRatiosSection';
 import ActivityRatiosSection from './ActivityRatiosSection';
+import PilotageAvailabilitySummary from './PilotageAvailabilitySummary';
+import PilotageUnavailableState from './PilotageUnavailableState';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -22,6 +24,8 @@ const itemVariants = {
 
 const PilotageAccountingTab = ({ data, sector }) => {
   const { t } = useTranslation();
+  const availability = data?.analysisAvailability?.accounting;
+  const availabilityItems = availability ? Object.values(availability) : [];
 
   const trialBalance = data?.trialBalance ?? [];
   const displayedRows = trialBalance.slice(0, 20);
@@ -41,6 +45,10 @@ const PilotageAccountingTab = ({ data, sector }) => {
       initial="hidden"
       animate="visible"
     >
+      <motion.div variants={itemVariants}>
+        <PilotageAvailabilitySummary items={availabilityItems} />
+      </motion.div>
+
       {/* Section 1 — Structure Ratios */}
       <motion.div variants={itemVariants}>
         <div className="flex items-center gap-2 mb-4">
@@ -49,12 +57,20 @@ const PilotageAccountingTab = ({ data, sector }) => {
             {t('pilotage.ratios.structure')}
           </h2>
         </div>
-        <StructureRatiosSection data={data} sector={sector} />
+        {availability?.structure?.status === 'unavailable' ? (
+          <PilotageUnavailableState item={availability.structure} />
+        ) : (
+          <StructureRatiosSection data={data} sector={sector} />
+        )}
       </motion.div>
 
       {/* Section 2 — Liquidity Ratios (reused KeyRatiosSection) */}
       <motion.div variants={itemVariants}>
-        <KeyRatiosSection data={data?.financialDiagnostic?.ratios} />
+        {availability?.liquidity?.status === 'unavailable' ? (
+          <PilotageUnavailableState item={availability.liquidity} />
+        ) : (
+          <KeyRatiosSection data={data?.financialDiagnostic?.ratios} />
+        )}
       </motion.div>
 
       {/* Section 3 — Activity Ratios */}
@@ -65,11 +81,18 @@ const PilotageAccountingTab = ({ data, sector }) => {
             {t('pilotage.ratios.activity')}
           </h2>
         </div>
-        <ActivityRatiosSection data={data} sector={sector} />
+        {availability?.activity?.status === 'unavailable' ? (
+          <PilotageUnavailableState item={availability.activity} />
+        ) : (
+          <ActivityRatiosSection data={data} sector={sector} />
+        )}
       </motion.div>
 
       {/* Section 4 — Trial Balance Summary */}
       <motion.div variants={itemVariants}>
+        {availability?.trialBalance?.status === 'unavailable' ? (
+          <PilotageUnavailableState item={availability.trialBalance} />
+        ) : (
         <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-gray-100">
@@ -132,6 +155,7 @@ const PilotageAccountingTab = ({ data, sector }) => {
             )}
           </CardContent>
         </Card>
+        )}
       </motion.div>
     </motion.div>
   );

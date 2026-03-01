@@ -56,6 +56,7 @@ import useFinancialScenarios from '@/hooks/useFinancialScenarios';
 import { useCompany } from '@/hooks/useCompany';
 import { Badge } from '@/components/ui/badge';
 import ScenarioComparison from '@/components/scenarios/ScenarioComparison';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 
 const ScenarioBuilder = () => {
   const navigate = useNavigate();
@@ -68,7 +69,7 @@ const ScenarioBuilder = () => {
     createFromTemplate,
   } = useFinancialScenarios();
   const { company } = useCompany();
-  const companyCurrency = company?.currency || 'EUR';
+  const companyCurrency = resolveAccountingCurrency(company);
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
@@ -123,7 +124,7 @@ const ScenarioBuilder = () => {
         base_date: format(new Date(), 'yyyy-MM-dd'),
         end_date: format(addMonths(new Date(), 12), 'yyyy-MM-dd'),
       });
-      navigate(`/scenarios/${result.id}`);
+      navigate(`/app/scenarios/${result.id}`);
     }
   };
 
@@ -141,7 +142,7 @@ const ScenarioBuilder = () => {
     if (result) {
       setIsTemplateDialogOpen(false);
       setSelectedTemplate(null);
-      navigate(`/scenarios/${result.id}`);
+      navigate(`/app/scenarios/${result.id}`);
     }
   };
 
@@ -154,7 +155,7 @@ const ScenarioBuilder = () => {
 
   // Navigate to scenario details
   const handleOpenScenario = (scenarioId) => {
-    navigate(`/scenarios/${scenarioId}`);
+    navigate(`/app/scenarios/${scenarioId}`);
   };
 
   return (

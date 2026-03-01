@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatCurrency } from '@/utils/currencyService';
 import { Gem } from 'lucide-react';
 
@@ -12,7 +13,7 @@ const percentFormatter = new Intl.NumberFormat('fr-FR', {
 
 const ValuationCard = ({ data }) => {
   const { t } = useTranslation();
-  const currency = data?.company?.currency || 'EUR';
+  const currency = resolveAccountingCurrency(data?.company);
 
   const valuation = data?.valuation;
   const multiples = valuation?.multiples;

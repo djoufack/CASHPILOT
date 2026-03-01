@@ -924,7 +924,11 @@
   },
   "profileSettings": {
     "selectCountry": "Select country",
-    "selectTimezone": "Select timezone"
+    "selectTimezone": "Select timezone",
+    "displayCurrencyLabel": "User display currency",
+    "displayCurrencyHelp": "This preference is for personal display only in selected views. Accounting and business steering remain based on the company currency until a traceable conversion engine is enabled.",
+    "accountingCurrencyLabel": "Accounting and steering currency *",
+    "accountingCurrencyHelp": "This currency is authoritative for accounting, charts, and analysis until an official conversion engine is applied."
   },
   "seedDataManager": {
     "title": "Seed Data Manager",
@@ -2220,6 +2224,108 @@
       "warningTitle": "Business steering should be reviewed before decision-making use",
       "blockedHint": "Fix the chart of accounts or inconsistent journal entries first. The indicators shown should not be used for decision-making until these issues are resolved.",
       "warningHint": "The dataset remains usable, but some classifications or journal entries should be reviewed before considering the steering layer fully reliable."
+    },
+    "guide": {
+      "title": "Business steering usage guide",
+      "subtitle": "Read this before relying on ratios, tax outputs, or valuation.",
+      "summary": "CashPilot business steering consolidates accounting entries, journals generated from business flows, and FR / BE / OHADA settings to produce a management view. The figures are useful for steering a company only when the accounting dataset is clean, complete, and reviewed whenever the application flags a risk.",
+      "currentStatusLabel": "Current dataset status",
+      "currentStatusHelp": "This status tells you whether the dataset is ready, requires review, or should be blocked before decision-making use.",
+      "currentValuationLabel": "Current valuation mode",
+      "currentValuationHelp": "Valuation depends on the quality of the earnings, cash-flow, and accounting data available over the selected period.",
+      "sections": {
+        "functioning": {
+          "title": "What the steering layer currently does",
+          "intro": "The engine computes all tabs from a single accounting base and a single analysis period.",
+          "points": [
+            "All 6 tabs share the same period, accounting region, and sector so that the outputs remain consistent.",
+            "KPIs, ratios, alerts, tax summaries, and valuation are recomputed whenever the period or source data changes.",
+            "Indicators are driven first by accounting data and journalized flows, not by marketing inputs or simple estimates."
+          ]
+        },
+        "data": {
+          "title": "What data is actually used",
+          "intro": "The steering layer is only as reliable as the data that feeds it.",
+          "points": [
+            "An initialized chart of accounts, with accounts correctly classified by type and category.",
+            "Dated, balanced entries linked to existing accounts and free of inconsistent accounting standards mixing.",
+            "Journals generated from invoices, expenses, payments, receipts, and disbursements when those flows exist in the file.",
+            "The selected FR / Belgium / OHADA zone and sector, used for analysis rules and benchmarks."
+          ]
+        },
+        "conditions": {
+          "title": "Recommended conditions of use",
+          "intro": "Use the steering layer as a management tool only when these conditions are met.",
+          "points": [
+            "Prefer a dataset flagged as \"dataset ready for analysis\". If the status is warning, review the issues. If it is blocked, do not use the steering layer for decisions.",
+            "For first-time use on a real company, reconcile at least revenue, net income, equity, financial debt, and working capital with the accountant's figures.",
+            "Work on a complete period that matches the decision you are making: closed month, closed quarter, or explicitly identified current year.",
+            "Check the currency, accounting region, and sector before interpreting ratios, tax outputs, or valuation."
+          ]
+        },
+        "limits": {
+          "title": "What the steering layer does not replace",
+          "intro": "The module supports management decisions; it does not replace legal obligations or professional judgment.",
+          "points": [
+            "It does not replace a statutory close, tax filing, corporate return, or legal audit.",
+            "A DCF or multiples valuation remains a management estimate, not a binding transaction or investment price.",
+            "If the dataset is partial, taken over mid-year, heavily reclassified, or still being cleaned, the indicators must be reviewed by an accountant.",
+            "When in doubt on a sensitive ratio, trust the source data and accounting review before trusting a single chart."
+          ]
+        }
+      }
+    },
+    "dataRequirements": {
+      "allReadyTitle": "All analyses in this tab are backed by available data",
+      "allReadyBody": "The sections below have the minimum database inputs required to produce reliable outputs.",
+      "summaryTitle": "Actual analysis availability",
+      "summaryBody": "CashPilot only shows analyses when the required database inputs exist. The sections below list what is still missing.",
+      "fallbackTitle": "Analysis",
+      "partialTitle": "{{item}} partially available",
+      "partialBody": "Part of this analysis can be computed, but some results or charts remain limited because the database inputs are still incomplete.",
+      "unavailableTitle": "{{item}} unavailable",
+      "unavailableBody": "This analysis is hidden because the database does not yet contain all the inputs required to produce a reliable result.",
+      "missingInputsLabel": "Missing inputs",
+      "status": {
+        "partial": "Partial",
+        "unavailable": "Unavailable"
+      },
+      "items": {
+        "kpis": "Steering KPIs",
+        "performanceChart": "Overall performance chart",
+        "ratioStatus": "Key ratios summary",
+        "alerts": "Financial alert radar",
+        "structureRatios": "Structure ratios",
+        "liquidityRatios": "Liquidity ratios",
+        "activityRatios": "Activity ratios",
+        "trialBalance": "Trial balance",
+        "marginAnalysis": "Margin analysis",
+        "financingAnalysis": "Financing analysis",
+        "profitabilityRatios": "Profitability ratios",
+        "capitalStructure": "Capital structure",
+        "profitabilityTrend": "Profitability trend",
+        "taxSynthesis": "Tax summary",
+        "valuation": "Valuation",
+        "sensitivity": "WACC / valuation sensitivity",
+        "benchmark": "Sector benchmark"
+      },
+      "inputs": {
+        "chartOfAccounts": "Chart of accounts",
+        "journalEntries": "Journal entries",
+        "balanceSheet": "Balance sheet",
+        "incomeStatement": "Income statement",
+        "monthlySeries": "Monthly series",
+        "cashSeries": "Cash-flow series",
+        "structureRatios": "Structure ratios",
+        "activityRatios": "Activity ratios",
+        "liquidityRatios": "Liquidity ratios",
+        "profitabilityRatios": "Profitability ratios",
+        "financingData": "Financing data",
+        "trialBalance": "Trial balance",
+        "taxBase": "Tax base",
+        "valuationInputs": "Valuation inputs",
+        "benchmarkReference": "Sector benchmark reference"
+      }
     }
   }
 }
