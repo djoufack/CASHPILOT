@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -13,7 +12,7 @@ export const useServices = () => {
   const { toast } = useToast();
   const { logAction } = useAuditLog();
 
-  const fetchServices = async () => {
+  const fetchServices = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     setError(null);
@@ -36,7 +35,7 @@ export const useServices = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, user]);
 
   const createService = async (serviceData) => {
     if (!user || !supabase) return;
@@ -119,7 +118,7 @@ export const useServices = () => {
 
   useEffect(() => {
     fetchServices();
-  }, [user]);
+  }, [fetchServices]);
 
   return {
     services,
@@ -138,7 +137,7 @@ export const useServiceCategories = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
@@ -154,7 +153,7 @@ export const useServiceCategories = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const createCategory = async (name, description = '') => {
     if (!user || !supabase) return;
@@ -212,7 +211,7 @@ export const useServiceCategories = () => {
 
   useEffect(() => {
     fetchCategories();
-  }, [user]);
+  }, [fetchCategories]);
 
   return { categories, loading, fetchCategories, createCategory, updateCategory, deleteCategory };
 };

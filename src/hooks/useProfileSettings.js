@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -16,23 +15,15 @@ export const useProfileSettings = () => {
 
   const { toast } = useToast();
 
-  const addLog = (message, type = 'info', data = null) => {
+  const addLog = useCallback((message, type = 'info', data = null) => {
     const timestamp = new Date().toLocaleTimeString();
     const logEntry = { timestamp, message, type, data };
     const color = type === 'error' ? 'color: red' : type === 'success' ? 'color: green' : 'color: blue';
     console.log(`%c[useProfileSettings] ${message}`, color, data || '');
     setDebugLogs(prev => [logEntry, ...prev].slice(0, 50));
-  };
+  }, []);
 
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     addLog("Fetching profile data...");
     try {
       setLoading(true);
@@ -68,7 +59,15 @@ export const useProfileSettings = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [addLog, toast, user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    } else {
+      setLoading(false);
+    }
+  }, [fetchProfile, user]);
 
   const validateFile = (file) => {
     addLog("Validating file...", "info", { name: file.name, size: file.size, type: file.type });

@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
@@ -16,7 +15,7 @@ export const usePayments = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
-  const fetchPayments = async (filters = {}) => {
+  const fetchPayments = useCallback(async (filters = {}) => {
     if (!user) return;
     if (!supabase) {
       console.warn("Supabase not configured");
@@ -62,9 +61,9 @@ export const usePayments = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t, toast, user]);
 
-  const fetchPaymentsByInvoice = async (invoiceId) => {
+  const fetchPaymentsByInvoice = useCallback(async (invoiceId) => {
     if (!user || !supabase) return [];
     try {
       const { data, error } = await supabase
@@ -79,9 +78,9 @@ export const usePayments = () => {
       console.error('Error fetching payments by invoice:', err);
       return [];
     }
-  };
+  }, [user]);
 
-  const fetchPaymentsByClient = async (clientId) => {
+  const fetchPaymentsByClient = useCallback(async (clientId) => {
     if (!user || !supabase) return [];
     try {
       const { data, error } = await supabase
@@ -103,7 +102,7 @@ export const usePayments = () => {
       console.error('Error fetching payments by client:', err);
       return [];
     }
-  };
+  }, [user]);
 
   const generateReceiptNumber = () => {
     const now = new Date();
@@ -340,7 +339,7 @@ export const usePayments = () => {
 
   useEffect(() => {
     fetchPayments();
-  }, [user]);
+  }, [fetchPayments]);
 
   return {
     payments,

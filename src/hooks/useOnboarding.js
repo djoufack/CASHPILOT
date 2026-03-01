@@ -20,8 +20,8 @@ export const useOnboarding = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('onboarding_completed, onboarding_step')
-        .eq('id', user.id)
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
 
       if (error) throw error;
       setOnboardingCompleted(data?.onboarding_completed ?? false);
@@ -44,7 +44,7 @@ export const useOnboarding = () => {
       await supabase
         .from('profiles')
         .update({ onboarding_step: step })
-        .eq('id', user.id);
+        .eq('user_id', user.id);
       setCurrentStep(step);
     } catch (err) {
       console.warn('Error saving onboarding step:', err.message);
@@ -57,7 +57,7 @@ export const useOnboarding = () => {
       await supabase
         .from('profiles')
         .update({ onboarding_completed: true, onboarding_step: 5 })
-        .eq('id', user.id);
+        .eq('user_id', user.id);
       setOnboardingCompleted(true);
       setCurrentStep(5);
     } catch (err) {

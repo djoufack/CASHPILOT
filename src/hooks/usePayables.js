@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +12,7 @@ export const usePayables = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
 
-  const fetchPayables = async () => {
+  const fetchPayables = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
@@ -33,7 +33,7 @@ export const usePayables = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t, toast, user]);
 
   const createPayable = async (data) => {
     if (!user || !supabase) throw new Error('Not authenticated');
@@ -161,7 +161,7 @@ export const usePayables = () => {
 
   useEffect(() => {
     fetchPayables();
-  }, [user]);
+  }, [fetchPayables]);
 
   return {
     payables,

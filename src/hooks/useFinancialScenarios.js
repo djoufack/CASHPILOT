@@ -41,7 +41,7 @@ export function useFinancialScenarios() {
     } finally {
       setLoading(false);
     }
-  }, [user, supabase, toast]);
+  }, [user, toast]);
 
   // Fetch scenario templates
   const fetchTemplates = useCallback(async () => {
@@ -59,7 +59,7 @@ export function useFinancialScenarios() {
     } catch (error) {
       console.error('Error fetching templates:', error);
     }
-  }, [user, supabase]);
+  }, [user]);
 
   // Initial data fetch
   useEffect(() => {
@@ -107,7 +107,7 @@ export function useFinancialScenarios() {
     } finally {
       setLoading(false);
     }
-  }, [user, supabase, toast, fetchScenarios]);
+  }, [user, toast, fetchScenarios]);
 
   // Update scenario
   const updateScenario = useCallback(async (scenarioId, updates) => {
@@ -143,7 +143,7 @@ export function useFinancialScenarios() {
     } finally {
       setLoading(false);
     }
-  }, [user, supabase, toast, fetchScenarios]);
+  }, [user, toast, fetchScenarios]);
 
   // Delete scenario
   const deleteScenario = useCallback(async (scenarioId) => {
@@ -177,7 +177,7 @@ export function useFinancialScenarios() {
     } finally {
       setLoading(false);
     }
-  }, [user, supabase, toast, fetchScenarios]);
+  }, [user, toast, fetchScenarios]);
 
   // Get scenario with assumptions
   const getScenarioWithAssumptions = useCallback(async (scenarioId) => {
@@ -214,7 +214,7 @@ export function useFinancialScenarios() {
       });
       return null;
     }
-  }, [user, supabase, toast]);
+  }, [user, toast]);
 
   // Add assumption to scenario
   const addAssumption = useCallback(async (scenarioId, assumptionData) => {
@@ -253,7 +253,7 @@ export function useFinancialScenarios() {
       });
       return null;
     }
-  }, [user, supabase, toast]);
+  }, [user, toast]);
 
   // Update assumption
   const updateAssumption = useCallback(async (assumptionId, updates) => {
@@ -284,7 +284,7 @@ export function useFinancialScenarios() {
       });
       return null;
     }
-  }, [user, supabase, toast]);
+  }, [user, toast]);
 
   // Delete assumption
   const deleteAssumption = useCallback(async (assumptionId) => {
@@ -313,7 +313,7 @@ export function useFinancialScenarios() {
       });
       return false;
     }
-  }, [user, supabase, toast]);
+  }, [user, toast]);
 
   // Run simulation
   const runSimulation = useCallback(async (scenarioId, currentFinancialState) => {
@@ -403,7 +403,7 @@ export function useFinancialScenarios() {
     } finally {
       setLoading(false);
     }
-  }, [user, supabase, toast, simulationEngine, getScenarioWithAssumptions, updateScenario]);
+  }, [user, toast, simulationEngine, getScenarioWithAssumptions, updateScenario]);
 
   // Get scenario results
   const getScenarioResults = useCallback(async (scenarioId) => {
@@ -433,7 +433,7 @@ export function useFinancialScenarios() {
       });
       return null;
     }
-  }, [user, supabase, toast]);
+  }, [user, toast]);
 
   // Compare two scenarios
   const compareScenarios = useCallback(async (scenario1Id, scenario2Id) => {
@@ -484,7 +484,7 @@ export function useFinancialScenarios() {
     } finally {
       setLoading(false);
     }
-  }, [user, supabase, toast, simulationEngine, getScenarioResults]);
+  }, [user, toast, simulationEngine, getScenarioResults]);
 
   // Create scenario from template
   const createFromTemplate = useCallback(async (templateId, scenarioName, baseDate, endDate) => {
@@ -544,7 +544,7 @@ export function useFinancialScenarios() {
     } finally {
       setLoading(false);
     }
-  }, [user, supabase, toast, createScenario, addAssumption]);
+  }, [user, toast, createScenario, addAssumption]);
 
   return {
     // State

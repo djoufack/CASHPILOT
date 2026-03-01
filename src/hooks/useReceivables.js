@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +12,7 @@ export const useReceivables = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
 
-  const fetchReceivables = async () => {
+  const fetchReceivables = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
@@ -33,7 +33,7 @@ export const useReceivables = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t, toast, user]);
 
   const createReceivable = async (data) => {
     if (!user || !supabase) throw new Error('Not authenticated');
@@ -164,7 +164,7 @@ export const useReceivables = () => {
 
   useEffect(() => {
     fetchReceivables();
-  }, [user]);
+  }, [fetchReceivables]);
 
   return {
     receivables,

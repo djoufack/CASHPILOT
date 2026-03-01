@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,9 +11,11 @@ export const useNotifications = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async ({ silent = false } = {}) => {
     if (!user) return;
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const { data, error } = await supabase
         .from('notifications')
@@ -23,14 +25,17 @@ export const useNotifications = () => {
         .limit(50);
 
       if (error) throw error;
-      setNotifications(data || []);
-      setUnreadCount(data.filter(n => !n.is_read).length);
+      const rows = data || [];
+      setNotifications(rows);
+      setUnreadCount(rows.filter((notification) => !notification.is_read).length);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  };
+  }, [user]);
 
   const markAsRead = async (id) => {
     try {
@@ -71,39 +76,52 @@ export const useNotifications = () => {
   const deleteNotification = async (id) => {
       try {
           await supabase.from('notifications').delete().eq('id', id);
+          const deletedNotification = notifications.find((notification) => notification.id === id);
           setNotifications(prev => prev.filter(n => n.id !== id));
+          if (deletedNotification && !deletedNotification.is_read) {
+            setUnreadCount((prev) => Math.max(0, prev - 1));
+          }
       } catch (err) {
           console.error(err);
       }
   };
 
   useEffect(() => {
-    if (user) {
-      fetchNotifications();
+    if (!user) return undefined;
 
-      // Realtime subscription
-      const channel = supabase
-        .channel('public:notifications')
-        .on('postgres_changes', { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'notifications', 
-          filter: `user_id=eq.${user.id}` 
-        }, (payload) => {
-          setNotifications(prev => [payload.new, ...prev]);
-          setUnreadCount(prev => prev + 1);
-          toast({
+    fetchNotifications();
+
+    const channel = supabase
+      .channel(`public:notifications:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+        },
+        (payload) => {
+          const ownerId = payload.new?.user_id || payload.old?.user_id;
+          if (ownerId !== user.id) {
+            return;
+          }
+
+          if (payload.eventType === 'INSERT') {
+            toast({
               title: payload.new.title,
               description: payload.new.message,
-          });
-        })
-        .subscribe();
+            });
+          }
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user]);
+          fetchNotifications({ silent: true });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchNotifications, toast, user]);
 
   return {
     notifications,

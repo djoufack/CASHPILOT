@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
@@ -12,7 +11,7 @@ export const useSupplierProducts = (supplierId) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
      if(!user) return;
      try {
        const { data, error } = await supabase
@@ -25,9 +24,9 @@ export const useSupplierProducts = (supplierId) => {
      } catch (err) {
         console.error("Failed to fetch categories", err);
      }
-  };
+  }, [user]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     if (!supplierId) return;
     setLoading(true);
     try {
@@ -52,7 +51,7 @@ export const useSupplierProducts = (supplierId) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supplierId, toast]);
 
   const createProduct = async (productData) => {
     setLoading(true);
@@ -145,7 +144,7 @@ export const useSupplierProducts = (supplierId) => {
   useEffect(() => {
     if (supplierId) fetchProducts();
     if (user) fetchCategories();
-  }, [supplierId, user]);
+  }, [fetchCategories, fetchProducts, supplierId, user]);
 
   return {
     products,

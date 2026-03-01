@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { normalizeRole } from '@/lib/roles';
@@ -9,7 +9,7 @@ export const useUsers = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const [{ data, error }, { data: roleData, error: roleError }] = await Promise.all([
@@ -42,7 +42,7 @@ export const useUsers = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   return { users, fetchUsers, loading };
 };

@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
@@ -13,7 +12,7 @@ export const usePurchaseOrders = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
-  const fetchPurchaseOrders = async (filters = {}) => {
+  const fetchPurchaseOrders = useCallback(async (filters = {}) => {
     if (!user) return;
     if (!supabase) {
       console.warn("Supabase not configured");
@@ -46,7 +45,7 @@ export const usePurchaseOrders = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, user]);
 
   const createPurchaseOrder = async (poData) => {
     if (!user) return;
@@ -153,7 +152,7 @@ export const usePurchaseOrders = () => {
 
   useEffect(() => {
     fetchPurchaseOrders();
-  }, [user]);
+  }, [fetchPurchaseOrders]);
 
   return {
     purchaseOrders,

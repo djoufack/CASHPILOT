@@ -35,6 +35,8 @@ export const useCursorPagination = ({
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [totalCount, setTotalCount] = useState(0);
 
+  const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
+
   // Use ref to track latest filters to avoid stale closures
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
@@ -50,7 +52,7 @@ export const useCursorPagination = ({
   const from = useMemo(() => (currentPage - 1) * pageSize, [currentPage, pageSize]);
   const to = useMemo(() => from + pageSize - 1, [from, pageSize]);
 
-  const fetchPage = useCallback(async (page = currentPage) => {
+  const fetchPage = useCallback(async (page = 1) => {
     if (!supabase || !table) return;
 
     setLoading(true);
@@ -98,7 +100,7 @@ export const useCursorPagination = ({
     } finally {
       setLoading(false);
     }
-  }, [table, pageSize, orderBy, orderAsc, select, userId, currentPage]);
+  }, [table, pageSize, orderBy, orderAsc, select, userId]);
 
   const nextPage = useCallback(() => {
     if (currentPage < totalPages) {
@@ -131,7 +133,7 @@ export const useCursorPagination = ({
     if (enabled) {
       fetchPage(currentPage);
     }
-  }, [currentPage, pageSize, enabled]);
+  }, [currentPage, enabled, fetchPage]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -139,7 +141,7 @@ export const useCursorPagination = ({
       setCurrentPage(1);
       fetchPage(1);
     }
-  }, [JSON.stringify(filters), userId, enabled]);
+  }, [enabled, fetchPage, filtersKey, userId]);
 
   return {
     items,

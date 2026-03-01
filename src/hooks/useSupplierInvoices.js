@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
@@ -10,7 +10,7 @@ export const useSupplierInvoices = (supplierId) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     if (!supplierId) return;
     setLoading(true);
     try {
@@ -31,7 +31,7 @@ export const useSupplierInvoices = (supplierId) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supplierId, toast]);
 
   const uploadInvoice = async (file) => {
     try {
@@ -146,8 +146,8 @@ export const useSupplierInvoices = (supplierId) => {
   };
 
   useEffect(() => {
-    if(supplierId) fetchInvoices();
-  }, [supplierId]);
+    if (supplierId) fetchInvoices();
+  }, [fetchInvoices, supplierId]);
 
   return {
     invoices,

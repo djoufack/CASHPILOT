@@ -11,24 +11,6 @@ export const useAuditComptable = (autoLoad = false) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Load from cache on mount (if autoLoad)
-  useEffect(() => {
-    if (!autoLoad || !user) return;
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
-      try {
-        const { data, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < CACHE_TTL) {
-          setAuditResult(data);
-          return;
-        }
-      } catch { /* ignore invalid cache */ }
-    }
-    // No valid cache — run audit with default period (current year)
-    const year = new Date().getFullYear();
-    runAudit(`${year}-01-01`, new Date().toISOString().split('T')[0]);
-  }, [user, autoLoad]);
-
   const runAudit = useCallback(async (periodStart, periodEnd, categories = null) => {
     if (!user) return;
     setLoading(true);
@@ -77,6 +59,24 @@ export const useAuditComptable = (autoLoad = false) => {
     localStorage.removeItem(CACHE_KEY);
     setAuditResult(null);
   }, []);
+
+  // Load from cache on mount (if autoLoad)
+  useEffect(() => {
+    if (!autoLoad || !user) return;
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_TTL) {
+          setAuditResult(data);
+          return;
+        }
+      } catch { /* ignore invalid cache */ }
+    }
+    // No valid cache — run audit with default period (current year)
+    const year = new Date().getFullYear();
+    runAudit(`${year}-01-01`, new Date().toISOString().split('T')[0]);
+  }, [autoLoad, runAudit, user]);
 
   return { auditResult, loading, error, runAudit, clearCache };
 };

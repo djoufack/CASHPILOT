@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
@@ -13,7 +13,7 @@ export const useQuotes = () => {
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
-  const fetchQuotes = async (filters = {}) => {
+  const fetchQuotes = useCallback(async (filters = {}) => {
     if (!user) return;
     if (!supabase) {
       console.warn("Supabase not configured");
@@ -48,7 +48,7 @@ export const useQuotes = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, user]);
 
   const createQuote = async (quoteData) => {
     if (!user) return;
@@ -155,7 +155,7 @@ export const useQuotes = () => {
 
   useEffect(() => {
     fetchQuotes();
-  }, [user]);
+  }, [fetchQuotes]);
 
   return {
     quotes,

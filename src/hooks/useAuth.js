@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase, validateSupabaseConfig } from '@/lib/supabase';
 import { DEFAULT_ROLE, normalizeRole, sanitizeSelfSignupRole } from '@/lib/roles';
 
@@ -10,7 +10,7 @@ export const useAuthSource = () => {
   const [error, setError] = useState(null);
 
   // Define logout first so it can be used by handleInvalidSession
-  const logout = async () => {
+  const logout = useCallback(async () => {
     setLoading(true);
     try {
       // Only attempt Supabase signout if client exists
@@ -36,14 +36,14 @@ export const useAuthSource = () => {
       setLoading(false);
     }
     return { success: true };
-  };
+  }, []);
 
   // Helper to handle invalid sessions
-  const handleInvalidSession = async () => {
+  const handleInvalidSession = useCallback(async () => {
     await logout();
-  };
+  }, [logout]);
 
-  const fetchUserProfile = async (authUser) => {
+  const fetchUserProfile = useCallback(async (authUser) => {
     if (!authUser || !authUser.id) return null;
 
     if (!supabase) {
@@ -112,7 +112,7 @@ export const useAuthSource = () => {
       setUser({ ...authUser, role: DEFAULT_ROLE });
       return null;
     }
-  };
+  }, [handleInvalidSession]);
 
   useEffect(() => {
     let mounted = true;
@@ -189,7 +189,7 @@ export const useAuthSource = () => {
       mounted = false;
       if (subscription) subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchUserProfile, handleInvalidSession]);
 
   const signUp = async (email, password, fullName, companyName, role) => {
     if (!supabase) throw new Error("Supabase is not configured.");
