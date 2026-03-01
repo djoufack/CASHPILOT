@@ -68,6 +68,7 @@ const LandingPage = lazyRetry(() => import('./pages/LandingPage'));
 const SecuritySettings = lazyRetry(() => import('@/pages/SecuritySettings'));
 const RecurringInvoicesPage = lazyRetry(() => import('@/pages/RecurringInvoicesPage'));
 const BankConnectionsPage = lazyRetry(() => import('@/pages/BankConnectionsPage'));
+const BankCallbackPage = lazyRetry(() => import('@/pages/BankCallbackPage'));
 const CashFlowPage = lazyRetry(() => import('@/pages/CashFlowPage'));
 const OnboardingWizard = lazyRetry(() => import('@/components/onboarding/OnboardingWizard'));
 const WebhooksPage = lazyRetry(() => import('@/pages/WebhooksPage'));
@@ -192,7 +193,7 @@ const AuthWrapper = () => {
                 <Route path="audit-comptable" element={<Suspense fallback={<PageLoader />}><AuditComptable /></Suspense>} />
                 <Route path="pilotage" element={<Suspense fallback={<PageLoader />}><PilotagePage /></Suspense>} />
                 <Route path="bank-connections" element={<Suspense fallback={<PageLoader />}><BankConnectionsPage /></Suspense>} />
-                <Route path="bank-callback" element={<Suspense fallback={<PageLoader />}><BankConnectionsPage /></Suspense>} />
+                <Route path="bank-callback" element={<Suspense fallback={<PageLoader />}><BankCallbackPage /></Suspense>} />
                 <Route path="analytics" element={<Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>} />
                 <Route path="security" element={<Suspense fallback={<PageLoader />}><SecuritySettings /></Suspense>} />
                 <Route path="webhooks" element={<Suspense fallback={<PageLoader />}><WebhooksPage /></Suspense>} />
