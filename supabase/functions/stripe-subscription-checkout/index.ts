@@ -27,7 +27,7 @@ serve(async (req) => {
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { planSlug, userId, customerEmail, successUrl, cancelUrl } = await req.json();
+    const { planSlug, userId, customerEmail, successUrl, cancelUrl, billingInterval } = await req.json();
 
     if (!planSlug || !userId || !customerEmail) {
       return new Response(
@@ -81,6 +81,9 @@ serve(async (req) => {
         .eq('user_id', userId);
     }
 
+    // Determine billing interval
+    const isYearly = billingInterval === 'yearly' || billingInterval === 'annual';
+
     // Build checkout session config
     const origin = req.headers.get('origin') || 'https://cashpilot.tech';
     const sessionConfig: Record<string, unknown> = {
@@ -93,6 +96,7 @@ serve(async (req) => {
         plan_slug: planSlug,
         plan_id: plan.id,
         credits_per_month: plan.credits_per_month.toString(),
+        billing_interval: isYearly ? 'yearly' : 'monthly',
       },
       subscription_data: {
         metadata: {
@@ -100,15 +104,19 @@ serve(async (req) => {
           plan_slug: planSlug,
           plan_id: plan.id,
           credits_per_month: plan.credits_per_month.toString(),
+          billing_interval: isYearly ? 'yearly' : 'monthly',
         },
       },
     };
 
-    if (plan.stripe_price_id) {
+    // Pick the right Stripe Price ID based on billing interval
+    const priceId = isYearly ? plan.stripe_price_id_yearly : plan.stripe_price_id;
+
+    if (priceId) {
       // Use pre-configured Stripe Price
-      sessionConfig.line_items = [{ price: plan.stripe_price_id, quantity: 1 }];
+      sessionConfig.line_items = [{ price: priceId, quantity: 1 }];
     } else {
-      // Create recurring price on the fly
+      // Fallback: create recurring price on the fly
       sessionConfig.line_items = [{
         price_data: {
           currency: plan.currency.toLowerCase(),
@@ -116,8 +124,8 @@ serve(async (req) => {
             name: `CashPilot ${plan.name}`,
             description: `Abonnement ${plan.name} — ${plan.credits_per_month} crédits/mois`,
           },
-          unit_amount: plan.price_cents,
-          recurring: { interval: 'month' },
+          unit_amount: isYearly ? plan.price_cents * 10 : plan.price_cents,
+          recurring: { interval: isYearly ? 'year' : 'month' },
         },
         quantity: 1,
       }];

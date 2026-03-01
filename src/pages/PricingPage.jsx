@@ -78,7 +78,7 @@ const PricingPage = () => {
       window.location.href = 'mailto:contact@cashpilot.tech?subject=Enterprise Plan';
       return;
     }
-    subscribe(planSlug);
+    subscribe(planSlug, billingPeriod === 'annual' ? 'yearly' : 'monthly');
   };
 
   const handleBuyCredits = async (pkg) => {
