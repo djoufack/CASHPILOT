@@ -1,0 +1,196 @@
+{
+  "_meta": {
+    "template_version": 0,
+    "description": "CashPilot subscription plans — 4 products × 2 prices (monthly + yearly)"
+  },
+  "fixtures": [
+    {
+      "name": "product_starter",
+      "path": "/v1/products",
+      "method": "post",
+      "params": {
+        "name": "CashPilot Starter",
+        "description": "Freelances & indépendants — 100 crédits/mois",
+        "metadata": {
+          "plan_slug": "starter",
+          "credits_per_month": "100"
+        }
+      }
+    },
+    {
+      "name": "price_starter_monthly",
+      "path": "/v1/prices",
+      "method": "post",
+      "params": {
+        "product": "${product_starter:id}",
+        "currency": "eur",
+        "unit_amount": 999,
+        "recurring": {
+          "interval": "month"
+        },
+        "metadata": {
+          "plan_slug": "starter",
+          "billing_interval": "monthly"
+        }
+      }
+    },
+    {
+      "name": "price_starter_yearly",
+      "path": "/v1/prices",
+      "method": "post",
+      "params": {
+        "product": "${product_starter:id}",
+        "currency": "eur",
+        "unit_amount": 9990,
+        "recurring": {
+          "interval": "year"
+        },
+        "metadata": {
+          "plan_slug": "starter",
+          "billing_interval": "yearly"
+        }
+      }
+    },
+    {
+      "name": "product_pro",
+      "path": "/v1/products",
+      "method": "post",
+      "params": {
+        "name": "CashPilot Pro",
+        "description": "PME en croissance — 500 crédits/mois",
+        "metadata": {
+          "plan_slug": "pro",
+          "credits_per_month": "500"
+        }
+      }
+    },
+    {
+      "name": "price_pro_monthly",
+      "path": "/v1/prices",
+      "method": "post",
+      "params": {
+        "product": "${product_pro:id}",
+        "currency": "eur",
+        "unit_amount": 1999,
+        "recurring": {
+          "interval": "month"
+        },
+        "metadata": {
+          "plan_slug": "pro",
+          "billing_interval": "monthly"
+        }
+      }
+    },
+    {
+      "name": "price_pro_yearly",
+      "path": "/v1/prices",
+      "method": "post",
+      "params": {
+        "product": "${product_pro:id}",
+        "currency": "eur",
+        "unit_amount": 19990,
+        "recurring": {
+          "interval": "year"
+        },
+        "metadata": {
+          "plan_slug": "pro",
+          "billing_interval": "yearly"
+        }
+      }
+    },
+    {
+      "name": "product_business",
+      "path": "/v1/products",
+      "method": "post",
+      "params": {
+        "name": "CashPilot Business",
+        "description": "Entreprises établies — 1 500 crédits/mois",
+        "metadata": {
+          "plan_slug": "business",
+          "credits_per_month": "1500"
+        }
+      }
+    },
+    {
+      "name": "price_business_monthly",
+      "path": "/v1/prices",
+      "method": "post",
+      "params": {
+        "product": "${product_business:id}",
+        "currency": "eur",
+        "unit_amount": 3999,
+        "recurring": {
+          "interval": "month"
+        },
+        "metadata": {
+          "plan_slug": "business",
+          "billing_interval": "monthly"
+        }
+      }
+    },
+    {
+      "name": "price_business_yearly",
+      "path": "/v1/prices",
+      "method": "post",
+      "params": {
+        "product": "${product_business:id}",
+        "currency": "eur",
+        "unit_amount": 39990,
+        "recurring": {
+          "interval": "year"
+        },
+        "metadata": {
+          "plan_slug": "business",
+          "billing_interval": "yearly"
+        }
+      }
+    },
+    {
+      "name": "product_enterprise",
+      "path": "/v1/products",
+      "method": "post",
+      "params": {
+        "name": "CashPilot Enterprise",
+        "description": "Grands comptes & groupes — 5 000 crédits/mois",
+        "metadata": {
+          "plan_slug": "enterprise",
+          "credits_per_month": "5000"
+        }
+      }
+    },
+    {
+      "name": "price_enterprise_monthly",
+      "path": "/v1/prices",
+      "method": "post",
+      "params": {
+        "product": "${product_enterprise:id}",
+        "currency": "eur",
+        "unit_amount": 9999,
+        "recurring": {
+          "interval": "month"
+        },
+        "metadata": {
+          "plan_slug": "enterprise",
+          "billing_interval": "monthly"
+        }
+      }
+    },
+    {
+      "name": "price_enterprise_yearly",
+      "path": "/v1/prices",
+      "method": "post",
+      "params": {
+        "product": "${product_enterprise:id}",
+        "currency": "eur",
+        "unit_amount": 99990,
+        "recurring": {
+          "interval": "year"
+        },
+        "metadata": {
+          "plan_slug": "enterprise",
+          "billing_interval": "yearly"
+        }
+      }
+    }
+  ]
+}

@@ -8,7 +8,7 @@ import { supabaseUrl, supabaseAnonKey } from '@/lib/customSupabaseClient';
 /**
  * Create a Stripe Checkout session for a subscription plan
  */
-export const createSubscriptionCheckout = async ({ planSlug, userId, customerEmail, successUrl, cancelUrl }) => {
+export const createSubscriptionCheckout = async ({ planSlug, userId, customerEmail, billingInterval, successUrl, cancelUrl }) => {
   if (!supabaseUrl) {
     throw new Error('Supabase URL not configured');
   }
@@ -23,6 +23,7 @@ export const createSubscriptionCheckout = async ({ planSlug, userId, customerEma
       planSlug,
       userId,
       customerEmail,
+      billingInterval: billingInterval || 'monthly',
       successUrl: successUrl || `${window.location.origin}/pricing?status=success`,
       cancelUrl: cancelUrl || `${window.location.origin}/pricing?status=cancelled`,
     }),

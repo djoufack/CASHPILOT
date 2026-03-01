@@ -66,7 +66,7 @@ export const useSubscription = () => {
     fetchUserSubscription();
   }, [fetchPlans, fetchUserSubscription]);
 
-  const subscribe = async (planSlug) => {
+  const subscribe = async (planSlug, billingInterval = 'monthly') => {
     if (!user) return;
     setSubscribing(planSlug);
     try {
@@ -74,6 +74,7 @@ export const useSubscription = () => {
         planSlug,
         userId: user.id,
         customerEmail: user.email,
+        billingInterval,
       });
       if (session.url) {
         redirectToCheckout(session.url);
