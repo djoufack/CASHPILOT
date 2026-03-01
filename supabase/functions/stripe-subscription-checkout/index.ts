@@ -1,5 +1,6 @@
 // Supabase Edge Function: stripe-subscription-checkout
 // Creates a Stripe Checkout session for subscription plans
+// Supports both authenticated users and guest checkout
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno';
@@ -29,12 +30,14 @@ serve(async (req) => {
 
     const { planSlug, userId, customerEmail, successUrl, cancelUrl, billingInterval } = await req.json();
 
-    if (!planSlug || !userId || !customerEmail) {
+    if (!planSlug) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: planSlug, userId, customerEmail' }),
+        JSON.stringify({ error: 'Missing required field: planSlug' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const isGuest = !userId;
 
     // Lookup subscription plan
     const { data: plan, error: planError } = await supabase
@@ -58,29 +61,6 @@ serve(async (req) => {
       );
     }
 
-    // Get or create Stripe customer
-    const { data: userCredits } = await supabase
-      .from('user_credits')
-      .select('stripe_customer_id')
-      .eq('user_id', userId)
-      .single();
-
-    let customerId = userCredits?.stripe_customer_id;
-
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: customerEmail,
-        metadata: { user_id: userId },
-      });
-      customerId = customer.id;
-
-      // Save Stripe customer ID
-      await supabase
-        .from('user_credits')
-        .update({ stripe_customer_id: customerId })
-        .eq('user_id', userId);
-    }
-
     // Determine billing interval
     const isYearly = billingInterval === 'yearly' || billingInterval === 'annual';
 
@@ -88,35 +68,69 @@ serve(async (req) => {
     const origin = req.headers.get('origin') || 'https://cashpilot.tech';
     const sessionConfig: Record<string, unknown> = {
       mode: 'subscription',
-      customer: customerId,
-      success_url: successUrl || `${origin}/pricing?status=success`,
-      cancel_url: cancelUrl || `${origin}/pricing?status=cancelled`,
       metadata: {
-        user_id: userId,
         plan_slug: planSlug,
         plan_id: plan.id,
         credits_per_month: plan.credits_per_month.toString(),
         billing_interval: isYearly ? 'yearly' : 'monthly',
+        guest: isGuest ? 'true' : 'false',
       },
       subscription_data: {
         metadata: {
-          user_id: userId,
           plan_slug: planSlug,
           plan_id: plan.id,
           credits_per_month: plan.credits_per_month.toString(),
           billing_interval: isYearly ? 'yearly' : 'monthly',
+          guest: isGuest ? 'true' : 'false',
         },
       },
     };
+
+    if (isGuest) {
+      // Guest checkout: no customer, Stripe collects the email
+      sessionConfig.success_url = successUrl || `${origin}/signup?subscription=pending&session_id={CHECKOUT_SESSION_ID}`;
+      sessionConfig.cancel_url = cancelUrl || `${origin}/pricing?status=cancelled`;
+    } else {
+      // Authenticated user checkout
+      sessionConfig.success_url = successUrl || `${origin}/pricing?status=success`;
+      sessionConfig.cancel_url = cancelUrl || `${origin}/pricing?status=cancelled`;
+
+      // Add user_id to metadata
+      (sessionConfig.metadata as Record<string, string>).user_id = userId;
+      (sessionConfig.subscription_data as Record<string, unknown>).metadata =
+        { ...(sessionConfig.subscription_data as Record<string, unknown>).metadata as Record<string, string>, user_id: userId };
+
+      // Get or create Stripe customer
+      const { data: userCredits } = await supabase
+        .from('user_credits')
+        .select('stripe_customer_id')
+        .eq('user_id', userId)
+        .single();
+
+      let customerId = userCredits?.stripe_customer_id;
+
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: customerEmail,
+          metadata: { user_id: userId },
+        });
+        customerId = customer.id;
+
+        await supabase
+          .from('user_credits')
+          .update({ stripe_customer_id: customerId })
+          .eq('user_id', userId);
+      }
+
+      sessionConfig.customer = customerId;
+    }
 
     // Pick the right Stripe Price ID based on billing interval
     const priceId = isYearly ? plan.stripe_price_id_yearly : plan.stripe_price_id;
 
     if (priceId) {
-      // Use pre-configured Stripe Price
       sessionConfig.line_items = [{ price: priceId, quantity: 1 }];
     } else {
-      // Fallback: create recurring price on the fly
       sessionConfig.line_items = [{
         price_data: {
           currency: plan.currency.toLowerCase(),
