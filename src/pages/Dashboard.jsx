@@ -255,9 +255,9 @@ const Dashboard = () => {
 
   const cc = company?.currency;
   const stats = [
-    { label: "Total Revenue", value: formatCompactCurrency(metrics.revenue, cc), fullValue: formatCurrency(metrics.revenue, cc), icon: DollarSign, trend: formatTrendLabel(metrics.revenueTrend), trendUp: parseFloat(metrics.revenueTrend) >= 0 },
-    { label: "Profit Margin", value: `${Math.round(metrics.profitMargin)}%`, icon: TrendingUp, trend: formatTrendLabel(metrics.marginTrend), trendUp: parseFloat(metrics.marginTrend) >= 0 },
-    { label: "Occupancy Rate", value: `${Math.round(metrics.occupancyRate)}%`, icon: Activity, trend: formatTrendLabel(metrics.occupancyTrend), trendUp: parseFloat(metrics.occupancyTrend) >= 0 },
+    { label: t('dashboard.totalRevenue'), value: formatCompactCurrency(metrics.revenue, cc), fullValue: formatCurrency(metrics.revenue, cc), icon: DollarSign, trend: formatTrendLabel(metrics.revenueTrend), trendUp: parseFloat(metrics.revenueTrend) >= 0 },
+    { label: t('dashboard.profitMargin'), value: `${Math.round(metrics.profitMargin)}%`, icon: TrendingUp, trend: formatTrendLabel(metrics.marginTrend), trendUp: parseFloat(metrics.marginTrend) >= 0 },
+    { label: t('dashboard.occupancyRate'), value: `${Math.round(metrics.occupancyRate)}%`, icon: Activity, trend: formatTrendLabel(metrics.occupancyTrend), trendUp: parseFloat(metrics.occupancyTrend) >= 0 },
   ];
 
   const quickActions = [
@@ -391,8 +391,8 @@ const Dashboard = () => {
             className="bg-gray-900 rounded-xl p-5 border border-gray-800/50"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Total Expenses</p>
+                <div>
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.totalExpenses')}</p>
                 <p className="text-2xl md:text-3xl font-bold text-red-400" title={formatCurrency(metrics.totalExpenses, cc)}>{formatCompactCurrency(metrics.totalExpenses, cc)}</p>
               </div>
               <div className="p-3 rounded-xl bg-red-500/10">
@@ -409,7 +409,7 @@ const Dashboard = () => {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Net Cash Flow</p>
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.netCashFlow')}</p>
                 <p className={`text-2xl md:text-3xl font-bold ${metrics.netCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`} title={formatCurrency(metrics.netCashFlow, cc)}>
                   {formatCompactCurrency(metrics.netCashFlow, cc)}
                 </p>
@@ -437,7 +437,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-6 relative z-10">
               <div>
                 <h2 className="text-lg font-semibold text-white tracking-tight">{t('dashboard.revenueBreakdown')}</h2>
-                <p className="text-xs text-gray-500 mt-0.5">{t('dashboard.revenueBreakdownSub', { defaultValue: 'Products vs Services by month' })}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{t('dashboard.revenueBreakdownSub')}</p>
               </div>
               {/* Custom legend */}
               <div className="flex items-center gap-5">
@@ -518,7 +518,7 @@ const Dashboard = () => {
                           </div>
                           {payload.filter(p => p.value > 0).length > 1 && (
                             <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-700/50">
-                              <span className="text-gray-500 text-xs">Total</span>
+                              <span className="text-gray-500 text-xs">{t('dashboard.totalLabel')}</span>
                               <span className="text-white text-xs font-bold tabular-nums">{formatCurrency(total, company?.currency)}</span>
                             </div>
                           )}
@@ -542,7 +542,7 @@ const Dashboard = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <h2 className="text-lg font-semibold text-gradient mb-5">Revenue Overview</h2>
+            <h2 className="text-lg font-semibold text-gradient mb-5">{t('dashboard.revenueOverview')}</h2>
             <div id="dashboard-revenue-chart" className="h-[280px] w-full">
               {revenueData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -558,14 +558,14 @@ const Dashboard = () => {
                     <YAxis stroke="#6B7280" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => { const abs = Math.abs(val); if (abs >= 1e9) return `${(val/1e9).toFixed(1)}Md`; if (abs >= 1e6) return `${(val/1e6).toFixed(1)}M`; if (abs >= 1e3) return `${(val/1e3).toFixed(0)}K`; return val; }} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
-                      formatter={(value) => [formatCurrency(value, company?.currency), 'Revenue']}
+                      formatter={(value) => [formatCurrency(value, company?.currency), t('dashboard.revenueLabel')]}
                     />
                     <Area type="monotone" dataKey="revenue" stroke="#F59E0B" strokeWidth={2} fill="url(#revenueGradient)" />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="h-full flex items-center justify-center text-gray-600 text-sm">
-                  No revenue data available
+                  {t('dashboard.noRevenueData')}
                 </div>
               )}
             </div>
@@ -577,7 +577,7 @@ const Dashboard = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <h2 className="text-lg font-semibold text-gradient mb-5">Revenue by Client</h2>
+            <h2 className="text-lg font-semibold text-gradient mb-5">{t('dashboard.revenueByClient')}</h2>
             <div id="dashboard-client-chart" className="h-[280px] w-full">
               {clientRevenueData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -587,14 +587,14 @@ const Dashboard = () => {
                     <YAxis stroke="#6B7280" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => { const abs = Math.abs(val); if (abs >= 1e9) return `${(val/1e9).toFixed(1)}Md`; if (abs >= 1e6) return `${(val/1e6).toFixed(1)}M`; if (abs >= 1e3) return `${(val/1e3).toFixed(0)}K`; return val; }} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#111827', borderColor: '#1F2937', borderRadius: '8px', color: '#fff' }}
-                      formatter={(value) => [formatCurrency(value, company?.currency), 'Revenue']}
+                      formatter={(value) => [formatCurrency(value, company?.currency), t('dashboard.revenueLabel')]}
                     />
                     <Line type="monotone" dataKey="amount" stroke="#F59E0B" strokeWidth={2} dot={{ fill: '#F59E0B', strokeWidth: 0, r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="h-full flex items-center justify-center text-gray-600 text-sm">
-                  No data available
+                  {t('dashboard.noChartData')}
                 </div>
               )}
             </div>
@@ -610,10 +610,10 @@ const Dashboard = () => {
             transition={{ delay: 0.5 }}
           >
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold text-gradient">Cash Flow</h2>
+              <h2 className="text-lg font-semibold text-gradient">{t('dashboard.cashFlow')}</h2>
               <div className="flex items-center gap-1 bg-gray-800/60 rounded-lg p-0.5">
                 <Calendar className="w-3.5 h-3.5 text-gray-500 ml-2" />
-                {[{ key: 'month', label: 'Mois' }, { key: 'week', label: 'Semaines' }].map(opt => (
+                {[{ key: 'month', label: t('dashboard.monthly') }, { key: 'week', label: t('dashboard.weekly') }].map(opt => (
                   <Button
                     key={opt.key}
                     variant="ghost"
@@ -671,9 +671,9 @@ const Dashboard = () => {
                       );
                     }}
                   />
-                  <Area type="monotone" dataKey="income" stroke="#10B981" fill="url(#incomeGradient)" name="Income" />
-                  <Area type="monotone" dataKey="expenses" stroke="#EF4444" fill="url(#expenseGradient)" name="Expenses" />
-                  <Area type="monotone" dataKey="net" stroke="#F59E0B" strokeWidth={2} strokeDasharray="6 3" fill="url(#netGradient)" name="Net" />
+                  <Area type="monotone" dataKey="income" stroke="#10B981" fill="url(#incomeGradient)" name={t('dashboard.income')} />
+                  <Area type="monotone" dataKey="expenses" stroke="#EF4444" fill="url(#expenseGradient)" name={t('dashboard.expensesLegend')} />
+                  <Area type="monotone" dataKey="net" stroke="#F59E0B" strokeWidth={2} strokeDasharray="6 3" fill="url(#netGradient)" name={t('dashboard.netLabel')} />
                   <Legend />
                 </AreaChart>
               </ResponsiveContainer>
@@ -716,7 +716,7 @@ const Dashboard = () => {
           >
             <h2 className="text-lg font-semibold text-gradient mb-4 flex items-center gap-2">
               <FileText className="w-5 h-5 text-orange-400" />
-              Recent Invoices
+              {t('dashboard.recentInvoices')}
             </h2>
             <div className="space-y-3">
               {recentInvoices.length > 0 ? (
@@ -739,7 +739,7 @@ const Dashboard = () => {
                   </div>
                 ))
               ) : (
-                <p className="text-gray-600 text-center py-6 text-sm">No recent invoices found</p>
+                <p className="text-gray-600 text-center py-6 text-sm">{t('dashboard.noRecentInvoices')}</p>
               )}
             </div>
           </motion.div>
@@ -752,15 +752,15 @@ const Dashboard = () => {
           >
             <h2 className="text-lg font-semibold text-gradient mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5 text-orange-400" />
-              Recent Timesheets
+              {t('dashboard.recentTimesheets')}
             </h2>
             <div className="space-y-3">
               {recentTimesheets.length > 0 ? (
                 recentTimesheets.map((ts) => (
                   <div key={ts.id} className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
                     <div>
-                      <p className="text-gradient font-medium text-sm">{ts.task?.name || 'Untitled Task'}</p>
-                      <p className="text-xs text-gray-500">{ts.project?.name || 'No Project'}</p>
+                      <p className="text-gradient font-medium text-sm">{ts.task?.name || t('dashboard.untitledTask')}</p>
+                      <p className="text-xs text-gray-500">{ts.project?.name || t('dashboard.noProject')}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-gradient font-semibold text-sm">
@@ -771,7 +771,7 @@ const Dashboard = () => {
                   </div>
                 ))
               ) : (
-                <p className="text-gray-600 text-center py-6 text-sm">No recent timesheets found</p>
+                <p className="text-gray-600 text-center py-6 text-sm">{t('dashboard.noRecentTimesheets')}</p>
               )}
             </div>
           </motion.div>

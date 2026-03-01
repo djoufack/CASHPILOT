@@ -196,47 +196,70 @@ body:hover .cursor-dot {
 /* ============================================
    Navigation
    ============================================ */
+/* ============================================
+   Navbar - Award-worthy Glassmorphic Design
+   ============================================ */
+
 .navbar {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     z-index: 1000;
-    padding: 20px 0;
-    transition: all var(--transition-medium);
+    padding: 16px 0;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .navbar.scrolled {
-    background: rgba(10, 14, 39, 0.95);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(139, 92, 246, 0.1);
-    padding: 15px 0;
+    padding: 10px 0;
+}
+
+.navbar.scrolled .nav-container {
+    background: rgba(10, 14, 39, 0.82);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .nav-container {
     max-width: var(--container-width);
     margin: 0 auto;
-    padding: 0 30px;
+    padding: 0 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    height: 56px;
+    border-radius: 16px;
+    margin-left: 24px;
+    margin-right: 24px;
+    background: rgba(10, 14, 39, 0.5);
+    backdrop-filter: blur(20px) saturate(1.3);
+    -webkit-backdrop-filter: blur(20px) saturate(1.3);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* --- Logo --- */
 .nav-logo {
     display: flex;
     align-items: center;
     gap: 10px;
     text-decoration: none;
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     font-weight: 700;
     color: var(--text-primary);
+    flex-shrink: 0;
 }
 
 .nav-logo .logo-icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     color: var(--accent-purple);
+    filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.5));
 }
 
 .nav-logo span {
@@ -246,99 +269,261 @@ body:hover .cursor-dot {
     -webkit-text-fill-color: transparent;
 }
 
+/* --- Nav Links --- */
 .nav-links {
     display: flex;
     align-items: center;
-    gap: 40px;
+    gap: 4px;
 }
 
 .nav-link {
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.55);
     text-decoration: none;
-    font-size: 0.95rem;
+    font-size: 0.82rem;
     font-weight: 500;
+    letter-spacing: 0.01em;
     position: relative;
-    transition: color var(--transition-fast);
+    padding: 7px 14px;
+    border-radius: 10px;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
 }
 
 .nav-link::after {
     content: '';
     position: absolute;
-    bottom: -5px;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: var(--gradient-main);
-    transition: width var(--transition-medium);
+    inset: 0;
+    border-radius: 10px;
+    background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.12), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
 .nav-link:hover {
-    color: var(--text-primary);
+    color: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .nav-link:hover::after {
-    width: 100%;
+    opacity: 1;
 }
 
-/* Peppol special nav button */
+/* --- Peppol Badge --- */
 .nav-peppol-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 16px;
-    background: linear-gradient(135deg, #10b981, #3b82f6);
-    color: #fff;
-    font-size: 0.85rem;
+    padding: 7px 16px;
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    font-size: 0.82rem;
     font-weight: 600;
-    border: none;
-    border-radius: 9999px;
+    letter-spacing: 0.01em;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     font-family: inherit;
     text-decoration: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-peppol-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.2), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.35s ease;
 }
 
 .nav-peppol-btn:hover {
-    transform: translateY(-1px) scale(1.05);
-    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+    color: #6ee7b7;
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.35);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
+}
+
+.nav-peppol-btn:hover::before {
+    opacity: 1;
 }
 
 .nav-peppol-btn svg {
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
 }
 
+/* --- Action Buttons --- */
 .nav-actions {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
+/* Connexion - Frosted glass button */
+.nav-actions .btn-ghost {
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 8px 20px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-actions .btn-ghost::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(ellipse at 50% 0%, rgba(139, 92, 246, 0.15), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+.nav-actions .btn-ghost:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.nav-actions .btn-ghost:hover::before {
+    opacity: 1;
+}
+
+/* Démarrer - Aurora CTA with prismatic border */
+.nav-actions .btn-primary {
+    position: relative;
+    padding: 8px 22px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(59, 130, 246, 0.25));
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.nav-actions .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+        135deg,
+        rgba(245, 158, 11, 0.8),
+        rgba(16, 185, 129, 0.6),
+        rgba(59, 130, 246, 0.6),
+        rgba(139, 92, 246, 0.8)
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    transition: opacity 0.35s ease;
+    z-index: -1;
+}
+
+.nav-actions .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(
+        135deg,
+        rgba(245, 158, 11, 0.15),
+        rgba(16, 185, 129, 0.1),
+        rgba(139, 92, 246, 0.15)
+    );
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    z-index: -2;
+}
+
+.nav-actions .btn-primary:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow:
+        0 0 20px rgba(139, 92, 246, 0.25),
+        0 8px 32px rgba(59, 130, 246, 0.15);
+}
+
+.nav-actions .btn-primary:hover::after {
+    opacity: 1;
+}
+
+.nav-actions .btn-primary svg {
+    width: 15px;
+    height: 15px;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-actions .btn-primary:hover svg {
+    transform: translateX(3px);
+}
+
+/* Prismatic shimmer animation on CTA */
+@keyframes prismatic-shimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.nav-actions .btn-primary::before {
+    background-size: 200% 200%;
+    animation: prismatic-shimmer 4s ease infinite;
+}
+
+/* --- Mobile Menu Button --- */
 .mobile-menu-btn {
     display: none;
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     color: var(--text-primary);
     cursor: pointer;
     padding: 8px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
 }
 
-.mobile-menu-btn i {
-    width: 24px;
-    height: 24px;
+.mobile-menu-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
-/* Mobile Menu */
+.mobile-menu-btn svg {
+    width: 22px;
+    height: 22px;
+}
+
+/* ============================================
+   Mobile Menu - Frosted Overlay
+   ============================================ */
 .mobile-menu {
     position: fixed;
     top: 0;
     right: -100%;
     width: 100%;
     height: 100vh;
-    background: rgba(10, 14, 39, 0.98);
-    backdrop-filter: blur(20px);
+    background: rgba(10, 14, 39, 0.96);
+    backdrop-filter: blur(32px) saturate(1.4);
+    -webkit-backdrop-filter: blur(32px) saturate(1.4);
     z-index: 999;
-    transition: right var(--transition-medium);
+    transition: right 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -352,26 +537,107 @@ body:hover .cursor-dot {
     text-align: center;
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 8px;
+    padding: 0 32px;
+    width: 100%;
+    max-width: 400px;
 }
 
 .mobile-link {
-    color: var(--text-primary);
+    color: rgba(255, 255, 255, 0.7);
     text-decoration: none;
-    font-size: 1.5rem;
-    font-weight: 600;
-    transition: color var(--transition-fast);
+    font-size: 1.25rem;
+    font-weight: 500;
+    padding: 14px 24px;
+    border-radius: 14px;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
 }
 
 .mobile-link:hover {
-    color: var(--accent-purple);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .mobile-actions {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    margin-top: 20px;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mobile-actions .btn-ghost {
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 14px 28px;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.mobile-actions .btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.mobile-actions .btn-primary {
+    position: relative;
+    padding: 14px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(59, 130, 246, 0.25));
+    border: none;
+    border-radius: 14px;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.mobile-actions .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+        135deg,
+        rgba(245, 158, 11, 0.8),
+        rgba(16, 185, 129, 0.6),
+        rgba(59, 130, 246, 0.6),
+        rgba(139, 92, 246, 0.8)
+    );
+    background-size: 200% 200%;
+    animation: prismatic-shimmer 4s ease infinite;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: -1;
+}
+
+/* Mobile Peppol button harmonization */
+.mobile-menu-content .nav-peppol-btn {
+    padding: 14px 28px;
+    font-size: 1rem;
+    border-radius: 14px;
+    justify-content: center;
+}
+
+.mobile-menu-content .nav-peppol-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+@media (max-width: 1100px) {
+    .nav-links {
+        gap: 2px;
+    }
+    .nav-link {
+        padding: 7px 10px;
+        font-size: 0.78rem;
+    }
 }
 
 @media (max-width: 968px) {
@@ -380,7 +646,16 @@ body:hover .cursor-dot {
     }
 
     .mobile-menu-btn {
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nav-container {
+        margin-left: 12px;
+        margin-right: 12px;
+        height: 52px;
+        padding: 0 16px;
     }
 }
 
