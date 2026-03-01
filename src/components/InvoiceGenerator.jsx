@@ -539,7 +539,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:items-end">
                   <div className="md:col-span-4 space-y-1">
                     <Label className="text-xs">{t('invoices.description')}</Label>
-                    <Input value={item.description} onChange={(e) => updateManualItem(item.id, 'description', e.target.value)} className="bg-gray-700 border-gray-600 text-white w-full" placeholder="Service or product" />
+                      <Input value={item.description} onChange={(e) => updateManualItem(item.id, 'description', e.target.value)} className="bg-gray-700 border-gray-600 text-white w-full" placeholder={t('invoices.itemDescriptionPlaceholder')} />
                   </div>
                   <div className="md:col-span-1 space-y-1">
                     <Label className="text-xs">{t('invoices.quantity')}</Label>
@@ -647,7 +647,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
             {/* Notes (existing) */}
             <div className="space-y-2">
               <Label>{t('timesheets.notes')}</Label>
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="bg-gray-700 border-gray-600 text-white resize-none w-full" placeholder="Additional notes or payment terms..." />
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="bg-gray-700 border-gray-600 text-white resize-none w-full" placeholder={t('invoices.notesPlaceholder')} />
             </div>
 
             {/* Terms and Conditions */}

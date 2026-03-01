@@ -188,7 +188,7 @@ const SecuritySettings = () => {
                   <ShieldCheck className="w-5 h-5 text-green-400" />
                   <div>
                     <p className="text-sm font-medium text-white">
-                      {factor.friendly_name || 'TOTP Authenticator'}
+                      {factor.friendly_name || t('security.mfa.authenticatorApp')}
                     </p>
                     <p className="text-xs text-gray-400">
                       {t('security.mfa.addedOn', 'Added on')} {new Date(factor.created_at).toLocaleDateString()}

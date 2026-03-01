@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSubtasks } from '@/hooks/useSubtasks';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SubtaskList = ({ taskId }) => {
+  const { t } = useTranslation();
   const { subtasks, loading, createSubtask, updateSubtask, deleteSubtask } = useSubtasks(taskId);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [adding, setAdding] = useState(false);
@@ -73,7 +75,7 @@ const SubtaskList = ({ taskId }) => {
         <Input
           value={newSubtaskTitle}
           onChange={(e) => setNewSubtaskTitle(e.target.value)}
-          placeholder="Add a subtask..."
+          placeholder={t('tasks.addSubtaskPlaceholder')}
           className="h-8 bg-transparent border-none text-sm focus-visible:ring-0 px-0 placeholder:text-gray-600"
         />
         {newSubtaskTitle && (

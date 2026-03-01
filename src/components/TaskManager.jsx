@@ -29,8 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useTranslation } from 'react-i18next';
 
 const TaskManager = ({ projectId, quotes = [] }) => {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState({ status: 'all', priority: 'all', search: '' });
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasksForProject(projectId, filters);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -76,7 +78,7 @@ const TaskManager = ({ projectId, quotes = [] }) => {
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
             <Input 
-              placeholder="Search tasks..." 
+              placeholder={t('tasks.searchPlaceholder')} 
               className="pl-9 bg-gray-900 border-gray-700 text-white h-9 w-full"
               value={filters.search}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
@@ -85,30 +87,30 @@ const TaskManager = ({ projectId, quotes = [] }) => {
           <div className="flex gap-2">
             <Select value={filters.status} onValueChange={(val) => setFilters(prev => ({ ...prev, status: val }))}>
                 <SelectTrigger className="w-full sm:w-[130px] bg-gray-900 border-gray-700 text-white h-9">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={t('common.status')} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="all">{t('tasks.filters.allStatuses')}</SelectItem>
+                <SelectItem value="pending">{t('tasks.status.pending')}</SelectItem>
+                <SelectItem value="in_progress">{t('tasks.status.inProgress')}</SelectItem>
+                <SelectItem value="completed">{t('tasks.status.completed')}</SelectItem>
                 </SelectContent>
             </Select>
             <Select value={filters.priority} onValueChange={(val) => setFilters(prev => ({ ...prev, priority: val }))}>
                 <SelectTrigger className="w-full sm:w-[130px] bg-gray-900 border-gray-700 text-white h-9">
-                <SelectValue placeholder="Priority" />
+                <SelectValue placeholder={t('tasks.priority')} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                <SelectItem value="all">All Priority</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="all">{t('tasks.filters.allPriorities')}</SelectItem>
+                <SelectItem value="high">{t('tasks.priorityValues.high')}</SelectItem>
+                <SelectItem value="medium">{t('tasks.priorityValues.medium')}</SelectItem>
+                <SelectItem value="low">{t('tasks.priorityValues.low')}</SelectItem>
                 </SelectContent>
             </Select>
           </div>
         </div>
         <Button onClick={handleCreate} className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 h-9">
-          <Plus className="w-4 h-4 mr-2" /> New Task
+          <Plus className="w-4 h-4 mr-2" /> {t('tasks.newTask')}
         </Button>
       </div>
 
@@ -123,7 +125,7 @@ const TaskManager = ({ projectId, quotes = [] }) => {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white w-full sm:max-w-[90%] md:max-w-[600px] overflow-y-auto max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>{editingTask ? 'Edit Task' : 'Create New Task'}</DialogTitle>
+            <DialogTitle>{editingTask ? t('tasks.editTask') : t('tasks.createNewTask')}</DialogTitle>
           </DialogHeader>
           <TaskForm task={editingTask} onSave={handleSave} onCancel={() => setIsFormOpen(false)} quotes={quotes} />
         </DialogContent>
@@ -132,14 +134,14 @@ const TaskManager = ({ projectId, quotes = [] }) => {
       <AlertDialog open={!!taskToDelete} onOpenChange={() => setTaskToDelete(null)}>
         <AlertDialogContent className="w-full sm:max-w-[90%] md:max-w-lg bg-gray-900 border-gray-800 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogTitle>{t('tasks.deleteTask')}</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
-              Are you sure? This will delete the task and all associated subtasks.
+              {t('tasks.deleteTaskDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="bg-gray-800 border-gray-700 hover:bg-gray-700 text-white w-full sm:w-auto mt-0">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 border-0 text-white w-full sm:w-auto">Delete</AlertDialogAction>
+            <AlertDialogCancel className="bg-gray-800 border-gray-700 hover:bg-gray-700 text-white w-full sm:w-auto mt-0">{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 border-0 text-white w-full sm:w-auto">{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

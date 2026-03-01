@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { Camera, StopCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const BarcodeScanner = () => {
+  const { t } = useTranslation();
   const { isScanning, startScanning, stopScanning, scannedData } = useBarcodeScanner();
   const [manualCode, setManualCode] = useState('');
   const { toast } = useToast();
@@ -15,7 +17,7 @@ const BarcodeScanner = () => {
   const handleManualSubmit = (e) => {
     e.preventDefault();
     if (manualCode) {
-      toast({ title: 'Manual Entry', description: `Processed code: ${manualCode}` });
+      toast({ title: t('scanner.manualEntry'), description: t('scanner.processedCode', { code: manualCode }) });
       setManualCode('');
     }
   };
@@ -25,14 +27,14 @@ const BarcodeScanner = () => {
       <Card className="bg-gray-900 border-gray-800">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <Camera className="h-5 w-5 text-blue-400" /> Scanner
+            <Camera className="h-5 w-5 text-blue-400" /> {t('scanner.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div id="reader" className="w-full max-w-sm mx-auto overflow-hidden rounded-lg bg-black min-h-[300px] mb-4 relative">
              {!isScanning && (
                <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-                 Camera Inactive
+                 {t('scanner.cameraInactive')}
                </div>
              )}
           </div>
@@ -40,20 +42,20 @@ const BarcodeScanner = () => {
           <div className="flex justify-center gap-4 mb-6">
             {!isScanning ? (
               <Button onClick={() => startScanning('reader')} className="bg-blue-600 hover:bg-blue-700">
-                <Camera className="mr-2 h-4 w-4" /> Start Camera
+                <Camera className="mr-2 h-4 w-4" /> {t('scanner.startCamera')}
               </Button>
             ) : (
               <Button onClick={stopScanning} variant="destructive">
-                <StopCircle className="mr-2 h-4 w-4" /> Stop
+                <StopCircle className="mr-2 h-4 w-4" /> {t('scanner.stop')}
               </Button>
             )}
           </div>
 
           {scannedData && (
             <div className="bg-gray-800 p-4 rounded-lg border border-green-500/50 mb-4 animate-in fade-in">
-              <p className="text-green-400 font-bold">Code Detected!</p>
+              <p className="text-green-400 font-bold">{t('scanner.codeDetected')}</p>
               <p className="text-2xl font-mono text-white break-all">{scannedData.text}</p>
-              <p className="text-xs text-gray-400 mt-1">Format: {scannedData.format}</p>
+              <p className="text-xs text-gray-400 mt-1">{t('scanner.format')}: {scannedData.format}</p>
             </div>
           )}
 
@@ -62,7 +64,7 @@ const BarcodeScanner = () => {
               <span className="w-full border-t border-gray-700" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-gray-900 px-2 text-gray-500">Or enter manually</span>
+              <span className="bg-gray-900 px-2 text-gray-500">{t('scanner.orEnterManually')}</span>
             </div>
           </div>
 
@@ -70,10 +72,10 @@ const BarcodeScanner = () => {
             <Input 
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
-              placeholder="Enter barcode number..."
+              placeholder={t('scanner.enterBarcode')}
               className="bg-gray-800 border-gray-700 text-white"
             />
-            <Button type="submit" variant="secondary">Submit</Button>
+            <Button type="submit" variant="secondary">{t('scanner.submit')}</Button>
           </form>
         </CardContent>
       </Card>

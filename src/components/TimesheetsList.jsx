@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import { format, parseISO, isValid } from 'date-fns';
+import { enUS, fr } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,10 +28,11 @@ const STATUS_COLORS = {
 };
 
 const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoice }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedTimesheet, setSelectedTimesheet] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const dateLocale = i18n.language?.startsWith('fr') ? fr : enUS;
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => {
@@ -65,8 +67,8 @@ const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoi
     return (
       <div className="text-center py-12 text-gray-500 bg-gray-900/50 rounded-xl border border-gray-800 border-dashed">
         <CalendarDays className="w-12 h-12 mx-auto mb-4 opacity-50" />
-        <p className="text-lg font-medium">No timesheets found</p>
-        <p className="text-sm">Start by adding a new time entry above.</p>
+        <p className="text-lg font-medium">{t('timesheets.noTimesheetsFound')}</p>
+        <p className="text-sm">{t('timesheets.addNewEntryHint')}</p>
       </div>
     );
   }
@@ -88,11 +90,11 @@ const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoi
       {selectedIds.size > 0 && (
         <div className="flex items-center justify-between p-4 mb-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
           <span className="text-orange-300 font-medium">
-            {selectedIds.size} entrée(s) sélectionnée(s)
+            {selectedIds.size} {t('timesheets.selectedEntries')}
           </span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={clearSelection} className="border-gray-600 text-gray-300">
-              Annuler
+              {t('timesheets.deselectAll')}
             </Button>
             <Button
               size="sm"
@@ -100,7 +102,7 @@ const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoi
               className="bg-orange-500 hover:bg-orange-600 text-white"
             >
               <FileText className="w-4 h-4 mr-2" />
-              Générer une facture
+              {t('timesheets.generateInvoice')}
             </Button>
           </div>
         </div>
@@ -111,7 +113,7 @@ const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoi
         <div className="flex items-center gap-3 mb-4">
           <Button size="sm" variant="ghost" onClick={selectedIds.size > 0 ? clearSelection : selectAll} className="text-gray-400 hover:text-white">
             {selectedIds.size > 0 ? <CheckSquare className="w-4 h-4 mr-2" /> : <Square className="w-4 h-4 mr-2" />}
-            {selectedIds.size > 0 ? 'Tout désélectionner' : 'Sélectionner les facturables'}
+            {selectedIds.size > 0 ? t('timesheets.deselectAll') : t('timesheets.selectAllBillable')}
           </Button>
         </div>
       )}
@@ -132,10 +134,10 @@ const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoi
             <div className="bg-gray-800/50 px-6 py-3 border-b border-gray-800 flex justify-between items-center">
               <h3 className="font-semibold text-gray-200 flex items-center">
                 <CalendarDays className="w-4 h-4 mr-2 text-orange-400" />
-                {isValidDate ? format(dateObj, 'EEEE, MMMM d, yyyy') : dateStr}
+                {isValidDate ? format(dateObj, 'EEEE d MMMM yyyy', { locale: dateLocale }) : dateStr}
               </h3>
               <span className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded-full border border-gray-700">
-                {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+                {t('timesheets.entryCount', { count: entries.length })}
               </span>
             </div>
             
@@ -164,7 +166,7 @@ const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoi
                         )}
                         {ts.invoice_id && (
                           <span className="mr-3 text-xs font-medium px-2 py-0.5 rounded-full bg-green-900/30 text-green-300 border border-green-800 flex-shrink-0">
-                            Facturé
+                            {t('timesheets.invoiced')}
                           </span>
                         )}
                       <div className="space-y-1 flex-1">
@@ -175,7 +177,7 @@ const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoi
                             </span>
                           )}
                           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-300 border border-blue-800">
-                            {ts.client?.company_name || 'No Client'}
+                            {ts.client?.company_name || t('timesheets.noClient')}
                           </span>
                           <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${STATUS_COLORS[ts.status || 'draft'] || STATUS_COLORS.draft}`}>
                             {t(`timesheets.status.${ts.status || 'draft'}`)}
@@ -187,7 +189,7 @@ const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoi
                           )}
                         </div>
                         <p className="text-gray-300 text-sm whitespace-pre-wrap">
-                          {ts.notes || <span className="text-gray-600 italic">No description</span>}
+                          {ts.notes || <span className="text-gray-600 italic">{t('timesheets.noDescription')}</span>}
                         </p>
                       </div>
 

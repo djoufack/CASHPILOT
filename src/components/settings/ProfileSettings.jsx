@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useProfileSettings } from '@/hooks/useProfileSettings';
 import { useAuth } from '@/context/AuthContext';
 import { checkSupabaseConnection } from '@/lib/supabase';
@@ -19,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const ProfileSettings = () => {
+  const { t } = useTranslation();
   const { user } = useAuth(); // Access user for read-only email
   const { 
     profile, loading, saving, uploading, 
@@ -397,7 +399,7 @@ const ProfileSettings = () => {
                 <Label htmlFor="country">Country</Label>
                 <Select value={formData.country} onValueChange={(val) => handleSelectChange('country', val)}>
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                    <SelectValue placeholder="Select Country" />
+                      <SelectValue placeholder={t('profileSettings.selectCountry')} />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
                     {COUNTRIES.map(c => (
@@ -423,7 +425,7 @@ const ProfileSettings = () => {
                 <Label htmlFor="timezone">Timezone</Label>
                 <Select value={formData.timezone} onValueChange={(val) => handleSelectChange('timezone', val)}>
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                    <SelectValue placeholder="Select Timezone" />
+                      <SelectValue placeholder={t('profileSettings.selectTimezone')} />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white">
                     <SelectItem value="UTC">UTC</SelectItem>

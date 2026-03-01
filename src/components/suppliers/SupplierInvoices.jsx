@@ -63,9 +63,9 @@ const SupplierInvoices = ({ supplierId }) => {
   };
 
   const siCalendarLegend = [
-    { label: t('suppliers.statusPending') || 'Pending', color: '#eab308' },
-    { label: t('suppliers.statusPaid') || 'Paid', color: '#22c55e' },
-    { label: t('suppliers.statusOverdue') || 'Overdue', color: '#ef4444' },
+    { label: t('supplierInvoices.statusPending'), color: '#eab308' },
+    { label: t('supplierInvoices.statusPaid'), color: '#22c55e' },
+    { label: t('supplierInvoices.statusOverdue'), color: '#ef4444' },
   ];
 
   const siCalendarEvents = invoices.map(inv => ({
@@ -91,25 +91,25 @@ const SupplierInvoices = ({ supplierId }) => {
       date: inv.invoice_date,
       status: ps,
       payment_status: ps,
-      statusLabel: ps.charAt(0).toUpperCase() + ps.slice(1),
+      statusLabel: t(`supplierInvoices.status${ps.charAt(0).toUpperCase()}${ps.slice(1)}`),
       statusColor: colorMap[ps] || 'bg-gray-500/20 text-gray-400',
       amount: `${parseFloat(inv.total_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${inv.currency || 'EUR'}`,
     };
   });
 
   const siKanbanColumns = [
-    { id: 'pending', title: t('suppliers.statusPending') || 'Pending', color: 'bg-yellow-500/20 text-yellow-400' },
-    { id: 'paid', title: t('suppliers.statusPaid') || 'Paid', color: 'bg-green-500/20 text-green-400' },
-    { id: 'overdue', title: t('suppliers.statusOverdue') || 'Overdue', color: 'bg-red-500/20 text-red-400' },
+    { id: 'pending', title: t('supplierInvoices.statusPending'), color: 'bg-yellow-500/20 text-yellow-400' },
+    { id: 'paid', title: t('supplierInvoices.statusPaid'), color: 'bg-green-500/20 text-green-400' },
+    { id: 'overdue', title: t('supplierInvoices.statusOverdue'), color: 'bg-red-500/20 text-red-400' },
   ];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-gradient text-lg font-bold">{t('suppliers.invoices') || 'Invoices'}</h3>
+        <h3 className="text-gradient text-lg font-bold">{t('supplierInvoices.title')}</h3>
         <Button onClick={() => setIsUploadOpen(true)} size="sm" className="bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4 mr-1" />
-          {t('suppliers.uploadInvoice') || 'Upload Invoice'}
+          {t('supplierInvoices.uploadInvoice')}
         </Button>
       </div>
 
@@ -131,24 +131,24 @@ const SupplierInvoices = ({ supplierId }) => {
 
         <TabsContent value="list">
           {loading ? (
-            <div className="text-center py-8 text-gray-400">Loading...</div>
+            <div className="text-center py-8 text-gray-400">{t('loading.data')}</div>
           ) : invoices.length === 0 ? (
             <div className="p-8 bg-gray-900/50 rounded border border-gray-800 text-center text-gray-400">
               <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>{t('suppliers.noInvoices') || 'No invoices yet'}</p>
+              <p>{t('supplierInvoices.noInvoices')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-700 text-gray-400">
-                    <th className="py-2 px-3 text-left">Invoice #</th>
-                    <th className="py-2 px-3 text-left">Date</th>
-                    <th className="py-2 px-3 text-right">Amount</th>
-                    <th className="py-2 px-3 text-center">Status</th>
-                    <th className="py-2 px-3 text-center">Source</th>
-                    <th className="py-2 px-3 text-center">Doc</th>
-                    <th className="py-2 px-3 text-right">Actions</th>
+                    <th className="py-2 px-3 text-left">{t('supplierInvoices.invoiceNumber')}</th>
+                    <th className="py-2 px-3 text-left">{t('supplierInvoices.date')}</th>
+                    <th className="py-2 px-3 text-right">{t('supplierInvoices.amount')}</th>
+                    <th className="py-2 px-3 text-center">{t('supplierInvoices.status')}</th>
+                    <th className="py-2 px-3 text-center">{t('supplierInvoices.source')}</th>
+                    <th className="py-2 px-3 text-center">{t('supplierInvoices.document')}</th>
+                    <th className="py-2 px-3 text-right">{t('supplierInvoices.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -165,9 +165,9 @@ const SupplierInvoices = ({ supplierId }) => {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="paid">Paid</SelectItem>
-                            <SelectItem value="overdue">Overdue</SelectItem>
+                            <SelectItem value="pending">{t('supplierInvoices.statusPending')}</SelectItem>
+                            <SelectItem value="paid">{t('supplierInvoices.statusPaid')}</SelectItem>
+                            <SelectItem value="overdue">{t('supplierInvoices.statusOverdue')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </td>
@@ -183,7 +183,7 @@ const SupplierInvoices = ({ supplierId }) => {
                         {inv.file_url ? (
                           <Button variant="ghost" size="sm"
                             className="text-gray-400 hover:text-blue-400 h-7 w-7 p-0"
-                            title={t('suppliers.viewDocument') || 'View document'}
+                            title={t('supplierInvoices.viewDocument')}
                             onClick={async () => {
                               const url = await getSignedUrl(inv.file_url);
                               if (url) window.open(url, '_blank');

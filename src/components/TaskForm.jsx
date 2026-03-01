@@ -15,8 +15,10 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, Calendar as CalendarIcon, AlertTriangle } from 'lucide-react';
 import { DialogFooter } from '@/components/ui/dialog';
 import { isAfter } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 
 const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -80,7 +82,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
   const validateDates = () => {
     if (formData.started_at && formData.completed_at) {
       if (isAfter(new Date(formData.started_at), new Date(formData.completed_at))) {
-        setValidationError('Completed date must be after started date');
+        setValidationError(t('tasks.validation.completedAfterStarted'));
         return false;
       }
     }
@@ -112,20 +114,20 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 py-4 text-white">
       <div className="space-y-2">
-        <Label htmlFor="title" className="text-gray-300">Title <span className="text-red-500">*</span></Label>
+        <Label htmlFor="title" className="text-gray-300">{t('tasks.title')} <span className="text-red-500">*</span></Label>
         <Input
           id="title"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           required
           className="bg-gray-800 border-gray-700 text-white w-full"
-          placeholder="e.g. Design Homepage"
+          placeholder={t('tasks.titlePlaceholder')}
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
          <div className="space-y-2">
-          <Label htmlFor="status" className="text-gray-300">Status</Label>
+          <Label htmlFor="status" className="text-gray-300">{t('common.status')}</Label>
           <Select
             value={formData.status}
             onValueChange={(value) => setFormData({ ...formData, status: value })}
@@ -134,17 +136,17 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700 text-white">
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="on_hold">On Hold</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="pending">{t('tasks.status.pending')}</SelectItem>
+              <SelectItem value="in_progress">{t('tasks.status.inProgress')}</SelectItem>
+              <SelectItem value="completed">{t('tasks.status.completed')}</SelectItem>
+              <SelectItem value="on_hold">{t('tasks.status.onHold')}</SelectItem>
+              <SelectItem value="cancelled">{t('tasks.status.cancelled')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="priority" className="text-gray-300">Priority</Label>
+          <Label htmlFor="priority" className="text-gray-300">{t('tasks.priority')}</Label>
           <Select
             value={formData.priority}
             onValueChange={(value) => setFormData({ ...formData, priority: value })}
@@ -153,9 +155,9 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700 text-white">
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="low">{t('tasks.priorityValues.low')}</SelectItem>
+              <SelectItem value="medium">{t('tasks.priorityValues.medium')}</SelectItem>
+              <SelectItem value="high">{t('tasks.priorityValues.high')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -163,18 +165,18 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="assigned_to" className="text-gray-300">Assigned To</Label>
+          <Label htmlFor="assigned_to" className="text-gray-300">{t('tasks.assignedTo')}</Label>
           <Input
             id="assigned_to"
             value={formData.assigned_to}
             onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
             className="bg-gray-800 border-gray-700 text-white w-full"
-            placeholder="John Doe"
+            placeholder={t('tasks.assignedToPlaceholder')}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="due_date" className="text-gray-300">Due Date</Label>
+          <Label htmlFor="due_date" className="text-gray-300">{t('tasks.dueDate')}</Label>
           <div className="relative">
             <Input
               id="due_date"
@@ -191,7 +193,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
       {/* Service & Estimated Hours */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="service_id" className="text-gray-300">Service</Label>
+          <Label htmlFor="service_id" className="text-gray-300">{t('services.title')}</Label>
           <Select
             value={formData.service_id}
             onValueChange={(value) => {
@@ -202,13 +204,13 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
             }}
           >
             <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-full">
-              <SelectValue placeholder="Select Service (Optional)" />
+              <SelectValue placeholder={t('tasks.selectService')} />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700 text-white">
-              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="none">{t('tasks.none')}</SelectItem>
               {services.filter(s => s.is_active).map((svc) => (
                 <SelectItem key={svc.id} value={svc.id}>
-                  {svc.service_name} ({svc.pricing_type === 'hourly' ? `${svc.hourly_rate}/h` : svc.pricing_type === 'fixed' ? `${svc.fixed_price} fixed` : `${svc.unit_price}/${svc.unit}`})
+                  {svc.service_name} ({svc.pricing_type === 'hourly' ? `${svc.hourly_rate}/h` : svc.pricing_type === 'fixed' ? `${svc.fixed_price} ${t('services.fixed')}` : `${svc.unit_price}/${svc.unit}`})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -216,7 +218,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="estimated_hours" className="text-gray-300">Estimated Hours</Label>
+          <Label htmlFor="estimated_hours" className="text-gray-300">{t('tasks.estimatedHours')}</Label>
           <Input
             id="estimated_hours"
             type="number"
@@ -225,7 +227,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
             value={formData.estimated_hours}
             onChange={(e) => setFormData({ ...formData, estimated_hours: e.target.value })}
             className="bg-gray-800 border-gray-700 text-white w-full"
-            placeholder="e.g. 8"
+            placeholder={t('tasks.estimatedHoursPlaceholder')}
           />
         </div>
       </div>
@@ -233,7 +235,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
       {/* Extended Date Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-800 pt-4">
         <div className="space-y-2">
-          <Label htmlFor="started_at" className="text-gray-400 text-sm">Started At</Label>
+          <Label htmlFor="started_at" className="text-gray-400 text-sm">{t('tasks.startedAt')}</Label>
           <Input
             id="started_at"
             type="date"
@@ -244,7 +246,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="completed_at" className="text-gray-400 text-sm">Completed At</Label>
+          <Label htmlFor="completed_at" className="text-gray-400 text-sm">{t('tasks.completedAt')}</Label>
           <Input
             id="completed_at"
             type="date"
@@ -258,9 +260,9 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
       <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-4 space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <Label htmlFor="requires_quote" className="text-gray-300">Quote reminder</Label>
+            <Label htmlFor="requires_quote" className="text-gray-300">{t('tasks.quoteReminder')}</Label>
             <p className="mt-1 text-sm text-gray-500">
-              Use this when the task should result in a client quote.
+              {t('tasks.quoteReminderDescription')}
             </p>
           </div>
           <Switch
@@ -276,7 +278,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
 
         {formData.requires_quote && (
           <div className="space-y-2">
-            <Label htmlFor="quote_id" className="text-gray-300">Linked quote</Label>
+            <Label htmlFor="quote_id" className="text-gray-300">{t('tasks.linkedQuote')}</Label>
             <Select
               value={formData.quote_id || 'none'}
               onValueChange={(value) => setFormData((current) => ({
@@ -285,19 +287,19 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
               }))}
             >
               <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-full">
-                <SelectValue placeholder="Select a quote" />
+                <SelectValue placeholder={t('tasks.selectQuote')} />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                <SelectItem value="none">No quote linked yet</SelectItem>
+                <SelectItem value="none">{t('tasks.noQuoteLinked')}</SelectItem>
                 {quotes.map((quote) => (
                   <SelectItem key={quote.id} value={quote.id}>
-                    {quote.quote_number} ({quote.status || 'draft'})
+                    {quote.quote_number} ({quote.status || t('status.draft')})
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500">
-              Keep it empty until the quote is generated. The task will remain in obligations until a quote is linked or the task is completed.
+              {t('tasks.quoteReminderHelp')}
             </p>
           </div>
         )}
@@ -311,14 +313,14 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="description" className="text-gray-300">Description</Label>
+        <Label htmlFor="description" className="text-gray-300">{t('invoices.description')}</Label>
         <Textarea
           id="description"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           rows={4}
           className="bg-gray-800 border-gray-700 text-white resize-none w-full min-h-[100px]"
-          placeholder="Detailed description of the task..."
+          placeholder={t('tasks.descriptionPlaceholder')}
         />
       </div>
 
@@ -329,14 +331,14 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
           onClick={onCancel}
           className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full sm:w-auto mt-0"
         >
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button
           type="submit"
           disabled={loading}
           className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (task ? 'Update Task' : 'Create Task')}
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (task ? t('tasks.updateTask') : t('tasks.createTask'))}
         </Button>
       </DialogFooter>
     </form>

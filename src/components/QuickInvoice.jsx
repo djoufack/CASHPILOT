@@ -403,7 +403,7 @@ const QuickInvoice = ({ onSuccess }) => {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Input value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="bg-gray-700 border-gray-600 text-white" placeholder="Service or product" />
+                    <Input value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="bg-gray-700 border-gray-600 text-white" placeholder={t('quickInvoice.itemDescriptionPlaceholder')} />
                   )}
                 </div>
                 <div className="md:col-span-1">
@@ -452,7 +452,7 @@ const QuickInvoice = ({ onSuccess }) => {
         <div className="space-y-4">
           <div className="space-y-1">
             <Label className="text-xs text-gray-400">{t('timesheets.notes')}</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="bg-gray-700 border-gray-600 text-white resize-none" placeholder="Payment terms, notes..." />
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="bg-gray-700 border-gray-600 text-white resize-none" placeholder={t('quickInvoice.notesPlaceholder')} />
           </div>
 
           <div className="space-y-1">

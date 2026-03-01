@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAdminRoles, ADMIN_ACCESS_ROLES } from '@/hooks/useAdminRoles';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +46,7 @@ const formatPermissions = (permissions) => {
 };
 
 const AdminRoleManager = () => {
+  const { t } = useTranslation();
   const { assignments, permissionsByRole, loading, savingUserId, fetchRoleData, updateAccessRole } = useAdminRoles();
   const [searchTerm, setSearchTerm] = useState('');
   const [draftRoles, setDraftRoles] = useState({});
@@ -181,7 +183,7 @@ const AdminRoleManager = () => {
             <Input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search by name, role, or user ID"
+              placeholder={t('admin.roleSearchPlaceholder')}
               className="bg-gray-950 border-gray-800 text-white"
             />
           </div>
@@ -237,7 +239,7 @@ const AdminRoleManager = () => {
                           }))}
                         >
                           <SelectTrigger className="w-full bg-gray-950 border-gray-800 text-white">
-                            <SelectValue placeholder="Select access level" />
+                            <SelectValue placeholder={t('admin.accessLevelPlaceholder')} />
                           </SelectTrigger>
                           <SelectContent className="bg-gray-900 border-gray-800 text-white">
                             {ADMIN_ACCESS_ROLES.map((role) => (

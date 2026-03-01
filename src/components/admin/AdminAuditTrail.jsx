@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAdminAuditTrail } from '@/hooks/useAdminAuditTrail';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +39,7 @@ const formatSummary = (details) => {
 };
 
 const AdminAuditTrail = () => {
+  const { t } = useTranslation();
   const { logs, loading, error, fetchAuditTrail } = useAdminAuditTrail();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -104,7 +106,7 @@ const AdminAuditTrail = () => {
               <Input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search action, actor, or resource"
+                placeholder={t('admin.auditSearchPlaceholder')}
                 className="pl-10 bg-gray-950 border-gray-800 text-white"
               />
             </div>
