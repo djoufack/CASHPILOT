@@ -3,6 +3,17 @@ import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
+const DAY_IN_MS = 1000 * 60 * 60 * 24;
+
+const toDateOnly = (value) => {
+  if (!value) return null;
+
+  const rawDate = value.includes('T') ? value.split('T')[0] : value;
+  const parsed = new Date(`${rawDate}T00:00:00`);
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 export const useSupplierReports = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -13,7 +24,8 @@ export const useSupplierReports = () => {
     delivery: [],
     products: [],
     ordersCount: 0,
-    totalSpent: 0
+    totalSpent: 0,
+    onTimeRate: 0,
   });
 
   const generateReports = useCallback(async (period = 'month', supplierId = null) => {
@@ -25,6 +37,7 @@ export const useSupplierReports = () => {
         products: [],
         ordersCount: 0,
         totalSpent: 0,
+        onTimeRate: 0,
       });
       setError(null);
       setLoading(false);
@@ -37,7 +50,7 @@ export const useSupplierReports = () => {
     try {
       let ordersQuery = supabase
         .from('supplier_orders')
-        .select('id, supplier_id, order_number, order_date, expected_delivery_date, actual_delivery_date, total_amount, created_at');
+        .select('id, supplier_id, order_number, order_date, expected_delivery_date, actual_delivery_date, order_status, total_amount, created_at');
 
       let invoicesQuery = supabase
         .from('supplier_invoices')
@@ -80,7 +93,7 @@ export const useSupplierReports = () => {
         if (!date) return;
 
         const month = date.substring(0, 7); // YYYY-MM
-        const amount = entry.total_amount || entry.total_ttc || 0;
+        const amount = Number(entry.total_amount || entry.total_ttc || 0);
         spendingMap[month] = (spendingMap[month] || 0) + amount;
       });
 
@@ -91,25 +104,52 @@ export const useSupplierReports = () => {
       // 2. Orders count
       const ordersCount = safeOrders.length;
 
-      // 3. Delivery Performance (Mocked as we might not have actual_delivery_date populated often)
-      const delivery = safeOrders.filter(o => o.actual_delivery_date).map(o => {
-          const expected = new Date(o.expected_delivery_date);
-          const actual = new Date(o.actual_delivery_date);
-          const diffTime = Math.abs(actual - expected);
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      // 3. Delivery Performance
+      let onTimeCount = 0;
+      const delivery = safeOrders
+        .filter((order) => order.actual_delivery_date && order.expected_delivery_date)
+        .map((order) => {
+          const expected = toDateOnly(order.expected_delivery_date);
+          const actual = toDateOnly(order.actual_delivery_date);
+
+          if (!expected || !actual) {
+            return null;
+          }
+
+          const varianceDays = Math.round((actual.getTime() - expected.getTime()) / DAY_IN_MS);
+          let timing = 'onTime';
+
+          if (varianceDays < 0) {
+            timing = 'early';
+          } else if (varianceDays > 0) {
+            timing = 'late';
+          } else {
+            onTimeCount += 1;
+          }
+
           return {
-             order: o.order_number,
-             daysLate: actual > expected ? diffDays : 0,
-             daysEarly: actual < expected ? diffDays : 0
+            order: order.order_number,
+            varianceDays,
+            timing,
           };
-      });
+        })
+        .filter(Boolean);
+
+      const onTimeRate = delivery.length > 0
+        ? Math.round((onTimeCount / delivery.length) * 100)
+        : 0;
 
       setReportData({
         spending,
         ordersCount,
-        totalSpent: spendingSource.reduce((sum, entry) => sum + (entry.total_amount || entry.total_ttc || 0), 0),
+        totalSpent: spendingSource.reduce(
+          (sum, entry) => sum + Number(entry.total_amount || entry.total_ttc || 0),
+          0,
+        ),
         orders: safeOrders,
-        delivery
+        delivery,
+        onTimeRate,
+        products: [],
       });
 
     } catch (err) {
@@ -122,6 +162,7 @@ export const useSupplierReports = () => {
         products: [],
         ordersCount: 0,
         totalSpent: 0,
+        onTimeRate: 0,
       });
     } finally {
       setLoading(false);
