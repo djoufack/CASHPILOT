@@ -21,11 +21,12 @@ const itemVariants = {
 
 const PilotageTaxValuationTab = ({ data, region, sector }) => {
   const { t } = useTranslation();
+  const quality = data?.dataQuality;
 
   if (!data?.taxSynthesis && !data?.valuation) {
     return (
-      <div className="text-center py-16">
-        <p className="text-gray-400 text-lg">{t('pilotage.noData')}</p>
+      <div className="rounded-2xl border border-gray-800/60 bg-gray-900/40 p-10 text-center">
+        <p className="text-gray-300 text-lg font-semibold">{t('pilotage.noData')}</p>
         <p className="text-gray-500 text-sm mt-2">{t('pilotage.noDataHint')}</p>
       </div>
     );
@@ -38,6 +39,19 @@ const PilotageTaxValuationTab = ({ data, region, sector }) => {
       animate="visible"
       className="space-y-6"
     >
+      {quality?.valuationMode !== 'full' && (
+        <motion.div variants={itemVariants} className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+          <p className="text-sm font-medium text-amber-200">
+            {t(`pilotage.signal.valuationMode.${quality?.valuationMode || 'unavailable'}`)}
+          </p>
+          <p className="text-xs text-amber-100/80 mt-1">
+            {quality?.valuationMode === 'multiples-only'
+              ? t('pilotage.emptyStates.multiplesOnlyHint')
+              : t('pilotage.emptyStates.valuationUnavailableHint')}
+          </p>
+        </motion.div>
+      )}
+
       {/* Row 1 — Tax Synthesis + Valuation side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div variants={itemVariants}>

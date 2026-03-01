@@ -25,12 +25,23 @@ const itemVariants = {
 
 const PilotageOverviewTab = ({ data }) => {
   const { t } = useTranslation();
+  const quality = data?.dataQuality;
 
   if (!data?.financialDiagnostic?.valid && !data?.revenue) {
+    const title = quality?.datasetStatus === 'empty'
+      ? t('pilotage.emptyStates.noEntriesTitle')
+      : quality?.datasetStatus === 'setup'
+        ? t('pilotage.emptyStates.noSetupTitle')
+        : t('pilotage.noData');
+    const hint = quality?.datasetStatus === 'empty'
+      ? t('pilotage.emptyStates.noEntriesHint')
+      : quality?.datasetStatus === 'setup'
+        ? t('pilotage.emptyStates.noSetupHint')
+        : t('pilotage.noDataHint');
     return (
-      <div className="text-center py-16">
-        <p className="text-gray-400 text-lg">{t('pilotage.noData')}</p>
-        <p className="text-gray-500 text-sm mt-2">{t('pilotage.noDataHint')}</p>
+      <div className="rounded-2xl border border-gray-800/60 bg-gray-900/40 p-10 text-center">
+        <p className="text-gray-300 text-lg font-semibold">{title}</p>
+        <p className="text-gray-500 text-sm mt-2">{hint}</p>
       </div>
     );
   }

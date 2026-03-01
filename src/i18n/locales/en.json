@@ -2172,6 +2172,43 @@
     "trialBalanceSummary": "Trial Balance Summary",
     "performanceChart": "Overall Performance",
     "noData": "No accounting data available",
-    "noDataHint": "Import a chart of accounts and enter transactions to activate steering"
+    "noDataHint": "Import a chart of accounts and enter transactions to activate steering",
+    "signal": {
+      "scope": "Analysis scope",
+      "dataCoverage": "Data coverage",
+      "alertRadar": "Alert radar",
+      "valuationReadiness": "Valuation readiness",
+      "daysObserved": "days observed",
+      "periodChip": "Period",
+      "sectorChip": "Sector",
+      "entries": "entries",
+      "accounts": "accounts",
+      "lastEntry": "Last entry",
+      "critical": "critical",
+      "warnings": "warning(s)",
+      "alertDetail": "The radar summarizes structural and cash-flow alerts over the selected period.",
+      "preTaxReady": "Tax base ready",
+      "preTaxMissing": "Tax base incomplete",
+      "valuationDetail": "The displayed mode depends on current free cash flow quality and EBITDA availability.",
+      "loadingDetail": "Aggregating journal entries, cash flows, and diagnostics.",
+      "status": {
+        "setup": "Setup still required",
+        "empty": "Dataset still empty",
+        "ready": "Dataset ready for analysis"
+      },
+      "valuationMode": {
+        "full": "DCF + multiples available",
+        "multiples-only": "Multiples available, DCF limited",
+        "unavailable": "Valuation not usable yet"
+      }
+    },
+    "emptyStates": {
+      "noEntriesTitle": "The chart is ready, but no entries are feeding the steering layer yet",
+      "noEntriesHint": "Add journal entries, invoices, or expenses to unlock ratios, tax views, and valuation.",
+      "noSetupTitle": "Business steering is still waiting for its accounting backbone",
+      "noSetupHint": "Select and initialize a chart of accounts before analyzing the 6 steering tabs.",
+      "multiplesOnlyHint": "The engine currently falls back to sector multiples until free cash flow is strong enough for a credible DCF.",
+      "valuationUnavailableHint": "No usable EBITDA and no positive free cash flow over the period: valuation stays intentionally conservative."
+    }
   }
 }
