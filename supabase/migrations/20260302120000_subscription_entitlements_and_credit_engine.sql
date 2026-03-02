@@ -71,7 +71,7 @@ CREATE INDEX IF NOT EXISTS idx_plan_entitlements_feature_key
   ON public.plan_entitlements(feature_key);
 
 WITH required_entitlements AS (
-  SELECT plan_id, feature_key
+  SELECT plans.id AS plan_id, seed.feature_key
   FROM (
     VALUES
       ('starter', 'accounting.financial_statements'),
@@ -650,11 +650,11 @@ BEGIN
       TO authenticated
       USING (
         auth.uid() = user_id
-        AND public.user_has_entitlement(''''organization.team'''', user_id)
+        AND public.user_has_entitlement(''organization.team'', user_id)
       )
       WITH CHECK (
         auth.uid() = user_id
-        AND public.user_has_entitlement(''''organization.team'''', user_id)
+        AND public.user_has_entitlement(''organization.team'', user_id)
       )
     ';
   END IF;
