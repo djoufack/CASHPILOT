@@ -20,7 +20,7 @@ import InvoicePreview from '@/components/InvoicePreview';
 import { exportUBL } from '@/services/exportUBL';
 import PeppolSettings from '@/components/settings/PeppolSettings';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
-import { useCreditsGuard } from '@/hooks/useCreditsGuard';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import { readFunctionErrorData } from '@/utils/supabaseFunctionErrors';
 
 const PeppolPage = () => {
@@ -53,6 +53,45 @@ const PeppolPage = () => {
   const [syncingInbound, setSyncingInbound] = useState(false);
 
   const isPeppolConfigured = !!(company?.peppol_endpoint_id);
+  const creditUnit = t('credits.creditsLabel');
+  const creditPolicyItems = [
+    {
+      key: 'configuration',
+      icon: Settings,
+      badgeClass: 'bg-cyan-500/15 text-cyan-300',
+      iconClass: 'text-cyan-300',
+      costLabel: `${CREDIT_COSTS.PEPPOL_CONFIGURATION_OK} ${creditUnit}`,
+      title: t('peppolPage.creditPolicy.configurationTitle', 'Configuration validee'),
+      description: t(
+        'peppolPage.creditPolicy.configurationDescription',
+        'Le test de connexion Scrada facture uniquement quand une nouvelle configuration est validee avec succes.',
+      ),
+    },
+    {
+      key: 'send',
+      icon: Send,
+      badgeClass: 'bg-orange-500/15 text-orange-300',
+      iconClass: 'text-orange-300',
+      costLabel: `${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit}`,
+      title: t('peppolPage.creditPolicy.sendTitle', "Envoi d'une facture"),
+      description: t(
+        'peppolPage.creditPolicy.sendDescription',
+        "Le debit a lieu au lancement de l'envoi. Si Scrada rejette le document ou si le journal echoue, les credits sont rembourses.",
+      ),
+    },
+    {
+      key: 'receive',
+      icon: ArrowDownLeft,
+      badgeClass: 'bg-emerald-500/15 text-emerald-300',
+      iconClass: 'text-emerald-300',
+      costLabel: `${CREDIT_COSTS.PEPPOL_RECEIVE_INVOICE} ${creditUnit}`,
+      title: t('peppolPage.creditPolicy.receiveTitle', "Reception d'une facture"),
+      description: t(
+        'peppolPage.creditPolicy.receiveDescription',
+        "La synchronisation facture uniquement les nouvelles factures importees. Si le solde est insuffisant, l'import est bloque.",
+      ),
+    },
+  ];
 
   // --- Fetch AP account info from Scrada ---
   const fetchApInfo = useCallback(async () => {
@@ -427,7 +466,11 @@ const PeppolPage = () => {
             disabled={syncingInbound}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${syncingInbound ? 'animate-spin' : ''}`} />
-            {t('peppol.syncInbound')} (3 crédits/facture)
+            {t('peppolPage.creditPolicy.syncButton', {
+              credits: CREDIT_COSTS.PEPPOL_RECEIVE_INVOICE,
+              unit: creditUnit,
+              defaultValue: `Synchroniser (${CREDIT_COSTS.PEPPOL_RECEIVE_INVOICE} ${creditUnit}/facture)`,
+            })}
           </Button>
           <Link to="/app/settings">
             <Button
@@ -478,6 +521,52 @@ const PeppolPage = () => {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-5 space-y-4">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-white font-semibold">
+            {t('peppolPage.creditPolicy.title', 'Politique de credits Peppol')}
+          </h2>
+          <p className="text-sm text-gray-400">
+            {t(
+              'peppolPage.creditPolicy.subtitle',
+              "Peppol est visible pour tous. Chaque action reseau consomme des credits au moment ou elle est executee.",
+            )}
+          </p>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {creditPolicyItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.key}
+                className="rounded-xl border border-white/10 bg-gray-900/40 p-4 space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="rounded-lg bg-white/5 p-2">
+                      <Icon className={`w-4 h-4 ${item.iconClass}`} />
+                    </div>
+                    <p className="text-sm font-medium text-white">{item.title}</p>
+                  </div>
+                  <Badge className={`${item.badgeClass} border-0 whitespace-nowrap`}>
+                    {item.costLabel}
+                  </Badge>
+                </div>
+                <p className="text-sm text-gray-400">
+                  {item.description}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-xs text-gray-500">
+          {t(
+            'peppolPage.creditPolicy.saveFree',
+            "Enregistrer les champs seuls ne consomme pas de credits.",
+          )}
+        </p>
       </div>
 
       {/* ======== KPI CARDS ======== */}
@@ -726,7 +815,11 @@ const PeppolPage = () => {
                                   className="bg-orange-500 hover:bg-orange-600 text-white text-xs"
                                 >
                                   <Send className="w-3 h-3 mr-1" />
-                                  {t('peppol.sendViaPeppol')}
+                                  {t('peppolPage.creditPolicy.tableSendLabel', {
+                                    credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
+                                    unit: creditUnit,
+                                    defaultValue: `Envoyer (${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit})`,
+                                  })}
                                 </Button>
                               )}
                               {(invoice.peppol_status === 'pending' || invoice.peppol_status === 'sent') && (
@@ -1198,6 +1291,14 @@ const PeppolPage = () => {
                   La facture ne contient aucune ligne. L envoi pourrait echouer.
                 </div>
               )}
+
+              <div className="rounded-lg border border-orange-500/20 bg-orange-500/10 p-3 text-sm text-orange-100">
+                {t('peppolPage.creditPolicy.sendDialogNotice', {
+                  credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
+                  unit: creditUnit,
+                  defaultValue: `Cet envoi consomme ${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit}. Si le Point d'Acces rejette le document ou si le journal echoue, les credits sont rembourses automatiquement.`,
+                })}
+              </div>
             </div>
           )}
 
@@ -1222,7 +1323,11 @@ const PeppolPage = () => {
               ) : (
                 <>
                   <Send className="w-4 h-4 mr-2" />
-                  Confirmer l envoi Peppol (4 crédits)
+                  {t('peppolPage.creditPolicy.sendButton', {
+                    credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
+                    unit: creditUnit,
+                    defaultValue: `Confirmer l envoi Peppol (${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${creditUnit})`,
+                  })}
                 </>
               )}
             </Button>

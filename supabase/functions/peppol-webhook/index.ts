@@ -123,19 +123,9 @@ serve(async (req) => {
           });
           if (insertDocError) throw insertDocError;
 
-          const { error: insertLogError } = await supabaseAdmin.from('peppol_transmission_log').insert({
-            user_id: userId,
-            direction: 'inbound',
-            status: 'received',
-            ap_provider: 'scrada',
-            ap_document_id: documentId,
-            sender_endpoint: senderPeppolId || null,
-            receiver_endpoint: companyRecord.peppol_endpoint_id
-              ? `${companyRecord.peppol_scheme_id || '0208'}:${companyRecord.peppol_endpoint_id}`
-              : null,
-            metadata,
-          });
-          if (insertLogError) throw insertLogError;
+          // Inbound Scrada documents are not linked to a local sales invoice.
+          // The current transmission log schema requires invoice_id, so we persist
+          // the inbound document itself and skip log insertion here.
         } catch (error) {
           if (creditDeduction) {
             await refundCredits(

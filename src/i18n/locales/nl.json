@@ -960,6 +960,26 @@
       "activate": "Activeren"
     }
   },
+  "peppolPage": {
+    "creditPolicy": {
+      "title": "Peppol tegoedenbeleid",
+      "subtitle": "Peppol is voor iedereen zichtbaar. Elke netwerkactie verbruikt tegoeden op het moment van gebruik.",
+      "configurationTitle": "Gevalideerde configuratie",
+      "configurationDescription": "De Scrada-validatietest wordt alleen aangerekend wanneer een nieuwe configuratie succesvol wordt gevalideerd.",
+      "sendTitle": "Factuur verzenden",
+      "sendDescription": "De afschrijving gebeurt bij het verzenden. Als Scrada het document weigert of de logging mislukt, worden de tegoeden teruggestort.",
+      "receiveTitle": "Factuur ontvangen",
+      "receiveDescription": "De synchronisatie rekent alleen nieuw geïmporteerde inkomende facturen aan. Bij onvoldoende saldo wordt de import geblokkeerd.",
+      "saveFree": "Alleen de velden opslaan verbruikt geen tegoeden.",
+      "settingsValidationHint": "De validatietest rekent {{credits}} {{unit}} alleen aan na een succesvolle validatie.",
+      "settingsSavedFreeHint": "Alleen de velden opslaan verbruikt geen tegoeden.",
+      "sendlessConfigButton": "{{testLabel}} ({{credits}} {{unit}})",
+      "syncButton": "Synchroniseren ({{credits}} {{unit}}/factuur)",
+      "tableSendLabel": "Verzenden ({{credits}} {{unit}})",
+      "sendButton": "Peppol-verzending bevestigen ({{credits}} {{unit}})",
+      "sendDialogNotice": "Deze verzending verbruikt {{credits}} {{unit}}. Als het Access Point het document weigert of de logging mislukt, worden de tegoeden automatisch teruggestort."
+    }
+  },
   "errors": {
     "unauthorized": "U heeft geen toestemming om deze bron te openen.",
     "notFound": "Bron niet gevonden.",
