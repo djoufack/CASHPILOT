@@ -13,6 +13,9 @@ import ErrorBoundary from './components/ErrorBoundary';
 import GDPRConsentBanner from './components/GDPRConsentBanner';
 import { useAccountingGuard } from '@/hooks/useAccountingGuard';
 import UserPreferenceSync from '@/components/UserPreferenceSync';
+import { EntitlementsProvider } from '@/contexts/EntitlementsContext';
+import EntitlementGate from '@/components/subscription/EntitlementGate';
+import { ENTITLEMENT_KEYS } from '@/utils/subscriptionEntitlements';
 import './i18n/config';
 
 // Retry wrapper for lazy imports - handles chunk load failures after deployments
@@ -165,7 +168,16 @@ const AuthWrapper = () => {
                 <Route path="purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrdersPage /></Suspense>} />
                 <Route path="purchases" element={<Suspense fallback={<PageLoader />}><PurchasesPage /></Suspense>} />
                 <Route path="supplier-invoices" element={<Suspense fallback={<PageLoader />}><SupplierInvoicesPage /></Suspense>} />
-                <Route path="peppol" element={<Suspense fallback={<PageLoader />}><PeppolPage /></Suspense>} />
+                <Route path="peppol" element={
+                  <Suspense fallback={<PageLoader />}>
+                    <EntitlementGate
+                      featureKey={ENTITLEMENT_KEYS.PEPPOL_EINVOICING}
+                      title="Peppol e-invoicing"
+                    >
+                      <PeppolPage />
+                    </EntitlementGate>
+                  </Suspense>
+                } />
 
                 {/* Stock (produits du User) */}
                 <Route path="stock" element={<Suspense fallback={<PageLoader />}><StockManagement /></Suspense>} />
@@ -187,16 +199,52 @@ const AuthWrapper = () => {
                 <Route path="notifications" element={<Suspense fallback={<PageLoader />}><NotificationCenter /></Suspense>} />
 
                 <Route path="debt-manager" element={<Suspense fallback={<PageLoader />}><DebtManagerPage /></Suspense>} />
-                <Route path="scenarios" element={<Suspense fallback={<PageLoader />}><ScenarioBuilder /></Suspense>} />
-                <Route path="scenarios/:scenarioId" element={<Suspense fallback={<PageLoader />}><ScenarioDetail /></Suspense>} />
+                <Route path="scenarios" element={
+                  <Suspense fallback={<PageLoader />}>
+                    <EntitlementGate
+                      featureKey={ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL}
+                      title="Scénarios financiers"
+                    >
+                      <ScenarioBuilder />
+                    </EntitlementGate>
+                  </Suspense>
+                } />
+                <Route path="scenarios/:scenarioId" element={
+                  <Suspense fallback={<PageLoader />}>
+                    <EntitlementGate
+                      featureKey={ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL}
+                      title="Scénarios financiers"
+                    >
+                      <ScenarioDetail />
+                    </EntitlementGate>
+                  </Suspense>
+                } />
                 <Route path="cash-flow" element={<Suspense fallback={<PageLoader />}><CashFlowPage /></Suspense>} />
                 <Route path="audit-comptable" element={<Suspense fallback={<PageLoader />}><AuditComptable /></Suspense>} />
                 <Route path="pilotage" element={<Suspense fallback={<PageLoader />}><PilotagePage /></Suspense>} />
                 <Route path="bank-connections" element={<Suspense fallback={<PageLoader />}><BankConnectionsPage /></Suspense>} />
                 <Route path="bank-callback" element={<Suspense fallback={<PageLoader />}><BankCallbackPage /></Suspense>} />
-                <Route path="analytics" element={<Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>} />
+                <Route path="analytics" element={
+                  <Suspense fallback={<PageLoader />}>
+                    <EntitlementGate
+                      featureKey={ENTITLEMENT_KEYS.ANALYTICS_REPORTS}
+                      title="Rapports analytiques"
+                    >
+                      <AnalyticsPage />
+                    </EntitlementGate>
+                  </Suspense>
+                } />
                 <Route path="security" element={<Suspense fallback={<PageLoader />}><SecuritySettings /></Suspense>} />
-                <Route path="webhooks" element={<Suspense fallback={<PageLoader />}><WebhooksPage /></Suspense>} />
+                <Route path="webhooks" element={
+                  <Suspense fallback={<PageLoader />}>
+                    <EntitlementGate
+                      featureKey={ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS}
+                      title="API & Webhooks"
+                    >
+                      <WebhooksPage />
+                    </EntitlementGate>
+                  </Suspense>
+                } />
                 <Route path="settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
             </Route>
 
@@ -211,12 +259,14 @@ function App() {
         <Router>
             <ErrorBoundary>
                 <ScrollToTop />
-                <AuthWrapper />
-                <AuthenticatedChatWidget />
-                <AccountingGuard />
-                <UserPreferenceSync />
-                <GDPRConsentBanner />
-                <Toaster />
+                <EntitlementsProvider>
+                    <AuthWrapper />
+                    <AuthenticatedChatWidget />
+                    <AccountingGuard />
+                    <UserPreferenceSync />
+                    <GDPRConsentBanner />
+                    <Toaster />
+                </EntitlementsProvider>
             </ErrorBoundary>
         </Router>
     );

@@ -2,7 +2,7 @@
 // Extracts structured data from supplier invoices using Google Gemini API
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 
 const corsHeaders = {
@@ -40,50 +40,28 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const supabase = createServiceClient();
+  let resolvedUserId = '';
+  let creditConsumption = null;
+
   try {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Verify JWT from Authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    const token = authHeader.replace('Bearer ', '');
-
-    // Create a client with the user's token to verify identity
-    const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser();
-
-    if (authError || !authUser) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const authUser = await requireAuthenticatedUser(req);
 
     const { filePath, fileType, userId } = await req.json();
+    resolvedUserId = authUser.id;
 
     // Ensure the authenticated user matches the requested userId
-    if (userId && userId !== authUser.id) {
+    if (userId && userId !== resolvedUserId) {
       return new Response(
         JSON.stringify({ error: 'User ID mismatch with authenticated user' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const resolvedUserId = authUser.id;
 
     // Rate limiting: 10 extractions per 15 minutes per user
     const rateLimit = checkRateLimit(resolvedUserId, {
@@ -120,52 +98,7 @@ serve(async (req) => {
       );
     }
 
-    // 1. Check user credits
-    const { data: creditsData, error: creditsError } = await supabase
-      .from('user_credits')
-      .select('balance')
-      .eq('user_id', resolvedUserId)
-      .single();
-
-    if (creditsError || !creditsData) {
-      return new Response(
-        JSON.stringify({ error: 'Could not verify credits' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (creditsData.balance < CREDIT_COST) {
-      return new Response(
-        JSON.stringify({ error: 'insufficient_credits', available: creditsData.balance, required: CREDIT_COST }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // 2. Deduct credits before calling Gemini (optimistic lock: only succeeds if balance unchanged)
-    const { data: deductData, error: deductError } = await supabase
-      .from('user_credits')
-      .update({
-        balance: creditsData.balance - CREDIT_COST,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', resolvedUserId)
-      .eq('balance', creditsData.balance)
-      .select('balance')
-      .single();
-
-    if (deductError || !deductData) {
-      return new Response(
-        JSON.stringify({ error: 'Credit deduction failed, please retry' }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    await supabase.from('credit_transactions').insert([{
-      user_id: resolvedUserId,
-      amount: -CREDIT_COST,
-      type: 'usage',
-      description: 'AI Invoice Extraction',
-    }]);
+    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Invoice Extraction');
 
     // 3. Download file from Supabase Storage
     const { data: fileData, error: downloadError } = await supabase.storage
@@ -173,19 +106,7 @@ serve(async (req) => {
       .download(filePath);
 
     if (downloadError || !fileData) {
-      // Refund credits on file download failure (optimistic lock on current balance)
-      await supabase
-        .from('user_credits')
-        .update({ balance: deductData.balance + CREDIT_COST, updated_at: new Date().toISOString() })
-        .eq('user_id', resolvedUserId)
-        .eq('balance', deductData.balance);
-      await supabase.from('credit_transactions').insert([{
-        user_id: resolvedUserId, amount: CREDIT_COST, type: 'refund', description: 'AI Invoice Extraction - file not found',
-      }]);
-      return new Response(
-        JSON.stringify({ error: 'File not found in storage' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new HttpError(404, 'File not found in storage');
     }
 
     // 4. Convert to base64
@@ -229,19 +150,7 @@ serve(async (req) => {
     if (!geminiResponse.ok) {
       // Log the full error server-side, but do not expose to client
       console.error('Gemini API error:', geminiResponse.status, await geminiResponse.text());
-      // Refund credits on Gemini API failure (optimistic lock on current balance)
-      await supabase
-        .from('user_credits')
-        .update({ balance: deductData.balance + CREDIT_COST, updated_at: new Date().toISOString() })
-        .eq('user_id', resolvedUserId)
-        .eq('balance', deductData.balance);
-      await supabase.from('credit_transactions').insert([{
-        user_id: resolvedUserId, amount: CREDIT_COST, type: 'refund', description: 'AI Invoice Extraction - API error',
-      }]);
-      return new Response(
-        JSON.stringify({ error: 'Extraction service temporarily unavailable' }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new HttpError(502, 'Extraction service temporarily unavailable');
     }
 
     const geminiResult = await geminiResponse.json();
@@ -253,19 +162,7 @@ serve(async (req) => {
       if (!textContent) throw new Error('No content in Gemini response');
       extractedData = JSON.parse(textContent);
     } catch (parseError) {
-      // Refund credits on parse failure (optimistic lock on current balance)
-      await supabase
-        .from('user_credits')
-        .update({ balance: deductData.balance + CREDIT_COST, updated_at: new Date().toISOString() })
-        .eq('user_id', resolvedUserId)
-        .eq('balance', deductData.balance);
-      await supabase.from('credit_transactions').insert([{
-        user_id: resolvedUserId, amount: CREDIT_COST, type: 'refund', description: 'AI Invoice Extraction - parse error',
-      }]);
-      return new Response(
-        JSON.stringify({ error: 'extraction_failed', message: 'Could not parse extracted data' }),
-        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new HttpError(422, 'extraction_failed');
     }
 
     // 7. Return extracted data
@@ -275,10 +172,18 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    if (creditConsumption && resolvedUserId) {
+      try {
+        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI Invoice Extraction - error');
+      } catch {
+        // Ignore refund failures in error handling.
+      }
+    }
+
     console.error('Extract invoice error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: error instanceof HttpError ? error.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

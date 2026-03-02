@@ -18,7 +18,7 @@ const TopNavBar = ({ isCollapsed }) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { toast } = useToast();
-  const { availableCredits, loading: creditsLoading } = useCredits();
+  const { availableCredits, loading: creditsLoading, unlimitedAccess, unlimitedAccessLabel } = useCredits();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
@@ -37,7 +37,7 @@ const TopNavBar = ({ isCollapsed }) => {
     {
       to: '/app/settings?tab=credits',
       icon: Coins,
-      label: creditsLoading ? '...' : `${availableCredits} crédits`,
+      label: creditsLoading ? '...' : unlimitedAccess ? (unlimitedAccessLabel || 'Acces illimite') : `${availableCredits} crédits`,
       highlight: true
     },
     { to: '/app/settings?tab=profil', icon: User, label: 'Mon Profil' },

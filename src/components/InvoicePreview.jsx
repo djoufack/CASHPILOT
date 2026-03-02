@@ -36,7 +36,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
   const { company } = useCompany();
   const { settings } = useInvoiceSettings();
   const { guardedAction, modalProps } = useCreditsGuard();
-  const { sendViaPeppol, sending } = usePeppolSend();
+  const { sendViaPeppol, sending, canUsePeppol } = usePeppolSend();
 
   const handleExportUBL = async () => {
     try {
@@ -103,7 +103,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
           </Button>
         </motion.div>
 
-        {client?.peppol_endpoint_id && company?.peppol_endpoint_id && (
+        {canUsePeppol && client?.peppol_endpoint_id && company?.peppol_endpoint_id && (
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
               onClick={handleSendPeppol}

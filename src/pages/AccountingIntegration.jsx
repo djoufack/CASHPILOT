@@ -44,6 +44,8 @@ import { formatNumber } from '@/utils/calculations';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { ENTITLEMENT_KEYS, filterEntitledItems } from '@/utils/subscriptionEntitlements';
 
 const AccountingIntegration = () => {
   const { t } = useTranslation();
@@ -91,6 +93,7 @@ const AccountingIntegration = () => {
   } = useAccountingData(period.startDate, period.endDate);
 
   const { guardedAction, modalProps } = useCreditsGuard();
+  const { hasEntitlement } = useEntitlements();
 
   const companyCurrency = resolveAccountingCurrency(company);
 
@@ -210,9 +213,10 @@ const AccountingIntegration = () => {
     { value: 'tax', label: 'Estimation impôt', icon: Calculator },
     { value: 'mappings', label: 'Mappings', icon: Settings },
     { value: 'rates', label: 'Taux de TVA', icon: Percent },
-    { value: 'reconciliation', label: 'Rapprochement', icon: Landmark },
+    { value: 'reconciliation', label: 'Rapprochement', icon: Landmark, featureKey: ENTITLEMENT_KEYS.BANK_RECONCILIATION },
     { value: 'init', label: 'Initialisation', icon: Settings2 },
   ];
+  const visibleTabs = filterEntitledItems(tabs, hasEntitlement);
 
   // ─── Initialization Wizard ─────────────────────────────────────────
   if (isInitialized === false) {
@@ -356,7 +360,7 @@ const AccountingIntegration = () => {
       {!loading && (
         <Tabs defaultValue="dashboard" className="w-full">
           <TabsList className="w-full bg-gray-900 border border-gray-800 overflow-x-auto flex-nowrap justify-start h-auto p-1 gap-0.5">
-            {tabs.map(tab => (
+            {visibleTabs.map(tab => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
@@ -490,9 +494,11 @@ const AccountingIntegration = () => {
           </TabsContent>
 
           {/* Bank Reconciliation */}
-          <TabsContent value="reconciliation" className="mt-6">
-            <BankReconciliation period={period} />
-          </TabsContent>
+          {hasEntitlement(ENTITLEMENT_KEYS.BANK_RECONCILIATION) && (
+            <TabsContent value="reconciliation" className="mt-6">
+              <BankReconciliation period={period} />
+            </TabsContent>
+          )}
 
           {/* Balance Sheet Initializer */}
           <TabsContent value="init" className="mt-6">

@@ -32,8 +32,29 @@ export const useSubscription = () => {
   }, []);
 
   const fetchUserSubscription = useCallback(async () => {
-    if (!user || !supabase) return;
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
+    if (!user) {
+      setCurrentPlan(null);
+      setSubscriptionStatus('inactive');
+      setSubscriptionCredits(0);
+      setCurrentPeriodEnd(null);
+      setLoading(false);
+      return;
+    }
+
     try {
+      const { error: refreshError } = await supabase.rpc('refresh_user_billing_state', {
+        target_user_id: user.id,
+      });
+
+      if (refreshError) {
+        throw refreshError;
+      }
+
       const { data } = await supabase
         .from('user_credits')
         .select('subscription_plan_id, subscription_status, subscription_credits, current_period_end')
@@ -52,6 +73,8 @@ export const useSubscription = () => {
             .eq('id', data.subscription_plan_id)
             .single();
           setCurrentPlan(plan || null);
+        } else {
+          setCurrentPlan(null);
         }
       }
     } catch (err) {

@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createAuthClient, createServiceClient, HttpError, requireAuthenticatedUser, requireEntitlement } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,75 +13,42 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    if (!authHeader) throw new HttpError(401, 'Missing authorization');
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const user = await requireAuthenticatedUser(req);
+    const supabase = createAuthClient(authHeader);
+    const serviceSupabase = createServiceClient();
+    await requireEntitlement(serviceSupabase, user.id, 'peppol.einvoicing');
 
     const { invoice_id } = await req.json();
-    if (!invoice_id) {
-      return new Response(JSON.stringify({ error: 'invoice_id is required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    if (!invoice_id) throw new HttpError(400, 'invoice_id is required');
 
     // Load invoice + items
     const { data: invoice, error: invError } = await supabase
       .from('invoices')
       .select('*, items:invoice_items(*)')
       .eq('id', invoice_id)
+      .eq('user_id', user.id)
       .single();
-    if (invError || !invoice) {
-      return new Response(JSON.stringify({ error: 'Invoice not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    if (invError || !invoice) throw new HttpError(404, 'Invoice not found');
 
     // Load client (buyer)
     const { data: buyer } = await supabase
-      .from('clients').select('*').eq('id', invoice.client_id).single();
-    if (!buyer) {
-      return new Response(JSON.stringify({ error: 'Client not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    if (!buyer.peppol_endpoint_id) {
-      return new Response(JSON.stringify({ error: 'Client has no Peppol endpoint ID' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+      .from('clients')
+      .select('*')
+      .eq('id', invoice.client_id)
+      .eq('user_id', user.id)
+      .single();
+    if (!buyer) throw new HttpError(404, 'Client not found');
+    if (!buyer.peppol_endpoint_id) throw new HttpError(400, 'Client has no Peppol endpoint ID');
 
     // Load company (seller) with Scrada credentials
     const { data: seller } = await supabase
       .from('company').select('*').eq('user_id', user.id).single();
-    if (!seller) {
-      return new Response(JSON.stringify({ error: 'Company profile not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    if (!seller.peppol_endpoint_id) {
-      return new Response(JSON.stringify({ error: 'Company has no Peppol endpoint ID' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    if (!seller) throw new HttpError(404, 'Company profile not found');
+    if (!seller.peppol_endpoint_id) throw new HttpError(400, 'Company has no Peppol endpoint ID');
     if (!seller.scrada_api_key || !seller.scrada_password || !seller.scrada_company_id) {
-      return new Response(JSON.stringify({ error: 'Scrada credentials not configured. Go to Settings > Peppol.' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      throw new HttpError(400, 'Scrada credentials not configured. Go to Settings > Peppol.');
     }
 
     // Generate UBL
@@ -145,7 +112,7 @@ serve(async (req) => {
     });
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: error instanceof HttpError ? error.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });

@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,32 +11,25 @@ const CREDIT_COST = 5;
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  const supabase = createServiceClient();
+  let resolvedUserId = '';
+  let creditConsumption = null;
+
   try {
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const authUser = await requireAuthenticatedUser(req);
     const { userId, fiscalYear, jurisdiction = 'FR' } = await req.json();
+    resolvedUserId = authUser.id;
 
-    if (!userId || !fiscalYear) {
-      return new Response(JSON.stringify({ error: 'Missing userId or fiscalYear' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if ((userId && userId !== resolvedUserId) || !fiscalYear) {
+      return new Response(JSON.stringify({ error: 'Missing userId or fiscalYear' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Check credits
-    const { data: credits } = await supabase
-      .from('user_credits')
-      .select('free_credits, paid_credits')
-      .eq('user_id', userId)
-      .single();
-
-    const availableCredits = (credits?.free_credits || 0) + (credits?.paid_credits || 0);
-    if (!credits || availableCredits < CREDIT_COST) {
-      return new Response(JSON.stringify({ error: 'insufficient_credits', required: CREDIT_COST }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    // Fetch financial data for the fiscal year
     const startDate = `${fiscalYear}-01-01`;
     const endDate = `${fiscalYear}-12-31`;
 
@@ -44,29 +37,38 @@ serve(async (req) => {
       supabase
         .from('invoices')
         .select('total_ht, total_ttc, total_vat, status')
-        .eq('user_id', userId)
+        .eq('user_id', resolvedUserId)
         .gte('invoice_date', startDate)
         .lte('invoice_date', endDate),
       supabase
         .from('expenses')
         .select('amount, category, vat_amount')
-        .eq('user_id', userId)
+        .eq('user_id', resolvedUserId)
         .gte('date', startDate)
         .lte('date', endDate)
     ]);
 
-    // Calculate financial summary
-    const paidInvoices = invoicesResult.data?.filter(i => i.status === 'paid') || [];
+    if (invoicesResult.error) {
+      throw invoicesResult.error;
+    }
+
+    if (expensesResult.error) {
+      throw expensesResult.error;
+    }
+
+    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Tax Optimization analysis');
+
+    const paidInvoices = invoicesResult.data?.filter((invoice) => invoice.status === 'paid') || [];
     const expenses = expensesResult.data || [];
 
     const financialData = {
-      revenue: paidInvoices.reduce((sum, i) => sum + (i.total_ht || 0), 0),
-      expenses: expenses.reduce((sum, e) => sum + (e.amount || 0), 0),
-      vatCollected: invoicesResult.data?.reduce((sum, i) => sum + (i.total_vat || 0), 0) || 0,
-      vatDeductible: expenses.reduce((sum, e) => sum + (e.vat_amount || 0), 0),
-      expensesByCategory: expenses.reduce((acc: Record<string, number>, e) => {
-        const cat = e.category || 'other';
-        acc[cat] = (acc[cat] || 0) + (e.amount || 0);
+      revenue: paidInvoices.reduce((sum, invoice) => sum + (invoice.total_ht || 0), 0),
+      expenses: expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0),
+      vatCollected: invoicesResult.data?.reduce((sum, invoice) => sum + (invoice.total_vat || 0), 0) || 0,
+      vatDeductible: expenses.reduce((sum, expense) => sum + (expense.vat_amount || 0), 0),
+      expensesByCategory: expenses.reduce((acc: Record<string, number>, expense) => {
+        const category = expense.category || 'other';
+        acc[category] = (acc[category] || 0) + (expense.amount || 0);
         return acc;
       }, {} as Record<string, number>)
     };
@@ -113,7 +115,7 @@ Reponds UNIQUEMENT en JSON valide:
     });
 
     if (!geminiRes.ok) {
-      throw new Error('Gemini API error');
+      throw new HttpError(502, 'Gemini API error');
     }
 
     const result = await geminiRes.json();
@@ -121,47 +123,36 @@ Reponds UNIQUEMENT en JSON valide:
 
     let optimization;
     try {
-      // Try direct JSON parse first
       optimization = JSON.parse(textContent);
     } catch {
-      // Fallback: extract JSON from text
       const jsonMatch = textContent.match(/\{[\s\S]*\}/);
       optimization = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
     }
 
     if (!optimization) {
-      throw new Error('Failed to parse optimization results');
+      throw new HttpError(422, 'tax_optimization_parse_failed');
     }
-
-    // Deduct credits (from free first, then paid)
-    const freeDeduction = Math.min(credits.free_credits, CREDIT_COST);
-    const paidDeduction = CREDIT_COST - freeDeduction;
-
-    await supabase
-      .from('user_credits')
-      .update({
-        free_credits: credits.free_credits - freeDeduction,
-        paid_credits: credits.paid_credits - paidDeduction,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userId);
-
-    await supabase.from('credit_transactions').insert([{
-      user_id: userId,
-      amount: -CREDIT_COST,
-      type: 'usage',
-      description: 'AI Tax Optimization analysis'
-    }]);
 
     return new Response(JSON.stringify({
       success: true,
       optimization,
       financialSummary: financialData,
       creditsUsed: CREDIT_COST
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (creditConsumption && resolvedUserId) {
+      try {
+        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI Tax Optimization - error');
+      } catch {
+        // Ignore refund failures in error handling.
+      }
+    }
+
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: error instanceof HttpError ? error.status : 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

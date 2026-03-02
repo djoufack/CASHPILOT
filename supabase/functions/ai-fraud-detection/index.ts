@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,49 +11,52 @@ const CREDIT_COST = 4;
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  const supabase = createServiceClient();
+  let resolvedUserId = '';
+  let creditConsumption = null;
+
   try {
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const authUser = await requireAuthenticatedUser(req);
     const { userId, analysisScope = 'last_90_days' } = await req.json();
+    resolvedUserId = authUser.id;
 
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Missing userId' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (userId && userId !== resolvedUserId) {
+      return new Response(JSON.stringify({ error: 'User ID mismatch with authenticated user' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Check credits
-    const { data: credits } = await supabase
-      .from('user_credits')
-      .select('free_credits, paid_credits')
-      .eq('user_id', userId)
-      .single();
-
-    const availableCredits = (credits?.free_credits || 0) + (credits?.paid_credits || 0);
-    if (!credits || availableCredits < CREDIT_COST) {
-      return new Response(JSON.stringify({ error: 'Insufficient credits', required: CREDIT_COST, available: availableCredits }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    // Calculate date range based on analysis scope
     const days = analysisScope === 'last_30_days' ? 30 : analysisScope === 'last_90_days' ? 90 : 365;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
+    const startDateIso = startDate.toISOString();
 
-    // Fetch transactions for analysis
     const [invoicesResult, expensesResult] = await Promise.all([
       supabase
         .from('invoices')
         .select('id, invoice_number, client_id, total_ttc, invoice_date, status')
-        .eq('user_id', userId)
-        .gte('invoice_date', startDate.toISOString()),
+        .eq('user_id', resolvedUserId)
+        .gte('invoice_date', startDateIso),
       supabase
         .from('expenses')
         .select('id, amount, category, date, description, supplier_id')
-        .eq('user_id', userId)
-        .gte('date', startDate.toISOString())
+        .eq('user_id', resolvedUserId)
+        .gte('date', startDateIso)
     ]);
+
+    if (invoicesResult.error) {
+      throw invoicesResult.error;
+    }
+
+    if (expensesResult.error) {
+      throw expensesResult.error;
+    }
+
+    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Fraud Detection analysis');
 
     const transactions = {
       invoices: invoicesResult.data || [],
@@ -98,43 +101,17 @@ Reponds UNIQUEMENT en JSON valide:
     });
 
     if (!geminiRes.ok) {
-      throw new Error('Gemini API error');
+      throw new HttpError(502, 'Gemini API error');
     }
 
     const geminiResult = await geminiRes.json();
     const textContent = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-    const fraudAnalysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {
-      risk_score: 0,
-      alerts: [],
-      patterns_detected: [],
-      recommendations: [],
-      summary: 'Unable to parse analysis results'
-    };
+    const fraudAnalysis = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
 
-    // Deduct credits (from free first, then paid)
-    const freeDeduction = Math.min(credits.free_credits, CREDIT_COST);
-    const paidDeduction = CREDIT_COST - freeDeduction;
-    const { error: updateError } = await supabase
-      .from('user_credits')
-      .update({
-        free_credits: credits.free_credits - freeDeduction,
-        paid_credits: credits.paid_credits - paidDeduction,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userId);
-
-    if (updateError) {
-      console.error('Credit update error:', updateError);
+    if (!fraudAnalysis) {
+      throw new HttpError(422, 'fraud_analysis_parse_failed');
     }
-
-    // Log credit transaction
-    await supabase.from('credit_transactions').insert({
-      user_id: userId,
-      amount: -CREDIT_COST,
-      type: 'usage',
-      description: 'AI Fraud Detection analysis'
-    });
 
     return new Response(JSON.stringify({
       success: true,
@@ -145,10 +122,21 @@ Reponds UNIQUEMENT en JSON valide:
         invoices: transactions.invoices.length,
         expenses: transactions.expenses.length
       }
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (creditConsumption && resolvedUserId) {
+      try {
+        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI Fraud Detection - error');
+      } catch {
+        // Ignore refund failures in error handling.
+      }
+    }
+
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: error instanceof HttpError ? error.status : 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

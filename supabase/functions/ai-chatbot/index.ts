@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,49 +11,33 @@ const CREDIT_COST = 2;
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  const supabase = createServiceClient();
+  let resolvedUserId = '';
+  let creditConsumption = null;
+
   try {
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const authUser = await requireAuthenticatedUser(req);
     const { userId, message, context } = await req.json();
+    resolvedUserId = authUser.id;
 
-    if (!userId || !message) {
+    if ((userId && userId !== resolvedUserId) || !message) {
       return new Response(JSON.stringify({ error: 'Missing userId or message' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Check credits
-    const { data: credits } = await supabase.from('user_credits').select('free_credits, paid_credits').eq('user_id', userId).single();
-    const availableCredits = (credits?.free_credits || 0) + (credits?.paid_credits || 0);
-    if (!credits || availableCredits < CREDIT_COST) {
-      return new Response(JSON.stringify({ error: 'insufficient_credits' }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    // Deduct credits (from free first, then paid)
-    const freeDeduction = Math.min(credits.free_credits, CREDIT_COST);
-    const paidDeduction = CREDIT_COST - freeDeduction;
-    const { error: updateError } = await supabase.from('user_credits').update({
-      free_credits: credits.free_credits - freeDeduction,
-      paid_credits: credits.paid_credits - paidDeduction,
-      updated_at: new Date().toISOString()
-    }).eq('user_id', userId);
-
-    if (updateError) {
-      console.error('Credit update error:', updateError);
-    }
-
-    await supabase.from('credit_transactions').insert([{ user_id: userId, amount: -CREDIT_COST, type: 'usage', description: 'AI Chatbot' }]);
-
     // Fetch comprehensive user financial context
     const [invoicesRes, expensesRes, clientsRes, paymentsRes, profileRes] = await Promise.all([
-      supabase.from('invoices').select('invoice_number, total_ttc, total_ht, status, invoice_date, due_date, client:clients(company_name)').eq('user_id', userId).order('invoice_date', { ascending: false }).limit(50),
-      supabase.from('expenses').select('description, amount, category, date, supplier').eq('user_id', userId).order('date', { ascending: false }).limit(50),
-      supabase.from('clients').select('company_name, contact_name, email, phone, city, country, vat_number').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
-      supabase.from('payments').select('amount, payment_date, payment_method, invoice:invoices(invoice_number)').eq('user_id', userId).order('payment_date', { ascending: false }).limit(50),
-      supabase.from('profiles').select('company_name, full_name, email, phone, address, city, postal_code, country').eq('user_id', userId).single(),
+      supabase.from('invoices').select('invoice_number, total_ttc, total_ht, status, invoice_date, due_date, client:clients(company_name)').eq('user_id', resolvedUserId).order('invoice_date', { ascending: false }).limit(50),
+      supabase.from('expenses').select('description, amount, category, date, supplier').eq('user_id', resolvedUserId).order('date', { ascending: false }).limit(50),
+      supabase.from('clients').select('company_name, contact_name, email, phone, city, country, vat_number').eq('user_id', resolvedUserId).order('created_at', { ascending: false }).limit(100),
+      supabase.from('payments').select('amount, payment_date, payment_method, invoice:invoices(invoice_number)').eq('user_id', resolvedUserId).order('payment_date', { ascending: false }).limit(50),
+      supabase.from('profiles').select('company_name, full_name, email, phone, address, city, postal_code, country').eq('user_id', resolvedUserId).single(),
     ]);
+
+    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Chatbot');
 
     // Calculate financial summary (bilan)
     const invoices = invoicesRes.data || [];
@@ -204,12 +188,6 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
     if (!geminiRes.ok) {
       const geminiError = await geminiRes.text();
       console.error('Gemini API error:', geminiRes.status, geminiError);
-      // Refund credits on error
-      await supabase.from('user_credits').update({
-        free_credits: credits.free_credits,
-        paid_credits: credits.paid_credits
-      }).eq('user_id', userId);
-      await supabase.from('credit_transactions').insert([{ user_id: userId, amount: CREDIT_COST, type: 'refund', description: 'AI Chatbot - error' }]);
       throw new Error('Gemini API error');
     }
 
@@ -221,7 +199,16 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
     return new Response(JSON.stringify({ success: true, reply }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
+    if (creditConsumption && resolvedUserId) {
+      try {
+        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI Chatbot - error');
+      } catch {
+        // Ignore secondary refund/auth failures in the error path.
+      }
+    }
+
+    const status = error instanceof HttpError ? error.status : 500;
     return new Response(JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

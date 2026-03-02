@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useBillingSettings } from '@/hooks/useBillingSettings';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,7 @@ const BillingSettings = () => {
   const navigate = useNavigate();
   const { billingInfo, paymentMethods, invoices, loading, updateBilling, addPaymentMethod, deletePaymentMethod, setDefaultPaymentMethod } = useBillingSettings();
   const { currentPlan, subscriptionStatus, subscriptionCredits, currentPeriodEnd, daysRemaining } = useSubscription();
+  const { trialActive, trialEndsAt, fullAccessOverride, accessLabel } = useEntitlements();
   const [formData, setFormData] = useState({});
 
   useEffect(() => {
@@ -49,7 +51,19 @@ const BillingSettings = () => {
             <CardDescription className="text-gray-400">{t('billing.managePlan')}</CardDescription>
           </CardHeader>
           <CardContent>
-            {currentPlan && subscriptionStatus === 'active' ? (
+            {fullAccessOverride ? (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-cyan-300" />
+                    <h3 className="text-xl font-bold text-cyan-200">{accessLabel || 'Acces illimite'}</h3>
+                  </div>
+                  <p className="mt-2 text-sm text-cyan-100/80">
+                    Tous les services CashPilot sont actifs sans limitation de temps, de duree ou de credits.
+                  </p>
+                </div>
+              </div>
+            ) : currentPlan && subscriptionStatus === 'active' ? (
               <div className="space-y-4">
                 <div className="flex justify-between items-center pb-4 border-b border-gray-800">
                    <div>
@@ -83,6 +97,24 @@ const BillingSettings = () => {
                     {t('billing.changePlan')}
                   </Button>
                 </div>
+              </div>
+            ) : trialActive ? (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-emerald-400" />
+                    <h3 className="text-xl font-bold text-emerald-300">Essai complet</h3>
+                  </div>
+                  <p className="mt-2 text-sm text-emerald-100/80">
+                    Tous les services sont actifs jusqu’au {trialEndsAt ? format(new Date(trialEndsAt), 'dd/MM/yyyy') : '-'}.
+                  </p>
+                  <p className="mt-1 text-xs text-emerald-200/70">
+                    À la fin de l’essai, le compte repassera sur le plan gratuit si aucun abonnement payant n’est actif.
+                  </p>
+                </div>
+                <Button onClick={() => navigate('/pricing')} className="w-full bg-orange-500 hover:bg-orange-600">
+                  Choisir un abonnement
+                </Button>
               </div>
             ) : (
               <div className="text-center py-6">

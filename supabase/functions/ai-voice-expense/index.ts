@@ -2,7 +2,7 @@
 // Parses voice transcripts into structured expense data using Google Gemini API
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,78 +27,28 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const supabase = createServiceClient();
+  let resolvedUserId = '';
+  let creditConsumption = null;
+
   try {
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
+    const authUser = await requireAuthenticatedUser(req);
     const { userId, text } = await req.json();
+    resolvedUserId = authUser.id;
 
-    if (!userId || !text) {
+    if ((userId && userId !== resolvedUserId) || !text) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: userId, text' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check user credits
-    const { data: credits, error: creditsError } = await supabase
-      .from('user_credits')
-      .select('free_credits, paid_credits')
-      .eq('user_id', userId)
-      .single();
-
-    if (creditsError || !credits) {
-      return new Response(
-        JSON.stringify({ error: 'Could not verify credits' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const availableCredits = (credits.free_credits || 0) + (credits.paid_credits || 0);
-    if (availableCredits < CREDIT_COST) {
-      return new Response(
-        JSON.stringify({
-          error: 'insufficient_credits',
-          available: availableCredits,
-          required: CREDIT_COST
-        }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Deduct credits (from free first, then paid)
-    const freeDeduction = Math.min(credits.free_credits, CREDIT_COST);
-    const paidDeduction = CREDIT_COST - freeDeduction;
-    const { error: updateError } = await supabase
-      .from('user_credits')
-      .update({
-        free_credits: credits.free_credits - freeDeduction,
-        paid_credits: credits.paid_credits - paidDeduction,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userId);
-
-    if (updateError) {
-      console.error('Credit update error:', updateError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to deduct credits' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Log credit transaction
-    await supabase.from('credit_transactions').insert([{
-      user_id: userId,
-      amount: -CREDIT_COST,
-      type: 'usage',
-      description: 'AI Voice Expense Parsing'
-    }]);
+    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Voice Expense Parsing');
 
     // Build the prompt for French voice transcript parsing
     const prompt = `Tu es un assistant expert en extraction de donnees de depenses a partir de transcriptions vocales en francais.
@@ -139,22 +89,8 @@ Regles:
     });
 
     if (!geminiResponse.ok) {
-      // Refund credits on Gemini API failure
-      await supabase.from('user_credits').update({
-        free_credits: credits.free_credits,
-        paid_credits: credits.paid_credits
-      }).eq('user_id', userId);
-      await supabase.from('credit_transactions').insert([{
-        user_id: userId,
-        amount: CREDIT_COST,
-        type: 'refund',
-        description: 'AI Voice Expense - API error'
-      }]);
-
-      return new Response(
-        JSON.stringify({ error: 'Gemini API error', details: await geminiResponse.text() }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error('Gemini API error:', await geminiResponse.text());
+      throw new HttpError(502, 'Gemini API error');
     }
 
     const geminiResult = await geminiResponse.json();
@@ -189,25 +125,7 @@ Regles:
       };
 
     } catch (parseError) {
-      // Refund credits on parse failure
-      await supabase.from('user_credits').update({
-        free_credits: credits.free_credits,
-        paid_credits: credits.paid_credits
-      }).eq('user_id', userId);
-      await supabase.from('credit_transactions').insert([{
-        user_id: userId,
-        amount: CREDIT_COST,
-        type: 'refund',
-        description: 'AI Voice Expense - parse error'
-      }]);
-
-      return new Response(
-        JSON.stringify({
-          error: 'extraction_failed',
-          message: 'Could not parse expense data from transcript'
-        }),
-        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new HttpError(422, 'extraction_failed');
     }
 
     // Return the parsed expense
@@ -215,16 +133,24 @@ Regles:
       JSON.stringify({
         success: true,
         expense,
-        creditsRemaining: availableCredits - CREDIT_COST
+        creditsRemaining: creditConsumption.available_credits
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
+    if (creditConsumption && resolvedUserId) {
+      try {
+        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI Voice Expense - error');
+      } catch {
+        // Ignore refund failures in error handling.
+      }
+    }
+
     console.error('Voice expense parsing error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: error instanceof HttpError ? error.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

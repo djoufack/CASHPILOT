@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useCredits } from '@/hooks/useCredits';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import { createCheckoutSession, redirectToCheckout as redirectToCreditCheckout, formatPrice } from '@/services/stripeService';
 import { createSubscriptionCheckout } from '@/services/subscriptionService';
 import { useToast } from '@/components/ui/use-toast';
@@ -45,7 +46,8 @@ const PricingPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { plans, currentPlan, subscriptionStatus, subscribing, subscribe } = useSubscription();
-  const { packages, credits, availableCredits } = useCredits();
+  const { packages, credits, availableCredits, unlimitedAccess, unlimitedAccessLabel } = useCredits();
+  const { trialActive, trialEndsAt, fullAccessOverride, accessLabel } = useEntitlements();
   const { toast } = useToast();
   const [purchasing, setPurchasing] = useState(null);
   const [showCreditCosts, setShowCreditCosts] = useState(false);
@@ -70,6 +72,14 @@ const PricingPage = () => {
   }, [searchParams, toast, t]);
 
   const handleSubscribe = async (planSlug) => {
+    if (fullAccessOverride) {
+      toast({
+        title: 'Acces deja ouvert',
+        description: `${accessLabel || 'Ce compte'} dispose deja d'un acces illimite.`,
+      });
+      return;
+    }
+
     if (planSlug === 'free') return;
     if (planSlug === 'enterprise') {
       window.location.href = 'mailto:contact@cashpilot.tech?subject=Enterprise Plan';
@@ -95,6 +105,14 @@ const PricingPage = () => {
   };
 
   const handleBuyCredits = async (pkg) => {
+    if (fullAccessOverride) {
+      toast({
+        title: 'Credits non requis',
+        description: `${accessLabel || 'Ce compte'} dispose deja d'un acces illimite.`,
+      });
+      return;
+    }
+
     if (!user) {
       navigate('/signup?redirect=/pricing');
       return;
@@ -120,9 +138,15 @@ const PricingPage = () => {
   };
 
   const isCurrentPlan = (slug) => {
+    if (fullAccessOverride) return false;
+    if (trialActive && !currentPlan) return false;
     if (!currentPlan) return slug === 'free';
     return currentPlan.slug === slug && subscriptionStatus === 'active';
   };
+
+  const trialDaysRemaining = trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(trialEndsAt) - new Date()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   const formatPlanPrice = (priceCents) => {
     if (priceCents === 0) return t('pricing.free');
@@ -240,10 +264,38 @@ const PricingPage = () => {
           <div className="mb-10 max-w-md mx-auto bg-gradient-to-r from-orange-500/20 to-yellow-500/20 rounded-lg border border-orange-500/30 p-4 text-center">
             <p className="text-sm text-gray-400">{t('credits.balance')}</p>
             <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-400">
-              {availableCredits}
+              {unlimitedAccess ? 'Illimite' : availableCredits}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              {t('credits.free')}: {credits.free_credits} | {t('subscription.subCredits')}: {credits.subscription_credits || 0} | {t('credits.paid')}: {credits.paid_credits}
+              {unlimitedAccess
+                ? `${unlimitedAccessLabel || accessLabel || 'Acces special'} · tous les services sans limite`
+                : `${t('credits.free')}: ${credits.free_credits} | ${t('subscription.subCredits')}: ${credits.subscription_credits || 0} | ${t('credits.paid')}: ${credits.paid_credits}`}
+            </p>
+          </div>
+        )}
+
+        {user && fullAccessOverride && (
+          <div className="mb-10 max-w-3xl mx-auto rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-5 text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">
+              Acces illimite
+            </p>
+            <p className="mt-2 text-lg font-semibold text-white">
+              {accessLabel || 'Ce compte'} dispose de tous les services sans limitation de temps ni de credits.
+            </p>
+          </div>
+        )}
+
+        {user && !fullAccessOverride && trialActive && !currentPlan && (
+          <div className="mb-10 max-w-3xl mx-auto rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
+              Essai complet actif
+            </p>
+            <p className="mt-2 text-lg font-semibold text-white">
+              Tous les services sont ouverts pendant 3 jours.
+            </p>
+            <p className="mt-1 text-sm text-emerald-100/80">
+              Fin de l’essai le {new Date(trialEndsAt).toLocaleDateString('fr-FR')}.
+              {trialDaysRemaining > 0 ? ` Il reste ${trialDaysRemaining} jour${trialDaysRemaining > 1 ? 's' : ''}.` : ''}
             </p>
           </div>
         )}
