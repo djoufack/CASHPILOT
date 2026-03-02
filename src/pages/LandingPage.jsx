@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import * as THREE from 'three';
+import DemoBanner from '@/components/DemoBanner';
 import {
   ArrowRight,
   Sparkles,
@@ -58,6 +59,9 @@ const LandingPage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [mobileMenuActive, setMobileMenuActive] = useState(false);
   const [navbarScrolled, setNavbarScrolled] = useState(false);
+  const [demoBannerVisible, setDemoBannerVisible] = useState(
+    !localStorage.getItem('cashpilot_demo_banner_dismissed')
+  );
 
   const preloaderRef = useRef(null);
   const cursorFollowerRef = useRef(null);
@@ -379,7 +383,12 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="landing-page">
+    <div className={`landing-page${demoBannerVisible ? ' has-demo-banner' : ''}`}>
+      {/* Demo Banner */}
+      {demoBannerVisible && (
+        <DemoBanner onDismiss={() => setDemoBannerVisible(false)} />
+      )}
+
       {/* Preloader */}
       <div id="preloader" ref={preloaderRef}>
         <div className="loader-container">
