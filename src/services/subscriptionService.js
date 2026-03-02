@@ -3,7 +3,7 @@
  * Handles Stripe subscription checkout and customer portal sessions.
  */
 
-import { supabaseUrl, supabaseAnonKey } from '@/lib/customSupabaseClient';
+import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/customSupabaseClient';
 
 /**
  * Create a Stripe Checkout session for a subscription plan.
@@ -15,13 +15,24 @@ export const createSubscriptionCheckout = async ({ planSlug, userId, customerEma
   }
 
   const body = { planSlug, billingInterval: billingInterval || 'monthly' };
+  const headers = {
+    'Content-Type': 'application/json',
+    apikey: supabaseAnonKey,
+    Authorization: `Bearer ${supabaseAnonKey}`,
+  };
 
   // Authenticated user: include userId and email
   if (userId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Authentication required');
+    }
+
     body.userId = userId;
     body.customerEmail = customerEmail;
     body.successUrl = successUrl || `${window.location.origin}/pricing?status=success`;
     body.cancelUrl = cancelUrl || `${window.location.origin}/pricing?status=cancelled`;
+    headers.Authorization = `Bearer ${session.access_token}`;
   } else {
     // Guest: Stripe will collect email, redirect to signup after
     body.cancelUrl = cancelUrl || `${window.location.origin}/pricing?status=cancelled`;
@@ -29,10 +40,7 @@ export const createSubscriptionCheckout = async ({ planSlug, userId, customerEma
 
   const response = await fetch(`${supabaseUrl}/functions/v1/stripe-subscription-checkout`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabaseAnonKey}`,
-    },
+    headers,
     body: JSON.stringify(body),
   });
 

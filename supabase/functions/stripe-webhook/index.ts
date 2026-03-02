@@ -10,6 +10,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
 };
 
+const ensureUserCreditsRow = async (supabase: ReturnType<typeof createClient>, userId: string) => {
+  const { data: existingCredits, error: existingCreditsError } = await supabase
+    .from('user_credits')
+    .select('user_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (existingCreditsError) {
+    throw existingCreditsError;
+  }
+
+  if (existingCredits) {
+    return;
+  }
+
+  const { error: insertCreditsError } = await supabase
+    .from('user_credits')
+    .insert({
+      user_id: userId,
+      free_credits: 10,
+      paid_credits: 0,
+      updated_at: new Date().toISOString(),
+    });
+
+  if (insertCreditsError) {
+    throw insertCreditsError;
+  }
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -81,7 +110,7 @@ serve(async (req) => {
 
           const { error: pendingError } = await supabase
             .from('pending_subscriptions')
-            .insert({
+            .upsert({
               stripe_customer_email: customerEmail,
               stripe_customer_id: session.customer as string || null,
               stripe_subscription_id: subscriptionId,
@@ -91,7 +120,7 @@ serve(async (req) => {
               billing_interval: session.metadata?.billing_interval || 'monthly',
               current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
               stripe_session_id: session.id,
-            });
+            }, { onConflict: 'stripe_session_id' });
 
           if (pendingError) {
             console.error('Failed to store pending subscription:', pendingError);
@@ -101,6 +130,26 @@ serve(async (req) => {
           console.log(`Guest subscription ${planSlug} stored as pending for ${customerEmail}`);
         } else {
           // --- Authenticated user checkout ---
+          const { data: existingSubscriptionTx, error: existingSubscriptionTxError } = await supabase
+            .from('credit_transactions')
+            .select('id')
+            .eq('stripe_session_id', session.id)
+            .maybeSingle();
+
+          if (existingSubscriptionTxError) {
+            throw existingSubscriptionTxError;
+          }
+
+          if (existingSubscriptionTx) {
+            console.log('Subscription session already processed:', session.id);
+            return new Response(
+              JSON.stringify({ received: true, status: 'already_processed' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          await ensureUserCreditsRow(supabase, userId);
+
           const { error: updateError } = await supabase
             .from('user_credits')
             .update({
@@ -148,7 +197,7 @@ serve(async (req) => {
           .from('credit_transactions')
           .select('id')
           .eq('stripe_session_id', session.id)
-          .single();
+          .maybeSingle();
 
         if (existingTx) {
           console.log('Session already processed:', session.id);
@@ -159,6 +208,8 @@ serve(async (req) => {
         }
 
         // Add credits
+        await ensureUserCreditsRow(supabase, userId);
+
         const { data: currentCredits } = await supabase
           .from('user_credits')
           .select('paid_credits')

@@ -114,6 +114,24 @@ export const useAuthSource = () => {
     }
   }, [handleInvalidSession]);
 
+  const claimPendingSubscription = useCallback(async () => {
+    if (!supabase) {
+      return null;
+    }
+
+    const { data, error } = await supabase.rpc('claim_pending_subscription');
+
+    if (error) {
+      throw error;
+    }
+
+    if (data?.claimed) {
+      console.log(`Claimed pending subscription ${data.plan_slug} for user ${data.credits_per_month} credits/month`);
+    }
+
+    return data;
+  }, []);
+
   useEffect(() => {
     let mounted = true;
 
@@ -140,6 +158,11 @@ export const useAuthSource = () => {
           setSession(session);
           if (session?.user) {
             await fetchUserProfile(session.user);
+            try {
+              await claimPendingSubscription();
+            } catch (claimError) {
+              console.error('Failed to claim pending subscription:', claimError);
+            }
           } else {
             setUser(null);
           }
@@ -178,6 +201,13 @@ export const useAuthSource = () => {
            setSession(session);
            if (session?.user) {
              await fetchUserProfile(session.user);
+             if (event === 'SIGNED_IN') {
+               try {
+                 await claimPendingSubscription();
+               } catch (claimError) {
+                 console.error('Failed to claim pending subscription:', claimError);
+               }
+             }
            }
            setLoading(false);
         }
@@ -189,7 +219,7 @@ export const useAuthSource = () => {
       mounted = false;
       if (subscription) subscription.unsubscribe();
     };
-  }, [fetchUserProfile, handleInvalidSession]);
+  }, [claimPendingSubscription, fetchUserProfile, handleInvalidSession]);
 
   const signUp = async (email, password, fullName, companyName, role) => {
     if (!supabase) throw new Error("Supabase is not configured.");
@@ -233,42 +263,12 @@ export const useAuthSource = () => {
           await fetchUserProfile(data.user);
         }
 
-        // Claim any pending subscription for this email
-        try {
-          const { data: pending } = await supabase
-            .from('pending_subscriptions')
-            .select('*')
-            .eq('stripe_customer_email', email)
-            .is('claimed_by', null)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-          if (pending) {
-            // Initialize user_credits row if needed
-            await supabase.from('user_credits').upsert({
-              user_id: data.user.id,
-              free_credits: 10,
-              paid_credits: 0,
-              subscription_credits: pending.credits_per_month,
-              subscription_plan_id: pending.plan_id,
-              stripe_customer_id: pending.stripe_customer_id,
-              stripe_subscription_id: pending.stripe_subscription_id,
-              subscription_status: 'active',
-              current_period_end: pending.current_period_end,
-            }, { onConflict: 'user_id' });
-
-            // Mark pending subscription as claimed
-            await supabase
-              .from('pending_subscriptions')
-              .update({ claimed_by: data.user.id, claimed_at: new Date().toISOString() })
-              .eq('id', pending.id);
-
-            console.log(`Claimed pending subscription ${pending.plan_slug} for new user`);
+        if (data.session) {
+          try {
+            await claimPendingSubscription();
+          } catch (claimError) {
+            console.error('Failed to claim pending subscription:', claimError);
           }
-        } catch (pendingErr) {
-          // Non-blocking: don't fail signup if claim fails
-          console.error('Failed to claim pending subscription:', pendingErr);
         }
       }
 
@@ -298,6 +298,11 @@ export const useAuthSource = () => {
 
       if (data.user) {
         await fetchUserProfile(data.user);
+        try {
+          await claimPendingSubscription();
+        } catch (claimError) {
+          console.error('Failed to claim pending subscription:', claimError);
+        }
       }
 
       return data;
