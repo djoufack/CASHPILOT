@@ -1,6 +1,6 @@
 // Supabase Edge Function: stripe-subscription-checkout
-// Creates a Stripe Checkout session for subscription plans
-// Supports both authenticated users and guest checkout
+// Creates a Stripe Checkout session for subscription plans.
+// Guest checkout stays public. Authenticated checkout must present a valid user JWT.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno';
@@ -9,6 +9,49 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const PRODUCTION_ORIGIN = 'https://cashpilot.tech';
+const LOCAL_ORIGINS = new Set(['http://localhost:3000', 'http://localhost:5173']);
+
+const isAllowedOrigin = (origin: string | null | undefined) => {
+  if (!origin) {
+    return false;
+  }
+
+  if (origin === PRODUCTION_ORIGIN || origin === 'https://www.cashpilot.tech') {
+    return true;
+  }
+
+  if (LOCAL_ORIGINS.has(origin)) {
+    return true;
+  }
+
+  try {
+    const { hostname, protocol } = new URL(origin);
+    return protocol === 'https:' && hostname.endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+};
+
+const resolveOrigin = (originHeader: string | null) => (
+  isAllowedOrigin(originHeader) ? originHeader! : PRODUCTION_ORIGIN
+);
+
+const normalizeReturnUrl = (candidate: string | undefined, fallbackPath: string, origin: string) => {
+  if (candidate) {
+    try {
+      const parsed = new URL(candidate);
+      if (isAllowedOrigin(parsed.origin)) {
+        return parsed.toString();
+      }
+    } catch {
+      // Fallback to safe default.
+    }
+  }
+
+  return `${origin}${fallbackPath}`;
 };
 
 serve(async (req) => {
@@ -27,19 +70,61 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { planSlug, userId, customerEmail, successUrl, cancelUrl, billingInterval } = await req.json();
+    const {
+      planSlug,
+      userId,
+      customerEmail,
+      successUrl,
+      cancelUrl,
+      billingInterval,
+    } = await req.json();
 
     if (!planSlug) {
       return new Response(
         JSON.stringify({ error: 'Missing required field: planSlug' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     const isGuest = !userId;
+    const origin = resolveOrigin(req.headers.get('origin'));
+    let resolvedUserId: string | null = null;
+    let resolvedCustomerEmail = customerEmail || null;
 
-    // Lookup subscription plan
+    if (!isGuest) {
+      const authHeader = req.headers.get('authorization');
+      const accessToken = authHeader?.startsWith('Bearer ')
+        ? authHeader.slice('Bearer '.length).trim()
+        : null;
+
+      if (!accessToken) {
+        return new Response(
+          JSON.stringify({ error: 'Authentication required' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const { data: authData, error: authError } = await supabase.auth.getUser(accessToken);
+
+      if (authError || !authData?.user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication token' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (authData.user.id !== userId) {
+        return new Response(
+          JSON.stringify({ error: 'Authenticated user mismatch' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      resolvedUserId = authData.user.id;
+      resolvedCustomerEmail = authData.user.email || resolvedCustomerEmail;
+    }
+
+    // Lookup subscription plan.
     const { data: plan, error: planError } = await supabase
       .from('subscription_plans')
       .select('*')
@@ -50,22 +135,18 @@ serve(async (req) => {
     if (planError || !plan) {
       return new Response(
         JSON.stringify({ error: `Plan '${planSlug}' not found` }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     if (plan.slug === 'free') {
       return new Response(
         JSON.stringify({ error: 'Cannot checkout for the free plan' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    // Determine billing interval
     const isYearly = billingInterval === 'yearly' || billingInterval === 'annual';
-
-    // Build checkout session config
-    const origin = req.headers.get('origin') || 'https://cashpilot.tech';
     const sessionConfig: Record<string, unknown> = {
       mode: 'subscription',
       metadata: {
@@ -87,45 +168,73 @@ serve(async (req) => {
     };
 
     if (isGuest) {
-      // Guest checkout: no customer, Stripe collects the email
-      sessionConfig.success_url = successUrl || `${origin}/signup?subscription=pending&session_id={CHECKOUT_SESSION_ID}`;
-      sessionConfig.cancel_url = cancelUrl || `${origin}/pricing?status=cancelled`;
+      sessionConfig.success_url = normalizeReturnUrl(
+        successUrl,
+        '/signup?subscription=pending&session_id={CHECKOUT_SESSION_ID}',
+        origin,
+      );
+      sessionConfig.cancel_url = normalizeReturnUrl(cancelUrl, '/pricing?status=cancelled', origin);
     } else {
-      // Authenticated user checkout
-      sessionConfig.success_url = successUrl || `${origin}/pricing?status=success`;
-      sessionConfig.cancel_url = cancelUrl || `${origin}/pricing?status=cancelled`;
+      sessionConfig.success_url = normalizeReturnUrl(successUrl, '/pricing?status=success', origin);
+      sessionConfig.cancel_url = normalizeReturnUrl(cancelUrl, '/pricing?status=cancelled', origin);
 
-      // Add user_id to metadata
-      (sessionConfig.metadata as Record<string, string>).user_id = userId;
-      (sessionConfig.subscription_data as Record<string, unknown>).metadata =
-        { ...(sessionConfig.subscription_data as Record<string, unknown>).metadata as Record<string, string>, user_id: userId };
+      (sessionConfig.metadata as Record<string, string>).user_id = resolvedUserId!;
+      (sessionConfig.subscription_data as Record<string, unknown>).metadata = {
+        ...((sessionConfig.subscription_data as Record<string, unknown>).metadata as Record<string, string>),
+        user_id: resolvedUserId!,
+      };
 
-      // Get or create Stripe customer
-      const { data: userCredits } = await supabase
+      const { data: userCredits, error: userCreditsError } = await supabase
         .from('user_credits')
-        .select('stripe_customer_id')
-        .eq('user_id', userId)
-        .single();
+        .select('user_id, stripe_customer_id')
+        .eq('user_id', resolvedUserId)
+        .maybeSingle();
 
-      let customerId = userCredits?.stripe_customer_id;
+      if (userCreditsError) {
+        throw userCreditsError;
+      }
+
+      let customerId = userCredits?.stripe_customer_id || null;
 
       if (!customerId) {
         const customer = await stripe.customers.create({
-          email: customerEmail,
-          metadata: { user_id: userId },
+          email: resolvedCustomerEmail || undefined,
+          metadata: { user_id: resolvedUserId! },
         });
         customerId = customer.id;
 
-        await supabase
-          .from('user_credits')
-          .update({ stripe_customer_id: customerId })
-          .eq('user_id', userId);
+        if (userCredits?.user_id) {
+          const { error: updateCustomerError } = await supabase
+            .from('user_credits')
+            .update({
+              stripe_customer_id: customerId,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', resolvedUserId);
+
+          if (updateCustomerError) {
+            throw updateCustomerError;
+          }
+        } else {
+          const { error: insertCustomerError } = await supabase
+            .from('user_credits')
+            .insert({
+              user_id: resolvedUserId,
+              free_credits: 10,
+              paid_credits: 0,
+              stripe_customer_id: customerId,
+              updated_at: new Date().toISOString(),
+            });
+
+          if (insertCustomerError) {
+            throw insertCustomerError;
+          }
+        }
       }
 
       sessionConfig.customer = customerId;
     }
 
-    // Pick the right Stripe Price ID based on billing interval
     const priceId = isYearly ? plan.stripe_price_id_yearly : plan.stripe_price_id;
 
     if (priceId) {
@@ -146,18 +255,18 @@ serve(async (req) => {
     }
 
     const session = await stripe.checkout.sessions.create(
-      sessionConfig as Stripe.Checkout.SessionCreateParams
+      sessionConfig as Stripe.Checkout.SessionCreateParams,
     );
 
     return new Response(
       JSON.stringify({ url: session.url, sessionId: session.id }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Subscription checkout error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
