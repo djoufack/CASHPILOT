@@ -1,6 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { useCredits } from '@/hooks/useCredits';
+import { useEntitlements } from '@/hooks/useEntitlements';
 
 /**
  * Credit costs per action type
@@ -146,6 +147,7 @@ export const CREDIT_CATEGORIES = {
  */
 export const useCreditsGuard = () => {
   const { availableCredits, consumeCredits } = useCredits();
+  const { trialActive, fullAccessOverride } = useEntitlements();
   const [modalState, setModalState] = useState({
     isOpen: false,
     requiredCredits: 0,
@@ -162,11 +164,11 @@ export const useCreditsGuard = () => {
    *
    * @param {number} cost - Credits required
    * @param {string} label - Human-readable action label
-   * @param {Function} action - Async function to execute if credits are available
-   * @returns {Promise<boolean>} true if action was executed
+  * @param {Function} action - Async function to execute if credits are available
+  * @returns {Promise<boolean>} true if action was executed
    */
   const guardedAction = useCallback(async (cost, label, action) => {
-    if (availableCredits < cost) {
+    if (!trialActive && !fullAccessOverride && availableCredits < cost) {
       setModalState({
         isOpen: true,
         requiredCredits: cost,
@@ -185,7 +187,7 @@ export const useCreditsGuard = () => {
       console.error('Guarded action failed:', err);
       return false;
     }
-  }, [availableCredits, consumeCredits]);
+  }, [availableCredits, consumeCredits, fullAccessOverride, trialActive]);
 
   return {
     guardedAction,

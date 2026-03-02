@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,51 +11,26 @@ const CREDIT_COST = 3;
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  const supabase = createServiceClient();
+  let resolvedUserId = '';
+  let creditConsumption = null;
+
   try {
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const authUser = await requireAuthenticatedUser(req);
     const { userId, historicalData, forecastMonths = 6 } = await req.json();
+    resolvedUserId = authUser.id;
 
-    if (!userId || !historicalData) {
-      return new Response(JSON.stringify({ error: 'Missing userId or historicalData' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if ((userId && userId !== resolvedUserId) || !historicalData) {
+      return new Response(JSON.stringify({ error: 'Missing userId or historicalData' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Check credits
-    const { data: credits } = await supabase
-      .from('user_credits')
-      .select('free_credits, paid_credits')
-      .eq('user_id', userId)
-      .single();
-
-    const availableCredits = (credits?.free_credits || 0) + (credits?.paid_credits || 0);
-    if (!credits || availableCredits < CREDIT_COST) {
-      return new Response(JSON.stringify({ error: 'insufficient_credits', required: CREDIT_COST }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    // Deduct credits (from free first, then paid)
-    const freeDeduction = Math.min(credits.free_credits, CREDIT_COST);
-    const paidDeduction = CREDIT_COST - freeDeduction;
-    const { error: updateError } = await supabase.from('user_credits').update({
-      free_credits: credits.free_credits - freeDeduction,
-      paid_credits: credits.paid_credits - paidDeduction,
-      updated_at: new Date().toISOString()
-    }).eq('user_id', userId);
-
-    if (updateError) {
-      console.error('Credit update error:', updateError);
-    }
-
-    // Log transaction
-    await supabase.from('credit_transactions').insert([{
-      user_id: userId,
-      amount: -CREDIT_COST,
-      type: 'usage',
-      description: 'AI ML Forecast analysis'
-    }]);
+    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI ML Forecast analysis');
 
     const prompt = `Tu es un expert en analyse financiere predictive et machine learning.
 Analyse ces donnees historiques et genere des previsions:
@@ -78,7 +53,6 @@ Reponds UNIQUEMENT en JSON valide:
   "insights": ["string"]
 }`;
 
-    // Call Gemini API
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
@@ -90,42 +64,39 @@ Reponds UNIQUEMENT en JSON valide:
     });
 
     if (!geminiRes.ok) {
-      // Refund credits on API error
-      await supabase.from('user_credits').update({
-        free_credits: credits.free_credits,
-        paid_credits: credits.paid_credits
-      }).eq('user_id', userId);
-      await supabase.from('credit_transactions').insert([{
-        user_id: userId,
-        amount: CREDIT_COST,
-        type: 'refund',
-        description: 'AI ML Forecast - API error'
-      }]);
-      throw new Error('Gemini API error');
+      throw new HttpError(502, 'Gemini API error');
     }
 
     const result = await geminiRes.json();
     const textContent = result.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
 
-    // Parse JSON from response
     let forecast;
     try {
       forecast = JSON.parse(textContent);
     } catch {
-      // Fallback: try to extract JSON from text
       const jsonMatch = textContent.match(/\{[\s\S]*\}/);
       forecast = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
     }
 
     if (!forecast) {
-      throw new Error('Failed to parse forecast response');
+      throw new HttpError(422, 'forecast_parse_failed');
     }
 
-    return new Response(JSON.stringify({ success: true, forecast, creditsUsed: CREDIT_COST }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
+    return new Response(JSON.stringify({ success: true, forecast, creditsUsed: CREDIT_COST }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (creditConsumption && resolvedUserId) {
+      try {
+        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI ML Forecast - error');
+      } catch {
+        // Ignore refund failures in error handling.
+      }
+    }
+
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: error instanceof HttpError ? error.status : 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

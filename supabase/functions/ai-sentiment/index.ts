@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,32 +11,42 @@ const CREDIT_COST = 2;
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  const supabase = createServiceClient();
+  let resolvedUserId = '';
+  let creditConsumption = null;
+
   try {
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const authUser = await requireAuthenticatedUser(req);
     const { userId, clientId, texts } = await req.json();
+    resolvedUserId = authUser.id;
 
-    if (!userId || !texts?.length) {
-      return new Response(JSON.stringify({ error: 'Missing userId or texts' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if ((userId && userId !== resolvedUserId) || !texts?.length) {
+      return new Response(JSON.stringify({ error: 'Missing userId or texts' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Check credits
-    const { data: credits } = await supabase.from('user_credits').select('free_credits, paid_credits').eq('user_id', userId).single();
-    const availableCredits = (credits?.free_credits || 0) + (credits?.paid_credits || 0);
-    if (!credits || availableCredits < CREDIT_COST) {
-      return new Response(JSON.stringify({ error: 'Insufficient credits', required: CREDIT_COST }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    // Get client info if clientId provided
     let clientData = null;
     if (clientId) {
-      const { data } = await supabase.from('clients').select('name, email').eq('id', clientId).single();
+      const { data, error } = await supabase
+        .from('clients')
+        .select('name, email')
+        .eq('id', clientId)
+        .eq('user_id', resolvedUserId)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
       clientData = data;
     }
+
+    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Sentiment Analysis');
 
     const prompt = `Analyse le sentiment de ces communications ${clientData ? `avec le client ${clientData.name}` : ''}:
 
@@ -70,7 +80,9 @@ Reponds UNIQUEMENT en JSON valide:
       }),
     });
 
-    if (!res.ok) throw new Error('Gemini API error');
+    if (!res.ok) {
+      throw new HttpError(502, 'Gemini API error');
+    }
 
     const result = await res.json();
     const textContent = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -78,29 +90,24 @@ Reponds UNIQUEMENT en JSON valide:
     const sentiment = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
 
     if (!sentiment) {
-      throw new Error('Failed to parse sentiment response');
+      throw new HttpError(422, 'sentiment_parse_failed');
     }
 
-    // Deduct credits (from free first, then paid)
-    const freeDeduction = Math.min(credits.free_credits, CREDIT_COST);
-    const paidDeduction = CREDIT_COST - freeDeduction;
-    await supabase.from('user_credits').update({
-      free_credits: credits.free_credits - freeDeduction,
-      paid_credits: credits.paid_credits - paidDeduction,
-      updated_at: new Date().toISOString()
-    }).eq('user_id', userId);
-
-    await supabase.from('credit_transactions').insert([{
-      user_id: userId,
-      amount: -CREDIT_COST,
-      type: 'usage',
-      description: 'AI Sentiment Analysis'
-    }]);
-
-    return new Response(JSON.stringify({ success: true, sentiment, creditsUsed: CREDIT_COST }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ success: true, sentiment, creditsUsed: CREDIT_COST }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (creditConsumption && resolvedUserId) {
+      try {
+        await refundCredits(supabase, resolvedUserId, creditConsumption, 'AI Sentiment Analysis - error');
+      } catch {
+        // Ignore refund failures in error handling.
+      }
+    }
+
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: error instanceof HttpError ? error.status : 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createServiceClient, HttpError, requireAuthenticatedUser, requireEntitlement } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -136,21 +137,10 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    // Authenticate the caller via JWT
-    const supabaseAuth = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!);
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return jsonResponse({ error: 'Missing authorization' }, 401);
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
-    if (authError || !user) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
-    }
-    const verifiedUserId = user.id;
-
-    // Service-role client for data operations
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const authUser = await requireAuthenticatedUser(req);
+    const verifiedUserId = authUser.id;
+    const supabase = createServiceClient();
+    await requireEntitlement(supabase, verifiedUserId, 'developer.webhooks');
     const { event, payload } = await req.json();
 
     if (!event || !payload) {
@@ -204,6 +194,9 @@ serve(async (req) => {
       results,
     });
   } catch (error) {
-    return jsonResponse({ error: (error as Error).message }, 500);
+    return jsonResponse(
+      { error: (error as Error).message },
+      error instanceof HttpError ? error.status : 500,
+    );
   }
 });

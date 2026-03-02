@@ -3,36 +3,53 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
+import { useEntitlements } from '@/hooks/useEntitlements';
 
 export const useCredits = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation();
+  const { fullAccessOverride, accessLabel } = useEntitlements();
   const [credits, setCredits] = useState({ free_credits: 0, paid_credits: 0, subscription_credits: 0, total_used: 0 });
   const [packages, setPackages] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const availableCredits = credits.free_credits + (credits.subscription_credits || 0) + credits.paid_credits;
+  const resolveRpcRow = (payload) => Array.isArray(payload) ? payload[0] : payload;
 
   const fetchCredits = useCallback(async () => {
-    if (!user || !supabase) return;
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
+    if (!user) {
+      setCredits({ free_credits: 0, paid_credits: 0, subscription_credits: 0, total_used: 0 });
+      setLoading(false);
+      return;
+    }
+
     try {
+      const { error: refreshError } = await supabase.rpc('refresh_user_billing_state', {
+        target_user_id: user.id,
+      });
+
+      if (refreshError) {
+        throw refreshError;
+      }
+
       const { data, error } = await supabase
         .from('user_credits')
         .select('*')
         .eq('user_id', user.id)
         .single();
 
-      if (error && error.code === 'PGRST116') {
-        // No row yet, create one
-        const { data: newData } = await supabase
-          .from('user_credits')
-          .insert([{ user_id: user.id, free_credits: 10, paid_credits: 0, subscription_credits: 0, total_used: 0 }])
-          .select()
-          .single();
-        if (newData) setCredits(newData);
-      } else if (data) {
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
         setCredits(data);
       }
     } catch (err) {
@@ -85,46 +102,26 @@ export const useCredits = () => {
   const consumeCredits = async (amount, description) => {
     if (!user || !supabase) return false;
 
-    if (availableCredits < amount) {
-      toast({
-        title: t('credits.insufficient'),
-        description: t('credits.purchaseMore'),
-        variant: 'destructive'
-      });
-      return false;
-    }
-
     try {
-      // Deduct in order: free → subscription → paid
-      let remaining = amount;
-      let freeDeduction = Math.min(credits.free_credits, remaining);
-      remaining -= freeDeduction;
-      let subDeduction = Math.min(credits.subscription_credits || 0, remaining);
-      remaining -= subDeduction;
-      let paidDeduction = remaining;
+      const { data, error } = await supabase.rpc('consume_user_credits', {
+        target_user_id: user.id,
+        amount,
+        description,
+      });
 
-      const { error: updateError } = await supabase
-        .from('user_credits')
-        .update({
-          free_credits: credits.free_credits - freeDeduction,
-          subscription_credits: (credits.subscription_credits || 0) - subDeduction,
-          paid_credits: credits.paid_credits - paidDeduction,
-          total_used: credits.total_used + amount,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
+      if (error) {
+        throw error;
+      }
 
-      if (updateError) throw updateError;
-
-      // Log the transaction
-      await supabase
-        .from('credit_transactions')
-        .insert([{
-          user_id: user.id,
-          type: 'usage',
-          amount: -amount,
-          description
-        }]);
+      const result = resolveRpcRow(data);
+      if (!result?.success) {
+        toast({
+          title: t('credits.insufficient'),
+          description: t('credits.purchaseMore'),
+          variant: 'destructive'
+        });
+        return false;
+      }
 
       // Refresh credits
       await fetchCredits();
@@ -180,6 +177,8 @@ export const useCredits = () => {
   return {
     credits,
     availableCredits,
+    unlimitedAccess: fullAccessOverride,
+    unlimitedAccessLabel: accessLabel,
     packages,
     transactions,
     loading,

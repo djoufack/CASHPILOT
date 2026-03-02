@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createAuthClient, createServiceClient, HttpError, requireAuthenticatedUser, requireEntitlement } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,44 +13,25 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    if (!authHeader) throw new HttpError(401, 'Missing authorization');
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const user = await requireAuthenticatedUser(req);
+    const supabase = createAuthClient(authHeader);
+    const serviceSupabase = createServiceClient();
+    await requireEntitlement(serviceSupabase, user.id, 'peppol.einvoicing');
 
     const { invoice_id } = await req.json();
-    if (!invoice_id) {
-      return new Response(JSON.stringify({ error: 'invoice_id is required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    if (!invoice_id) throw new HttpError(400, 'invoice_id is required');
 
     // Load invoice
     const { data: invoice } = await supabase
       .from('invoices')
       .select('id, peppol_document_id, peppol_status')
       .eq('id', invoice_id)
+      .eq('user_id', user.id)
       .single();
 
-    if (!invoice?.peppol_document_id) {
-      return new Response(JSON.stringify({ error: 'No Peppol document ID for this invoice' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    if (!invoice?.peppol_document_id) throw new HttpError(400, 'No Peppol document ID for this invoice');
 
     // Already final? No need to poll
     if (['delivered', 'accepted', 'error', 'rejected'].includes(invoice.peppol_status)) {
@@ -66,11 +47,7 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    if (!company?.scrada_api_key) {
-      return new Response(JSON.stringify({ error: 'Scrada credentials not configured' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    if (!company?.scrada_api_key) throw new HttpError(400, 'Scrada credentials not configured');
 
     // Poll Scrada
     const scradaBaseUrl = Deno.env.get('SCRADA_API_URL') || 'https://api.scrada.be/v1';
@@ -127,7 +104,7 @@ serve(async (req) => {
     });
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: error instanceof HttpError ? error.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });

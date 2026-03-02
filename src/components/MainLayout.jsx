@@ -7,6 +7,8 @@ import MobileMenu from './MobileMenu';
 import OnboardingBanner from './onboarding/OnboardingBanner';
 import { useTranslation } from 'react-i18next';
 import { useObligationNotifications } from '@/hooks/useObligationNotifications';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { ENTITLEMENT_KEYS, filterFlatNavigation } from '@/utils/subscriptionEntitlements';
 import {
   Menu,
   LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
@@ -19,6 +21,7 @@ const MainLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t } = useTranslation();
+  const { hasEntitlement } = useEntitlements();
   useObligationNotifications();
 
   useEffect(() => {
@@ -67,16 +70,18 @@ const MainLayout = () => {
     { path: '/app/products/barcode', label: t('nav.scanner'), icon: QrCode },
     { path: '/app/suppliers/reports', label: t('nav.reports'), icon: BarChart3 },
     { path: '/app/suppliers/accounting', label: t('nav.accounting'), icon: Calculator },
-    { path: '/app/scenarios', label: t('nav.scenarios'), icon: TrendingUp },
+    { path: '/app/scenarios', label: t('nav.scenarios'), icon: TrendingUp, featureKey: ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL },
     { type: 'separator', label: t('nav.financeSection') },
     { path: '/app/bank-connections', label: t('nav.bankConnections'), icon: Building2 },
     { path: '/app/cash-flow', label: t('nav.cashFlow'), icon: TrendingUp },
     { type: 'separator', label: t('nav.systemSection') },
     { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
-    { path: '/app/analytics', label: t('nav.analytics'), icon: PieChart },
+    { path: '/app/analytics', label: t('nav.analytics'), icon: PieChart, featureKey: ENTITLEMENT_KEYS.ANALYTICS_REPORTS },
     { path: '/app/security', label: t('nav.security'), icon: Shield },
     { path: '/app/settings', label: t('nav.settings'), icon: Settings },
   ];
+
+  const visibleNavItems = filterFlatNavigation(navItems, hasEntitlement);
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col md:flex-row">
@@ -107,7 +112,7 @@ const MainLayout = () => {
       <MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
-        menuItems={navItems}
+        menuItems={visibleNavItems}
       />
 
       <main

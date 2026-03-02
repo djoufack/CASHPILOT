@@ -15,6 +15,8 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { ENTITLEMENT_KEYS, filterCategorizedNavigation } from '@/utils/subscriptionEntitlements';
 
 const STORAGE_KEY = 'sidebarExpandedCategories';
 
@@ -22,6 +24,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const { isAdmin } = useUserRole();
+  const { hasEntitlement } = useEntitlements();
 
   const toggleSidebar = () => {
     const newState = !isCollapsed;
@@ -52,6 +55,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         icon: Globe,
         type: 'direct',
         path: '/app/peppol',
+        featureKey: ENTITLEMENT_KEYS.PEPPOL_EINVOICING,
       },
       {
         id: 'sales',
@@ -80,7 +84,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           { path: '/app/bank-connections', label: t('nav.bankConnections') || 'Connexions bancaires', icon: Building2 },
           { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
           { path: '/app/audit-comptable', label: t('nav.auditComptable'), icon: ShieldCheck },
-          { path: '/app/scenarios', label: t('nav.scenarios') || 'Scénarios', icon: BarChart3 },
+          { path: '/app/scenarios', label: t('nav.scenarios') || 'Scénarios', icon: BarChart3, featureKey: ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL },
         ],
       },
       {
@@ -117,7 +121,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           { path: '/app/projects', label: t('common.projects'), icon: Briefcase },
           { path: '/app/timesheets', label: t('common.timesheets'), icon: Clock },
           { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
-          { path: '/app/analytics', label: t('nav.analytics'), icon: PieChart },
+          { path: '/app/analytics', label: t('nav.analytics'), icon: PieChart, featureKey: ENTITLEMENT_KEYS.ANALYTICS_REPORTS },
         ],
       },
       {
@@ -148,16 +152,21 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
     return cats;
   }, [isAdmin, t]);
 
+  const visibleCategories = useMemo(
+    () => filterCategorizedNavigation(categories, hasEntitlement),
+    [categories, hasEntitlement],
+  );
+
   // Determine which category contains the current path
   const activeCategoryId = useMemo(() => {
-    for (const cat of categories) {
+    for (const cat of visibleCategories) {
       if (cat.type === 'direct' && cat.path === location.pathname) return cat.id;
       if (cat.type === 'category' && cat.items?.some(item => location.pathname === item.path)) {
         return cat.id;
       }
     }
     return null;
-  }, [categories, location.pathname]);
+  }, [visibleCategories, location.pathname]);
 
   // Expanded state: load from localStorage, auto-expand active category
   const [expandedCategories, setExpandedCategories] = useState(() => {
@@ -229,7 +238,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
       {/* Navigation */}
       <nav className="flex-1 px-2 overflow-y-auto overflow-x-hidden mt-2 custom-scrollbar">
         <TooltipProvider delayDuration={0}>
-          {categories.map(category => {
+          {visibleCategories.map(category => {
             if (category.type === 'direct') {
               return (
                 <DirectNavItem

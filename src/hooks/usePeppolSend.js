@@ -4,6 +4,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useCompany } from '@/hooks/useCompany';
 import { validateForPeppolBE } from '@/services/peppolValidation';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { ENTITLEMENT_KEYS, getEntitlementPlanLabel } from '@/utils/subscriptionEntitlements';
 
 const POLL_INTERVAL_MS = 10_000;
 const POLL_MAX_ATTEMPTS = 12; // 2 minutes total
@@ -16,6 +18,8 @@ export const usePeppolSend = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { company } = useCompany();
+  const { hasEntitlement } = useEntitlements();
+  const canUsePeppol = hasEntitlement(ENTITLEMENT_KEYS.PEPPOL_EINVOICING);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -70,6 +74,15 @@ export const usePeppolSend = () => {
 
   const sendViaPeppol = async (invoice, client, items) => {
     if (!supabase) throw new Error('Supabase not configured');
+    if (!canUsePeppol) {
+      const message = `Peppol est disponible a partir du plan ${getEntitlementPlanLabel(ENTITLEMENT_KEYS.PEPPOL_EINVOICING)}.`;
+      toast({
+        title: t('peppol.sendError'),
+        description: message,
+        variant: 'destructive',
+      });
+      return { success: false, error: 'feature_not_included' };
+    }
 
     // Pre-validate
     const validation = validateForPeppolBE(invoice, company, client, items);
@@ -114,5 +127,5 @@ export const usePeppolSend = () => {
     }
   };
 
-  return { sendViaPeppol, sending, polling, peppolStatus, stopPolling };
+  return { sendViaPeppol, sending, polling, peppolStatus, stopPolling, canUsePeppol };
 };

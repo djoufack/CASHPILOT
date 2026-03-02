@@ -2,15 +2,27 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { ENTITLEMENT_KEYS, getEntitlementPlanLabel } from '@/utils/subscriptionEntitlements';
 
 export const usePeppolCheck = () => {
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState(null);
   const { toast } = useToast();
   const { t } = useTranslation();
+  const { hasEntitlement } = useEntitlements();
+  const canUsePeppol = hasEntitlement(ENTITLEMENT_KEYS.PEPPOL_EINVOICING);
 
   const checkRegistration = useCallback(async (peppolId) => {
     if (!supabase || !peppolId) return null;
+    if (!canUsePeppol) {
+      toast({
+        title: t('peppol.checkError'),
+        description: `Peppol est disponible a partir du plan ${getEntitlementPlanLabel(ENTITLEMENT_KEYS.PEPPOL_EINVOICING)}.`,
+        variant: 'destructive',
+      });
+      return null;
+    }
 
     setChecking(true);
     setResult(null);
@@ -49,11 +61,11 @@ export const usePeppolCheck = () => {
     } finally {
       setChecking(false);
     }
-  }, [toast, t]);
+  }, [canUsePeppol, toast, t]);
 
   const reset = useCallback(() => {
     setResult(null);
   }, []);
 
-  return { checkRegistration, checking, result, reset };
+  return { checkRegistration, checking, result, reset, canUsePeppol };
 };

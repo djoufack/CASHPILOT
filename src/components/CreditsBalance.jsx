@@ -12,12 +12,12 @@ import { cn } from '@/lib/utils';
  */
 const CreditsBalance = ({ isCollapsed }) => {
   const { t } = useTranslation();
-  const { availableCredits, loading } = useCredits();
+  const { availableCredits, loading, unlimitedAccess } = useCredits();
 
   if (loading) return null;
 
-  const isLow = availableCredits <= 5;
-  const isEmpty = availableCredits <= 0;
+  const isLow = !unlimitedAccess && availableCredits <= 5;
+  const isEmpty = !unlimitedAccess && availableCredits <= 0;
 
   if (isCollapsed) {
     return (
@@ -28,12 +28,14 @@ const CreditsBalance = ({ isCollapsed }) => {
             ? "bg-red-500/20 text-red-400"
             : isLow
               ? "bg-yellow-500/20 text-yellow-400"
-              : "bg-orange-500/10 text-orange-400"
+              : unlimitedAccess
+                ? "bg-cyan-500/15 text-cyan-300"
+                : "bg-orange-500/10 text-orange-400"
         )}>
           <div className="relative">
             <Coins size={18} />
             <span className="absolute -top-1.5 -right-2 text-[9px] font-bold">
-              {availableCredits}
+              {unlimitedAccess ? '∞' : availableCredits}
             </span>
           </div>
         </div>
@@ -49,20 +51,22 @@ const CreditsBalance = ({ isCollapsed }) => {
           ? "bg-red-500/15 border border-red-500/30 hover:bg-red-500/20"
           : isLow
             ? "bg-yellow-500/15 border border-yellow-500/30 hover:bg-yellow-500/20"
-            : "bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/15"
+            : unlimitedAccess
+              ? "bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/15"
+              : "bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/15"
       )}>
         <div className="flex items-center gap-2">
           <Coins size={16} className={cn(
-            isEmpty ? "text-red-400" : isLow ? "text-yellow-400" : "text-orange-400"
+            isEmpty ? "text-red-400" : isLow ? "text-yellow-400" : unlimitedAccess ? "text-cyan-300" : "text-orange-400"
           )} />
           <div>
             <p className={cn(
               "text-sm font-semibold",
-              isEmpty ? "text-red-400" : isLow ? "text-yellow-400" : "text-orange-400"
+              isEmpty ? "text-red-400" : isLow ? "text-yellow-400" : unlimitedAccess ? "text-cyan-300" : "text-orange-400"
             )}>
-              {availableCredits}
+              {unlimitedAccess ? 'Illimite' : availableCredits}
             </p>
-            <p className="text-[10px] text-gray-500">{t('credits.creditsLabel')}</p>
+            <p className="text-[10px] text-gray-500">{unlimitedAccess ? 'acces complet' : t('credits.creditsLabel')}</p>
           </div>
         </div>
         <Plus size={14} className="text-gray-500" />

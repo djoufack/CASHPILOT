@@ -19,7 +19,7 @@ const CreditsPurchase = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { credits, availableCredits, packages, transactions, fetchTransactions, loading } = useCredits();
+  const { credits, availableCredits, packages, transactions, fetchTransactions, loading, unlimitedAccess, unlimitedAccessLabel } = useCredits();
   const { currentPlan, subscriptionStatus, subscriptionCredits, currentPeriodEnd } = useSubscription();
   const { toast } = useToast();
   const [purchasing, setPurchasing] = useState(null);
@@ -27,6 +27,14 @@ const CreditsPurchase = () => {
   const [showReferrals, setShowReferrals] = useState(false);
 
   const handlePurchase = async (pkg) => {
+    if (unlimitedAccess) {
+      toast({
+        title: 'Credits non requis',
+        description: `${unlimitedAccessLabel || 'Ce compte'} dispose deja d'un acces illimite.`,
+      });
+      return;
+    }
+
     setPurchasing(pkg.id);
     try {
       const session = await createCheckoutSession({
@@ -67,7 +75,17 @@ const CreditsPurchase = () => {
   return (
     <div className="space-y-6">
       {/* Subscription banner */}
-      {hasActiveSubscription ? (
+      {unlimitedAccess ? (
+        <div className="bg-cyan-500/10 rounded-lg border border-cyan-500/30 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Crown className="w-6 h-6 text-cyan-300 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-white">{unlimitedAccessLabel || 'Acces illimite'}</p>
+              <p className="text-xs text-cyan-100/80 mt-0.5">Tous les services et usages credits sont ouverts sans limitation.</p>
+            </div>
+          </div>
+        </div>
+      ) : hasActiveSubscription ? (
         <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Crown className="w-6 h-6 text-orange-400 shrink-0" />
@@ -111,9 +129,11 @@ const CreditsPurchase = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-400">{t('credits.balance')}</p>
-            <p className="text-4xl font-bold text-gradient mt-1">{availableCredits}</p>
+            <p className="text-4xl font-bold text-gradient mt-1">{unlimitedAccess ? 'Illimite' : availableCredits}</p>
             <p className="text-xs text-gray-500 mt-1">
-              {t('credits.free')}: {credits.free_credits} | {t('credits.paid')}: {credits.paid_credits} | {t('credits.used')}: {credits.total_used}
+              {unlimitedAccess
+                ? `${unlimitedAccessLabel || 'Acces special'} · tous les services sans limite`
+                : `${t('credits.free')}: ${credits.free_credits} | ${t('credits.paid')}: ${credits.paid_credits} | ${t('credits.used')}: ${credits.total_used}`}
             </p>
           </div>
           <Coins className="w-12 h-12 text-orange-400 opacity-50" />
@@ -121,6 +141,7 @@ const CreditsPurchase = () => {
       </div>
 
       {/* Credit packages */}
+      {!unlimitedAccess && (
       <div>
         <h3 className="text-lg font-semibold mb-4">{t('credits.buyCredits')}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -156,6 +177,7 @@ const CreditsPurchase = () => {
           })}
         </div>
       </div>
+      )}
 
       {/* What costs credits — grouped by categories */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-5">
