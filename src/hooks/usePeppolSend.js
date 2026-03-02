@@ -4,8 +4,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useCompany } from '@/hooks/useCompany';
 import { validateForPeppolBE } from '@/services/peppolValidation';
-import { useEntitlements } from '@/hooks/useEntitlements';
-import { ENTITLEMENT_KEYS, getEntitlementPlanLabel } from '@/utils/subscriptionEntitlements';
+import { useCreditsGuard, CREDIT_COSTS, CREDIT_COST_LABELS } from '@/hooks/useCreditsGuard';
+import { readFunctionErrorData } from '@/utils/supabaseFunctionErrors';
 
 const POLL_INTERVAL_MS = 10_000;
 const POLL_MAX_ATTEMPTS = 12; // 2 minutes total
@@ -18,8 +18,7 @@ export const usePeppolSend = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { company } = useCompany();
-  const { hasEntitlement } = useEntitlements();
-  const canUsePeppol = hasEntitlement(ENTITLEMENT_KEYS.PEPPOL_EINVOICING);
+  const { ensureCredits, openCreditsModal, modalProps } = useCreditsGuard();
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -74,15 +73,6 @@ export const usePeppolSend = () => {
 
   const sendViaPeppol = async (invoice, client, items) => {
     if (!supabase) throw new Error('Supabase not configured');
-    if (!canUsePeppol) {
-      const message = `Peppol est disponible a partir du plan ${getEntitlementPlanLabel(ENTITLEMENT_KEYS.PEPPOL_EINVOICING)}.`;
-      toast({
-        title: t('peppol.sendError'),
-        description: message,
-        variant: 'destructive',
-      });
-      return { success: false, error: 'feature_not_included' };
-    }
 
     // Pre-validate
     const validation = validateForPeppolBE(invoice, company, client, items);
@@ -94,6 +84,14 @@ export const usePeppolSend = () => {
         variant: 'destructive',
       });
       return { success: false, errors: validation.errors };
+    }
+
+    const hasCredits = await ensureCredits(
+      CREDIT_COSTS.PEPPOL_SEND_INVOICE,
+      t(CREDIT_COST_LABELS.PEPPOL_SEND_INVOICE),
+    );
+    if (!hasCredits) {
+      return { success: false, error: 'insufficient_credits' };
     }
 
     setSending(true);
@@ -116,16 +114,33 @@ export const usePeppolSend = () => {
 
       return { success: true, documentId: data.documentId };
     } catch (err) {
+      const details = await readFunctionErrorData(err);
+      if (details?.error === 'insufficient_credits') {
+        openCreditsModal(
+          CREDIT_COSTS.PEPPOL_SEND_INVOICE,
+          t(CREDIT_COST_LABELS.PEPPOL_SEND_INVOICE),
+        );
+        return { success: false, error: 'insufficient_credits' };
+      }
+
       toast({
         title: t('peppol.sendError'),
-        description: err.message,
+        description: details?.error || err.message,
         variant: 'destructive',
       });
-      return { success: false, error: err.message };
+      return { success: false, error: details?.error || err.message };
     } finally {
       setSending(false);
     }
   };
 
-  return { sendViaPeppol, sending, polling, peppolStatus, stopPolling, canUsePeppol };
+  return {
+    sendViaPeppol,
+    sending,
+    polling,
+    peppolStatus,
+    stopPolling,
+    canUsePeppol: true,
+    creditsModalProps: modalProps,
+  };
 };

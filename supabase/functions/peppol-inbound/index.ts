@@ -1,10 +1,12 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { consumeCredits, createAuthClient, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const PEPPOL_RECEIVE_CREDITS = 3;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,38 +16,23 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      throw new HttpError(401, 'Missing authorization');
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
+    const user = await requireAuthenticatedUser(req);
+    const supabase = createAuthClient(authHeader);
+    const serviceSupabase = createServiceClient();
     const body = await req.json();
     const action = body.action || 'list';
 
-    // Load Scrada credentials
     const { data: company } = await supabase
       .from('company')
-      .select('scrada_company_id, scrada_api_key, scrada_password')
+      .select('peppol_endpoint_id, peppol_scheme_id, scrada_company_id, scrada_api_key, scrada_password')
       .eq('user_id', user.id)
       .single();
 
-    if (!company?.scrada_api_key) {
-      return new Response(JSON.stringify({ error: 'Scrada credentials not configured' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!company?.scrada_company_id || !company?.scrada_api_key || !company?.scrada_password) {
+      throw new HttpError(400, 'Scrada credentials not configured');
     }
 
     const scradaBaseUrl = Deno.env.get('SCRADA_API_URL') || 'https://api.scrada.be/v1';
@@ -55,7 +42,6 @@ serve(async (req) => {
       'Language': 'FR',
     };
 
-    // List locally stored inbound documents
     if (action === 'list') {
       const { data: docs } = await supabase
         .from('peppol_inbound_documents')
@@ -65,27 +51,26 @@ serve(async (req) => {
         .limit(100);
 
       return new Response(JSON.stringify({ documents: docs || [] }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Sync: fetch from Scrada and store new documents locally
     if (action === 'sync') {
       const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolInbound`;
       const scradaResponse = await fetch(scradaUrl, {
-        method: 'GET', headers: { ...scradaHeaders, 'Content-Type': 'application/json' },
+        method: 'GET',
+        headers: { ...scradaHeaders, 'Content-Type': 'application/json' },
       });
 
       if (!scradaResponse.ok) {
         const errText = await scradaResponse.text();
-        return new Response(JSON.stringify({ error: `Scrada API error: ${errText}` }), {
-          status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        throw new HttpError(502, `Scrada API error: ${errText}`);
       }
 
       const scradaDocs = await scradaResponse.json();
       const documents = Array.isArray(scradaDocs) ? scradaDocs : [];
-      let newCount = 0;
+      const newDocuments = [];
 
       for (const doc of documents) {
         const docId = doc.id || doc.documentId;
@@ -99,78 +84,152 @@ serve(async (req) => {
           .maybeSingle();
 
         if (!existing) {
-          await supabase.from('peppol_inbound_documents').insert({
-            user_id: user.id,
-            scrada_document_id: docId,
-            sender_peppol_id: doc.peppolSenderID || doc.senderID || null,
-            sender_name: doc.senderName || null,
-            document_type: doc.documentType || 'invoice',
-            invoice_number: doc.invoiceNumber || null,
-            invoice_date: doc.invoiceDate || null,
-            total_excl_vat: doc.totalExclVat || null,
-            total_vat: doc.totalVat || null,
-            total_incl_vat: doc.totalInclVat || null,
-            currency: doc.currency || 'EUR',
-            status: 'new',
-            metadata: doc,
-            received_at: doc.receivedAt || doc.createdOn || new Date().toISOString(),
-          });
-          newCount++;
+          newDocuments.push({ docId, doc });
         }
       }
 
+      if (newDocuments.length === 0) {
+        return new Response(JSON.stringify({
+          synced: true,
+          totalFromScrada: documents.length,
+          newDocuments: 0,
+          requiredCredits: 0,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const requiredCredits = newDocuments.length * PEPPOL_RECEIVE_CREDITS;
+      let creditDeduction = null;
+
+      try {
+        creditDeduction = await consumeCredits(
+          serviceSupabase,
+          user.id,
+          requiredCredits,
+          `Peppol inbound sync (${newDocuments.length} invoices)`,
+        );
+      } catch (error) {
+        if (error instanceof HttpError && error.status === 402) {
+          return new Response(JSON.stringify({
+            error: 'insufficient_credits',
+            insufficientCredits: true,
+            requiredCredits,
+            newDocuments: newDocuments.length,
+          }), {
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw error;
+      }
+
+      try {
+        const inboundRows = newDocuments.map(({ docId, doc }) => ({
+          user_id: user.id,
+          scrada_document_id: docId,
+          sender_peppol_id: doc.peppolSenderID || doc.senderID || null,
+          sender_name: doc.senderName || null,
+          document_type: doc.documentType || 'invoice',
+          invoice_number: doc.invoiceNumber || null,
+          invoice_date: doc.invoiceDate || null,
+          total_excl_vat: doc.totalExclVat || null,
+          total_vat: doc.totalVat || null,
+          total_incl_vat: doc.totalInclVat || null,
+          currency: doc.currency || 'EUR',
+          status: 'new',
+          metadata: doc,
+          received_at: doc.receivedAt || doc.createdOn || new Date().toISOString(),
+        }));
+
+        const logRows = newDocuments.map(({ docId, doc }) => ({
+          user_id: user.id,
+          direction: 'inbound',
+          status: 'received',
+          ap_provider: 'scrada',
+          ap_document_id: docId,
+          sender_endpoint: doc.peppolSenderID || doc.senderID || null,
+          receiver_endpoint: company.peppol_endpoint_id
+            ? `${company.peppol_scheme_id || '0208'}:${company.peppol_endpoint_id}`
+            : null,
+          metadata: doc,
+        }));
+
+        const { error: insertDocsError } = await supabase
+          .from('peppol_inbound_documents')
+          .insert(inboundRows);
+        if (insertDocsError) throw insertDocsError;
+
+        const { error: insertLogsError } = await supabase
+          .from('peppol_transmission_log')
+          .insert(logRows);
+        if (insertLogsError) throw insertLogsError;
+      } catch (error) {
+        await refundCredits(
+          serviceSupabase,
+          user.id,
+          creditDeduction,
+          `Refund Peppol inbound sync (${newDocuments.length} invoices)`,
+        );
+        throw error;
+      }
+
       return new Response(JSON.stringify({
-        synced: true, totalFromScrada: documents.length, newDocuments: newCount,
+        synced: true,
+        totalFromScrada: documents.length,
+        newDocuments: newDocuments.length,
+        requiredCredits,
       }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get UBL XML for a specific inbound document
     if (action === 'get_ubl' && body.document_id) {
       const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolInbound/${body.document_id}`;
       const scradaResponse = await fetch(scradaUrl, {
-        method: 'GET', headers: { ...scradaHeaders, 'Content-Type': 'application/xml' },
+        method: 'GET',
+        headers: { ...scradaHeaders, 'Content-Type': 'application/xml' },
       });
 
       if (!scradaResponse.ok) {
-        return new Response(JSON.stringify({ error: 'Document not found in Scrada' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        throw new HttpError(404, 'Document not found in Scrada');
       }
 
       const ublXml = await scradaResponse.text();
       return new Response(JSON.stringify({ ubl: ublXml }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get PDF for a specific inbound document
     if (action === 'get_pdf' && body.document_id) {
       const scradaUrl = `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolInbound/${body.document_id}/pdf`;
       const scradaResponse = await fetch(scradaUrl, {
         method: 'GET',
-        headers: { 'X-API-KEY': company.scrada_api_key, 'X-PASSWORD': company.scrada_password },
+        headers: {
+          'X-API-KEY': company.scrada_api_key,
+          'X-PASSWORD': company.scrada_password,
+        },
       });
 
       if (!scradaResponse.ok) {
-        return new Response(JSON.stringify({ error: 'PDF not available' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        throw new HttpError(404, 'PDF not available');
       }
 
       const pdfBuffer = await scradaResponse.arrayBuffer();
       return new Response(pdfBuffer, {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/pdf' },
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/pdf' },
       });
     }
 
-    return new Response(JSON.stringify({ error: 'Unknown action. Use: list, sync, get_ubl, get_pdf' }), {
-      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    throw new HttpError(400, 'Unknown action. Use: list, sync, get_ubl, get_pdf');
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: error instanceof HttpError ? error.status : 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });

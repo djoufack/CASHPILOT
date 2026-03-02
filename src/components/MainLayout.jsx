@@ -14,7 +14,7 @@ import {
   LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Package, BarChart3, Calculator, PieChart, Settings,
   FileMinus, PackageCheck, Wallet, TrendingUp, Building2, RefreshCw, Shield,
-  Receipt, ClipboardList, Wrench, Map, QrCode, FileBarChart, Database, Tag
+  Receipt, ClipboardList, Wrench, Map, QrCode, FileBarChart, Database, Tag, Globe
 } from 'lucide-react';
 
 const MainLayout = () => {
@@ -53,6 +53,7 @@ const MainLayout = () => {
     { path: '/app/projects', label: t('nav.projects'), icon: Briefcase },
     { path: '/app/timesheets', label: t('nav.timesheets'), icon: Clock },
     { path: '/app/invoices', label: t('nav.invoices'), icon: FileText },
+    { path: '/app/peppol', label: t('nav.peppolEInvoicing') || 'Peppol', icon: Globe },
     { path: '/app/recurring-invoices', label: t('nav.recurringInvoices'), icon: RefreshCw },
     { path: '/app/credit-notes', label: t('creditNotes.title'), icon: FileMinus },
     { path: '/app/delivery-notes', label: t('deliveryNotes.title'), icon: PackageCheck },

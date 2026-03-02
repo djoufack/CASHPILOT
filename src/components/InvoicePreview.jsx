@@ -36,7 +36,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
   const { company } = useCompany();
   const { settings } = useInvoiceSettings();
   const { guardedAction, modalProps } = useCreditsGuard();
-  const { sendViaPeppol, sending, canUsePeppol } = usePeppolSend();
+  const { sendViaPeppol, sending, canUsePeppol, creditsModalProps } = usePeppolSend();
 
   const handleExportUBL = async () => {
     try {
@@ -85,6 +85,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
   return (
     <div className="space-y-4">
       <CreditsGuardModal {...modalProps} />
+      <CreditsGuardModal {...creditsModalProps} />
       <div className="flex justify-end gap-2 flex-wrap">
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
@@ -111,7 +112,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               <Send className="w-4 h-4 mr-2" />
-              {sending ? t('peppol.sending') : t('peppol.sendViaPeppol')}
+              {sending ? t('peppol.sending') : `${t('peppol.sendViaPeppol')} (4 ${t('credits.creditsLabel')})`}
             </Button>
           </motion.div>
         )}

@@ -523,7 +523,8 @@
       "commercialDocuments": "Commerciële documenten",
       "analyticalReports": "Analytische rapporten",
       "additionalExports": "Aanvullende exports",
-      "other": "Andere acties"
+      "other": "Andere acties",
+      "peppol": "Peppol e-facturatie"
     },
     "costs": {
       "balanceSheet": "Balans genereren",
@@ -544,6 +545,9 @@
       "exportHtml": "HTML-export (zelfstandig bestand)",
       "pdfReceipt": "Ontvangstbewijs PDF",
       "cloudBackup": "Cloud back-up",
+      "peppolConfigurationOk": "Peppol-configuratie valideren",
+      "peppolSendInvoice": "Peppol-factuur verzenden",
+      "peppolReceiveInvoice": "Peppol-factuur ontvangen",
       "htmlPreview": "HTML-voorvertoning (in browser)",
       "aiInvoiceExtraction": "AI-factuurextractie"
     }

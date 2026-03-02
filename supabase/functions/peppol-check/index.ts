@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createAuthClient, createServiceClient, HttpError, requireAuthenticatedUser, requireEntitlement } from '../_shared/billing.ts';
+import { createAuthClient, HttpError, requireAuthenticatedUser } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,8 +17,6 @@ serve(async (req) => {
 
     const user = await requireAuthenticatedUser(req);
     const supabase = createAuthClient(authHeader);
-    const serviceSupabase = createServiceClient();
-    await requireEntitlement(serviceSupabase, user.id, 'peppol.einvoicing');
 
     const { peppol_id } = await req.json();
     if (!peppol_id) throw new HttpError(400, 'peppol_id is required (format: 0208:0123456789)');

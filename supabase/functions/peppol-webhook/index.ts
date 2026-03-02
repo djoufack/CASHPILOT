@@ -1,10 +1,13 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { consumeCredits, HttpError, refundCredits } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-scrada-topic, x-scrada-hmac-sha256, x-scrada-company-id, x-scrada-event-id, x-scrada-triggered-at, x-scrada-attempt',
 };
+
+const PEPPOL_RECEIVE_CREDITS = 3;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,7 +27,7 @@ serve(async (req) => {
     // Find CashPilot user by Scrada company ID
     const { data: companyRecord } = await supabaseAdmin
       .from('company')
-      .select('user_id, id')
+      .select('user_id, id, peppol_endpoint_id, peppol_scheme_id')
       .eq('scrada_company_id', scradaCompanyId)
       .maybeSingle();
 
@@ -91,19 +94,67 @@ serve(async (req) => {
         .maybeSingle();
 
       if (!existing) {
-        await supabaseAdmin.from('peppol_inbound_documents').insert({
-          user_id: userId,
-          scrada_document_id: documentId,
-          sender_peppol_id: senderPeppolId,
-          document_type: 'invoice',
-          ubl_xml: ublXml,
-          status: 'new',
-          metadata: {
-            eventId, topic, senderPeppolId,
+        let creditDeduction = null;
+
+        try {
+          creditDeduction = await consumeCredits(
+            supabaseAdmin,
+            userId,
+            PEPPOL_RECEIVE_CREDITS,
+            `Peppol inbound webhook ${documentId}`,
+          );
+
+          const metadata = {
+            eventId,
+            topic,
+            senderPeppolId,
             c2MessageId: req.headers.get('x-scrada-peppol-c2-message-id'),
             c3Timestamp: req.headers.get('x-scrada-peppol-c3-timestamp'),
-          },
-        });
+          };
+
+          const { error: insertDocError } = await supabaseAdmin.from('peppol_inbound_documents').insert({
+            user_id: userId,
+            scrada_document_id: documentId,
+            sender_peppol_id: senderPeppolId,
+            document_type: 'invoice',
+            ubl_xml: ublXml,
+            status: 'new',
+            metadata,
+          });
+          if (insertDocError) throw insertDocError;
+
+          const { error: insertLogError } = await supabaseAdmin.from('peppol_transmission_log').insert({
+            user_id: userId,
+            direction: 'inbound',
+            status: 'received',
+            ap_provider: 'scrada',
+            ap_document_id: documentId,
+            sender_endpoint: senderPeppolId || null,
+            receiver_endpoint: companyRecord.peppol_endpoint_id
+              ? `${companyRecord.peppol_scheme_id || '0208'}:${companyRecord.peppol_endpoint_id}`
+              : null,
+            metadata,
+          });
+          if (insertLogError) throw insertLogError;
+        } catch (error) {
+          if (creditDeduction) {
+            await refundCredits(
+              supabaseAdmin,
+              userId,
+              creditDeduction,
+              `Refund Peppol inbound webhook ${documentId}`,
+            );
+          }
+
+          if (error instanceof HttpError && error.status === 402) {
+            return new Response(JSON.stringify({ error: 'insufficient_credits', documentId }), {
+              status: 402,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          throw error;
+        }
       }
 
       return new Response(JSON.stringify({ received: true, topic, documentId }), {
