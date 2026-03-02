@@ -2838,3 +2838,173 @@ body:hover .cursor-dot {
         align-items: center;
     }
 }
+
+/* ═══════════════════════════════════════════════
+   Demo Banner – Infinite Marquee
+   ═══════════════════════════════════════════════ */
+
+.demo-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10001;
+    height: 36px;
+    background: linear-gradient(90deg, #07080f 0%, #0a0e27 50%, #07080f 100%);
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+}
+
+.demo-banner-border {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        #f59e0b 20%,
+        #10b981 40%,
+        #8b5cf6 60%,
+        #f59e0b 80%,
+        transparent 100%
+    );
+    opacity: 0.6;
+}
+
+.demo-banner-track {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+}
+
+.demo-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    white-space: nowrap;
+    animation: demo-marquee 35s linear infinite;
+    will-change: transform;
+}
+
+.demo-banner:hover .demo-banner-content {
+    animation-duration: 70s;
+}
+
+.demo-marquee-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #d1d5db;
+    letter-spacing: 0.02em;
+    padding: 0 8px;
+}
+
+.demo-marquee-highlight {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.demo-marquee-accent {
+    color: #a78bfa;
+    font-weight: 600;
+}
+
+.demo-marquee-star {
+    color: #f59e0b;
+    font-size: 10px;
+    opacity: 0.9;
+}
+
+.demo-marquee-flag {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.demo-marquee-separator {
+    color: #4b5563;
+    font-size: 16px;
+    padding: 0 6px;
+    opacity: 0.5;
+}
+
+.demo-banner-close {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 2;
+    backdrop-filter: blur(4px);
+}
+
+.demo-banner-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #d1d5db;
+}
+
+@keyframes demo-marquee {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+/* Push navbar down when banner is visible */
+.landing-page.has-demo-banner .navbar {
+    top: 36px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .demo-banner {
+        height: 32px;
+    }
+
+    .demo-marquee-item {
+        font-size: 10px;
+        padding: 0 6px;
+    }
+
+    .demo-marquee-flag {
+        font-size: 12px;
+    }
+
+    .demo-marquee-separator {
+        padding: 0 4px;
+        font-size: 14px;
+    }
+
+    .demo-banner-close {
+        right: 8px;
+        width: 20px;
+        height: 20px;
+    }
+
+    .landing-page.has-demo-banner .navbar {
+        top: 32px;
+    }
+}

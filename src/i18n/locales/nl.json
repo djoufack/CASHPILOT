@@ -856,7 +856,10 @@
     "demoRegionOHADA": "OHADA",
     "demoTagFR": "PCG",
     "demoTagBE": "PCMN",
-    "demoTagOHADA": "SYSCOHADA"
+    "demoTagOHADA": "SYSCOHADA",
+    "demoBannerText": "Probeer CashPilot zonder registratie",
+    "demoBannerAccess": "Directe toegang op de inlogpagina",
+    "demoBannerClose": "Sluiten"
   },
   "invoiceExtraction": {
     "extractWithAI": "Extraheren met AI",
