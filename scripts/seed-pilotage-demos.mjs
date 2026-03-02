@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
+import { buildFullDemoDataset } from './lib/buildFullDemoDataset.mjs';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -662,6 +663,20 @@ function buildDataset(config) {
     };
   });
 
+  const extendedDataset = buildFullDemoDataset({
+    CURRENT_YEAR,
+    config,
+    userSeed,
+    userId,
+    clientRows,
+    invoiceRows,
+    paymentRows,
+    uuidFromSeed,
+    roundAmount,
+    isoDate,
+    addDays,
+  });
+
   const profileRow = {
     id: profileId,
     user_id: userId,
@@ -678,6 +693,7 @@ function buildDataset(config) {
     id: companyId,
     user_id: userId,
     ...config.company,
+    ...extendedDataset.companyPatch,
     currency: config.company.accounting_currency,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -766,11 +782,56 @@ function buildDataset(config) {
     chartRows,
     mappingRows,
     taxRateRows,
-    clientRows,
-    invoiceRows,
-    paymentRows,
+    clientRows: extendedDataset.clientRows,
+    invoiceRows: extendedDataset.invoiceRows,
+    paymentRows: extendedDataset.paymentRows,
     expenseRows,
     accountingEntries,
+    paymentTermRows: extendedDataset.paymentTermRows,
+    productCategoryRows: extendedDataset.productCategoryRows,
+    serviceCategoryRows: extendedDataset.serviceCategoryRows,
+    supplierRows: extendedDataset.supplierRows,
+    supplierProductCategoryRows: extendedDataset.supplierProductCategoryRows,
+    supplierProductRows: extendedDataset.supplierProductRows,
+    supplierServiceRows: extendedDataset.supplierServiceRows,
+    productRows: extendedDataset.productRows,
+    serviceRows: extendedDataset.serviceRows,
+    invoiceItemRows: extendedDataset.invoiceItemRows,
+    paymentAllocationRows: extendedDataset.paymentAllocationRows,
+    quoteRows: extendedDataset.quoteRows,
+    purchaseOrderRows: extendedDataset.purchaseOrderRows,
+    recurringInvoiceRows: extendedDataset.recurringInvoiceRows,
+    recurringInvoiceLineItemRows: extendedDataset.recurringInvoiceLineItemRows,
+    paymentReminderRuleRows: extendedDataset.paymentReminderRuleRows,
+    paymentReminderLogRows: extendedDataset.paymentReminderLogRows,
+    supplierOrderRows: extendedDataset.supplierOrderRows,
+    supplierOrderItemRows: extendedDataset.supplierOrderItemRows,
+    supplierInvoiceRows: extendedDataset.supplierInvoiceRows,
+    supplierInvoiceLineItemRows: extendedDataset.supplierInvoiceLineItemRows,
+    projectRows: extendedDataset.projectRows,
+    taskRows: extendedDataset.taskRows,
+    subtaskRows: extendedDataset.subtaskRows,
+    timesheetRows: extendedDataset.timesheetRows,
+    creditNoteRows: extendedDataset.creditNoteRows,
+    creditNoteItemRows: extendedDataset.creditNoteItemRows,
+    deliveryNoteRows: extendedDataset.deliveryNoteRows,
+    deliveryNoteItemRows: extendedDataset.deliveryNoteItemRows,
+    receivableRows: extendedDataset.receivableRows,
+    payableRows: extendedDataset.payableRows,
+    debtPaymentRows: extendedDataset.debtPaymentRows,
+    productStockHistoryRows: extendedDataset.productStockHistoryRows,
+    stockAlertRows: extendedDataset.stockAlertRows,
+    teamMemberRows: extendedDataset.teamMemberRows,
+    notificationPreferencesRow: extendedDataset.notificationPreferencesRow,
+    notificationRows: extendedDataset.notificationRows,
+    webhookRows: extendedDataset.webhookRows,
+    webhookDeliveryRows: extendedDataset.webhookDeliveryRows,
+    bankConnectionRows: extendedDataset.bankConnectionRows,
+    bankSyncHistoryRows: extendedDataset.bankSyncHistoryRows,
+    bankTransactionRows: extendedDataset.bankTransactionRows,
+    peppolLogRows: extendedDataset.peppolLogRows,
+    billingInfoRow: extendedDataset.billingInfoRow,
+    invoiceSettingsRow: extendedDataset.invoiceSettingsRow,
   };
 }
 
@@ -852,8 +913,59 @@ async function deleteRows(client, table, filterColumn, value) {
   }
 }
 
+async function deleteRowsByIds(client, table, ids) {
+  if (!ids.length) return;
+  const { error } = await client.from(table).delete().in('id', ids);
+  if (error) {
+    throw new Error(`Failed to cleanup ${table}: ${error.message}`);
+  }
+}
+
 async function cleanupDemoDataset(client, dataset) {
+  await deleteRowsByIds(client, 'webhook_deliveries', dataset.webhookDeliveryRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'bank_transactions', dataset.bankTransactionRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'bank_sync_history', dataset.bankSyncHistoryRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'delivery_note_items', dataset.deliveryNoteItemRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'credit_note_items', dataset.creditNoteItemRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'recurring_invoice_line_items', dataset.recurringInvoiceLineItemRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'supplier_invoice_line_items', dataset.supplierInvoiceLineItemRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'supplier_order_items', dataset.supplierOrderItemRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'payment_allocations', dataset.paymentAllocationRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'invoice_items', dataset.invoiceItemRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'subtasks', dataset.subtaskRows.map((row) => row.id));
   await deleteRows(client, 'payments', 'user_id', dataset.userId);
+  await deleteRows(client, 'timesheets', 'user_id', dataset.userId);
+  await deleteRowsByIds(client, 'tasks', dataset.taskRows.map((row) => row.id));
+  await deleteRows(client, 'projects', 'user_id', dataset.userId);
+  await deleteRows(client, 'purchase_orders', 'user_id', dataset.userId);
+  await deleteRows(client, 'quotes', 'user_id', dataset.userId);
+  await deleteRows(client, 'recurring_invoices', 'user_id', dataset.userId);
+  await deleteRows(client, 'payment_reminder_logs', 'user_id', dataset.userId);
+  await deleteRows(client, 'payment_reminder_rules', 'user_id', dataset.userId);
+  await deleteRows(client, 'credit_notes', 'user_id', dataset.userId);
+  await deleteRows(client, 'delivery_notes', 'user_id', dataset.userId);
+  await deleteRowsByIds(client, 'supplier_invoices', dataset.supplierInvoiceRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'supplier_orders', dataset.supplierOrderRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'suppliers', dataset.supplierRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'supplier_services', dataset.supplierServiceRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'supplier_products', dataset.supplierProductRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'supplier_product_categories', dataset.supplierProductCategoryRows.map((row) => row.id));
+  await deleteRows(client, 'peppol_transmission_log', 'user_id', dataset.userId);
+  await deleteRows(client, 'webhook_endpoints', 'user_id', dataset.userId);
+  await deleteRows(client, 'bank_connections', 'user_id', dataset.userId);
+  await deleteRowsByIds(client, 'stock_alerts', dataset.stockAlertRows.map((row) => row.id));
+  await deleteRowsByIds(client, 'product_stock_history', dataset.productStockHistoryRows.map((row) => row.id));
+  await deleteRows(client, 'products', 'user_id', dataset.userId);
+  await deleteRows(client, 'services', 'user_id', dataset.userId);
+  await deleteRows(client, 'product_categories', 'user_id', dataset.userId);
+  await deleteRows(client, 'service_categories', 'user_id', dataset.userId);
+  await deleteRows(client, 'receivables', 'user_id', dataset.userId);
+  await deleteRows(client, 'payables', 'user_id', dataset.userId);
+  await deleteRows(client, 'debt_payments', 'user_id', dataset.userId);
+  await deleteRows(client, 'team_members', 'user_id', dataset.userId);
+  await deleteRows(client, 'notification_preferences', 'user_id', dataset.userId);
+  await deleteRows(client, 'billing_info', 'user_id', dataset.userId);
+  await deleteRows(client, 'invoice_settings', 'user_id', dataset.userId);
   await deleteRows(client, 'expenses', 'user_id', dataset.userId);
   await deleteRows(client, 'invoices', 'user_id', dataset.userId);
   await deleteRows(client, 'clients', 'user_id', dataset.userId);
@@ -864,6 +976,7 @@ async function cleanupDemoDataset(client, dataset) {
   await deleteRows(client, 'notifications', 'user_id', dataset.userId);
   await deleteRows(client, 'audit_log', 'user_id', dataset.userId);
   await deleteRows(client, 'user_accounting_settings', 'user_id', dataset.userId);
+  await deleteRows(client, 'payment_terms', 'user_id', dataset.userId);
 }
 
 async function upsertRows(client, table, rows, onConflict) {
@@ -890,17 +1003,62 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'company', [dataset.companyRow], 'user_id');
   await upsertRows(client, 'user_roles', [dataset.userRoleRow], 'user_id');
   await upsertRows(client, 'user_accounting_settings', [dataset.settingsRow], 'user_id');
+  await upsertRows(client, 'payment_terms', dataset.paymentTermRows, 'id');
   await upsertRows(client, 'accounting_chart_of_accounts', dataset.chartRows, 'user_id,account_code');
   await upsertRows(client, 'accounting_mappings', dataset.mappingRows, 'user_id,source_type,source_category');
-  await insertRows(client, 'accounting_tax_rates', dataset.taxRateRows);
+  await upsertRows(client, 'accounting_tax_rates', dataset.taxRateRows, 'id');
+  await upsertRows(client, 'product_categories', dataset.productCategoryRows, 'id');
+  await upsertRows(client, 'service_categories', dataset.serviceCategoryRows, 'id');
+  await upsertRows(client, 'supplier_product_categories', dataset.supplierProductCategoryRows, 'id');
+  await upsertRows(client, 'suppliers', dataset.supplierRows, 'id');
+  await upsertRows(client, 'supplier_products', dataset.supplierProductRows, 'id');
+  await upsertRows(client, 'supplier_services', dataset.supplierServiceRows, 'id');
+  await upsertRows(client, 'products', dataset.productRows, 'id');
+  await upsertRows(client, 'services', dataset.serviceRows, 'id');
   await upsertRows(client, 'clients', dataset.clientRows, 'id');
+  await upsertRows(client, 'quotes', dataset.quoteRows, 'id');
+  await upsertRows(client, 'purchase_orders', dataset.purchaseOrderRows, 'id');
+  await upsertRows(client, 'projects', dataset.projectRows, 'id');
+  await upsertRows(client, 'team_members', dataset.teamMemberRows, 'id');
   await upsertRows(client, 'invoices', dataset.invoiceRows, 'id');
+  await upsertRows(client, 'invoice_items', dataset.invoiceItemRows, 'id');
   await upsertRows(
     client,
     'payments',
     dataset.paymentRows.map(({ code, month, day, ...row }) => row),
     'id'
   );
+  await upsertRows(client, 'payment_allocations', dataset.paymentAllocationRows, 'id');
+  await upsertRows(client, 'recurring_invoices', dataset.recurringInvoiceRows, 'id');
+  await upsertRows(client, 'recurring_invoice_line_items', dataset.recurringInvoiceLineItemRows, 'id');
+  await upsertRows(client, 'payment_reminder_rules', dataset.paymentReminderRuleRows, 'id');
+  await upsertRows(client, 'payment_reminder_logs', dataset.paymentReminderLogRows, 'id');
+  await upsertRows(client, 'supplier_orders', dataset.supplierOrderRows, 'id');
+  await upsertRows(client, 'supplier_order_items', dataset.supplierOrderItemRows, 'id');
+  await upsertRows(client, 'supplier_invoices', dataset.supplierInvoiceRows, 'id');
+  await upsertRows(client, 'supplier_invoice_line_items', dataset.supplierInvoiceLineItemRows, 'id');
+  await upsertRows(client, 'tasks', dataset.taskRows, 'id');
+  await upsertRows(client, 'subtasks', dataset.subtaskRows, 'id');
+  await upsertRows(client, 'timesheets', dataset.timesheetRows, 'id');
+  await upsertRows(client, 'credit_notes', dataset.creditNoteRows, 'id');
+  await upsertRows(client, 'credit_note_items', dataset.creditNoteItemRows, 'id');
+  await upsertRows(client, 'delivery_notes', dataset.deliveryNoteRows, 'id');
+  await upsertRows(client, 'delivery_note_items', dataset.deliveryNoteItemRows, 'id');
+  await upsertRows(client, 'receivables', dataset.receivableRows, 'id');
+  await upsertRows(client, 'payables', dataset.payableRows, 'id');
+  await upsertRows(client, 'debt_payments', dataset.debtPaymentRows, 'id');
+  await upsertRows(client, 'product_stock_history', dataset.productStockHistoryRows, 'id');
+  await upsertRows(client, 'stock_alerts', dataset.stockAlertRows, 'id');
+  await upsertRows(client, 'notification_preferences', [dataset.notificationPreferencesRow], 'id');
+  await upsertRows(client, 'notifications', dataset.notificationRows, 'id');
+  await upsertRows(client, 'webhook_endpoints', dataset.webhookRows, 'id');
+  await upsertRows(client, 'webhook_deliveries', dataset.webhookDeliveryRows, 'id');
+  await upsertRows(client, 'bank_connections', dataset.bankConnectionRows, 'id');
+  await upsertRows(client, 'bank_sync_history', dataset.bankSyncHistoryRows, 'id');
+  await upsertRows(client, 'bank_transactions', dataset.bankTransactionRows, 'id');
+  await upsertRows(client, 'peppol_transmission_log', dataset.peppolLogRows, 'id');
+  await upsertRows(client, 'billing_info', [dataset.billingInfoRow], 'id');
+  await upsertRows(client, 'invoice_settings', [dataset.invoiceSettingsRow], 'id');
   await upsertRows(client, 'expenses', dataset.expenseRows, 'id');
   await upsertRows(client, 'accounting_entries', dataset.accountingEntries, 'id');
 
@@ -912,6 +1070,12 @@ async function applyDataset(client, dataset, options) {
     expenses: dataset.expenseRows.length,
     accounts: dataset.chartRows.length,
     entries: dataset.accountingEntries.length,
+    products: dataset.productRows.length,
+    services: dataset.serviceRows.length,
+    suppliers: dataset.supplierRows.length,
+    quotes: dataset.quoteRows.length,
+    recurringInvoices: dataset.recurringInvoiceRows.length,
+    projects: dataset.projectRows.length,
   };
 }
 
@@ -926,6 +1090,12 @@ function buildSummary(datasets) {
     payments: dataset.paymentRows.length,
     expenses: dataset.expenseRows.length,
     entries: dataset.accountingEntries.length,
+    products: dataset.productRows.length,
+    services: dataset.serviceRows.length,
+    suppliers: dataset.supplierRows.length,
+    quotes: dataset.quoteRows.length,
+    recurringInvoices: dataset.recurringInvoiceRows.length,
+    projects: dataset.projectRows.length,
   }));
 }
 
@@ -978,6 +1148,12 @@ async function main() {
         expenses: result.expenses,
         accounts: result.accounts,
         entries: result.entries,
+        products: result.products,
+        services: result.services,
+        suppliers: result.suppliers,
+        quotes: result.quotes,
+        recurringInvoices: result.recurringInvoices,
+        projects: result.projects,
       },
     });
   }
