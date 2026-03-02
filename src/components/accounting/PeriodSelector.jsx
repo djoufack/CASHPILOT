@@ -3,6 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Calendar } from 'lucide-react';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const PeriodSelector = ({ startDate, endDate, onChange }) => {
   const now = new Date();
@@ -11,13 +12,13 @@ const PeriodSelector = ({ startDate, endDate, onChange }) => {
   const presets = [
     {
       label: 'Ce mois',
-      start: new Date(year, now.getMonth(), 1).toISOString().split('T')[0],
-      end: new Date(year, now.getMonth() + 1, 0).toISOString().split('T')[0]
+      start: formatDateInput(new Date(year, now.getMonth(), 1)),
+      end: formatDateInput(new Date(year, now.getMonth() + 1, 0))
     },
     {
       label: 'Ce trimestre',
-      start: new Date(year, Math.floor(now.getMonth() / 3) * 3, 1).toISOString().split('T')[0],
-      end: new Date(year, Math.floor(now.getMonth() / 3) * 3 + 3, 0).toISOString().split('T')[0]
+      start: formatDateInput(new Date(year, Math.floor(now.getMonth() / 3) * 3, 1)),
+      end: formatDateInput(new Date(year, Math.floor(now.getMonth() / 3) * 3 + 3, 0))
     },
     {
       label: 'Cette année',

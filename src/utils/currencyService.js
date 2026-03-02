@@ -4,6 +4,7 @@ import {
   listAccessibleFxRates,
 } from '@/services/databaseCurrencyService';
 import { getCurrencyMetadata } from '@/services/referenceDataService';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const ratesCache = {};
 const CACHE_DURATION = 60 * 60 * 1000;
@@ -45,7 +46,7 @@ export const getExchangeRates = async (baseCurrency = 'EUR') => {
 
   ratesCache[normalizedBase] = {
     rates,
-    date: new Date().toISOString().slice(0, 10),
+    date: formatDateInput(),
     timestamp: now,
   };
 

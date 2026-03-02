@@ -26,6 +26,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import GenericKanbanView from '@/components/GenericKanbanView';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const DeliveryNotesPage = () => {
   const { t } = useTranslation();
@@ -40,7 +41,7 @@ const DeliveryNotesPage = () => {
   const [formData, setFormData] = useState({
     invoice_id: '',
     client_id: '',
-    date: new Date().toISOString().split('T')[0],
+    date: formatDateInput(),
     delivery_address: '',
     carrier: '',
     tracking_number: '',
@@ -74,7 +75,7 @@ const DeliveryNotesPage = () => {
   };
 
   const resetForm = () => {
-    setFormData({ invoice_id: '', client_id: '', date: new Date().toISOString().split('T')[0], delivery_address: '', carrier: '', tracking_number: '', notes: '', status: 'pending' });
+    setFormData({ invoice_id: '', client_id: '', date: formatDateInput(), delivery_address: '', carrier: '', tracking_number: '', notes: '', status: 'pending' });
     setItems([{ id: '1', description: '', quantity: 1, unit: 'pcs' }]);
   };
 

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 export const useTeamSettings = () => {
   const [members, setMembers] = useState([]);
@@ -42,7 +43,7 @@ export const useTeamSettings = () => {
         name: email.split('@')[0],
         email,
         role,
-        joined_at: new Date().toISOString().split('T')[0]
+        joined_at: formatDateInput()
       };
 
       const { data, error } = await supabase

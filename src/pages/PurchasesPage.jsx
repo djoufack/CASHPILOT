@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/utils/calculations';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
+import { formatDateInput } from '@/utils/dateFormatting';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -96,7 +97,7 @@ const PurchasesPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
+  const [orderDate, setOrderDate] = useState(formatDateInput());
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
   const [items, setItems] = useState([{ ...emptyItem }]);
   const [supplierProducts, setSupplierProducts] = useState([]);
@@ -158,7 +159,7 @@ const PurchasesPage = () => {
   const handleOpenCreate = () => {
     setSelectedSupplierId('');
     setOrderNumber(`CF-${Date.now()}`);
-    setOrderDate(new Date().toISOString().split('T')[0]);
+    setOrderDate(formatDateInput());
     setExpectedDeliveryDate('');
     setItems([{ ...emptyItem }]);
     setSupplierProducts([]);
@@ -262,7 +263,7 @@ const PurchasesPage = () => {
         .from('supplier_orders')
         .update({
           order_status: 'received',
-          actual_delivery_date: new Date().toISOString().split('T')[0],
+          actual_delivery_date: formatDateInput(),
         })
         .eq('id', receiveOrderId);
 

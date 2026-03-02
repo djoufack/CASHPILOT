@@ -24,6 +24,7 @@ import { exportExpensesListPDF, exportExpensesListHTML } from '@/services/export
 import ExportButton from '@/components/ExportButton';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const ExpensesPage = () => {
   const { t } = useTranslation();
@@ -42,8 +43,8 @@ const ExpensesPage = () => {
     description: '',
     amount: '',
     category: 'general',
-    date: new Date().toISOString().split('T')[0],
-    expense_date: new Date().toISOString().split('T')[0],
+    date: formatDateInput(),
+    expense_date: formatDateInput(),
     notes: '',
     supplier_name: ''
   };

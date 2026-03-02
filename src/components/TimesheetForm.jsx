@@ -22,6 +22,7 @@ import { calculateDuration } from '@/utils/calculations';
 import { validateTimeFormat, validateTimeRange } from '@/utils/validation';
 import { Clock, Loader2 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
   const { t } = useTranslation();
@@ -35,7 +36,7 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
 
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    date: defaultDate || new Date().toISOString().split('T')[0],
+    date: defaultDate || formatDateInput(),
     start_time: '09:00',
     end_time: '17:00',
     client_id: '',
@@ -128,7 +129,7 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
       
       // Reset form
       setFormData({
-        date: new Date().toISOString().split('T')[0],
+        date: formatDateInput(),
         start_time: '09:00',
         end_time: '17:00',
         client_id: '',

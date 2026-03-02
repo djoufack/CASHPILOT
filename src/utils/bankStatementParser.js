@@ -6,6 +6,7 @@
  */
 
 import * as XLSX from 'xlsx';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 // ============================================================================
 // FRENCH DATE & AMOUNT HELPERS
@@ -30,7 +31,7 @@ export function parseFrenchDate(str) {
   if (/^\d{5}$/.test(s)) {
     const date = new Date((parseInt(s) - 25569) * 86400 * 1000);
     if (!isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
+      return formatDateInput(date);
     }
   }
 
@@ -51,7 +52,7 @@ export function parseFrenchDate(str) {
   // Try Date.parse as last resort
   const parsed = new Date(s);
   if (!isNaN(parsed.getTime())) {
-    return parsed.toISOString().split('T')[0];
+    return formatDateInput(parsed);
   }
 
   return null;
@@ -230,7 +231,7 @@ export async function parseBankStatementExcel(file) {
 
       // Handle Date objects from xlsx cellDates
       if (dateRaw instanceof Date) {
-        date = dateRaw.toISOString().split('T')[0];
+        date = formatDateInput(dateRaw);
       } else {
         date = parseFrenchDate(dateRaw);
       }
@@ -247,7 +248,7 @@ export async function parseBankStatementExcel(file) {
       let valueDateRaw = columnMap.value_date !== undefined ? row[columnMap.value_date] : null;
       let valueDate = null;
       if (valueDateRaw instanceof Date) {
-        valueDate = valueDateRaw.toISOString().split('T')[0];
+        valueDate = formatDateInput(valueDateRaw);
       } else if (valueDateRaw) {
         valueDate = parseFrenchDate(valueDateRaw);
       }

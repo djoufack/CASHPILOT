@@ -35,8 +35,9 @@ import { Plus, Edit, Trash2, Play, Pause, RefreshCw, Calendar, Bell, XCircle, Cl
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/utils/calculations';
+import { formatDateInput } from '@/utils/dateFormatting';
 
-const emptyForm = {
+const createEmptyForm = () => ({
   title: '',
   description: '',
   client_id: '',
@@ -44,12 +45,12 @@ const emptyForm = {
   frequency: 'monthly',
   interval_count: 1,
   day_of_month: 1,
-  start_date: new Date().toISOString().split('T')[0],
+  start_date: formatDateInput(),
   end_date: '',
-  next_generation_date: new Date().toISOString().split('T')[0],
+  next_generation_date: formatDateInput(),
   tva_rate: 21,
   auto_send: false,
-};
+});
 
 const emptyLineItem = {
   description: '',
@@ -94,7 +95,7 @@ const RecurringInvoicesPage = () => {
   const [editingId, setEditingId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [cancelId, setCancelId] = useState(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => createEmptyForm());
   const [lineItems, setLineItems] = useState([{ ...emptyLineItem }]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -145,7 +146,7 @@ const RecurringInvoicesPage = () => {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    setForm(createEmptyForm());
     setLineItems([{ ...emptyLineItem }]);
     setIsFormOpen(true);
   };

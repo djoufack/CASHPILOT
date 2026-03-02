@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Trash2, AlertTriangle, ShieldAlert, Download } from 'lucide-react';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const DangerZoneSettings = () => {
   const { t } = useTranslation();
@@ -85,7 +86,7 @@ const DangerZoneSettings = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `cashpilot-data-export-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `cashpilot-data-export-${formatDateInput()}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "seed:pilotage-demos": "node scripts/seed-pilotage-demos.mjs --dry-run",
     "seed:pilotage-demos:apply": "node scripts/seed-pilotage-demos.mjs --apply",
+    "smoke:pilotage-demos": "node scripts/smoke-pilotage-demos.mjs",
     "smoke:peppol": "node scripts/smoke-peppol-usage-policy.mjs"
   },
   "dependencies": {

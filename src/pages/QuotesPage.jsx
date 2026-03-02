@@ -22,6 +22,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import GenericKanbanView from '@/components/GenericKanbanView';
+import { formatDateInput } from '@/utils/dateFormatting';
 import {
   Dialog,
   DialogContent,
@@ -39,14 +40,14 @@ import {
 
 const emptyItem = { description: '', quantity: 1, unit_price: 0, tax_rate: 21 };
 
-const initialFormData = {
+const createInitialFormData = () => ({
   client_id: '',
-  date: new Date().toISOString().split('T')[0],
+  date: formatDateInput(),
   due_date: '',
   notes: '',
   status: 'draft',
   items: [{ ...emptyItem }],
-};
+});
 
 const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML }) => {
   const { t, i18n } = useTranslation();
@@ -127,7 +128,7 @@ const QuotesPage = () => {
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState(() => createInitialFormData());
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -205,7 +206,7 @@ const QuotesPage = () => {
   const paginatedQuotes = filteredQuotes.slice(pagination.from, pagination.to + 1);
 
   const handleOpenDialog = () => {
-    setFormData({ ...initialFormData, items: [{ ...emptyItem }] });
+    setFormData(createInitialFormData());
     setIsDialogOpen(true);
   };
 
@@ -244,7 +245,7 @@ const QuotesPage = () => {
     try {
       await createQuote({
         client_id: formData.client_id,
-        date: formData.date || new Date().toISOString().split('T')[0],
+        date: formData.date || formatDateInput(),
         due_date: formData.due_date || null,
         notes: formData.notes.trim() || null,
         status: formData.status,
@@ -260,7 +261,7 @@ const QuotesPage = () => {
         total: totalTTC,
       });
       setIsDialogOpen(false);
-      setFormData({ ...initialFormData, items: [{ ...emptyItem }] });
+      setFormData(createInitialFormData());
     } catch {
       // Error handled by hook toast
     } finally {

@@ -1,6 +1,7 @@
 
 import React from "react";
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 /**
  * Export invoice to PDF
@@ -15,7 +16,7 @@ export const exportInvoiceToPDF = async (invoiceElement, invoiceNumber) => {
 
   const options = {
     margin: 10,
-    filename: `Invoice_${invoiceNumber}_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Invoice_${invoiceNumber}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }

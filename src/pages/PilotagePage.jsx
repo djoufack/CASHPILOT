@@ -13,6 +13,7 @@ import PilotageFinancialTab from '@/components/pilotage/PilotageFinancialTab';
 import PilotageTaxValuationTab from '@/components/pilotage/PilotageTaxValuationTab';
 import PilotageSimulatorTab from '@/components/pilotage/PilotageSimulatorTab';
 import PilotageAuditTab from '@/components/pilotage/PilotageAuditTab';
+import { formatDateInput, formatStartOfYearInput } from '@/utils/dateFormatting';
 import { BarChart3, Eye, Calculator, TrendingUp, Building2, Play, ShieldCheck } from 'lucide-react';
 
 const PilotagePage = () => {
@@ -20,11 +21,10 @@ const PilotagePage = () => {
 
   // Period state — default to current fiscal year (Jan 1 to today)
   const [startDate, setStartDate] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+    return formatStartOfYearInput();
   });
   const [endDate, setEndDate] = useState(() => {
-    return new Date().toISOString().split('T')[0];
+    return formatDateInput();
   });
 
   // Region and sector selectors

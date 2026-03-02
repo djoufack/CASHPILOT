@@ -25,6 +25,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { DollarSign, CreditCard, Banknote, Landmark, Globe, MoreHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const PAYMENT_METHODS = [
   { value: 'bank_transfer', icon: Landmark },
@@ -48,7 +49,7 @@ const PaymentRecorder = ({
   const { invoices, getPendingInvoicesByClient, fetchInvoices } = useInvoices();
 
   const [amount, setAmount] = useState('');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentDate, setPaymentDate] = useState(formatDateInput());
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
@@ -67,7 +68,7 @@ const PaymentRecorder = ({
       } else {
         setAmount('');
       }
-      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setPaymentDate(formatDateInput());
       setPaymentMethod('bank_transfer');
       setReference('');
       setNotes('');
@@ -118,7 +119,8 @@ const PaymentRecorder = ({
           paymentMethod,
           reference,
           notes,
-          allocations
+          allocations,
+          paymentDate
         );
       } else {
         await createPayment({

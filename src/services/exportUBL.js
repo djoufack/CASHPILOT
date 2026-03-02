@@ -7,6 +7,7 @@
  */
 
 import { resolveInvoiceCurrency } from '@/utils/invoiceCurrency';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const PEPPOL_CUSTOMIZATION_ID = 'urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0';
 const PEPPOL_PROFILE_ID = 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0';
@@ -25,7 +26,7 @@ const formatDate = (date) => {
   if (!date) return '';
   const d = new Date(date);
   if (isNaN(d.getTime())) return '';
-  return d.toISOString().split('T')[0];
+  return formatDateInput(d);
 };
 
 const formatAmount = (amount) => {

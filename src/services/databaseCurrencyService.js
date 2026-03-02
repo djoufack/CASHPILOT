@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 export { resolveAccountingCurrency };
 
@@ -12,7 +13,7 @@ export async function getDatabaseExchangeRate({
   const { data, error } = await supabase.rpc('get_exchange_rate', {
     p_from_currency: fromCurrency,
     p_to_currency: toCurrency,
-    p_effective_on: effectiveOn || new Date().toISOString().slice(0, 10),
+    p_effective_on: effectiveOn || formatDateInput(),
     p_company_id: companyId,
   });
 
@@ -39,7 +40,7 @@ export async function convertAmountWithDatabaseRate({
     p_amount: amount,
     p_from_currency: fromCurrency,
     p_to_currency: toCurrency,
-    p_effective_on: effectiveOn || new Date().toISOString().slice(0, 10),
+    p_effective_on: effectiveOn || formatDateInput(),
     p_company_id: companyId,
     p_scale: scale,
   });
