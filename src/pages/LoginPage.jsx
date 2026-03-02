@@ -274,35 +274,36 @@ const LoginPage = () => {
           className="mt-6"
         >
           <div className="flex items-center gap-3 mb-3">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
-            <span className="text-xs text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-amber-500/70" />
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+            <span className="text-xs text-gray-300 uppercase tracking-widest flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-amber-400" />
               {t('auth.demoTitle')}
             </span>
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
           </div>
 
-          <p className="text-center text-[11px] text-gray-600 mb-3">
+          <p className="text-center text-[11px] text-gray-400 mb-4">
             {t('auth.demoSubtitle')}
           </p>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-3">
             {demoAccounts.map((account) => (
               <button
                 key={account.region}
                 type="button"
                 onClick={() => handleDemoLogin(account)}
-                className="group relative bg-gray-900/60 hover:bg-gray-800/80 border border-gray-800/80 hover:border-amber-500/30 rounded-xl p-3 transition-all duration-300 cursor-pointer"
+                className="group relative rounded-xl p-[1px] bg-gradient-to-br from-amber-500/50 via-yellow-500/30 to-purple-600/50 hover:from-amber-400 hover:via-yellow-400 hover:to-purple-500 transition-all duration-300 cursor-pointer"
               >
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-500/0 to-orange-500/0 group-hover:from-amber-500/5 group-hover:to-orange-500/5 transition-all duration-300" />
-                <div className="relative flex flex-col items-center gap-1.5">
-                  <span className="text-xl leading-none">{account.flag}</span>
-                  <span className="text-[11px] font-semibold text-gray-300 group-hover:text-white transition-colors">
-                    {t(account.labelKey)}
-                  </span>
-                  <span className="text-[9px] font-mono text-amber-500/60 group-hover:text-amber-400/80 tracking-wider transition-colors">
-                    {t(account.tagKey)}
-                  </span>
+                <div className="relative rounded-[11px] bg-[#070b14] hover:bg-[#0a0f1a] p-4 h-full transition-colors duration-300">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-2xl leading-none drop-shadow-lg">{account.flag}</span>
+                    <span className="text-sm font-bold text-white group-hover:text-amber-200 transition-colors">
+                      {t(account.labelKey)}
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-400/80 group-hover:text-amber-300 tracking-wider transition-colors">
+                      {t(account.tagKey)}
+                    </span>
+                  </div>
                 </div>
               </button>
             ))}
