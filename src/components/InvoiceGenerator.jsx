@@ -24,6 +24,7 @@ import { motion } from 'framer-motion';
 import { calculateInvoiceTotalWithDiscount, formatCurrency } from '@/utils/calculations';
 import { Plus, Trash2, Tag, Truck, Settings2, ChevronDown, ChevronUp, Package, Wrench } from 'lucide-react';
 import { format } from 'date-fns';
+import { addDaysToDateInput, formatDateInput } from '@/utils/dateFormatting';
 
 const InvoiceGenerator = ({ onSuccess }) => {
   const { t } = useTranslation();
@@ -42,12 +43,8 @@ const InvoiceGenerator = ({ onSuccess }) => {
   const [manualItems, setManualItems] = useState([]);
   const [taxRate, setTaxRate] = useState(20);
   const [notes, setNotes] = useState('');
-  const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
-  const [dueDate, setDueDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 30);
-    return d.toISOString().split('T')[0];
-  });
+  const [issueDate, setIssueDate] = useState(formatDateInput());
+  const [dueDate, setDueDate] = useState(() => addDaysToDateInput(new Date(), 30));
   const [reference, setReference] = useState('');
   const [globalDiscountType, setGlobalDiscountType] = useState('none');
   const [globalDiscountValue, setGlobalDiscountValue] = useState(0);
@@ -67,9 +64,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
   // Auto-update due date when issue date changes
   useEffect(() => {
     if (issueDate) {
-      const d = new Date(issueDate);
-      d.setDate(d.getDate() + 30);
-      setDueDate(d.toISOString().split('T')[0]);
+      setDueDate(addDaysToDateInput(issueDate, 30));
     }
   }, [issueDate]);
 

@@ -36,6 +36,7 @@ pnpm-debug.log*
 *.tmp
 *.temp
 00-DEVELOPMENTcashpilot_tables.json
+scripts/_tmp_supabase_types.ts
 
 # OS files
 .DS_Store

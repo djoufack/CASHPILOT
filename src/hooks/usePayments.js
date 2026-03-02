@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { getPaymentStatus, calculateBalanceDue } from '@/utils/calculations';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 export const usePayments = () => {
   const [payments, setPayments] = useState([]);
@@ -202,7 +203,7 @@ export const usePayments = () => {
     }
   };
 
-  const createLumpSumPayment = async (clientId, amount, paymentMethod, reference, notes, allocations) => {
+  const createLumpSumPayment = async (clientId, amount, paymentMethod, reference, notes, allocations, paymentDate = formatDateInput()) => {
     if (!user) return;
     if (!supabase) throw new Error("Supabase not configured");
     setLoading(true);
@@ -216,7 +217,7 @@ export const usePayments = () => {
           user_id: user.id,
           client_id: clientId,
           invoice_id: null,
-          payment_date: new Date().toISOString().split('T')[0],
+          payment_date: paymentDate,
           amount: Number(amount),
           payment_method: paymentMethod || 'bank_transfer',
           reference: reference || '',

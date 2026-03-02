@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 export const useExpenses = () => {
   const [expenses, setExpenses] = useState([]);
@@ -63,7 +64,7 @@ export const useExpenses = () => {
         ...expenseData,
         user_id: user.id,
         date: expenseData.date || new Date().toISOString(),
-        expense_date: expenseData.expense_date || expenseData.date || new Date().toISOString().split('T')[0]
+        expense_date: expenseData.expense_date || expenseData.date || formatDateInput()
       };
 
       const { data, error } = await supabase

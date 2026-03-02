@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const CONSENT_STORAGE_KEY = 'cashpilot_gdpr_consent';
 
@@ -137,7 +138,7 @@ export const useGDPR = () => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `cashpilot-data-export-${new Date().toISOString().split('T')[0]}.json`;
+          a.download = `cashpilot-data-export-${formatDateInput()}.json`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);

@@ -24,6 +24,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportDebtListPDF, exportDebtListHTML } from '@/services/exportListsPDF';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const statusColors = {
   pending: 'bg-yellow-500/20 text-yellow-400',
@@ -36,17 +37,17 @@ const statusColors = {
 const categoryOptions = ['personal', 'business', 'family', 'friend', 'other'];
 const paymentMethods = ['cash', 'bank_transfer', 'mobile_money', 'cheque', 'other'];
 
-const emptyReceivableForm = {
+const createEmptyReceivableForm = () => ({
   debtor_name: '', debtor_phone: '', debtor_email: '', description: '',
-  amount: '', currency: 'EUR', date_lent: new Date().toISOString().slice(0, 10),
+  amount: '', currency: 'EUR', date_lent: formatDateInput(),
   due_date: '', category: 'personal', notes: '',
-};
+});
 
-const emptyPayableForm = {
+const createEmptyPayableForm = () => ({
   creditor_name: '', creditor_phone: '', creditor_email: '', description: '',
-  amount: '', currency: 'EUR', date_borrowed: new Date().toISOString().slice(0, 10),
+  amount: '', currency: 'EUR', date_borrowed: formatDateInput(),
   due_date: '', category: 'personal', notes: '',
-};
+});
 
 const DebtManagerPage = () => {
   const { t } = useTranslation();
@@ -71,8 +72,8 @@ const DebtManagerPage = () => {
   const [showPayments, setShowPayments] = useState(null);
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [showTypeChooser, setShowTypeChooser] = useState(null); // date for new record from calendar
-  const [receivableForm, setReceivableForm] = useState(emptyReceivableForm);
-  const [payableForm, setPayableForm] = useState(emptyPayableForm);
+  const [receivableForm, setReceivableForm] = useState(() => createEmptyReceivableForm());
+  const [payableForm, setPayableForm] = useState(() => createEmptyPayableForm());
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: 'cash', notes: '' });
 
   const netBalance = rStats.totalPending - pStats.totalOwed;
@@ -112,14 +113,14 @@ const DebtManagerPage = () => {
   const handleCreateReceivable = async () => {
     if (!receivableForm.debtor_name || !receivableForm.amount) return;
     await createReceivable({ ...receivableForm, amount: parseFloat(receivableForm.amount) });
-    setReceivableForm(emptyReceivableForm);
+    setReceivableForm(createEmptyReceivableForm());
     setShowCreateReceivable(false);
   };
 
   const handleCreatePayable = async () => {
     if (!payableForm.creditor_name || !payableForm.amount) return;
     await createPayable({ ...payableForm, amount: parseFloat(payableForm.amount) });
-    setPayableForm(emptyPayableForm);
+    setPayableForm(createEmptyPayableForm());
     setShowCreatePayable(false);
   };
 
@@ -536,7 +537,7 @@ const DebtManagerPage = () => {
                   <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
                   <span className="sm:hidden">HTML</span>
                 </Button>
-                <Button onClick={() => { setReceivableForm(emptyReceivableForm); setShowCreateReceivable(true); }}
+                <Button onClick={() => { setReceivableForm(createEmptyReceivableForm()); setShowCreateReceivable(true); }}
                   className="bg-green-600 hover:bg-green-700 text-white">
                   <Plus className="w-4 h-4 mr-2" />{t('debtManager.newReceivable')}
                 </Button>
@@ -574,7 +575,7 @@ const DebtManagerPage = () => {
                   <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
                   <span className="sm:hidden">HTML</span>
                 </Button>
-                <Button onClick={() => { setPayableForm(emptyPayableForm); setShowCreatePayable(true); }}
+                <Button onClick={() => { setPayableForm(createEmptyPayableForm()); setShowCreatePayable(true); }}
                   className="bg-red-600 hover:bg-red-700 text-white">
                   <Plus className="w-4 h-4 mr-2" />{t('debtManager.newPayable')}
                 </Button>
@@ -650,7 +651,7 @@ const DebtManagerPage = () => {
               <Button
                 className="w-full bg-green-600 hover:bg-green-700 text-white justify-start"
                 onClick={() => {
-                  setReceivableForm({ ...emptyReceivableForm, due_date: showTypeChooser });
+                  setReceivableForm({ ...createEmptyReceivableForm(), due_date: showTypeChooser });
                   setShowCreateReceivable(true);
                   setShowTypeChooser(null);
                 }}
@@ -660,7 +661,7 @@ const DebtManagerPage = () => {
               <Button
                 className="w-full bg-red-600 hover:bg-red-700 text-white justify-start"
                 onClick={() => {
-                  setPayableForm({ ...emptyPayableForm, due_date: showTypeChooser });
+                  setPayableForm({ ...createEmptyPayableForm(), due_date: showTypeChooser });
                   setShowCreatePayable(true);
                   setShowTypeChooser(null);
                 }}

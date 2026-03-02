@@ -6,6 +6,7 @@
  * from organizations to tax authorities or external auditors.
  */
 import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 // ========== UTILITY FUNCTIONS ==========
 
@@ -33,7 +34,7 @@ const formatDateISO = (date) => {
   if (!date) return '';
   const d = new Date(date);
   if (isNaN(d.getTime())) return '';
-  return d.toISOString().split('T')[0];
+  return formatDateInput(d);
 };
 
 /**

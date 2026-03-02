@@ -4,6 +4,7 @@
  */
 
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const PDF_OPTIONS = {
   margin: 10,
@@ -260,7 +261,7 @@ export async function exportScenarioSimulationPDF(scenario, results, assumptions
   `;
 
   const el = createContainer(html);
-  await generatePDF(el, `Simulation_${scenario.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+  await generatePDF(el, `Simulation_${scenario.name.replace(/\s+/g, '_')}_${formatDateInput()}.pdf`);
 }
 
 // ============================================================================
@@ -352,7 +353,7 @@ export async function exportScenarioComparisonPDF(scenario1, scenario2, results1
   `;
 
   const el = createContainer(html);
-  await generatePDF(el, `Comparaison_${new Date().toISOString().split('T')[0]}.pdf`);
+  await generatePDF(el, `Comparaison_${formatDateInput()}.pdf`);
 }
 
 // ============================================================================
@@ -542,7 +543,7 @@ export function exportScenarioSimulationHTML(scenario, results, assumptions, { c
     </div>
   `;
 
-  const filename = `Simulation_${scenario.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`;
+  const filename = `Simulation_${scenario.name.replace(/\s+/g, '_')}_${formatDateInput()}.html`;
   downloadHTML(content, filename);
 }
 
@@ -621,7 +622,7 @@ export function exportScenarioComparisonHTML(scenario1, scenario2, results1, res
     </div>
   `;
 
-  const filename = `Comparaison_${new Date().toISOString().split('T')[0]}.html`;
+  const filename = `Comparaison_${formatDateInput()}.html`;
   downloadHTML(content, filename);
 }
 

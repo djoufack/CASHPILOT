@@ -1,4 +1,5 @@
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 /**
  * Generate HTML content for Invoice document
@@ -473,7 +474,7 @@ export const exportInvoicePDF = async (invoice, companyInfo) => {
 
   const options = {
     margin: 10,
-    filename: `Facture_${invoice.invoice_number || invoice.invoiceNumber || 'draft'}_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Facture_${invoice.invoice_number || invoice.invoiceNumber || 'draft'}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -501,7 +502,7 @@ export const exportQuotePDF = async (quote, companyInfo) => {
 
   const options = {
     margin: 10,
-    filename: `Devis_${quote.quote_number || 'draft'}_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Devis_${quote.quote_number || 'draft'}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -529,7 +530,7 @@ export const exportDeliveryNotePDF = async (deliveryNote, companyInfo) => {
 
   const options = {
     margin: 10,
-    filename: `BonLivraison_${deliveryNote.delivery_note_number || 'draft'}_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `BonLivraison_${deliveryNote.delivery_note_number || 'draft'}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -557,7 +558,7 @@ export const exportCreditNotePDF = async (creditNote, companyInfo) => {
 
   const options = {
     margin: 10,
-    filename: `Avoir_${creditNote.credit_note_number || 'draft'}_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Avoir_${creditNote.credit_note_number || 'draft'}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -585,7 +586,7 @@ export const exportPurchaseOrderPDF = async (purchaseOrder, companyInfo) => {
 
   const options = {
     margin: 10,
-    filename: `BonCommande_${purchaseOrder.order_number || 'draft'}_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `BonCommande_${purchaseOrder.order_number || 'draft'}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -610,7 +611,7 @@ export const exportPurchaseOrderPDF = async (purchaseOrder, companyInfo) => {
 export const exportInvoiceHTML = (invoice, companyInfo) => {
   const content = generateInvoiceHTML(invoice, companyInfo);
   const html = generateStandaloneHTML(`Facture ${invoice.invoice_number || invoice.invoiceNumber || 'draft'}`, content);
-  downloadHTML(html, `Facture_${invoice.invoice_number || invoice.invoiceNumber || 'draft'}_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `Facture_${invoice.invoice_number || invoice.invoiceNumber || 'draft'}_${formatDateInput()}`);
 };
 
 /**
@@ -657,7 +658,7 @@ const generateStandaloneHTML = (title, content) => {
 export const exportQuoteHTML = (quote, companyInfo) => {
   const content = generateQuoteHTML(quote, companyInfo);
   const html = generateStandaloneHTML(`Devis ${quote.quote_number || 'draft'}`, content);
-  downloadHTML(html, `Devis_${quote.quote_number || 'draft'}_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `Devis_${quote.quote_number || 'draft'}_${formatDateInput()}`);
 };
 
 /**
@@ -666,7 +667,7 @@ export const exportQuoteHTML = (quote, companyInfo) => {
 export const exportDeliveryNoteHTML = (deliveryNote, companyInfo) => {
   const content = generateDeliveryNoteHTML(deliveryNote, companyInfo);
   const html = generateStandaloneHTML(`Bon de Livraison ${deliveryNote.delivery_note_number || 'draft'}`, content);
-  downloadHTML(html, `BonLivraison_${deliveryNote.delivery_note_number || 'draft'}_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `BonLivraison_${deliveryNote.delivery_note_number || 'draft'}_${formatDateInput()}`);
 };
 
 /**
@@ -675,7 +676,7 @@ export const exportDeliveryNoteHTML = (deliveryNote, companyInfo) => {
 export const exportCreditNoteHTML = (creditNote, companyInfo) => {
   const content = generateCreditNoteHTML(creditNote, companyInfo);
   const html = generateStandaloneHTML(`Avoir ${creditNote.credit_note_number || 'draft'}`, content);
-  downloadHTML(html, `Avoir_${creditNote.credit_note_number || 'draft'}_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `Avoir_${creditNote.credit_note_number || 'draft'}_${formatDateInput()}`);
 };
 
 /**
@@ -684,5 +685,5 @@ export const exportCreditNoteHTML = (creditNote, companyInfo) => {
 export const exportPurchaseOrderHTML = (purchaseOrder, companyInfo) => {
   const content = generatePurchaseOrderHTML(purchaseOrder, companyInfo);
   const html = generateStandaloneHTML(`Bon de Commande ${purchaseOrder.order_number || 'draft'}`, content);
-  downloadHTML(html, `BonCommande_${purchaseOrder.order_number || 'draft'}_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `BonCommande_${purchaseOrder.order_number || 'draft'}_${formatDateInput()}`);
 };

@@ -1,5 +1,6 @@
 
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 /**
  * Export payment receipt to PDF
@@ -13,7 +14,7 @@ export const exportReceiptToPDF = async (receiptElement, receiptNumber, date) =>
     throw new Error('Receipt element not found');
   }
 
-  const formattedDate = date || new Date().toISOString().split('T')[0];
+  const formattedDate = date || formatDateInput();
 
   const options = {
     margin: 10,

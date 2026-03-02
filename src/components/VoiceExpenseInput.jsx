@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 // Check browser support (outside component to avoid re-creation)
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -40,15 +41,15 @@ const extractExpenseLocally = (text) => {
   }
 
   // Extract date if mentioned
-  let date = new Date().toISOString().split('T')[0];
+  let date = formatDateInput();
   if (lowerText.includes('hier')) {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    date = yesterday.toISOString().split('T')[0];
+    date = formatDateInput(yesterday);
   } else if (lowerText.includes('avant-hier') || lowerText.includes('avant hier')) {
     const twoDaysAgo = new Date();
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-    date = twoDaysAgo.toISOString().split('T')[0];
+    date = formatDateInput(twoDaysAgo);
   }
 
   return {

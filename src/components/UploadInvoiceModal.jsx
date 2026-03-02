@@ -15,6 +15,7 @@ import { Upload, X, FileText, Sparkles, Loader2, ChevronDown, ChevronUp, Image }
 import { Progress } from '@/components/ui/progress';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) => {
   const { loading, progress, error } = useInvoiceUpload();
@@ -27,7 +28,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
   const [file, setFile] = useState(null);
   const [formData, setFormData] = useState({
     invoice_number: '',
-    invoice_date: new Date().toISOString().split('T')[0],
+    invoice_date: formatDateInput(),
     due_date: '',
     total_amount: '',
     vat_rate: '20',
@@ -99,7 +100,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
           if (data) {
             setFormData({
               invoice_number: data.invoice_number || '',
-              invoice_date: data.invoice_date || new Date().toISOString().split('T')[0],
+              invoice_date: data.invoice_date || formatDateInput(),
               due_date: data.due_date || '',
               total_amount: data.total_ttc?.toString() || '',
               vat_rate: data.tva_rate?.toString() || '20',
@@ -185,7 +186,7 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
     setFile(null);
     setFormData({
       invoice_number: '',
-      invoice_date: new Date().toISOString().split('T')[0],
+      invoice_date: formatDateInput(),
       due_date: '',
       total_amount: '',
       vat_rate: '20',

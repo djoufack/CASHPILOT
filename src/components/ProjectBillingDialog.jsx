@@ -10,6 +10,7 @@ import { useServices } from '@/hooks/useServices';
 import ProductPicker from './ProductPicker';
 import ServicePicker from './ServicePicker';
 import { formatCurrency } from '@/utils/calculations';
+import { addDaysToDateInput, formatDateInput } from '@/utils/dateFormatting';
 import { format } from 'date-fns';
 import { FileText, Clock, Package, Wrench, Loader2 } from 'lucide-react';
 
@@ -122,8 +123,8 @@ const ProjectBillingDialog = ({ open, onOpenChange, projectId, project, onSucces
 
       const invoiceData = {
         client_id: clientId,
-        date: new Date().toISOString().split('T')[0],
-        due_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+        date: formatDateInput(),
+        due_date: addDaysToDateInput(new Date(), 30),
         total_ht: grandTotal,
         tax_rate: 20,
         total_ttc: grandTotal * 1.2,

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { formatDateInput, formatStartOfYearInput } from '@/utils/dateFormatting';
 
 const CACHE_KEY = 'cashpilot_audit_cache';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
@@ -82,9 +83,8 @@ export const useAuditComptable = (options = false) => {
   // Load from cache on mount (if autoLoad)
   useEffect(() => {
     if (!autoLoad || !user) return;
-    const today = new Date().toISOString().split('T')[0];
-    const year = new Date().getFullYear();
-    const periodStart = defaultPeriodStart || `${year}-01-01`;
+    const today = formatDateInput();
+    const periodStart = defaultPeriodStart || formatStartOfYearInput();
     const periodEnd = defaultPeriodEnd || today;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {

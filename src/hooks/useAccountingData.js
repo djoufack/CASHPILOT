@@ -22,13 +22,13 @@ import {
 } from '@/utils/accountingCalculations';
 import { buildFinancialDiagnostic, calculateBFR } from '@/utils/financialAnalysisCalculations';
 import { evaluateAccountingDatasetQuality } from '@/utils/accountingQualityChecks';
+import { formatDateInput, formatStartOfYearInput } from '@/utils/dateFormatting';
 
 const OPTIONAL_SCHEMA_ERROR_CODES = new Set(['42P01', '42703', 'PGRST204']);
 
 function resolvePeriodBounds(startDate, endDate) {
-  const now = new Date();
-  const today = now.toISOString().split('T')[0];
-  const fiscalYearStart = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+  const today = formatDateInput();
+  const fiscalYearStart = formatStartOfYearInput();
 
   return {
     startDate: startDate || fiscalYearStart,
@@ -275,7 +275,7 @@ export const useAccountingData = (startDate, endDate) => {
         accounts,
         entries,
         null,
-        previousEndDate.toISOString().split('T')[0]
+        formatDateInput(previousEndDate)
       );
 
       return {

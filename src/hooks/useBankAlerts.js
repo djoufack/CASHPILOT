@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const DEFAULT_THRESHOLDS = {
   low_balance: 1000,      // Alert when balance below this
@@ -43,7 +44,7 @@ export const useBankAlerts = () => {
       });
 
       // Check for large recent expenses
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const weekAgo = formatDateInput(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
       const { data: recentExpenses } = await supabase
         .from('expenses')
         .select('description, amount, date')
@@ -62,7 +63,7 @@ export const useBankAlerts = () => {
       });
 
       // Check overdue invoices
-      const today = new Date().toISOString().split('T')[0];
+      const today = formatDateInput();
       const { data: overdue } = await supabase
         .from('invoices')
         .select('invoice_number, total_ttc, due_date, client:clients(company_name, contact_name)')

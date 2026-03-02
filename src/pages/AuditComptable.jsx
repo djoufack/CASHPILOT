@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const getPeriodPresets = () => {
   const now = new Date();
@@ -18,10 +19,10 @@ const getPeriodPresets = () => {
   const qStart = new Date(year, quarter * 3, 1);
   const qEnd = new Date(year, quarter * 3 + 3, 0);
   return [
-    { label: 'Annee en cours', start: `${year}-01-01`, end: now.toISOString().split('T')[0] },
+    { label: 'Annee en cours', start: `${year}-01-01`, end: formatDateInput(now) },
     { label: 'Annee precedente', start: `${year - 1}-01-01`, end: `${year - 1}-12-31` },
-    { label: 'Trimestre en cours', start: qStart.toISOString().split('T')[0], end: qEnd.toISOString().split('T')[0] },
-    { label: 'Mois en cours', start: `${year}-${String(month + 1).padStart(2, '0')}-01`, end: now.toISOString().split('T')[0] },
+    { label: 'Trimestre en cours', start: formatDateInput(qStart), end: formatDateInput(qEnd) },
+    { label: 'Mois en cours', start: `${year}-${String(month + 1).padStart(2, '0')}-01`, end: formatDateInput(now) },
   ];
 };
 

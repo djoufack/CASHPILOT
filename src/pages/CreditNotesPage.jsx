@@ -27,6 +27,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import GenericKanbanView from '@/components/GenericKanbanView';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const CreditNotesPage = () => {
   const { t } = useTranslation();
@@ -41,7 +42,7 @@ const CreditNotesPage = () => {
   const [formData, setFormData] = useState({
     invoice_id: '',
     client_id: '',
-    date: new Date().toISOString().split('T')[0],
+    date: formatDateInput(),
     reason: '',
     tax_rate: 20,
     status: 'draft'
@@ -82,7 +83,7 @@ const CreditNotesPage = () => {
   };
 
   const resetForm = () => {
-    setFormData({ invoice_id: '', client_id: '', date: new Date().toISOString().split('T')[0], reason: '', tax_rate: 20, status: 'draft' });
+    setFormData({ invoice_id: '', client_id: '', date: formatDateInput(), reason: '', tax_rate: 20, status: 'draft' });
     setItems([{ id: '1', description: '', quantity: 1, unitPrice: 0 }]);
   };
 

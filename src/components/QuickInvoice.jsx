@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Plus, Trash2, Tag, Send, Truck, Settings2, ChevronDown, ChevronUp, Package, Wrench } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { addDaysToDateInput, formatDateInput } from '@/utils/dateFormatting';
 const QuickInvoice = ({ onSuccess }) => {
   const { t } = useTranslation();
   const { createInvoice } = useInvoices();
@@ -28,12 +29,8 @@ const QuickInvoice = ({ onSuccess }) => {
   const { toast } = useToast();
 
   const [clientId, setClientId] = useState('');
-  const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
-  const [dueDate, setDueDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 30);
-    return d.toISOString().split('T')[0];
-  });
+  const [issueDate, setIssueDate] = useState(formatDateInput());
+  const [dueDate, setDueDate] = useState(() => addDaysToDateInput(new Date(), 30));
   const [taxRate, setTaxRate] = useState(21);
   const [notes, setNotes] = useState('');
   const [reference, setReference] = useState('');
@@ -58,9 +55,7 @@ const QuickInvoice = ({ onSuccess }) => {
   // Auto-update due date when issue date changes
   useEffect(() => {
     if (issueDate) {
-      const d = new Date(issueDate);
-      d.setDate(d.getDate() + 30);
-      setDueDate(d.toISOString().split('T')[0]);
+      setDueDate(addDaysToDateInput(issueDate, 30));
     }
   }, [issueDate]);
 

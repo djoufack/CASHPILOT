@@ -808,21 +808,35 @@ export function buildBalanceSheetFromEntries(accounts, entries, startDate, endDa
   // Add net income as virtual equity entry in capitaux propres
   const cpSection = passifSections.find(s => s.key === 'capitauxPropres');
   if (cpSection && Math.abs(netIncome) > 0.001) {
-    const resultGroup = {
-      classCode: '13',
-      className: 'RÉSULTAT NET DE L\'EXERCICE',
-      accounts: [{
-        account_code: '130',
+    const idx = cpSection.groups.findIndex(g => g.classCode === '13');
+    if (idx >= 0) {
+      // Preserve existing class 13 balances (e.g. Belgian reserves) and append the current-period result.
+      const existingGroup = cpSection.groups[idx];
+      const resultAccount = {
+        account_code: '13-RESULTAT',
         account_name: `Résultat net : ${netIncome >= 0 ? 'bénéfice' : 'perte'}`,
         account_type: 'equity',
         balance: netIncome,
-      }],
-      subtotal: netIncome,
-    };
-    // Replace or add the 13 group
-    const idx = cpSection.groups.findIndex(g => g.classCode === '13');
-    if (idx >= 0) cpSection.groups[idx] = resultGroup;
-    else cpSection.groups.push(resultGroup);
+      };
+
+      cpSection.groups[idx] = {
+        ...existingGroup,
+        accounts: [...(existingGroup.accounts || []), resultAccount],
+        subtotal: (existingGroup.subtotal || 0) + netIncome,
+      };
+    } else {
+      cpSection.groups.push({
+        classCode: '13',
+        className: 'RÉSULTAT NET DE L\'EXERCICE',
+        accounts: [{
+          account_code: '13-RESULTAT',
+          account_name: `Résultat net : ${netIncome >= 0 ? 'bénéfice' : 'perte'}`,
+          account_type: 'equity',
+          balance: netIncome,
+        }],
+        subtotal: netIncome,
+      });
+    }
     cpSection.groups.sort((a, b) => a.classCode.localeCompare(b.classCode));
     cpSection.total = cpSection.groups.reduce((s, g) => s + g.subtotal, 0);
   }

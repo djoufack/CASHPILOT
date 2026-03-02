@@ -4,6 +4,8 @@
  * Pure functions, no side-effects.
  */
 
+import { formatDateInput } from '@/utils/dateFormatting';
+
 // ============================================================================
 // TRANSACTION NORMALIZATION
 // ============================================================================
@@ -38,7 +40,9 @@ export function normalizeTransactions(invoices = [], expenses = [], supplierInvo
     all.push({
       id: exp.id,
       source_type: 'expense',
-      date: exp.date ? (typeof exp.date === 'string' ? exp.date.split('T')[0] : new Date(exp.date).toISOString().split('T')[0]) : null,
+      date: exp.date
+        ? (typeof exp.date === 'string' ? exp.date.split('T')[0] : formatDateInput(exp.date))
+        : null,
       amount: -Math.abs(amount),
       description: exp.description || exp.category || 'Dépense',
       reference: null,

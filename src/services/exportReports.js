@@ -1,4 +1,5 @@
 import { captureElementAsImage, saveElementAsPdf } from '@/services/pdfExportRuntime';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 /**
  * Capture chart/element as image
@@ -68,7 +69,7 @@ export const exportAnalyticsPDF = async (data, companyInfo) => {
 
   const options = {
     margin: 10,
-    filename: `Analytics_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Analytics_Report_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -148,7 +149,7 @@ export const exportSupplierReportPDF = async (reportData, companyInfo) => {
 
   const options = {
     margin: 10,
-    filename: `Supplier_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Supplier_Report_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -226,7 +227,7 @@ export const exportAnalyticsHTML = async (data, companyInfo) => {
   `;
 
   const html = generateStandaloneHTML('Analytics Dashboard', content);
-  downloadHTML(html, `Analytics_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `Analytics_${formatDateInput()}`);
 };
 
 /**
@@ -278,7 +279,7 @@ export const exportSupplierReportHTML = (reportData, companyInfo) => {
   `;
 
   const html = generateStandaloneHTML('Supplier Report', content);
-  downloadHTML(html, `Supplier_Report_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `Supplier_Report_${formatDateInput()}`);
 };
 
 /**
@@ -366,7 +367,7 @@ export const exportDashboardPDF = async (data, companyInfo) => {
 
   const options = {
     margin: 10,
-    filename: `Dashboard_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Dashboard_Report_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -488,7 +489,7 @@ export const exportDashboardHTML = (data, companyInfo) => {
   `;
 
   const html = generateStandaloneHTML('Dashboard Report', content);
-  downloadHTML(html, `Dashboard_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `Dashboard_${formatDateInput()}`);
 };
 
 /**
@@ -529,5 +530,5 @@ export const exportReportHTML = (reportType, companyInfo = {}) => {
   `;
 
   const html = generateStandaloneHTML(`CashPilot ${reportType} Report`, content);
-  downloadHTML(html, `CashPilot_Report_${reportType}_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `CashPilot_Report_${reportType}_${formatDateInput()}`);
 };

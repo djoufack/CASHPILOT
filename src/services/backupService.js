@@ -6,6 +6,7 @@
  */
 
 import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/customSupabaseClient';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 /**
  * Export all user data as a JSON object
@@ -60,7 +61,7 @@ export const exportUserData = async (userId) => {
 export const createBackupFile = (data) => {
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
-  const date = new Date().toISOString().slice(0, 10);
+  const date = formatDateInput();
   const fileName = `CashPilot_Backup_${date}.json`;
   return { blob, fileName, sizeBytes: blob.size };
 };

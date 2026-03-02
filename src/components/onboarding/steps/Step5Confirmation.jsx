@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { initializeAccounting } from '@/services/accountingInitService';
 import { ArrowLeft, CheckCircle2, Loader2, Rocket, Building2, FileText, PiggyBank, PartyPopper } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const OPENING_BALANCE_ACCOUNTS = {
   FR: { bank_balance: '512', receivables: '411', payables: '401', equity_capital: '101', loan_balance: '164', fixed_assets: '218' },
@@ -325,7 +326,7 @@ async function insertOpeningBalances(userId, country, balances) {
 
   const accounts = OPENING_BALANCE_ACCOUNTS[country] || OPENING_BALANCE_ACCOUNTS.FR;
   const entries = [];
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatDateInput();
 
   for (const [key, value] of Object.entries(balances)) {
     const amount = parseFloat(value);

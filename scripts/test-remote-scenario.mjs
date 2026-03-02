@@ -9,6 +9,7 @@ import {
   calculateBFR,
 } from '../src/utils/financialAnalysisCalculations.js';
 import { resolveAccountingCurrency } from '../src/utils/accountingCurrency.js';
+import { formatDateInput, formatStartOfYearInput } from '../src/utils/dateFormatting.js';
 import { extractFinancialPosition } from '../src/utils/financialMetrics.js';
 import { resolvePilotageRegion } from '../src/utils/pilotagePreferences.js';
 import { FinancialSimulationEngine } from '../src/utils/scenarioSimulationEngine.js';
@@ -23,13 +24,9 @@ function requireEnv(name) {
 }
 
 function resolvePeriodBounds() {
-  const now = new Date();
-  const today = now.toISOString().slice(0, 10);
-  const fiscalYearStart = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
-
   return {
-    startDate: fiscalYearStart,
-    endDate: today,
+    startDate: formatStartOfYearInput(),
+    endDate: formatDateInput(),
   };
 }
 
@@ -61,8 +58,8 @@ function buildScenarioWindow() {
   const endDate = addMonths(baseDate, 12);
 
   return {
-    baseDate: baseDate.toISOString().slice(0, 10),
-    endDate: endDate.toISOString().slice(0, 10),
+    baseDate: formatDateInput(baseDate),
+    endDate: formatDateInput(endDate),
   };
 }
 
@@ -257,7 +254,7 @@ async function main() {
     accounts,
     entries,
     null,
-    previousEndDate.toISOString().slice(0, 10)
+    formatDateInput(previousEndDate)
   );
 
   const financialDiagnostic = buildFinancialDiagnostic(

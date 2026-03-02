@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 /**
  * Account used as counterpart for opening balance entries
@@ -73,7 +74,7 @@ export const generateOpeningEntries = async (balances, accountingPlanId, userId,
     throw new Error('userId is required');
   }
 
-  const dateStr = new Date().toISOString().split('T')[0];
+  const dateStr = formatDateInput();
   const year = new Date().getFullYear();
   const entryRef = `OUV-${year}`;
   const entries = [];
@@ -177,7 +178,7 @@ export const createOpeningBalanceEntries = async (userId, openingDate, balances)
   }
 
   const entryRef = generateEntryRef(openingDate);
-  const dateStr = new Date(openingDate).toISOString().split('T')[0];
+  const dateStr = formatDateInput(openingDate);
 
   // Filter out zero balances
   const nonZeroBalances = balances.filter(b => b.amount && b.amount !== 0);

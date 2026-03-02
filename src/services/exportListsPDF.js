@@ -1,4 +1,5 @@
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 /**
  * Export Expenses List to PDF
@@ -72,7 +73,7 @@ export const exportExpensesListPDF = async (expenses, companyInfo, filters = {})
 
   const options = {
     margin: 10,
-    filename: `Expenses_List_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Expenses_List_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -159,7 +160,7 @@ export const exportStockListPDF = async (stockItems, companyInfo) => {
 
   const options = {
     margin: 10,
-    filename: `Stock_Inventory_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Stock_Inventory_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -254,7 +255,7 @@ export const exportTimesheetsListPDF = async (timesheets, companyInfo, filters =
 
   const options = {
     margin: 10,
-    filename: `Timesheets_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Timesheets_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -338,7 +339,7 @@ export const exportProjectsListPDF = async (projects, companyInfo) => {
 
   const options = {
     margin: 10,
-    filename: `Projects_List_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Projects_List_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -437,7 +438,7 @@ export const exportDebtListPDF = async (debts, companyInfo, type = 'receivables'
 
   const options = {
     margin: 10,
-    filename: `${isReceivables ? 'Receivables' : 'Payables'}_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `${isReceivables ? 'Receivables' : 'Payables'}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
@@ -526,7 +527,7 @@ export const exportExpensesListHTML = (expenses, companyInfo, filters = {}) => {
   `;
 
   const html = generateStandaloneHTML('Liste des Dépenses', content);
-  downloadHTML(html, `Expenses_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `Expenses_${formatDateInput()}`);
 };
 
 // Similar HTML export functions for other lists (abbreviated for brevity)
@@ -536,7 +537,7 @@ export const exportStockListHTML = (stockItems, companyInfo) => {
   const content = `<div style="max-width: 1000px; margin: 0 auto;"><h1 style="color: #a78bfa;">INVENTAIRE STOCK</h1><p>${companyInfo?.name || 'Your Company'} - ${new Date().toLocaleDateString('fr-FR')}</p><p>Valeur totale: <strong style="color: #a78bfa;">${totalValue.toFixed(2)} €</strong></p></div>`;
 
   const html = generateStandaloneHTML('Inventaire Stock', content);
-  downloadHTML(html, `Stock_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `Stock_${formatDateInput()}`);
 };
 
 export const exportTimesheetsListHTML = (timesheets, companyInfo) => {
@@ -545,7 +546,7 @@ export const exportTimesheetsListHTML = (timesheets, companyInfo) => {
   const content = `<div style="max-width: 1000px; margin: 0 auto;"><h1 style="color: #06b6d4;">FEUILLES DE TEMPS</h1><p>${companyInfo?.name || 'Your Company'} - ${new Date().toLocaleDateString('fr-FR')}</p><p>Durée totale: <strong style="color: #06b6d4;">${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m</strong></p></div>`;
 
   const html = generateStandaloneHTML('Feuilles de Temps', content);
-  downloadHTML(html, `Timesheets_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `Timesheets_${formatDateInput()}`);
 };
 
 export const exportProjectsListHTML = (projects, companyInfo) => {
@@ -554,7 +555,7 @@ export const exportProjectsListHTML = (projects, companyInfo) => {
   const content = `<div style="max-width: 1000px; margin: 0 auto;"><h1 style="color: #f97316;">LISTE DES PROJETS</h1><p>${companyInfo?.name || 'Your Company'} - ${new Date().toLocaleDateString('fr-FR')}</p><p>Budget total: <strong style="color: #f97316;">${totalBudget.toFixed(2)} €</strong></p></div>`;
 
   const html = generateStandaloneHTML('Liste des Projets', content);
-  downloadHTML(html, `Projects_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `Projects_${formatDateInput()}`);
 };
 
 export const exportDebtListHTML = (debts, companyInfo, type = 'receivables') => {
@@ -564,5 +565,5 @@ export const exportDebtListHTML = (debts, companyInfo, type = 'receivables') => 
   const content = `<div style="max-width: 1000px; margin: 0 auto;"><h1 style="color: ${type === 'receivables' ? '#22c55e' : '#ef4444'};">${title}</h1><p>${companyInfo?.name || 'Your Company'} - ${new Date().toLocaleDateString('fr-FR')}</p><p>Total: <strong>${total.toFixed(2)} €</strong></p></div>`;
 
   const html = generateStandaloneHTML(title, content);
-  downloadHTML(html, `${type === 'receivables' ? 'Receivables' : 'Payables'}_${new Date().toISOString().split('T')[0]}`);
+  downloadHTML(html, `${type === 'receivables' ? 'Receivables' : 'Payables'}_${formatDateInput()}`);
 };

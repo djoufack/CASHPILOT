@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
 const CASH_ACCOUNT_REGEX = /(banque|bank|cash|caisse|tre?sorerie)/i;
 const OPENING_ENTRY_REGEX = /^(open|opening|ouverture|solde[-_\s]?initial)/i;
 
 function toIsoDate(date) {
-  return date.toISOString().split('T')[0];
+  return formatDateInput(date);
 }
 
 function resolveParams(optionsOrPeriod, granularityArg) {

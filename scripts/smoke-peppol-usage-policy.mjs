@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import { formatDateInput } from '../src/utils/dateFormatting.js';
 
 const CREDIT_COSTS = {
   configuration: 2,
@@ -289,8 +290,8 @@ async function createInvoiceArtifacts(serviceClient, userId, runId, registry) {
       user_id: userId,
       client_id: client.id,
       invoice_number: invoiceNumber,
-      date: new Date().toISOString().slice(0, 10),
-      due_date: new Date().toISOString().slice(0, 10),
+      date: formatDateInput(),
+      due_date: formatDateInput(),
       reference: `REF-${runId.toUpperCase()}`,
       status: 'sent',
       peppol_status: 'none',

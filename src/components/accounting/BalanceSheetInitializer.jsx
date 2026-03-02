@@ -12,11 +12,12 @@ import {
   getOpeningBalanceEntries,
   validateOpeningBalances
 } from '@/services/openingBalanceService';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
   const { user } = useAuth();
   const { accounts, loading: accountsLoading } = useAccounting();
-  const [openingDate, setOpeningDate] = useState(new Date().toISOString().split('T')[0]);
+  const [openingDate, setOpeningDate] = useState(formatDateInput());
   const [balances, setBalances] = useState({});
   const [saving, setSaving] = useState(false);
   const [existingEntries, setExistingEntries] = useState([]);
