@@ -5,12 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { useCreditsGuard, CREDIT_COSTS, CREDIT_COST_LABELS } from '@/hooks/useCreditsGuard';
+import { readFunctionErrorData } from '@/utils/supabaseFunctionErrors';
 import { Globe, Save, CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react';
 
 const PeppolSettings = () => {
   const { t } = useTranslation();
   const { company, saveCompany, loading } = useCompany();
   const { toast } = useToast();
+  const { openCreditsModal, modalProps } = useCreditsGuard();
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [form, setForm] = useState({
@@ -54,30 +58,43 @@ const PeppolSettings = () => {
     setTestResult(null);
 
     try {
-      // Save first so credentials are in DB, then test via Edge Function-like proxy
-      // For now, test by checking if we can reach Scrada directly
-      const response = await fetch(
-        `https://api.scrada.be/v1/company/${form.scrada_company_id}`,
-        {
-          method: 'GET',
-          headers: {
-            'X-API-KEY': form.scrada_api_key,
-            'X-PASSWORD': form.scrada_password,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (response.ok) {
-        setTestResult({ success: true });
-        toast({ title: t('peppol.scradaConnectionOk'), className: 'bg-green-600 border-none text-white' });
-      } else {
+      const saved = await saveCompany({
+        ...company,
+        ...form,
+        peppol_ap_provider: 'scrada',
+      }, { silent: true });
+      if (!saved) {
         setTestResult({ success: false });
-        toast({ title: t('peppol.scradaConnectionFailed'), description: `HTTP ${response.status}`, variant: 'destructive' });
+        return;
       }
+
+      const { data, error } = await supabase.functions.invoke('peppol-configure');
+      if (error) throw error;
+
+      setTestResult({ success: true });
+      toast({
+        title: t('peppol.scradaConnectionOk'),
+        description: data?.charged
+          ? `${t(CREDIT_COST_LABELS.PEPPOL_CONFIGURATION_OK)}: ${CREDIT_COSTS.PEPPOL_CONFIGURATION_OK} ${t('credits.creditsLabel')}.`
+          : t('messages.success.settingsSaved'),
+        className: 'bg-green-600 border-none text-white',
+      });
     } catch (err) {
+      const details = await readFunctionErrorData(err);
       setTestResult({ success: false });
-      toast({ title: t('peppol.scradaConnectionFailed'), description: err.message, variant: 'destructive' });
+      if (details?.error === 'insufficient_credits') {
+        openCreditsModal(
+          CREDIT_COSTS.PEPPOL_CONFIGURATION_OK,
+          t(CREDIT_COST_LABELS.PEPPOL_CONFIGURATION_OK),
+        );
+        return;
+      }
+
+      toast({
+        title: t('peppol.scradaConnectionFailed'),
+        description: details?.error || err.message,
+        variant: 'destructive',
+      });
     } finally {
       setTesting(false);
     }
@@ -85,6 +102,7 @@ const PeppolSettings = () => {
 
   return (
     <div className="space-y-6">
+      <CreditsGuardModal {...modalProps} />
       <div className="flex items-center gap-2 mb-4">
         <Globe className="w-5 h-5 text-emerald-400" />
         <h3 className="text-lg font-semibold text-white">{t('peppol.settings')}</h3>
@@ -179,7 +197,7 @@ const PeppolSettings = () => {
             className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
           >
             {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            {t('peppol.scradaTestConnection')}
+            {t('peppol.scradaTestConnection')} (2 {t('credits.creditsLabel')})
           </Button>
           {testResult && (
             <span className={`flex items-center gap-1 text-xs ${testResult.success ? 'text-emerald-400' : 'text-red-400'}`}>

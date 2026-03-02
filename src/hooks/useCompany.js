@@ -64,8 +64,9 @@ export const useCompany = () => {
     }
   }, [fetchCompany, user]);
 
-  const saveCompany = async (companyData) => {
+  const saveCompany = async (companyData, options = {}) => {
     if (!user || !supabase) return false;
+    const { silent = false } = options;
 
     try {
       setSaving(true);
@@ -149,20 +150,24 @@ export const useCompany = () => {
       }
 
       setCompany(result);
-      toast({
-        title: "Succès",
-        description: "Informations de la société enregistrées.",
-        className: "bg-green-600 border-none text-white"
-      });
+      if (!silent) {
+        toast({
+          title: "Succès",
+          description: "Informations de la société enregistrées.",
+          className: "bg-green-600 border-none text-white"
+        });
+      }
       return true;
     } catch (err) {
       console.error('Error saving company:', err);
       setError(err.message);
-      toast({
-        title: "Erreur",
-        description: err.message,
-        variant: "destructive"
-      });
+      if (!silent) {
+        toast({
+          title: "Erreur",
+          description: err.message,
+          variant: "destructive"
+        });
+      }
       return false;
     } finally {
       setSaving(false);

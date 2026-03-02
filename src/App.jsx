@@ -168,16 +168,7 @@ const AuthWrapper = () => {
                 <Route path="purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrdersPage /></Suspense>} />
                 <Route path="purchases" element={<Suspense fallback={<PageLoader />}><PurchasesPage /></Suspense>} />
                 <Route path="supplier-invoices" element={<Suspense fallback={<PageLoader />}><SupplierInvoicesPage /></Suspense>} />
-                <Route path="peppol" element={
-                  <Suspense fallback={<PageLoader />}>
-                    <EntitlementGate
-                      featureKey={ENTITLEMENT_KEYS.PEPPOL_EINVOICING}
-                      title="Peppol e-invoicing"
-                    >
-                      <PeppolPage />
-                    </EntitlementGate>
-                  </Suspense>
-                } />
+                <Route path="peppol" element={<Suspense fallback={<PageLoader />}><PeppolPage /></Suspense>} />
 
                 {/* Stock (produits du User) */}
                 <Route path="stock" element={<Suspense fallback={<PageLoader />}><StockManagement /></Suspense>} />

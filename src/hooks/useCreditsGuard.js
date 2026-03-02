@@ -35,6 +35,11 @@ export const CREDIT_COSTS = {
   PDF_RECEIPT: 1,
   CLOUD_BACKUP: 1,
 
+  // PEPPOL
+  PEPPOL_CONFIGURATION_OK: 2,
+  PEPPOL_SEND_INVOICE: 4,
+  PEPPOL_RECEIVE_INVOICE: 3,
+
   // IA
   AI_INVOICE_EXTRACTION: 3,
   AI_CHATBOT: 2,
@@ -76,6 +81,11 @@ export const CREDIT_COST_LABELS = {
   // Autres
   PDF_RECEIPT: 'credits.costs.pdfReceipt',
   CLOUD_BACKUP: 'credits.costs.cloudBackup',
+
+  // Peppol
+  PEPPOL_CONFIGURATION_OK: 'credits.costs.peppolConfigurationOk',
+  PEPPOL_SEND_INVOICE: 'credits.costs.peppolSendInvoice',
+  PEPPOL_RECEIVE_INVOICE: 'credits.costs.peppolReceiveInvoice',
 
   // IA
   AI_INVOICE_EXTRACTION: 'credits.costs.aiInvoiceExtraction',
@@ -119,6 +129,11 @@ export const CREDIT_CATEGORIES = {
     'PDF_RECEIPT',
     'CLOUD_BACKUP',
   ],
+  PEPPOL: [
+    'PEPPOL_CONFIGURATION_OK',
+    'PEPPOL_SEND_INVOICE',
+    'PEPPOL_RECEIVE_INVOICE',
+  ],
   AI_FEATURES: [
     'AI_INVOICE_EXTRACTION',
     'AI_CHATBOT',
@@ -158,6 +173,23 @@ export const useCreditsGuard = () => {
     setModalState(prev => ({ ...prev, isOpen: false }));
   }, []);
 
+  const openCreditsModal = useCallback((requiredCredits, actionLabel) => {
+    setModalState({
+      isOpen: true,
+      requiredCredits,
+      actionLabel,
+    });
+  }, []);
+
+  const ensureCredits = useCallback(async (cost, label) => {
+    if (!trialActive && !fullAccessOverride && availableCredits < cost) {
+      openCreditsModal(cost, label);
+      return false;
+    }
+
+    return true;
+  }, [availableCredits, fullAccessOverride, openCreditsModal, trialActive]);
+
   /**
    * Execute an action only if the user has enough credits.
    * If not, shows the modal. If yes, deducts credits then runs the action.
@@ -168,14 +200,8 @@ export const useCreditsGuard = () => {
   * @returns {Promise<boolean>} true if action was executed
    */
   const guardedAction = useCallback(async (cost, label, action) => {
-    if (!trialActive && !fullAccessOverride && availableCredits < cost) {
-      setModalState({
-        isOpen: true,
-        requiredCredits: cost,
-        actionLabel: label,
-      });
-      return false;
-    }
+    const hasCredits = await ensureCredits(cost, label);
+    if (!hasCredits) return false;
 
     const consumed = await consumeCredits(cost, label);
     if (!consumed) return false;
@@ -187,10 +213,12 @@ export const useCreditsGuard = () => {
       console.error('Guarded action failed:', err);
       return false;
     }
-  }, [availableCredits, consumeCredits, fullAccessOverride, trialActive]);
+  }, [consumeCredits, ensureCredits]);
 
   return {
     guardedAction,
+    ensureCredits,
+    openCreditsModal,
     availableCredits,
     modalProps: {
       isOpen: modalState.isOpen,

@@ -133,7 +133,6 @@ const SettingsPage = () => {
       icon: Globe,
       activeClassName: 'data-[state=active]:bg-emerald-500/10 data-[state=active]:text-emerald-400',
       content: <PeppolSettings />,
-      featureKey: ENTITLEMENT_KEYS.PEPPOL_EINVOICING,
     },
     {
       value: 'personal-data',

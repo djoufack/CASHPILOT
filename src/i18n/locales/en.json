@@ -889,7 +889,8 @@
       "commercialDocuments": "Commercial Documents",
       "analyticalReports": "Analytical Reports",
       "additionalExports": "Additional Exports",
-      "other": "Other Actions"
+      "other": "Other Actions",
+      "peppol": "Peppol e-invoicing"
     },
     "costs": {
       "balanceSheet": "Balance Sheet Generation",
@@ -910,6 +911,9 @@
       "exportHtml": "HTML Export (Standalone File)",
       "pdfReceipt": "Receipt PDF",
       "cloudBackup": "Cloud Backup",
+      "peppolConfigurationOk": "Peppol configuration validation",
+      "peppolSendInvoice": "Peppol invoice sending",
+      "peppolReceiveInvoice": "Peppol invoice receiving",
       "htmlPreview": "HTML Preview (In Browser)",
       "aiInvoiceExtraction": "AI Invoice Extraction"
     }
@@ -1803,6 +1807,7 @@
     "syncInbound": "Sync",
     "status": {
       "none": "Not sent",
+      "received": "Received",
       "pending": "Pending",
       "sent": "Sent",
       "delivered": "Delivered",

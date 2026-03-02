@@ -569,6 +569,20 @@ const PricingPage = () => {
                 </div>
               </div>
 
+              <div>
+                <h4 className="text-sm font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+                  {t('credits.categories.peppol')}
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  {CREDIT_CATEGORIES.PEPPOL.map(key => (
+                    <div key={key} className="flex justify-between p-2 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300">{t(CREDIT_COST_LABELS[key])}</span>
+                      <span className="text-emerald-400 font-semibold">{CREDIT_COSTS[key]} {t('credits.creditsLabel')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Free */}
               <div className="pt-3 border-t border-gray-700">
                 <div className="flex justify-between p-2 bg-green-500/10 border border-green-500/30 rounded-lg text-sm">

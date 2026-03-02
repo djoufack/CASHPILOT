@@ -55,7 +55,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         icon: Globe,
         type: 'direct',
         path: '/app/peppol',
-        featureKey: ENTITLEMENT_KEYS.PEPPOL_EINVOICING,
       },
       {
         id: 'sales',

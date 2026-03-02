@@ -19,14 +19,18 @@ import { Link } from 'react-router-dom';
 import InvoicePreview from '@/components/InvoicePreview';
 import { exportUBL } from '@/services/exportUBL';
 import PeppolSettings from '@/components/settings/PeppolSettings';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { useCreditsGuard } from '@/hooks/useCreditsGuard';
+import { readFunctionErrorData } from '@/utils/supabaseFunctionErrors';
 
 const PeppolPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const { company, loading: companyLoading } = useCompany();
-  const { sendViaPeppol, sending, polling, peppolStatus } = usePeppolSend();
+  const { sendViaPeppol, sending, polling, peppolStatus, creditsModalProps } = usePeppolSend();
   const { checkRegistration, checking, result: checkResult, reset: resetCheck } = usePeppolCheck();
+  const { openCreditsModal, modalProps: inboundCreditsModalProps } = useCreditsGuard();
 
   // --- State ---
   const [activeTab, setActiveTab] = useState('outbound');
@@ -46,6 +50,7 @@ const PeppolPage = () => {
   const [viewingInvoice, setViewingInvoice] = useState(null);
   const [apInfo, setApInfo] = useState(null);
   const [loadingApInfo, setLoadingApInfo] = useState(false);
+  const [syncingInbound, setSyncingInbound] = useState(false);
 
   const isPeppolConfigured = !!(company?.peppol_endpoint_id);
 
@@ -287,6 +292,53 @@ const PeppolPage = () => {
     fetchAllLogs();
   }, [fetchAllLogs, fetchInboundLogs, fetchOutboundInvoices]);
 
+  const handleSyncInbound = useCallback(async () => {
+    if (!user) return;
+
+    setSyncingInbound(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('peppol-inbound', {
+        body: { action: 'sync' },
+      });
+
+      if (error) throw error;
+
+      if (data?.insufficientCredits) {
+        openCreditsModal(
+          data.requiredCredits,
+          `${data.newDocuments || 0} factures Peppol entrantes`,
+        );
+        return;
+      }
+
+      toast({
+        title: t('peppol.syncInbound'),
+        description: data?.newDocuments > 0
+          ? `${data.newDocuments} nouvelles factures importees.`
+          : 'Aucune nouvelle facture entrante.',
+      });
+
+      handleRefreshAll();
+    } catch (err) {
+      const details = await readFunctionErrorData(err);
+      if (details?.insufficientCredits) {
+        openCreditsModal(
+          details.requiredCredits,
+          `${details.newDocuments || 0} factures Peppol entrantes`,
+        );
+        return;
+      }
+
+      toast({
+        title: t('common.error'),
+        description: details?.error || err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setSyncingInbound(false);
+    }
+  }, [handleRefreshAll, openCreditsModal, t, toast, user]);
+
   // --- Formatting helpers ---
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
@@ -320,6 +372,7 @@ const PeppolPage = () => {
 
   const getLogStatusBadge = (status) => {
     const config = {
+      received: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', icon: ArrowDownLeft },
       pending: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', icon: Clock },
       sent: { bg: 'bg-blue-500/20', text: 'text-blue-400', icon: Send },
       delivered: { bg: 'bg-green-500/20', text: 'text-green-400', icon: CheckCircle },
@@ -348,6 +401,8 @@ const PeppolPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] p-4 sm:p-6 lg:p-8 space-y-6">
+      <CreditsGuardModal {...creditsModalProps} />
+      <CreditsGuardModal {...inboundCreditsModalProps} />
 
       {/* ======== HEADER ======== */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -367,11 +422,12 @@ const PeppolPage = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleRefreshAll}
+            onClick={handleSyncInbound}
             className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            disabled={syncingInbound}
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            {t('peppol.syncInbound')}
+            <RefreshCw className={`w-4 h-4 mr-2 ${syncingInbound ? 'animate-spin' : ''}`} />
+            {t('peppol.syncInbound')} (3 crédits/facture)
           </Button>
           <Link to="/app/settings">
             <Button
@@ -1166,7 +1222,7 @@ const PeppolPage = () => {
               ) : (
                 <>
                   <Send className="w-4 h-4 mr-2" />
-                  Confirmer l envoi Peppol
+                  Confirmer l envoi Peppol (4 crédits)
                 </>
               )}
             </Button>

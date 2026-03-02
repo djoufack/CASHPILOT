@@ -1,10 +1,12 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createAuthClient, createServiceClient, HttpError, requireAuthenticatedUser, requireEntitlement } from '../_shared/billing.ts';
+import { consumeCredits, createAuthClient, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const PEPPOL_SEND_CREDITS = 4;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -18,7 +20,6 @@ serve(async (req) => {
     const user = await requireAuthenticatedUser(req);
     const supabase = createAuthClient(authHeader);
     const serviceSupabase = createServiceClient();
-    await requireEntitlement(serviceSupabase, user.id, 'peppol.einvoicing');
 
     const { invoice_id } = await req.json();
     if (!invoice_id) throw new HttpError(400, 'invoice_id is required');
@@ -31,6 +32,9 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
     if (invError || !invoice) throw new HttpError(404, 'Invoice not found');
+    if (invoice.peppol_document_id && ['pending', 'sent', 'delivered', 'accepted'].includes(invoice.peppol_status)) {
+      throw new HttpError(409, 'Invoice already sent via Peppol');
+    }
 
     // Load client (buyer)
     const { data: buyer } = await supabase
@@ -54,62 +58,80 @@ serve(async (req) => {
     // Generate UBL
     const ublXml = generateUBLInvoice(invoice, seller, buyer, invoice.items || []);
 
-    // Set pending
-    await supabase.from('invoices').update({ peppol_status: 'pending' }).eq('id', invoice_id);
-
-    // Send to Scrada
-    const scradaBaseUrl = Deno.env.get('SCRADA_API_URL') || 'https://api.scrada.be/v1';
-    const scradaUrl = `${scradaBaseUrl}/company/${seller.scrada_company_id}/peppolOutbound/sendSalesInvoice`;
-
-    const scradaResponse = await fetch(scradaUrl, {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': seller.scrada_api_key,
-        'X-PASSWORD': seller.scrada_password,
-        'Content-Type': 'application/xml',
-        'Language': 'FR',
-      },
-      body: ublXml,
-    });
-
     const senderEndpoint = `${seller.peppol_scheme_id || '0208'}:${seller.peppol_endpoint_id}`;
     const receiverEndpoint = `${buyer.peppol_scheme_id || '0208'}:${buyer.peppol_endpoint_id}`;
+    const creditDescription = `Peppol send invoice ${invoice.invoice_number || invoice_id}`;
+    const refundDescription = `Refund ${creditDescription}`;
+    const creditDeduction = await consumeCredits(
+      serviceSupabase,
+      user.id,
+      PEPPOL_SEND_CREDITS,
+      creditDescription,
+    );
+    let refunded = false;
 
-    if (!scradaResponse.ok) {
-      const errText = await scradaResponse.text();
+    try {
+      // Set pending
+      await supabase.from('invoices').update({ peppol_status: 'pending' }).eq('id', invoice_id);
+
+      // Send to Scrada
+      const scradaBaseUrl = Deno.env.get('SCRADA_API_URL') || 'https://api.scrada.be/v1';
+      const scradaUrl = `${scradaBaseUrl}/company/${seller.scrada_company_id}/peppolOutbound/sendSalesInvoice`;
+
+      const scradaResponse = await fetch(scradaUrl, {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': seller.scrada_api_key,
+          'X-PASSWORD': seller.scrada_password,
+          'Content-Type': 'application/xml',
+          'Language': 'FR',
+        },
+        body: ublXml,
+      });
+
+      if (!scradaResponse.ok) {
+        const errText = await scradaResponse.text();
+        await refundCredits(serviceSupabase, user.id, creditDeduction, refundDescription);
+        refunded = true;
+        await supabase.from('peppol_transmission_log').insert({
+          user_id: user.id, invoice_id, direction: 'outbound', status: 'error',
+          ap_provider: 'scrada', sender_endpoint: senderEndpoint,
+          receiver_endpoint: receiverEndpoint, error_message: errText,
+        });
+        await supabase.from('invoices')
+          .update({ peppol_status: 'error', peppol_error_message: errText })
+          .eq('id', invoice_id);
+
+        return new Response(JSON.stringify({ error: 'Scrada rejected the document', details: errText }), {
+          status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const scradaData = await scradaResponse.json();
+      const documentId = typeof scradaData === 'string' ? scradaData : (scradaData.id || scradaData.guid);
+
+      // Log success
       await supabase.from('peppol_transmission_log').insert({
-        user_id: user.id, invoice_id, direction: 'outbound', status: 'error',
-        ap_provider: 'scrada', sender_endpoint: senderEndpoint,
-        receiver_endpoint: receiverEndpoint, error_message: errText,
+        user_id: user.id, invoice_id, direction: 'outbound', status: 'sent',
+        ap_provider: 'scrada', ap_document_id: documentId,
+        sender_endpoint: senderEndpoint, receiver_endpoint: receiverEndpoint,
       });
-      await supabase.from('invoices')
-        .update({ peppol_status: 'error', peppol_error_message: errText })
-        .eq('id', invoice_id);
 
-      return new Response(JSON.stringify({ error: 'Scrada rejected the document', details: errText }), {
-        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      // Update invoice
+      await supabase.from('invoices').update({
+        peppol_status: 'pending', peppol_sent_at: new Date().toISOString(),
+        peppol_document_id: documentId,
+      }).eq('id', invoice_id);
+
+      return new Response(JSON.stringify({ success: true, documentId, status: 'pending' }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    } catch (error) {
+      if (!refunded) {
+        await refundCredits(serviceSupabase, user.id, creditDeduction, refundDescription);
+      }
+      throw error;
     }
-
-    const scradaData = await scradaResponse.json();
-    const documentId = typeof scradaData === 'string' ? scradaData : (scradaData.id || scradaData.guid);
-
-    // Log success
-    await supabase.from('peppol_transmission_log').insert({
-      user_id: user.id, invoice_id, direction: 'outbound', status: 'sent',
-      ap_provider: 'scrada', ap_document_id: documentId,
-      sender_endpoint: senderEndpoint, receiver_endpoint: receiverEndpoint,
-    });
-
-    // Update invoice
-    await supabase.from('invoices').update({
-      peppol_status: 'pending', peppol_sent_at: new Date().toISOString(),
-      peppol_document_id: documentId,
-    }).eq('id', invoice_id);
-
-    return new Response(JSON.stringify({ success: true, documentId, status: 'pending' }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: error instanceof HttpError ? error.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
