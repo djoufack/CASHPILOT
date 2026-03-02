@@ -2014,7 +2014,25 @@
     "notRegistered": "Non trouvé sur le réseau Peppol",
     "eligible": "Éligible Peppol",
     "notEligible": "Client sans ID Peppol",
-    "refreshStatus": "Actualiser les statuts"
+    "refreshStatus": "Actualiser les statuts",
+    "creditPolicy": {
+      "title": "Politique de crédits Peppol",
+      "subtitle": "Peppol est visible pour tous. Chaque action réseau consomme des crédits au moment où elle est exécutée.",
+      "configurationTitle": "Configuration validée",
+      "configurationDescription": "Le test de connexion Scrada facture uniquement quand une nouvelle configuration est validée avec succès.",
+      "sendTitle": "Envoi d'une facture",
+      "sendDescription": "Le débit a lieu au lancement de l'envoi. Si Scrada rejette le document ou si le journal échoue, les crédits sont remboursés.",
+      "receiveTitle": "Réception d'une facture",
+      "receiveDescription": "La synchronisation facture uniquement les nouvelles factures importées. Si le solde est insuffisant, l'import est bloqué.",
+      "saveFree": "Enregistrer les champs seuls ne consomme pas de crédits.",
+      "settingsValidationHint": "Le test de validation facture {{credits}} {{unit}} uniquement après une validation réussie.",
+      "settingsSavedFreeHint": "L'enregistrement simple des champs ne consomme pas de crédits.",
+      "sendlessConfigButton": "{{testLabel}} ({{credits}} {{unit}})",
+      "syncButton": "Synchroniser ({{credits}} {{unit}}/facture)",
+      "tableSendLabel": "Envoyer ({{credits}} {{unit}})",
+      "sendButton": "Confirmer l'envoi Peppol ({{credits}} {{unit}})",
+      "sendDialogNotice": "Cet envoi consomme {{credits}} {{unit}}. Si le Point d'Accès rejette le document ou si le journal échoue, les crédits sont remboursés automatiquement."
+    }
   },
   "pilotage": {
     "title": "Pilotage d'Entreprise",

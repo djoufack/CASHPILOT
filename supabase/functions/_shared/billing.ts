@@ -22,6 +22,15 @@ export const createAuthClient = (authHeader: string) => createClient(
   { global: { headers: { Authorization: authHeader } } },
 );
 
+const extractBearerToken = (authHeader: string) => {
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (!token) {
+    throw new HttpError(401, 'Missing authorization');
+  }
+
+  return token;
+};
+
 export const requireAuthenticatedUser = async (req: Request) => {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -29,7 +38,8 @@ export const requireAuthenticatedUser = async (req: Request) => {
   }
 
   const supabase = createAuthClient(authHeader);
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const token = extractBearerToken(authHeader);
+  const { data: { user }, error } = await supabase.auth.getUser(token);
 
   if (error || !user) {
     throw new HttpError(401, 'Unauthorized');

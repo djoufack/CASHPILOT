@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "seed:pilotage-demos": "node scripts/seed-pilotage-demos.mjs --dry-run",
-    "seed:pilotage-demos:apply": "node scripts/seed-pilotage-demos.mjs --apply"
+    "seed:pilotage-demos:apply": "node scripts/seed-pilotage-demos.mjs --apply",
+    "smoke:peppol": "node scripts/smoke-peppol-usage-policy.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

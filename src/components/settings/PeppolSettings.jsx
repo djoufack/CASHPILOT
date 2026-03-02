@@ -157,6 +157,22 @@ const PeppolSettings = () => {
           {t('peppol.scradaHelp')}
         </p>
 
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-1">
+          <p className="text-xs text-emerald-300">
+            {t('peppolPage.creditPolicy.settingsValidationHint', {
+              credits: CREDIT_COSTS.PEPPOL_CONFIGURATION_OK,
+              unit: t('credits.creditsLabel'),
+              defaultValue: `Le test de validation facture ${CREDIT_COSTS.PEPPOL_CONFIGURATION_OK} ${t('credits.creditsLabel')} uniquement apres une validation reussie.`,
+            })}
+          </p>
+          <p className="text-xs text-white/40">
+            {t(
+              'peppolPage.creditPolicy.settingsSavedFreeHint',
+              "L'enregistrement simple des champs ne consomme pas de credits.",
+            )}
+          </p>
+        </div>
+
         <div>
           <label className="text-sm text-white/60">{t('peppol.scradaCompanyId')}</label>
           <Input
@@ -197,7 +213,12 @@ const PeppolSettings = () => {
             className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
           >
             {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            {t('peppol.scradaTestConnection')} (2 {t('credits.creditsLabel')})
+            {t('peppolPage.creditPolicy.sendlessConfigButton', {
+              testLabel: t('peppol.scradaTestConnection'),
+              credits: CREDIT_COSTS.PEPPOL_CONFIGURATION_OK,
+              unit: t('credits.creditsLabel'),
+              defaultValue: `${t('peppol.scradaTestConnection')} (${CREDIT_COSTS.PEPPOL_CONFIGURATION_OK} ${t('credits.creditsLabel')})`,
+            })}
           </Button>
           {testResult && (
             <span className={`flex items-center gap-1 text-xs ${testResult.success ? 'text-emerald-400' : 'text-red-400'}`}>

@@ -143,28 +143,10 @@ serve(async (req) => {
           received_at: doc.receivedAt || doc.createdOn || new Date().toISOString(),
         }));
 
-        const logRows = newDocuments.map(({ docId, doc }) => ({
-          user_id: user.id,
-          direction: 'inbound',
-          status: 'received',
-          ap_provider: 'scrada',
-          ap_document_id: docId,
-          sender_endpoint: doc.peppolSenderID || doc.senderID || null,
-          receiver_endpoint: company.peppol_endpoint_id
-            ? `${company.peppol_scheme_id || '0208'}:${company.peppol_endpoint_id}`
-            : null,
-          metadata: doc,
-        }));
-
         const { error: insertDocsError } = await supabase
           .from('peppol_inbound_documents')
           .insert(inboundRows);
         if (insertDocsError) throw insertDocsError;
-
-        const { error: insertLogsError } = await supabase
-          .from('peppol_transmission_log')
-          .insert(logRows);
-        if (insertLogsError) throw insertLogsError;
       } catch (error) {
         await refundCredits(
           serviceSupabase,

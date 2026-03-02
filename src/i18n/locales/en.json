@@ -2027,7 +2027,25 @@
     "notRegistered": "Not found on Peppol network",
     "eligible": "Peppol Eligible",
     "notEligible": "Client without Peppol ID",
-    "refreshStatus": "Refresh Statuses"
+    "refreshStatus": "Refresh Statuses",
+    "creditPolicy": {
+      "title": "Peppol credit policy",
+      "subtitle": "Peppol is visible to everyone. Each network action consumes credits when it is executed.",
+      "configurationTitle": "Validated configuration",
+      "configurationDescription": "The Scrada connection test is billed only when a new configuration is validated successfully.",
+      "sendTitle": "Send an invoice",
+      "sendDescription": "Credits are charged when the send starts. If Scrada rejects the document or logging fails, credits are refunded.",
+      "receiveTitle": "Receive an invoice",
+      "receiveDescription": "Sync only bills newly imported inbound invoices. If the balance is insufficient, the import is blocked.",
+      "saveFree": "Saving fields alone does not consume credits.",
+      "settingsValidationHint": "The validation test bills {{credits}} {{unit}} only after a successful validation.",
+      "settingsSavedFreeHint": "Saving the fields alone does not consume credits.",
+      "sendlessConfigButton": "{{testLabel}} ({{credits}} {{unit}})",
+      "syncButton": "Sync ({{credits}} {{unit}}/invoice)",
+      "tableSendLabel": "Send ({{credits}} {{unit}})",
+      "sendButton": "Confirm Peppol send ({{credits}} {{unit}})",
+      "sendDialogNotice": "This send consumes {{credits}} {{unit}}. If the Access Point rejects the document or logging fails, credits are refunded automatically."
+    }
   },
   "pilotage": {
     "title": "Business Steering",

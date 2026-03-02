@@ -112,7 +112,13 @@ const InvoicePreview = ({ invoice, client, items }) => {
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               <Send className="w-4 h-4 mr-2" />
-              {sending ? t('peppol.sending') : `${t('peppol.sendViaPeppol')} (4 ${t('credits.creditsLabel')})`}
+              {sending
+                ? t('peppol.sending')
+                : t('peppolPage.creditPolicy.tableSendLabel', {
+                  credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
+                  unit: t('credits.creditsLabel'),
+                  defaultValue: `${t('peppol.sendViaPeppol')} (${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${t('credits.creditsLabel')})`,
+                })}
             </Button>
           </motion.div>
         )}
