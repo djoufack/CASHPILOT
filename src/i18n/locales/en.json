@@ -1333,7 +1333,15 @@
     "requestNewResetLink": "Please request a new reset link",
     "passwordRequired": "Password is required",
     "passwordTooShort": "Password must be at least 6 characters",
-    "passwordsDoNotMatch": "Passwords do not match"
+    "passwordsDoNotMatch": "Passwords do not match",
+    "demoTitle": "Try without signing up",
+    "demoSubtitle": "Click an account to log in instantly",
+    "demoRegionFR": "France",
+    "demoRegionBE": "Belgium",
+    "demoRegionOHADA": "OHADA",
+    "demoTagFR": "PCG",
+    "demoTagBE": "PCMN",
+    "demoTagOHADA": "SYSCOHADA"
   },
   "invoiceExtraction": {
     "extractWithAI": "Extract with AI",

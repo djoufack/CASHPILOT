@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import { validateEmail } from '@/utils/validation';
 import { useToast } from '@/components/ui/use-toast';
 import MFAVerifyStep from '@/components/MFAVerifyStep';
@@ -27,6 +27,18 @@ const LoginPage = () => {
   const [errors, setErrors] = useState({});
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaFactorId, setMfaFactorId] = useState(null);
+
+  const demoAccounts = [
+    { region: 'FR', flag: '\u{1F1EB}\u{1F1F7}', email: 'pilotage.fr.demo@cashpilot.cloud', password: 'PilotageFR#2026!', labelKey: 'auth.demoRegionFR', tagKey: 'auth.demoTagFR' },
+    { region: 'BE', flag: '\u{1F1E7}\u{1F1EA}', email: 'pilotage.be.demo@cashpilot.cloud', password: 'PilotageBE#2026!', labelKey: 'auth.demoRegionBE', tagKey: 'auth.demoTagBE' },
+    { region: 'OHADA', flag: '\u{1F30D}', email: 'pilotage.ohada.demo@cashpilot.cloud', password: 'PilotageOHADA#2026!', labelKey: 'auth.demoRegionOHADA', tagKey: 'auth.demoTagOHADA' },
+  ];
+
+  const handleDemoLogin = (account) => {
+    setEmail(account.email);
+    setPassword(account.password);
+    setErrors({});
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -253,6 +265,49 @@ const LoginPage = () => {
             )}
           </div>
         </div>
+
+        {/* Demo Accounts Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-6"
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
+            <span className="text-xs text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-amber-500/70" />
+              {t('auth.demoTitle')}
+            </span>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
+          </div>
+
+          <p className="text-center text-[11px] text-gray-600 mb-3">
+            {t('auth.demoSubtitle')}
+          </p>
+
+          <div className="grid grid-cols-3 gap-2">
+            {demoAccounts.map((account) => (
+              <button
+                key={account.region}
+                type="button"
+                onClick={() => handleDemoLogin(account)}
+                className="group relative bg-gray-900/60 hover:bg-gray-800/80 border border-gray-800/80 hover:border-amber-500/30 rounded-xl p-3 transition-all duration-300 cursor-pointer"
+              >
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-500/0 to-orange-500/0 group-hover:from-amber-500/5 group-hover:to-orange-500/5 transition-all duration-300" />
+                <div className="relative flex flex-col items-center gap-1.5">
+                  <span className="text-xl leading-none">{account.flag}</span>
+                  <span className="text-[11px] font-semibold text-gray-300 group-hover:text-white transition-colors">
+                    {t(account.labelKey)}
+                  </span>
+                  <span className="text-[9px] font-mono text-amber-500/60 group-hover:text-amber-400/80 tracking-wider transition-colors">
+                    {t(account.tagKey)}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </motion.div>
       </motion.div>
     </div>
   );
