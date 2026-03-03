@@ -49,6 +49,7 @@ const MainLayout = () => {
   // Shared menu items logic to pass to both Sidebar and MobileMenu
   const navItems = [
     { path: '/app', label: t('nav.dashboard'), icon: LayoutDashboard },
+    { path: '/app/portfolio', label: t('nav.companyPortfolio') || 'Portefeuille sociétés', icon: Building2 },
     { path: '/app/clients', label: t('nav.clients'), icon: Users },
     { path: '/app/projects', label: t('nav.projects'), icon: Briefcase },
     { path: '/app/timesheets', label: t('nav.timesheets'), icon: Clock },

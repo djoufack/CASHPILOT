@@ -80,7 +80,7 @@ const PurchasesPage = () => {
   const { user } = useAuth();
   const { orders, loading, fetchOrders, createOrder, updateOrderStatus, deleteOrder } = useSupplierOrders();
   const { suppliers } = useSuppliers();
-  const { products } = useProducts();
+  const { products, fetchProducts } = useProducts();
   const { alerts, fetchAlerts } = useStockAlerts();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
@@ -119,7 +119,9 @@ const PurchasesPage = () => {
     const matchesSearch =
       order.order_number?.toLowerCase().includes(search.toLowerCase()) ||
       order.supplier?.company_name?.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || order.order_status === filterStatus;
+    const matchesStatus = filterStatus === 'all'
+      || order.order_status === filterStatus
+      || (filterStatus === 'delivered' && order.order_status === 'received');
     const matchesSupplier = filterSupplier === 'all' || order.supplier_id === filterSupplier;
     return matchesSearch && matchesStatus && matchesSupplier;
   });
@@ -204,6 +206,8 @@ const PurchasesPage = () => {
     return sum + (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
   }, 0);
 
+  const linkedStockItemsCount = items.filter(item => item.user_product_id).length;
+
   // Create order
   const handleCreateOrder = async (e) => {
     e.preventDefault();
@@ -262,13 +266,15 @@ const PurchasesPage = () => {
       const { error } = await supabase
         .from('supplier_orders')
         .update({
-          order_status: 'received',
+          order_status: 'delivered',
           actual_delivery_date: formatDateInput(),
         })
         .eq('id', receiveOrderId);
 
       if (!error) {
         fetchOrders();
+        fetchProducts();
+        fetchAlerts();
         toast({ title: t('purchases.orderReceived') });
       } else {
         toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -369,7 +375,7 @@ const PurchasesPage = () => {
                 <SelectItem value="all" className="text-white hover:bg-gray-800">{t('purchases.status')} — All</SelectItem>
                 <SelectItem value="draft" className="text-white hover:bg-gray-800">{t('purchases.draft')}</SelectItem>
                 <SelectItem value="confirmed" className="text-white hover:bg-gray-800">{t('purchases.confirmed')}</SelectItem>
-                <SelectItem value="received" className="text-white hover:bg-gray-800">{t('purchases.received')}</SelectItem>
+                <SelectItem value="delivered" className="text-white hover:bg-gray-800">{t('purchases.received')}</SelectItem>
                 <SelectItem value="cancelled" className="text-white hover:bg-gray-800">{t('purchases.cancelled')}</SelectItem>
               </SelectContent>
             </Select>
@@ -698,6 +704,24 @@ const PurchasesPage = () => {
               <span className="text-gradient font-bold text-lg">
                 {formatCurrency(grandTotal, companyCurrency)}
               </span>
+            </div>
+
+            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-4 text-sm">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="text-emerald-300 font-medium">
+                    Réception automatisée du stock
+                  </p>
+                  <p className="text-gray-400 mt-1">
+                    {linkedStockItemsCount > 0
+                      ? `${linkedStockItemsCount} article(s) relié(s) à votre stock seront incrémentés automatiquement lors du passage à "Réceptionnée".`
+                      : 'Reliez au moins un article à votre stock pour bénéficier de la mise à jour automatique à la réception.'}
+                  </p>
+                </div>
+                <Badge className="bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                  {linkedStockItemsCount}/{items.length} liés au stock
+                </Badge>
+              </div>
             </div>
 
             <DialogFooter className="pt-4">
