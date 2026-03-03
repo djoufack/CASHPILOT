@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { buildNotificationPayloads, fetchObligationSnapshot } from '@/lib/obligations';
+import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
 
 const SYNC_INTERVAL_MS = 15 * 60 * 1000;
 const THROTTLE_INTERVAL_MS = 5 * 60 * 1000;
@@ -15,6 +16,7 @@ const getStorageKey = (userId) => `cashpilot:obligation-sync:${userId}`;
 
 export const useObligationNotifications = () => {
   const { user } = useAuth();
+  const activeCompanyId = useActiveCompanyId();
   const syncingRef = useRef(false);
 
   const syncNotifications = useCallback(async () => {
@@ -29,7 +31,7 @@ export const useObligationNotifications = () => {
 
     try {
       syncingRef.current = true;
-      const snapshot = await fetchObligationSnapshot(supabase, user.id);
+      const snapshot = await fetchObligationSnapshot(supabase, user.id, { companyId: activeCompanyId });
       const payloads = buildNotificationPayloads(snapshot);
 
       const { data: existingRows, error: existingError } = await supabase
@@ -121,7 +123,7 @@ export const useObligationNotifications = () => {
     } finally {
       syncingRef.current = false;
     }
-  }, [user]);
+  }, [activeCompanyId, user]);
 
   useEffect(() => {
     if (!user) return undefined;

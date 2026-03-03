@@ -2,6 +2,7 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
@@ -16,6 +17,7 @@ const toDateOnly = (value) => {
 
 export const useSupplierReports = () => {
   const { user } = useAuth();
+  const { applyCompanyScope } = useCompanyScope();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [reportData, setReportData] = useState({
@@ -55,6 +57,9 @@ export const useSupplierReports = () => {
       let invoicesQuery = supabase
         .from('supplier_invoices')
         .select('id, supplier_id, invoice_number, invoice_date, total_amount, total_ttc, created_at');
+
+      ordersQuery = applyCompanyScope(ordersQuery);
+      invoicesQuery = applyCompanyScope(invoicesQuery);
 
       if (supplierId) {
         ordersQuery = ordersQuery.eq('supplier_id', supplierId);
@@ -167,7 +172,7 @@ export const useSupplierReports = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   return {
     loading,

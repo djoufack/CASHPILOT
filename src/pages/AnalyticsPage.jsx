@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import SnapshotShareDialog from '@/components/SnapshotShareDialog';
 import {
   AlertTriangle,
   BarChart3,
@@ -201,6 +202,33 @@ const AnalyticsPage = () => {
     },
   ];
 
+  const analyticsSnapshotData = useMemo(() => ({
+    companyName: company?.company_name || t('app.name'),
+    currency: companyCurrency,
+    generatedAt: new Date().toISOString(),
+    summaryCards: kpiCards.map((card) => ({
+      label: card.title,
+      value: card.value,
+      hint: card.hint,
+      accentClass: card.tone,
+    })),
+    revenueExpensesData: chartData,
+    receivablesAging,
+    receivablesWatchlist,
+    clientConcentration,
+    topProjects,
+  }), [
+    chartData,
+    clientConcentration,
+    company?.company_name,
+    companyCurrency,
+    kpiCards,
+    receivablesAging,
+    receivablesWatchlist,
+    t,
+    topProjects,
+  ]);
+
   return (
     <>
       <Helmet>
@@ -227,6 +255,12 @@ const AnalyticsPage = () => {
               {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
               Refresh Data
             </Button>
+            <SnapshotShareDialog
+              snapshotType="analytics"
+              title={`${company?.company_name || 'CashPilot'} - Analytics`}
+              snapshotData={analyticsSnapshotData}
+              triggerClassName="border-gray-700"
+            />
             <Button onClick={handleExportPDF} variant="outline" className="border-gray-700">
               <Download className="w-4 h-4 mr-2" /> PDF (3)
             </Button>

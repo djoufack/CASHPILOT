@@ -3,22 +3,28 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useSupplierInvoices = (supplierId) => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchInvoices = useCallback(async () => {
     if (!supplierId) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('supplier_invoices')
         .select('*')
         .eq('supplier_id', supplierId)
         .order('created_at', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setInvoices(data || []);
@@ -31,7 +37,7 @@ export const useSupplierInvoices = (supplierId) => {
     } finally {
       setLoading(false);
     }
-  }, [supplierId, toast]);
+  }, [applyCompanyScope, supplierId, toast]);
 
   const uploadInvoice = async (file) => {
     try {
@@ -77,7 +83,7 @@ export const useSupplierInvoices = (supplierId) => {
 
       const { data, error } = await supabase
         .from('supplier_invoices')
-        .insert([{ ...invoiceData, file_url: fileUrl, supplier_id: supplierId }])
+        .insert([{ ...withCompanyScope(invoiceData), file_url: fileUrl, supplier_id: supplierId }])
         .select()
         .single();
 

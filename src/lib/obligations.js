@@ -146,7 +146,7 @@ export const buildNotificationPayloads = (snapshot, options = {}) => {
 };
 
 export const fetchObligationSnapshot = async (supabase, userId, options = {}) => {
-  const { lookaheadDays = OBLIGATION_LOOKAHEAD_DAYS, locale = 'fr-FR' } = options;
+  const { lookaheadDays = OBLIGATION_LOOKAHEAD_DAYS, locale = 'fr-FR', companyId = null } = options;
 
   if (!supabase || !userId) {
     return {
@@ -160,39 +160,56 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
     };
   }
 
+  let invoiceQuery = supabase
+    .from('invoices')
+    .select(`
+      id,
+      invoice_number,
+      due_date,
+      status,
+      payment_status,
+      total_ttc,
+      balance_due,
+      company_id,
+      client:clients(id, company_name, contact_name)
+    `)
+    .eq('user_id', userId)
+    .order('due_date', { ascending: true, nullsFirst: false });
+
+  let companyQuery = supabase
+    .from('company')
+    .select('accounting_currency')
+    .eq('user_id', userId);
+
+  let suppliersQuery = supabase
+    .from('suppliers')
+    .select('id, company_name, company_id')
+    .eq('user_id', userId);
+
+  let projectsQuery = supabase
+    .from('projects')
+    .select('id, name, client_id, company_id')
+    .eq('user_id', userId);
+
+  if (companyId) {
+    invoiceQuery = invoiceQuery.eq('company_id', companyId);
+    companyQuery = companyQuery.eq('id', companyId);
+    suppliersQuery = suppliersQuery.eq('company_id', companyId);
+    projectsQuery = projectsQuery.eq('company_id', companyId);
+  } else {
+    companyQuery = companyQuery.limit(1);
+  }
+
   const [
     { data: invoiceData, error: invoiceError },
-    { data: companyData },
+    { data: companyRows },
     { data: supplierRows, error: supplierError },
     { data: ownedProjectRows, error: ownedProjectError },
   ] = await Promise.all([
-    supabase
-      .from('invoices')
-      .select(`
-        id,
-        invoice_number,
-        due_date,
-        status,
-        payment_status,
-        total_ttc,
-        balance_due,
-        client:clients(id, company_name, contact_name)
-      `)
-      .eq('user_id', userId)
-      .order('due_date', { ascending: true, nullsFirst: false }),
-    supabase
-      .from('company')
-      .select('accounting_currency')
-      .eq('user_id', userId)
-      .maybeSingle(),
-    supabase
-      .from('suppliers')
-      .select('id, company_name')
-      .eq('user_id', userId),
-    supabase
-      .from('projects')
-      .select('id, name, client_id')
-      .eq('user_id', userId),
+    invoiceQuery,
+    companyId ? companyQuery.maybeSingle() : companyQuery.maybeSingle(),
+    suppliersQuery,
+    projectsQuery,
   ]);
 
   if (invoiceError) throw invoiceError;
@@ -202,20 +219,29 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
   const supplierIds = [...new Set((supplierRows || []).map((supplier) => supplier.id).filter(Boolean))];
   const supplierNamesById = new Map((supplierRows || []).map((supplier) => [supplier.id, supplier.company_name]));
   const { data: supplierInvoiceData, error: supplierInvoiceError } = supplierIds.length
-    ? await supabase
-        .from('supplier_invoices')
-        .select(`
-          id,
-          invoice_number,
-          due_date,
-          payment_status,
-          total_amount,
-          total_ttc,
-          supplier_id,
-          supplier:suppliers(id, company_name)
-        `)
-        .in('supplier_id', supplierIds)
-        .order('due_date', { ascending: true, nullsFirst: false })
+    ? await (() => {
+        let query = supabase
+          .from('supplier_invoices')
+          .select(`
+            id,
+            invoice_number,
+            due_date,
+            payment_status,
+            total_amount,
+            total_ttc,
+            supplier_id,
+            company_id,
+            supplier:suppliers(id, company_name)
+          `)
+          .in('supplier_id', supplierIds)
+          .order('due_date', { ascending: true, nullsFirst: false });
+
+        if (companyId) {
+          query = query.eq('company_id', companyId);
+        }
+
+        return query;
+      })()
     : { data: [], error: null };
 
   if (supplierInvoiceError) throw supplierInvoiceError;
@@ -254,7 +280,7 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
 
   const projectsById = new Map((projectRows || []).map((project) => [project.id, project]));
   const clientsById = new Map((clientRows || []).map((client) => [client.id, client]));
-  const currency = resolveAccountingCurrency(companyData);
+  const currency = resolveAccountingCurrency(companyRows);
 
   const customerObligations = (invoiceData || [])
     .filter(isOpenCustomerInvoice)

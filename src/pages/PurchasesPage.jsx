@@ -11,6 +11,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import { useAuth } from '@/context/AuthContext';
 import { usePagination } from '@/hooks/usePagination';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 import PaginationControls from '@/components/PaginationControls';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { supabase } from '@/lib/supabase';
@@ -85,6 +86,7 @@ const PurchasesPage = () => {
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
   const { toast } = useToast();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
   const companyCurrency = resolveAccountingCurrency(company);
 
   // Filters
@@ -141,11 +143,15 @@ const PurchasesPage = () => {
     }
     setLoadingSupplierProducts(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('supplier_products')
         .select('*')
         .eq('supplier_id', supplierId)
         .order('product_name', { ascending: true });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setSupplierProducts(data || []);
@@ -155,7 +161,7 @@ const PurchasesPage = () => {
     } finally {
       setLoadingSupplierProducts(false);
     }
-  }, []);
+  }, [applyCompanyScope]);
 
   // Open create dialog
   const handleOpenCreate = () => {
@@ -266,6 +272,7 @@ const PurchasesPage = () => {
       const { error } = await supabase
         .from('supplier_orders')
         .update({
+          ...withCompanyScope({}),
           order_status: 'delivered',
           actual_delivery_date: formatDateInput(),
         })

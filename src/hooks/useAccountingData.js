@@ -128,11 +128,13 @@ export const useAccountingData = (startDate, endDate) => {
         expensesQuery,
         (async () => {
           try {
-            return await supabase
+            let supplierInvoicesQuery = supabase
               .from('supplier_invoices')
               .select('*')
-              .eq('user_id', user.id)
               .order('created_at', { ascending: false });
+
+            supplierInvoicesQuery = applyCompanyScope(supplierInvoicesQuery);
+            return await supplierInvoicesQuery;
           } catch {
             return { data: [], error: null };
           }

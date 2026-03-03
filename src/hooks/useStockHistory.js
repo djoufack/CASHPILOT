@@ -3,21 +3,27 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useStockHistory = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const getProductHistory = async (productId) => {
     if (!user) return [];
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('product_stock_history')
         .select('*, created_by_user:created_by(email)')
         .eq('user_product_id', productId)
         .order('created_at', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data;
@@ -37,6 +43,7 @@ export const useStockHistory = () => {
       const { error: historyError } = await supabase
         .from('product_stock_history')
         .insert([{
+          ...withCompanyScope({}),
           user_product_id: productId,
           product_id: productId,
           previous_quantity: previousQty,
@@ -67,6 +74,7 @@ export const useStockHistory = () => {
 
       if (product && newQty <= product.min_stock_level) {
           await supabase.from('stock_alerts').insert([{
+             ...withCompanyScope({}),
              user_product_id: productId,
              product_id: productId,
              alert_type: newQty === 0 ? 'out_of_stock' : 'low_stock',
@@ -102,13 +110,14 @@ export const useStockHistory = () => {
 };
 
 export const useStockAlerts = () => {
-    const [alerts, setAlerts] = useState([]);
-    const { user } = useAuth();
+  const [alerts, setAlerts] = useState([]);
+  const { user } = useAuth();
+  const { applyCompanyScope } = useCompanyScope();
 
     const fetchAlerts = useCallback(async (categoryId = null) => {
         if(!user) return;
         try {
-            const { data, error } = await supabase
+            let query = supabase
               .from('stock_alerts')
               .select(`
                 *,
@@ -116,6 +125,10 @@ export const useStockAlerts = () => {
               `)
               .eq('is_active', true)
               .order('created_at', { ascending: false });
+
+            query = applyCompanyScope(query);
+
+            const { data, error } = await query;
 
             if(error) throw error;
 
@@ -130,7 +143,7 @@ export const useStockAlerts = () => {
             console.error(err);
             return [];
         }
-    }, [user]);
+    }, [applyCompanyScope, user]);
 
     const resolveAlert = useCallback(async (alertId) => {
         try {

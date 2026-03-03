@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useSupplierOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -9,18 +10,23 @@ export const useSupplierOrders = () => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchOrders = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('supplier_orders')
         .select(`
           *,
           supplier:suppliers(id, company_name)
         `)
         .order('created_at', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setOrders(data || []);
@@ -34,11 +40,11 @@ export const useSupplierOrders = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applyCompanyScope, toast, user]);
 
   const fetchOrderById = async (id) => {
      try {
-       const { data, error } = await supabase
+       let query = supabase
         .from('supplier_orders')
         .select(`
           *,
@@ -49,8 +55,11 @@ export const useSupplierOrders = () => {
              product:supplier_products(product_name)
           )
         `)
-        .eq('id', id)
-        .single();
+        .eq('id', id);
+
+        query = applyCompanyScope(query);
+
+        const { data, error } = await query.single();
         
         if (error) throw error;
         return data;
@@ -67,7 +76,7 @@ export const useSupplierOrders = () => {
       // 1. Create Order Header
       const { data: order, error: orderError } = await supabase
         .from('supplier_orders')
-        .insert([{ ...orderData, user_id: user.id }])
+        .insert([{ ...withCompanyScope(orderData), user_id: user.id }])
         .select()
         .single();
 

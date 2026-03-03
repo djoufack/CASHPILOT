@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useProducts = () => {
   const [products, setProducts] = useState([]);
@@ -11,6 +12,7 @@ export const useProducts = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { logAction } = useAuditLog();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [totalCount, setTotalCount] = useState(0);
 
@@ -24,6 +26,8 @@ export const useProducts = () => {
         .from('products')
         .select('*, category:product_categories(id, name), supplier:suppliers(id, company_name)', usePagination ? { count: 'exact' } : undefined)
         .order('product_name', { ascending: true });
+
+      query = applyCompanyScope(query);
 
       if (usePagination) {
         const from = (page - 1) * pageSize;
@@ -49,7 +53,7 @@ export const useProducts = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applyCompanyScope, toast, user]);
 
   const createProduct = async (productData) => {
     if (!user || !supabase) return;
@@ -57,7 +61,7 @@ export const useProducts = () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .insert([{ ...productData, user_id: user.id }])
+        .insert([{ ...withCompanyScope(productData), user_id: user.id }])
         .select('*, category:product_categories(id, name), supplier:suppliers(id, company_name)')
         .single();
 
@@ -137,6 +141,7 @@ export const useProducts = () => {
       const { data, error } = await supabase
         .from('products')
         .insert([{
+          ...withCompanyScope({}),
           user_id: user.id,
           product_name: supplierProduct.product_name,
           sku: supplierProduct.sku || null,
@@ -189,15 +194,20 @@ export const useProductCategories = () => {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchCategories = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('product_categories')
         .select('*')
         .order('name', { ascending: true });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setCategories(data || []);
@@ -206,14 +216,14 @@ export const useProductCategories = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   const createCategory = async (name, description = '') => {
     if (!user || !supabase) return;
     try {
       const { data, error } = await supabase
         .from('product_categories')
-        .insert([{ user_id: user.id, name, description }])
+        .insert([withCompanyScope({ user_id: user.id, name, description })])
         .select()
         .single();
 

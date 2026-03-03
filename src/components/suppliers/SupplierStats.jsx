@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Package, ShoppingCart, AlertTriangle, FileText } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 const StatCard = ({ title, value, icon: Icon, color, subtext }) => (
   <Card className="bg-gray-800 border-gray-700 shadow-lg">
@@ -18,6 +19,7 @@ const StatCard = ({ title, value, icon: Icon, color, subtext }) => (
 );
 
 const SupplierStats = () => {
+  const { applyCompanyScope } = useCompanyScope();
   const [stats, setStats] = useState({
     totalSuppliers: 0,
     totalProducts: 0,
@@ -29,18 +31,26 @@ const SupplierStats = () => {
   useEffect(() => {
     const fetchStats = async () => {
       // 1. Suppliers
-      const { count: suppliersCount } = await supabase.from('suppliers').select('*', { count: 'exact', head: true });
+      const { count: suppliersCount } = await applyCompanyScope(
+        supabase.from('suppliers').select('*', { count: 'exact', head: true })
+      );
       
       // 2. Products & Low Stock (from user's own products table)
-      const { data: products } = await supabase.from('products').select('stock_quantity, min_stock_level');
+      const { data: products } = await applyCompanyScope(
+        supabase.from('products').select('stock_quantity, min_stock_level')
+      );
       const totalProducts = products?.length || 0;
       const lowStock = products?.filter(p => p.stock_quantity <= p.min_stock_level).length || 0;
 
       // 3. Pending Orders
-      const { count: pendingOrders } = await supabase.from('supplier_orders').select('*', { count: 'exact', head: true }).eq('order_status', 'pending');
+      const { count: pendingOrders } = await applyCompanyScope(
+        supabase.from('supplier_orders').select('*', { count: 'exact', head: true }).eq('order_status', 'pending')
+      );
 
       // 4. Overdue Invoices (rough check on status, ideally check due_date too)
-      const { count: overdueInvoices } = await supabase.from('supplier_invoices').select('*', { count: 'exact', head: true }).eq('payment_status', 'overdue');
+      const { count: overdueInvoices } = await applyCompanyScope(
+        supabase.from('supplier_invoices').select('*', { count: 'exact', head: true }).eq('payment_status', 'overdue')
+      );
 
       setStats({
         totalSuppliers: suppliersCount || 0,
@@ -52,7 +62,7 @@ const SupplierStats = () => {
     };
 
     fetchStats();
-  }, []);
+  }, [applyCompanyScope]);
 
   return (
     <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6 md:mb-8">
