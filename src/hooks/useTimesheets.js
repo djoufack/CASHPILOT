@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { triggerWebhook } from '@/utils/webhookTrigger';
 
 export const useTimesheets = () => {
   const [timesheets, setTimesheets] = useState([]);
@@ -12,6 +14,7 @@ export const useTimesheets = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const calculateDuration = (startTime, endTime) => {
     if (!startTime || !endTime) return 0;
@@ -40,6 +43,7 @@ export const useTimesheets = () => {
         `)
         .order('date', { ascending: false });
 
+      query = applyCompanyScope(query);
       if (filters.startDate) query = query.gte('date', filters.startDate);
       if (filters.endDate) query = query.lte('date', filters.endDate);
       if (filters.projectId) query = query.eq('project_id', filters.projectId);
@@ -65,7 +69,7 @@ export const useTimesheets = () => {
     } finally {
       setLoading(false);
     }
-  }, [t, toast, user]);
+  }, [applyCompanyScope, t, toast, user]);
 
   const createTimesheet = async (timesheetData) => {
     if (!user) return;
@@ -74,7 +78,7 @@ export const useTimesheets = () => {
     try {
       const duration = calculateDuration(timesheetData.start_time, timesheetData.end_time);
       const payload = {
-        ...timesheetData,
+        ...withCompanyScope(timesheetData),
         user_id: user.id,
         duration_minutes: duration
       };
@@ -88,6 +92,14 @@ export const useTimesheets = () => {
       if (error) throw error;
 
       setTimesheets([data, ...timesheets]);
+      void triggerWebhook('timesheet.created', {
+        id: data.id,
+        company_id: data.company_id,
+        project_id: data.project_id,
+        client_id: data.client_id,
+        date: data.date,
+        duration_minutes: data.duration_minutes,
+      });
       toast({
         title: "Success",
         description: t('messages.success.timesheetAdded')
@@ -118,7 +130,7 @@ export const useTimesheets = () => {
 
       const { data, error } = await supabase
         .from('timesheets')
-        .update(updates)
+        .update(withCompanyScope(updates))
         .eq('id', id)
         .select()
         .single();
@@ -183,6 +195,7 @@ export const useTimesheets = () => {
         .eq('billable', true)
         .is('invoice_id', null);
 
+      query = applyCompanyScope(query);
       if (clientId) query = query.eq('client_id', clientId);
       if (startDate) query = query.gte('date', startDate);
       if (endDate) query = query.lte('date', endDate);
@@ -199,14 +212,17 @@ export const useTimesheets = () => {
   const fetchBillableTimesheetsForProject = async (projectId) => {
     if (!user || !supabase) return [];
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('timesheets')
         .select(`*, client:clients(company_name), project:projects(name, hourly_rate), task:tasks(name), service:services(id, service_name, hourly_rate)`)
         .eq('user_id', user.id)
         .eq('project_id', projectId)
         .eq('billable', true)
-        .is('invoice_id', null)
-        .order('date', { ascending: false });
+        .is('invoice_id', null);
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query.order('date', { ascending: false });
       if (error) throw error;
       return data || [];
     } catch (err) {
@@ -229,6 +245,10 @@ export const useTimesheets = () => {
 
       if (error) throw error;
       await fetchTimesheets();
+      void triggerWebhook('timesheet.invoiced', {
+        invoice_id: invoiceId,
+        timesheet_ids: timesheetIds,
+      });
       toast({
         title: t('messages.success.timesheetInvoiced', 'Timesheets facturées'),
         description: `${timesheetIds.length} entrée(s) marquée(s) comme facturée(s).`

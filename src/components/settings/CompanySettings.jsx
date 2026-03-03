@@ -23,6 +23,7 @@ const CompanySettings = () => {
   const { countryOptions, currencyOptions, loading: referenceLoading } = useReferenceData();
 
   const logoInputRef = useRef(null);
+  const [createNewMode, setCreateNewMode] = useState(false);
 
   const [formData, setFormData] = useState({
     company_name: '',
@@ -44,7 +45,7 @@ const CompanySettings = () => {
   });
 
   useEffect(() => {
-    if (company) {
+    if (company && !createNewMode) {
       setFormData({
         company_name: company.company_name || '',
         company_type: company.company_type || 'freelance',
@@ -64,7 +65,29 @@ const CompanySettings = () => {
         swift: company.swift || ''
       });
     }
-  }, [company]);
+  }, [company, createNewMode]);
+
+  const resetFormForNewCompany = () => {
+    setCreateNewMode(true);
+    setFormData({
+      company_name: '',
+      company_type: 'freelance',
+      registration_number: '',
+      tax_id: '',
+      address: '',
+      city: '',
+      postal_code: '',
+      country: '',
+      currency: 'EUR',
+      phone: '',
+      email: '',
+      website: '',
+      bank_name: '',
+      bank_account: '',
+      iban: '',
+      swift: ''
+    });
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -84,7 +107,10 @@ const CompanySettings = () => {
     e.preventDefault();
     console.log('💾 Submitting company data:', formData);
     console.log('💰 Currency value:', formData.currency);
-    await saveCompany(formData);
+    const success = await saveCompany(formData, { forceCreate: createNewMode });
+    if (success) {
+      setCreateNewMode(false);
+    }
   };
 
   const handleLogoChange = async (e) => {
@@ -107,13 +133,37 @@ const CompanySettings = () => {
     <form onSubmit={handleSubmit}>
       <Card className="bg-gray-900 border-gray-800 text-white shadow-xl">
         <CardHeader>
-          <CardTitle>Informations de la société</CardTitle>
+          <CardTitle>{createNewMode ? 'Nouvelle societe' : 'Informations de la societe'}</CardTitle>
           <CardDescription className="text-gray-400">
-            Ces informations apparaîtront sur vos factures, devis et documents commerciaux.
+            Ces informations apparaitront sur vos factures, devis et documents commerciaux.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-8">
+          {company && (
+            <div className="flex flex-wrap gap-2">
+              {!createNewMode ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={resetFormForNewCompany}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                >
+                  Creer une nouvelle societe
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateNewMode(false)}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                >
+                  Modifier la societe active
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Logo Section */}
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8 border-b border-gray-800 pb-8">
             <div className="relative group">
@@ -305,7 +355,7 @@ const CompanySettings = () => {
             {saving ? (
               <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Enregistrement...</>
             ) : (
-              'Enregistrer la société'
+              createNewMode ? 'Creer la societe' : 'Enregistrer la societe'
             )}
           </Button>
         </CardFooter>

@@ -6,6 +6,8 @@ import { useAuth } from '@/context/AuthContext';
 import { getPaymentStatus, calculateBalanceDue } from '@/utils/calculations';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { formatDateInput } from '@/utils/dateFormatting';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { triggerWebhook } from '@/utils/webhookTrigger';
 
 export const usePayments = () => {
   const [payments, setPayments] = useState([]);
@@ -15,6 +17,7 @@ export const usePayments = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchPayments = useCallback(async (filters = {}) => {
     if (!user) return;
@@ -39,6 +42,7 @@ export const usePayments = () => {
         .eq('user_id', user.id)
         .order('payment_date', { ascending: false });
 
+      query = applyCompanyScope(query);
       if (filters.invoice_id) query = query.eq('invoice_id', filters.invoice_id);
       if (filters.client_id) query = query.eq('client_id', filters.client_id);
 
@@ -62,29 +66,32 @@ export const usePayments = () => {
     } finally {
       setLoading(false);
     }
-  }, [t, toast, user]);
+  }, [applyCompanyScope, t, toast, user]);
 
   const fetchPaymentsByInvoice = useCallback(async (invoiceId) => {
     if (!user || !supabase) return [];
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('payments')
         .select('*')
         .eq('user_id', user.id)
-        .eq('invoice_id', invoiceId)
-        .order('payment_date', { ascending: false });
+        .eq('invoice_id', invoiceId);
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query.order('payment_date', { ascending: false });
       if (error) throw error;
       return data || [];
     } catch (err) {
       console.error('Error fetching payments by invoice:', err);
       return [];
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   const fetchPaymentsByClient = useCallback(async (clientId) => {
     if (!user || !supabase) return [];
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('payments')
         .select(`
           *,
@@ -95,15 +102,18 @@ export const usePayments = () => {
           )
         `)
         .eq('user_id', user.id)
-        .eq('client_id', clientId)
-        .order('payment_date', { ascending: false });
+        .eq('client_id', clientId);
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query.order('payment_date', { ascending: false });
       if (error) throw error;
       return data || [];
     } catch (err) {
       console.error('Error fetching payments by client:', err);
       return [];
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   const generateReceiptNumber = () => {
     const now = new Date();
@@ -153,8 +163,15 @@ export const usePayments = () => {
           status: paymentStatus === 'paid' ? 'paid' : undefined
         })
         .eq('id', invoiceId);
+
+      return {
+        paymentStatus,
+        balanceDue,
+        totalPaid: Number(totalPaid.toFixed(2)),
+      };
     } catch (err) {
       console.error('Error updating invoice payment data:', err);
+      return null;
     }
   };
 
@@ -167,7 +184,7 @@ export const usePayments = () => {
       const { data, error } = await supabase
         .from('payments')
         .insert([{
-          ...paymentData,
+          ...withCompanyScope(paymentData),
           user_id: user.id,
           receipt_number: receiptNumber,
           is_lump_sum: false
@@ -178,13 +195,33 @@ export const usePayments = () => {
       if (error) throw error;
 
       // Update the invoice payment status
+      let invoicePaymentData = null;
       if (paymentData.invoice_id) {
-        await updateInvoicePaymentData(paymentData.invoice_id);
+        invoicePaymentData = await updateInvoicePaymentData(paymentData.invoice_id);
       }
 
       logAction('create', 'payment', null, data);
 
       setPayments([data, ...payments]);
+      void triggerWebhook('payment.received', {
+        id: data.id,
+        company_id: data.company_id,
+        client_id: data.client_id,
+        invoice_id: data.invoice_id,
+        amount: data.amount,
+        payment_date: data.payment_date,
+        payment_method: data.payment_method,
+        reference: data.reference,
+      });
+      if (paymentData.invoice_id && invoicePaymentData?.paymentStatus === 'paid') {
+        void triggerWebhook('invoice.paid', {
+          id: paymentData.invoice_id,
+          company_id: data.company_id,
+          amount_paid: invoicePaymentData.totalPaid,
+          balance_due: invoicePaymentData.balanceDue,
+          payment_status: invoicePaymentData.paymentStatus,
+        });
+      }
       toast({
         title: t('common.success'),
         description: t('payments.paymentRecorded')
@@ -214,6 +251,7 @@ export const usePayments = () => {
       const { data: payment, error: paymentError } = await supabase
         .from('payments')
         .insert([{
+          ...withCompanyScope({}),
           user_id: user.id,
           client_id: clientId,
           invoice_id: null,
@@ -249,6 +287,17 @@ export const usePayments = () => {
           await updateInvoicePaymentData(allocation.invoiceId);
         }
       }
+
+      void triggerWebhook('payment.received', {
+        id: payment.id,
+        company_id: payment.company_id,
+        client_id: payment.client_id,
+        amount: payment.amount,
+        payment_date: payment.payment_date,
+        payment_method: payment.payment_method,
+        reference: payment.reference,
+        allocations,
+      });
 
       logAction('create', 'payment', null, { ...payment, is_lump_sum: true, allocations });
 

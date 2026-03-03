@@ -4,9 +4,11 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { validateChartOfAccountsImport } from '@/utils/accountingQualityChecks';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useAccounting = () => {
   const { user } = useAuth();
+  const { applyCompanyScope } = useCompanyScope();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -312,17 +314,19 @@ export const useAccounting = () => {
   const fetchEntries = useCallback(async () => {
     if(!user) return;
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('accounting_entries')
         .select('*')
         .order('transaction_date', { ascending: false })
         .limit(100);
+      query = applyCompanyScope(query, { includeUnassigned: false });
+      const { data, error } = await query;
       if (error) throw error;
       setEntries(data || []);
     } catch (err) {
        console.error(err);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   return {
     loading,

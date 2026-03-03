@@ -175,7 +175,11 @@
     "service": "Service",
     "mixed": "Mixed",
     "itemDescriptionPlaceholder": "Service or product",
-    "notesPlaceholder": "Payment terms, notes..."
+    "notesPlaceholder": "Payment terms, notes...",
+    "generatePaymentLink": "Generate payment link",
+    "copyPaymentLink": "Copy link",
+    "paymentLinkCopied": "Link copied!",
+    "paymentLinkGenerated": "Payment link created"
   },
   "timesheets": {
     "title": "Timesheets",
@@ -320,7 +324,16 @@
     "statusSent": "Sent",
     "statusAccepted": "Accepted",
     "statusRejected": "Rejected",
-    "statusExpired": "Expired"
+    "statusExpired": "Expired",
+    "requestSignature": "Request signature",
+    "signatureLink": "Signature link",
+    "signaturePending": "Pending signature",
+    "signatureSigned": "Signed",
+    "signatureRejected": "Rejected",
+    "copySignatureLink": "Copy link",
+    "signatureLinkCopied": "Link copied!",
+    "signerEmail": "Signer email (optional)",
+    "sendSignatureRequest": "Send request"
   },
   "purchaseOrdersPage": {
     "title": "Purchase Orders",
@@ -784,7 +797,48 @@
     "entryRef": "Entry Ref.",
     "isAutoEntry": "Auto Entry",
     "noEntries": "No journal entries",
-    "entriesGenerated": "auto-generated entries"
+    "entriesGenerated": "auto-generated entries",
+    "fixedAssets": {
+      "title": "Fixed Assets",
+      "newAsset": "New Fixed Asset",
+      "assetName": "Name",
+      "assetType": "Asset Type",
+      "tangible": "Tangible",
+      "intangible": "Intangible",
+      "financial": "Financial",
+      "category": "Category",
+      "acquisitionDate": "Acquisition Date",
+      "acquisitionCost": "Acquisition Cost (€)",
+      "residualValue": "Residual Value (€)",
+      "usefulLife": "Useful Life (years)",
+      "method": "Method",
+      "linear": "Linear",
+      "declining": "Declining Balance",
+      "netBookValue": "Net Book Value",
+      "schedule": "Depreciation Schedule",
+      "postEntry": "Post Entry",
+      "posted": "Posted",
+      "totalGross": "Total Gross Value",
+      "totalDepreciation": "Total Depreciation",
+      "totalNet": "Total Net Value",
+      "accountCodeAsset": "Asset Account (21xx)",
+      "accountCodeDepreciation": "Depreciation Account (28xx)",
+      "accountCodeExpense": "Expense Account (68xx)",
+      "statusActive": "Active",
+      "statusDisposed": "Disposed",
+      "statusFullyDepreciated": "Fully Depreciated"
+    },
+    "analytique": {
+      "title": "Analytical Accounting",
+      "newAxis": "New Axis",
+      "axisType": "Axis Type",
+      "axisCode": "Code",
+      "axisName": "Label",
+      "report": "Analytical Report",
+      "costCenter": "Cost Center",
+      "department": "Department",
+      "productLine": "Product Line"
+    }
   },
   "payments": {
     "title": "Payments",
@@ -1625,7 +1679,26 @@
     "selectClient": "Select a client",
     "emptyTitle": "No projects found",
     "emptyDescription": "Create a new project to get started.",
-    "detailsPlaceholder": "Project details and objectives..."
+    "detailsPlaceholder": "Project details and objectives...",
+    "profitability": {
+      "title": "Profitability",
+      "totalHours": "Total Hours",
+      "billable": "billable",
+      "laborCost": "Labor Cost",
+      "expenses": "Expenses",
+      "revenue": "Revenue Collected",
+      "pendingRevenue": "Pending Revenue",
+      "grossMargin": "Gross Margin",
+      "utilizationRate": "Utilization Rate",
+      "revenueVsCost": "Revenue vs Costs",
+      "margin": "Margin"
+    },
+    "gantt": {
+      "title": "Gantt",
+      "day": "Day",
+      "week": "Week",
+      "month": "Month"
+    }
   },
   "pagination": {
     "showing": "Showing",
@@ -1704,7 +1777,20 @@
     "deleted": "Webhook deleted successfully",
     "deleteTitle": "Delete Webhook",
     "deleteConfirm": "Are you sure you want to delete this webhook? Future deliveries will be stopped.",
-    "urlAndEventsRequired": "URL and at least one event are required"
+    "urlAndEventsRequired": "URL and at least one event are required",
+    "integrationsTab": "Integrations",
+    "integrations": {
+      "howToTitle": "How to integrate with Zapier/Make",
+      "step1": "Create a webhook endpoint in the Endpoints tab",
+      "step2": "Copy your endpoint URL",
+      "step3": "In Zapier/Make, choose 'Webhook' as the trigger",
+      "step4": "Paste the URL and select the events",
+      "payloadFormatTitle": "Payload format",
+      "hmacTitle": "HMAC-SHA256 signature verification",
+      "hmacDesc": "Each webhook request is signed with your secret. Verify the signature to validate the authenticity of the request.",
+      "zapierBadge": "Zapier compatible",
+      "makeBadge": "Make compatible"
+    }
   },
   "export": {
     "title": "Export",
@@ -2361,5 +2447,11 @@
         "benchmarkReference": "Sector benchmark reference"
       }
     }
+  },
+  "company": {
+    "addCompany": "Add Company",
+    "selectCompany": "Select Company",
+    "switchCompany": "Switch Company",
+    "activeCompany": "Active Company"
   }
 }

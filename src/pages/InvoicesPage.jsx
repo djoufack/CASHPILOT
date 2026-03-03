@@ -17,7 +17,7 @@ import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportInvoicePDF, exportInvoiceHTML } from '@/services/exportDocuments';
 import ExportButton from '@/components/ExportButton';
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download, Kanban, Mail, Send, Loader2 } from 'lucide-react';
+import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download, Kanban, Mail, Send, Loader2, Link, Copy } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
@@ -52,6 +52,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { supabase } from '@/lib/supabase';
 
 const InvoicesPage = () => {
   const { t } = useTranslation();
@@ -75,6 +76,7 @@ const InvoicesPage = () => {
   const [viewMode, setViewMode] = useState('list');
   const [emailModalInvoice, setEmailModalInvoice] = useState(null);
   const [emailModalAddress, setEmailModalAddress] = useState('');
+  const [paymentLinkLoading, setPaymentLinkLoading] = useState({});
   const pagination = usePagination({ pageSize: 20 });
   const { setTotalCount } = pagination;
 
@@ -274,6 +276,38 @@ const InvoicesPage = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleGeneratePaymentLink = async (invoice) => {
+    setPaymentLinkLoading((prev) => ({ ...prev, [invoice.id]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke('stripe-invoice-link', {
+        body: { invoiceId: invoice.id },
+      });
+      if (error) throw error;
+      if (data?.paymentLinkUrl) {
+        await fetchInvoices();
+        toast({
+          title: t('invoices.paymentLinkGenerated'),
+          description: data.paymentLinkUrl,
+        });
+      }
+    } catch (err) {
+      toast({
+        title: t('common.error'),
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setPaymentLinkLoading((prev) => ({ ...prev, [invoice.id]: false }));
+    }
+  };
+
+  const handleCopyPaymentLink = (url) => {
+    navigator.clipboard.writeText(url);
+    toast({
+      title: t('invoices.paymentLinkCopied'),
+    });
   };
 
   const invoiceExportColumns = [
@@ -544,6 +578,45 @@ const InvoicesPage = () => {
                                     >
                                       <Mail className="w-4 h-4" />
                                     </Button>
+                                    {invoice.status !== 'paid' && (
+                                      invoice.stripe_payment_link_url ? (
+                                        <>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleCopyPaymentLink(invoice.stripe_payment_link_url)}
+                                            className="text-violet-400 hover:text-violet-300 hover:bg-violet-900/20 h-8 w-8 p-0"
+                                            title={t('invoices.copyPaymentLink')}
+                                          >
+                                            <Copy className="w-4 h-4" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => window.open(invoice.stripe_payment_link_url, '_blank')}
+                                            className="text-violet-400 hover:text-violet-300 hover:bg-violet-900/20 h-8 w-8 p-0"
+                                            title={t('invoices.copyPaymentLink')}
+                                          >
+                                            <Link className="w-4 h-4" />
+                                          </Button>
+                                        </>
+                                      ) : (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleGeneratePaymentLink(invoice)}
+                                          disabled={!!paymentLinkLoading[invoice.id]}
+                                          className="text-violet-400 hover:text-violet-300 hover:bg-violet-900/20 h-8 px-2"
+                                          title={t('invoices.generatePaymentLink')}
+                                        >
+                                          {paymentLinkLoading[invoice.id] ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                          ) : (
+                                            <Link className="w-4 h-4" />
+                                          )}
+                                        </Button>
+                                      )
+                                    )}
                                     <Button
                                       variant="ghost"
                                       size="sm"

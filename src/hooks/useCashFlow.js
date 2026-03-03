@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { formatDateInput } from '@/utils/dateFormatting';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
 const CASH_ACCOUNT_REGEX = /(banque|bank|cash|caisse|tre?sorerie)/i;
@@ -143,6 +144,7 @@ function buildEmptyBuckets({ periodMonths, granularity, startDate, endDate }) {
 
 export const useCashFlow = (optionsOrPeriod = 6, granularityArg = 'month') => {
   const { user } = useAuth();
+  const { applyCompanyScope } = useCompanyScope();
   const { periodMonths, granularity, startDate, endDate } = resolveParams(optionsOrPeriod, granularityArg);
   const [cashFlowData, setCashFlowData] = useState([]);
   const [summary, setSummary] = useState({ totalIn: 0, totalOut: 0, net: 0 });
@@ -161,14 +163,18 @@ export const useCashFlow = (optionsOrPeriod = 6, granularityArg = 'month') => {
         return toIsoDate(value);
       })();
 
+      let entriesQuery = supabase
+        .from('accounting_entries')
+        .select('id, entry_ref, transaction_date, account_code, debit, credit, description')
+        .eq('user_id', user.id)
+        .gte('transaction_date', resolvedStartDate)
+        .lte('transaction_date', resolvedEndDate)
+        .order('transaction_date', { ascending: true });
+
+      entriesQuery = applyCompanyScope(entriesQuery, { includeUnassigned: false });
+
       const [{ data: entries, error: entriesError }, { data: accounts, error: accountsError }] = await Promise.all([
-        supabase
-          .from('accounting_entries')
-          .select('id, entry_ref, transaction_date, account_code, debit, credit, description')
-          .eq('user_id', user.id)
-          .gte('transaction_date', resolvedStartDate)
-          .lte('transaction_date', resolvedEndDate)
-          .order('transaction_date', { ascending: true }),
+        entriesQuery,
         supabase
           .from('accounting_chart_of_accounts')
           .select('account_code, account_name, account_category, account_type')
@@ -218,7 +224,7 @@ export const useCashFlow = (optionsOrPeriod = 6, granularityArg = 'month') => {
     } finally {
       setLoading(false);
     }
-  }, [user, periodMonths, granularity, startDate, endDate]);
+  }, [applyCompanyScope, user, periodMonths, granularity, startDate, endDate]);
 
   useEffect(() => {
     fetchCashFlow();

@@ -82,6 +82,8 @@ const PurchasesPage = lazyRetry(() => import('./pages/PurchasesPage'));
 const SupplierInvoicesPage = lazyRetry(() => import('./pages/SupplierInvoicesPage'));
 const PeppolPage = lazyRetry(() => import('./pages/PeppolPage'));
 const PilotagePage = lazyRetry(() => import('./pages/PilotagePage'));
+const QuoteSignPage = lazyRetry(() => import('./pages/QuoteSignPage'));
+const PaymentSuccessPage = lazyRetry(() => import('./pages/PaymentSuccessPage'));
 
 // Lazy-loaded feature components
 const SupplierMap = lazyRetry(() => import('@/components/SupplierMap'));
@@ -122,6 +124,8 @@ const AuthWrapper = () => {
             <Route path="/reset-password" element={<Suspense fallback={<PageLoader />}><ResetPasswordPage /></Suspense>} />
             <Route path="/pricing" element={<Suspense fallback={<PageLoader />}><PricingPage /></Suspense>} />
             <Route path="/peppol-guide" element={<Suspense fallback={<PageLoader />}><PeppolGuidePage /></Suspense>} />
+            <Route path="/quote-sign/:token" element={<Suspense fallback={<PageLoader />}><QuoteSignPage /></Suspense>} />
+            <Route path="/payment-success" element={<Suspense fallback={<PageLoader />}><PaymentSuccessPage /></Suspense>} />
 
             {/* Client Portal */}
             <Route path="/client-portal/*" element={

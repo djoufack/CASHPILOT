@@ -69,7 +69,7 @@ export const getAccountCodeForCountry = (fieldName, countryCode) => {
  * @param {string} [countryCode='FR'] - Country code for account mapping
  * @returns {Promise<Object>} Result with created entries count
  */
-export const generateOpeningEntries = async (balances, accountingPlanId, userId, countryCode = 'FR') => {
+export const generateOpeningEntries = async (balances, accountingPlanId, userId, countryCode = 'FR', companyId = null) => {
   if (!userId) {
     throw new Error('userId is required');
   }
@@ -93,6 +93,7 @@ export const generateOpeningEntries = async (balances, accountingPlanId, userId,
     // Main account entry
     entries.push({
       user_id: userId,
+      company_id: companyId,
       transaction_date: dateStr,
       account_code: accountCode,
       debit: isAsset ? amount : 0,
@@ -108,6 +109,7 @@ export const generateOpeningEntries = async (balances, accountingPlanId, userId,
     // Counterpart entry (890 - Bilan d'ouverture)
     entries.push({
       user_id: userId,
+      company_id: companyId,
       transaction_date: dateStr,
       account_code: OPENING_BALANCE_ACCOUNT,
       debit: isAsset ? 0 : amount,
@@ -153,13 +155,19 @@ const generateEntryRef = (date) => {
 /**
  * Delete existing opening balance entries for a user
  */
-export const deleteOpeningBalanceEntries = async (userId) => {
-  const { error } = await supabase
+export const deleteOpeningBalanceEntries = async (userId, companyId = null) => {
+  let query = supabase
     .from('accounting_entries')
     .delete()
     .eq('user_id', userId)
     .eq('journal', OPENING_BALANCE_JOURNAL)
     .like('description', '%Solde d\'ouverture%');
+
+  if (companyId) {
+    query = query.eq('company_id', companyId);
+  }
+
+  const { error } = await query;
 
   if (error) throw error;
   return { success: true };
@@ -172,7 +180,7 @@ export const deleteOpeningBalanceEntries = async (userId) => {
  * @param {Array} balances - Array of { account_code, account_name, amount, type }
  * @returns {Object} Result with created entries count
  */
-export const createOpeningBalanceEntries = async (userId, openingDate, balances) => {
+export const createOpeningBalanceEntries = async (userId, openingDate, balances, companyId = null) => {
   if (!userId || !openingDate || !balances?.length) {
     throw new Error('Missing required parameters');
   }
@@ -197,6 +205,7 @@ export const createOpeningBalanceEntries = async (userId, openingDate, balances)
     // Main account entry
     entries.push({
       user_id: userId,
+      company_id: companyId,
       transaction_date: dateStr,
       account_code: balance.account_code,
       debit: isDebit ? absAmount : 0,
@@ -212,6 +221,7 @@ export const createOpeningBalanceEntries = async (userId, openingDate, balances)
     // Counterpart entry (890 - Bilan d'ouverture)
     entries.push({
       user_id: userId,
+      company_id: companyId,
       transaction_date: dateStr,
       account_code: OPENING_BALANCE_ACCOUNT,
       debit: isDebit ? 0 : absAmount,
@@ -243,13 +253,19 @@ export const createOpeningBalanceEntries = async (userId, openingDate, balances)
 /**
  * Get existing opening balance entries for a user
  */
-export const getOpeningBalanceEntries = async (userId) => {
-  const { data, error } = await supabase
+export const getOpeningBalanceEntries = async (userId, companyId = null) => {
+  let query = supabase
     .from('accounting_entries')
     .select('*')
     .eq('user_id', userId)
     .eq('source_type', 'opening_balance')
     .order('account_code');
+
+  if (companyId) {
+    query = query.eq('company_id', companyId);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return data || [];
@@ -259,12 +275,12 @@ export const getOpeningBalanceEntries = async (userId) => {
  * Reinitialize balance sheet with new opening balances
  * Deletes existing opening entries and creates new ones
  */
-export const reinitializeOpeningBalances = async (userId, openingDate, balances) => {
+export const reinitializeOpeningBalances = async (userId, openingDate, balances, companyId = null) => {
   // Delete existing opening balance entries
-  await deleteOpeningBalanceEntries(userId);
+  await deleteOpeningBalanceEntries(userId, companyId);
 
   // Create new opening balance entries
-  return createOpeningBalanceEntries(userId, openingDate, balances);
+  return createOpeningBalanceEntries(userId, openingDate, balances, companyId);
 };
 
 /**
