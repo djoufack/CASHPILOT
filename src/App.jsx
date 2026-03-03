@@ -84,6 +84,7 @@ const PeppolPage = lazyRetry(() => import('./pages/PeppolPage'));
 const PilotagePage = lazyRetry(() => import('./pages/PilotagePage'));
 const QuoteSignPage = lazyRetry(() => import('./pages/QuoteSignPage'));
 const PaymentSuccessPage = lazyRetry(() => import('./pages/PaymentSuccessPage'));
+const PortfolioPage = lazyRetry(() => import('./pages/PortfolioPage'));
 
 // Lazy-loaded feature components
 const SupplierMap = lazyRetry(() => import('@/components/SupplierMap'));
@@ -218,6 +219,7 @@ const AuthWrapper = () => {
                 <Route path="audit-comptable" element={<Suspense fallback={<PageLoader />}><AuditComptable /></Suspense>} />
                 <Route path="pilotage" element={<Suspense fallback={<PageLoader />}><PilotagePage /></Suspense>} />
                 <Route path="bank-connections" element={<Suspense fallback={<PageLoader />}><BankConnectionsPage /></Suspense>} />
+                <Route path="portfolio" element={<Suspense fallback={<PageLoader />}><PortfolioPage /></Suspense>} />
                 <Route path="bank-callback" element={<Suspense fallback={<PageLoader />}><BankCallbackPage /></Suspense>} />
                 <Route path="analytics" element={
                   <Suspense fallback={<PageLoader />}>

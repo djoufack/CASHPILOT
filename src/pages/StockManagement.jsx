@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useStockAlerts, useStockHistory } from '@/hooks/useStockHistory';
 import { useProducts, useProductCategories } from '@/hooks/useProducts';
 import { useCompany } from '@/hooks/useCompany';
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Package, Search, Plus, Trash2, Edit2, Download, FileText } from 'lucide-react';
+import { AlertTriangle, Package, Search, Plus, Trash2, Download, FileText, Wallet, TrendingUp, Target, BarChart3 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,6 +49,7 @@ const StockManagement = () => {
   const [adjNewQty, setAdjNewQty] = useState('');
   const [adjReason, setAdjReason] = useState('adjustment');
   const [adjNotes, setAdjNotes] = useState('');
+  const [valuationMode, setValuationMode] = useState('cost');
 
   // Add product dialog state
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -84,6 +85,106 @@ const StockManagement = () => {
   const lowStockCount = products.filter(p => p.stock_quantity > 0 && p.stock_quantity <= p.min_stock_level).length;
   const outOfStockCount = products.filter(p => p.stock_quantity <= 0).length;
   const totalValue = products.reduce((sum, p) => sum + (p.stock_quantity * p.unit_price), 0);
+
+  const stockInsights = useMemo(() => {
+    return filteredProducts.map(product => {
+      const stockQuantity = Number(product.stock_quantity || 0);
+      const minStockLevel = Number(product.min_stock_level || 0);
+      const purchasePrice = Number(product.purchase_price || 0);
+      const unitPrice = Number(product.unit_price || 0);
+      const costValue = stockQuantity * purchasePrice;
+      const retailValue = stockQuantity * unitPrice;
+      const potentialMargin = retailValue - costValue;
+      const reorderUnits = Math.max(0, minStockLevel - stockQuantity);
+      const reorderCost = reorderUnits * purchasePrice;
+      const grossMarginPct = unitPrice > 0 ? ((unitPrice - purchasePrice) / unitPrice) * 100 : null;
+
+      return {
+        ...product,
+        stockQuantity,
+        minStockLevel,
+        purchasePrice,
+        unitPrice,
+        costValue,
+        retailValue,
+        potentialMargin,
+        reorderUnits,
+        reorderCost,
+        grossMarginPct,
+      };
+    });
+  }, [filteredProducts]);
+
+  const strategicStock = useMemo(() => {
+    const totalCostPool = stockInsights.reduce((sum, product) => sum + product.costValue, 0);
+    let runningCost = 0;
+
+    return [...stockInsights]
+      .sort((a, b) => b.costValue - a.costValue)
+      .map(product => {
+        runningCost += product.costValue;
+        const cumulativeShare = totalCostPool > 0 ? runningCost / totalCostPool : 0;
+        const abcClass = cumulativeShare <= 0.8 ? 'A' : cumulativeShare <= 0.95 ? 'B' : 'C';
+        return { ...product, abcClass, cumulativeShare };
+      });
+  }, [stockInsights]);
+
+  const valuationMap = {
+    cost: {
+      label: 'Valeur de revient',
+      metricKey: 'costValue',
+      accentClass: 'text-blue-400',
+    },
+    retail: {
+      label: 'Valeur de vente',
+      metricKey: 'retailValue',
+      accentClass: 'text-emerald-400',
+    },
+    margin: {
+      label: 'Marge potentielle',
+      metricKey: 'potentialMargin',
+      accentClass: 'text-orange-400',
+    },
+  };
+
+  const selectedValuation = valuationMap[valuationMode] || valuationMap.cost;
+
+  const inventoryValueAtCost = strategicStock.reduce((sum, product) => sum + product.costValue, 0);
+  const inventoryValueAtRetail = strategicStock.reduce((sum, product) => sum + product.retailValue, 0);
+  const potentialMarginValue = strategicStock.reduce((sum, product) => sum + product.potentialMargin, 0);
+  const reorderExposure = strategicStock.reduce((sum, product) => sum + product.reorderCost, 0);
+  const missingPurchasePriceCount = strategicStock.filter(product => product.stockQuantity > 0 && product.purchasePrice <= 0).length;
+  const negativeMarginCount = strategicStock.filter(product => product.stockQuantity > 0 && product.unitPrice > 0 && product.potentialMargin < 0).length;
+
+  const reorderPriorities = useMemo(() => {
+    return strategicStock
+      .filter(product => product.reorderUnits > 0)
+      .sort((a, b) => {
+        if (b.reorderCost !== a.reorderCost) return b.reorderCost - a.reorderCost;
+        return b.reorderUnits - a.reorderUnits;
+      })
+      .slice(0, 8);
+  }, [strategicStock]);
+
+  const highValueProducts = useMemo(() => {
+    const metricKey = selectedValuation.metricKey;
+    return [...strategicStock]
+      .sort((a, b) => Number(b[metricKey] || 0) - Number(a[metricKey] || 0))
+      .slice(0, 8);
+  }, [selectedValuation.metricKey, strategicStock]);
+
+  const abcSummary = useMemo(() => {
+    return ['A', 'B', 'C'].map(abcClass => {
+      const items = strategicStock.filter(product => product.abcClass === abcClass);
+      const value = items.reduce((sum, product) => sum + product.costValue, 0);
+      return {
+        abcClass,
+        count: items.length,
+        value,
+        share: inventoryValueAtCost > 0 ? (value / inventoryValueAtCost) * 100 : 0,
+      };
+    });
+  }, [inventoryValueAtCost, strategicStock]);
 
   // Load history for selected product
   const loadHistory = async (productId) => {
@@ -144,6 +245,16 @@ const StockManagement = () => {
     if (product.stock_quantity <= 0) return <Badge variant="destructive">Rupture</Badge>;
     if (product.stock_quantity <= product.min_stock_level) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Stock bas</Badge>;
     return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">OK</Badge>;
+  };
+
+  const getAbcBadge = (abcClass) => {
+    if (abcClass === 'A') {
+      return <Badge className="bg-red-500/15 text-red-300 border border-red-500/20">A stratégique</Badge>;
+    }
+    if (abcClass === 'B') {
+      return <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/20">B piloté</Badge>;
+    }
+    return <Badge className="bg-blue-500/15 text-blue-300 border border-blue-500/20">C long tail</Badge>;
   };
 
   const handleExportPDF = () => {
@@ -365,12 +476,243 @@ const StockManagement = () => {
       )}
 
       {/* Tabs */}
-      <Tabs defaultValue="inventory" className="w-full">
+      <Tabs defaultValue="cockpit" className="w-full">
         <TabsList className="bg-gray-900 border-gray-800">
+          <TabsTrigger value="cockpit">Cockpit stock</TabsTrigger>
           <TabsTrigger value="inventory">Inventaire</TabsTrigger>
           <TabsTrigger value="history">Historique</TabsTrigger>
           <TabsTrigger value="adjustments">Ajustements</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="cockpit" className="mt-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <Wallet className="w-4 h-4 text-blue-400" />
+                  Valeur de revient
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-400">
+                  {formatNumber(inventoryValueAtCost)} {currencySymbol}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Base achats de votre stock filtré.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  Valeur de vente
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-400">
+                  {formatNumber(inventoryValueAtRetail)} {currencySymbol}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Projection si tout le stock est vendu au tarif actuel.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <Target className="w-4 h-4 text-orange-400" />
+                  Marge potentielle
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${potentialMarginValue >= 0 ? 'text-orange-400' : 'text-red-400'}`}>
+                  {formatNumber(potentialMarginValue)} {currencySymbol}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Ecart entre valeur de vente et valeur de revient.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                  Réappro prioritaire
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-400">
+                  {formatNumber(reorderExposure)} {currencySymbol}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Budget achat à prévoir pour remettre les articles sous seuil au niveau cible.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <Card className="bg-gray-900 border-gray-800 xl:col-span-2">
+              <CardHeader className="pb-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-orange-400" />
+                      Articles stratégiques
+                    </CardTitle>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Classement ABC et priorisation selon la valorisation choisie.
+                    </p>
+                  </div>
+                  <Select value={valuationMode} onValueChange={setValuationMode}>
+                    <SelectTrigger className="w-full md:w-[220px] bg-gray-800 border-gray-700 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                      <SelectItem value="cost">Valeur de revient</SelectItem>
+                      <SelectItem value="retail">Valeur de vente</SelectItem>
+                      <SelectItem value="margin">Marge potentielle</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {highValueProducts.length === 0 ? (
+                  <p className="text-sm text-gray-500">Aucun produit ne correspond au filtre courant.</p>
+                ) : highValueProducts.map(product => (
+                  <div key={product.id} className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-white">{product.product_name}</p>
+                          {getAbcBadge(product.abcClass)}
+                          {getStockBadge(product)}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          SKU: {product.sku || '—'} • Stock: {product.stockQuantity} • Seuil mini: {product.minStockLevel}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-lg font-semibold ${selectedValuation.accentClass}`}>
+                          {formatNumber(product[selectedValuation.metricKey] || 0)} {currencySymbol}
+                        </p>
+                        <p className="text-xs text-gray-500">{selectedValuation.label}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 text-sm">
+                      <div className="bg-gray-900/60 rounded-md p-3">
+                        <p className="text-gray-500 text-xs uppercase tracking-wider">Coût unitaire</p>
+                        <p className="text-white font-medium mt-1">{formatNumber(product.purchasePrice)} {currencySymbol}</p>
+                      </div>
+                      <div className="bg-gray-900/60 rounded-md p-3">
+                        <p className="text-gray-500 text-xs uppercase tracking-wider">Prix de vente</p>
+                        <p className="text-white font-medium mt-1">{formatNumber(product.unitPrice)} {currencySymbol}</p>
+                      </div>
+                      <div className="bg-gray-900/60 rounded-md p-3">
+                        <p className="text-gray-500 text-xs uppercase tracking-wider">Marge brute unitaire</p>
+                        <p className={`font-medium mt-1 ${product.grossMarginPct != null && product.grossMarginPct < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                          {product.grossMarginPct == null ? 'Non calculable' : `${formatNumber(product.grossMarginPct, 1)} %`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white">Qualité du portefeuille</CardTitle>
+                <p className="text-sm text-gray-400">
+                  Points de vigilance sur vos articles filtrés.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+                  <p className="text-sm text-gray-400">Coûts d'achat manquants</p>
+                  <p className="text-2xl font-bold text-white mt-1">{missingPurchasePriceCount}</p>
+                  <p className="text-xs text-gray-500 mt-2">Produits avec stock mais sans prix d'achat fiable.</p>
+                </div>
+                <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+                  <p className="text-sm text-gray-400">Marges à risque</p>
+                  <p className="text-2xl font-bold text-red-400 mt-1">{negativeMarginCount}</p>
+                  <p className="text-xs text-gray-500 mt-2">Articles avec valeur de vente inférieure au coût d'achat.</p>
+                </div>
+                <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+                  <p className="text-sm text-gray-400 mb-3">Mix ABC par valeur</p>
+                  <div className="space-y-3">
+                    {abcSummary.map(row => (
+                      <div key={row.abcClass}>
+                        <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                          <span>Classe {row.abcClass}</span>
+                          <span>{row.count} produit(s) • {formatNumber(row.share, 1)} %</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
+                          <div
+                            className={`${row.abcClass === 'A' ? 'bg-red-400' : row.abcClass === 'B' ? 'bg-amber-400' : 'bg-blue-400'} h-full rounded-full`}
+                            style={{ width: `${Math.min(100, row.share)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-white">Priorités de réapprovisionnement</CardTitle>
+              <p className="text-sm text-gray-400">
+                Articles sous le seuil minimum, triés par impact d'achat.
+              </p>
+            </CardHeader>
+            <CardContent>
+              {reorderPriorities.length === 0 ? (
+                <p className="text-sm text-gray-500">Aucune priorité de réappro sur le filtre courant.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-800 hover:bg-transparent">
+                        <TableHead className="text-gray-400">Produit</TableHead>
+                        <TableHead className="text-gray-400">Classe</TableHead>
+                        <TableHead className="text-gray-400 text-right">Stock</TableHead>
+                        <TableHead className="text-gray-400 text-right">Min</TableHead>
+                        <TableHead className="text-gray-400 text-right">Écart</TableHead>
+                        <TableHead className="text-gray-400 text-right">Budget achat</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reorderPriorities.map(product => (
+                        <TableRow key={product.id} className="border-gray-800">
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-white">{product.product_name}</p>
+                              <p className="text-xs text-gray-500">{product.sku || 'Sans SKU'}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{getAbcBadge(product.abcClass)}</TableCell>
+                          <TableCell className="text-right text-white">{product.stockQuantity}</TableCell>
+                          <TableCell className="text-right text-gray-400">{product.minStockLevel}</TableCell>
+                          <TableCell className="text-right text-yellow-400 font-medium">{product.reorderUnits}</TableCell>
+                          <TableCell className="text-right text-white font-medium">
+                            {formatNumber(product.reorderCost)} {currencySymbol}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Inventory Tab */}
         <TabsContent value="inventory" className="mt-4">

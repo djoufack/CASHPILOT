@@ -50,6 +50,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         path: '/app/pilotage',
       },
       {
+        id: 'portfolio',
+        label: t('nav.companyPortfolio') || 'Portefeuille sociétés',
+        icon: Building2,
+        type: 'direct',
+        path: '/app/portfolio',
+      },
+      {
         id: 'peppol',
         label: t('nav.peppolEInvoicing'),
         icon: Globe,
