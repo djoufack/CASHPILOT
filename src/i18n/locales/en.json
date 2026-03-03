@@ -2738,6 +2738,196 @@
       "curlExample": "Quick example (cURL)"
     }
   },
+  "bankConnectionsPage": {
+    "subtitle": "Connect your banks, sync balances, and monitor consent status.",
+    "syncedBalances": "Synced balances",
+    "balanceMixedCurrencies": "Aggregated across multiple currencies: {{currencies}}",
+    "balanceAggregated": "Aggregated balance of active accounts",
+    "bankEstate": "Banking estate",
+    "emptyTitle": "No bank connections yet",
+    "emptyDescription": "Connect your first bank to monitor account balances and syncs.",
+    "accountFallback": "Bank account",
+    "institutionFallback": "Unknown bank",
+    "ibanUnavailable": "IBAN unavailable",
+    "lastSync": "Last sync: {{date}}",
+    "consentUntil": "Consent valid until: {{date}}",
+    "balanceUnavailable": "Balance unavailable",
+    "never": "Never",
+    "status": {
+      "active": "Active",
+      "pending": "Pending",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "syncAll": "Sync all",
+      "connectBank": "Connect bank",
+      "sync": "Sync",
+      "remove": "Remove",
+      "reload": "Reload",
+      "connect": "Connect"
+    },
+    "metrics": {
+      "connections": "Connections",
+      "active": "Active",
+      "pending": "Pending"
+    },
+    "dialog": {
+      "title": "Connect a bank",
+      "description": "Choose your country and institution to start a secure PSD2 connection.",
+      "countryLabel": "Country",
+      "chooseCountry": "Choose a country",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search for a bank or BIC...",
+      "loadingInstitutions": "Loading institutions...",
+      "institutionsFound": "{{count}} institutions found for {{country}}",
+      "noInstitutionMatch": "No bank matches this search.",
+      "bicUnavailable": "BIC unavailable",
+      "historyDays": "{{count}} d history"
+    },
+    "toasts": {
+      "connectedTitle": "Bank connected",
+      "connectedDescription": "{{accounts}} account(s) linked, {{synced}} transaction(s) synced.",
+      "connectionFailedTitle": "Bank connection failed",
+      "connectionImpossibleTitle": "Connection failed",
+      "syncDoneTitle": "Sync completed",
+      "syncDoneDescription": "{{name}}: {{count}} transaction(s) synced.",
+      "syncFailedTitle": "Sync failed",
+      "partialSyncTitle": "Partial sync",
+      "partialSyncDescription": "{{successCount}} succeeded, {{failureCount}} failed, {{syncedTotal}} transaction(s) synced.",
+      "fullSyncTitle": "All syncs completed",
+      "fullSyncDescription": "{{successCount}} account(s), {{syncedTotal}} transaction(s) synced."
+    },
+    "errors": {
+      "loadInstitutions": "Unable to load the institution list.",
+      "authorizationFailed": "Unable to initialize bank authorization.",
+      "syncFailed": "Account sync failed."
+    },
+    "countries": {
+      "BE": "Belgium",
+      "FR": "France",
+      "DE": "Germany",
+      "ES": "Spain",
+      "IT": "Italy",
+      "NL": "Netherlands"
+    }
+  },
+  "quoteSignPage": {
+    "invalidLink": "This signing link is invalid or expired.",
+    "loadError": "Unable to load this quote.",
+    "submitError": "Unable to submit the signature.",
+    "successTitle": "Quote signed",
+    "successDescription": "{{name}}, your signature has been recorded successfully.",
+    "rejectedTitle": "Quote rejected",
+    "rejectedDescription": "This quote has been rejected.",
+    "title": "Sign quote",
+    "quoteNumber": "Quote {{number}}",
+    "summaryTitle": "Quote summary",
+    "client": "Client",
+    "amountExVat": "Amount excl. VAT",
+    "tax": "VAT",
+    "total": "Total",
+    "notes": "Notes: {{notes}}",
+    "signatureTitle": "Signature",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Your name",
+    "signature": "Signature",
+    "signatureCaptured": "Signature captured",
+    "reject": "Reject",
+    "signAndAccept": "Sign and accept",
+    "submitting": "Submitting..."
+  },
+  "analyticsPage": {
+    "pageTitle": "Analytics",
+    "title": "Analytics & Reporting",
+    "subtitle": "Executive KPIs, receivables exposure, and performance steering.",
+    "shareTitle": "{{company}} - Analytics",
+    "actions": {
+      "refresh": "Refresh data"
+    },
+    "toasts": {
+      "refreshSuccess": "Analytics data refreshed successfully.",
+      "refreshError": "Failed to refresh analytics data."
+    },
+    "creditLabels": {
+      "pdf": "Analytics PDF",
+      "html": "Analytics HTML"
+    },
+    "kpis": {
+      "collectedRevenue": {
+        "title": "Collected revenue",
+        "hint": "Collection rate: {{value}}%"
+      },
+      "bookedRevenue": {
+        "title": "Booked revenue",
+        "hint": "Issued invoices excluding drafts"
+      },
+      "outstandingReceivables": {
+        "title": "Outstanding receivables",
+        "hint": "{{value}} overdue"
+      },
+      "expenses": {
+        "title": "Expenses",
+        "hint": "Gross margin: {{value}}%"
+      },
+      "billableHours": {
+        "title": "Billable hours",
+        "hint": "Utilization: {{value}}%"
+      },
+      "invoicingCoverage": {
+        "title": "Invoicing coverage",
+        "hint": "Internal day rate: {{value}}/h"
+      }
+    },
+    "charts": {
+      "revenueVsExpenses": "Revenue vs expenses"
+    },
+    "series": {
+      "revenue": "Revenue",
+      "expenses": "Expenses"
+    },
+    "empty": {
+      "noData": "No data available"
+    },
+    "aging": {
+      "title": "Receivables aging",
+      "empty": "No significant receivables exposure.",
+      "buckets": {
+        "current": "Current",
+        "1-30": "1-30 d",
+        "31-60": "31-60 d",
+        "61+": "61+ d"
+      }
+    },
+    "concentration": {
+      "title": "Client concentration",
+      "empty": "Not enough invoices yet to measure client concentration."
+    },
+    "watchlist": {
+      "title": "Overdue client watchlist",
+      "empty": "No overdue invoices detected.",
+      "dueDate": "{{invoiceNumber}} • due {{dueDate}}",
+      "daysOverdue": "{{count}} d overdue",
+      "outstandingLabel": "Related outstanding amount"
+    },
+    "clientRevenue": {
+      "title": "Revenue by client"
+    },
+    "efficiency": {
+      "title": "Invoicing & project efficiency",
+      "totalHours": "Total hours",
+      "billable": "Billable",
+      "invoicedHours": "Invoiced hours",
+      "empty": "No usable project data yet.",
+      "hoursWorked": "{{value}} h worked",
+      "noRevenueLinked": "No linked revenue"
+    },
+    "fallbacks": {
+      "unknownClient": "Unknown client",
+      "unassignedProject": "Unassigned"
+    }
+  },
   "company": {
     "addCompany": "Add Company",
     "selectCompany": "Select Company",

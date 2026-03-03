@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Building2,
@@ -22,40 +22,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useBankConnections } from '@/hooks/useBankConnections';
 import { useCompany } from '@/hooks/useCompany';
 import { useReferenceData } from '@/contexts/ReferenceDataContext';
-import { formatNumber } from '@/utils/calculations';
 
 const DEFAULT_COUNTRY = 'BE';
-
-const statusConfig = {
-  active: { color: 'text-green-400 bg-green-500/10', icon: CheckCircle2, label: 'Connecté' },
-  pending: { color: 'text-yellow-400 bg-yellow-500/10', icon: Clock, label: 'En attente' },
-  expired: { color: 'text-red-400 bg-red-500/10', icon: XCircle, label: 'Consentement expiré' },
-  revoked: { color: 'text-gray-400 bg-gray-500/10', icon: XCircle, label: 'Déconnecté' },
-  error: { color: 'text-red-400 bg-red-500/10', icon: ShieldAlert, label: 'Erreur' },
-};
-
-function formatDateTime(value) {
-  if (!value) {
-    return 'Jamais';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return 'Jamais';
-  }
-
-  return date.toLocaleString('fr-FR', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  });
-}
 
 function normalizeCountryCode(value) {
   return String(value || DEFAULT_COUNTRY).trim().toUpperCase() || DEFAULT_COUNTRY;
 }
 
 const BankConnectionsPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { company } = useCompany();
   const { countryOptions } = useReferenceData();
@@ -80,6 +55,40 @@ const BankConnectionsPage = () => {
   const [syncingConnectionId, setSyncingConnectionId] = useState(null);
   const [syncingAll, setSyncingAll] = useState(false);
   const deferredSearch = useDeferredValue(institutionSearch);
+  const locale = i18n.resolvedLanguage || i18n.language || 'en';
+
+  const statusConfig = useMemo(() => ({
+    active: { color: 'text-green-400 bg-green-500/10', icon: CheckCircle2, label: t('bankConnectionsPage.status.active') },
+    pending: { color: 'text-yellow-400 bg-yellow-500/10', icon: Clock, label: t('bankConnectionsPage.status.pending') },
+    expired: { color: 'text-red-400 bg-red-500/10', icon: XCircle, label: t('bankConnectionsPage.status.expired') },
+    revoked: { color: 'text-gray-400 bg-gray-500/10', icon: XCircle, label: t('bankConnectionsPage.status.revoked') },
+    error: { color: 'text-red-400 bg-red-500/10', icon: ShieldAlert, label: t('common.error') },
+  }), [t]);
+
+  const formatDateTime = useCallback((value) => {
+    if (!value) {
+      return t('bankConnectionsPage.never');
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return t('bankConnectionsPage.never');
+    }
+
+    return date.toLocaleString(locale, {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    });
+  }, [locale, t]);
+
+  const formatAmount = useCallback((value, currency = 'EUR') => {
+    const amount = Number(value || 0);
+    const formatted = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+    return `${formatted} ${String(currency || 'EUR').toUpperCase()}`;
+  }, [locale]);
 
   useEffect(() => {
     if (!company?.country) {
@@ -108,14 +117,14 @@ const BankConnectionsPage = () => {
       const accounts = Number(searchParams.get('accounts') || 0);
       const synced = Number(searchParams.get('synced') || 0);
       toast({
-        title: 'Banque connectée',
-        description: `${accounts} compte(s) relié(s), ${synced} transaction(s) synchronisée(s).`,
+        title: t('bankConnectionsPage.toasts.connectedTitle'),
+        description: t('bankConnectionsPage.toasts.connectedDescription', { accounts, synced }),
       });
     }
 
     if (error) {
       toast({
-        title: 'Connexion bancaire échouée',
+        title: t('bankConnectionsPage.toasts.connectionFailedTitle'),
         description: message || error,
         variant: 'destructive',
       });
@@ -128,7 +137,7 @@ const BankConnectionsPage = () => {
     nextParams.delete('error');
     nextParams.delete('message');
     setSearchParams(nextParams, { replace: true });
-  }, [searchParams, setSearchParams, toast]);
+  }, [searchParams, setSearchParams, t, toast]);
 
   const loadInstitutions = async (countryCode, { force = false } = {}) => {
     setInstitutionsLoading(true);
@@ -139,7 +148,7 @@ const BankConnectionsPage = () => {
       setInstitutions(rows);
     } catch (err) {
       setInstitutions([]);
-      setInstitutionsError(err?.message || 'Impossible de charger les banques disponibles.');
+      setInstitutionsError(err?.message || t('bankConnectionsPage.errors.loadInstitutions'));
     } finally {
       setInstitutionsLoading(false);
     }
@@ -185,14 +194,14 @@ const BankConnectionsPage = () => {
     }
 
     return [
-      { value: 'BE', label: 'Belgique' },
-      { value: 'FR', label: 'France' },
-      { value: 'DE', label: 'Allemagne' },
-      { value: 'ES', label: 'Espagne' },
-      { value: 'IT', label: 'Italie' },
-      { value: 'NL', label: 'Pays-Bas' },
+      { value: 'BE', label: t('bankConnectionsPage.countries.BE') },
+      { value: 'FR', label: t('bankConnectionsPage.countries.FR') },
+      { value: 'DE', label: t('bankConnectionsPage.countries.DE') },
+      { value: 'ES', label: t('bankConnectionsPage.countries.ES') },
+      { value: 'IT', label: t('bankConnectionsPage.countries.IT') },
+      { value: 'NL', label: t('bankConnectionsPage.countries.NL') },
     ];
-  }, [countryOptions]);
+  }, [countryOptions, t]);
 
   const handleOpenConnectDialog = () => {
     setInstitutionSearch('');
@@ -211,8 +220,8 @@ const BankConnectionsPage = () => {
       });
     } catch (err) {
       toast({
-        title: 'Connexion bancaire impossible',
-        description: err?.message || 'La demande d’autorisation bancaire a échoué.',
+        title: t('bankConnectionsPage.toasts.connectionImpossibleTitle'),
+        description: err?.message || t('bankConnectionsPage.errors.authorizationFailed'),
         variant: 'destructive',
       });
       setConnectingInstitutionId(null);
@@ -224,13 +233,16 @@ const BankConnectionsPage = () => {
     try {
       const result = await syncConnection(connection.id);
       toast({
-        title: 'Synchronisation terminée',
-        description: `${connection.institution_name || connection.account_name || 'Compte'}: ${Number(result?.synced || 0)} transaction(s) synchronisée(s).`,
+        title: t('bankConnectionsPage.toasts.syncDoneTitle'),
+        description: t('bankConnectionsPage.toasts.syncDoneDescription', {
+          name: connection.institution_name || connection.account_name || t('bankConnectionsPage.accountFallback'),
+          count: Number(result?.synced || 0),
+        }),
       });
     } catch (err) {
       toast({
-        title: 'Synchronisation échouée',
-        description: err?.message || 'La synchronisation bancaire a échoué.',
+        title: t('bankConnectionsPage.toasts.syncFailedTitle'),
+        description: err?.message || t('bankConnectionsPage.errors.syncFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -262,16 +274,23 @@ const BankConnectionsPage = () => {
 
     if (failureCount > 0) {
       toast({
-        title: 'Synchronisation partielle',
-        description: `${successCount} compte(s) synchronisé(s), ${failureCount} en échec, ${syncedTotal} transaction(s) importée(s).`,
+        title: t('bankConnectionsPage.toasts.partialSyncTitle'),
+        description: t('bankConnectionsPage.toasts.partialSyncDescription', {
+          successCount,
+          failureCount,
+          syncedTotal,
+        }),
         variant: 'destructive',
       });
       return;
     }
 
     toast({
-      title: 'Synchronisation complète',
-      description: `${successCount} compte(s) synchronisé(s), ${syncedTotal} transaction(s) importée(s).`,
+      title: t('bankConnectionsPage.toasts.fullSyncTitle'),
+      description: t('bankConnectionsPage.toasts.fullSyncDescription', {
+        successCount,
+        syncedTotal,
+      }),
     });
   };
 
@@ -284,7 +303,7 @@ const BankConnectionsPage = () => {
             {t('nav.bankConnections', 'Connexions Bancaires')}
           </h1>
           <p className="mt-1 text-sm text-gray-400">
-            Connectez vos comptes via GoCardless, synchronisez les transactions et préparez la réconciliation.
+            {t('bankConnectionsPage.subtitle')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -294,7 +313,7 @@ const BankConnectionsPage = () => {
             className="text-gray-300 hover:text-white"
           >
             <RefreshCw className="mr-2 h-4 w-4" />
-            Actualiser
+            {t('bankConnectionsPage.actions.refresh')}
           </Button>
           <Button
             variant="outline"
@@ -303,11 +322,11 @@ const BankConnectionsPage = () => {
             className="border-gray-700 bg-gray-900 text-white hover:bg-gray-800"
           >
             {syncingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            Synchroniser tout
+            {t('bankConnectionsPage.actions.syncAll')}
           </Button>
           <Button onClick={handleOpenConnectDialog} className="bg-orange-500 hover:bg-orange-600">
             <Plus className="mr-2 h-4 w-4" />
-            Connecter une banque
+            {t('bankConnectionsPage.actions.connectBank')}
           </Button>
         </div>
       </div>
@@ -317,37 +336,37 @@ const BankConnectionsPage = () => {
           <div className="flex items-center gap-3">
             <Wallet className="h-8 w-8 text-orange-400" />
             <div>
-              <p className="text-sm text-gray-400">Soldes synchronisés</p>
+              <p className="text-sm text-gray-400">{t('bankConnectionsPage.syncedBalances')}</p>
               <p className="text-3xl font-bold text-white">
-                {formatNumber(totalBalance)} {balanceCurrencies[0] || 'EUR'}
+                {formatAmount(totalBalance, balanceCurrencies[0] || 'EUR')}
               </p>
               <p className="mt-1 text-xs text-gray-500">
                 {hasMixedCurrencies
-                  ? `Somme brute multi-devises (${balanceCurrencies.join(', ')}), sans conversion.`
-                  : 'Total agrégé des comptes actifs déjà synchronisés.'}
+                  ? t('bankConnectionsPage.balanceMixedCurrencies', { currencies: balanceCurrencies.join(', ') })
+                  : t('bankConnectionsPage.balanceAggregated')}
               </p>
             </div>
           </div>
         </div>
 
         <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-6">
-          <p className="text-sm text-gray-400">État du parc bancaire</p>
+          <p className="text-sm text-gray-400">{t('bankConnectionsPage.bankEstate')}</p>
           <div className="mt-4 grid grid-cols-3 gap-3 text-center">
             <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
               <p className="text-2xl font-semibold text-white">{connections.length}</p>
-              <p className="text-xs text-gray-500">Connexions</p>
+              <p className="text-xs text-gray-500">{t('bankConnectionsPage.metrics.connections')}</p>
             </div>
             <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
               <p className="text-2xl font-semibold text-green-400">
                 {connections.filter((connection) => connection.status === 'active').length}
               </p>
-              <p className="text-xs text-gray-500">Actives</p>
+              <p className="text-xs text-gray-500">{t('bankConnectionsPage.metrics.active')}</p>
             </div>
             <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
               <p className="text-2xl font-semibold text-yellow-400">
                 {connections.filter((connection) => connection.status === 'pending').length}
               </p>
-              <p className="text-xs text-gray-500">En attente</p>
+              <p className="text-xs text-gray-500">{t('bankConnectionsPage.metrics.pending')}</p>
             </div>
           </div>
         </div>
@@ -360,8 +379,8 @@ const BankConnectionsPage = () => {
       ) : connections.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-800 bg-gray-900/40 py-12 text-center text-gray-500">
           <Building2 className="mx-auto mb-4 h-16 w-16 text-gray-700" />
-          <p className="text-lg text-white">Aucune banque connectée</p>
-          <p className="mt-1 text-sm">Connectez votre premier compte pour importer soldes et transactions.</p>
+          <p className="text-lg text-white">{t('bankConnectionsPage.emptyTitle')}</p>
+          <p className="mt-1 text-sm">{t('bankConnectionsPage.emptyDescription')}</p>
         </div>
       ) : (
         <div className="grid gap-4">
@@ -392,7 +411,7 @@ const BankConnectionsPage = () => {
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-medium text-white">
-                          {connection.account_name || connection.institution_name || 'Compte bancaire'}
+                          {connection.account_name || connection.institution_name || t('bankConnectionsPage.accountFallback')}
                         </h3>
                         <div className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${status.color}`}>
                           <StatusIcon className="h-3 w-3" />
@@ -400,12 +419,12 @@ const BankConnectionsPage = () => {
                         </div>
                       </div>
                       <p className="mt-1 text-sm text-gray-400">
-                        {connection.institution_name || 'Institution bancaire'}
-                        {connection.account_iban ? ` • ${connection.account_iban}` : ' • IBAN non disponible'}
+                        {connection.institution_name || t('bankConnectionsPage.institutionFallback')}
+                        {connection.account_iban ? ` • ${connection.account_iban}` : ` • ${t('bankConnectionsPage.ibanUnavailable')}`}
                       </p>
                       <div className="mt-3 grid gap-1 text-xs text-gray-500 sm:grid-cols-2">
-                        <p>Dernière synchro: {formatDateTime(connection.last_sync_at)}</p>
-                        <p>Consentement jusqu’au: {formatDateTime(connection.expires_at)}</p>
+                        <p>{t('bankConnectionsPage.lastSync', { date: formatDateTime(connection.last_sync_at) })}</p>
+                        <p>{t('bankConnectionsPage.consentUntil', { date: formatDateTime(connection.expires_at) })}</p>
                       </div>
                       {connection.sync_error ? (
                         <p className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-300">
@@ -418,10 +437,10 @@ const BankConnectionsPage = () => {
                   <div className="flex min-w-[220px] flex-col items-start gap-3 lg:items-end">
                     {connection.account_balance != null ? (
                       <p className={`text-lg font-semibold ${Number(connection.account_balance) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {formatNumber(connection.account_balance)} {String(connection.account_currency || 'EUR').toUpperCase()}
+                        {formatAmount(connection.account_balance, connection.account_currency || 'EUR')}
                       </p>
                     ) : (
-                      <p className="text-sm text-gray-500">Solde non disponible</p>
+                      <p className="text-sm text-gray-500">{t('bankConnectionsPage.balanceUnavailable')}</p>
                     )}
 
                     <div className="flex flex-wrap gap-2">
@@ -433,7 +452,7 @@ const BankConnectionsPage = () => {
                         className="border-gray-700 bg-gray-950 text-white hover:bg-gray-800"
                       >
                         {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                        Synchroniser
+                        {t('bankConnectionsPage.actions.sync')}
                       </Button>
                       <Button
                         variant="ghost"
@@ -442,7 +461,7 @@ const BankConnectionsPage = () => {
                         className="text-gray-400 hover:text-red-400"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Retirer
+                        {t('bankConnectionsPage.actions.remove')}
                       </Button>
                     </div>
                   </div>
@@ -456,21 +475,21 @@ const BankConnectionsPage = () => {
       <Dialog open={isConnectDialogOpen} onOpenChange={setConnectDialogOpen}>
         <DialogContent className="max-w-3xl border-gray-800 bg-gray-950 text-white">
           <DialogHeader>
-            <DialogTitle>Connecter une banque</DialogTitle>
+            <DialogTitle>{t('bankConnectionsPage.dialog.title')}</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Sélectionnez un pays puis votre institution bancaire pour lancer l’autorisation GoCardless.
+              {t('bankConnectionsPage.dialog.description')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 md:grid-cols-[220px_1fr]">
             <div className="space-y-2">
-              <Label htmlFor="bank-country">Pays de la banque</Label>
+              <Label htmlFor="bank-country">{t('bankConnectionsPage.dialog.countryLabel')}</Label>
               <Select
                 value={selectedCountry}
                 onValueChange={(value) => setSelectedCountry(normalizeCountryCode(value))}
               >
                 <SelectTrigger id="bank-country" className="border-gray-700 bg-gray-900 text-white">
-                  <SelectValue placeholder="Choisir un pays" />
+                  <SelectValue placeholder={t('bankConnectionsPage.dialog.chooseCountry')} />
                 </SelectTrigger>
                 <SelectContent className="border-gray-800 bg-gray-950 text-white">
                   {countrySelectOptions.map((country) => (
@@ -483,12 +502,12 @@ const BankConnectionsPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bank-search">Rechercher une banque</Label>
+              <Label htmlFor="bank-search">{t('bankConnectionsPage.dialog.searchLabel')}</Label>
               <Input
                 id="bank-search"
                 value={institutionSearch}
                 onChange={(event) => setInstitutionSearch(event.target.value)}
-                placeholder="Nom de la banque ou BIC"
+                placeholder={t('bankConnectionsPage.dialog.searchPlaceholder')}
                 className="border-gray-700 bg-gray-900 text-white"
               />
             </div>
@@ -497,8 +516,8 @@ const BankConnectionsPage = () => {
           <div className="flex items-center justify-between text-xs text-gray-500">
             <p>
               {institutionsLoading
-                ? 'Chargement des institutions…'
-                : `${institutions.length} institution(s) trouvée(s) pour ${selectedCountry}.`}
+                ? t('bankConnectionsPage.dialog.loadingInstitutions')
+                : t('bankConnectionsPage.dialog.institutionsFound', { count: institutions.length, country: selectedCountry })}
             </p>
             <Button
               variant="ghost"
@@ -507,7 +526,7 @@ const BankConnectionsPage = () => {
               className="text-gray-400 hover:text-white"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
-              Recharger
+              {t('bankConnectionsPage.actions.reload')}
             </Button>
           </div>
 
@@ -520,7 +539,7 @@ const BankConnectionsPage = () => {
               <div className="px-4 py-8 text-center text-sm text-red-300">{institutionsError}</div>
             ) : filteredInstitutions.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-gray-500">
-                Aucune institution ne correspond à cette recherche.
+                {t('bankConnectionsPage.dialog.noInstitutionMatch')}
               </div>
             ) : (
               <div className="divide-y divide-gray-800">
@@ -537,8 +556,8 @@ const BankConnectionsPage = () => {
                       <div>
                         <p className="font-medium text-white">{institution.name}</p>
                         <p className="text-xs text-gray-500">
-                          {institution.bic || 'BIC non communiqué'}
-                          {institution.transactionTotalDays > 0 ? ` • ${institution.transactionTotalDays} jours d’historique` : ''}
+                          {institution.bic || t('bankConnectionsPage.dialog.bicUnavailable')}
+                          {institution.transactionTotalDays > 0 ? ` • ${t('bankConnectionsPage.dialog.historyDays', { count: institution.transactionTotalDays })}` : ''}
                         </p>
                       </div>
                     </div>
@@ -552,7 +571,7 @@ const BankConnectionsPage = () => {
                       ) : (
                         <Plus className="mr-2 h-4 w-4" />
                       )}
-                      Connecter
+                      {t('bankConnectionsPage.actions.connect')}
                     </Button>
                   </div>
                 ))}

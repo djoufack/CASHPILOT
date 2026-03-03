@@ -2725,6 +2725,196 @@
       "curlExample": "Exemple rapide (cURL)"
     }
   },
+  "bankConnectionsPage": {
+    "subtitle": "Connectez vos banques, synchronisez les soldes et suivez l'état des consentements.",
+    "syncedBalances": "Soldes synchronisés",
+    "balanceMixedCurrencies": "Agrégé sur plusieurs devises : {{currencies}}",
+    "balanceAggregated": "Solde agrégé des comptes actifs",
+    "bankEstate": "État du parc bancaire",
+    "emptyTitle": "Aucune connexion bancaire",
+    "emptyDescription": "Connectez une première banque pour suivre les soldes de comptes et les synchronisations.",
+    "accountFallback": "Compte bancaire",
+    "institutionFallback": "Banque inconnue",
+    "ibanUnavailable": "IBAN indisponible",
+    "lastSync": "Dernière synchro : {{date}}",
+    "consentUntil": "Consentement jusqu'au : {{date}}",
+    "balanceUnavailable": "Solde indisponible",
+    "never": "Jamais",
+    "status": {
+      "active": "Active",
+      "pending": "En attente",
+      "expired": "Expirée",
+      "revoked": "Révoquée"
+    },
+    "actions": {
+      "refresh": "Actualiser",
+      "syncAll": "Tout synchroniser",
+      "connectBank": "Connecter une banque",
+      "sync": "Synchroniser",
+      "remove": "Supprimer",
+      "reload": "Recharger",
+      "connect": "Connecter"
+    },
+    "metrics": {
+      "connections": "Connexions",
+      "active": "Actives",
+      "pending": "En attente"
+    },
+    "dialog": {
+      "title": "Connecter une banque",
+      "description": "Choisissez votre pays et votre établissement pour lancer une connexion PSD2 sécurisée.",
+      "countryLabel": "Pays",
+      "chooseCountry": "Choisir un pays",
+      "searchLabel": "Recherche",
+      "searchPlaceholder": "Rechercher une banque ou un BIC...",
+      "loadingInstitutions": "Chargement des établissements...",
+      "institutionsFound": "{{count}} établissements trouvés pour {{country}}",
+      "noInstitutionMatch": "Aucune banque trouvée pour cette recherche.",
+      "bicUnavailable": "BIC indisponible",
+      "historyDays": "{{count}} j d'historique"
+    },
+    "toasts": {
+      "connectedTitle": "Banque connectée",
+      "connectedDescription": "{{accounts}} compte(s) relié(s), {{synced}} transaction(s) synchronisée(s).",
+      "connectionFailedTitle": "Connexion bancaire échouée",
+      "connectionImpossibleTitle": "Connexion impossible",
+      "syncDoneTitle": "Synchronisation terminée",
+      "syncDoneDescription": "{{name}} : {{count}} transaction(s) synchronisée(s).",
+      "syncFailedTitle": "Synchronisation échouée",
+      "partialSyncTitle": "Synchronisation partielle",
+      "partialSyncDescription": "{{successCount}} réussie(s), {{failureCount}} échouée(s), {{syncedTotal}} transaction(s) synchronisée(s).",
+      "fullSyncTitle": "Synchronisation terminée",
+      "fullSyncDescription": "{{successCount}} compte(s), {{syncedTotal}} transaction(s) synchronisée(s)."
+    },
+    "errors": {
+      "loadInstitutions": "Impossible de charger la liste des établissements.",
+      "authorizationFailed": "Impossible d'initialiser l'autorisation bancaire.",
+      "syncFailed": "La synchronisation du compte a échoué."
+    },
+    "countries": {
+      "BE": "Belgique",
+      "FR": "France",
+      "DE": "Allemagne",
+      "ES": "Espagne",
+      "IT": "Italie",
+      "NL": "Pays-Bas"
+    }
+  },
+  "quoteSignPage": {
+    "invalidLink": "Ce lien de signature est invalide ou expiré.",
+    "loadError": "Impossible de charger ce devis.",
+    "submitError": "Impossible d'envoyer la signature.",
+    "successTitle": "Devis signé",
+    "successDescription": "{{name}}, votre signature a bien été enregistrée.",
+    "rejectedTitle": "Devis refusé",
+    "rejectedDescription": "Ce devis a été refusé.",
+    "title": "Signer le devis",
+    "quoteNumber": "Devis {{number}}",
+    "summaryTitle": "Résumé du devis",
+    "client": "Client",
+    "amountExVat": "Montant HT",
+    "tax": "TVA",
+    "total": "Total",
+    "notes": "Notes : {{notes}}",
+    "signatureTitle": "Signature",
+    "fullName": "Nom complet",
+    "fullNamePlaceholder": "Votre nom",
+    "signature": "Signature",
+    "signatureCaptured": "Signature enregistrée",
+    "reject": "Refuser",
+    "signAndAccept": "Signer et accepter",
+    "submitting": "Envoi..."
+  },
+  "analyticsPage": {
+    "pageTitle": "Analytique",
+    "title": "Analytique & reporting",
+    "subtitle": "KPIs de direction, encours client et pilotage de performance.",
+    "shareTitle": "{{company}} - Analytique",
+    "actions": {
+      "refresh": "Actualiser les données"
+    },
+    "toasts": {
+      "refreshSuccess": "Les données analytiques ont été actualisées.",
+      "refreshError": "Impossible d'actualiser les données."
+    },
+    "creditLabels": {
+      "pdf": "Analytics PDF",
+      "html": "Analytics HTML"
+    },
+    "kpis": {
+      "collectedRevenue": {
+        "title": "CA encaissé",
+        "hint": "Taux d'encaissement : {{value}}%"
+      },
+      "bookedRevenue": {
+        "title": "CA facturé",
+        "hint": "Factures émises hors brouillons"
+      },
+      "outstandingReceivables": {
+        "title": "Encours client",
+        "hint": "{{value}} en retard"
+      },
+      "expenses": {
+        "title": "Charges",
+        "hint": "Marge brute : {{value}}%"
+      },
+      "billableHours": {
+        "title": "Heures billables",
+        "hint": "Utilisation : {{value}}%"
+      },
+      "invoicingCoverage": {
+        "title": "Couverture facturation",
+        "hint": "TJM interne : {{value}}/h"
+      }
+    },
+    "charts": {
+      "revenueVsExpenses": "Revenus vs charges"
+    },
+    "series": {
+      "revenue": "Revenus",
+      "expenses": "Charges"
+    },
+    "empty": {
+      "noData": "Aucune donnée disponible"
+    },
+    "aging": {
+      "title": "Vieillissement des encours",
+      "empty": "Aucun encours client significatif.",
+      "buckets": {
+        "current": "À terme",
+        "1-30": "1-30 j",
+        "31-60": "31-60 j",
+        "61+": "61+ j"
+      }
+    },
+    "concentration": {
+      "title": "Concentration client",
+      "empty": "Pas encore assez de factures pour mesurer la concentration client."
+    },
+    "watchlist": {
+      "title": "Watchlist retards clients",
+      "empty": "Aucune facture en retard détectée.",
+      "dueDate": "{{invoiceNumber}} • échéance {{dueDate}}",
+      "daysOverdue": "{{count}} j de retard",
+      "outstandingLabel": "Encours concerné"
+    },
+    "clientRevenue": {
+      "title": "CA par client"
+    },
+    "efficiency": {
+      "title": "Efficacité facturation & projets",
+      "totalHours": "Heures totales",
+      "billable": "Billable",
+      "invoicedHours": "Heures facturées",
+      "empty": "Aucune donnée projet exploitable pour le moment.",
+      "hoursWorked": "{{value}} h travaillées",
+      "noRevenueLinked": "Sans CA lié"
+    },
+    "fallbacks": {
+      "unknownClient": "Client inconnu",
+      "unassignedProject": "Non assigné"
+    }
+  },
   "company": {
     "addCompany": "Ajouter une société",
     "selectCompany": "Sélectionner une société",

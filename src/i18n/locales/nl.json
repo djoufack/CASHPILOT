@@ -3,6 +3,10 @@
     "name": "CashPilot",
     "tagline": "Financieel Beheerplatform"
   },
+  "loading": {
+    "page": "Laden...",
+    "data": "Gegevens laden..."
+  },
   "common": {
     "dashboard": "Dashboard",
     "clients": "Klanten",
@@ -1288,6 +1292,196 @@
         "sdk": "Gebruik de X-API-Key-header in uw HTTP-requests"
       },
       "curlExample": "Snel voorbeeld (cURL)"
+    }
+  },
+  "bankConnectionsPage": {
+    "subtitle": "Verbind uw banken, synchroniseer saldi en volg de toestemmingsstatus.",
+    "syncedBalances": "Gesynchroniseerde saldi",
+    "balanceMixedCurrencies": "Geaggregeerd over meerdere valuta: {{currencies}}",
+    "balanceAggregated": "Geaggregeerd saldo van actieve rekeningen",
+    "bankEstate": "Overzicht bankpark",
+    "emptyTitle": "Nog geen bankverbindingen",
+    "emptyDescription": "Koppel een eerste bank om rekeningsaldi en synchronisaties op te volgen.",
+    "accountFallback": "Bankrekening",
+    "institutionFallback": "Onbekende bank",
+    "ibanUnavailable": "IBAN niet beschikbaar",
+    "lastSync": "Laatste synchronisatie: {{date}}",
+    "consentUntil": "Toestemming geldig tot: {{date}}",
+    "balanceUnavailable": "Saldo niet beschikbaar",
+    "never": "Nooit",
+    "status": {
+      "active": "Actief",
+      "pending": "In afwachting",
+      "expired": "Verlopen",
+      "revoked": "Ingetrokken"
+    },
+    "actions": {
+      "refresh": "Vernieuwen",
+      "syncAll": "Alles synchroniseren",
+      "connectBank": "Bank koppelen",
+      "sync": "Synchroniseren",
+      "remove": "Verwijderen",
+      "reload": "Opnieuw laden",
+      "connect": "Verbinden"
+    },
+    "metrics": {
+      "connections": "Verbindingen",
+      "active": "Actief",
+      "pending": "In afwachting"
+    },
+    "dialog": {
+      "title": "Een bank koppelen",
+      "description": "Kies uw land en instelling om een beveiligde PSD2-verbinding te starten.",
+      "countryLabel": "Land",
+      "chooseCountry": "Kies een land",
+      "searchLabel": "Zoeken",
+      "searchPlaceholder": "Zoek een bank of BIC...",
+      "loadingInstitutions": "Instellingen laden...",
+      "institutionsFound": "{{count}} instellingen gevonden voor {{country}}",
+      "noInstitutionMatch": "Geen bank gevonden voor deze zoekopdracht.",
+      "bicUnavailable": "Geen BIC",
+      "historyDays": "{{count}} d geschiedenis"
+    },
+    "toasts": {
+      "connectedTitle": "Bank gekoppeld",
+      "connectedDescription": "{{accounts}} rekening(en) gekoppeld, {{synced}} transacties gesynchroniseerd.",
+      "connectionFailedTitle": "Bankkoppeling mislukt",
+      "connectionImpossibleTitle": "Verbinding mislukt",
+      "syncDoneTitle": "Synchronisatie voltooid",
+      "syncDoneDescription": "{{name}}: {{count}} transacties gesynchroniseerd.",
+      "syncFailedTitle": "Synchronisatie mislukt",
+      "partialSyncTitle": "Gedeeltelijke synchronisatie",
+      "partialSyncDescription": "{{successCount}} gelukt, {{failureCount}} mislukt, {{syncedTotal}} transacties gesynchroniseerd.",
+      "fullSyncTitle": "Alle synchronisaties voltooid",
+      "fullSyncDescription": "{{successCount}} rekening(en), {{syncedTotal}} transacties gesynchroniseerd."
+    },
+    "errors": {
+      "loadInstitutions": "De lijst met instellingen kon niet worden geladen.",
+      "authorizationFailed": "De banktoestemming kon niet worden gestart.",
+      "syncFailed": "De synchronisatie van de rekening is mislukt."
+    },
+    "countries": {
+      "BE": "België",
+      "FR": "Frankrijk",
+      "DE": "Duitsland",
+      "ES": "Spanje",
+      "IT": "Italië",
+      "NL": "Nederland"
+    }
+  },
+  "quoteSignPage": {
+    "invalidLink": "Deze ondertekenlink is ongeldig of verlopen.",
+    "loadError": "De offerte kon niet worden geladen.",
+    "submitError": "De handtekening kon niet worden verzonden.",
+    "successTitle": "Offerte ondertekend",
+    "successDescription": "{{name}}, uw handtekening is succesvol geregistreerd.",
+    "rejectedTitle": "Offerte geweigerd",
+    "rejectedDescription": "Deze offerte werd geweigerd.",
+    "title": "Offerte ondertekenen",
+    "quoteNumber": "Offerte {{number}}",
+    "summaryTitle": "Samenvatting offerte",
+    "client": "Klant",
+    "amountExVat": "Bedrag excl. btw",
+    "tax": "Btw",
+    "total": "Totaal",
+    "notes": "Notities: {{notes}}",
+    "signatureTitle": "Ondertekening",
+    "fullName": "Volledige naam",
+    "fullNamePlaceholder": "Uw naam",
+    "signature": "Handtekening",
+    "signatureCaptured": "Handtekening vastgelegd",
+    "reject": "Weigeren",
+    "signAndAccept": "Ondertekenen en accepteren",
+    "submitting": "Verzenden..."
+  },
+  "analyticsPage": {
+    "pageTitle": "Analyses",
+    "title": "Analyses & rapportering",
+    "subtitle": "Management-KPI's, openstaande klanten en prestatiesturing.",
+    "shareTitle": "{{company}} - Analyses",
+    "actions": {
+      "refresh": "Gegevens verversen"
+    },
+    "toasts": {
+      "refreshSuccess": "Analysegegevens vernieuwd.",
+      "refreshError": "Kon de analysegegevens niet verversen."
+    },
+    "creditLabels": {
+      "pdf": "Analytics PDF",
+      "html": "Analytics HTML"
+    },
+    "kpis": {
+      "collectedRevenue": {
+        "title": "Ontvangen omzet",
+        "hint": "Inningsgraad: {{value}}%"
+      },
+      "bookedRevenue": {
+        "title": "Gefactureerde omzet",
+        "hint": "Verstuurde facturen zonder concepten"
+      },
+      "outstandingReceivables": {
+        "title": "Openstaande klanten",
+        "hint": "{{value}} achterstallig"
+      },
+      "expenses": {
+        "title": "Kosten",
+        "hint": "Brutomarge: {{value}}%"
+      },
+      "billableHours": {
+        "title": "Factureerbare uren",
+        "hint": "Benutting: {{value}}%"
+      },
+      "invoicingCoverage": {
+        "title": "Facturatiedekking",
+        "hint": "Intern uurtarief: {{value}}/u"
+      }
+    },
+    "charts": {
+      "revenueVsExpenses": "Omzet vs kosten"
+    },
+    "series": {
+      "revenue": "Omzet",
+      "expenses": "Kosten"
+    },
+    "empty": {
+      "noData": "Geen gegevens beschikbaar"
+    },
+    "aging": {
+      "title": "Ouderdomsanalyse openstaande posten",
+      "empty": "Geen noemenswaardige openstaande klantenvorderingen.",
+      "buckets": {
+        "current": "Lopend",
+        "1-30": "1-30 d",
+        "31-60": "31-60 d",
+        "61+": "61+ d"
+      }
+    },
+    "concentration": {
+      "title": "Klantconcentratie",
+      "empty": "Nog niet genoeg facturen om de klantconcentratie te meten."
+    },
+    "watchlist": {
+      "title": "Watchlist klantachterstanden",
+      "empty": "Geen achterstallige facturen gedetecteerd.",
+      "dueDate": "{{invoiceNumber}} • vervaldag {{dueDate}}",
+      "daysOverdue": "{{count}} d achterstand",
+      "outstandingLabel": "Betrokken openstaand bedrag"
+    },
+    "clientRevenue": {
+      "title": "Omzet per klant"
+    },
+    "efficiency": {
+      "title": "Facturatie- en projecteffectiviteit",
+      "totalHours": "Totale uren",
+      "billable": "Factureerbaar",
+      "invoicedHours": "Gefactureerde uren",
+      "empty": "Nog geen bruikbare projectgegevens.",
+      "hoursWorked": "{{value}} u gewerkt",
+      "noRevenueLinked": "Geen gekoppelde omzet"
+    },
+    "fallbacks": {
+      "unknownClient": "Onbekende klant",
+      "unassignedProject": "Niet toegewezen"
     }
   },
   "errors": {

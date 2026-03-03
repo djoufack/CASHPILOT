@@ -48,18 +48,17 @@ export const aggregateRevenueByMonth = (invoices) => {
       const dateStr = inv.date || inv.created_at;
       const date = parseISO(dateStr);
       if (isValid(date)) {
-        const monthKey = format(date, 'MMM yyyy'); // e.g., "Jan 2024"
-        // Store sort key to order correctly later if needed, but simplistic approach first
+        const monthKey = format(date, 'yyyy-MM');
         if (!revenueMap[monthKey]) {
-            revenueMap[monthKey] = 0;
+          revenueMap[monthKey] = 0;
         }
         revenueMap[monthKey] += Number(inv.total || 0);
       }
     }
   });
 
-  return Object.entries(revenueMap).map(([name, value]) => ({
-    name,
+  return Object.entries(revenueMap).map(([key, value]) => ({
+    key,
     value
   }));
 };
@@ -74,7 +73,7 @@ export const aggregateExpensesByMonth = (expenses) => {
       const dateStr = exp.date || exp.created_at;
       const date = parseISO(dateStr);
       if (isValid(date)) {
-        const monthKey = format(date, 'MMM yyyy');
+        const monthKey = format(date, 'yyyy-MM');
         if (!expenseMap[monthKey]) {
           expenseMap[monthKey] = 0;
         }
@@ -83,8 +82,8 @@ export const aggregateExpensesByMonth = (expenses) => {
     }
   });
 
-  return Object.entries(expenseMap).map(([name, value]) => ({
-    name,
+  return Object.entries(expenseMap).map(([key, value]) => ({
+    key,
     value
   }));
 };
@@ -158,20 +157,16 @@ export const aggregateProjectPerformance = (timesheets, invoices) => {
 
 export const formatChartData = (revenueData, expensesData) => {
   // Combine revenue and expenses into single array for LineChart
-  const allMonths = new Set([...revenueData.map(d => d.name), ...expensesData.map(d => d.name)]);
+  const allMonths = new Set([...revenueData.map(d => d.key), ...expensesData.map(d => d.key)]);
   
   // Sort months chronologically
-  const sortedMonths = Array.from(allMonths).sort((a, b) => {
-    const dateA = new Date(a);
-    const dateB = new Date(b);
-    return dateA - dateB;
-  });
+  const sortedMonths = Array.from(allMonths).sort((a, b) => a.localeCompare(b));
 
   return sortedMonths.map(month => {
-    const rev = revenueData.find(d => d.name === month);
-    const exp = expensesData.find(d => d.name === month);
+    const rev = revenueData.find(d => d.key === month);
+    const exp = expensesData.find(d => d.key === month);
     return {
-      name: month,
+      key: month,
       revenue: rev ? rev.value : 0,
       expenses: exp ? exp.value : 0
     };
@@ -267,10 +262,10 @@ export const aggregateReceivablesAging = (invoices = [], referenceDate = new Dat
   });
 
   return [
-    { name: 'À terme', value: roundMetric(buckets.current), tone: '#3B82F6' },
-    { name: '1-30 j', value: roundMetric(buckets['1-30']), tone: '#F59E0B' },
-    { name: '31-60 j', value: roundMetric(buckets['31-60']), tone: '#F97316' },
-    { name: '61+ j', value: roundMetric(buckets['61+']), tone: '#EF4444' },
+    { key: 'current', name: 'À terme', value: roundMetric(buckets.current), tone: '#3B82F6' },
+    { key: '1-30', name: '1-30 j', value: roundMetric(buckets['1-30']), tone: '#F59E0B' },
+    { key: '31-60', name: '31-60 j', value: roundMetric(buckets['31-60']), tone: '#F97316' },
+    { key: '61+', name: '61+ j', value: roundMetric(buckets['61+']), tone: '#EF4444' },
   ];
 };
 
