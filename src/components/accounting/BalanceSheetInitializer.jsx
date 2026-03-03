@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAccounting } from '@/hooks/useAccounting';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useAuth } from '@/context/AuthContext';
 import {
   createOpeningBalanceEntries,
@@ -16,6 +17,7 @@ import { formatDateInput } from '@/utils/dateFormatting';
 
 const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
   const { user } = useAuth();
+  const { activeCompanyId } = useCompanyScope();
   const { accounts, loading: accountsLoading } = useAccounting();
   const [openingDate, setOpeningDate] = useState(formatDateInput());
   const [balances, setBalances] = useState({});
@@ -40,7 +42,7 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
     const loadExisting = async () => {
       if (!user) return;
       try {
-        const entries = await getOpeningBalanceEntries(user.id);
+        const entries = await getOpeningBalanceEntries(user.id, activeCompanyId);
         setExistingEntries(entries);
 
         // Pre-fill balances from existing entries
@@ -57,7 +59,7 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
       }
     };
     loadExisting();
-  }, [user]);
+  }, [user, activeCompanyId]);
 
   // Calculate totals and validation
   const validation = useMemo(() => {
@@ -107,8 +109,8 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
         .filter(b => b.amount !== 0);
 
       // Delete existing and create new
-      await deleteOpeningBalanceEntries(user.id);
-      const result = await createOpeningBalanceEntries(user.id, openingDate, balanceArray);
+      await deleteOpeningBalanceEntries(user.id, activeCompanyId);
+      const result = await createOpeningBalanceEntries(user.id, openingDate, balanceArray, activeCompanyId);
 
       setSuccess(`${result.entriesCreated} ecritures d'ouverture creees avec succes.`);
       if (onComplete) onComplete(result);
@@ -124,7 +126,7 @@ const BalanceSheetInitializer = ({ onComplete, currency = 'EUR' }) => {
 
     setSaving(true);
     try {
-      await deleteOpeningBalanceEntries(user.id);
+      await deleteOpeningBalanceEntries(user.id, activeCompanyId);
       setBalances({});
       setExistingEntries([]);
       setSuccess('Ecritures d\'ouverture supprimees.');

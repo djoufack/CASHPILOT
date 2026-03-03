@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { triggerWebhook } from '@/utils/webhookTrigger';
 
 const syncLegacyTaskTitle = (payload) => {
   const nextPayload = { ...payload };
@@ -91,6 +92,12 @@ export const useTasksForProject = (projectId, filters = {}) => {
       if (error) throw error;
 
       setTasks([data, ...tasks]);
+      void triggerWebhook('task.created', {
+        id: data.id,
+        project_id: data.project_id,
+        title: data.title || data.name,
+        status: data.status,
+      });
       toast({
         title: "Success",
         description: "Task created successfully"
@@ -109,6 +116,7 @@ export const useTasksForProject = (projectId, filters = {}) => {
   const updateTask = async (taskId, updates) => {
     if (!supabase) throw new Error("Supabase not configured");
     try {
+      const previousTask = tasks.find(t => t.id === taskId);
       const updatePayload = syncLegacyTaskTitle(updates);
       const { data, error } = await supabase
         .from('tasks')
@@ -120,6 +128,14 @@ export const useTasksForProject = (projectId, filters = {}) => {
       if (error) throw error;
 
       setTasks(tasks.map(t => t.id === taskId ? { ...t, ...data } : t));
+      if (previousTask?.status !== 'completed' && data.status === 'completed') {
+        void triggerWebhook('task.completed', {
+          id: data.id,
+          project_id: data.project_id,
+          title: data.title || data.name,
+          status: data.status,
+        });
+      }
       toast({
         title: "Success",
         description: "Task updated successfully"

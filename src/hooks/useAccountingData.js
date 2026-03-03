@@ -23,6 +23,7 @@ import {
 import { buildFinancialDiagnostic, calculateBFR } from '@/utils/financialAnalysisCalculations';
 import { evaluateAccountingDatasetQuality } from '@/utils/accountingQualityChecks';
 import { formatDateInput, formatStartOfYearInput } from '@/utils/dateFormatting';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 const OPTIONAL_SCHEMA_ERROR_CODES = new Set(['42P01', '42703', 'PGRST204']);
 
@@ -75,6 +76,7 @@ function unwrapOptionalResponse(response, resourceName, fallbackValue) {
 
 export const useAccountingData = (startDate, endDate) => {
   const { user } = useAuth();
+  const { applyCompanyScope } = useCompanyScope();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -99,9 +101,31 @@ export const useAccountingData = (startDate, endDate) => {
       setLoading(true);
       setError(null);
 
+      let invoicesQuery = supabase
+        .from('invoices')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      let expensesQuery = supabase
+        .from('expenses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('expense_date', { ascending: false });
+
+      let entriesQuery = supabase
+        .from('accounting_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('transaction_date', { ascending: false });
+
+      invoicesQuery = applyCompanyScope(invoicesQuery);
+      expensesQuery = applyCompanyScope(expensesQuery);
+      entriesQuery = applyCompanyScope(entriesQuery, { includeUnassigned: false });
+
       const [invRes, expRes, supRes, accRes, mapRes, taxRes, entRes, settingsRes] = await Promise.all([
-        supabase.from('invoices').select('*').eq('user_id', user.id).order('date', { ascending: false }),
-        supabase.from('expenses').select('*').eq('user_id', user.id).order('expense_date', { ascending: false }),
+        invoicesQuery,
+        expensesQuery,
         (async () => {
           try {
             return await supabase
@@ -120,12 +144,7 @@ export const useAccountingData = (startDate, endDate) => {
           .order('account_code', { ascending: true }),
         supabase.from('accounting_mappings').select('*').eq('user_id', user.id),
         supabase.from('accounting_tax_rates').select('*').eq('user_id', user.id),
-        // Fetch accounting entries
-        supabase
-          .from('accounting_entries')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('transaction_date', { ascending: false }),
+        entriesQuery,
         supabase
           .from('user_accounting_settings')
           .select('*')
@@ -147,7 +166,7 @@ export const useAccountingData = (startDate, endDate) => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   useEffect(() => {
     fetchAll();

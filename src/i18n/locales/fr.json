@@ -162,7 +162,11 @@
     "statusLegend": "Légende des statuts",
     "overdueWarning": "Cette facture est en retard de paiement",
     "itemDescriptionPlaceholder": "Service ou produit",
-    "notesPlaceholder": "Conditions de paiement, notes..."
+    "notesPlaceholder": "Conditions de paiement, notes...",
+    "generatePaymentLink": "Générer lien de paiement",
+    "copyPaymentLink": "Copier le lien",
+    "paymentLinkCopied": "Lien copié !",
+    "paymentLinkGenerated": "Lien de paiement créé"
   },
   "timesheets": {
     "title": "Feuilles de temps",
@@ -307,7 +311,16 @@
     "statusSent": "Envoyé",
     "statusAccepted": "Accepté",
     "statusRejected": "Rejeté",
-    "statusExpired": "Expiré"
+    "statusExpired": "Expiré",
+    "requestSignature": "Demander signature",
+    "signatureLink": "Lien de signature",
+    "signaturePending": "En attente de signature",
+    "signatureSigned": "Signé",
+    "signatureRejected": "Refusé",
+    "copySignatureLink": "Copier le lien",
+    "signatureLinkCopied": "Lien copié !",
+    "signerEmail": "Email du signataire (optionnel)",
+    "sendSignatureRequest": "Envoyer la demande"
   },
   "purchaseOrdersPage": {
     "title": "Bons de commande",
@@ -771,7 +784,48 @@
     "entryRef": "Réf. écriture",
     "isAutoEntry": "Écriture automatique",
     "noEntries": "Aucune écriture comptable",
-    "entriesGenerated": "écritures générées automatiquement"
+    "entriesGenerated": "écritures générées automatiquement",
+    "fixedAssets": {
+      "title": "Immobilisations",
+      "newAsset": "Nouvelle immobilisation",
+      "assetName": "Désignation",
+      "assetType": "Type d'actif",
+      "tangible": "Corporel",
+      "intangible": "Incorporel",
+      "financial": "Financier",
+      "category": "Catégorie",
+      "acquisitionDate": "Date d'acquisition",
+      "acquisitionCost": "Coût d'acquisition (€)",
+      "residualValue": "Valeur résiduelle (€)",
+      "usefulLife": "Durée de vie (années)",
+      "method": "Méthode",
+      "linear": "Linéaire",
+      "declining": "Dégressif",
+      "netBookValue": "Valeur nette",
+      "schedule": "Plan d'amortissement",
+      "postEntry": "Comptabiliser",
+      "posted": "Comptabilisée",
+      "totalGross": "Valeur brute totale",
+      "totalDepreciation": "Amortissements cumulés",
+      "totalNet": "Valeur nette totale",
+      "accountCodeAsset": "Compte actif (21xx)",
+      "accountCodeDepreciation": "Compte amortissement (28xx)",
+      "accountCodeExpense": "Compte dotation (68xx)",
+      "statusActive": "Actif",
+      "statusDisposed": "Cédé",
+      "statusFullyDepreciated": "Amorti"
+    },
+    "analytique": {
+      "title": "Comptabilité analytique",
+      "newAxis": "Nouvel axe",
+      "axisType": "Type d'axe",
+      "axisCode": "Code",
+      "axisName": "Libellé",
+      "report": "Rapport analytique",
+      "costCenter": "Centre de coût",
+      "department": "Département",
+      "productLine": "Ligne de produit"
+    }
   },
   "payments": {
     "title": "Paiements",
@@ -1612,7 +1666,26 @@
     "selectClient": "Sélectionner un client",
     "emptyTitle": "Aucun projet trouvé",
     "emptyDescription": "Créez un nouveau projet pour commencer.",
-    "detailsPlaceholder": "Détails et objectifs du projet..."
+    "detailsPlaceholder": "Détails et objectifs du projet...",
+    "profitability": {
+      "title": "Rentabilité",
+      "totalHours": "Heures totales",
+      "billable": "facturables",
+      "laborCost": "Coût main-d'œuvre",
+      "expenses": "Charges",
+      "revenue": "CA encaissé",
+      "pendingRevenue": "CA en attente",
+      "grossMargin": "Marge brute",
+      "utilizationRate": "Taux d'utilisation",
+      "revenueVsCost": "CA vs Coûts",
+      "margin": "Marge"
+    },
+    "gantt": {
+      "title": "Gantt",
+      "day": "Jour",
+      "week": "Semaine",
+      "month": "Mois"
+    }
   },
   "pagination": {
     "showing": "Affichage",
@@ -1691,7 +1764,20 @@
     "deleted": "Webhook supprim\u00e9 avec succ\u00e8s",
     "deleteTitle": "Supprimer le webhook",
     "deleteConfirm": "\u00cates-vous s\u00fbr de vouloir supprimer ce webhook ? Les livraisons futures seront arr\u00eat\u00e9es.",
-    "urlAndEventsRequired": "L'URL et au moins un \u00e9v\u00e9nement sont requis"
+    "urlAndEventsRequired": "L'URL et au moins un \u00e9v\u00e9nement sont requis",
+    "integrationsTab": "Int\u00e9grations",
+    "integrations": {
+      "howToTitle": "Comment int\u00e9grer avec Zapier/Make",
+      "step1": "Cr\u00e9ez un endpoint webhook dans l'onglet Endpoints",
+      "step2": "Copiez l'URL de votre endpoint",
+      "step3": "Dans Zapier/Make, choisissez 'Webhook' comme trigger",
+      "step4": "Collez l'URL et s\u00e9lectionnez les \u00e9v\u00e9nements",
+      "payloadFormatTitle": "Format du payload",
+      "hmacTitle": "V\u00e9rification de signature HMAC-SHA256",
+      "hmacDesc": "Chaque requ\u00eate webhook est sign\u00e9e avec votre secret. V\u00e9rifiez la signature pour valider l'authenticit\u00e9 de la requ\u00eate.",
+      "zapierBadge": "Zapier compatible",
+      "makeBadge": "Make compatible"
+    }
   },
   "export": {
     "title": "Exporter",
@@ -2348,5 +2434,11 @@
         "benchmarkReference": "Référentiel sectoriel"
       }
     }
+  },
+  "company": {
+    "addCompany": "Ajouter une société",
+    "selectCompany": "Sélectionner une société",
+    "switchCompany": "Changer de société",
+    "activeCompany": "Société active"
   }
 }

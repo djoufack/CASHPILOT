@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasksForProject } from '@/hooks/useTasksForProject';
 import { useProjectStatus } from '@/hooks/useProjectStatus';
+import { useProjectProfitability } from '@/hooks/useProjectProfitability';
+import GanttView from '@/components/GanttView';
 import TaskManager from '@/components/TaskManager';
 import ProjectStatistics from '@/components/ProjectStatistics';
 import KanbanBoard from '@/components/KanbanBoard';
@@ -15,11 +17,14 @@ import ProjectBillingDialog from '@/components/ProjectBillingDialog';
 import { useClientQuotes } from '@/hooks/useClientQuotes';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Briefcase, Calendar as CalendarIcon, Clock, DollarSign, LayoutList, PieChart, Users, Kanban, List, CalendarDays, Receipt } from 'lucide-react';
+import { ArrowLeft, BarChart2, Briefcase, Calendar as CalendarIcon, Clock, DollarSign, LayoutList, PieChart, Users, Kanban, List, CalendarDays, Receipt, TrendingUp } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import { format, parseISO } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 
 const ProjectDetail = () => {
   const { projectId } = useParams();
@@ -30,10 +35,13 @@ const ProjectDetail = () => {
   const { status: calculatedStatus, stats } = useProjectStatus(projectId);
   const { quotes: projectQuotes } = useClientQuotes(project?.client_id);
 
+  const { profitability, loading: profLoading, fetchData: fetchProfitability } = useProjectProfitability(project?.id);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [activeTab, setActiveTab] = useState("kanban");
   const [billingOpen, setBillingOpen] = useState(false);
+  const [ganttViewMode, setGanttViewMode] = useState('Week');
 
   useEffect(() => {
     if (projects.length > 0) {
@@ -41,6 +49,12 @@ const ProjectDetail = () => {
       setProject(found);
     }
   }, [projectId, projects]);
+
+  useEffect(() => {
+    if (activeTab === 'profitability') {
+      fetchProfitability();
+    }
+  }, [activeTab, fetchProfitability]);
 
   const handleEdit = (task) => {
     setEditingTask(task);
@@ -128,6 +142,8 @@ const ProjectDetail = () => {
                 <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><CalendarDays className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">Calendar</span></TabsTrigger>
                 <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><List className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">Agenda</span></TabsTrigger>
                 <TabsTrigger value="stats" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><PieChart className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">Stats</span></TabsTrigger>
+                <TabsTrigger value="profitability" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><TrendingUp className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">{t('projects.profitability.title')}</span></TabsTrigger>
+                <TabsTrigger value="gantt" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><BarChart2 className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">{t('projects.gantt.title')}</span></TabsTrigger>
               </TabsList>
             </div>
 
@@ -168,6 +184,141 @@ const ProjectDetail = () => {
 
             <TabsContent value="stats" className="focus:outline-none">
               <ProjectStatistics tasks={tasks} />
+            </TabsContent>
+
+            <TabsContent value="profitability" className="focus:outline-none">
+              {/* KPI Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <Card className="bg-white/5 border-white/10">
+                  <CardContent className="pt-4">
+                    <p className="text-xs text-gray-400 mb-1">{t('projects.profitability.totalHours')}</p>
+                    <p className="text-2xl font-bold text-white">{profitability.totalHours}h</p>
+                    <p className="text-xs text-gray-500 mt-1">{profitability.billableHours}h {t('projects.profitability.billable')}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-white/5 border-white/10">
+                  <CardContent className="pt-4">
+                    <p className="text-xs text-gray-400 mb-1">{t('projects.profitability.laborCost')}</p>
+                    <p className="text-2xl font-bold text-white">{profitability.laborCost.toLocaleString('fr-FR')} €</p>
+                    <p className="text-xs text-gray-500 mt-1">+ {profitability.totalExpenses.toLocaleString('fr-FR')} € charges</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-white/5 border-white/10">
+                  <CardContent className="pt-4">
+                    <p className="text-xs text-gray-400 mb-1">{t('projects.profitability.revenue')}</p>
+                    <p className="text-2xl font-bold text-green-400">{profitability.totalRevenue.toLocaleString('fr-FR')} €</p>
+                    {profitability.pendingRevenue > 0 && (
+                      <p className="text-xs text-yellow-500 mt-1">+ {profitability.pendingRevenue.toLocaleString('fr-FR')} € en attente</p>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card className="bg-white/5 border-white/10">
+                  <CardContent className="pt-4">
+                    <p className="text-xs text-gray-400 mb-1">{t('projects.profitability.grossMargin')}</p>
+                    <p className={`text-2xl font-bold ${profitability.grossMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {profitability.grossMarginPct}%
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">{profitability.grossMargin.toLocaleString('fr-FR')} €</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Chart: Revenue vs Cost */}
+              <Card className="bg-white/5 border-white/10 mb-4">
+                <CardHeader>
+                  <CardTitle className="text-white text-sm">{t('projects.profitability.revenueVsCost')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={[
+                      { name: t('projects.profitability.laborCost'), value: profitability.laborCost },
+                      { name: t('projects.profitability.expenses'), value: profitability.totalExpenses },
+                      { name: t('projects.profitability.revenue'), value: profitability.totalRevenue },
+                      { name: t('projects.profitability.margin'), value: Math.max(0, profitability.grossMargin) },
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+                      <XAxis dataKey="name" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+                      <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#0f1528', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                        labelStyle={{ color: '#fff' }}
+                        formatter={(v) => [`${v.toLocaleString('fr-FR')} €`]}
+                      />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        <Cell fill="#6366f1" />
+                        <Cell fill="#8b5cf6" />
+                        <Cell fill="#22c55e" />
+                        <Cell fill={profitability.grossMargin >= 0 ? '#10b981' : '#ef4444'} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Utilization rate */}
+              <Card className="bg-white/5 border-white/10">
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-400 text-sm">{t('projects.profitability.utilizationRate')}</span>
+                    <span className="text-white font-semibold">{profitability.utilizationRate}%</span>
+                  </div>
+                  <div className="w-full bg-white/10 rounded-full h-2">
+                    <div
+                      className="bg-indigo-500 h-2 rounded-full transition-all"
+                      style={{ width: `${Math.min(100, profitability.utilizationRate)}%` }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="gantt" className="focus:outline-none">
+              <div className="space-y-4">
+                {/* View mode selector */}
+                <div className="flex items-center gap-2">
+                  {['Day', 'Week', 'Month'].map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => setGanttViewMode(mode)}
+                      className={`px-3 py-1 rounded text-sm transition-colors ${
+                        ganttViewMode === mode
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      {mode === 'Day' ? t('projects.gantt.day') : mode === 'Week' ? t('projects.gantt.week') : t('projects.gantt.month')}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Gantt chart */}
+                <GanttView
+                  tasks={(tasks || [])
+                    .filter(task => (task.start_date || task.started_at) && (task.end_date || task.completed_at || task.due_date))
+                    .map(task => ({
+                      id: task.id,
+                      name: task.title || task.name || 'Sans titre',
+                      start: task.start_date || task.started_at?.split?.('T')?.[0] || task.started_at,
+                      end: task.end_date || task.completed_at?.split?.('T')?.[0] || task.completed_at || task.due_date?.split?.('T')?.[0] || task.due_date,
+                      progress: task.status === 'completed' ? 100 : task.status === 'in_progress' ? 50 : 0,
+                      dependencies: (task.depends_on || []).join(','),
+                    }))}
+                  viewMode={ganttViewMode}
+                  onDateChange={async (task, start, end) => {
+                    try {
+                      await supabase
+                        .from('tasks')
+                        .update({
+                          start_date: start.toISOString().split('T')[0],
+                          end_date: end.toISOString().split('T')[0],
+                        })
+                        .eq('id', task.id);
+                    } catch (err) {
+                      console.error('Failed to update task dates:', err);
+                    }
+                  }}
+                />
+              </div>
             </TabsContent>
           </Tabs>
         </div>

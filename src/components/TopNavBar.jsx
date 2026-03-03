@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useCredits } from '@/hooks/useCredits';
+import { useCompany } from '@/hooks/useCompany';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LogOut, User, Building2, Bell, Coins, Menu, X
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils';
 import ThemeToggle from '@/components/ThemeToggle';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import NotificationCenterComponent from '@/components/NotificationCenter';
+import CompanySwitcher from '@/components/CompanySwitcher';
 
 const TopNavBar = ({ isCollapsed }) => {
   const { t } = useTranslation();
@@ -19,6 +21,7 @@ const TopNavBar = ({ isCollapsed }) => {
   const { logout } = useAuth();
   const { toast } = useToast();
   const { availableCredits, loading: creditsLoading, unlimitedAccess, unlimitedAccessLabel } = useCredits();
+  const { companies, activeCompany, switchCompany } = useCompany();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
@@ -78,6 +81,17 @@ const TopNavBar = ({ isCollapsed }) => {
           isCollapsed ? "left-[68px]" : "left-[260px]"
         )}
       >
+        {/* Company Switcher */}
+        <CompanySwitcher
+          companies={companies}
+          activeCompany={activeCompany}
+          onSwitch={switchCompany}
+          onCreateNew={() => navigate('/app/settings?tab=societe')}
+        />
+
+        {/* Divider */}
+        <div className="h-6 w-px bg-gray-800 mx-1" />
+
         {/* Nav Items */}
         <div className="flex items-center gap-1">
           {navItems.map((item, index) => (

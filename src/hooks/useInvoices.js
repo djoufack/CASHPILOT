@@ -7,6 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { generateInvoiceNumber } from '@/utils/calculations';
 import { sanitizeText } from '@/utils/sanitize';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { triggerWebhook } from '@/utils/webhookTrigger';
 
 export const useInvoices = () => {
   const [invoices, setInvoices] = useState([]);
@@ -16,8 +18,85 @@ export const useInvoices = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [totalCount, setTotalCount] = useState(0);
+
+  const emitInvoiceEvents = (nextInvoice, previousInvoice = null) => {
+    const statusChanged = previousInvoice?.status !== nextInvoice.status;
+    const paymentStatusChanged = previousInvoice?.payment_status !== nextInvoice.payment_status;
+
+    if (!previousInvoice) {
+      void triggerWebhook('invoice.created', {
+        id: nextInvoice.id,
+        company_id: nextInvoice.company_id,
+        invoice_number: nextInvoice.invoice_number,
+        client_id: nextInvoice.client_id,
+        status: nextInvoice.status,
+        payment_status: nextInvoice.payment_status,
+        total_ttc: nextInvoice.total_ttc,
+        balance_due: nextInvoice.balance_due,
+      });
+    }
+
+    if (previousInvoice) {
+      void triggerWebhook('invoice.updated', {
+        id: nextInvoice.id,
+        company_id: nextInvoice.company_id,
+        invoice_number: nextInvoice.invoice_number,
+        client_id: nextInvoice.client_id,
+        status: nextInvoice.status,
+        payment_status: nextInvoice.payment_status,
+        total_ttc: nextInvoice.total_ttc,
+        balance_due: nextInvoice.balance_due,
+      });
+    }
+
+    if ((statusChanged || !previousInvoice) && nextInvoice.status === 'sent') {
+      void triggerWebhook('invoice.sent', {
+        id: nextInvoice.id,
+        company_id: nextInvoice.company_id,
+        invoice_number: nextInvoice.invoice_number,
+        client_id: nextInvoice.client_id,
+        status: nextInvoice.status,
+        total_ttc: nextInvoice.total_ttc,
+      });
+    }
+
+    if ((statusChanged || paymentStatusChanged || !previousInvoice) && (nextInvoice.status === 'paid' || nextInvoice.payment_status === 'paid')) {
+      void triggerWebhook('invoice.paid', {
+        id: nextInvoice.id,
+        company_id: nextInvoice.company_id,
+        invoice_number: nextInvoice.invoice_number,
+        client_id: nextInvoice.client_id,
+        status: nextInvoice.status,
+        payment_status: nextInvoice.payment_status,
+        total_ttc: nextInvoice.total_ttc,
+        balance_due: nextInvoice.balance_due,
+      });
+    }
+
+    if ((statusChanged || !previousInvoice) && nextInvoice.status === 'cancelled') {
+      void triggerWebhook('invoice.cancelled', {
+        id: nextInvoice.id,
+        company_id: nextInvoice.company_id,
+        invoice_number: nextInvoice.invoice_number,
+        client_id: nextInvoice.client_id,
+        status: nextInvoice.status,
+      });
+    }
+
+    if ((statusChanged || !previousInvoice) && nextInvoice.status === 'overdue') {
+      void triggerWebhook('invoice.overdue', {
+        id: nextInvoice.id,
+        company_id: nextInvoice.company_id,
+        invoice_number: nextInvoice.invoice_number,
+        client_id: nextInvoice.client_id,
+        status: nextInvoice.status,
+        balance_due: nextInvoice.balance_due,
+      });
+    }
+  };
 
   const fetchInvoices = useCallback(async (filters = {}, { page, pageSize } = {}) => {
     if (!user) return;
@@ -38,6 +117,7 @@ export const useInvoices = () => {
         `, usePagination ? { count: 'exact' } : undefined)
         .order('created_at', { ascending: false });
 
+      query = applyCompanyScope(query);
       if (filters.status) query = query.eq('status', filters.status);
 
       if (usePagination) {
@@ -69,7 +149,7 @@ export const useInvoices = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applyCompanyScope, toast, user]);
 
   const createInvoice = async (invoiceData, items = []) => {
     if (!user) return;
@@ -91,7 +171,7 @@ export const useInvoices = () => {
       // Insert invoice as draft first (so accounting trigger fires after items exist)
       const { data, error } = await supabase
         .from('invoices')
-        .insert([{ ...sanitizedData, invoice_number: invoiceNumber, user_id: user.id, status: 'draft' }])
+        .insert([{ ...withCompanyScope(sanitizedData), invoice_number: invoiceNumber, user_id: user.id, status: 'draft' }])
         .select()
         .single();
 
@@ -163,6 +243,7 @@ export const useInvoices = () => {
       logAction('create', 'invoice', null, finalInvoice);
 
       setInvoices([finalInvoice, ...invoices]);
+      emitInvoiceEvents(finalInvoice);
       toast({
         title: "Success",
         description: t('messages.success.invoiceGenerated')
@@ -187,7 +268,7 @@ export const useInvoices = () => {
     try {
       const { data, error } = await supabase
         .from('invoices')
-        .update(invoiceData)
+        .update(withCompanyScope(invoiceData))
         .eq('id', id)
         .select()
         .single();
@@ -198,6 +279,7 @@ export const useInvoices = () => {
       logAction('update', 'invoice', oldInvoice || null, data);
 
       setInvoices(invoices.map(i => i.id === id ? data : i));
+      emitInvoiceEvents(data, oldInvoice || null);
       toast({
         title: "Success",
         description: t('messages.success.invoiceUpdated')
@@ -300,7 +382,7 @@ export const useInvoices = () => {
     try {
       const { data, error } = await supabase
         .from('invoices')
-        .update({ status: newStatus })
+        .update(withCompanyScope({ status: newStatus }))
         .eq('id', id)
         .select()
         .single();
@@ -311,6 +393,7 @@ export const useInvoices = () => {
       logAction('update', 'invoice', oldInvoice || null, { ...data, status: newStatus });
 
       setInvoices(invoices.map(i => i.id === id ? { ...i, ...data } : i));
+      emitInvoiceEvents({ ...data, status: newStatus }, oldInvoice || null);
       toast({
         title: "Success",
         description: t('messages.success.invoiceUpdated')

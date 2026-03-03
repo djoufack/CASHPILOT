@@ -41,6 +41,12 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
 
   useEffect(() => {
     if (task) {
+      const resolvedStartDate = task.start_date || (task.started_at ? task.started_at.split('T')[0] : '');
+      const resolvedEndDate =
+        task.end_date ||
+        (task.completed_at ? task.completed_at.split('T')[0] : '') ||
+        (task.due_date ? task.due_date.split('T')[0] : '');
+
       setFormData({
         title: task.title || task.name || '',
         description: task.description || '',
@@ -48,8 +54,8 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
         priority: task.priority || 'medium',
         assigned_to: task.assigned_to || '',
         due_date: task.due_date ? task.due_date.split('T')[0] : '',
-        started_at: task.started_at ? task.started_at.split('T')[0] : '',
-        completed_at: task.completed_at ? task.completed_at.split('T')[0] : '',
+        started_at: resolvedStartDate,
+        completed_at: resolvedEndDate,
         color: task.color || '#3b82f6',
         invoice_id: task.invoice_id || '',
         quote_id: task.quote_id || '',
@@ -96,13 +102,17 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
     if (!validateDates()) return;
     
     // Clean up empty strings for UUIDs to null
+    const resolvedStartDate = formData.started_at || null;
+    const resolvedEndDate = formData.completed_at || formData.due_date || null;
     const cleanedData = {
       ...formData,
       invoice_id: formData.invoice_id || null,
       quote_id: formData.quote_id || null,
       purchase_order_id: formData.purchase_order_id || null,
-      started_at: formData.started_at || null,
-      completed_at: formData.completed_at || null,
+      started_at: resolvedStartDate,
+      completed_at: resolvedEndDate,
+      start_date: resolvedStartDate,
+      end_date: resolvedEndDate,
       service_id: formData.service_id || null,
       estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
       requires_quote: !!formData.requires_quote,
@@ -256,6 +266,9 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
           />
         </div>
       </div>
+      <p className="text-xs text-gray-500 -mt-2">
+        Ces dates alimentent aussi automatiquement la vue Gantt du projet.
+      </p>
 
       <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-4 space-y-4">
         <div className="flex items-start justify-between gap-4">

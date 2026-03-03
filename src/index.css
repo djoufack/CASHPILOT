@@ -27,3 +27,46 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #4B5563;
 }
+
+/* ===== frappe-gantt dark theme overrides ===== */
+.gantt-container .gantt .grid-header {
+  fill: #0f1528;
+  stroke: rgba(255,255,255,0.05);
+}
+.gantt-container .gantt .grid-row {
+  fill: transparent;
+}
+.gantt-container .gantt .grid-row:nth-child(even) {
+  fill: rgba(255,255,255,0.02);
+}
+.gantt-container .gantt .row-line {
+  stroke: rgba(255,255,255,0.05);
+}
+.gantt-container .gantt .tick {
+  stroke: rgba(255,255,255,0.1);
+}
+.gantt-container .gantt .today-highlight {
+  fill: rgba(99, 102, 241, 0.1);
+}
+.gantt-container .gantt .lower-text,
+.gantt-container .gantt .upper-text {
+  fill: #9ca3af;
+  font-size: 12px;
+}
+.gantt-container .gantt .bar {
+  fill: #6366f1;
+}
+.gantt-container .gantt .bar-progress {
+  fill: #818cf8;
+}
+.gantt-container .gantt .bar-label {
+  fill: #fff;
+  font-size: 11px;
+}
+.gantt-container .gantt .arrow {
+  stroke: rgba(255,255,255,0.3);
+}
+.gantt-container svg {
+  background: #0a0e1a;
+  border-radius: 8px;
+}

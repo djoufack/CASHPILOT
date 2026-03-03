@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { sanitizeText } from '@/utils/sanitize';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { triggerWebhook } from '@/utils/webhookTrigger';
 
 export const useClients = () => {
   const [clients, setClients] = useState([]);
@@ -15,6 +17,7 @@ export const useClients = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [totalCount, setTotalCount] = useState(0);
 
@@ -33,6 +36,8 @@ export const useClients = () => {
         .select('*', usePagination ? { count: 'exact' } : undefined)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
+
+      query = applyCompanyScope(query);
 
       if (usePagination) {
         const from = (page - 1) * pageSize;
@@ -88,7 +93,7 @@ export const useClients = () => {
 
       const { data, error } = await supabase
         .from('clients')
-        .insert([{ ...sanitizedData, user_id: user.id }])
+        .insert([{ ...withCompanyScope(sanitizedData), user_id: user.id }])
         .select()
         .single();
 
@@ -97,6 +102,12 @@ export const useClients = () => {
       logAction('create', 'client', null, data);
 
       setClients([data, ...clients]);
+      void triggerWebhook('client.created', {
+        id: data.id,
+        company_id: data.company_id,
+        company_name: data.company_name,
+        email: data.email,
+      });
       toast({
         title: "Success",
         description: t('messages.success.clientAdded')
@@ -121,7 +132,7 @@ export const useClients = () => {
     try {
       const { data, error } = await supabase
         .from('clients')
-        .update(clientData)
+        .update(withCompanyScope(clientData))
         .eq('id', id)
         .select()
         .single();
@@ -132,6 +143,12 @@ export const useClients = () => {
       logAction('update', 'client', oldClient || null, data);
 
       setClients(clients.map(c => c.id === id ? data : c));
+      void triggerWebhook('client.updated', {
+        id: data.id,
+        company_id: data.company_id,
+        company_name: data.company_name,
+        email: data.email,
+      });
       toast({
         title: "Success",
         description: t('messages.success.clientUpdated')
@@ -166,6 +183,14 @@ export const useClients = () => {
       logAction('soft_delete', 'client', deletedClient || { id }, null);
 
       setClients(clients.filter(c => c.id !== id));
+      if (deletedClient) {
+        void triggerWebhook('client.deleted', {
+          id: deletedClient.id,
+          company_id: deletedClient.company_id,
+          company_name: deletedClient.company_name,
+          email: deletedClient.email,
+        });
+      }
       toast({
         title: "Success",
         description: t('messages.success.clientDeleted')

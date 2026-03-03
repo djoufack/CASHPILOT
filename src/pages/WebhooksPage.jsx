@@ -38,6 +38,7 @@ import {
   Copy,
   Eye,
   EyeOff,
+  Puzzle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/components/ui/use-toast';
@@ -274,6 +275,17 @@ const WebhooksPage = () => {
           <Clock className="w-4 h-4 inline mr-2" />
           {t('webhooks.logs')}
         </button>
+        <button
+          onClick={() => setActiveTab('integrations')}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'integrations'
+              ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <Puzzle className="w-4 h-4 inline mr-2" />
+          {t('webhooks.integrationsTab')}
+        </button>
       </div>
 
       {/* Endpoints Tab */}
@@ -478,6 +490,91 @@ const WebhooksPage = () => {
                   </table>
                 </div>
               )}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      )}
+
+      {/* Integrations Tab */}
+      {activeTab === 'integrations' && (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="integrations"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
+          >
+            {/* Section 1: How to integrate with Zapier/Make */}
+            <div className="rounded-xl border border-gray-800 bg-gray-900/30 backdrop-blur-sm p-6">
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Puzzle className="w-5 h-5 text-orange-400" />
+                {t('webhooks.integrations.howToTitle')}
+              </h2>
+              <ol className="space-y-3">
+                {[
+                  t('webhooks.integrations.step1'),
+                  t('webhooks.integrations.step2'),
+                  t('webhooks.integrations.step3'),
+                  t('webhooks.integrations.step4'),
+                ].map((step, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs flex items-center justify-center font-bold">
+                      {idx + 1}
+                    </span>
+                    <span className="text-gray-300 text-sm">{step}</span>
+                  </li>
+                ))}
+              </ol>
+
+              {/* Compatible badges */}
+              <div className="flex gap-3 mt-6">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/30">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {t('webhooks.integrations.zapierBadge')}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-violet-500/10 text-violet-400 border border-violet-500/30">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {t('webhooks.integrations.makeBadge')}
+                </span>
+              </div>
+            </div>
+
+            {/* Section 2: Payload format */}
+            <div className="rounded-xl border border-gray-800 bg-gray-900/30 backdrop-blur-sm p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">
+                {t('webhooks.integrations.payloadFormatTitle')}
+              </h2>
+              <pre className="bg-gray-950/80 border border-gray-700 rounded-lg p-4 text-xs text-green-300 font-mono overflow-x-auto leading-relaxed">
+{`{
+  "event": "invoice.created",
+  "timestamp": "2026-03-03T10:00:00Z",
+  "data": {
+    "id": "uuid",
+    "invoice_number": "FAC-2026-001",
+    "total_ttc": 1200.00,
+    "status": "draft",
+    "client_id": "uuid"
+  }
+}`}
+              </pre>
+            </div>
+
+            {/* Section 3: HMAC-SHA256 signature verification */}
+            <div className="rounded-xl border border-gray-800 bg-gray-900/30 backdrop-blur-sm p-6">
+              <h2 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                <Key className="w-5 h-5 text-orange-400" />
+                {t('webhooks.integrations.hmacTitle')}
+              </h2>
+              <p className="text-gray-400 text-sm mb-4">{t('webhooks.integrations.hmacDesc')}</p>
+              <pre className="bg-gray-950/80 border border-gray-700 rounded-lg p-4 text-xs text-blue-300 font-mono overflow-x-auto leading-relaxed">
+{`const crypto = require('crypto');
+const signature = req.headers['x-cashpilot-signature'];
+const expected = crypto.createHmac('sha256', YOUR_WEBHOOK_SECRET)
+  .update(JSON.stringify(req.body))
+  .digest('hex');
+const isValid = signature === expected;`}
+              </pre>
             </div>
           </motion.div>
         </AnimatePresence>

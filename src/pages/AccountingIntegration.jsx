@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark, Book, BookOpen, Zap, Activity, Settings2, AlertTriangle, ClipboardList, RefreshCw } from 'lucide-react';
+import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark, Book, BookOpen, Zap, Activity, Settings2, AlertTriangle, ClipboardList, RefreshCw, Building2, BarChart2 } from 'lucide-react';
 import { useAccountingData } from '@/hooks/useAccountingData';
 import { useAccountingInit } from '@/hooks/useAccountingInit';
 import { useCompany } from '@/hooks/useCompany';
@@ -22,6 +22,8 @@ import BankReconciliation from '@/components/accounting/BankReconciliation';
 import FinancialDiagnostic from '@/components/accounting/FinancialDiagnostic';
 import FinancialAnnexes from '@/components/accounting/FinancialAnnexes';
 import BalanceSheetInitializer from '@/components/accounting/BalanceSheetInitializer';
+import FixedAssets from '@/components/accounting/FixedAssets';
+import AnalyticalAccounting from '@/components/accounting/AnalyticalAccounting';
 import {
   exportBalanceSheetPDF,
   exportIncomeStatementPDF,
@@ -214,6 +216,8 @@ const AccountingIntegration = () => {
     { value: 'mappings', label: 'Mappings', icon: Settings },
     { value: 'rates', label: 'Taux de TVA', icon: Percent },
     { value: 'reconciliation', label: 'Rapprochement', icon: Landmark, featureKey: ENTITLEMENT_KEYS.BANK_RECONCILIATION },
+    { value: 'fixedAssets', label: t('accounting.fixedAssets.title'), icon: Building2 },
+    { value: 'analytique', label: t('accounting.analytique.title'), icon: BarChart2 },
     { value: 'init', label: 'Initialisation', icon: Settings2 },
   ];
   const visibleTabs = filterEntitledItems(tabs, hasEntitlement);
@@ -499,6 +503,16 @@ const AccountingIntegration = () => {
               <BankReconciliation period={period} />
             </TabsContent>
           )}
+
+          {/* Fixed Assets */}
+          <TabsContent value="fixedAssets" className="mt-6">
+            <FixedAssets />
+          </TabsContent>
+
+          {/* Analytical Accounting */}
+          <TabsContent value="analytique" className="mt-6">
+            <AnalyticalAccounting />
+          </TabsContent>
 
           {/* Balance Sheet Initializer */}
           <TabsContent value="init" className="mt-6">

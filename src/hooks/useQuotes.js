@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { triggerWebhook } from '@/utils/webhookTrigger';
 
 export const useQuotes = () => {
   const [quotes, setQuotes] = useState([]);
@@ -12,6 +14,67 @@ export const useQuotes = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+
+  const emitQuoteStatusEvents = (nextQuote, previousQuote = null) => {
+    const statusChanged = previousQuote?.status !== nextQuote.status;
+    const signatureChanged = previousQuote?.signature_status !== nextQuote.signature_status;
+
+    if (!previousQuote) {
+      void triggerWebhook('quote.created', {
+        id: nextQuote.id,
+        company_id: nextQuote.company_id,
+        quote_number: nextQuote.quote_number,
+        client_id: nextQuote.client_id,
+        status: nextQuote.status,
+        signature_status: nextQuote.signature_status,
+      });
+    }
+
+    if ((statusChanged || !previousQuote) && nextQuote.status === 'sent') {
+      void triggerWebhook('quote.sent', {
+        id: nextQuote.id,
+        company_id: nextQuote.company_id,
+        quote_number: nextQuote.quote_number,
+        client_id: nextQuote.client_id,
+        status: nextQuote.status,
+        signature_status: nextQuote.signature_status,
+      });
+    }
+
+    if ((statusChanged || !previousQuote) && nextQuote.status === 'accepted') {
+      void triggerWebhook('quote.accepted', {
+        id: nextQuote.id,
+        company_id: nextQuote.company_id,
+        quote_number: nextQuote.quote_number,
+        client_id: nextQuote.client_id,
+        status: nextQuote.status,
+        signature_status: nextQuote.signature_status,
+      });
+    }
+
+    if ((statusChanged || !previousQuote) && nextQuote.status === 'rejected') {
+      void triggerWebhook('quote.declined', {
+        id: nextQuote.id,
+        company_id: nextQuote.company_id,
+        quote_number: nextQuote.quote_number,
+        client_id: nextQuote.client_id,
+        status: nextQuote.status,
+        signature_status: nextQuote.signature_status,
+      });
+    }
+
+    if ((signatureChanged || !previousQuote) && nextQuote.signature_status === 'signed') {
+      void triggerWebhook('quote.signed', {
+        id: nextQuote.id,
+        company_id: nextQuote.company_id,
+        quote_number: nextQuote.quote_number,
+        client_id: nextQuote.client_id,
+        status: nextQuote.status,
+        signature_status: nextQuote.signature_status,
+      });
+    }
+  };
 
   const fetchQuotes = useCallback(async (filters = {}) => {
     if (!user) return;
@@ -26,6 +89,7 @@ export const useQuotes = () => {
         .select('*, client:clients(company_name)')
         .order('created_at', { ascending: false });
 
+      query = applyCompanyScope(query);
       if (filters.status) query = query.eq('status', filters.status);
 
       const { data, error } = await query;
@@ -48,7 +112,7 @@ export const useQuotes = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applyCompanyScope, toast, user]);
 
   const createQuote = async (quoteData) => {
     if (!user) return;
@@ -59,7 +123,7 @@ export const useQuotes = () => {
       
       const { data, error } = await supabase
         .from('quotes')
-        .insert([{ ...quoteData, quote_number: quoteNumber, user_id: user.id }])
+        .insert([{ ...withCompanyScope(quoteData), quote_number: quoteNumber, user_id: user.id }])
         .select()
         .single();
 
@@ -68,6 +132,7 @@ export const useQuotes = () => {
       logAction('create', 'quote', null, data);
 
       setQuotes([data, ...quotes]);
+      emitQuoteStatusEvents(data);
       toast({
         title: "Success",
         description: "Quote created successfully"
@@ -92,7 +157,7 @@ export const useQuotes = () => {
     try {
       const { data, error } = await supabase
         .from('quotes')
-        .update(quoteData)
+        .update(withCompanyScope(quoteData))
         .eq('id', id)
         .select()
         .single();
@@ -103,6 +168,7 @@ export const useQuotes = () => {
       logAction('update', 'quote', oldQuote || null, data);
 
       setQuotes(quotes.map(q => q.id === id ? data : q));
+      emitQuoteStatusEvents(data, oldQuote || null);
       toast({
         title: "Success",
         description: "Quote updated successfully"

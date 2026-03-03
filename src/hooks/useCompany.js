@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { setStoredActiveCompanyId } from '@/utils/activeCompanyStorage';
 
 const resolveCompanyAccountingCurrency = (companyData = {}, currentCompany = null) => {
   const rawValue =
@@ -16,14 +17,16 @@ const resolveCompanyAccountingCurrency = (companyData = {}, currentCompany = nul
 
 export const useCompany = () => {
   const { user } = useAuth();
-  const [company, setCompany] = useState(null);
+  // Multi-company state
+  const [companies, setCompanies] = useState([]);
+  const [activeCompany, setActiveCompany] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const { toast } = useToast();
 
-  const fetchCompany = useCallback(async () => {
+  const fetchCompanies = useCallback(async () => {
     if (!user || !supabase) {
       setLoading(false);
       return;
@@ -31,42 +34,101 @@ export const useCompany = () => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+
+      // Fetch ALL companies for this user
+      const { data: companiesData, error: companiesError } = await supabase
         .from('company')
         .select('*')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .order('created_at', { ascending: true });
 
-      if (error) {
+      if (companiesError) {
         // Handle RLS errors gracefully
-        if (error.code === '42P17' || error.code === '42501') {
-          console.warn('RLS policy error fetching company:', error.message);
-          setCompany(null);
+        if (companiesError.code === '42P17' || companiesError.code === '42501') {
+          console.warn('RLS policy error fetching companies:', companiesError.message);
+          setCompanies([]);
+          setActiveCompany(null);
           return;
         }
-        throw error;
+        throw companiesError;
       }
 
-      setCompany(data);
+      const allCompanies = companiesData || [];
+      setCompanies(allCompanies);
+
+      if (allCompanies.length === 0) {
+        setActiveCompany(null);
+        setStoredActiveCompanyId(null);
+        return;
+      }
+
+      // Fetch preference for active company
+      const { data: prefData, error: prefError } = await supabase
+        .from('user_company_preferences')
+        .select('active_company_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (prefError && prefError.code !== '42P01') {
+        // If table doesn't exist (42P01), fall back to first company silently
+        console.warn('Could not fetch company preference:', prefError.message);
+      }
+
+      const preferredId = prefData?.active_company_id;
+      const preferred = allCompanies.find(c => c.id === preferredId);
+      // Fall back to first company if preference not found or not set
+      const resolvedCompany = preferred || allCompanies[0];
+      setActiveCompany(resolvedCompany);
+      setStoredActiveCompanyId(resolvedCompany?.id || null);
     } catch (err) {
-      console.error('Error fetching company:', err);
+      console.error('Error fetching companies:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   }, [user]);
 
+  // Keep legacy name for backward compat
+  const fetchCompany = fetchCompanies;
+
   useEffect(() => {
     if (user) {
-      fetchCompany();
+      fetchCompanies();
     } else {
       setLoading(false);
+      setActiveCompany(null);
+      setCompanies([]);
+      setStoredActiveCompanyId(null);
     }
-  }, [fetchCompany, user]);
+  }, [fetchCompanies, user]);
+
+  /**
+   * Switch the active company and persist the preference.
+   */
+  const switchCompany = async (companyId) => {
+    if (!user || !supabase) return;
+
+    const target = companies.find(c => c.id === companyId);
+    if (!target) return;
+
+    setActiveCompany(target);
+    setStoredActiveCompanyId(target.id);
+
+    try {
+      await supabase
+        .from('user_company_preferences')
+        .upsert(
+          { user_id: user.id, active_company_id: companyId, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id' }
+        );
+    } catch (err) {
+      console.warn('Could not persist company preference:', err.message);
+    }
+  };
 
   const saveCompany = async (companyData, options = {}) => {
     if (!user || !supabase) return false;
-    const { silent = false } = options;
+    const { silent = false, forceCreate = false } = options;
 
     try {
       setSaving(true);
@@ -74,7 +136,7 @@ export const useCompany = () => {
 
       console.log('🔍 saveCompany received data:', companyData);
       console.log('🔍 Currency from companyData:', companyData.currency);
-      const accountingCurrency = resolveCompanyAccountingCurrency(companyData, company);
+      const accountingCurrency = resolveCompanyAccountingCurrency(companyData, activeCompany);
 
       // Explicit field whitelist — only send columns that exist in the DB
       const companyFields = {
@@ -117,12 +179,12 @@ export const useCompany = () => {
 
       let result;
 
-      if (company?.id) {
+      if (activeCompany?.id && !forceCreate) {
         // Update existing
         const response = await supabase
           .from('company')
           .update(companyFieldsWithAccountingCurrency)
-          .eq('id', company.id)
+          .eq('id', activeCompany.id)
           .select()
           .single();
 
@@ -149,7 +211,17 @@ export const useCompany = () => {
         console.log('✅ Accounting currency in result:', result?.accounting_currency);
       }
 
-      setCompany(result);
+      // Update companies list and active company
+      setCompanies(prev => {
+        const exists = prev.find(c => c.id === result.id);
+        if (exists) {
+          return prev.map(c => c.id === result.id ? result : c);
+        }
+        return [...prev, result];
+      });
+      setActiveCompany(result);
+      setStoredActiveCompanyId(result.id);
+
       if (!silent) {
         toast({
           title: "Succès",
@@ -207,14 +279,15 @@ export const useCompany = () => {
       const logoUrl = urlData.publicUrl;
 
       // Update company record
-      if (company?.id) {
+      if (activeCompany?.id) {
         const { error: dbError } = await supabase
           .from('company')
           .update({ logo_url: logoUrl, updated_at: new Date().toISOString() })
-          .eq('id', company.id);
+          .eq('id', activeCompany.id);
 
         if (dbError) throw dbError;
-        setCompany(prev => ({ ...prev, logo_url: logoUrl }));
+        setActiveCompany(prev => ({ ...prev, logo_url: logoUrl }));
+        setCompanies(prev => prev.map(c => c.id === activeCompany.id ? { ...c, logo_url: logoUrl } : c));
       }
 
       toast({
@@ -238,18 +311,19 @@ export const useCompany = () => {
   };
 
   const deleteLogo = async () => {
-    if (!company?.id || !supabase) return;
+    if (!activeCompany?.id || !supabase) return;
 
     setUploading(true);
     try {
       const { error } = await supabase
         .from('company')
         .update({ logo_url: null, updated_at: new Date().toISOString() })
-        .eq('id', company.id);
+        .eq('id', activeCompany.id);
 
       if (error) throw error;
 
-      setCompany(prev => ({ ...prev, logo_url: null }));
+      setActiveCompany(prev => ({ ...prev, logo_url: null }));
+      setCompanies(prev => prev.map(c => c.id === activeCompany.id ? { ...c, logo_url: null } : c));
       toast({ title: "Logo supprimé", description: "Le logo a été retiré." });
     } catch (err) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
@@ -259,7 +333,12 @@ export const useCompany = () => {
   };
 
   return {
-    company,
+    // Multi-company API
+    companies,
+    activeCompany,
+    switchCompany,
+    // Backward-compat alias: existing code uses `company` (singular)
+    company: activeCompany,
     loading,
     saving,
     uploading,

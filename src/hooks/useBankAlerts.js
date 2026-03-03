@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { formatDateInput } from '@/utils/dateFormatting';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 const DEFAULT_THRESHOLDS = {
   low_balance: 1000,      // Alert when balance below this
@@ -11,6 +12,7 @@ const DEFAULT_THRESHOLDS = {
 
 export const useBankAlerts = () => {
   const { user } = useAuth();
+  const { applyCompanyScope } = useCompanyScope();
   const [alerts, setAlerts] = useState([]);
   const [thresholds, setThresholds] = useState(() => {
     const saved = localStorage.getItem('cashpilot-bank-thresholds');
@@ -45,12 +47,14 @@ export const useBankAlerts = () => {
 
       // Check for large recent expenses
       const weekAgo = formatDateInput(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
-      const { data: recentExpenses } = await supabase
+      let recentExpensesQuery = supabase
         .from('expenses')
         .select('description, amount, date')
         .eq('user_id', user.id)
         .gte('date', weekAgo)
         .gt('amount', thresholds.large_expense);
+      recentExpensesQuery = applyCompanyScope(recentExpensesQuery);
+      const { data: recentExpenses } = await recentExpensesQuery;
 
       (recentExpenses || []).forEach(exp => {
         newAlerts.push({
@@ -64,12 +68,14 @@ export const useBankAlerts = () => {
 
       // Check overdue invoices
       const today = formatDateInput();
-      const { data: overdue } = await supabase
+      let overdueInvoicesQuery = supabase
         .from('invoices')
         .select('invoice_number, total_ttc, due_date, client:clients(company_name, contact_name)')
         .eq('user_id', user.id)
         .in('status', ['sent', 'overdue'])
         .lt('due_date', today);
+      overdueInvoicesQuery = applyCompanyScope(overdueInvoicesQuery);
+      const { data: overdue } = await overdueInvoicesQuery;
 
       (overdue || []).forEach(inv => {
         const daysOverdue = Math.floor((Date.now() - new Date(inv.due_date).getTime()) / (1000 * 60 * 60 * 24));
@@ -86,7 +92,7 @@ export const useBankAlerts = () => {
     } catch (err) {
       console.error('checkAlerts error:', err);
     }
-  }, [user, thresholds]);
+  }, [applyCompanyScope, user, thresholds]);
 
   useEffect(() => {
     checkAlerts();

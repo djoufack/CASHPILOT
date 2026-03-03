@@ -3,11 +3,37 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
 export const WEBHOOK_EVENTS = [
+  // Invoices
   'invoice.created',
+  'invoice.updated',
+  'invoice.sent',
   'invoice.paid',
+  'invoice.overdue',
+  'invoice.cancelled',
+  // Payments
   'payment.received',
+  // Quotes
+  'quote.created',
+  'quote.sent',
+  'quote.accepted',
+  'quote.declined',
+  'quote.signed',
+  // Clients
   'client.created',
+  'client.updated',
+  'client.deleted',
+  // Expenses
   'expense.created',
+  // Projects
+  'project.created',
+  'project.completed',
+  'project.updated',
+  // Tasks
+  'task.created',
+  'task.completed',
+  // Timesheets
+  'timesheet.created',
+  'timesheet.invoiced',
 ];
 
 export const useWebhooks = () => {

@@ -4,6 +4,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { deliverWebhookEvent } from '../_shared/webhooks.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -179,6 +180,64 @@ serve(async (req) => {
 
           console.log(`Subscription ${planSlug} activated for user ${userId} (${creditsPerMonth} credits)`);
         }
+
+      // --- Invoice payment via Stripe Payment Link ---
+      } else if (session.metadata?.invoice_id) {
+        const invoiceId = session.metadata.invoice_id;
+        const amountPaid = session.amount_total ? session.amount_total / 100 : 0;
+        const invoiceUserId = session.metadata.user_id;
+        const { data: existingInvoice } = await supabase
+          .from('invoices')
+          .select('invoice_number, client_id, company_id, amount_paid')
+          .eq('id', invoiceId)
+          .maybeSingle();
+
+        const newAmountPaid = Number(existingInvoice?.amount_paid || 0) + amountPaid;
+
+        await supabase
+          .from('invoices')
+          .update({
+            payment_status: 'paid',
+            status: 'paid',
+            amount_paid: newAmountPaid,
+            balance_due: 0,
+            stripe_payment_intent_id: session.payment_intent as string,
+          })
+          .eq('id', invoiceId);
+
+        // Create payment record
+        if (invoiceUserId) {
+          await supabase.from('payments').insert({
+            user_id: invoiceUserId,
+            invoice_id: invoiceId,
+            payment_date: new Date().toISOString().split('T')[0],
+            amount: amountPaid,
+            payment_method: 'card',
+            reference: session.id,
+            notes: 'Paiement en ligne via Stripe Payment Link',
+          });
+
+          await Promise.all([
+            deliverWebhookEvent(supabase, invoiceUserId, 'invoice.paid', {
+              id: invoiceId,
+              invoice_number: existingInvoice?.invoice_number,
+              client_id: existingInvoice?.client_id,
+              company_id: existingInvoice?.company_id,
+              status: 'paid',
+              payment_status: 'paid',
+              amount_paid: newAmountPaid,
+            }),
+            deliverWebhookEvent(supabase, invoiceUserId, 'payment.received', {
+              invoice_id: invoiceId,
+              amount: amountPaid,
+              payment_method: 'card',
+              reference: session.id,
+              company_id: existingInvoice?.company_id,
+            }),
+          ]);
+        }
+
+        console.log(`Invoice ${invoiceId} marked as paid via Stripe Payment Link (session: ${session.id})`);
 
       // --- One-time credit purchase ---
       } else {

@@ -1,9 +1,11 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { triggerWebhook } from '@/utils/webhookTrigger';
 
 export const useProjects = () => {
   const [projects, setProjects] = useState([]);
@@ -12,8 +14,9 @@ export const useProjects = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
-  const fetchProjects = async (filters = {}) => {
+  const fetchProjects = useCallback(async (filters = {}) => {
     if (!user) return;
     if (!supabase) {
       console.warn("Supabase not configured");
@@ -26,6 +29,7 @@ export const useProjects = () => {
         .select('*, client:clients(id, company_name)')
         .order('created_at', { ascending: false });
 
+      query = applyCompanyScope(query);
       if (filters.clientId) query = query.eq('client_id', filters.clientId);
 
       const { data, error } = await query;
@@ -51,7 +55,7 @@ export const useProjects = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [applyCompanyScope, toast, user]);
 
   const createProject = async (projectData) => {
     if (!user) return;
@@ -60,7 +64,7 @@ export const useProjects = () => {
     try {
       const { data, error } = await supabase
         .from('projects')
-        .insert([{ ...projectData, user_id: user.id }])
+        .insert([{ ...withCompanyScope(projectData), user_id: user.id }])
         .select('*, client:clients(id, company_name)')
         .single();
 
@@ -69,6 +73,13 @@ export const useProjects = () => {
       logAction('create', 'project', null, data);
 
       setProjects([data, ...projects]);
+      void triggerWebhook('project.created', {
+        id: data.id,
+        company_id: data.company_id,
+        name: data.name,
+        status: data.status,
+        client_id: data.client_id,
+      });
       toast({
         title: "Success",
         description: "Project created successfully"
@@ -93,7 +104,7 @@ export const useProjects = () => {
     try {
       const { data, error } = await supabase
         .from('projects')
-        .update(projectData)
+        .update(withCompanyScope(projectData))
         .eq('id', id)
         .select('*, client:clients(id, company_name)')
         .single();
@@ -104,6 +115,22 @@ export const useProjects = () => {
       logAction('update', 'project', oldProject || null, data);
 
       setProjects(projects.map(p => p.id === id ? data : p));
+      void triggerWebhook('project.updated', {
+        id: data.id,
+        company_id: data.company_id,
+        name: data.name,
+        status: data.status,
+        client_id: data.client_id,
+      });
+      if (oldProject?.status !== 'completed' && data.status === 'completed') {
+        void triggerWebhook('project.completed', {
+          id: data.id,
+          company_id: data.company_id,
+          name: data.name,
+          status: data.status,
+          client_id: data.client_id,
+        });
+      }
       toast({
         title: "Success",
         description: "Project updated successfully"
@@ -168,8 +195,7 @@ export const useProjects = () => {
 
   useEffect(() => {
     if (user) fetchProjects();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [fetchProjects, user]);
 
   return {
     projects,

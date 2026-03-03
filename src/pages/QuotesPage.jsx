@@ -13,7 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, FileSignature, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Download, FileText, Kanban } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, FileSignature, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Download, FileText, Kanban, Copy, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
 import { usePagination } from '@/hooks/usePagination';
@@ -37,6 +38,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/components/ui/use-toast';
 
 const emptyItem = { description: '', quantity: 1, unit_price: 0, tax_rate: 21 };
 
@@ -49,7 +52,7 @@ const createInitialFormData = () => ({
   items: [{ ...emptyItem }],
 });
 
-const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML }) => {
+const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML, onRequestSignature, onCopySignatureLink }) => {
   const { t, i18n } = useTranslation();
   const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
 
@@ -69,6 +72,33 @@ const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML }) => {
     expired: t('quotesPage.statusExpired'),
   };
 
+  const sigStatus = quote.signature_status;
+
+  const renderSignatureBadge = () => {
+    if (sigStatus === 'signed') {
+      return (
+        <span className="text-xs px-2 py-1 rounded-full border bg-green-500/20 text-green-400 border-green-800">
+          {t('quotesPage.signatureSigned')}
+        </span>
+      );
+    }
+    if (sigStatus === 'pending') {
+      return (
+        <span className="text-xs px-2 py-1 rounded-full border bg-orange-500/20 text-orange-400 border-orange-800">
+          {t('quotesPage.signaturePending')}
+        </span>
+      );
+    }
+    if (sigStatus === 'rejected') {
+      return (
+        <span className="text-xs px-2 py-1 rounded-full border bg-red-500/20 text-red-400 border-red-800">
+          {t('quotesPage.signatureRejected')}
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -80,42 +110,73 @@ const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML }) => {
           <h3 className="text-lg font-bold text-gradient">{quote.quote_number}</h3>
           <p className="text-sm text-gray-400">{quote.client?.company_name || t('timesheets.noClient')}</p>
         </div>
-        <span className={`text-xs px-2 py-1 rounded-full border capitalize ${statusColors[quote.status] || statusColors.draft}`}>
-          {statusLabels[quote.status] || quote.status}
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          <span className={`text-xs px-2 py-1 rounded-full border capitalize ${statusColors[quote.status] || statusColors.draft}`}>
+            {statusLabels[quote.status] || quote.status}
+          </span>
+          {renderSignatureBadge()}
+        </div>
       </div>
       <div className="flex justify-between items-center text-sm text-gray-400 mb-4">
         <span>{quote.date ? new Date(quote.date).toLocaleDateString(locale) : '—'}</span>
         <span className="text-gradient font-bold text-lg">{formatCurrency(quote.total || quote.total_ttc || 0)}</span>
       </div>
       {quote.notes && <p className="text-xs text-gray-500 mb-4 line-clamp-2">{quote.notes}</p>}
-      <div className="flex justify-end gap-2 border-t border-gray-800 pt-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onExportPDF(quote)}
-          className="text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
-          title={t('quotesPage.exportPdfTitle', { credits: CREDIT_COSTS.PDF_QUOTE })}
-        >
-          <Download className="w-4 h-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onExportHTML(quote)}
-          className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20"
-          title={t('quotesPage.exportHtmlTitle', { credits: CREDIT_COSTS.EXPORT_HTML })}
-        >
-          <FileText className="w-4 h-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onDelete(quote.id)}
-          className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
+      <div className="flex justify-between items-center gap-2 border-t border-gray-800 pt-3">
+        <div className="flex gap-2">
+          {(!sigStatus || sigStatus === 'unsigned') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onRequestSignature(quote)}
+              className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 text-xs"
+              title={t('quotesPage.requestSignature')}
+            >
+              <FileSignature className="w-4 h-4 mr-1" />
+              {t('quotesPage.requestSignature')}
+            </Button>
+          )}
+          {sigStatus === 'pending' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onCopySignatureLink(quote)}
+              className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20 text-xs"
+              title={t('quotesPage.copySignatureLink')}
+            >
+              <Copy className="w-4 h-4 mr-1" />
+              {t('quotesPage.copySignatureLink')}
+            </Button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onExportPDF(quote)}
+            className="text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
+            title={t('quotesPage.exportPdfTitle', { credits: CREDIT_COSTS.PDF_QUOTE })}
+          >
+            <Download className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onExportHTML(quote)}
+            className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20"
+            title={t('quotesPage.exportHtmlTitle', { credits: CREDIT_COSTS.EXPORT_HTML })}
+          >
+            <FileText className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(quote.id)}
+            className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
     </motion.div>
   );
@@ -123,6 +184,7 @@ const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML }) => {
 
 const QuotesPage = () => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { quotes, loading, createQuote, updateQuote, deleteQuote } = useQuotes();
   const { clients } = useClients();
   const { company } = useCompany();
@@ -133,6 +195,13 @@ const QuotesPage = () => {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [viewMode, setViewMode] = useState('list');
+
+  // Signature dialog state
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [signatureQuote, setSignatureQuote] = useState(null);
+  const [signerEmail, setSignerEmail] = useState('');
+  const [signatureLink, setSignatureLink] = useState('');
+  const [signatureSubmitting, setSignatureSubmitting] = useState(false);
 
   const quoteCalendarStatusColors = {
     draft: { bg: '#6b7280', border: '#4b5563', text: '#fff' },
@@ -305,6 +374,44 @@ const QuotesPage = () => {
     );
   };
 
+  const handleRequestSignature = (quote) => {
+    setSignatureQuote(quote);
+    setSignerEmail(quote.signer_email || '');
+    setSignatureLink('');
+    setSignatureDialogOpen(true);
+  };
+
+  const handleSendSignatureRequest = async () => {
+    if (!signatureQuote) return;
+    setSignatureSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('quote-sign-request', {
+        body: { quoteId: signatureQuote.id, signerEmail: signerEmail || null },
+      });
+      if (error) throw error;
+      setSignatureLink(data.signatureUrl);
+      toast({ title: t('quotesPage.signatureLinkCopied'), description: data.signatureUrl });
+    } catch (err) {
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
+    } finally {
+      setSignatureSubmitting(false);
+    }
+  };
+
+  const handleCopySignatureLink = (quote) => {
+    const appUrl = window.location.origin;
+    const link = `${appUrl}/quote-sign/${quote.signature_token}`;
+    navigator.clipboard.writeText(link).then(() => {
+      toast({ title: t('quotesPage.signatureLinkCopied') });
+    });
+  };
+
+  const handleCopyGeneratedLink = () => {
+    navigator.clipboard.writeText(signatureLink).then(() => {
+      toast({ title: t('quotesPage.signatureLinkCopied') });
+    });
+  };
+
   const handleExportList = (format) => {
     if (!quotes || quotes.length === 0) return;
     const statusLabels = {
@@ -450,7 +557,7 @@ const QuotesPage = () => {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {paginatedQuotes.map(quote => (
-                    <QuoteCard key={quote.id} quote={quote} onDelete={handleDelete} onExportPDF={handleExportQuotePDF} onExportHTML={handleExportQuoteHTML} />
+                    <QuoteCard key={quote.id} quote={quote} onDelete={handleDelete} onExportPDF={handleExportQuotePDF} onExportHTML={handleExportQuoteHTML} onRequestSignature={handleRequestSignature} onCopySignatureLink={handleCopySignatureLink} />
                   ))}
                 </div>
                 <PaginationControls
@@ -648,6 +755,61 @@ const QuotesPage = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Request Signature Dialog */}
+      <Dialog open={signatureDialogOpen} onOpenChange={(open) => { setSignatureDialogOpen(open); if (!open) { setSignatureLink(''); setSignerEmail(''); } }}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="text-gradient text-xl">{t('quotesPage.requestSignature')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-gray-300">{t('quotesPage.signerEmail')}</Label>
+              <Input
+                type="email"
+                value={signerEmail}
+                onChange={(e) => setSignerEmail(e.target.value)}
+                placeholder="client@example.com"
+                className="bg-gray-800 border-gray-700 text-white"
+              />
+            </div>
+            {signatureLink && (
+              <div className="space-y-2">
+                <Label className="text-gray-300">{t('quotesPage.signatureLink')}</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={signatureLink}
+                    readOnly
+                    className="bg-gray-800 border-gray-700 text-gray-300 text-xs"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyGeneratedLink}
+                    className="border-gray-700 text-gray-300 hover:bg-gray-800 shrink-0"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={() => setSignatureDialogOpen(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="button"
+              disabled={signatureSubmitting}
+              onClick={handleSendSignatureRequest}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {signatureSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileSignature className="w-4 h-4 mr-2" />}
+              {t('quotesPage.sendSignatureRequest')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
