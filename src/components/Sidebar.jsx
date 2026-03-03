@@ -10,7 +10,7 @@ import {
   Home, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, BarChart3, Calculator, PieChart, Settings,
   Map, QrCode, FileBarChart, Database, Menu, Package,
-  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck, Tag, ShoppingCart, FileInput, Globe
+  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck, Tag, ShoppingCart, FileInput, Globe, Webhook
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -129,6 +129,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         icon: Settings,
         type: 'category',
         items: [
+          { path: '/app/webhooks', label: 'API & Webhooks', icon: Webhook, featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS },
           { path: '/app/security', label: t('nav.security') || 'Sécurité', icon: Shield },
           { path: '/app/settings', label: t('common.settings'), icon: Settings },
         ],
