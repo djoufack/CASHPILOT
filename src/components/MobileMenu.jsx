@@ -2,6 +2,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { X, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -9,6 +10,7 @@ import { useCompany } from '@/hooks/useCompany';
 import CompanySwitcher from '@/components/CompanySwitcher';
 
 const MobileMenu = ({ isOpen, onClose, menuItems }) => {
+  const { t } = useTranslation();
   const { logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -50,7 +52,7 @@ const MobileMenu = ({ isOpen, onClose, menuItems }) => {
                {companies.length > 0 && (
                  <div className="px-3 pb-4 mb-3 border-b border-gray-800">
                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                     Société active
+                     {t('company.activeCompany')}
                    </div>
                    <CompanySwitcher
                      companies={companies}
@@ -102,7 +104,7 @@ const MobileMenu = ({ isOpen, onClose, menuItems }) => {
                  className="w-full justify-center border-red-900/30 text-red-400 hover:bg-red-900/20 hover:text-red-300"
                  onClick={handleLogout}
                >
-                 Log Out
+                 {t('common.logout')}
                </Button>
             </div>
           </motion.div>

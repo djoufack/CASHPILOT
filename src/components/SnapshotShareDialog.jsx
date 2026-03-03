@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Copy, Link2, Loader2, Share2, ShieldOff, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -7,11 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { useSharedSnapshots } from '@/hooks/useSharedSnapshots';
 
-const formatDate = (value) => {
-  if (!value) return 'Sans expiration';
+const formatDate = (value, locale) => {
+  if (!value) return null;
 
   try {
-    return new Date(value).toLocaleString('fr-FR');
+    return new Date(value).toLocaleString(locale || 'en');
   } catch {
     return value;
   }
@@ -23,10 +24,12 @@ const SnapshotShareDialog = ({
   snapshotData,
   triggerClassName = '',
 }) => {
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { snapshots, loading, createSnapshot, revokeSnapshot } = useSharedSnapshots(snapshotType);
   const [open, setOpen] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState('');
+  const locale = i18n.resolvedLanguage || i18n.language || 'en';
 
   const activeSnapshots = useMemo(
     () => snapshots.filter((snapshot) => snapshot.is_public),
@@ -38,8 +41,8 @@ const SnapshotShareDialog = ({
     setCopiedUrl(url);
     window.setTimeout(() => setCopiedUrl(''), 1800);
     toast({
-      title: 'Lien copié',
-      description: 'Le lien public est prêt à être partagé.',
+      title: t('snapshotShare.linkCopiedTitle'),
+      description: t('snapshotShare.linkCopiedDescription'),
     });
   };
 
@@ -59,8 +62,8 @@ const SnapshotShareDialog = ({
     try {
       await revokeSnapshot(snapshotId);
       toast({
-        title: 'Partage désactivé',
-        description: 'Le lien public a été révoqué.',
+        title: t('snapshotShare.revokedTitle'),
+        description: t('snapshotShare.revokedDescription'),
       });
     } catch {
       // Error toast is handled in the hook.
@@ -72,21 +75,21 @@ const SnapshotShareDialog = ({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className={triggerClassName}>
           <Share2 className="w-4 h-4 mr-2" />
-          Partager
+          {t('snapshotShare.trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent className="bg-gray-950 border-gray-800 text-white max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link2 className="w-5 h-5 text-orange-400" />
-            Partage public
+            {t('snapshotShare.dialogTitle')}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5">
           <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-4">
             <p className="text-sm text-gray-300">
-              Créez un lien public figé pour partager ce tableau de bord sans ouvrir l’accès à l’application.
+              {t('snapshotShare.description')}
             </p>
             <Button
               onClick={handleCreateSnapshot}
@@ -94,13 +97,13 @@ const SnapshotShareDialog = ({
               className="mt-4 bg-orange-500 hover:bg-orange-600 text-white"
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Share2 className="w-4 h-4 mr-2" />}
-              Générer un lien
+              {t('snapshotShare.generate')}
             </Button>
           </div>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-white">Liens actifs</h3>
+              <h3 className="text-sm font-medium text-white">{t('snapshotShare.activeLinks')}</h3>
               <Badge variant="outline" className="border-gray-700 text-gray-300">
                 {activeSnapshots.length}
               </Badge>
@@ -108,7 +111,7 @@ const SnapshotShareDialog = ({
 
             {activeSnapshots.length === 0 ? (
               <div className="rounded-xl border border-dashed border-gray-800 bg-gray-900/40 p-5 text-sm text-gray-500">
-                Aucun lien partagé pour le moment.
+                {t('snapshotShare.none')}
               </div>
             ) : activeSnapshots.map((snapshot) => (
               <div key={snapshot.id} className="rounded-xl border border-gray-800 bg-gray-900/40 p-4 space-y-3">
@@ -116,14 +119,16 @@ const SnapshotShareDialog = ({
                   <div>
                     <p className="font-medium text-white">{snapshot.title}</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Créé le {formatDate(snapshot.created_at)}
+                      {t('snapshotShare.createdAt', { date: formatDate(snapshot.created_at, locale) })}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Expiration: {formatDate(snapshot.expires_at)}
+                      {t('snapshotShare.expiresAt', {
+                        date: formatDate(snapshot.expires_at, locale) || t('snapshotShare.noExpiration'),
+                      })}
                     </p>
                   </div>
                   <Badge className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20">
-                    Public
+                    {t('snapshotShare.publicBadge')}
                   </Badge>
                 </div>
 

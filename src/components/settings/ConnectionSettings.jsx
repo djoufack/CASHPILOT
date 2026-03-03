@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
@@ -19,6 +20,7 @@ const MCP_SERVER_URL = 'https://cashpilot.tech/mcp';
 // Clipboard helper
 // ---------------------------------------------------------------------------
 function CopyButton({ text, label }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -33,7 +35,7 @@ function CopyButton({ text, label }) {
       size="sm"
       onClick={handleCopy}
       className="text-gray-400 hover:text-orange-400 h-7 px-2"
-      title={`Copier ${label || ''}`}
+      title={label ? t('connectionSettings.copyItem', { item: label }) : t('common.copy')}
     >
       {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
     </Button>
@@ -44,10 +46,12 @@ function CopyButton({ text, label }) {
 // Code block with copy
 // ---------------------------------------------------------------------------
 function CodeBlock({ code, language }) {
+  const { t } = useTranslation();
+
   return (
     <div className="relative group">
       <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <CopyButton text={code} label="le code" />
+        <CopyButton text={code} label={t('connectionSettings.labels.code')} />
       </div>
       <pre className="bg-gray-950 border border-gray-800 rounded-lg p-4 overflow-x-auto text-sm text-gray-300 font-mono">
         <code>{code}</code>
@@ -60,6 +64,7 @@ function CodeBlock({ code, language }) {
 // MCP Config Section (URL-based, uses API key)
 // ---------------------------------------------------------------------------
 function McpConfigSection({ onKeysChanged }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [mcpUrl, setMcpUrl] = useState(null);
@@ -68,7 +73,7 @@ function McpConfigSection({ onKeysChanged }) {
   const generateMcpUrl = async () => {
     setGenerating(true);
     try {
-      if (!user?.id) throw new Error("Utilisateur non connecté");
+      if (!user?.id) throw new Error(t('connectionSettings.errors.notAuthenticated'));
 
       const randomBytes = new Uint8Array(24);
       crypto.getRandomValues(randomBytes);
@@ -81,7 +86,7 @@ function McpConfigSection({ onKeysChanged }) {
 
       const { error } = await supabase.from('api_keys').insert({
         user_id: user.id,
-        name: 'Client MCP (Généré Automatiquement)',
+        name: 'MCP Client (Auto-generated)',
         key_hash: keyHash,
         key_prefix: rawKey.slice(0, 12),
         scopes: ['read', 'write', 'delete'],
@@ -92,9 +97,9 @@ function McpConfigSection({ onKeysChanged }) {
 
       setMcpUrl({ full: `${MCP_SERVER_URL}?api_key=${rawKey}`, core: `${MCP_SERVER_URL}?api_key=${rawKey}&tools=core` });
       if (onKeysChanged) onKeysChanged();
-      toast({ title: 'URL MCP générée', description: 'Prête à être copiée dans votre client.' });
+      toast({ title: t('connectionSettings.mcp.urlGeneratedTitle'), description: t('connectionSettings.mcp.urlGeneratedDescription') });
     } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     } finally {
       setGenerating(false);
     }
@@ -108,9 +113,9 @@ function McpConfigSection({ onKeysChanged }) {
             <Terminal className="w-5 h-5 text-blue-400" />
           </div>
           <div>
-            <CardTitle className="text-lg">Connexion MCP (Claude, VS Code, Cursor...)</CardTitle>
+            <CardTitle className="text-lg">{t('connectionSettings.mcp.title')}</CardTitle>
             <CardDescription className="text-gray-400">
-              Pilotez CashPilot en langage naturel depuis votre assistant IA (via SSE distant). 169 outils disponibles pour toutes vos opérations (lire, créer, modifier, supprimer).
+              {t('connectionSettings.mcp.description')}
             </CardDescription>
           </div>
         </div>
@@ -119,7 +124,7 @@ function McpConfigSection({ onKeysChanged }) {
       <CardContent className="space-y-6">
         <div className="space-y-4 bg-gray-800/50 p-4 rounded-lg border border-gray-700">
           <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium text-gray-200">URLs de connexion</Label>
+            <Label className="text-sm font-medium text-gray-200">{t('connectionSettings.mcp.urlsLabel')}</Label>
             <Button
               onClick={generateMcpUrl}
               disabled={generating}
@@ -127,7 +132,7 @@ function McpConfigSection({ onKeysChanged }) {
               size="sm"
             >
               {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-              {mcpUrl ? "Regénérer" : "Générer l'URL MCP"}
+              {mcpUrl ? t('connectionSettings.actions.regenerate') : t('connectionSettings.mcp.generateUrl')}
             </Button>
           </div>
 
@@ -135,38 +140,38 @@ function McpConfigSection({ onKeysChanged }) {
             <div className="space-y-3">
               {/* Full URL — Claude, Cursor, VS Code (443+ tools) */}
               <div className="space-y-1">
-                <Label className="text-xs text-gray-500 uppercase tracking-wider">Claude Desktop / Cursor / VS Code — 443+ outils</Label>
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">{t('connectionSettings.mcp.fullUrlLabel')}</Label>
                 <div className="flex items-center gap-2 bg-gray-950 rounded border border-blue-500/40 p-2">
                   <code className="text-sm text-blue-300 font-mono break-all flex-1 select-all">{mcpUrl.full}</code>
-                  <CopyButton text={mcpUrl.full} label="l'URL complete" />
+                  <CopyButton text={mcpUrl.full} label={t('connectionSettings.labels.fullUrl')} />
                 </div>
               </div>
               {/* Core URL — ChatGPT, etc. (26 core tools) */}
               <div className="space-y-1">
-                <Label className="text-xs text-gray-500 uppercase tracking-wider">ChatGPT / clients legers — 26 outils essentiels</Label>
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">{t('connectionSettings.mcp.coreUrlLabel')}</Label>
                 <div className="flex items-center gap-2 bg-gray-950 rounded border border-green-500/40 p-2">
                   <code className="text-sm text-green-300 font-mono break-all flex-1 select-all">{mcpUrl.core}</code>
-                  <CopyButton text={mcpUrl.core} label="l'URL ChatGPT" />
+                  <CopyButton text={mcpUrl.core} label={t('connectionSettings.labels.chatgptUrl')} />
                 </div>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Aucune URL générée pour l'instant.</p>
+            <p className="text-sm text-gray-500">{t('connectionSettings.mcp.noUrl')}</p>
           )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
           <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-white font-medium mb-1"><MessageSquare className="w-4 h-4" />Claude / Cursor</div>
-            <p className="text-xs text-gray-400">URL complete (169 outils). Type <strong>SSE</strong> ou <strong>URL</strong>.</p>
+            <div className="flex items-center gap-2 text-white font-medium mb-1"><MessageSquare className="w-4 h-4" />{t('connectionSettings.mcp.cards.assistants.title')}</div>
+            <p className="text-xs text-gray-400">{t('connectionSettings.mcp.cards.assistants.description')} <strong>SSE</strong> {t('common.or')} <strong>URL</strong>.</p>
           </div>
           <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
             <div className="flex items-center gap-2 text-white font-medium mb-1"><Globe className="w-4 h-4" />ChatGPT</div>
-            <p className="text-xs text-gray-400">URL core (26 outils). Compatible avec la limite ChatGPT.</p>
+            <p className="text-xs text-gray-400">{t('connectionSettings.mcp.cards.chatgpt.description')}</p>
           </div>
           <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-white font-medium mb-1"><AlertTriangle className="w-4 h-4 text-yellow-500" />Securite</div>
-            <p className="text-xs text-gray-400">L'URL contient une cle secrete. Ne la partagez pas.</p>
+            <div className="flex items-center gap-2 text-white font-medium mb-1"><AlertTriangle className="w-4 h-4 text-yellow-500" />{t('connectionSettings.mcp.cards.security.title')}</div>
+            <p className="text-xs text-gray-400">{t('connectionSettings.mcp.cards.security.description')}</p>
           </div>
         </div>
       </CardContent>
@@ -178,6 +183,7 @@ function McpConfigSection({ onKeysChanged }) {
 // MCP Connector Section (Anthropic API / Remote HTTP)
 // ---------------------------------------------------------------------------
 function McpConnectorSection() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('messages-api');
 
   const mcpServerUrl = 'https://cashpilot.tech/mcp';
@@ -194,11 +200,11 @@ response = client.messages.create(
             "type": "url",
             "url": "${mcpServerUrl}",
             "name": "cashpilot",
-            "authorization_token": "VOTRE_CLE_API"
+            "authorization_token": "YOUR_API_KEY"
         }
     ],
     messages=[
-        {"role": "user", "content": "Liste mes 5 dernières factures"}
+        {"role": "user", "content": "List my 5 latest invoices"}
     ],
     tools=[{"type": "mcp_toolset", "server_label": "cashpilot"}],
     betas=["mcp-client-2025-11-20"]
@@ -218,10 +224,10 @@ print(response.content)`;
       "type": "url",
       "url": "${mcpServerUrl}",
       "name": "cashpilot",
-      "authorization_token": "VOTRE_CLE_API"
+      "authorization_token": "YOUR_API_KEY"
     }],
     "tools": [{"type": "mcp_toolset", "server_label": "cashpilot"}],
-    "messages": [{"role": "user", "content": "Liste mes factures"}]
+    "messages": [{"role": "user", "content": "List my invoices"}]
   }'`;
 
   const tabs = [
@@ -237,10 +243,9 @@ print(response.content)`;
             <Cloud className="w-5 h-5 text-purple-400" />
           </div>
           <div>
-            <CardTitle className="text-lg">MCP Connector — API Anthropic (distant)</CardTitle>
+            <CardTitle className="text-lg">{t('connectionSettings.connector.title')}</CardTitle>
             <CardDescription className="text-gray-400">
-              Connectez-vous a CashPilot depuis l'API Anthropic Messages, sans installation locale.
-              Ideal pour les applications et agents IA en production.
+              {t('connectionSettings.connector.description')}
             </CardDescription>
           </div>
         </div>
@@ -249,12 +254,12 @@ print(response.content)`;
       <CardContent className="space-y-4">
         {/* How it works */}
         <div className="bg-purple-500/5 border border-purple-500/20 rounded-lg p-4">
-          <p className="text-sm text-purple-300 font-medium mb-2">Comment ca marche :</p>
+          <p className="text-sm text-purple-300 font-medium mb-2">{t('connectionSettings.howItWorks')}</p>
           <ol className="text-sm text-gray-400 space-y-1 list-decimal list-inside">
-            <li>Generez une <strong className="text-white">cle API CashPilot</strong> dans la section REST API ci-dessous</li>
-            <li>Ajoutez le serveur MCP dans votre appel a l'API Anthropic avec <code className="text-purple-400 bg-gray-800 px-1 rounded">mcp_servers</code></li>
-            <li>Utilisez <code className="text-purple-400 bg-gray-800 px-1 rounded">mcp_toolset</code> pour que Claude accede automatiquement aux 169 outils CashPilot</li>
-            <li>Claude peut alors gerer vos factures, clients, paiements en langage naturel</li>
+            <li>{t('connectionSettings.connector.steps.step1')}</li>
+            <li>{t('connectionSettings.connector.steps.step2')}</li>
+            <li>{t('connectionSettings.connector.steps.step3')}</li>
+            <li>{t('connectionSettings.connector.steps.step4')}</li>
           </ol>
         </div>
 
@@ -262,14 +267,14 @@ print(response.content)`;
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-gray-800/50 rounded-lg p-3 space-y-1">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-gray-500 uppercase tracking-wider">URL du serveur MCP</Label>
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">{t('connectionSettings.connector.serverUrl')}</Label>
               <CopyButton text={mcpServerUrl} />
             </div>
             <code className="text-sm text-purple-300 font-mono">{mcpServerUrl}</code>
           </div>
           <div className="bg-gray-800/50 rounded-lg p-3 space-y-1">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-gray-500 uppercase tracking-wider">Beta header requis</Label>
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">{t('connectionSettings.connector.requiredBetaHeader')}</Label>
               <CopyButton text="mcp-client-2025-11-20" />
             </div>
             <code className="text-sm text-purple-300 font-mono">mcp-client-2025-11-20</code>
@@ -300,9 +305,9 @@ print(response.content)`;
         {/* Use cases */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { icon: <Cpu className="w-4 h-4" />, label: 'Agents IA', desc: 'Integrez CashPilot dans vos agents autonomes (LangChain, CrewAI...)' },
-            { icon: <Code2 className="w-4 h-4" />, label: 'App SaaS', desc: 'Ajoutez la comptabilite IA dans votre propre application' },
-            { icon: <Cloud className="w-4 h-4" />, label: 'Workflows', desc: 'Automatisation cloud sans code local a installer' },
+            { icon: <Cpu className="w-4 h-4" />, label: t('connectionSettings.connector.cards.agents.title'), desc: t('connectionSettings.connector.cards.agents.description') },
+            { icon: <Code2 className="w-4 h-4" />, label: t('connectionSettings.connector.cards.saas.title'), desc: t('connectionSettings.connector.cards.saas.description') },
+            { icon: <Cloud className="w-4 h-4" />, label: t('connectionSettings.connector.cards.workflows.title'), desc: t('connectionSettings.connector.cards.workflows.description') },
           ].map(ex => (
             <div key={ex.label} className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
               <div className="flex items-center gap-2 text-white text-sm font-medium mb-1">{ex.icon}{ex.label}</div>
@@ -312,8 +317,7 @@ print(response.content)`;
         </div>
 
         <p className="text-xs text-gray-500">
-          Le MCP Connector est en beta chez Anthropic. Header requis : <code className="text-purple-400">anthropic-beta: mcp-client-2025-11-20</code>.
-          Le serveur CashPilot supporte SSE et Streamable HTTP.
+          {t('connectionSettings.connector.footer')} <code className="text-purple-400">anthropic-beta: mcp-client-2025-11-20</code>. {t('connectionSettings.connector.footerSuffix')}
         </p>
       </CardContent>
     </Card>
@@ -324,6 +328,7 @@ print(response.content)`;
 // API Key Creation Form
 // ---------------------------------------------------------------------------
 function CreateApiKeyForm({ onCreated }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [name, setName] = useState('');
@@ -336,17 +341,17 @@ function CreateApiKeyForm({ onCreated }) {
     setFormError(null);
 
     if (!name.trim()) {
-      setFormError('Donnez un nom a votre cle (ex: ChatGPT, Zapier, Script)');
+      setFormError(t('connectionSettings.apiKey.errors.nameRequired'));
       return;
     }
 
     if (!user?.id) {
-      setFormError('Vous devez etre connecte pour generer une cle API. Rechargez la page.');
+      setFormError(t('connectionSettings.apiKey.errors.notAuthenticated'));
       return;
     }
 
     if (!supabase) {
-      setFormError('Client Supabase non initialise. Verifiez la configuration.');
+      setFormError(t('connectionSettings.apiKey.errors.supabaseUnavailable'));
       return;
     }
 
@@ -381,12 +386,12 @@ function CreateApiKeyForm({ onCreated }) {
       setScopes({ read: true, write: false, delete: false });
       onCreated();
 
-      toast({ title: 'Cle API creee', description: 'Copiez-la maintenant — elle ne sera plus affichee.' });
+      toast({ title: t('connectionSettings.apiKey.createdTitle'), description: t('connectionSettings.apiKey.createdDescription') });
     } catch (err) {
       console.error('[CashPilot] API key generation error:', err);
       const msg = err?.message || String(err);
       setFormError(msg);
-      toast({ title: 'Erreur', description: msg, variant: 'destructive' });
+      toast({ title: t('common.error'), description: msg, variant: 'destructive' });
     } finally {
       setCreating(false);
     }
@@ -408,49 +413,49 @@ function CreateApiKeyForm({ onCreated }) {
       <div className="bg-green-500/5 border border-green-500/30 rounded-lg p-4 space-y-4">
         <div className="flex items-center gap-2">
           <Check className="w-5 h-5 text-green-400" />
-          <p className="text-sm font-semibold text-green-300">Cle generee ! Vos configurations sont pretes.</p>
+          <p className="text-sm font-semibold text-green-300">{t('connectionSettings.apiKey.generatedReady')}</p>
         </div>
 
         {/* MCP URL — for Claude Desktop (full 169 tools) */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-gray-400 uppercase tracking-wider">URL MCP — Claude Desktop / Cursor / Windsurf (169 outils)</Label>
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">{t('connectionSettings.apiKey.generatedFullUrl')}</Label>
           <div className="flex items-center gap-2 bg-gray-950 rounded-lg p-3 border border-blue-500/30">
             <code className="text-blue-300 font-mono text-sm flex-1 break-all select-all">{mcpUrl}</code>
-            <CopyButton text={mcpUrl} label="l'URL MCP" />
+            <CopyButton text={mcpUrl} label={t('connectionSettings.labels.mcpUrl')} />
           </div>
         </div>
 
         {/* MCP URL — for ChatGPT (core 26 tools) */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-gray-400 uppercase tracking-wider">URL MCP — ChatGPT / clients legers (26 outils essentiels)</Label>
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">{t('connectionSettings.apiKey.generatedCoreUrl')}</Label>
           <div className="flex items-center gap-2 bg-gray-950 rounded-lg p-3 border border-green-500/30">
             <code className="text-green-300 font-mono text-sm flex-1 break-all select-all">{mcpUrlCore}</code>
-            <CopyButton text={mcpUrlCore} label="l'URL ChatGPT" />
+            <CopyButton text={mcpUrlCore} label={t('connectionSettings.labels.chatgptUrl')} />
           </div>
         </div>
 
         {/* JSON config — for Claude Code / VS Code */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-gray-400 uppercase tracking-wider">JSON — pour Claude Code / VS Code (Cline, Continue, Copilot)</Label>
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">{t('connectionSettings.apiKey.generatedJson')}</Label>
           <CodeBlock code={jsonConfig} language="json" />
         </div>
 
         {/* Raw API key — for REST API / scripts */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-gray-400 uppercase tracking-wider">Cle API brute — pour scripts, ChatGPT, Zapier</Label>
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">{t('connectionSettings.apiKey.generatedRawKey')}</Label>
           <div className="flex items-center gap-2 bg-gray-950 rounded-lg p-3 border border-gray-700">
             <code className="text-green-400 font-mono text-sm flex-1 break-all select-all">{newKey}</code>
-            <CopyButton text={newKey} label="la cle" />
+            <CopyButton text={newKey} label={t('connectionSettings.labels.apiKey')} />
           </div>
         </div>
 
         <div className="flex items-center justify-between pt-1">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-yellow-400" />
-            <p className="text-xs text-yellow-300">Ces informations ne seront plus jamais affichees.</p>
+            <p className="text-xs text-yellow-300">{t('connectionSettings.apiKey.generatedWarning')}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setNewKey(null)} className="text-gray-400 hover:text-white">
-            J'ai copie, fermer
+            {t('connectionSettings.actions.close')}
           </Button>
         </div>
       </div>
@@ -462,31 +467,31 @@ function CreateApiKeyForm({ onCreated }) {
   return (
     <div className="space-y-4 bg-gray-800/30 border border-gray-700/50 rounded-lg p-4">
       <div className="space-y-2">
-        <Label className="text-sm text-gray-300">Nom de la cle <span className="text-red-400">*</span></Label>
+        <Label className="text-sm text-gray-300">{t('connectionSettings.apiKey.nameLabel')} <span className="text-red-400">*</span></Label>
         <input
           type="text"
           value={name}
           onChange={e => setName(e.target.value)}
-          placeholder="Ex: ChatGPT, Zapier, Script Python, n8n..."
+          placeholder={t('connectionSettings.apiKey.namePlaceholder')}
           className="flex h-10 w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900"
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm text-gray-300">Permissions</Label>
+        <Label className="text-sm text-gray-300">{t('connectionSettings.apiKey.permissions')}</Label>
         <div className="flex flex-wrap gap-4">
           {/* Read — always on, not toggleable */}
           <div className="flex items-center gap-3 bg-gray-800 rounded-lg p-3 border border-blue-500/40 opacity-80">
             <Check className="w-5 h-5 text-blue-400 flex-shrink-0" />
             <div>
-              <p className="text-sm text-white font-medium">Lecture <span className="text-xs text-gray-500 font-normal ml-1">(toujours active)</span></p>
-              <p className="text-xs text-gray-500">GET — consulter factures, clients, KPIs...</p>
+              <p className="text-sm text-white font-medium">{t('connectionSettings.apiKey.readTitle')} <span className="text-xs text-gray-500 font-normal ml-1">({t('connectionSettings.apiKey.alwaysActive')})</span></p>
+              <p className="text-xs text-gray-500">{t('connectionSettings.apiKey.readDescription')}</p>
             </div>
           </div>
           {/* Write & Delete — toggleable */}
           {[
-            { key: 'write', label: 'Ecriture', desc: 'POST/PUT — creer factures, clients, paiements...' },
-            { key: 'delete', label: 'Suppression', desc: 'DELETE — supprimer des enregistrements' },
+            { key: 'write', label: t('connectionSettings.apiKey.writeTitle'), desc: t('connectionSettings.apiKey.writeDescription') },
+            { key: 'delete', label: t('connectionSettings.apiKey.deleteTitle'), desc: t('connectionSettings.apiKey.deleteDescription') },
           ].map(scope => (
             <div
               key={scope.key}
@@ -513,7 +518,7 @@ function CreateApiKeyForm({ onCreated }) {
         className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
       >
         {creating ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-        Generer la cle API
+        {t('connectionSettings.apiKey.generateButton')}
       </Button>
 
       {formError && (
@@ -530,6 +535,9 @@ function CreateApiKeyForm({ onCreated }) {
 // API Keys List
 // ---------------------------------------------------------------------------
 function ApiKeysList({ keys, loading, onRevoke }) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage || i18n.language || 'en';
+
   if (loading) {
     return (
       <div className="flex justify-center py-8">
@@ -542,7 +550,7 @@ function ApiKeysList({ keys, loading, onRevoke }) {
     return (
       <div className="text-center py-8 text-gray-500">
         <Key className="w-10 h-10 mx-auto mb-3 opacity-30" />
-        <p>Aucune cle API. Creez-en une pour connecter ChatGPT, Zapier, ou vos scripts.</p>
+        <p>{t('connectionSettings.apiKey.noKeys')}</p>
       </div>
     );
   }
@@ -561,7 +569,7 @@ function ApiKeysList({ keys, loading, onRevoke }) {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium text-sm text-white truncate">{k.name}</span>
                 <code className="text-xs text-gray-500 font-mono">{k.key_prefix}...</code>
-                {!k.is_active && <Badge variant="destructive" className="text-xs">Revoquee</Badge>}
+                {!k.is_active && <Badge variant="destructive" className="text-xs">{t('connectionSettings.apiKey.revoked')}</Badge>}
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
                 <span>
@@ -569,9 +577,9 @@ function ApiKeysList({ keys, loading, onRevoke }) {
                     <Badge key={s} variant="outline" className="text-[10px] mr-1 border-gray-600 text-gray-400">{s}</Badge>
                   ))}
                 </span>
-                <span>Creee {new Date(k.created_at).toLocaleDateString('fr-FR')}</span>
+                <span>{t('connectionSettings.apiKey.createdAt', { date: new Date(k.created_at).toLocaleDateString(locale) })}</span>
                 {k.last_used_at && (
-                  <span>Utilisee {new Date(k.last_used_at).toLocaleDateString('fr-FR')}</span>
+                  <span>{t('connectionSettings.apiKey.lastUsedAt', { date: new Date(k.last_used_at).toLocaleDateString(locale) })}</span>
                 )}
               </div>
             </div>
@@ -597,6 +605,7 @@ function ApiKeysList({ keys, loading, onRevoke }) {
 // REST API Section
 // ---------------------------------------------------------------------------
 function RestApiSection({ keys, keysLoading, onKeysChanged }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const handleRevoke = async (id, name) => {
@@ -606,9 +615,9 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
       .eq('id', id);
 
     if (error) {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Cle revoquee', description: `"${name}" ne peut plus acceder a l'API.` });
+      toast({ title: t('connectionSettings.apiKey.revokedTitle'), description: t('connectionSettings.apiKey.revokedDescription', { name }) });
       onKeysChanged();
     }
   };
@@ -621,9 +630,9 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
             <Globe className="w-5 h-5 text-orange-400" />
           </div>
           <div>
-            <CardTitle className="text-lg">Connexion REST API (ChatGPT, Zapier, scripts...)</CardTitle>
+            <CardTitle className="text-lg">{t('connectionSettings.rest.title')}</CardTitle>
             <CardDescription className="text-gray-400">
-              Generez des cles API pour connecter des logiciels externes a CashPilot.
+              {t('connectionSettings.rest.description')}
             </CardDescription>
           </div>
         </div>
@@ -632,19 +641,19 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
       <CardContent className="space-y-5">
         {/* How it works */}
         <div className="bg-orange-500/5 border border-orange-500/20 rounded-lg p-4">
-          <p className="text-sm text-orange-300 font-medium mb-2">Comment ca marche :</p>
+          <p className="text-sm text-orange-300 font-medium mb-2">{t('connectionSettings.howItWorks')}</p>
           <ol className="text-sm text-gray-400 space-y-1 list-decimal list-inside">
-            <li>Generez une cle API ci-dessous</li>
-            <li>Copiez-la (elle ne sera affichee qu'une seule fois)</li>
-            <li>Configurez-la dans votre outil avec le header <code className="text-orange-400 bg-gray-800 px-1 rounded">X-API-Key</code></li>
-            <li>Envoyez vos requetes vers <code className="text-orange-400 bg-gray-800 px-1 rounded">{API_BASE_URL}</code></li>
+            <li>{t('connectionSettings.rest.steps.step1')}</li>
+            <li>{t('connectionSettings.rest.steps.step2')}</li>
+            <li>{t('connectionSettings.rest.steps.step3')}</li>
+            <li>{t('connectionSettings.rest.steps.step4', { url: API_BASE_URL })}</li>
           </ol>
         </div>
 
         {/* API Base URL */}
         <div className="bg-gray-800/50 rounded-lg p-3">
           <div className="flex items-center justify-between mb-1">
-            <Label className="text-xs text-gray-500 uppercase tracking-wider">URL de base de l'API</Label>
+            <Label className="text-xs text-gray-500 uppercase tracking-wider">{t('connectionSettings.rest.baseUrl')}</Label>
             <CopyButton text={API_BASE_URL} />
           </div>
           <code className="text-sm text-orange-300 font-mono">{API_BASE_URL}</code>
@@ -653,9 +662,9 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
         {/* Quick examples */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { icon: <MessageSquare className="w-4 h-4" />, label: 'ChatGPT', desc: 'Custom GPT > Actions > collez openapi.yaml + cle API' },
-            { icon: <Zap className="w-4 h-4" />, label: 'Zapier / Make', desc: 'Module HTTP > header X-API-Key + URL de base' },
-            { icon: <Code2 className="w-4 h-4" />, label: 'Python / Node.js', desc: 'Header X-API-Key dans vos requetes HTTP' },
+            { icon: <MessageSquare className="w-4 h-4" />, label: 'ChatGPT', desc: t('connectionSettings.rest.cards.chatgpt') },
+            { icon: <Zap className="w-4 h-4" />, label: 'Zapier / Make', desc: t('connectionSettings.rest.cards.zapier') },
+            { icon: <Code2 className="w-4 h-4" />, label: 'Python / Node.js', desc: t('connectionSettings.rest.cards.sdk') },
           ].map(ex => (
             <div key={ex.label} className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
               <div className="flex items-center gap-2 text-white text-sm font-medium mb-1">{ex.icon}{ex.label}</div>
@@ -670,7 +679,7 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
         {/* Existing keys */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <Label className="text-sm text-gray-300">Vos cles API</Label>
+            <Label className="text-sm text-gray-300">{t('connectionSettings.apiKey.yourKeys')}</Label>
             <Button variant="ghost" size="sm" onClick={onKeysChanged} className="text-gray-400 hover:text-white h-7">
               <RefreshCw className="w-3.5 h-3.5" />
             </Button>
@@ -680,8 +689,8 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
 
         {/* cURL example */}
         <div>
-          <Label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Exemple rapide (cURL)</Label>
-          <CodeBlock code={`curl -H "X-API-Key: cpk_votre_cle_ici" \\\n  "${API_BASE_URL}/analytics/kpis"`} />
+          <Label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">{t('connectionSettings.rest.curlExample')}</Label>
+          <CodeBlock code={`curl -H "X-API-Key: cpk_your_key_here" \\\n  "${API_BASE_URL}/analytics/kpis"`} />
         </div>
       </CardContent>
     </Card>

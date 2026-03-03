@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
+import { useTranslation } from 'react-i18next';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { AlertTriangle, BarChart3, Clock3, Link2, Loader2, Share2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -8,10 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/calculations';
 
-const formatDate = (value) => {
+const formatDate = (value, locale) => {
   if (!value) return '—';
   try {
-    return new Date(value).toLocaleString('fr-FR');
+    return new Date(value).toLocaleString(locale || 'en');
   } catch {
     return value;
   }
@@ -33,7 +34,7 @@ const SnapshotSummaryCards = ({ cards = [] }) => (
   </div>
 );
 
-const SharedDashboardSnapshot = ({ snapshot }) => {
+const SharedDashboardSnapshot = ({ snapshot, t }) => {
   const data = snapshot?.snapshot_data || {};
   const currency = data.currency || 'EUR';
 
@@ -46,7 +47,7 @@ const SharedDashboardSnapshot = ({ snapshot }) => {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-orange-400" />
-              Revenus
+              {t('sharedSnapshot.dashboard.revenue')}
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[320px]">
@@ -75,12 +76,12 @@ const SharedDashboardSnapshot = ({ snapshot }) => {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Share2 className="w-4 h-4 text-cyan-400" />
-              Top clients
+              {t('sharedSnapshot.dashboard.topClients')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {(data.clientRevenueData || []).length === 0 ? (
-              <p className="text-sm text-slate-500">Aucune donnée client dans ce snapshot.</p>
+              <p className="text-sm text-slate-500">{t('sharedSnapshot.dashboard.noClientData')}</p>
             ) : (data.clientRevenueData || []).map((client) => (
               <div key={client.name} className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -96,11 +97,11 @@ const SharedDashboardSnapshot = ({ snapshot }) => {
       <div className="grid gap-6 xl:grid-cols-2">
         <Card className="border-white/10 bg-slate-950/80">
           <CardHeader>
-            <CardTitle className="text-white">Dernières factures</CardTitle>
+            <CardTitle className="text-white">{t('sharedSnapshot.dashboard.recentInvoices')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {(data.recentInvoices || []).length === 0 ? (
-              <p className="text-sm text-slate-500">Aucune facture récente dans ce snapshot.</p>
+              <p className="text-sm text-slate-500">{t('sharedSnapshot.dashboard.noRecentInvoices')}</p>
             ) : (data.recentInvoices || []).map((invoice) => (
               <div key={invoice.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -122,12 +123,12 @@ const SharedDashboardSnapshot = ({ snapshot }) => {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Clock3 className="w-4 h-4 text-violet-400" />
-              Derniers pointages
+              {t('sharedSnapshot.dashboard.recentTimesheets')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {(data.recentTimesheets || []).length === 0 ? (
-              <p className="text-sm text-slate-500">Aucun temps récent dans ce snapshot.</p>
+              <p className="text-sm text-slate-500">{t('sharedSnapshot.dashboard.noRecentTimesheets')}</p>
             ) : (data.recentTimesheets || []).map((timesheet) => (
               <div key={timesheet.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -149,7 +150,7 @@ const SharedDashboardSnapshot = ({ snapshot }) => {
   );
 };
 
-const SharedAnalyticsSnapshot = ({ snapshot }) => {
+const SharedAnalyticsSnapshot = ({ snapshot, t }) => {
   const data = snapshot?.snapshot_data || {};
   const currency = data.currency || 'EUR';
   const agingData = data.receivablesAging || [];
@@ -161,7 +162,7 @@ const SharedAnalyticsSnapshot = ({ snapshot }) => {
       <div className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
         <Card className="border-white/10 bg-slate-950/80">
           <CardHeader>
-            <CardTitle className="text-white">Revenus vs charges</CardTitle>
+            <CardTitle className="text-white">{t('sharedSnapshot.analytics.revenueVsExpenses')}</CardTitle>
           </CardHeader>
           <CardContent className="h-[340px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -194,7 +195,7 @@ const SharedAnalyticsSnapshot = ({ snapshot }) => {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400" />
-              Vieillissement encours
+              {t('sharedSnapshot.analytics.receivablesAging')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -235,19 +236,19 @@ const SharedAnalyticsSnapshot = ({ snapshot }) => {
       <div className="grid gap-6 xl:grid-cols-2">
         <Card className="border-white/10 bg-slate-950/80">
           <CardHeader>
-            <CardTitle className="text-white">Watchlist encours</CardTitle>
+            <CardTitle className="text-white">{t('sharedSnapshot.analytics.watchlist')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {(data.receivablesWatchlist || []).length === 0 ? (
-              <p className="text-sm text-slate-500">Aucun retard client dans ce snapshot.</p>
+              <p className="text-sm text-slate-500">{t('sharedSnapshot.analytics.noWatchlist')}</p>
             ) : (data.receivablesWatchlist || []).map((item) => (
               <div key={item.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium text-white">{item.clientName}</p>
-                    <p className="text-xs text-slate-400">{item.invoiceNumber} • échéance {item.dueDate}</p>
+                    <p className="text-xs text-slate-400">{t('sharedSnapshot.analytics.dueDate', { invoiceNumber: item.invoiceNumber, dueDate: item.dueDate })}</p>
                   </div>
-                  <Badge className="bg-red-500/10 text-red-300 border-red-500/20">{item.daysOverdue} j</Badge>
+                  <Badge className="bg-red-500/10 text-red-300 border-red-500/20">{t('sharedSnapshot.analytics.days', { count: item.daysOverdue })}</Badge>
                 </div>
                 <p className="mt-3 text-sm font-semibold text-orange-300">{formatCurrency(item.amount, currency)}</p>
               </div>
@@ -257,22 +258,22 @@ const SharedAnalyticsSnapshot = ({ snapshot }) => {
 
         <Card className="border-white/10 bg-slate-950/80">
           <CardHeader>
-            <CardTitle className="text-white">Projets les plus contributifs</CardTitle>
+            <CardTitle className="text-white">{t('sharedSnapshot.analytics.topProjects')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {(data.topProjects || []).length === 0 ? (
-              <p className="text-sm text-slate-500">Aucune donnée projet exploitable dans ce snapshot.</p>
+              <p className="text-sm text-slate-500">{t('sharedSnapshot.analytics.noProjectData')}</p>
             ) : (data.topProjects || []).map((project) => (
               <div key={project.name} className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="font-medium text-white">{project.name}</p>
-                    <p className="text-xs text-slate-400">{project.hours.toFixed(1)} h travaillées</p>
+                    <p className="text-xs text-slate-400">{t('sharedSnapshot.analytics.hoursWorked', { count: project.hours.toFixed(1) })}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-emerald-300">{formatCurrency(project.revenue, currency)}</p>
                     <p className="text-xs text-slate-500">
-                      {project.revenuePerHour > 0 ? `${formatCurrency(project.revenuePerHour, currency)}/h` : 'Sans CA lié'}
+                      {project.revenuePerHour > 0 ? `${formatCurrency(project.revenuePerHour, currency)}/h` : t('sharedSnapshot.analytics.noRevenueLinked')}
                     </p>
                   </div>
                 </div>
@@ -286,10 +287,12 @@ const SharedAnalyticsSnapshot = ({ snapshot }) => {
 };
 
 const SharedSnapshotPage = () => {
+  const { t, i18n } = useTranslation();
   const { token } = useParams();
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const locale = i18n.resolvedLanguage || i18n.language || 'en';
 
   useEffect(() => {
     const fetchSnapshot = async () => {
@@ -305,7 +308,7 @@ const SharedSnapshotPage = () => {
 
         if (snapshotError) throw snapshotError;
         if (!data) {
-          setError('Ce lien de partage est introuvable ou a expiré.');
+          setError(t('sharedSnapshot.notFound'));
           setSnapshot(null);
           return;
         }
@@ -313,19 +316,19 @@ const SharedSnapshotPage = () => {
         setSnapshot(data);
       } catch (fetchError) {
         console.error('Error loading shared snapshot:', fetchError);
-        setError(fetchError.message || 'Impossible de charger ce snapshot.');
+        setError(fetchError.message || t('sharedSnapshot.loadError'));
       } finally {
         setLoading(false);
       }
     };
 
     fetchSnapshot();
-  }, [token]);
+  }, [t, token]);
 
   const pageTitle = useMemo(() => {
-    if (!snapshot) return 'Snapshot partagé - CashPilot';
+    if (!snapshot) return t('sharedSnapshot.pageTitleDefault');
     return `${snapshot.title} - CashPilot`;
-  }, [snapshot]);
+  }, [snapshot, t]);
 
   return (
     <>
@@ -340,19 +343,24 @@ const SharedSnapshotPage = () => {
               <div className="space-y-3">
                 <Badge className="bg-white/10 text-orange-200 border-white/10">
                   <Link2 className="w-3.5 h-3.5 mr-1" />
-                  Snapshot partagé
+                  {t('sharedSnapshot.badge')}
                 </Badge>
                 <div>
                   <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-                    {snapshot?.title || 'Chargement du snapshot'}
+                    {snapshot?.title || t('sharedSnapshot.loadingTitle')}
                   </h1>
                   <p className="mt-2 text-sm text-slate-300">
-                    {snapshot?.snapshot_data?.companyName || 'CashPilot'} • généré le {formatDate(snapshot?.created_at)}
+                    {t('sharedSnapshot.generatedOn', {
+                      company: snapshot?.snapshot_data?.companyName || t('sharedSnapshot.companyFallback'),
+                      date: formatDate(snapshot?.created_at, locale),
+                    })}
                   </p>
                 </div>
               </div>
               <div className="text-sm text-slate-400">
-                {snapshot?.expires_at ? `Expire le ${formatDate(snapshot.expires_at)}` : 'Lien sans expiration'}
+                {snapshot?.expires_at
+                  ? t('sharedSnapshot.expiresOn', { date: formatDate(snapshot.expires_at, locale) })
+                  : t('sharedSnapshot.noExpiration')}
               </div>
             </div>
           </section>
@@ -368,9 +376,9 @@ const SharedSnapshotPage = () => {
               </CardContent>
             </Card>
           ) : snapshot?.snapshot_type === 'analytics' ? (
-            <SharedAnalyticsSnapshot snapshot={snapshot} />
+            <SharedAnalyticsSnapshot snapshot={snapshot} t={t} />
           ) : (
-            <SharedDashboardSnapshot snapshot={snapshot} />
+            <SharedDashboardSnapshot snapshot={snapshot} t={t} />
           )}
         </div>
       </div>
