@@ -14,7 +14,7 @@ import {
   LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Package, BarChart3, Calculator, PieChart, Settings,
   FileMinus, PackageCheck, Wallet, TrendingUp, Building2, RefreshCw, Shield,
-  Receipt, ClipboardList, Wrench, Map, QrCode, FileBarChart, Database, Tag, Globe
+  Receipt, ClipboardList, Wrench, Map, QrCode, FileBarChart, Database, Tag, Globe, Webhook
 } from 'lucide-react';
 
 const MainLayout = () => {
@@ -78,6 +78,7 @@ const MainLayout = () => {
     { type: 'separator', label: t('nav.systemSection') },
     { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
     { path: '/app/analytics', label: t('nav.analytics'), icon: PieChart, featureKey: ENTITLEMENT_KEYS.ANALYTICS_REPORTS },
+    { path: '/app/webhooks', label: 'API & Webhooks', icon: Webhook, featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS },
     { path: '/app/security', label: t('nav.security'), icon: Shield },
     { path: '/app/settings', label: t('nav.settings'), icon: Settings },
   ];

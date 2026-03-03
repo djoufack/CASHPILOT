@@ -1,14 +1,18 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { X, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import { useCompany } from '@/hooks/useCompany';
+import CompanySwitcher from '@/components/CompanySwitcher';
 
 const MobileMenu = ({ isOpen, onClose, menuItems }) => {
   const { logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { companies, activeCompany, switchCompany } = useCompany();
 
   const handleLogout = () => {
     logout();
@@ -43,6 +47,25 @@ const MobileMenu = ({ isOpen, onClose, menuItems }) => {
             </div>
 
             <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+               {companies.length > 0 && (
+                 <div className="px-3 pb-4 mb-3 border-b border-gray-800">
+                   <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                     Société active
+                   </div>
+                   <CompanySwitcher
+                     companies={companies}
+                     activeCompany={activeCompany}
+                     onSwitch={(companyId) => {
+                       switchCompany(companyId);
+                       onClose();
+                     }}
+                     onCreateNew={() => {
+                       onClose();
+                       navigate('/app/settings?tab=societe');
+                     }}
+                   />
+                 </div>
+               )}
                {menuItems.map((item, idx) => {
                  if (item.type === 'separator') {
                    return (
