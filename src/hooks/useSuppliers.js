@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useSuppliers = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -12,6 +13,7 @@ export const useSuppliers = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [totalCount, setTotalCount] = useState(0);
 
@@ -24,6 +26,8 @@ export const useSuppliers = () => {
         .from('suppliers')
         .select('*', usePagination ? { count: 'exact' } : undefined)
         .order('created_at', { ascending: false });
+
+      query = applyCompanyScope(query);
 
       if (usePagination) {
         const from = (page - 1) * pageSize;
@@ -48,16 +52,19 @@ export const useSuppliers = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applyCompanyScope, toast, user]);
 
   const getSupplierById = useCallback(async (id) => {
     if (!user) return null;
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('suppliers')
         .select('*')
-        .eq('id', id)
-        .single();
+        .eq('id', id);
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query.single();
       
       if (error) throw error;
       return data;
@@ -65,7 +72,7 @@ export const useSuppliers = () => {
       console.error("Error fetching supplier:", err);
       return null;
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   const createSupplier = async (supplierData) => {
     if (!user) return;
@@ -73,7 +80,7 @@ export const useSuppliers = () => {
     try {
       const { data, error } = await supabase
         .from('suppliers')
-        .insert([{ ...supplierData, user_id: user.id }])
+        .insert([{ ...withCompanyScope(supplierData), user_id: user.id }])
         .select()
         .single();
 

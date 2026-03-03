@@ -1,22 +1,28 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useSupplierServices = (supplierId) => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { toast } = useToast();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchServices = useCallback(async () => {
     if (!supplierId) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('supplier_services')
         .select('*')
         .eq('supplier_id', supplierId)
         .order('created_at', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setServices(data || []);
@@ -30,14 +36,14 @@ export const useSupplierServices = (supplierId) => {
     } finally {
       setLoading(false);
     }
-  }, [supplierId, toast]);
+  }, [applyCompanyScope, supplierId, toast]);
 
   const createService = async (serviceData) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('supplier_services')
-        .insert([{ ...serviceData, supplier_id: supplierId }])
+        .insert([{ ...withCompanyScope(serviceData), supplier_id: supplierId }])
         .select()
         .single();
 

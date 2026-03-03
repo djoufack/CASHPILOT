@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useSupplierProducts = (supplierId) => {
   const [products, setProducts] = useState([]);
@@ -10,27 +11,32 @@ export const useSupplierProducts = (supplierId) => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchCategories = useCallback(async () => {
      if(!user) return;
      try {
-       const { data, error } = await supabase
+       let query = supabase
          .from('supplier_product_categories')
          .select('*')
          .order('name');
-       
+
+       query = applyCompanyScope(query);
+
+       const { data, error } = await query;
+
        if(error) throw error;
        setCategories(data || []);
      } catch (err) {
         console.error("Failed to fetch categories", err);
      }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   const fetchProducts = useCallback(async () => {
     if (!supplierId) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('supplier_products')
         .select(`
           *,
@@ -38,6 +44,10 @@ export const useSupplierProducts = (supplierId) => {
         `)
         .eq('supplier_id', supplierId)
         .order('product_name');
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setProducts(data || []);
@@ -51,14 +61,14 @@ export const useSupplierProducts = (supplierId) => {
     } finally {
       setLoading(false);
     }
-  }, [supplierId, toast]);
+  }, [applyCompanyScope, supplierId, toast]);
 
   const createProduct = async (productData) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('supplier_products')
-        .insert([{ ...productData, supplier_id: supplierId }])
+        .insert([{ ...withCompanyScope(productData), supplier_id: supplierId }])
         .select(`*, category:supplier_product_categories(id, name)`)
         .single();
 

@@ -3,10 +3,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
 import { fetchObligationSnapshot } from '@/lib/obligations';
+import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
 
 export const useObligations = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const activeCompanyId = useActiveCompanyId();
   const [snapshot, setSnapshot] = useState({
     currency: 'EUR',
     obligations: [],
@@ -23,7 +25,7 @@ export const useObligations = () => {
 
     setLoading(true);
     try {
-      const nextSnapshot = await fetchObligationSnapshot(supabase, user.id);
+      const nextSnapshot = await fetchObligationSnapshot(supabase, user.id, { companyId: activeCompanyId });
       setSnapshot(nextSnapshot);
     } catch (error) {
       console.error('Failed to load obligations:', error);
@@ -35,7 +37,7 @@ export const useObligations = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [activeCompanyId, toast, user]);
 
   useEffect(() => {
     refresh();
@@ -47,4 +49,3 @@ export const useObligations = () => {
     refresh,
   };
 };
-

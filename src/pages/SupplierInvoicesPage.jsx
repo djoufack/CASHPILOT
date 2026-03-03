@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useCreditsGuard } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import UploadInvoiceModal from '@/components/UploadInvoiceModal';
@@ -69,6 +70,7 @@ const SupplierInvoicesPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { company } = useCompany();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
   const { guardedAction, modalProps } = useCreditsGuard();
   const { toast } = useToast();
 
@@ -101,13 +103,17 @@ const SupplierInvoicesPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('supplier_invoices')
         .select(`
           *,
           supplier:suppliers(id, company_name)
         `)
         .order('created_at', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setInvoices(data || []);
@@ -120,22 +126,26 @@ const SupplierInvoicesPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, t]);
+  }, [applyCompanyScope, user, toast, t]);
 
   const fetchSuppliers = useCallback(async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('suppliers')
         .select('id, company_name')
         .order('company_name');
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setSuppliers(data || []);
     } catch (err) {
       console.error('Error fetching suppliers:', err);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   useEffect(() => {
     if (user) {
@@ -341,7 +351,7 @@ const SupplierInvoicesPage = () => {
 
       const { data: newInvoice, error } = await supabase
         .from('supplier_invoices')
-        .insert([invoiceData])
+        .insert([withCompanyScope(invoiceData)])
         .select(`
           *,
           supplier:suppliers(id, company_name)

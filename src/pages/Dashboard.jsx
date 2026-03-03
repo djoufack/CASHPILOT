@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { exportDashboardPDF, exportDashboardHTML } from '@/services/exportReports';
 import AccountingHealthWidget from '@/components/AccountingHealthWidget';
 import ObligationsPanel from '@/components/dashboard/ObligationsPanel';
+import SnapshotShareDialog from '@/components/SnapshotShareDialog';
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -262,6 +263,69 @@ const Dashboard = () => {
     { label: t('dashboard.occupancyRate'), value: `${Math.round(metrics.occupancyRate)}%`, icon: Activity, trend: formatTrendLabel(metrics.occupancyTrend), trendUp: parseFloat(metrics.occupancyTrend) >= 0 },
   ];
 
+  const dashboardSnapshotData = useMemo(() => ({
+    companyName: company?.company_name || t('app.name'),
+    currency: cc,
+    generatedAt: new Date().toISOString(),
+    summaryCards: [
+      {
+        label: t('dashboard.totalRevenue'),
+        value: formatCurrency(metrics.revenue, cc),
+        hint: formatTrendLabel(metrics.revenueTrend),
+        accentClass: 'text-orange-300',
+      },
+      {
+        label: t('dashboard.profitMargin'),
+        value: `${Math.round(metrics.profitMargin)}%`,
+        hint: formatTrendLabel(metrics.marginTrend),
+        accentClass: 'text-emerald-300',
+      },
+      {
+        label: t('dashboard.occupancyRate'),
+        value: `${Math.round(metrics.occupancyRate)}%`,
+        hint: formatTrendLabel(metrics.occupancyTrend),
+        accentClass: 'text-cyan-300',
+      },
+      {
+        label: t('dashboard.netCashFlow'),
+        value: formatCurrency(metrics.netCashFlow, cc),
+        hint: t('dashboard.totalExpenses'),
+        accentClass: metrics.netCashFlow >= 0 ? 'text-green-300' : 'text-red-300',
+      },
+    ],
+    revenueData,
+    clientRevenueData: clientRevenueData.slice(0, 8),
+    recentInvoices: recentInvoices.map((invoice) => ({
+      id: invoice.id,
+      label: invoice.invoice_number,
+      subtitle: invoice.client?.company_name || 'Client',
+      amountLabel: formatCurrency(getInvoiceAmount(invoice), cc),
+      status: invoice.status,
+    })),
+    recentTimesheets: recentTimesheets.map((timesheet) => ({
+      id: timesheet.id,
+      label: timesheet.task?.name || t('dashboard.untitledTask'),
+      subtitle: timesheet.project?.name || t('dashboard.noProject'),
+      durationLabel: `${Math.floor(timesheet.duration_minutes / 60)}h ${timesheet.duration_minutes % 60}m`,
+      dateLabel: new Date(timesheet.date).toLocaleDateString('fr-FR'),
+    })),
+  }), [
+    cc,
+    clientRevenueData,
+    company?.company_name,
+    metrics.netCashFlow,
+    metrics.occupancyRate,
+    metrics.occupancyTrend,
+    metrics.profitMargin,
+    metrics.marginTrend,
+    metrics.revenue,
+    metrics.revenueTrend,
+    recentInvoices,
+    recentTimesheets,
+    revenueData,
+    t,
+  ]);
+
   const quickActions = [
     { label: t('dashboard.newTimesheet'), path: '/timesheets', icon: Clock },
     { label: t('dashboard.newInvoice'), path: '/invoices', icon: FileText },
@@ -293,6 +357,12 @@ const Dashboard = () => {
               <p className="text-gray-500 text-sm">{t('app.tagline')}</p>
             </div>
             <div className="flex gap-2 flex-wrap">
+              <SnapshotShareDialog
+                snapshotType="dashboard"
+                title={`${company?.company_name || 'CashPilot'} - Dashboard`}
+                snapshotData={dashboardSnapshotData}
+                triggerClassName="border-gray-600 hover:bg-gray-700"
+              />
               <Button
                 onClick={handleExportPDF}
                 size="sm"
