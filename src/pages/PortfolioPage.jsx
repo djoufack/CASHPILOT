@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
+import { useTranslation } from 'react-i18next';
 import {
   AlertTriangle,
   ArrowRight,
@@ -82,23 +83,23 @@ const formatMoneyGroups = (groups) => {
     .join(' · ');
 };
 
-const getCompanyHealth = (summary) => {
+const getCompanyHealth = (summary, t) => {
   if (summary.overdueInvoices > 0 || summary.overdueReceivables > 0) {
     return {
-      label: 'A surveiller',
+      label: t('portfolio.health.watch'),
       className: 'bg-amber-500/15 text-amber-300 border-amber-400/30',
     };
   }
 
   if (summary.activeProjects === 0 && summary.openQuotes === 0 && summary.bookedRevenue === 0) {
     return {
-      label: 'Dormant',
+      label: t('portfolio.health.dormant'),
       className: 'bg-slate-500/15 text-slate-300 border-slate-400/30',
     };
   }
 
   return {
-    label: 'Sous controle',
+    label: t('portfolio.health.control'),
     className: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30',
   };
 };
@@ -120,6 +121,7 @@ const isInvoiceClosed = (invoice) => {
 
 const PortfolioPage = () => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
   const {
@@ -132,6 +134,7 @@ const PortfolioPage = () => {
   const [loading, setLoading] = useState(false);
   const [portfolio, setPortfolio] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
+  const locale = i18n.resolvedLanguage || i18n.language || 'en';
 
   const loadPortfolio = useCallback(async () => {
     if (!user || companyLoading) {
@@ -204,10 +207,10 @@ const PortfolioPage = () => {
           summary.overdueInvoices += 1;
           nextWatchlist.push({
             companyId: summary.company.id,
-            companyName: summary.company.company_name || 'Societe',
+            companyName: summary.company.company_name || t('portfolio.companyGeneric'),
             currency: summary.currency,
-            invoiceNumber: invoice.invoice_number || 'Facture',
-            clientName: invoice.client?.company_name || invoice.client?.contact_name || 'Client',
+            invoiceNumber: invoice.invoice_number || t('portfolio.invoiceFallback'),
+            clientName: invoice.client?.company_name || invoice.client?.contact_name || t('portfolio.clientFallback'),
             amount: balanceDue,
             daysOverdue: getDaysOverdue(invoice.due_date),
           });
@@ -267,14 +270,14 @@ const PortfolioPage = () => {
       setWatchlist(nextWatchlist.sort((left, right) => right.daysOverdue - left.daysOverdue));
     } catch (error) {
       toast({
-        title: 'Erreur portfolio',
+        title: t('portfolio.toastErrorTitle'),
         description: error.message,
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  }, [activeCompany?.id, companies, companyLoading, toast, user]);
+  }, [activeCompany?.id, companies, companyLoading, t, toast, user]);
 
   useEffect(() => {
     loadPortfolio();
@@ -298,27 +301,27 @@ const PortfolioPage = () => {
 
   const headerCards = [
     {
-      title: 'Societes suivies',
+      title: t('portfolio.summary.companiesTracked'),
       value: String(portfolioTotals.companies),
-      hint: `${portfolioTotals.overdueCompanies} avec retard client`,
+      hint: t('portfolio.summary.withOverdue', { count: portfolioTotals.overdueCompanies }),
       icon: Layers3,
     },
     {
-      title: 'CA facture portefeuille',
+      title: t('portfolio.summary.bookedRevenue'),
       value: formatMoneyGroups(portfolioTotals.bookedRevenue),
-      hint: `${portfolioTotals.activeProjects} projets actifs`,
+      hint: t('portfolio.summary.activeProjects', { count: portfolioTotals.activeProjects }),
       icon: BadgeEuro,
     },
     {
-      title: 'Encaissements',
+      title: t('portfolio.summary.collectedCash'),
       value: formatMoneyGroups(portfolioTotals.collectedCash),
-      hint: `${portfolioTotals.openQuotes} devis ouverts`,
+      hint: t('portfolio.summary.openQuotes', { count: portfolioTotals.openQuotes }),
       icon: Wallet,
     },
     {
-      title: 'Encours client',
+      title: t('portfolio.summary.outstandingReceivables'),
       value: formatMoneyGroups(portfolioTotals.outstandingReceivables),
-      hint: `Pipeline ${formatMoneyGroups(portfolioTotals.quotePipeline)}`,
+      hint: t('portfolio.summary.pipelineHint', { amount: formatMoneyGroups(portfolioTotals.quotePipeline) }),
       icon: AlertTriangle,
     },
   ];
@@ -328,7 +331,7 @@ const PortfolioPage = () => {
   return (
     <>
       <Helmet>
-        <title>Portefeuille societes - CashPilot</title>
+        <title>{`${t('portfolio.pageTitle')} - CashPilot`}</title>
       </Helmet>
 
       <div className="container mx-auto p-4 md:p-8 min-h-screen text-white space-y-6">
@@ -336,15 +339,15 @@ const PortfolioPage = () => {
           <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_center,_rgba(45,212,191,0.12),_transparent_60%)]" />
           <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl space-y-3">
-              <Badge className="bg-white/10 text-orange-200 border-white/15">Workflow cabinet</Badge>
+              <Badge className="bg-white/10 text-orange-200 border-white/15">{t('portfolio.badge')}</Badge>
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl bg-orange-500/15 p-3 ring-1 ring-orange-400/20">
                   <Building2 className="h-7 w-7 text-orange-300" />
                 </div>
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Portefeuille societes</h1>
+                  <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">{t('portfolio.title')}</h1>
                   <p className="text-sm md:text-base text-slate-300">
-                    Vue transverse des dossiers, encours clients, pipeline devis et activite projet sans changer de societe a l aveugle.
+                    {t('portfolio.subtitle')}
                   </p>
                 </div>
               </div>
@@ -357,13 +360,13 @@ const PortfolioPage = () => {
                 disabled={loading || companyLoading}
                 className="border-white/15 bg-white/5 text-white hover:bg-white/10"
               >
-                Actualiser
+                {t('portfolio.refresh')}
               </Button>
               <Button
                 onClick={() => navigate('/app/settings')}
                 className="bg-orange-500 text-white hover:bg-orange-600"
               >
-                Gerer les societes
+                {t('portfolio.manageCompanies')}
               </Button>
             </div>
           </div>
@@ -392,15 +395,15 @@ const PortfolioPage = () => {
         <section className="grid gap-6 xl:grid-cols-[1.6fr_0.95fr]">
           <Card className="border-white/10 bg-slate-950/70 backdrop-blur">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white">Societes et priorites</CardTitle>
+              <CardTitle className="text-white">{t('portfolio.sections.companiesAndPriorities')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {portfolio.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-8 text-center text-slate-400">
-                  {companyLoading || loading ? 'Chargement du portefeuille...' : 'Aucune societe a consolider pour le moment.'}
+                  {companyLoading || loading ? t('portfolio.emptyLoading') : t('portfolio.emptyNone')}
                 </div>
               ) : portfolio.map((companySummary) => {
-                const health = getCompanyHealth(companySummary);
+                const health = getCompanyHealth(companySummary, t);
                 const revenueShare = topRevenue > 0 ? (companySummary.bookedRevenue / topRevenue) * 100 : 0;
 
                 return (
@@ -416,40 +419,46 @@ const PortfolioPage = () => {
                       <div className="space-y-3 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="text-lg font-semibold text-white">
-                            {companySummary.company.company_name || 'Societe sans nom'}
+                            {companySummary.company.company_name || t('portfolio.companyFallback')}
                           </h2>
                           <Badge className={health.className}>{health.label}</Badge>
                           {companySummary.company.id === activeCompany?.id && (
-                            <Badge className="bg-teal-500/15 text-teal-200 border-teal-400/30">Active</Badge>
+                            <Badge className="bg-teal-500/15 text-teal-200 border-teal-400/30">{t('portfolio.activeBadge')}</Badge>
                           )}
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                           <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">CA facture</p>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('portfolio.metrics.bookedRevenue')}</p>
                             <p className="mt-1 text-base font-semibold text-white">{formatCurrency(companySummary.bookedRevenue, companySummary.currency)}</p>
                           </div>
                           <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Encaisse</p>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('portfolio.metrics.collectedCash')}</p>
                             <p className="mt-1 text-base font-semibold text-emerald-300">{formatCurrency(companySummary.collectedCash, companySummary.currency)}</p>
                           </div>
                           <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Encours</p>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('portfolio.metrics.outstanding')}</p>
                             <p className="mt-1 text-base font-semibold text-amber-300">{formatCurrency(companySummary.outstandingReceivables, companySummary.currency)}</p>
                           </div>
                           <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Retards</p>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('portfolio.metrics.overdue')}</p>
                             <p className="mt-1 text-base font-semibold text-rose-300">
-                              {companySummary.overdueInvoices} facture(s) · {formatCurrency(companySummary.overdueReceivables, companySummary.currency)}
+                              {t('portfolio.metrics.overdueValue', {
+                                count: companySummary.overdueInvoices,
+                                amount: formatCurrency(companySummary.overdueReceivables, companySummary.currency),
+                              })}
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Projets actifs</p>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('portfolio.metrics.activeProjects')}</p>
                             <p className="mt-1 text-base font-semibold text-white">{companySummary.activeProjects}</p>
                           </div>
                           <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Pipeline devis</p>
+                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('portfolio.metrics.quotePipeline')}</p>
                             <p className="mt-1 text-base font-semibold text-cyan-300">
-                              {companySummary.openQuotes} ouvert(s) · {formatCurrency(companySummary.quotePipeline, companySummary.currency)}
+                              {t('portfolio.metrics.quotePipelineValue', {
+                                count: companySummary.openQuotes,
+                                amount: formatCurrency(companySummary.quotePipeline, companySummary.currency),
+                              })}
                             </p>
                           </div>
                         </div>
@@ -458,7 +467,7 @@ const PortfolioPage = () => {
                       <div className="flex min-w-[220px] flex-col gap-3">
                         <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
                           <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-slate-500">
-                            <span>Poids CA</span>
+                            <span>{t('portfolio.revenueWeight')}</span>
                             <span>{Math.round(revenueShare)}%</span>
                           </div>
                           <div className="mt-3 h-2 rounded-full bg-white/10">
@@ -468,14 +477,18 @@ const PortfolioPage = () => {
                             />
                           </div>
                           <p className="mt-3 text-xs text-slate-400">
-                            Derniere activite: {companySummary.lastActivityAt ? new Date(companySummary.lastActivityAt).toLocaleDateString('fr-FR') : 'Aucune'}
+                            {t('portfolio.lastActivity', {
+                              date: companySummary.lastActivityAt
+                                ? new Date(companySummary.lastActivityAt).toLocaleDateString(locale)
+                                : t('portfolio.noActivity'),
+                            })}
                           </p>
                         </div>
                         <Button
                           onClick={() => openCompanyWorkspace(companySummary.company.id)}
                           className="justify-between bg-white text-slate-950 hover:bg-slate-200"
                         >
-                          Ouvrir cette societe
+                          {t('portfolio.openCompany')}
                           <ArrowRight className="h-4 w-4" />
                         </Button>
                       </div>
@@ -489,12 +502,12 @@ const PortfolioPage = () => {
           <div className="space-y-6">
             <Card className="border-white/10 bg-slate-950/70 backdrop-blur">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white">Watchlist retards clients</CardTitle>
+                <CardTitle className="text-white">{t('portfolio.sections.watchlist')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {watchlist.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-emerald-500/20 bg-emerald-500/5 p-5 text-sm text-emerald-200">
-                    Aucun retard client critique sur le portefeuille.
+                    {t('portfolio.watchlistNone')}
                   </div>
                 ) : watchlist.slice(0, 8).map((item) => (
                   <div key={`${item.companyId}-${item.invoiceNumber}`} className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -503,7 +516,7 @@ const PortfolioPage = () => {
                         <p className="font-medium text-white">{item.invoiceNumber}</p>
                         <p className="text-sm text-slate-400">{item.companyName} · {item.clientName}</p>
                       </div>
-                      <Badge className="bg-rose-500/15 text-rose-200 border-rose-400/30">{item.daysOverdue} j</Badge>
+                      <Badge className="bg-rose-500/15 text-rose-200 border-rose-400/30">{t('portfolio.daysOverdue', { count: item.daysOverdue })}</Badge>
                     </div>
                     <p className="mt-3 text-sm font-semibold text-amber-300">{formatCurrency(item.amount, item.currency)}</p>
                   </div>
@@ -513,28 +526,28 @@ const PortfolioPage = () => {
 
             <Card className="border-white/10 bg-slate-950/70 backdrop-blur">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white">Lecture rapide du portefeuille</CardTitle>
+                <CardTitle className="text-white">{t('portfolio.sections.quickRead')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-slate-300">
                 <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
                   <Briefcase className="mt-0.5 h-5 w-5 text-teal-300" />
                   <div>
-                    <p className="font-medium text-white">Charge projet</p>
-                    <p>{portfolioTotals.activeProjects} projets actifs repartis sur {portfolioTotals.companies} societe(s).</p>
+                    <p className="font-medium text-white">{t('portfolio.quickRead.projectLoadTitle')}</p>
+                    <p>{t('portfolio.quickRead.projectLoadText', { projects: portfolioTotals.activeProjects, companies: portfolioTotals.companies })}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
                   <FileSignature className="mt-0.5 h-5 w-5 text-cyan-300" />
                   <div>
-                    <p className="font-medium text-white">Pipeline devis</p>
-                    <p>{portfolioTotals.openQuotes} devis ouverts pour {formatMoneyGroups(portfolioTotals.quotePipeline)}.</p>
+                    <p className="font-medium text-white">{t('portfolio.quickRead.quotePipelineTitle')}</p>
+                    <p>{t('portfolio.quickRead.quotePipelineText', { quotes: portfolioTotals.openQuotes, amount: formatMoneyGroups(portfolioTotals.quotePipeline) })}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
                   <FolderKanban className="mt-0.5 h-5 w-5 text-orange-300" />
                   <div>
-                    <p className="font-medium text-white">Action recommandee</p>
-                    <p>Traiter en priorite les societes avec retards clients avant de changer de contexte opérationnel.</p>
+                    <p className="font-medium text-white">{t('portfolio.quickRead.recommendedActionTitle')}</p>
+                    <p>{t('portfolio.quickRead.recommendedActionText')}</p>
                   </div>
                 </div>
               </CardContent>

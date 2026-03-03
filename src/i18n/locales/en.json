@@ -75,7 +75,11 @@
     "management": "Management",
     "peppolEInvoicing": "Peppol",
     "seedData": "Seed Data",
-    "pilotage": "Business Steering"
+    "pilotage": "Business Steering",
+    "sales": "Sales",
+    "companyPortfolio": "Company Portfolio",
+    "integrations": "Integrations",
+    "apiWebhooks": "API & Webhooks"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -2446,6 +2450,292 @@
         "valuationInputs": "Valuation inputs",
         "benchmarkReference": "Sector benchmark reference"
       }
+    }
+  },
+  "integrationsHub": {
+    "badge": "Integrations Hub",
+    "title": "Connect CashPilot to your ecosystem",
+    "subtitle": "API, MCP, webhooks, and automation recipes in one place to make product openness visible and usable.",
+    "viewWebhooks": "View webhooks",
+    "manageConnections": "Manage connections",
+    "readyTitle": "Ready-to-use connections",
+    "readySubtitle": "The product openness foundation is centralized here: API keys, MCP for AI assistants, and app connectivity.",
+    "cards": {
+      "api": {
+        "title": "REST API",
+        "description": "API keys, HTTP endpoints, and scripts to connect CashPilot to your business tools.",
+        "badge": "Available"
+      },
+      "ai": {
+        "title": "MCP & AI assistants",
+        "description": "Native connection for ChatGPT, Claude, Cursor, and tool-oriented AI agents.",
+        "badge": "AI"
+      },
+      "webhooks": {
+        "title": "Signed webhooks",
+        "description": "Secure outbound triggers to orchestrate Zapier, Make, n8n, or your own workers.",
+        "badge": "Automation"
+      },
+      "recipes": {
+        "title": "Integration recipes",
+        "description": "Ready entry points for CRM, notifications, reconciliation, or external reporting.",
+        "badge": "Playbooks"
+      }
+    },
+    "recipes": {
+      "zapier": {
+        "title": "Zapier / Make",
+        "description": "Trigger workflows when an invoice, signed quote, or payment is created.",
+        "cta": "Configure webhooks"
+      },
+      "ai": {
+        "title": "ChatGPT / Claude",
+        "description": "Expose CashPilot operations to an AI assistant through MCP or an API key.",
+        "cta": "Manage connections"
+      },
+      "automation": {
+        "title": "n8n / business scripts",
+        "description": "Drive internal automations with the REST API and signed events.",
+        "cta": "Create an API key"
+      }
+    }
+  },
+  "snapshotShare": {
+    "trigger": "Share",
+    "dialogTitle": "Public sharing",
+    "description": "Create a fixed public link to share this dashboard without opening access to the application.",
+    "generate": "Generate a link",
+    "activeLinks": "Active links",
+    "none": "No shared links yet.",
+    "createdAt": "Created on {{date}}",
+    "expiresAt": "Expires: {{date}}",
+    "noExpiration": "No expiration",
+    "publicBadge": "Public",
+    "linkCopiedTitle": "Link copied",
+    "linkCopiedDescription": "The public link is ready to share.",
+    "revokedTitle": "Sharing disabled",
+    "revokedDescription": "The public link has been revoked."
+  },
+  "sharedSnapshot": {
+    "pageTitleDefault": "Shared snapshot - CashPilot",
+    "badge": "Shared snapshot",
+    "loadingTitle": "Loading snapshot",
+    "generatedOn": "{{company}} • generated on {{date}}",
+    "expiresOn": "Expires on {{date}}",
+    "noExpiration": "Link without expiration",
+    "notFound": "This shared link was not found or has expired.",
+    "loadError": "Unable to load this snapshot.",
+    "companyFallback": "CashPilot",
+    "dashboard": {
+      "revenue": "Revenue",
+      "topClients": "Top clients",
+      "noClientData": "No client data in this snapshot.",
+      "recentInvoices": "Recent invoices",
+      "noRecentInvoices": "No recent invoices in this snapshot.",
+      "recentTimesheets": "Recent time entries",
+      "noRecentTimesheets": "No recent time entries in this snapshot."
+    },
+    "analytics": {
+      "revenueVsExpenses": "Revenue vs expenses",
+      "receivablesAging": "Receivables aging",
+      "watchlist": "Receivables watchlist",
+      "noWatchlist": "No overdue clients in this snapshot.",
+      "dueDate": "{{invoiceNumber}} • due {{dueDate}}",
+      "days": "{{count}} d",
+      "topProjects": "Top contributing projects",
+      "noProjectData": "No usable project data in this snapshot.",
+      "hoursWorked": "{{count}} h worked",
+      "noRevenueLinked": "No linked revenue"
+    }
+  },
+  "portfolio": {
+    "pageTitle": "Company Portfolio",
+    "badge": "Firm workflow",
+    "title": "Company Portfolio",
+    "subtitle": "Cross-company view of engagements, receivables, quote pipeline, and project activity without switching companies blindly.",
+    "refresh": "Refresh",
+    "manageCompanies": "Manage companies",
+    "toastErrorTitle": "Portfolio error",
+    "companyFallback": "Unnamed company",
+    "companyGeneric": "Company",
+    "invoiceFallback": "Invoice",
+    "clientFallback": "Client",
+    "activeBadge": "Active",
+    "revenueWeight": "Revenue share",
+    "lastActivity": "Last activity: {{date}}",
+    "noActivity": "None",
+    "openCompany": "Open this company",
+    "watchlistNone": "No critical client overdue items in the portfolio.",
+    "daysOverdue": "{{count}} d",
+    "health": {
+      "watch": "Needs attention",
+      "dormant": "Dormant",
+      "control": "Under control"
+    },
+    "summary": {
+      "companiesTracked": "Tracked companies",
+      "withOverdue": "{{count}} with overdue receivables",
+      "bookedRevenue": "Portfolio billed revenue",
+      "activeProjects": "{{count}} active projects",
+      "collectedCash": "Cash collected",
+      "openQuotes": "{{count}} open quotes",
+      "outstandingReceivables": "Outstanding receivables",
+      "pipelineHint": "Pipeline {{amount}}"
+    },
+    "sections": {
+      "companiesAndPriorities": "Companies and priorities",
+      "watchlist": "Overdue receivables watchlist",
+      "quickRead": "Quick portfolio read"
+    },
+    "emptyLoading": "Loading portfolio...",
+    "emptyNone": "No companies to consolidate right now.",
+    "metrics": {
+      "bookedRevenue": "Billed revenue",
+      "collectedCash": "Collected",
+      "outstanding": "Outstanding",
+      "overdue": "Overdue",
+      "overdueValue": "{{count}} invoice(s) · {{amount}}",
+      "activeProjects": "Active projects",
+      "quotePipeline": "Quote pipeline",
+      "quotePipelineValue": "{{count}} open · {{amount}}"
+    },
+    "quickRead": {
+      "projectLoadTitle": "Project load",
+      "projectLoadText": "{{projects}} active projects spread across {{companies}} company(ies).",
+      "quotePipelineTitle": "Quote pipeline",
+      "quotePipelineText": "{{quotes}} open quotes for {{amount}}.",
+      "recommendedActionTitle": "Recommended action",
+      "recommendedActionText": "Handle companies with overdue receivables first before switching operational context."
+    }
+  },
+  "topNav": {
+    "unlimitedAccess": "Unlimited access",
+    "credits": "credits",
+    "myProfile": "My profile",
+    "myCompany": "My company",
+    "notifications": "Notifications",
+    "menu": "Menu",
+    "theme": "Theme",
+    "language": "Language"
+  },
+  "connectionSettings": {
+    "copyItem": "Copy {{item}}",
+    "howItWorks": "How it works:",
+    "actions": {
+      "regenerate": "Regenerate",
+      "close": "Close"
+    },
+    "labels": {
+      "fullUrl": "the full URL",
+      "chatgptUrl": "the ChatGPT URL",
+      "mcpUrl": "the MCP URL",
+      "apiKey": "the API key",
+      "code": "the code"
+    },
+    "errors": {
+      "notAuthenticated": "User not authenticated"
+    },
+    "mcp": {
+      "title": "MCP connection (Claude, VS Code, Cursor...)",
+      "description": "Control CashPilot in natural language from your AI assistant through remote SSE.",
+      "urlGeneratedTitle": "MCP URL generated",
+      "urlGeneratedDescription": "Ready to copy into your client.",
+      "urlsLabel": "Connection URLs",
+      "generateUrl": "Generate MCP URL",
+      "fullUrlLabel": "Claude Desktop / Cursor / VS Code — full toolset",
+      "coreUrlLabel": "ChatGPT / lightweight clients — essential tools",
+      "noUrl": "No URL generated yet.",
+      "cards": {
+        "assistants": {
+          "title": "Claude / Cursor",
+          "description": "Full URL. Type"
+        },
+        "chatgpt": {
+          "description": "Core URL. Compatible with ChatGPT limits."
+        },
+        "security": {
+          "title": "Security",
+          "description": "The URL contains a secret key. Do not share it."
+        }
+      }
+    },
+    "connector": {
+      "title": "MCP Connector — Anthropic API",
+      "description": "Connect to CashPilot from the Anthropic Messages API without a local install.",
+      "steps": {
+        "step1": "Generate a CashPilot API key in the REST API section below.",
+        "step2": "Add the MCP server to your Anthropic call with mcp_servers.",
+        "step3": "Use mcp_toolset so Claude can access CashPilot tools automatically.",
+        "step4": "Claude can then manage invoices, clients, and payments in natural language."
+      },
+      "serverUrl": "MCP server URL",
+      "requiredBetaHeader": "Required beta header",
+      "cards": {
+        "agents": {
+          "title": "AI agents",
+          "description": "Integrate CashPilot into your autonomous agents."
+        },
+        "saas": {
+          "title": "SaaS app",
+          "description": "Add AI accounting to your own application."
+        },
+        "workflows": {
+          "title": "Workflows",
+          "description": "Cloud automation without local code to install."
+        }
+      },
+      "footer": "The MCP Connector is in beta at Anthropic. Required header:",
+      "footerSuffix": "The CashPilot server supports SSE and Streamable HTTP."
+    },
+    "apiKey": {
+      "errors": {
+        "nameRequired": "Give your key a name.",
+        "notAuthenticated": "You must be logged in to generate an API key.",
+        "supabaseUnavailable": "Supabase client not initialized. Check the configuration."
+      },
+      "createdTitle": "API key created",
+      "createdDescription": "Copy it now: it will not be shown again.",
+      "generatedReady": "Key generated. Your configurations are ready.",
+      "generatedFullUrl": "MCP URL — Claude Desktop / Cursor / Windsurf",
+      "generatedCoreUrl": "MCP URL — ChatGPT / lightweight clients",
+      "generatedJson": "JSON — for Claude Code / VS Code",
+      "generatedRawKey": "Raw API key — for scripts, ChatGPT, Zapier",
+      "generatedWarning": "This information will never be shown again.",
+      "nameLabel": "Key name",
+      "namePlaceholder": "Ex: ChatGPT, Zapier, Python script, n8n...",
+      "permissions": "Permissions",
+      "readTitle": "Read",
+      "alwaysActive": "always active",
+      "readDescription": "GET — view invoices, clients, KPIs...",
+      "writeTitle": "Write",
+      "writeDescription": "POST/PUT — create invoices, clients, payments...",
+      "deleteTitle": "Delete",
+      "deleteDescription": "DELETE — remove records",
+      "generateButton": "Generate API key",
+      "noKeys": "No API keys yet. Create one to connect ChatGPT, Zapier, or your scripts.",
+      "revoked": "Revoked",
+      "createdAt": "Created {{date}}",
+      "lastUsedAt": "Used {{date}}",
+      "revokedTitle": "Key revoked",
+      "revokedDescription": "\"{{name}}\" can no longer access the API.",
+      "yourKeys": "Your API keys"
+    },
+    "rest": {
+      "title": "REST API connection (ChatGPT, Zapier, scripts...)",
+      "description": "Generate API keys to connect external software to CashPilot.",
+      "steps": {
+        "step1": "Generate an API key below.",
+        "step2": "Copy it: it will only be shown once.",
+        "step3": "Configure it in your tool with the X-API-Key header.",
+        "step4": "Send your requests to {{url}}."
+      },
+      "baseUrl": "API base URL",
+      "cards": {
+        "chatgpt": "Custom GPT > Actions > paste openapi.yaml + API key",
+        "zapier": "HTTP module > X-API-Key header + base URL",
+        "sdk": "Use the X-API-Key header in your HTTP requests"
+      },
+      "curlExample": "Quick example (cURL)"
     }
   },
   "company": {

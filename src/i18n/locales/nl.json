@@ -51,7 +51,25 @@
     "suppliers": "Leveranciers",
     "reports": "Rapporten",
     "accounting": "Boekhouding",
-    "scenarios": "Financiële Simulaties"
+    "scenarios": "Financiële simulaties",
+    "catalog": "Catalogus",
+    "products": "Producten",
+    "categories": "Categorieën",
+    "auditComptable": "Boekhoudaudit",
+    "supplierInvoices": "Leveranciersfacturen",
+    "peppol": "Peppol",
+    "mapView": "Kaartweergave",
+    "scanner": "Scanner",
+    "financeSection": "Financiën",
+    "systemSection": "Systeem",
+    "management": "Beheer",
+    "peppolEInvoicing": "Peppol",
+    "seedData": "Testgegevens",
+    "pilotage": "Sturing",
+    "sales": "Verkoop",
+    "companyPortfolio": "Bedrijfsportefeuille",
+    "integrations": "Integraties",
+    "apiWebhooks": "API & webhooks"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -197,6 +215,12 @@
     "newSupplier": "Nieuwe leverancier",
     "stock": "Voorraad",
     "reports": "Rapporten"
+  },
+  "services": {
+    "title": "Diensten"
+  },
+  "purchases": {
+    "title": "Aankopen"
   },
   "accounting": {
     "title": "Boekhouding",
@@ -978,6 +1002,292 @@
       "tableSendLabel": "Verzenden ({{credits}} {{unit}})",
       "sendButton": "Peppol-verzending bevestigen ({{credits}} {{unit}})",
       "sendDialogNotice": "Deze verzending verbruikt {{credits}} {{unit}}. Als het Access Point het document weigert of de logging mislukt, worden de tegoeden automatisch teruggestort."
+    }
+  },
+  "integrationsHub": {
+    "badge": "Integratiehub",
+    "title": "CashPilot koppelen aan uw ecosysteem",
+    "subtitle": "API, MCP, webhooks en automatiseringsrecepten op één plek om de openheid van het product zichtbaar en bruikbaar te maken.",
+    "viewWebhooks": "Webhooks bekijken",
+    "manageConnections": "Verbindingen beheren",
+    "readyTitle": "Klaar voor gebruik",
+    "readySubtitle": "De basis voor productopenheid is hier gecentraliseerd: API-sleutels, MCP voor AI-assistenten en koppelingen met andere apps.",
+    "cards": {
+      "api": {
+        "title": "REST API",
+        "description": "API-sleutels, HTTP-endpoints en scripts om CashPilot met uw bedrijfssoftware te verbinden.",
+        "badge": "Beschikbaar"
+      },
+      "ai": {
+        "title": "MCP & AI-assistenten",
+        "description": "Native koppeling voor ChatGPT, Claude, Cursor en toolgerichte AI-agents.",
+        "badge": "AI"
+      },
+      "webhooks": {
+        "title": "Ondertekende webhooks",
+        "description": "Veilige uitgaande triggers om Zapier, Make, n8n of uw eigen workers aan te sturen.",
+        "badge": "Automatisering"
+      },
+      "recipes": {
+        "title": "Integratierecepten",
+        "description": "Kant-en-klare ingangen voor CRM, meldingen, matching of externe rapportering.",
+        "badge": "Playbooks"
+      }
+    },
+    "recipes": {
+      "zapier": {
+        "title": "Zapier / Make",
+        "description": "Start workflows wanneer een factuur, ondertekende offerte of betaling wordt aangemaakt.",
+        "cta": "Webhooks instellen"
+      },
+      "ai": {
+        "title": "ChatGPT / Claude",
+        "description": "Stel CashPilot-acties beschikbaar aan een AI-assistent via MCP of een API-sleutel.",
+        "cta": "Verbindingen beheren"
+      },
+      "automation": {
+        "title": "n8n / bedrijfsscripts",
+        "description": "Stuur interne automatiseringen aan met de REST API en ondertekende events.",
+        "cta": "API-sleutel aanmaken"
+      }
+    }
+  },
+  "snapshotShare": {
+    "trigger": "Delen",
+    "dialogTitle": "Publiek delen",
+    "description": "Maak een vaste openbare link aan om dit dashboard te delen zonder toegang tot de applicatie te geven.",
+    "generate": "Link genereren",
+    "activeLinks": "Actieve links",
+    "none": "Nog geen gedeelde link.",
+    "createdAt": "Aangemaakt op {{date}}",
+    "expiresAt": "Verloopt op: {{date}}",
+    "noExpiration": "Geen vervaldatum",
+    "publicBadge": "Openbaar",
+    "linkCopiedTitle": "Link gekopieerd",
+    "linkCopiedDescription": "De openbare link is klaar om te delen.",
+    "revokedTitle": "Delen uitgeschakeld",
+    "revokedDescription": "De openbare link is ingetrokken."
+  },
+  "sharedSnapshot": {
+    "pageTitleDefault": "Gedeelde snapshot - CashPilot",
+    "badge": "Gedeelde snapshot",
+    "loadingTitle": "Snapshot wordt geladen",
+    "generatedOn": "{{company}} • aangemaakt op {{date}}",
+    "expiresOn": "Verloopt op {{date}}",
+    "noExpiration": "Link zonder vervaldatum",
+    "notFound": "Deze deel-link bestaat niet meer of is verlopen.",
+    "loadError": "Deze snapshot kon niet worden geladen.",
+    "companyFallback": "CashPilot",
+    "dashboard": {
+      "revenue": "Omzet",
+      "topClients": "Topklanten",
+      "noClientData": "Geen klantgegevens in deze snapshot.",
+      "recentInvoices": "Recente facturen",
+      "noRecentInvoices": "Geen recente facturen in deze snapshot.",
+      "recentTimesheets": "Recente tijdsregistraties",
+      "noRecentTimesheets": "Geen recente tijdsregistraties in deze snapshot."
+    },
+    "analytics": {
+      "revenueVsExpenses": "Omzet vs kosten",
+      "receivablesAging": "Ouderdomsanalyse openstaande posten",
+      "watchlist": "Watchlist openstaande posten",
+      "noWatchlist": "Geen achterstallige klanten in deze snapshot.",
+      "dueDate": "{{invoiceNumber}} • vervaldag {{dueDate}}",
+      "days": "{{count}} d",
+      "topProjects": "Best bijdragende projecten",
+      "noProjectData": "Geen bruikbare projectgegevens in deze snapshot.",
+      "hoursWorked": "{{count}} u gewerkt",
+      "noRevenueLinked": "Geen gekoppelde omzet"
+    }
+  },
+  "portfolio": {
+    "pageTitle": "Bedrijfsportefeuille",
+    "badge": "Kantoorworkflow",
+    "title": "Bedrijfsportefeuille",
+    "subtitle": "Dwarsdoorsnede van dossiers, openstaande klanten, offertepipeline en projectactiviteit zonder blind van bedrijf te wisselen.",
+    "refresh": "Vernieuwen",
+    "manageCompanies": "Bedrijven beheren",
+    "toastErrorTitle": "Portefeuillefout",
+    "companyFallback": "Naamloos bedrijf",
+    "companyGeneric": "Bedrijf",
+    "invoiceFallback": "Factuur",
+    "clientFallback": "Klant",
+    "activeBadge": "Actief",
+    "revenueWeight": "Omzetaandeel",
+    "lastActivity": "Laatste activiteit: {{date}}",
+    "noActivity": "Geen",
+    "openCompany": "Dit bedrijf openen",
+    "watchlistNone": "Geen kritieke klantachterstanden in de portefeuille.",
+    "daysOverdue": "{{count}} d",
+    "health": {
+      "watch": "Opvolgen",
+      "dormant": "Slapend",
+      "control": "Onder controle"
+    },
+    "summary": {
+      "companiesTracked": "Opgevolgde bedrijven",
+      "withOverdue": "{{count}} met achterstallige klantenvorderingen",
+      "bookedRevenue": "Gefactureerde omzet portefeuille",
+      "activeProjects": "{{count}} actieve projecten",
+      "collectedCash": "Ontvangsten",
+      "openQuotes": "{{count}} open offertes",
+      "outstandingReceivables": "Openstaande klantenvorderingen",
+      "pipelineHint": "Pipeline {{amount}}"
+    },
+    "sections": {
+      "companiesAndPriorities": "Bedrijven en prioriteiten",
+      "watchlist": "Watchlist achterstallige klanten",
+      "quickRead": "Snelle portefeuillelezing"
+    },
+    "emptyLoading": "Portefeuille wordt geladen...",
+    "emptyNone": "Nog geen bedrijven om te consolideren.",
+    "metrics": {
+      "bookedRevenue": "Gefactureerde omzet",
+      "collectedCash": "Ontvangen",
+      "outstanding": "Openstaand",
+      "overdue": "Achterstallig",
+      "overdueValue": "{{count}} facturen · {{amount}}",
+      "activeProjects": "Actieve projecten",
+      "quotePipeline": "Offertepipeline",
+      "quotePipelineValue": "{{count}} open · {{amount}}"
+    },
+    "quickRead": {
+      "projectLoadTitle": "Projectdruk",
+      "projectLoadText": "{{projects}} actieve projecten verspreid over {{companies}} bedrijf(en).",
+      "quotePipelineTitle": "Offertepipeline",
+      "quotePipelineText": "{{quotes}} open offertes voor {{amount}}.",
+      "recommendedActionTitle": "Aanbevolen actie",
+      "recommendedActionText": "Pak eerst de bedrijven met klantachterstanden aan voordat u van operationele context wisselt."
+    }
+  },
+  "topNav": {
+    "unlimitedAccess": "Onbeperkte toegang",
+    "credits": "credits",
+    "myProfile": "Mijn profiel",
+    "myCompany": "Mijn bedrijf",
+    "notifications": "Meldingen",
+    "menu": "Menu",
+    "theme": "Thema",
+    "language": "Taal"
+  },
+  "connectionSettings": {
+    "copyItem": "Kopieer {{item}}",
+    "howItWorks": "Zo werkt het:",
+    "actions": {
+      "regenerate": "Opnieuw genereren",
+      "close": "Sluiten"
+    },
+    "labels": {
+      "fullUrl": "de volledige URL",
+      "chatgptUrl": "de ChatGPT-URL",
+      "mcpUrl": "de MCP-URL",
+      "apiKey": "de API-sleutel",
+      "code": "de code"
+    },
+    "errors": {
+      "notAuthenticated": "Gebruiker niet aangemeld"
+    },
+    "mcp": {
+      "title": "MCP-verbinding (Claude, VS Code, Cursor...)",
+      "description": "Bedien CashPilot in natuurlijke taal vanuit uw AI-assistent via remote SSE.",
+      "urlGeneratedTitle": "MCP-URL gegenereerd",
+      "urlGeneratedDescription": "Klaar om in uw client te plakken.",
+      "urlsLabel": "Verbindings-URL’s",
+      "generateUrl": "MCP-URL genereren",
+      "fullUrlLabel": "Claude Desktop / Cursor / VS Code — volledige toolset",
+      "coreUrlLabel": "ChatGPT / lichte clients — essentiële tools",
+      "noUrl": "Nog geen URL gegenereerd.",
+      "cards": {
+        "assistants": {
+          "title": "Claude / Cursor",
+          "description": "Volledige URL. Type"
+        },
+        "chatgpt": {
+          "description": "Core-URL. Compatibel met de limieten van ChatGPT."
+        },
+        "security": {
+          "title": "Beveiliging",
+          "description": "De URL bevat een geheime sleutel. Deel die niet."
+        }
+      }
+    },
+    "connector": {
+      "title": "MCP Connector — Anthropic API",
+      "description": "Verbind met CashPilot vanuit de Anthropic Messages API zonder lokale installatie.",
+      "steps": {
+        "step1": "Genereer hieronder een CashPilot API-sleutel in de REST API-sectie.",
+        "step2": "Voeg de MCP-server toe aan uw Anthropic-call met mcp_servers.",
+        "step3": "Gebruik mcp_toolset zodat Claude automatisch toegang krijgt tot de CashPilot-tools.",
+        "step4": "Claude kan daarna facturen, klanten en betalingen in natuurlijke taal beheren."
+      },
+      "serverUrl": "URL van de MCP-server",
+      "requiredBetaHeader": "Vereiste bèta-header",
+      "cards": {
+        "agents": {
+          "title": "AI-agents",
+          "description": "Integreer CashPilot in uw autonome agents."
+        },
+        "saas": {
+          "title": "SaaS-app",
+          "description": "Voeg AI-boekhouding toe aan uw eigen applicatie."
+        },
+        "workflows": {
+          "title": "Workflows",
+          "description": "Cloudautomatisering zonder lokale code te installeren."
+        }
+      },
+      "footer": "De MCP Connector staat in bèta bij Anthropic. Vereiste header:",
+      "footerSuffix": "De CashPilot-server ondersteunt SSE en Streamable HTTP."
+    },
+    "apiKey": {
+      "errors": {
+        "nameRequired": "Geef uw sleutel een naam.",
+        "notAuthenticated": "U moet aangemeld zijn om een API-sleutel te genereren.",
+        "supabaseUnavailable": "Supabase-client is niet geïnitialiseerd. Controleer de configuratie."
+      },
+      "createdTitle": "API-sleutel aangemaakt",
+      "createdDescription": "Kopieer hem nu: daarna wordt hij niet meer getoond.",
+      "generatedReady": "Sleutel aangemaakt. Uw configuraties zijn klaar.",
+      "generatedFullUrl": "MCP-URL — Claude Desktop / Cursor / Windsurf",
+      "generatedCoreUrl": "MCP-URL — ChatGPT / lichte clients",
+      "generatedJson": "JSON — voor Claude Code / VS Code",
+      "generatedRawKey": "Ruwe API-sleutel — voor scripts, ChatGPT, Zapier",
+      "generatedWarning": "Deze informatie wordt nooit meer getoond.",
+      "nameLabel": "Naam van de sleutel",
+      "namePlaceholder": "Bijv. ChatGPT, Zapier, Python-script, n8n...",
+      "permissions": "Rechten",
+      "readTitle": "Lezen",
+      "alwaysActive": "altijd actief",
+      "readDescription": "GET — facturen, klanten en KPI’s raadplegen...",
+      "writeTitle": "Schrijven",
+      "writeDescription": "POST/PUT — facturen, klanten en betalingen aanmaken...",
+      "deleteTitle": "Verwijderen",
+      "deleteDescription": "DELETE — records verwijderen",
+      "generateButton": "API-sleutel genereren",
+      "noKeys": "Nog geen API-sleutels. Maak er een aan om ChatGPT, Zapier of uw scripts te koppelen.",
+      "revoked": "Ingetrokken",
+      "createdAt": "Aangemaakt {{date}}",
+      "lastUsedAt": "Gebruikt {{date}}",
+      "revokedTitle": "Sleutel ingetrokken",
+      "revokedDescription": "\"{{name}}\" heeft geen toegang meer tot de API.",
+      "yourKeys": "Uw API-sleutels"
+    },
+    "rest": {
+      "title": "REST API-verbinding (ChatGPT, Zapier, scripts...)",
+      "description": "Genereer API-sleutels om externe software met CashPilot te verbinden.",
+      "steps": {
+        "step1": "Genereer hieronder een API-sleutel.",
+        "step2": "Kopieer die: ze wordt maar één keer getoond.",
+        "step3": "Configureer ze in uw tool met de X-API-Key-header.",
+        "step4": "Stuur uw requests naar {{url}}."
+      },
+      "baseUrl": "Basis-URL van de API",
+      "cards": {
+        "chatgpt": "Custom GPT > Actions > plak openapi.yaml + API-sleutel",
+        "zapier": "HTTP-module > X-API-Key-header + basis-URL",
+        "sdk": "Gebruik de X-API-Key-header in uw HTTP-requests"
+      },
+      "curlExample": "Snel voorbeeld (cURL)"
     }
   },
   "errors": {

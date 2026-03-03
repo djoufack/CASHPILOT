@@ -40,12 +40,12 @@ const TopNavBar = ({ isCollapsed }) => {
     {
       to: '/app/settings?tab=credits',
       icon: Coins,
-      label: creditsLoading ? '...' : unlimitedAccess ? (unlimitedAccessLabel || 'Acces illimite') : `${availableCredits} crédits`,
+      label: creditsLoading ? '...' : unlimitedAccess ? (unlimitedAccessLabel || t('topNav.unlimitedAccess')) : `${availableCredits} ${t('topNav.credits')}`,
       highlight: true
     },
-    { to: '/app/settings?tab=profil', icon: User, label: 'Mon Profil' },
-    { to: '/app/settings?tab=societe', icon: Building2, label: 'Ma Société' },
-    { to: '/app/notifications', icon: Bell, label: 'Notifications' },
+    { to: '/app/settings?tab=profil', icon: User, label: t('topNav.myProfile') },
+    { to: '/app/settings?tab=societe', icon: Building2, label: t('topNav.myCompany') },
+    { to: '/app/notifications', icon: Bell, label: t('topNav.notifications') },
   ];
 
   const NavItem = ({ to, icon: Icon, label, highlight }) => (
@@ -149,7 +149,7 @@ const TopNavBar = ({ isCollapsed }) => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-6">
-                <span className="text-lg font-semibold text-white">Menu</span>
+                <span className="text-lg font-semibold text-white">{t('topNav.menu')}</span>
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setMobileMenuOpen(false)}
@@ -169,12 +169,12 @@ const TopNavBar = ({ isCollapsed }) => {
                 <div className="h-px bg-gray-800 my-4" />
 
                 <div className="flex items-center justify-between px-3 py-2">
-                  <span className="text-sm text-gray-400">Thème</span>
+                  <span className="text-sm text-gray-400">{t('topNav.theme')}</span>
                   <ThemeToggle />
                 </div>
 
                 <div className="flex items-center justify-between px-3 py-2">
-                  <span className="text-sm text-gray-400">Langue</span>
+                  <span className="text-sm text-gray-400">{t('topNav.language')}</span>
                   <LanguageSwitcher />
                 </div>
 

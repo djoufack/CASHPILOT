@@ -79,8 +79,8 @@ const MainLayout = () => {
     { type: 'separator', label: t('nav.systemSection') },
     { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
     { path: '/app/analytics', label: t('nav.analytics'), icon: PieChart, featureKey: ENTITLEMENT_KEYS.ANALYTICS_REPORTS },
-    { path: '/app/integrations', label: 'Intégrations', icon: Cable },
-    { path: '/app/webhooks', label: 'API & Webhooks', icon: Webhook, featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS },
+    { path: '/app/integrations', label: t('nav.integrations') || 'Intégrations', icon: Cable },
+    { path: '/app/webhooks', label: t('nav.apiWebhooks') || 'API & Webhooks', icon: Webhook, featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS },
     { path: '/app/security', label: t('nav.security'), icon: Shield },
     { path: '/app/settings', label: t('nav.settings'), icon: Settings },
   ];

@@ -65,19 +65,19 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
       },
       {
         id: 'sales',
-        label: 'Ventes',
+        label: t('nav.sales') || 'Ventes',
         icon: FileText,
         type: 'category',
         items: [
           { path: '/app/clients', label: t('common.clients'), icon: Users },
           { path: '/app/invoices', label: t('common.invoices'), icon: FileText },
           { path: '/app/quotes', label: t('common.quotes'), icon: FileSignature },
-          { path: '/app/expenses', label: 'Dépenses', icon: Receipt },
+          { path: '/app/expenses', label: t('nav.expenses') || 'Dépenses', icon: Receipt },
           { path: '/app/recurring-invoices', label: t('recurringInvoices.title'), icon: RefreshCw },
           { path: '/app/credit-notes', label: t('creditNotes.title'), icon: FileMinus },
           { path: '/app/delivery-notes', label: t('deliveryNotes.title'), icon: PackageCheck },
           { path: '/app/debt-manager', label: t('debtManager.title'), icon: Wallet },
-          { path: '/app/purchase-orders', label: 'Bons de commande', icon: ClipboardList },
+          { path: '/app/purchase-orders', label: t('nav.purchaseOrders') || 'Bons de commande', icon: ClipboardList },
         ],
       },
       {
@@ -136,8 +136,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         icon: Settings,
         type: 'category',
         items: [
-          { path: '/app/integrations', label: 'Intégrations', icon: Cable },
-          { path: '/app/webhooks', label: 'API & Webhooks', icon: Webhook, featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS },
+          { path: '/app/integrations', label: t('nav.integrations') || 'Intégrations', icon: Cable },
+          { path: '/app/webhooks', label: t('nav.apiWebhooks') || 'API & Webhooks', icon: Webhook, featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS },
           { path: '/app/security', label: t('nav.security') || 'Sécurité', icon: Shield },
           { path: '/app/settings', label: t('common.settings'), icon: Settings },
         ],
