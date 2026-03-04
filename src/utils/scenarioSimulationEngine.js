@@ -3,8 +3,7 @@
  * Calculates financial projections based on scenarios and assumptions
  */
 
-import { buildFinancialDiagnostic } from './financialAnalysisCalculations.js';
-import { addMonths, format, isSameMonth, parseISO } from 'date-fns';
+import { addMonths, format, isSameMonth as isSameMonthDateFns, parseISO } from 'date-fns';
 
 export class FinancialSimulationEngine {
   constructor() {
@@ -30,11 +29,12 @@ export class FinancialSimulationEngine {
 
     // Simulate month by month
     while (currentDate <= endDate) {
-      // Apply all assumptions for this month
+      // Apply structural assumptions before building the month view.
       state = this.applyAssumptions(state, assumptions, currentDate);
+      const periodState = this.buildPeriodState(state, assumptions, currentDate);
 
       // Calculate all financial metrics
-      const metrics = this.calculateMetrics(state, currentDate);
+      const metrics = this.calculateMetrics(periodState, currentDate);
 
       results.push({
         date: format(currentDate, 'yyyy-MM-dd'),
@@ -43,7 +43,7 @@ export class FinancialSimulationEngine {
       });
 
       // Move to next month
-      state = this.updateStateForNextMonth(state, metrics);
+      state = this.updateStateForNextMonth(state, metrics, periodState);
       currentDate = addMonths(currentDate, 1);
     }
 
@@ -54,30 +54,52 @@ export class FinancialSimulationEngine {
    * Initialize simulation state from current financial data
    */
   initializeState(currentFinancialState) {
-    return {
-      // Revenue components
-      revenue: currentFinancialState.revenue || 0,
-      revenueGrowthRate: 0,
-      avgPrice: currentFinancialState.avgPrice || 100,
-      volume: currentFinancialState.volume || 0,
+    const annualRevenue = this.toFiniteNumber(currentFinancialState.revenue);
+    const annualExpenses = this.toFiniteNumber(currentFinancialState.expenses);
+    const annualFixedExpenses = this.toFiniteNumber(
+      currentFinancialState.fixedExpenses,
+      annualExpenses * 0.6
+    );
+    const annualVariableExpenses = this.toFiniteNumber(
+      currentFinancialState.variableExpenses,
+      annualExpenses * 0.3
+    );
+    const annualSalaries = this.toFiniteNumber(
+      currentFinancialState.salaries,
+      annualExpenses * 0.1
+    );
+    const avgPrice = this.toFiniteNumber(currentFinancialState.avgPrice, 100) || 100;
+    const annualVolume = this.toFiniteNumber(
+      currentFinancialState.volume,
+      avgPrice > 0 ? annualRevenue / avgPrice : 0
+    );
 
-      // Expense components
-      expenses: currentFinancialState.expenses || 0,
-      fixedExpenses: currentFinancialState.fixedExpenses || 0,
-      variableExpenses: currentFinancialState.variableExpenses || 0,
-      salaries: currentFinancialState.salaries || 0,
+    return {
+      // Monthly operating run rate
+      monthlyRevenue: annualRevenue / 12,
+      revenueGrowthRate: 0,
+      avgPrice,
+      monthlyVolume: annualVolume / 12,
+
+      // Monthly expense run rate
+      monthlyFixedExpenses: annualFixedExpenses / 12,
+      monthlyVariableExpensesBase: annualVariableExpenses / 12,
+      variableExpenseRatio: annualRevenue > 0 ? annualVariableExpenses / annualRevenue : 0,
+      monthlySalaries: annualSalaries / 12,
 
       // Balance sheet items
-      cash: currentFinancialState.cash || 0,
-      receivables: currentFinancialState.receivables || 0,
-      payables: currentFinancialState.payables || 0,
-      inventory: currentFinancialState.inventory || 0,
-      fixedAssets: currentFinancialState.fixedAssets || 0,
-      equity: currentFinancialState.equity || 0,
-      debt: currentFinancialState.debt || 0,
+      cash: this.toFiniteNumber(currentFinancialState.cash),
+      receivables: this.toFiniteNumber(currentFinancialState.receivables),
+      payables: this.toFiniteNumber(currentFinancialState.payables),
+      inventory: this.toFiniteNumber(currentFinancialState.inventory),
+      fixedAssets: this.toFiniteNumber(currentFinancialState.fixedAssets),
+      equity: this.toFiniteNumber(currentFinancialState.equity),
+      debt: this.toFiniteNumber(currentFinancialState.debt),
 
       // Working capital
-      bfr: currentFinancialState.bfr || 0,
+      bfr: this.toFiniteNumber(currentFinancialState.bfr),
+      bfrPrevious: this.toFiniteNumber(currentFinancialState.bfr),
+      bfrManualAdjustment: 0,
       bfrDays: 30, // Default 30 days
       customerPaymentDays: 45,
       supplierPaymentDays: 30,
@@ -103,58 +125,98 @@ export class FinancialSimulationEngine {
         return;
       }
 
+      const parameters = assumption.parameters || {};
+      const rate = this.toFiniteNumber(parameters.rate);
+      const amount = this.toFiniteNumber(parameters.amount);
+
       switch (assumption.assumption_type) {
         case 'growth_rate':
-          newState.revenue *= (1 + (assumption.parameters.rate || 0) / 100);
-          newState.revenueGrowthRate = assumption.parameters.rate || 0;
+          this.applyRateToCategory(newState, assumption.category, rate);
+          newState.revenueGrowthRate = rate;
           break;
 
-        case 'recurring':
-          if (assumption.category === 'salaries') {
-            newState.salaries += assumption.parameters.amount || 0;
-          } else if (assumption.category === 'social_charges') {
-            newState.fixedExpenses += assumption.parameters.amount || 0;
-          } else {
-            newState.fixedExpenses += assumption.parameters.amount || 0;
-          }
-          newState.expenses = newState.fixedExpenses + newState.variableExpenses + newState.salaries;
+        case 'percentage_change':
+          this.applyRateToCategory(newState, assumption.category, rate);
           break;
 
         case 'one_time':
-          if (this.isSameMonth(date, assumption.parameters.date)) {
+          if (this.isSameMonth(date, parameters.date || assumption.start_date)) {
             if (assumption.category === 'investment' || assumption.category === 'equipment') {
-              newState.fixedAssets += assumption.parameters.amount || 0;
-              newState.cash -= assumption.parameters.amount || 0;
-            } else {
-              newState.expenses += assumption.parameters.amount || 0;
-              newState.cash -= assumption.parameters.amount || 0;
+              newState.fixedAssets += amount;
+              newState.cash -= amount;
+            } else if (assumption.category === 'working_capital') {
+              newState.inventory += amount;
+              newState.cash -= amount;
             }
           }
           break;
 
-        case 'percentage_change':
-          if (assumption.category === 'pricing') {
-            newState.avgPrice *= (1 + (assumption.parameters.rate || 0) / 100);
-            newState.revenue = newState.avgPrice * newState.volume;
-          } else if (assumption.category === 'expense_reduction') {
-            newState.fixedExpenses *= (1 - (assumption.parameters.rate || 0) / 100);
-            newState.expenses = newState.fixedExpenses + newState.variableExpenses + newState.salaries;
-          }
-          break;
-
         case 'payment_terms':
-          newState.customerPaymentDays = assumption.parameters.customer_days || newState.customerPaymentDays;
-          newState.supplierPaymentDays = assumption.parameters.supplier_days || newState.supplierPaymentDays;
-          // Recalculate BFR based on new payment terms
-          newState.bfr = this.calculateBFRFromPaymentTerms(newState);
+          newState.customerPaymentDays = parameters.customer_days || newState.customerPaymentDays;
+          newState.supplierPaymentDays = parameters.supplier_days || newState.supplierPaymentDays;
           break;
 
         default:
-          console.warn(`Unknown assumption type: ${assumption.assumption_type}`);
+          break;
       }
     });
 
     return newState;
+  }
+
+  buildPeriodState(state, assumptions, date) {
+    const periodState = {
+      ...state,
+      cashAdjustment: 0,
+      customerPaymentDays: state.customerPaymentDays,
+      supplierPaymentDays: state.supplierPaymentDays,
+      bfrManualAdjustment: state.bfrManualAdjustment || 0,
+    };
+
+    if (!assumptions || !Array.isArray(assumptions)) {
+      return periodState;
+    }
+
+    assumptions.forEach((assumption) => {
+      if (!this.isApplicable(assumption, date)) {
+        return;
+      }
+
+      const parameters = assumption.parameters || {};
+      const amount = this.toFiniteNumber(parameters.amount);
+
+      switch (assumption.assumption_type) {
+        case 'fixed_amount':
+          this.applyAmountToCategory(periodState, assumption.category, amount, 'set');
+          break;
+
+        case 'recurring':
+          this.applyAmountToCategory(periodState, assumption.category, amount, 'add');
+          break;
+
+        case 'one_time':
+          if (this.isSameMonth(date, parameters.date || assumption.start_date)) {
+            this.applyOneTimePeriodImpact(periodState, assumption.category, amount);
+          }
+          break;
+
+        case 'payment_terms':
+          periodState.customerPaymentDays = parameters.customer_days || periodState.customerPaymentDays;
+          periodState.supplierPaymentDays = parameters.supplier_days || periodState.supplierPaymentDays;
+          break;
+
+        default:
+          break;
+      }
+    });
+
+    periodState.monthlyRevenue = Math.max(0, periodState.monthlyRevenue);
+    periodState.monthlyFixedExpenses = Math.max(0, periodState.monthlyFixedExpenses);
+    periodState.monthlySalaries = Math.max(0, periodState.monthlySalaries);
+    periodState.avgPrice = Math.max(0, periodState.avgPrice);
+    periodState.monthlyVolume = Math.max(0, periodState.monthlyVolume);
+
+    return periodState;
   }
 
   /**
@@ -191,7 +253,7 @@ export class FinancialSimulationEngine {
     if (!date1 || !date2) return false;
     const d1 = typeof date1 === 'string' ? parseISO(date1) : date1;
     const d2 = typeof date2 === 'string' ? parseISO(date2) : date2;
-    return isSameMonth(d1, d2);
+    return isSameMonthDateFns(d1, d2);
   }
 
   /**
@@ -199,41 +261,48 @@ export class FinancialSimulationEngine {
    */
   calculateBFRFromPaymentTerms(state) {
     // BFR = (Revenue / 12 * customerDays/30) + Inventory - (Expenses / 12 * supplierDays/30)
-    const monthlyRevenue = state.revenue / 12;
-    const monthlyExpenses = state.expenses / 12;
+    const monthlyRevenue = state.monthlyRevenue || 0;
+    const monthlyExpenses = this.calculateMonthlyExpenses(state);
 
     const receivables = (monthlyRevenue * state.customerPaymentDays) / 30;
     const payables = (monthlyExpenses * state.supplierPaymentDays) / 30;
 
-    return receivables + state.inventory - payables;
+    return receivables + state.inventory - payables + (state.bfrManualAdjustment || 0);
   }
 
   /**
    * Calculate all financial metrics for current state
    */
   calculateMetrics(state, currentDate) {
-    // Monthly breakdown
-    const monthlyRevenue = state.revenue / 12;
-    const monthlyExpenses = state.expenses / 12;
+    const monthlyRevenue = state.monthlyRevenue || 0;
+    const monthlyVariableExpenses = this.calculateMonthlyVariableExpenses(state);
+    const monthlyExpenses =
+      Math.max(0, state.monthlyFixedExpenses || 0) +
+      Math.max(0, state.monthlySalaries || 0) +
+      monthlyVariableExpenses;
 
     // P&L metrics
-    const grossMargin = monthlyRevenue * 0.65; // Simplified: 65% gross margin
+    const grossMargin = monthlyRevenue - monthlyVariableExpenses;
     const ebitda = monthlyRevenue - monthlyExpenses;
     const depreciation = (state.fixedAssets * state.depreciationRate) / 12;
     const operatingResult = ebitda - depreciation;
-    const netIncome = operatingResult * (1 - state.taxRate);
+    const taxes = operatingResult > 0 ? operatingResult * state.taxRate : 0;
+    const netIncome = operatingResult - taxes;
 
     // Cash flow
     const caf = netIncome + depreciation;
-    const bfrChange = state.bfr - (state.bfrPrevious || state.bfr);
+    const receivables = (monthlyRevenue * state.customerPaymentDays) / 30;
+    const payables = (monthlyExpenses * state.supplierPaymentDays) / 30;
+    const bfr = receivables + state.inventory - payables + (state.bfrManualAdjustment || 0);
+    const bfrChange = bfr - (state.bfrPrevious ?? bfr);
     const operatingCashFlow = caf - bfrChange;
 
     // Update cash balance
-    const cashBalance = state.cash + operatingCashFlow;
+    const cashBalance = state.cash + operatingCashFlow + (state.cashAdjustment || 0);
 
     // Balance sheet items
-    const currentAssets = cashBalance + state.receivables + state.inventory;
-    const currentLiabilities = state.payables;
+    const currentAssets = cashBalance + receivables + state.inventory;
+    const currentLiabilities = payables;
     const totalAssets = currentAssets + state.fixedAssets;
     const totalLiabilities = currentLiabilities + state.debt;
     const equity = totalAssets - totalLiabilities;
@@ -265,6 +334,8 @@ export class FinancialSimulationEngine {
       cashBalance,
 
       // Balance Sheet
+      receivables,
+      payables,
       currentAssets,
       fixedAssets: state.fixedAssets,
       totalAssets,
@@ -272,7 +343,7 @@ export class FinancialSimulationEngine {
       debt: state.debt,
       totalLiabilities,
       equity,
-      bfr: state.bfr,
+      bfr,
 
       // Ratios
       currentRatio,
@@ -281,23 +352,175 @@ export class FinancialSimulationEngine {
       debtToEquity,
       roe,
       roce: (equity + state.debt) > 0 ? (operatingResult * 12 / (equity + state.debt)) * 100 : 0,
+      customerPaymentDays: state.customerPaymentDays,
+      supplierPaymentDays: state.supplierPaymentDays,
     };
   }
 
   /**
    * Update state for next month based on current metrics
    */
-  updateStateForNextMonth(state, metrics) {
+  updateStateForNextMonth(state, metrics, periodState) {
     return {
       ...state,
       cash: metrics.cashBalance,
-      receivables: (metrics.revenue * state.customerPaymentDays) / 30,
-      payables: (metrics.expenses * state.supplierPaymentDays) / 30,
-      fixedAssets: state.fixedAssets - metrics.depreciation,
+      receivables: metrics.receivables,
+      payables: metrics.payables,
+      fixedAssets: Math.max(0, state.fixedAssets - metrics.depreciation),
       equity: metrics.equity,
-      bfrPrevious: state.bfr,
-      volume: state.volume || metrics.revenue / state.avgPrice, // Update volume
+      bfr: metrics.bfr,
+      bfrPrevious: metrics.bfr,
+      customerPaymentDays: periodState.customerPaymentDays,
+      supplierPaymentDays: periodState.supplierPaymentDays,
     };
+  }
+
+  toFiniteNumber(value, fallback = 0) {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : fallback;
+  }
+
+  calculateMonthlyVariableExpenses(state) {
+    if ((state.monthlyRevenue || 0) > 0) {
+      return Math.max(0, state.monthlyRevenue * (state.variableExpenseRatio || 0));
+    }
+
+    return Math.max(0, state.monthlyVariableExpensesBase || 0);
+  }
+
+  calculateMonthlyExpenses(state) {
+    return (
+      Math.max(0, state.monthlyFixedExpenses || 0) +
+      Math.max(0, state.monthlySalaries || 0) +
+      this.calculateMonthlyVariableExpenses(state)
+    );
+  }
+
+  syncRevenueFromDrivers(state) {
+    if ((state.avgPrice || 0) > 0) {
+      state.monthlyRevenue = Math.max(0, (state.avgPrice || 0) * (state.monthlyVolume || 0));
+    }
+  }
+
+  syncVolumeFromRevenue(state) {
+    if ((state.avgPrice || 0) > 0) {
+      state.monthlyVolume = Math.max(0, (state.monthlyRevenue || 0) / state.avgPrice);
+    }
+  }
+
+  applyRateToCategory(state, category, rate) {
+    if (!rate) {
+      return;
+    }
+
+    if (category === 'pricing') {
+      state.avgPrice = Math.max(0, state.avgPrice * (1 + rate / 100));
+      this.syncRevenueFromDrivers(state);
+      return;
+    }
+
+    if (category === 'expense_reduction') {
+      state.monthlyFixedExpenses = Math.max(0, state.monthlyFixedExpenses * (1 - rate / 100));
+      return;
+    }
+
+    if (category === 'expense' || category === 'social_charges') {
+      state.monthlyFixedExpenses = Math.max(0, state.monthlyFixedExpenses * (1 + rate / 100));
+      return;
+    }
+
+    if (category === 'salaries') {
+      state.monthlySalaries = Math.max(0, state.monthlySalaries * (1 + rate / 100));
+      return;
+    }
+
+    if (category === 'working_capital') {
+      state.bfrManualAdjustment += (state.bfr || 0) * (rate / 100);
+      return;
+    }
+
+    state.monthlyRevenue = Math.max(0, state.monthlyRevenue * (1 + rate / 100));
+    this.syncVolumeFromRevenue(state);
+  }
+
+  applyAmountToCategory(state, category, amount, mode) {
+    if (!amount && amount !== 0) {
+      return;
+    }
+
+    if (category === 'pricing') {
+      if (mode === 'set') {
+        state.avgPrice = Math.max(0, amount);
+        this.syncRevenueFromDrivers(state);
+      } else {
+        state.monthlyRevenue = Math.max(0, state.monthlyRevenue + amount);
+        this.syncVolumeFromRevenue(state);
+      }
+      return;
+    }
+
+    if (category === 'expense_reduction') {
+      if (mode === 'set') {
+        state.monthlyFixedExpenses = Math.max(0, state.monthlyFixedExpenses - amount);
+      } else {
+        state.monthlyFixedExpenses = Math.max(0, state.monthlyFixedExpenses - amount);
+      }
+      return;
+    }
+
+    if (category === 'expense' || category === 'social_charges') {
+      state.monthlyFixedExpenses = mode === 'set'
+        ? Math.max(0, amount)
+        : Math.max(0, state.monthlyFixedExpenses + amount);
+      return;
+    }
+
+    if (category === 'salaries') {
+      state.monthlySalaries = mode === 'set'
+        ? Math.max(0, amount)
+        : Math.max(0, state.monthlySalaries + amount);
+      return;
+    }
+
+    if (category === 'working_capital') {
+      state.bfrManualAdjustment = mode === 'set'
+        ? amount
+        : (state.bfrManualAdjustment || 0) + amount;
+      return;
+    }
+
+    state.monthlyRevenue = mode === 'set'
+      ? Math.max(0, amount)
+      : Math.max(0, state.monthlyRevenue + amount);
+    this.syncVolumeFromRevenue(state);
+  }
+
+  applyOneTimePeriodImpact(state, category, amount) {
+    if (category === 'investment' || category === 'equipment') {
+      return;
+    }
+
+    if (category === 'working_capital') {
+      state.bfrManualAdjustment += amount;
+      state.cashAdjustment -= amount;
+      return;
+    }
+
+    if (category === 'expense' || category === 'social_charges') {
+      state.monthlyFixedExpenses += amount;
+      state.cashAdjustment -= amount;
+      return;
+    }
+
+    if (category === 'salaries') {
+      state.monthlySalaries += amount;
+      state.cashAdjustment -= amount;
+      return;
+    }
+
+    state.monthlyRevenue += amount;
+    state.cashAdjustment += amount;
+    this.syncVolumeFromRevenue(state);
   }
 
   /**
@@ -387,10 +610,10 @@ export class FinancialSimulationEngine {
    * Sensitivity Analysis
    * Test the impact of varying a parameter
    */
-  sensitivityAnalysis(scenario, assumptions, currentState, parameter, range) {
+  async sensitivityAnalysis(scenario, assumptions, currentState, parameter, range) {
     const results = [];
 
-    range.forEach(value => {
+    for (const value of range) {
       // Modify the assumption with the new value
       const modifiedAssumptions = assumptions.map(a => {
         if (a.category === parameter.category && a.assumption_type === parameter.type) {
@@ -406,7 +629,7 @@ export class FinancialSimulationEngine {
       });
 
       // Run simulation with modified assumptions
-      const outcome = this.simulateScenario(scenario, modifiedAssumptions, currentState);
+      const outcome = await this.simulateScenario(scenario, modifiedAssumptions, currentState);
 
       results.push({
         parameterValue: value,
@@ -415,7 +638,7 @@ export class FinancialSimulationEngine {
         finalRevenue: outcome[outcome.length - 1].revenue,
         avgMargin: this.calculateAverage(outcome, 'netMargin')
       });
-    });
+    }
 
     return results;
   }

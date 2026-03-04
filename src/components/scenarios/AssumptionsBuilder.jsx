@@ -165,7 +165,34 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
     { value: 'recurring', label: 'Récurrent' },
     { value: 'one_time', label: 'Ponctuel' },
     { value: 'percentage_change', label: 'Variation en %' },
+    { value: 'payment_terms', label: 'Conditions de paiement' },
   ];
+
+  const allowedTypesByCategory = {
+    revenue: ['growth_rate', 'fixed_amount', 'recurring', 'one_time', 'percentage_change'],
+    expense: ['fixed_amount', 'recurring', 'one_time', 'percentage_change'],
+    salaries: ['fixed_amount', 'recurring', 'one_time', 'percentage_change'],
+    social_charges: ['fixed_amount', 'recurring', 'one_time', 'percentage_change'],
+    investment: ['one_time'],
+    equipment: ['one_time'],
+    pricing: ['growth_rate', 'fixed_amount', 'percentage_change'],
+    expense_reduction: ['fixed_amount', 'recurring', 'percentage_change'],
+    payment_terms: ['payment_terms'],
+    working_capital: ['fixed_amount', 'recurring', 'one_time', 'percentage_change'],
+  };
+
+  const allowedTypeValues = allowedTypesByCategory[formData.category] || typeOptions.map((option) => option.value);
+  const availableTypeOptions = typeOptions.filter((option) => allowedTypeValues.includes(option.value));
+
+  if (
+    formData.assumption_type &&
+    !availableTypeOptions.some((option) => option.value === formData.assumption_type)
+  ) {
+    const currentTypeOption = typeOptions.find((option) => option.value === formData.assumption_type);
+    if (currentTypeOption) {
+      availableTypeOptions.push(currentTypeOption);
+    }
+  }
 
   // Category badge colors
   const categoryColors = {
@@ -188,6 +215,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
     recurring: 'bg-purple-50 text-purple-700',
     one_time: 'bg-orange-50 text-orange-700',
     percentage_change: 'bg-green-50 text-green-700',
+    payment_terms: 'bg-indigo-50 text-indigo-700',
   };
 
   // Render parameter inputs based on assumption type
@@ -483,7 +511,19 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
                 <Label htmlFor="category">Catégorie *</Label>
                 <Select
                   value={formData.category}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                  onValueChange={(value) => {
+                    const nextAllowedTypes = allowedTypesByCategory[value] || [];
+                    const nextType = nextAllowedTypes.includes(formData.assumption_type)
+                      ? formData.assumption_type
+                      : (value === 'payment_terms' ? 'payment_terms' : '');
+
+                    setFormData(prev => ({
+                      ...prev,
+                      category: value,
+                      assumption_type: nextType,
+                      parameters: nextType === prev.assumption_type ? prev.parameters : {},
+                    }));
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionnez..." />
@@ -510,13 +550,18 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
                     <SelectValue placeholder="Sélectionnez..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {typeOptions.map(option => (
+                    {availableTypeOptions.map(option => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {formData.category && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Types disponibles pour cette catégorie: {availableTypeOptions.map((option) => option.label).join(', ')}.
+                  </p>
+                )}
               </div>
             </div>
 
