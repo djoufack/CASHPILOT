@@ -12,6 +12,7 @@ import { validateEmail } from '@/utils/validation';
 import { useToast } from '@/components/ui/use-toast';
 import MFAVerifyStep from '@/components/MFAVerifyStep';
 import { supabase } from '@/lib/supabase';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
@@ -149,6 +150,10 @@ const LoginPage = () => {
         animate={{ opacity: 1, scale: 1 }}
         className="relative w-full max-w-md space-y-6"
       >
+        <div className="flex justify-end">
+          <LanguageSwitcher variant="segmented" />
+        </div>
+
         <div className="bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-2xl p-1">
           <div className="absolute inset-0 rounded-2xl p-[1px] bg-gradient-to-br from-yellow-500 via-amber-400 to-lime-500 opacity-50 pointer-events-none" />
           

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
 import CompanySwitcher from '@/components/CompanySwitcher';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const MobileMenu = ({ isOpen, onClose, menuItems }) => {
   const { t } = useTranslation();
@@ -68,6 +69,12 @@ const MobileMenu = ({ isOpen, onClose, menuItems }) => {
                    />
                  </div>
                )}
+               <div className="px-3 pb-4 mb-3 border-b border-gray-800">
+                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                   {t('topNav.language')}
+                 </div>
+                 <LanguageSwitcher variant="segmented" fullWidth />
+               </div>
                {menuItems.map((item, idx) => {
                  if (item.type === 'separator') {
                    return (
