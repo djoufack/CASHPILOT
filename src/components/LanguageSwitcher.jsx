@@ -5,23 +5,52 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Globe } from 'lucide-react';
 
-const LanguageSwitcher = () => {
+const LANGUAGES = [
+  { code: 'fr', shortLabel: 'FR', label: 'Français', flag: '🇫🇷' },
+  { code: 'en', shortLabel: 'EN', label: 'English', flag: '🇬🇧' },
+  { code: 'nl', shortLabel: 'NL', label: 'Nederlands', flag: '🇳🇱' }
+];
+
+const LanguageSwitcher = ({ variant = 'dropdown', className = '' }) => {
   const { i18n } = useTranslation();
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
   };
 
-  const languages = [
-    { code: 'en', label: 'English', flag: '🇬🇧' },
-    { code: 'fr', label: 'Français', flag: '🇫🇷' },
-    { code: 'nl', label: 'Nederlands', flag: '🇳🇱' }
-  ];
-
   const currentLanguageCode = String(i18n.resolvedLanguage || i18n.language || 'en')
     .toLowerCase()
     .split('-')[0];
-  const currentLang = languages.find(l => l.code === currentLanguageCode) || languages[0];
+  const currentLang = LANGUAGES.find((language) => language.code === currentLanguageCode) || LANGUAGES[0];
+  const activeIndex = Math.max(
+    0,
+    LANGUAGES.findIndex((language) => language.code === currentLanguageCode)
+  );
+
+  if (variant === 'segmented') {
+    return (
+      <div
+        className={`landing-language-switcher nav-prismatic ${className}`.trim()}
+        role="group"
+        aria-label="Language switcher"
+        style={{ '--active-index': activeIndex }}
+      >
+        <span className="landing-language-switcher__thumb" aria-hidden="true" />
+        {LANGUAGES.map((language) => (
+          <button
+            key={language.code}
+            type="button"
+            onClick={() => changeLanguage(language.code)}
+            className={`landing-language-switcher__option${currentLanguageCode === language.code ? ' is-active' : ''}`}
+            aria-pressed={currentLanguageCode === language.code}
+            aria-label={language.label}
+          >
+            {language.shortLabel}
+          </button>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <DropdownMenu>
@@ -33,7 +62,7 @@ const LanguageSwitcher = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-gray-900 border-gray-800 text-white">
-        {languages.map((lang) => (
+        {LANGUAGES.map((lang) => (
           <DropdownMenuItem 
             key={lang.code}
             onClick={() => changeLanguage(lang.code)}
