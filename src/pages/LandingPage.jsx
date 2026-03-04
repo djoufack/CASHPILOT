@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import * as THREE from 'three';
 import DemoBanner from '@/components/DemoBanner';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { landingPageContent } from '@/content/landingPageContent';
 import {
   ArrowRight,
   Sparkles,
@@ -56,6 +59,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
   const [isLoaded, setIsLoaded] = useState(false);
   const [mobileMenuActive, setMobileMenuActive] = useState(false);
   const [navbarScrolled, setNavbarScrolled] = useState(false);
@@ -364,6 +368,11 @@ const LandingPage = () => {
     document.body.style.overflow = 'visible';
   };
 
+  const languageCode = String(i18n.resolvedLanguage || i18n.language || 'en')
+    .toLowerCase()
+    .split('-')[0];
+  const copy = landingPageContent[languageCode] || landingPageContent.en;
+
   const handleNavigate = (path) => {
     console.log(`Navigating to: ${path}`);
     navigate(path);
@@ -381,6 +390,119 @@ const LandingPage = () => {
     }
     closeMobileMenu();
   };
+
+  const navLinks = [
+    { href: '#features', label: copy.nav.features },
+    { href: '#simulation', label: copy.nav.simulations },
+    { href: '#audience', label: copy.nav.audience },
+    { href: '#advantages', label: copy.nav.advantages },
+  ];
+
+  const heroTags = [
+    { icon: Zap, className: 'tag tag-green', label: copy.hero.tags.realtime },
+    { icon: Globe, className: 'tag tag-purple', label: copy.hero.tags.regions },
+    { icon: Lightbulb, className: 'tag tag-amber', label: copy.hero.tags.whatIf },
+    { icon: Shield, className: 'tag tag-blue', label: copy.hero.tags.reverseAccounting },
+    { icon: Sparkles, className: 'tag tag-yellow', label: copy.hero.tags.automated },
+    { icon: Bot, className: 'tag tag-cyan', label: copy.hero.tags.mcp },
+    { icon: Lock, className: 'tag tag-red', label: copy.hero.tags.security },
+  ];
+
+  const accountingCards = [
+    { icon: Zap, className: 'accounting-card card-green', ...copy.accounting.cards[0] },
+    { icon: TrendingUp, className: 'accounting-card card-purple', ...copy.accounting.cards[1] },
+    { icon: Shield, className: 'accounting-card card-blue', ...copy.accounting.cards[2] },
+  ];
+
+  const simulationCards = [
+    { icon: TrendingUp, className: 'sim-green', ...copy.simulation.cards[0] },
+    { icon: UserPlus, className: 'sim-blue', ...copy.simulation.cards[1] },
+    { icon: DollarSign, className: 'sim-purple', ...copy.simulation.cards[2] },
+    { icon: Wallet, className: 'sim-orange', ...copy.simulation.cards[3] },
+    { icon: Target, className: 'sim-indigo', ...copy.simulation.cards[4] },
+  ];
+
+  const simulationFeatures = [
+    { icon: TrendingUp, className: 'feature-item feature-amber', ...copy.simulation.features[0] },
+    { icon: Lightbulb, className: 'feature-item feature-purple', ...copy.simulation.features[1] },
+    { icon: Target, className: 'feature-item feature-blue', ...copy.simulation.features[2] },
+    { icon: BarChart3, className: 'feature-item feature-green', ...copy.simulation.features[3] },
+  ];
+
+  const audienceCards = [
+    { icon: UserCheck, ...copy.audience.cards[0] },
+    { icon: Building2, ...copy.audience.cards[1] },
+    { icon: Briefcase, ...copy.audience.cards[2] },
+    { icon: Users, ...copy.audience.cards[3] },
+    { icon: Store, ...copy.audience.cards[4] },
+    { icon: Sparkles, ...copy.audience.cards[5] },
+  ];
+
+  const featureCards = [
+    { icon: Users, color: 'blue-cyan', ...copy.features.cards[0] },
+    { icon: BarChart3, color: 'purple-pink', ...copy.features.cards[1] },
+    { icon: Clock, color: 'green-emerald', ...copy.features.cards[2] },
+    { icon: FileText, color: 'yellow-orange', ...copy.features.cards[3] },
+    { icon: Calculator, color: 'red-rose', ...copy.features.cards[4] },
+    { icon: Package, color: 'indigo-blue', ...copy.features.cards[5] },
+    { icon: Receipt, color: 'teal-cyan', ...copy.features.cards[6] },
+    { icon: TrendingUp, color: 'violet-purple', ...copy.features.cards[7] },
+    { icon: Target, color: 'orange-red', ...copy.features.cards[8] },
+    { icon: PieChart, color: 'lime-green', ...copy.features.cards[9] },
+    { icon: Lightbulb, color: 'amber-yellow', ...copy.features.cards[10] },
+    { icon: Bot, color: 'cyan-blue', ...copy.features.cards[11] },
+    { icon: Lock, color: 'rose-red', ...copy.features.cards[12] },
+    { icon: ShieldCheck, color: 'sky-indigo', ...copy.features.cards[13] },
+    { icon: Brain, color: 'emerald-teal', ...copy.features.cards[14] },
+    { icon: Landmark, color: 'green-lime', ...copy.features.cards[15] },
+    { icon: Mail, color: 'pink-purple', ...copy.features.cards[16] },
+    { icon: Repeat, color: 'blue-indigo', ...copy.features.cards[17] },
+    { icon: Plug, color: 'orange-amber', ...copy.features.cards[18] },
+    { icon: Coins, color: 'violet-indigo', ...copy.features.cards[19] },
+    { icon: Download, color: 'lime-emerald', ...copy.features.cards[20] },
+  ];
+
+  const pilotageCards = [
+    { icon: PieChart, className: 'sim-orange', ...copy.pilotage.cards[0] },
+    { icon: Calculator, className: 'sim-blue', ...copy.pilotage.cards[1] },
+    { icon: TrendingUp, className: 'sim-green', ...copy.pilotage.cards[2] },
+    { icon: DollarSign, className: 'sim-purple', ...copy.pilotage.cards[3] },
+    { icon: Lightbulb, className: 'sim-indigo', ...copy.pilotage.cards[4] },
+    { icon: Shield, className: 'sim-green', ...copy.pilotage.cards[5] },
+  ];
+
+  const pilotageFeatures = [
+    { icon: Briefcase, className: 'feature-item feature-amber', ...copy.pilotage.features[0] },
+    { icon: Globe, className: 'feature-item feature-purple', ...copy.pilotage.features[1] },
+    { icon: BarChart3, className: 'feature-item feature-blue', ...copy.pilotage.features[2] },
+    { icon: Target, className: 'feature-item feature-green', ...copy.pilotage.features[3] },
+  ];
+
+  const mcpAgents = [
+    { iconText: 'C', style: { background: 'rgba(139,92,246,0.15)', color: '#a78bfa' }, ...copy.mcp.agents[0] },
+    { iconText: 'G', style: { background: 'rgba(16,185,129,0.15)', color: '#34d399' }, ...copy.mcp.agents[1] },
+    { iconText: 'G', style: { background: 'rgba(59,130,246,0.15)', color: '#60a5fa' }, ...copy.mcp.agents[2] },
+    { iconText: 'M', style: { background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }, ...copy.mcp.agents[3] },
+    { iconText: 'R', style: { background: 'rgba(236,72,153,0.15)', color: '#f472b6' }, ...copy.mcp.agents[4] },
+    { iconText: 'n', style: { background: 'rgba(239,68,68,0.15)', color: '#f87171' }, ...copy.mcp.agents[5] },
+    { iconText: 'G', style: { background: 'rgba(6,182,212,0.15)', color: '#22d3ee' }, ...copy.mcp.agents[6] },
+    { iconText: '+', style: { background: 'rgba(255,255,255,0.08)', color: '#a1a1aa' }, ...copy.mcp.agents[7] },
+  ];
+
+  const mcpCards = [
+    { icon: Mic, ...copy.mcp.cards[0] },
+    { icon: Plug, ...copy.mcp.cards[1] },
+    { icon: Workflow, ...copy.mcp.cards[2] },
+  ];
+
+  const peppolCards = [
+    { icon: Clock, iconStyle: undefined, tagClassName: 'peppol-card-tag tag-green', ...copy.peppol.cards[0] },
+    { icon: Rocket, iconStyle: { color: 'var(--accent-blue)' }, tagClassName: 'peppol-card-tag tag-blue', ...copy.peppol.cards[1] },
+    { icon: Download, iconStyle: { color: '#a78bfa' }, tagClassName: 'peppol-card-tag tag-purple', ...copy.peppol.cards[2] },
+  ];
+
+  const countryIds = ['france', 'belgium', 'ohada'];
+  const advantageIcons = [Sparkles, Globe, Lightbulb, Zap, Shield, Star, Bot, Lock, Brain, Landmark];
 
   return (
     <div className={`landing-page${demoBannerVisible ? ' has-demo-banner' : ''}`}>
@@ -411,21 +533,23 @@ const LandingPage = () => {
             <span>CashPilot</span>
           </a>
           <div className="nav-links">
-            <a href="#features" className="nav-prismatic" onClick={(e) => handleSmoothScroll(e, '#features')}>Fonctionnalités</a>
-            <a href="#simulation" className="nav-prismatic" onClick={(e) => handleSmoothScroll(e, '#simulation')}>Simulations</a>
-            <a href="#audience" className="nav-prismatic" onClick={(e) => handleSmoothScroll(e, '#audience')}>Pour qui ?</a>
-            <a href="#advantages" className="nav-prismatic" onClick={(e) => handleSmoothScroll(e, '#advantages')}>Avantages</a>
-            <a href="/pricing" className="nav-prismatic" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>Prix</a>
-            <a href="/mcp-tools.html" className="nav-prismatic" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>MCP Tools</a>
-            <a href="/guide/" className="nav-prismatic" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>Guide</a>
+            {navLinks.map((item) => (
+              <a key={item.href} href={item.href} className="nav-prismatic" onClick={(e) => handleSmoothScroll(e, item.href)}>
+                {item.label}
+              </a>
+            ))}
+            <a href="/pricing" className="nav-prismatic" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>{copy.nav.pricing}</a>
+            <a href="/mcp-tools.html" className="nav-prismatic" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>{copy.nav.mcpTools}</a>
+            <a href="/guide/" className="nav-prismatic" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>{copy.nav.guide}</a>
             <button className="nav-peppol-btn nav-prismatic" onClick={() => handleNavigate('/peppol-guide')}>
-              <Globe /> Peppol
+              <Globe /> {copy.nav.peppol}
             </button>
           </div>
           <div className="nav-actions">
-            <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>Connexion</button>
+            <LanguageSwitcher />
+            <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>{copy.nav.login}</button>
             <button className="btn btn-primary nav-prismatic magnetic-btn" onClick={() => handleNavigate('/signup')}>
-              Démarrer <ArrowRight />
+              {copy.nav.start} <ArrowRight />
             </button>
           </div>
           <button className="mobile-menu-btn" onClick={toggleMobileMenu}>
@@ -437,19 +561,21 @@ const LandingPage = () => {
       {/* Mobile Menu */}
       <div id="mobile-menu" className={`mobile-menu ${mobileMenuActive ? 'active' : ''}`}>
         <div className="mobile-menu-content">
-          <a href="#features" className="mobile-link" onClick={(e) => handleSmoothScroll(e, '#features')}>Fonctionnalités</a>
-          <a href="#simulation" className="mobile-link" onClick={(e) => handleSmoothScroll(e, '#simulation')}>Simulations</a>
-          <a href="#audience" className="mobile-link" onClick={(e) => handleSmoothScroll(e, '#audience')}>Pour qui ?</a>
-          <a href="#advantages" className="mobile-link" onClick={(e) => handleSmoothScroll(e, '#advantages')}>Avantages</a>
-          <a href="/pricing" className="mobile-link" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>Prix</a>
-          <a href="/mcp-tools.html" className="mobile-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>MCP Tools</a>
-          <a href="/guide/" className="mobile-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>Guide</a>
+          {navLinks.map((item) => (
+            <a key={item.href} href={item.href} className="mobile-link" onClick={(e) => handleSmoothScroll(e, item.href)}>
+              {item.label}
+            </a>
+          ))}
+          <a href="/pricing" className="mobile-link" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>{copy.nav.pricing}</a>
+          <a href="/mcp-tools.html" className="mobile-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>{copy.nav.mcpTools}</a>
+          <a href="/guide/" className="mobile-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>{copy.nav.guide}</a>
           <button className="nav-peppol-btn nav-prismatic" onClick={() => { setMobileMenuActive(false); handleNavigate('/peppol-guide'); }}>
-            <Globe /> Guide Peppol
+            <Globe /> {copy.nav.peppolGuide}
           </button>
+          <LanguageSwitcher />
           <div className="mobile-actions">
-            <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>Connexion</button>
-            <button className="btn btn-primary nav-prismatic" onClick={() => handleNavigate('/signup')}>Démarrer</button>
+            <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>{copy.nav.login}</button>
+            <button className="btn btn-primary nav-prismatic" onClick={() => handleNavigate('/signup')}>{copy.nav.start}</button>
           </div>
         </div>
       </div>
@@ -476,7 +602,7 @@ const LandingPage = () => {
           <div className="hero-content">
             <div className="hero-badge animate-in" data-delay="0">
               <Sparkles />
-              <span>Solution de Gestion d'Entreprise Complète</span>
+              <span>{copy.hero.badge}</span>
             </div>
 
             <h1 className="hero-title animate-in" data-delay="100">
@@ -484,87 +610,51 @@ const LandingPage = () => {
             </h1>
 
             <h2 className="hero-subtitle animate-in" data-delay="200">
-              <span className="typing-text">La révolution de la comptabilité automatisée</span>
+              <span className="typing-text">{copy.hero.subtitle}</span>
             </h2>
 
             <p className="hero-description animate-in" data-delay="300">
-              <span className="highlight">Vous introduisez les données, CashPilot fait le reste.</span>
+              <span className="highlight">{copy.hero.descriptionHighlight}</span>
               <br />
-              Gestion financière et comptabilité 100% automatisée pour la France, la Belgique et l'Afrique (OHADA).
+              {copy.hero.descriptionBody}
             </p>
 
             <p className="hero-mcp-banner animate-in" data-delay="350">
-              <span className="highlight">Révolutionnaire</span> dans le monde de la comptabilité et la finance d'entreprise : CashPilot est aussi un <strong>serveur MCP</strong>, qui offre <strong>169 outils</strong> à tout client MCP (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop…), dont l'<strong>extraction IA de factures fournisseurs</strong> (PDF/image), pour une conversation en temps réel ou pour son intégration dans vos workflows d'automatisation (n8n, Zapier, Rube.app…).
+              {copy.hero.mcpBanner}
             </p>
 
             <div className="feature-tags animate-in" data-delay="400">
-              <div className="tag tag-green">
-                <Zap />
-                <span>Temps Réel (&lt; 1 seconde)</span>
-              </div>
-              <div className="tag tag-purple">
-                <Globe />
-                <span>France • Belgique • OHADA</span>
-              </div>
-              <div className="tag tag-amber">
-                <Lightbulb />
-                <span>Simulations What-If</span>
-              </div>
-              <div className="tag tag-blue">
-                <Shield />
-                <span>Reverse Accounting</span>
-              </div>
-              <div className="tag tag-yellow">
-                <Sparkles />
-                <span>100% Automatisé</span>
-              </div>
-              <div className="tag tag-cyan">
-                <Bot />
-                <span>Serveur MCP &bull; 169 Outils IA</span>
-              </div>
-              <div className="tag tag-red">
-                <Lock />
-                <span>MFA & GDPR</span>
-              </div>
+              {heroTags.map((tag) => {
+                const Icon = tag.icon;
+                return (
+                  <div key={tag.label} className={tag.className}>
+                    <Icon />
+                    <span>{tag.label}</span>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="hero-cta animate-in" data-delay="500">
               <button className="btn btn-hero-primary magnetic-btn" onClick={() => handleNavigate('/signup')}>
-                <span className="btn-text">Démarrer Gratuitement</span>
+                <span className="btn-text">{copy.hero.primaryCta}</span>
                 <span className="btn-icon"><ArrowRight /></span>
                 <span className="btn-shine"></span>
               </button>
               <button className="btn btn-hero-secondary magnetic-btn" onClick={() => window.open('/guide/', '_blank')}>
-                <span className="btn-text">Voir la Démo</span>
+                <span className="btn-text">{copy.hero.secondaryCta}</span>
                 <span className="btn-play"><Play /></span>
               </button>
             </div>
 
             <div className="hero-stats animate-in" data-delay="600">
-              <div className="stat-item">
-                <span className="stat-number">&lt; 1s</span>
-                <span className="stat-label">Génération Écritures</span>
-              </div>
-              <div className="stat-divider"></div>
-              <div className="stat-item">
-                <span className="stat-number">100%</span>
-                <span className="stat-label">Auto-Comptabilité</span>
-              </div>
-              <div className="stat-divider"></div>
-              <div className="stat-item">
-                <span className="stat-number">3 Pays</span>
-                <span className="stat-label">FR • BE • OHADA</span>
-              </div>
-              <div className="stat-divider"></div>
-              <div className="stat-item">
-                <span className="stat-number">0</span>
-                <span className="stat-label">Saisie Manuelle</span>
-              </div>
-              <div className="stat-divider"></div>
-              <div className="stat-item">
-                <span className="stat-number">244</span>
-                <span className="stat-label">Tests Automatisés</span>
-              </div>
+              {copy.hero.stats.map((stat, index) => (
+                <div key={stat.label} className="stat-item">
+                  <span className="stat-number">{stat.number}</span>
+                  <span className="stat-label">{stat.label}</span>
+                  {index < copy.hero.stats.length - 1 ? <div className="stat-divider"></div> : null}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -572,7 +662,7 @@ const LandingPage = () => {
             <div className="mouse">
               <div className="wheel"></div>
             </div>
-            <span>Découvrir</span>
+            <span>{copy.hero.discover}</span>
           </div>
         </div>
       </section>
@@ -588,129 +678,64 @@ const LandingPage = () => {
           <div className="section-header">
             <div className="section-badge">
               <Zap />
-              <span>Solution Tout-en-Un Multi-Pays</span>
+              <span>{copy.accounting.badge}</span>
             </div>
-            <h2 className="section-title">Gestion Financière & Comptable Automatisée</h2>
+            <h2 className="section-title">{copy.accounting.title}</h2>
             <p className="section-description">
-              <span className="highlight">Vous introduisez les données, CashPilot fait le reste.</span>
+              <span className="highlight">{copy.accounting.descriptionHighlight}</span>
               <br />
-              Comptabilité France 🇫🇷 • Belgique 🇧🇪 • OHADA 🌍
+              {copy.accounting.descriptionBody}
             </p>
           </div>
 
           <div className="accounting-cards">
-            <div className="accounting-card card-green">
-              <div className="card-glow"></div>
-              <div className="card-content">
-                <div className="card-icon">
-                  <Zap />
+            {accountingCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div key={card.title} className={card.className}>
+                  <div className="card-glow"></div>
+                  <div className="card-content">
+                    <div className="card-icon">
+                      <Icon />
+                    </div>
+                    <h3 className="card-title">{card.title}</h3>
+                    <ul className="card-list">
+                      {card.items.map((item) => (
+                        <li key={item}>
+                          <CheckCircle2 />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="card-particles"></div>
                 </div>
-                <h3 className="card-title">Génération Automatique</h3>
-                <ul className="card-list">
-                  <li>
-                    <CheckCircle2 />
-                    <span>Créez une facture → Écritures générées instantanément</span>
-                  </li>
-                  <li>
-                    <CheckCircle2 />
-                    <span>Enregistrez une dépense → Écritures créées automatiquement</span>
-                  </li>
-                  <li>
-                    <CheckCircle2 />
-                    <span>Recevez un paiement → Écriture bancaire automatique</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="card-particles"></div>
-            </div>
-
-            <div className="accounting-card card-purple">
-              <div className="card-glow"></div>
-              <div className="card-content">
-                <div className="card-icon">
-                  <TrendingUp />
-                </div>
-                <h3 className="card-title">Mises à Jour Temps Réel</h3>
-                <ul className="card-list">
-                  <li>
-                    <CheckCircle2 />
-                    <span>Diagnostic financier actualisé automatiquement</span>
-                  </li>
-                  <li>
-                    <CheckCircle2 />
-                    <span>Bilan et compte de résultat en direct (&lt; 1 seconde)</span>
-                  </li>
-                  <li>
-                    <CheckCircle2 />
-                    <span>Synchronisation multi-onglets et multi-utilisateurs</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="card-particles"></div>
-            </div>
-
-            <div className="accounting-card card-blue">
-              <div className="card-glow"></div>
-              <div className="card-content">
-                <div className="card-icon">
-                  <Shield />
-                </div>
-                <h3 className="card-title">Reverse Accounting</h3>
-                <ul className="card-list">
-                  <li>
-                    <CheckCircle2 />
-                    <span>Supprimez un paiement → Écriture d'annulation (OD)</span>
-                  </li>
-                  <li>
-                    <CheckCircle2 />
-                    <span>Supprimez une dépense → Écritures inversées automatiquement</span>
-                  </li>
-                  <li>
-                    <CheckCircle2 />
-                    <span>Annulez une facture → Contrepassation automatique</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="card-particles"></div>
-            </div>
+              );
+            })}
           </div>
 
           <div className="country-card">
             <div className="country-card-glow"></div>
             <div className="country-header">
-              <h3>Multi-Pays & Conformité Totale</h3>
-              <p>Un système qui s'adapte aux normes comptables de votre pays</p>
+              <h3>{copy.accounting.countryTitle}</h3>
+              <p>{copy.accounting.countryDescription}</p>
             </div>
             <div className="country-grid">
-              <div className="country-item" data-country="france">
-                <span className="country-flag">🇫🇷</span>
-                <span className="country-name">France</span>
-                <span className="country-detail">PCG • Liasse fiscale</span>
-              </div>
-              <div className="country-item" data-country="belgium">
-                <span className="country-flag">🇧🇪</span>
-                <span className="country-name">Belgique</span>
-                <span className="country-detail">PCMN • Déclaration TVA</span>
-              </div>
-              <div className="country-item" data-country="ohada">
-                <span className="country-flag">🌍</span>
-                <span className="country-name">OHADA</span>
-                <span className="country-detail">17 pays africains</span>
-              </div>
+              {copy.accounting.countries.map((country, index) => (
+                <div key={country.name} className="country-item" data-country={countryIds[index] || 'default'}>
+                  <span className="country-flag">{country.flag}</span>
+                  <span className="country-name">{country.name}</span>
+                  <span className="country-detail">{country.detail}</span>
+                </div>
+              ))}
             </div>
             <div className="country-stats">
-              <div className="country-stat">
-                <span className="country-stat-number">&lt; 1s</span>
-                <span className="country-stat-label">Génération</span>
-              </div>
-              <div className="country-stat">
-                <span className="country-stat-number">100%</span>
-                <span className="country-stat-label">Traçabilité</span>
-              </div>
-              <div className="country-stat">
-                <span className="country-stat-number">0</span>
-                <span className="country-stat-label">Saisie manuelle</span>
-              </div>
+              {copy.accounting.stats.map((stat) => (
+                <div key={stat.label} className="country-stat">
+                  <span className="country-stat-number">{stat.number}</span>
+                  <span className="country-stat-label">{stat.label}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -727,95 +752,44 @@ const LandingPage = () => {
           <div className="section-header">
             <div className="section-badge badge-amber">
               <Lightbulb />
-              <span>Simulations & Projections Financières</span>
+              <span>{copy.simulation.badge}</span>
             </div>
-            <h2 className="section-title">Anticipez l'Avenir de Votre Entreprise</h2>
-            <p className="section-description">
-              Testez vos décisions avant de les prendre. Scénarios "What-if", projections et aide à la décision.
-            </p>
+            <h2 className="section-title">{copy.simulation.title}</h2>
+            <p className="section-description">{copy.simulation.description}</p>
           </div>
 
           <div className="simulation-grid">
-            <div className="simulation-card">
-              <div className="sim-icon sim-green">
-                <TrendingUp />
-              </div>
-              <h4 className="sim-title">Simulation de Croissance</h4>
-              <p className="sim-question">"Si j'augmente mes prix de 10%, quel sera l'impact sur ma trésorerie dans 6 mois ?"</p>
-            </div>
-
-            <div className="simulation-card">
-              <div className="sim-icon sim-blue">
-                <UserPlus />
-              </div>
-              <h4 className="sim-title">Planification d'Embauche</h4>
-              <p className="sim-question">"Si j'embauche 2 personnes à 3000€/mois, puis-je tenir financièrement ?"</p>
-            </div>
-
-            <div className="simulation-card">
-              <div className="sim-icon sim-purple">
-                <DollarSign />
-              </div>
-              <h4 className="sim-title">Investissement</h4>
-              <p className="sim-question">"Si j'achète un équipement à 50 000€, comment évoluera mon BFR ?"</p>
-            </div>
-
-            <div className="simulation-card">
-              <div className="sim-icon sim-orange">
-                <Wallet />
-              </div>
-              <h4 className="sim-title">Optimisation Trésorerie</h4>
-              <p className="sim-question">"Si je négocie 60 jours de délai fournisseur au lieu de 30, quel impact sur le BFR ?"</p>
-            </div>
-
-            <div className="simulation-card">
-              <div className="sim-icon sim-indigo">
-                <Target />
-              </div>
-              <h4 className="sim-title">Budget Prévisionnel</h4>
-              <p className="sim-question">"Créer un budget pour l'année prochaine et comparer avec le réel"</p>
-            </div>
+            {simulationCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div key={card.title} className="simulation-card">
+                  <div className={`sim-icon ${card.className}`}>
+                    <Icon />
+                  </div>
+                  <h4 className="sim-title">{card.title}</h4>
+                  <p className="sim-question">{card.question}</p>
+                </div>
+              );
+            })}
           </div>
 
           <div className="simulation-features-card">
-            <h3 className="features-card-title">Fonctionnalités de Simulation</h3>
+            <h3 className="features-card-title">{copy.simulation.featureTitle}</h3>
             <div className="features-grid">
-              <div className="feature-item feature-amber">
-                <div className="feature-icon">
-                  <TrendingUp />
-                </div>
-                <div className="feature-content">
-                  <h4>Projections Financières</h4>
-                  <p>Prédisez l'évolution de votre trésorerie, CA et rentabilité sur 3, 6, 12 mois</p>
-                </div>
-              </div>
-              <div className="feature-item feature-purple">
-                <div className="feature-icon">
-                  <Lightbulb />
-                </div>
-                <div className="feature-content">
-                  <h4>Scénarios What-If</h4>
-                  <p>Testez l'impact de vos décisions : embauches, investissements, prix...</p>
-                </div>
-              </div>
-              <div className="feature-item feature-blue">
-                <div className="feature-icon">
-                  <Target />
-                </div>
-                <div className="feature-content">
-                  <h4>Budget Prévisionnel vs Réel</h4>
-                  <p>Créez des budgets prévisionnels et comparez automatiquement avec le réel</p>
-                </div>
-              </div>
-              <div className="feature-item feature-green">
-                <div className="feature-icon">
-                  <BarChart3 />
-                </div>
-                <div className="feature-content">
-                  <h4>Aide à la Décision</h4>
-                  <p>Comparez plusieurs options et choisissez la meilleure stratégie</p>
-                </div>
-              </div>
+              {simulationFeatures.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div key={feature.title} className={feature.className}>
+                    <div className="feature-icon">
+                      <Icon />
+                    </div>
+                    <div className="feature-content">
+                      <h4>{feature.title}</h4>
+                      <p>{feature.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -829,66 +803,24 @@ const LandingPage = () => {
 
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">Conçu Pour Vous</h2>
-            <p className="section-description">
-              Quelle que soit votre activité, CashPilot s'adapte à vos besoins
-            </p>
+            <h2 className="section-title">{copy.audience.title}</h2>
+            <p className="section-description">{copy.audience.description}</p>
           </div>
 
           <div className="audience-grid">
-            <div className="audience-card">
-              <div className="audience-icon">
-                <UserCheck />
-              </div>
-              <h3>Freelances</h3>
-              <p>Gestion complète de votre activité</p>
-              <div className="audience-glow"></div>
-            </div>
-
-            <div className="audience-card">
-              <div className="audience-icon">
-                <Building2 />
-              </div>
-              <h3>PME/TPE</h3>
-              <p>Suite de gestion d'entreprise</p>
-              <div className="audience-glow"></div>
-            </div>
-
-            <div className="audience-card">
-              <div className="audience-icon">
-                <Briefcase />
-              </div>
-              <h3>Agences</h3>
-              <p>Gestion projets et clients</p>
-              <div className="audience-glow"></div>
-            </div>
-
-            <div className="audience-card">
-              <div className="audience-icon">
-                <Users />
-              </div>
-              <h3>Consultants</h3>
-              <p>Suivi temps et facturation</p>
-              <div className="audience-glow"></div>
-            </div>
-
-            <div className="audience-card">
-              <div className="audience-icon">
-                <Store />
-              </div>
-              <h3>Commerçants</h3>
-              <p>Gestion stock et fournisseurs</p>
-              <div className="audience-glow"></div>
-            </div>
-
-            <div className="audience-card">
-              <div className="audience-icon">
-                <Sparkles />
-              </div>
-              <h3>Services</h3>
-              <p>Facturation et projets</p>
-              <div className="audience-glow"></div>
-            </div>
+            {audienceCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div key={card.title} className="audience-card">
+                  <div className="audience-icon">
+                    <Icon />
+                  </div>
+                  <h3>{card.title}</h3>
+                  <p>{card.description}</p>
+                  <div className="audience-glow"></div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -902,180 +834,23 @@ const LandingPage = () => {
 
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">Fonctionnalités Principales</h2>
-            <p className="section-description">
-              Une suite complète d'outils pour gérer tous les aspects de votre entreprise
-            </p>
+            <h2 className="section-title">{copy.features.title}</h2>
+            <p className="section-description">{copy.features.description}</p>
           </div>
 
           <div className="features-grid">
-            <div className="feature-card" data-color="blue-cyan">
-              <div className="feature-card-icon">
-                <Users />
-              </div>
-              <h3>Gestion Clients</h3>
-              <p>CRM complet pour suivre vos relations commerciales</p>
-            </div>
-
-            <div className="feature-card" data-color="purple-pink">
-              <div className="feature-card-icon">
-                <BarChart3 />
-              </div>
-              <h3>Projets & Tâches</h3>
-              <p>Organisez et suivez vos projets avec Kanban</p>
-            </div>
-
-            <div className="feature-card" data-color="green-emerald">
-              <div className="feature-card-icon">
-                <Clock />
-              </div>
-              <h3>Suivi du Temps</h3>
-              <p>Feuilles de temps et chronomètre intégré</p>
-            </div>
-
-            <div className="feature-card" data-color="yellow-orange">
-              <div className="feature-card-icon">
-                <FileText />
-              </div>
-              <h3>Facturation</h3>
-              <p>Factures et devis professionnels en PDF</p>
-            </div>
-
-            <div className="feature-card" data-color="red-rose">
-              <div className="feature-card-icon">
-                <Calculator />
-              </div>
-              <h3>Comptabilité Multi-Pays</h3>
-              <p>France, Belgique, OHADA - Écritures automatiques en temps réel</p>
-            </div>
-
-            <div className="feature-card" data-color="indigo-blue">
-              <div className="feature-card-icon">
-                <Package />
-              </div>
-              <h3>Gestion Stock</h3>
-              <p>Inventaire avec scanner de codes-barres</p>
-            </div>
-
-            <div className="feature-card" data-color="teal-cyan">
-              <div className="feature-card-icon">
-                <Receipt />
-              </div>
-              <h3>Dépenses</h3>
-              <p>Suivi et catégorisation des dépenses</p>
-            </div>
-
-            <div className="feature-card" data-color="violet-purple">
-              <div className="feature-card-icon">
-                <TrendingUp />
-              </div>
-              <h3>Fournisseurs</h3>
-              <p>Gestion fournisseurs + extraction IA de factures via MCP</p>
-            </div>
-
-            <div className="feature-card" data-color="orange-red">
-              <div className="feature-card-icon">
-                <Target />
-              </div>
-              <h3>Pilotage Stratégique</h3>
-              <p>Centre de pilotage unifié : ratios, benchmarks sectoriels, fiscalité multi-zones et valorisation</p>
-            </div>
-
-            <div className="feature-card" data-color="lime-green">
-              <div className="feature-card-icon">
-                <PieChart />
-              </div>
-              <h3>Rapports & Analytics</h3>
-              <p>Visualisations et exports PDF personnalisés</p>
-            </div>
-
-            <div className="feature-card" data-color="amber-yellow">
-              <div className="feature-card-icon">
-                <Lightbulb />
-              </div>
-              <h3>Simulations Financières</h3>
-              <p>Scénarios what-if et projections pour anticiper l'avenir</p>
-            </div>
-
-            <div className="feature-card" data-color="cyan-blue">
-              <div className="feature-card-icon">
-                <Bot />
-              </div>
-              <h3>Serveur MCP & API</h3>
-              <p>169 outils MCP (dont extraction IA factures) + API REST pour agents IA et automations</p>
-            </div>
-
-            <div className="feature-card" data-color="rose-red">
-              <div className="feature-card-icon">
-                <Lock />
-              </div>
-              <h3>MFA / 2FA (TOTP)</h3>
-              <p>Authentification à deux facteurs via Google Authenticator ou Authy</p>
-            </div>
-
-            <div className="feature-card" data-color="sky-indigo">
-              <div className="feature-card-icon">
-                <ShieldCheck />
-              </div>
-              <h3>Conformité RGPD</h3>
-              <p>Consentement cookies, export données, droit à l'oubli</p>
-            </div>
-
-            <div className="feature-card" data-color="emerald-teal">
-              <div className="feature-card-icon">
-                <Brain />
-              </div>
-              <h3>Extraction IA Factures</h3>
-              <p>Upload PDF/image → extraction automatique par Gemini 2.0 Flash, aussi via MCP</p>
-            </div>
-
-            <div className="feature-card" data-color="green-lime">
-              <div className="feature-card-icon">
-                <Landmark />
-              </div>
-              <h3>Connexion Bancaire</h3>
-              <p>3000+ banques via GoCardless Open Banking</p>
-            </div>
-
-            <div className="feature-card" data-color="pink-purple">
-              <div className="feature-card-icon">
-                <Mail />
-              </div>
-              <h3>Email & Rappels Auto</h3>
-              <p>Envoi de factures et rappels de paiement automatiques</p>
-            </div>
-
-            <div className="feature-card" data-color="blue-indigo">
-              <div className="feature-card-icon">
-                <Repeat />
-              </div>
-              <h3>Factures Récurrentes</h3>
-              <p>Facturation automatique des abonnements et contrats</p>
-            </div>
-
-            <div className="feature-card" data-color="orange-amber">
-              <div className="feature-card-icon">
-                <Plug />
-              </div>
-              <h3>API REST & Webhooks</h3>
-              <p>API documentée + webhooks HMAC pour intégrations externes</p>
-            </div>
-
-            <div className="feature-card" data-color="violet-indigo">
-              <div className="feature-card-icon">
-                <Coins />
-              </div>
-              <h3>Taux de Change BCE</h3>
-              <p>33 devises avec taux officiels mis à jour automatiquement</p>
-            </div>
-
-            <div className="feature-card" data-color="lime-emerald">
-              <div className="feature-card-icon">
-                <Download />
-              </div>
-              <h3>Export Excel/CSV Natif</h3>
-              <p>Export en un clic depuis toutes les pages principales</p>
-            </div>
+            {featureCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div key={card.title} className="feature-card" data-color={card.color}>
+                  <div className="feature-card-icon">
+                    <Icon />
+                  </div>
+                  <h3>{card.title}</h3>
+                  <p>{card.description}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -1091,103 +866,44 @@ const LandingPage = () => {
           <div className="section-header">
             <div className="section-badge badge-amber">
               <Target />
-              <span>Pilotage d'Entreprise</span>
+              <span>{copy.pilotage.badge}</span>
             </div>
-            <h2 className="section-title">Centre de <strong>Pilotage</strong> Stratégique</h2>
-            <p className="section-description">
-              Un tableau de bord unifié avec 6 onglets pour piloter votre entreprise en temps réel : ratios financiers, benchmarks sectoriels, fiscalité multi-zones et valorisation.
-            </p>
+            <h2 className="section-title">{copy.pilotage.title}</h2>
+            <p className="section-description">{copy.pilotage.description}</p>
           </div>
 
           <div className="simulation-grid">
-            <div className="simulation-card">
-              <div className="sim-icon sim-orange">
-                <PieChart />
-              </div>
-              <h4 className="sim-title">Vue d'Ensemble</h4>
-              <p className="sim-question">KPIs temps réel (CA, EBITDA, Résultat Net, FCF, Valorisation), graphiques de tendances et alertes financières automatiques</p>
-            </div>
-
-            <div className="simulation-card">
-              <div className="sim-icon sim-blue">
-                <Calculator />
-              </div>
-              <h4 className="sim-title">Analyse Comptable</h4>
-              <p className="sim-question">Ratios de structure (indépendance financière, gearing) et d'activité (DSO, DPO, rotation stocks, cycle de conversion cash)</p>
-            </div>
-
-            <div className="simulation-card">
-              <div className="sim-icon sim-green">
-                <TrendingUp />
-              </div>
-              <h4 className="sim-title">Analyse Financière</h4>
-              <p className="sim-question">Marges (brute, EBITDA, opérationnelle), rentabilité (ROE, ROA, ROCE), structure du capital et tendances</p>
-            </div>
-
-            <div className="simulation-card">
-              <div className="sim-icon sim-purple">
-                <DollarSign />
-              </div>
-              <h4 className="sim-title">Fiscalité & Valorisation</h4>
-              <p className="sim-question">IS multi-zones (France, Belgique, OHADA), crédits d'impôt, valorisation par multiples EBITDA + DCF, sensibilité WACC</p>
-            </div>
-
-            <div className="simulation-card">
-              <div className="sim-icon sim-indigo">
-                <Lightbulb />
-              </div>
-              <h4 className="sim-title">Simulateur</h4>
-              <p className="sim-question">Scénarios what-if : testez l'impact de vos décisions sur la trésorerie, les marges et la valorisation</p>
-            </div>
-
-            <div className="simulation-card">
-              <div className="sim-icon sim-green">
-                <Shield />
-              </div>
-              <h4 className="sim-title">Audit IA</h4>
-              <p className="sim-question">Score de santé comptable, détection d'anomalies par catégorie, recommandations et corrections automatiques</p>
-            </div>
+            {pilotageCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div key={card.title} className="simulation-card">
+                  <div className={`sim-icon ${card.className}`}>
+                    <Icon />
+                  </div>
+                  <h4 className="sim-title">{card.title}</h4>
+                  <p className="sim-question">{card.description}</p>
+                </div>
+              );
+            })}
           </div>
 
           <div className="simulation-features-card">
-            <h3 className="features-card-title">Benchmarks Sectoriels Intégrés</h3>
+            <h3 className="features-card-title">{copy.pilotage.featureTitle}</h3>
             <div className="features-grid">
-              <div className="feature-item feature-amber">
-                <div className="feature-icon">
-                  <Briefcase />
-                </div>
-                <div className="feature-content">
-                  <h4>5 Secteurs</h4>
-                  <p>SaaS, Industrie, Commerce, Construction, Services B2B — cibles adaptées</p>
-                </div>
-              </div>
-              <div className="feature-item feature-purple">
-                <div className="feature-icon">
-                  <Globe />
-                </div>
-                <div className="feature-content">
-                  <h4>3 Zones Géographiques</h4>
-                  <p>France, Belgique, Zone OHADA (17 pays) — fiscalité et normes locales</p>
-                </div>
-              </div>
-              <div className="feature-item feature-blue">
-                <div className="feature-icon">
-                  <BarChart3 />
-                </div>
-                <div className="feature-content">
-                  <h4>13 Ratios Comparés</h4>
-                  <p>DSO, DPO, Gearing, ROE, ROA, ROCE, marges... vs cibles sectorielles</p>
-                </div>
-              </div>
-              <div className="feature-item feature-green">
-                <div className="feature-icon">
-                  <Target />
-                </div>
-                <div className="feature-content">
-                  <h4>Scoring Automatique</h4>
-                  <p>Chaque ratio évalué : excellent, bon, moyen ou critique — en un coup d'oeil</p>
-                </div>
-              </div>
+              {pilotageFeatures.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div key={feature.title} className={feature.className}>
+                    <div className="feature-icon">
+                      <Icon />
+                    </div>
+                    <div className="feature-content">
+                      <h4>{feature.title}</h4>
+                      <p>{feature.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1204,105 +920,44 @@ const LandingPage = () => {
           <div className="section-header">
             <div className="section-badge badge-cyan">
               <Bot />
-              <span>Serveur MCP Natif</span>
+              <span>{copy.mcp.badge}</span>
             </div>
-            <h2 className="section-title">Connecté à Tous Vos Agents IA</h2>
-            <p className="section-description">
-              CashPilot est un <strong>serveur MCP (Model Context Protocol)</strong> avec 169 outils intégrés, dont l'<strong>extraction IA de factures fournisseurs</strong>.
-              <br />
-              Pilotez votre gestion financière par la voix ou le texte, depuis n'importe quel agent IA.
-            </p>
+            <h2 className="section-title">{copy.mcp.title}</h2>
+            <p className="section-description">{copy.mcp.description}</p>
           </div>
 
           <div className="mcp-agents-grid">
-            <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa' }}>C</span>
-              <span className="mcp-agent-name">Claude</span>
-              <span className="mcp-agent-company">Anthropic</span>
-            </div>
-            <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>G</span>
-              <span className="mcp-agent-name">ChatGPT</span>
-              <span className="mcp-agent-company">OpenAI</span>
-            </div>
-            <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{ background: 'rgba(59,130,246,0.15)', color: '#60a5fa' }}>G</span>
-              <span className="mcp-agent-name">Gemini</span>
-              <span className="mcp-agent-company">Google</span>
-            </div>
-            <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>M</span>
-              <span className="mcp-agent-name">Mistral</span>
-              <span className="mcp-agent-company">Mistral AI</span>
-            </div>
-            <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{ background: 'rgba(236,72,153,0.15)', color: '#f472b6' }}>R</span>
-              <span className="mcp-agent-name">Rube.app</span>
-              <span className="mcp-agent-company">Automation</span>
-            </div>
-            <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>n</span>
-              <span className="mcp-agent-name">n8n</span>
-              <span className="mcp-agent-company">Workflow</span>
-            </div>
-            <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{ background: 'rgba(6,182,212,0.15)', color: '#22d3ee' }}>G</span>
-              <span className="mcp-agent-name">Gunloop</span>
-              <span className="mcp-agent-company">Automation</span>
-            </div>
-            <div className="mcp-agent-badge">
-              <span className="mcp-agent-icon" style={{ background: 'rgba(255,255,255,0.08)', color: '#a1a1aa' }}>+</span>
-              <span className="mcp-agent-name">Tout Client MCP</span>
-              <span className="mcp-agent-company">Universel</span>
-            </div>
+            {mcpAgents.map((agent) => (
+              <div key={agent.name} className="mcp-agent-badge">
+                <span className="mcp-agent-icon" style={agent.style}>{agent.iconText}</span>
+                <span className="mcp-agent-name">{agent.name}</span>
+                <span className="mcp-agent-company">{agent.company}</span>
+              </div>
+            ))}
           </div>
 
           <div className="mcp-cards">
-            <div className="mcp-card">
-              <div className="mcp-card-glow"></div>
-              <div className="mcp-card-icon">
-                <Mic />
-              </div>
-              <h3 className="mcp-card-title">Contrôle Vocal & Texte</h3>
-              <p className="mcp-card-description">
-                Pilotez CashPilot depuis Claude, ChatGPT, Gemini ou Mistral par la voix ou le texte.
-                Créez des factures, consultez vos finances, générez des rapports — en langage naturel.
-              </p>
-            </div>
-
-            <div className="mcp-card">
-              <div className="mcp-card-glow"></div>
-              <div className="mcp-card-icon">
-                <Plug />
-              </div>
-              <h3 className="mcp-card-title">169 Outils MCP</h3>
-              <p className="mcp-card-description">
-                Création de factures, recherche de clients, export comptable, résumé financier, extraction IA de factures fournisseurs
-                — 169 outils accessibles via le protocole MCP standard.
-              </p>
-            </div>
-
-            <div className="mcp-card">
-              <div className="mcp-card-glow"></div>
-              <div className="mcp-card-icon">
-                <Workflow />
-              </div>
-              <h3 className="mcp-card-title">Brique d'Automatisation</h3>
-              <p className="mcp-card-description">
-                Intégrez CashPilot dans vos pipelines : Rube.app, n8n, Gunloop, Zapier, Make.
-                Votre gestion financière devient un composant de votre écosystème automatisé.
-              </p>
-            </div>
+            {mcpCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div key={card.title} className="mcp-card">
+                  <div className="mcp-card-glow"></div>
+                  <div className="mcp-card-icon">
+                    <Icon />
+                  </div>
+                  <h3 className="mcp-card-title">{card.title}</h3>
+                  <p className="mcp-card-description">{card.description}</p>
+                </div>
+              );
+            })}
           </div>
 
           <div className="mcp-example">
-            <div className="mcp-example-label">Exemple depuis un agent IA</div>
-            <p className="mcp-example-text">
-              &laquo; Extrais cette facture fournisseur et enregistre-la dans CashPilot &raquo;
-            </p>
+            <div className="mcp-example-label">{copy.mcp.exampleLabel}</div>
+            <p className="mcp-example-text">{copy.mcp.exampleText}</p>
             <p className="mcp-example-result">
               <CheckCircle2 />
-              <span>Facture extraite par IA : Fournisseur ABC, 2 450&euro; TTC, 3 lignes. Enregistrée automatiquement.</span>
+              <span>{copy.mcp.exampleResult}</span>
             </p>
           </div>
         </div>
@@ -1319,63 +974,36 @@ const LandingPage = () => {
           <div className="section-header">
             <div className="section-badge badge-peppol">
               <Globe />
-              <span>Peppol &amp; E-Invoicing</span>
+              <span>{copy.peppol.badge}</span>
             </div>
-            <h2 className="section-title">Facturation Électronique via Peppol</h2>
-            <p className="section-description">
-              Envoyez et recevez vos factures sur le <strong>réseau européen Peppol</strong> directement depuis CashPilot,
-              grâce à <strong>Scrada</strong>, Access Point certifié belge. Conforme EN16931 &amp; UBL 2.1.
-            </p>
+            <h2 className="section-title">{copy.peppol.title}</h2>
+            <p className="section-description">{copy.peppol.description}</p>
           </div>
 
           <div className="peppol-cards">
-            <div className="peppol-card">
-              <div className="peppol-card-glow"></div>
-              <div className="peppol-card-icon">
-                <Clock />
-              </div>
-              <h3 className="peppol-card-title">Configuration en 5 Minutes</h3>
-              <p className="peppol-card-description">
-                Créez votre compte Scrada, générez une clé API, et collez vos identifiants dans CashPilot.
-                Un clic pour tester la connexion — c'est prêt.
-              </p>
-              <span className="peppol-card-tag tag-green">Dès 2 €/mois</span>
-            </div>
-
-            <div className="peppol-card">
-              <div className="peppol-card-glow"></div>
-              <div className="peppol-card-icon" style={{ color: 'var(--accent-blue)' }}>
-                <Rocket />
-              </div>
-              <h3 className="peppol-card-title">Envoi Peppol Automatique</h3>
-              <p className="peppol-card-description">
-                CashPilot valide votre facture (13 règles EN16931), génère le XML UBL conforme,
-                et l'envoie via Scrada sur le réseau Peppol. Suivi du statut en temps réel.
-              </p>
-              <span className="peppol-card-tag tag-blue">UBL 2.1 / BIS Billing 3.0</span>
-            </div>
-
-            <div className="peppol-card">
-              <div className="peppol-card-glow"></div>
-              <div className="peppol-card-icon" style={{ color: '#a78bfa' }}>
-                <Download />
-              </div>
-              <h3 className="peppol-card-title">Réception &amp; Vérification</h3>
-              <p className="peppol-card-description">
-                Recevez les factures entrantes via Peppol et vérifiez si vos clients sont enregistrés
-                sur le réseau — en un clic depuis leur fiche.
-              </p>
-              <span className="peppol-card-tag tag-purple">B2G &amp; B2B</span>
-            </div>
+            {peppolCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div key={card.title} className="peppol-card">
+                  <div className="peppol-card-glow"></div>
+                  <div className="peppol-card-icon" style={card.iconStyle}>
+                    <Icon />
+                  </div>
+                  <h3 className="peppol-card-title">{card.title}</h3>
+                  <p className="peppol-card-description">{card.description}</p>
+                  <span className={card.tagClassName}>{card.tag}</span>
+                </div>
+              );
+            })}
           </div>
 
           <div className="peppol-infographic">
-            <img src="/images/peppol-scrada-guide.jpg" alt="Connexion CashPilot - Peppol via Scrada : configuration, forfaits et bénéfices" loading="lazy" />
+            <img src="/images/peppol-scrada-guide.jpg" alt={copy.peppol.imageAlt} loading="lazy" />
           </div>
 
           <div className="peppol-cta">
             <button className="peppol-cta-btn" onClick={() => handleNavigate('/peppol-guide')}>
-              <Globe /> Voir le Guide Complet <ArrowRight />
+              <Globe /> {copy.peppol.cta} <ArrowRight />
             </button>
           </div>
         </div>
@@ -1389,112 +1017,25 @@ const LandingPage = () => {
 
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">Pourquoi Choisir CashPilot ?</h2>
-            <p className="section-description">
-              Des avantages qui font la différence
-            </p>
+            <h2 className="section-title">{copy.advantages.title}</h2>
+            <p className="section-description">{copy.advantages.description}</p>
           </div>
 
           <div className="advantages-grid">
-            <div className="advantage-item">
-              <div className="advantage-icon">
-                <Sparkles />
-              </div>
-              <p>Vous introduisez les données, CashPilot fait tout le reste automatiquement</p>
-              <div className="advantage-check">
-                <CheckCircle2 />
-              </div>
-            </div>
-
-            <div className="advantage-item">
-              <div className="advantage-icon">
-                <Globe />
-              </div>
-              <p>Multi-Pays : France (PCG), Belgique (PCMN), OHADA (17 pays)</p>
-              <div className="advantage-check">
-                <CheckCircle2 />
-              </div>
-            </div>
-
-            <div className="advantage-item">
-              <div className="advantage-icon">
-                <Lightbulb />
-              </div>
-              <p>Simulations financières : Testez vos décisions avant de les prendre</p>
-              <div className="advantage-check">
-                <CheckCircle2 />
-              </div>
-            </div>
-
-            <div className="advantage-item">
-              <div className="advantage-icon">
-                <Zap />
-              </div>
-              <p>Génération instantanée des écritures comptables (&lt; 1 seconde)</p>
-              <div className="advantage-check">
-                <CheckCircle2 />
-              </div>
-            </div>
-
-            <div className="advantage-item">
-              <div className="advantage-icon">
-                <Shield />
-              </div>
-              <p>Reverse accounting : Annulations et corrections automatiques</p>
-              <div className="advantage-check">
-                <CheckCircle2 />
-              </div>
-            </div>
-
-            <div className="advantage-item">
-              <div className="advantage-icon">
-                <Star />
-              </div>
-              <p>Tout-en-un : Gestion, Facturation, Comptabilité, Simulations</p>
-              <div className="advantage-check">
-                <CheckCircle2 />
-              </div>
-            </div>
-
-            <div className="advantage-item">
-              <div className="advantage-icon">
-                <Bot />
-              </div>
-              <p>Serveur MCP : 169 outils dont extraction IA de factures, depuis ChatGPT, Claude, Gemini, Mistral</p>
-              <div className="advantage-check">
-                <CheckCircle2 />
-              </div>
-            </div>
-
-            <div className="advantage-item">
-              <div className="advantage-icon">
-                <Lock />
-              </div>
-              <p>Sécurité renforcée : MFA/2FA, RGPD, 244 tests automatisés</p>
-              <div className="advantage-check">
-                <CheckCircle2 />
-              </div>
-            </div>
-
-            <div className="advantage-item">
-              <div className="advantage-icon">
-                <Brain />
-              </div>
-              <p>IA intégrée : Extraction factures fournisseurs par Gemini 2.0 Flash</p>
-              <div className="advantage-check">
-                <CheckCircle2 />
-              </div>
-            </div>
-
-            <div className="advantage-item">
-              <div className="advantage-icon">
-                <Landmark />
-              </div>
-              <p>Banque connectée : 3000+ banques, rapprochement auto, taux de change BCE</p>
-              <div className="advantage-check">
-                <CheckCircle2 />
-              </div>
-            </div>
+            {copy.advantages.items.map((item, index) => {
+              const Icon = advantageIcons[index] || CheckCircle2;
+              return (
+                <div key={item} className="advantage-item">
+                  <div className="advantage-icon">
+                    <Icon />
+                  </div>
+                  <p>{item}</p>
+                  <div className="advantage-check">
+                    <CheckCircle2 />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -1512,23 +1053,19 @@ const LandingPage = () => {
 
         <div className="container">
           <div className="cta-content">
-            <h2 className="cta-title">Prêt à transformer votre gestion d'entreprise ?</h2>
-            <p className="cta-description">
-              Rejoignez des milliers d'entrepreneurs qui ont déjà choisi CashPilot
-            </p>
+            <h2 className="cta-title">{copy.cta.title}</h2>
+            <p className="cta-description">{copy.cta.description}</p>
             <div className="cta-buttons">
               <button className="btn btn-cta-primary magnetic-btn" onClick={() => handleNavigate('/signup')}>
-                <span className="btn-text">Commencer Maintenant</span>
+                <span className="btn-text">{copy.cta.primary}</span>
                 <span className="btn-icon"><ArrowRight /></span>
                 <span className="btn-shine"></span>
               </button>
               <button className="btn btn-cta-secondary magnetic-btn" onClick={() => handleNavigate('/login')}>
-                <span className="btn-text">Contactez-nous</span>
+                <span className="btn-text">{copy.cta.secondary}</span>
               </button>
             </div>
-            <p className="cta-note">
-              ✨ Essai gratuit • Sans carte de crédit • Installation en 2 minutes
-            </p>
+            <p className="cta-note">{copy.cta.note}</p>
           </div>
         </div>
       </section>
@@ -1543,12 +1080,12 @@ const LandingPage = () => {
                 <Wallet />
                 <span>CashPilot</span>
               </div>
-              <p className="footer-tagline">La solution complète pour votre entreprise</p>
-              <p className="footer-powered">Propulsé par DMG Management</p>
+              <p className="footer-tagline">{copy.footer.tagline}</p>
+              <p className="footer-powered">{copy.footer.powered}</p>
             </div>
 
             <div className="footer-section">
-              <h4>Contact</h4>
+              <h4>{copy.footer.contactTitle}</h4>
               <div className="footer-links">
                 <a href="https://www.dmgmanagement.tech" target="_blank" rel="noopener noreferrer">
                   <Globe />
@@ -1566,20 +1103,20 @@ const LandingPage = () => {
             </div>
 
             <div className="footer-section">
-              <h4>Liens Rapides</h4>
+              <h4>{copy.footer.linksTitle}</h4>
               <div className="footer-links">
-                <a href="#">À propos</a>
-                <a href="#features">Fonctionnalités</a>
-                <a href="#">Tarifs</a>
-                <a href="#">Support</a>
+                <a href="#">{copy.footer.links.about}</a>
+                <a href="#features">{copy.footer.links.features}</a>
+                <a href="#">{copy.footer.links.pricing}</a>
+                <a href="#">{copy.footer.links.support}</a>
               </div>
             </div>
           </div>
 
           <div className="footer-bottom">
-            <p>© 2026 CashPilot. Tous droits réservés.</p>
+            <p>{copy.footer.rights}</p>
             <p>
-              Développé avec ❤️ par{' '}
+              {copy.footer.builtBy}{' '}
               <a href="https://www.dmgmanagement.tech" target="_blank" rel="noopener noreferrer">
                 DMG Management
               </a>

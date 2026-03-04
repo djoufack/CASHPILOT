@@ -26,9 +26,12 @@ const Navigation = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { toast } = useToast();
+  const currentLanguageCode = String(i18n.resolvedLanguage || i18n.language || 'en')
+    .toLowerCase()
+    .split('-')[0];
 
   const toggleLanguage = () => {
-    const newLang = i18n.language === 'en' ? 'fr' : 'en';
+    const newLang = currentLanguageCode === 'en' ? 'fr' : 'en';
     i18n.changeLanguage(newLang);
   };
 
@@ -114,7 +117,7 @@ const Navigation = () => {
               >
                 <Globe className="w-4 h-4" />
                 <span className="font-semibold text-xs hidden sm:inline">
-                  {i18n.language.toUpperCase()}
+                  {currentLanguageCode.toUpperCase()}
                 </span>
               </Button>
             </motion.div>

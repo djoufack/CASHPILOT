@@ -27,17 +27,17 @@ const DemoBanner = ({ onDismiss }) => {
       <span className="demo-marquee-separator">&#xb7;</span>
       <span className="demo-marquee-item">
         <span className="demo-marquee-flag">{'\u{1F1EB}\u{1F1F7}'}</span>
-        France PCG
+        {`${t('auth.demoRegionFR')} ${t('auth.demoTagFR')}`}
       </span>
       <span className="demo-marquee-separator">&#xb7;</span>
       <span className="demo-marquee-item">
         <span className="demo-marquee-flag">{'\u{1F1E7}\u{1F1EA}'}</span>
-        Belgique PCMN
+        {`${t('auth.demoRegionBE')} ${t('auth.demoTagBE')}`}
       </span>
       <span className="demo-marquee-separator">&#xb7;</span>
       <span className="demo-marquee-item">
         <span className="demo-marquee-flag">{'\u{1F30D}'}</span>
-        OHADA SYSCOHADA
+        {`${t('auth.demoRegionOHADA')} ${t('auth.demoTagOHADA')}`}
       </span>
       <span className="demo-marquee-separator">&#xb7;</span>
       <span className="demo-marquee-item">
