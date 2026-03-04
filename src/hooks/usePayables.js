@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const usePayables = () => {
   const [payables, setPayables] = useState([]);
@@ -11,15 +12,20 @@ export const usePayables = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchPayables = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('payables')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setPayables(data || []);
@@ -33,7 +39,7 @@ export const usePayables = () => {
     } finally {
       setLoading(false);
     }
-  }, [t, toast, user]);
+  }, [applyCompanyScope, t, toast, user]);
 
   const createPayable = async (data) => {
     if (!user || !supabase) throw new Error('Not authenticated');
@@ -41,7 +47,7 @@ export const usePayables = () => {
     try {
       const { data: created, error } = await supabase
         .from('payables')
-        .insert([{ ...data, user_id: user.id }])
+        .insert([{ ...withCompanyScope(data), user_id: user.id }])
         .select()
         .single();
 
@@ -63,8 +69,9 @@ export const usePayables = () => {
     try {
       const { data: updated, error } = await supabase
         .from('payables')
-        .update(updates)
+        .update(withCompanyScope(updates))
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -85,7 +92,11 @@ export const usePayables = () => {
     setLoading(true);
     try {
       await supabase.from('debt_payments').delete().eq('record_type', 'payable').eq('record_id', id);
-      const { error } = await supabase.from('payables').delete().eq('id', id);
+      const { error } = await supabase
+        .from('payables')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
       if (error) throw error;
       setPayables(prev => prev.filter(p => p.id !== id));
       toast({ title: t('common.success'), description: t('debtManager.deleted') });
@@ -101,8 +112,12 @@ export const usePayables = () => {
     if (!user || !supabase) throw new Error('Not authenticated');
     setLoading(true);
     try {
+      const payable = payables.find(p => p.id === payableId);
+      if (!payable) throw new Error('Payable not found');
+
       const { error: payError } = await supabase.from('debt_payments').insert([{
         user_id: user.id,
+        company_id: payable.company_id || null,
         record_type: 'payable',
         record_id: payableId,
         amount,
@@ -111,14 +126,13 @@ export const usePayables = () => {
       }]);
       if (payError) throw payError;
 
-      const payable = payables.find(p => p.id === payableId);
-      if (!payable) throw new Error('Payable not found');
       const newAmountPaid = parseFloat(payable.amount_paid) + parseFloat(amount);
 
       const { data: updated, error: upError } = await supabase
         .from('payables')
-        .update({ amount_paid: newAmountPaid })
+        .update(withCompanyScope({ amount_paid: newAmountPaid }))
         .eq('id', payableId)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -135,14 +149,18 @@ export const usePayables = () => {
   };
 
   const fetchPayments = async (payableId) => {
-    if (!supabase) return [];
+    if (!supabase || !user) return [];
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('debt_payments')
         .select('*')
+        .eq('user_id', user.id)
         .eq('record_type', 'payable')
         .eq('record_id', payableId)
         .order('payment_date', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     } catch {

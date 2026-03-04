@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const usePaymentReminders = () => {
   const { user } = useAuth();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
   const [rules, setRules] = useState([]);
   const [reminderLogs, setReminderLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,11 +14,14 @@ export const usePaymentReminders = () => {
   const fetchRules = useCallback(async () => {
     if (!user) return;
     try {
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from('payment_reminder_rules')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
       setRules(data || []);
@@ -24,12 +29,12 @@ export const usePaymentReminders = () => {
       console.error('fetchRules error:', err);
       setError(err.message);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   const fetchReminderLogs = useCallback(async () => {
     if (!user) return;
     try {
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from('payment_reminder_logs')
         .select(`
           *,
@@ -45,6 +50,9 @@ export const usePaymentReminders = () => {
         .eq('user_id', user.id)
         .order('sent_at', { ascending: false })
         .limit(100);
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
       setReminderLogs(data || []);
@@ -52,7 +60,7 @@ export const usePaymentReminders = () => {
       console.error('fetchReminderLogs error:', err);
       setError(err.message);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   const fetchAll = useCallback(async () => {
     if (!user) return;
@@ -72,7 +80,7 @@ export const usePaymentReminders = () => {
       const { data, error: insertError } = await supabase
         .from('payment_reminder_rules')
         .insert({
-          ...rule,
+          ...withCompanyScope(rule),
           user_id: user.id,
         })
         .select()
@@ -92,7 +100,7 @@ export const usePaymentReminders = () => {
     try {
       const { error: updateError } = await supabase
         .from('payment_reminder_rules')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(withCompanyScope({ ...updates, updated_at: new Date().toISOString() }))
         .eq('id', id)
         .eq('user_id', user.id);
 

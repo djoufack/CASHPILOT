@@ -118,11 +118,53 @@ function resolveBalance(balancePayload: any) {
   return Number.parseFloat(preferredBalance?.balanceAmount?.amount || '0') || 0;
 }
 
+async function resolveTargetCompanyId(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  requestedCompanyId?: string | null,
+) {
+  if (requestedCompanyId) {
+    const { data: selectedCompany } = await supabase
+      .from('company')
+      .select('id')
+      .eq('id', requestedCompanyId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!selectedCompany) {
+      throw new Error('Company not found for this user');
+    }
+
+    return selectedCompany.id as string;
+  }
+
+  const { data: preferences } = await supabase
+    .from('user_company_preferences')
+    .select('active_company_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (preferences?.active_company_id) {
+    return preferences.active_company_id as string;
+  }
+
+  const { data: fallbackCompany } = await supabase
+    .from('company')
+    .select('id')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return (fallbackCompany?.id as string | null) || null;
+}
+
 async function recordSyncHistory(
   supabase: ReturnType<typeof createClient>,
   {
     bankConnectionId,
     userId,
+    companyId = null,
     syncType = 'transactions',
     status = 'success',
     transactionsSynced = 0,
@@ -130,6 +172,7 @@ async function recordSyncHistory(
   }: {
     bankConnectionId: string;
     userId: string;
+    companyId?: string | null;
     syncType?: 'transactions' | 'balance' | 'full';
     status?: 'success' | 'partial' | 'error';
     transactionsSynced?: number;
@@ -139,6 +182,7 @@ async function recordSyncHistory(
   await supabase.from('bank_sync_history').insert({
     bank_connection_id: bankConnectionId,
     user_id: userId,
+    company_id: companyId,
     sync_type: syncType,
     status,
     transactions_synced: transactionsSynced,
@@ -190,6 +234,7 @@ async function syncConnectionTransactions(
         .from('bank_transactions')
         .upsert({
           user_id: userId,
+          company_id: connection.company_id || null,
           bank_connection_id: connection.id,
           external_id: externalId,
           date: transactionDate,
@@ -229,6 +274,7 @@ async function syncConnectionTransactions(
     await recordSyncHistory(supabase, {
       bankConnectionId: connection.id,
       userId,
+      companyId: connection.company_id || null,
       syncType,
       status: 'success',
       transactionsSynced: syncedCount,
@@ -258,6 +304,7 @@ async function syncConnectionTransactions(
     await recordSyncHistory(supabase, {
       bankConnectionId: connection.id,
       userId,
+      companyId: connection.company_id || null,
       syncType,
       status: 'error',
       transactionsSynced: 0,
@@ -306,6 +353,7 @@ serve(async (req) => {
     const verifiedUserId = authUser.id;
     const {
       action,
+      companyId,
       institutionId,
       institutionName,
       redirectUrl,
@@ -335,6 +383,11 @@ serve(async (req) => {
           return jsonResponse({ error: 'Missing institutionId' }, 400);
         }
 
+        const resolvedCompanyId = await resolveTargetCompanyId(supabase, verifiedUserId, companyId);
+        if (!resolvedCompanyId) {
+          return jsonResponse({ error: 'No company configured for this user' }, 422);
+        }
+
         const institutionDetails = await fetchGoCardless(accessToken, `/institutions/${institutionId}/`).catch(() => null);
         const agreement = await fetchGoCardless(accessToken, '/agreements/enduser/', {
           method: 'POST',
@@ -358,6 +411,7 @@ serve(async (req) => {
 
         await supabase.from('bank_connections').insert({
           user_id: verifiedUserId,
+          company_id: resolvedCompanyId,
           institution_id: institutionId,
           institution_name: institutionName || institutionDetails?.name || institutionId,
           institution_logo: institutionDetails?.logo || null,
@@ -372,6 +426,7 @@ serve(async (req) => {
           success: true,
           link: requisition.link,
           requisition_id: requisition.id,
+          company_id: resolvedCompanyId,
           country: normalizeCountryCode(country),
         });
       }
@@ -385,15 +440,22 @@ serve(async (req) => {
         const mappedStatus = resolveRequisitionStatus(requisition.status);
         const nowIso = new Date().toISOString();
 
-        const { data: existingConnections } = await supabase
+        let existingConnectionsQuery = supabase
           .from('bank_connections')
           .select('*')
           .eq('user_id', verifiedUserId)
           .eq('requisition_id', requisitionId)
           .order('created_at', { ascending: true });
+        if (companyId) {
+          existingConnectionsQuery = existingConnectionsQuery.eq('company_id', companyId);
+        }
+        const { data: existingConnections } = await existingConnectionsQuery;
+        const resolvedCompanyId =
+          existingConnections?.[0]?.company_id ||
+          (await resolveTargetCompanyId(supabase, verifiedUserId, companyId));
 
         if (mappedStatus !== 'active') {
-          await supabase
+          let statusUpdate = supabase
             .from('bank_connections')
             .update({
               status: mappedStatus,
@@ -404,6 +466,10 @@ serve(async (req) => {
             })
             .eq('user_id', verifiedUserId)
             .eq('requisition_id', requisitionId);
+          if (resolvedCompanyId) {
+            statusUpdate = statusUpdate.eq('company_id', resolvedCompanyId);
+          }
+          await statusUpdate;
 
           return jsonResponse({
             error: mappedStatus === 'expired'
@@ -415,7 +481,7 @@ serve(async (req) => {
 
         const accounts = requisition.accounts || [];
         if (!accounts.length) {
-          await supabase
+          let noAccountUpdate = supabase
             .from('bank_connections')
             .update({
               status: 'error',
@@ -424,6 +490,10 @@ serve(async (req) => {
             })
             .eq('user_id', verifiedUserId)
             .eq('requisition_id', requisitionId);
+          if (resolvedCompanyId) {
+            noAccountUpdate = noAccountUpdate.eq('company_id', resolvedCompanyId);
+          }
+          await noAccountUpdate;
 
           return jsonResponse({ error: 'No bank account returned by GoCardless' }, 422);
         }
@@ -451,6 +521,7 @@ serve(async (req) => {
               resolvedInstitutionId ||
               'Institution bancaire',
             institution_logo: seedConnection?.institution_logo || institutionDetails?.logo || null,
+            company_id: resolvedCompanyId || seedConnection?.company_id || null,
             requisition_id: requisitionId,
             agreement_id: seedConnection?.agreement_id || requisition.agreement || null,
             status: 'active',
@@ -533,12 +604,15 @@ serve(async (req) => {
           return jsonResponse({ error: 'Missing connectionId' }, 400);
         }
 
-        const { data: connection, error: connectionError } = await supabase
+        let connectionQuery = supabase
           .from('bank_connections')
           .select('*')
           .eq('id', connectionId)
-          .eq('user_id', verifiedUserId)
-          .maybeSingle();
+          .eq('user_id', verifiedUserId);
+        if (companyId) {
+          connectionQuery = connectionQuery.eq('company_id', companyId);
+        }
+        const { data: connection, error: connectionError } = await connectionQuery.maybeSingle();
 
         if (connectionError || !connection) {
           return jsonResponse({ error: 'Bank connection not found' }, 404);

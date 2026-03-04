@@ -47,8 +47,16 @@ serve(async (req) => {
     if (!buyer.peppol_endpoint_id) throw new HttpError(400, 'Client has no Peppol endpoint ID');
 
     // Load company (seller) with Scrada credentials
-    const { data: seller } = await supabase
-      .from('company').select('*').eq('user_id', user.id).single();
+    let sellerQuery = supabase
+      .from('company')
+      .select('*')
+      .eq('user_id', user.id);
+    if (invoice.company_id) {
+      sellerQuery = sellerQuery.eq('id', invoice.company_id);
+    } else {
+      sellerQuery = sellerQuery.order('created_at', { ascending: true }).limit(1);
+    }
+    const { data: seller } = await sellerQuery.single();
     if (!seller) throw new HttpError(404, 'Company profile not found');
     if (!seller.peppol_endpoint_id) throw new HttpError(400, 'Company has no Peppol endpoint ID');
     if (!seller.scrada_api_key || !seller.scrada_password || !seller.scrada_company_id) {
@@ -94,7 +102,7 @@ serve(async (req) => {
         await refundCredits(serviceSupabase, user.id, creditDeduction, refundDescription);
         refunded = true;
         await supabase.from('peppol_transmission_log').insert({
-          user_id: user.id, invoice_id, direction: 'outbound', status: 'error',
+          user_id: user.id, company_id: invoice.company_id || seller.id, invoice_id, direction: 'outbound', status: 'error',
           ap_provider: 'scrada', sender_endpoint: senderEndpoint,
           receiver_endpoint: receiverEndpoint, error_message: errText,
         });
@@ -112,7 +120,7 @@ serve(async (req) => {
 
       // Log success
       await supabase.from('peppol_transmission_log').insert({
-        user_id: user.id, invoice_id, direction: 'outbound', status: 'sent',
+        user_id: user.id, company_id: invoice.company_id || seller.id, invoice_id, direction: 'outbound', status: 'sent',
         ap_provider: 'scrada', ap_document_id: documentId,
         sender_endpoint: senderEndpoint, receiver_endpoint: receiverEndpoint,
       });

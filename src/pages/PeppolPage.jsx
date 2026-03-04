@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useCompany } from '@/hooks/useCompany';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { usePeppolSend } from '@/hooks/usePeppolSend';
 import { usePeppolCheck } from '@/hooks/usePeppolCheck';
 import PeppolStatusBadge from '@/components/peppol/PeppolStatusBadge';
@@ -28,6 +29,7 @@ const PeppolPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { company, loading: companyLoading } = useCompany();
+  const { applyCompanyScope } = useCompanyScope();
   const { sendViaPeppol, sending, polling, peppolStatus, creditsModalProps } = usePeppolSend();
   const { checkRegistration, checking, result: checkResult, reset: resetCheck } = usePeppolCheck();
   const { openCreditsModal, modalProps: inboundCreditsModalProps } = useCreditsGuard();
@@ -114,15 +116,19 @@ const PeppolPage = () => {
     if (!user) return;
     setLoadingInvoices(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('invoices')
         .select(`
           id, invoice_number, total_ht, total_ttc, tax_rate, status,
           peppol_status, peppol_sent_at, peppol_document_id, peppol_error_message,
           client:clients(id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled)
         `)
+        .eq('user_id', user.id)
         .eq('status', 'sent')
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setInvoices(data || []);
@@ -136,17 +142,21 @@ const PeppolPage = () => {
     } finally {
       setLoadingInvoices(false);
     }
-  }, [toast, t, user]);
+  }, [applyCompanyScope, toast, t, user]);
 
   const fetchInboundLogs = useCallback(async () => {
     if (!user) return;
     setLoadingInbound(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('peppol_transmission_log')
         .select(`*, invoice:invoices(id, invoice_number)`)
+        .eq('user_id', user.id)
         .eq('direction', 'inbound')
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setInboundLogs(data || []);
@@ -155,17 +165,21 @@ const PeppolPage = () => {
     } finally {
       setLoadingInbound(false);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   const fetchAllLogs = useCallback(async () => {
     if (!user) return;
     setLoadingLogs(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('peppol_transmission_log')
         .select(`*, invoice:invoices(id, invoice_number)`)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(100);
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setAllLogs(data || []);
@@ -174,7 +188,7 @@ const PeppolPage = () => {
     } finally {
       setLoadingLogs(false);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   useEffect(() => {
     if (user) {

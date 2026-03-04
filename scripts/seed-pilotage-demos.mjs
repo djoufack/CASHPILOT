@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 import { buildFullDemoDataset } from './lib/buildFullDemoDataset.mjs';
+import { FinancialSimulationEngine } from '../src/utils/scenarioSimulationEngine.js';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -28,6 +29,353 @@ function addDays(dateString, days) {
   const value = new Date(`${dateString}T00:00:00Z`);
   value.setUTCDate(value.getUTCDate() + days);
   return value.toISOString().slice(0, 10);
+}
+
+function ensureMinimumConfigRecords(config, minimum = 7) {
+  const nextConfig = {
+    ...config,
+    clients: [...config.clients],
+    invoices: [...config.invoices],
+    expenses: [...config.expenses],
+    supplierPayments: [...config.supplierPayments],
+    interest: [...config.interest],
+    depreciation: [...config.depreciation],
+  };
+
+  while (nextConfig.clients.length < minimum) {
+    const index = nextConfig.clients.length;
+    const template = nextConfig.clients[index % config.clients.length];
+    const code = String(index + 1).padStart(3, '0');
+
+    nextConfig.clients.push({
+      ...template,
+      key: `${template.key}-x${code}`,
+      company_name: `${template.company_name} ${CURRENT_YEAR} ${index + 1}`,
+      contact_name: `${template.contact_name} ${index + 1}`,
+      email: `demo+${config.country.toLowerCase()}-client-${code}@cashpilot.cloud`,
+      vat_number: `${config.country}CLIENT${code}`,
+    });
+  }
+
+  while (nextConfig.invoices.length < minimum) {
+    const index = nextConfig.invoices.length;
+    const template = nextConfig.invoices[index % config.invoices.length];
+    const client = nextConfig.clients[index % nextConfig.clients.length];
+    const month = (index % 7) + 1;
+    const day = 8 + (index % 14);
+    const totalHt = roundAmount(Number(template.totalHt || 0) * (1 + (index + 1) * 0.06));
+    const paymentRatio = index % 3 === 0 ? 1 : index % 3 === 1 ? 0.55 : 0;
+    const paymentAmount = roundAmount(totalHt * (1 + config.vatRate / 100) * paymentRatio);
+    const code = String(index + 1).padStart(3, '0');
+
+    nextConfig.invoices.push({
+      ...template,
+      code,
+      number: `${config.country}-DEMO-${CURRENT_YEAR}-${code}`,
+      clientKey: client.key,
+      month,
+      day,
+      totalHt,
+      paymentAmount,
+      paymentMonth: paymentAmount > 0 ? month : month,
+      paymentDay: paymentAmount > 0 ? Math.min(day + 12, 28) : day,
+    });
+  }
+
+  while (nextConfig.expenses.length < minimum) {
+    const index = nextConfig.expenses.length;
+    const template = nextConfig.expenses[index % config.expenses.length];
+    const code = String(index + 1).padStart(3, '0');
+
+    nextConfig.expenses.push({
+      ...template,
+      code,
+      month: (index % 7) + 1,
+      day: 5 + (index % 18),
+      baseAmount: roundAmount(Number(template.baseAmount || 0) * (1 + index * 0.04)),
+      description: `${template.description} ${index + 1}`,
+    });
+  }
+
+  while (nextConfig.supplierPayments.length < minimum) {
+    const index = nextConfig.supplierPayments.length;
+    const template = nextConfig.supplierPayments[index % config.supplierPayments.length];
+    const code = String(index + 1).padStart(3, '0');
+
+    nextConfig.supplierPayments.push({
+      ...template,
+      code,
+      month: (index % 7) + 1,
+      day: 18 + (index % 9),
+      amount: roundAmount(Number(template.amount || 0) * (1 + index * 0.03)),
+      description: `${template.description} ${index + 1}`,
+    });
+  }
+
+  while (nextConfig.interest.length < minimum) {
+    const index = nextConfig.interest.length;
+    const template = nextConfig.interest[index % config.interest.length];
+    const code = String(index + 1).padStart(3, '0');
+
+    nextConfig.interest.push({
+      ...template,
+      code,
+      month: (index % 7) + 1,
+      day: 27,
+      amount: roundAmount(Number(template.amount || 0) * (1 + index * 0.02)),
+      description: `${template.description} ${index + 1}`,
+    });
+  }
+
+  while (nextConfig.depreciation.length < minimum) {
+    const index = nextConfig.depreciation.length;
+    const template = nextConfig.depreciation[index % config.depreciation.length];
+    const code = String(index + 1).padStart(3, '0');
+
+    nextConfig.depreciation.push({
+      ...template,
+      code,
+      month: (index % 7) + 1,
+      day: 27,
+      amount: roundAmount(Number(template.amount || 0) * (1 + index * 0.025)),
+      description: `${template.description} ${index + 1}`,
+    });
+  }
+
+  return nextConfig;
+}
+
+function sumBy(rows, selector) {
+  return (rows || []).reduce((total, row) => total + Number(selector(row) || 0), 0);
+}
+
+function buildScenarioResultMetrics(result) {
+  return {
+    revenue: result.revenue,
+    expenses: result.expenses,
+    grossMargin: result.grossMargin,
+    ebitda: result.ebitda,
+    ebitdaMargin: result.ebitdaMargin,
+    depreciation: result.depreciation,
+    operatingResult: result.operatingResult,
+    operatingMargin: result.operatingMargin,
+    netIncome: result.netIncome,
+    netMargin: result.netMargin,
+    caf: result.caf,
+    bfrChange: result.bfrChange,
+    operatingCashFlow: result.operatingCashFlow,
+    cashBalance: result.cashBalance,
+    currentAssets: result.currentAssets,
+    fixedAssets: result.fixedAssets,
+    totalAssets: result.totalAssets,
+    currentLiabilities: result.currentLiabilities,
+    debt: result.debt,
+    totalLiabilities: result.totalLiabilities,
+    equity: result.equity,
+    bfr: result.bfr,
+    currentRatio: result.currentRatio,
+    quickRatio: result.quickRatio,
+    cashRatio: result.cashRatio,
+    debtToEquity: result.debtToEquity,
+    roe: result.roe,
+    roce: result.roce,
+  };
+}
+
+function selectCompanyRows(rows, companyId) {
+  if (!companyId) return rows || [];
+  return (rows || []).filter((row) => row.company_id === companyId);
+}
+
+function buildScenarioFinancialState(dataset, companyId = null) {
+  const invoiceRows = selectCompanyRows(dataset.invoiceRows, companyId);
+  const expenseRows = selectCompanyRows(dataset.expenseRows, companyId);
+  const supplierInvoiceRows = selectCompanyRows(dataset.supplierInvoiceRows || [], companyId);
+  const receivableRows = selectCompanyRows(dataset.receivableRows || [], companyId);
+  const payableRows = selectCompanyRows(dataset.payableRows || [], companyId);
+  const productRows = selectCompanyRows(dataset.productRows || [], companyId);
+  const fixedAssetRows = selectCompanyRows(dataset.fixedAssetRows || [], companyId);
+  const bankConnectionRows = selectCompanyRows(dataset.bankConnectionRows || [], companyId);
+
+  const revenue = sumBy(invoiceRows, (row) => row.total_ttc) * 1.4;
+  const operatingExpenses = sumBy(expenseRows, (row) => row.amount) * 1.25;
+  const supplierExposure = sumBy(supplierInvoiceRows, (row) => row.total_amount);
+  const receivables = sumBy(invoiceRows, (row) => row.balance_due) +
+    sumBy(receivableRows, (row) => Number(row.amount || 0) - Number(row.amount_paid || 0));
+  const payables = sumBy(payableRows, (row) => Number(row.amount || 0) - Number(row.amount_paid || 0)) +
+    sumBy(supplierInvoiceRows, (row) => row.payment_status === 'paid' ? 0 : row.total_amount);
+  const inventory = sumBy(productRows, (row) => Number(row.stock_quantity || 0) * Number(row.purchase_price || 0));
+  const fixedAssets = sumBy(fixedAssetRows, (row) => row.acquisition_cost);
+  const cash = sumBy(bankConnectionRows, (row) => row.status === 'active' ? row.account_balance : 0) || revenue * 0.18;
+  const debt = sumBy(payableRows.filter((row) => String(row.category || '').includes('loan')), (row) => Number(row.amount || 0) - Number(row.amount_paid || 0));
+  const bfr = receivables + inventory - payables;
+  const equity = Math.max(cash + receivables + inventory + fixedAssets - payables - debt, revenue * 0.28);
+
+  return {
+    revenue,
+    avgPrice: 100,
+    volume: revenue / 100 || 0,
+    expenses: operatingExpenses,
+    fixedExpenses: operatingExpenses * 0.55,
+    variableExpenses: operatingExpenses * 0.23,
+    salaries: operatingExpenses * 0.22,
+    cash,
+    receivables,
+    payables,
+    inventory,
+    fixedAssets,
+    equity,
+    debt: Math.max(debt, supplierExposure * 0.12),
+    bfr,
+  };
+}
+
+async function buildScenarioSeedRows(dataset) {
+  const engine = new FinancialSimulationEngine();
+  const userSeed = `pilotage-demo:${dataset.config.country}`;
+  const amountFactor = dataset.config.company.accounting_currency === 'XAF' ? 650 : 1;
+  const scaleAmount = (baseAmount) => roundAmount(baseAmount * amountFactor);
+  const scopedCompanies = (dataset.companyRows || [dataset.companyRow]).filter(Boolean);
+  const scenarioTemplates = [
+    {
+      code: '001',
+      name: `${dataset.config.label} Acceleration CA`,
+      description: 'Scenario de croissance commerciale soutenue',
+      assumptions: [
+        { name: 'Croissance CA +8%', category: 'revenue', assumption_type: 'growth_rate', parameters: { rate: 8 } },
+        { name: 'Prix +3%', category: 'pricing', assumption_type: 'percentage_change', parameters: { rate: 3 } },
+      ],
+    },
+    {
+      code: '002',
+      name: `${dataset.config.label} Discipline des couts`,
+      description: 'Scenario de reduction des charges et optimisation des marges',
+      assumptions: [
+        { name: 'Reduction charges 6%', category: 'expense_reduction', assumption_type: 'percentage_change', parameters: { rate: 6 } },
+        { name: 'Charges sociales +150', category: 'social_charges', assumption_type: 'recurring', parameters: { amount: scaleAmount(150) } },
+      ],
+    },
+    {
+      code: '003',
+      name: `${dataset.config.label} Plan de recrutement`,
+      description: 'Scenario avec renfort de l equipe finance et delivery',
+      assumptions: [
+        { name: 'Salaires additionnels', category: 'salaries', assumption_type: 'recurring', parameters: { amount: scaleAmount(420) } },
+        { name: 'Croissance CA +5%', category: 'revenue', assumption_type: 'growth_rate', parameters: { rate: 5 } },
+      ],
+    },
+    {
+      code: '004',
+      name: `${dataset.config.label} Stress BFR`,
+      description: 'Scenario de tension sur le besoin en fonds de roulement',
+      assumptions: [
+        { name: 'BFR +1800 / mois', category: 'working_capital', assumption_type: 'recurring', parameters: { amount: scaleAmount(1800) } },
+        { name: 'Variation CA -4%', category: 'revenue', assumption_type: 'percentage_change', parameters: { rate: -4 } },
+      ],
+    },
+    {
+      code: '005',
+      name: `${dataset.config.label} Investissement equipement`,
+      description: 'Scenario de refresh equipement et outillage',
+      assumptions: [
+        { name: 'Leasing equipement', category: 'expense', assumption_type: 'recurring', parameters: { amount: scaleAmount(380) } },
+        { name: 'Prix +2%', category: 'pricing', assumption_type: 'percentage_change', parameters: { rate: 2 } },
+      ],
+    },
+    {
+      code: '006',
+      name: `${dataset.config.label} Expansion commerciale`,
+      description: 'Scenario d acceleration revenue avec charges fixes accrues',
+      assumptions: [
+        { name: 'CA recurrent +1200', category: 'revenue', assumption_type: 'recurring', parameters: { amount: scaleAmount(1200) } },
+        { name: 'Charges fixes +240', category: 'expense', assumption_type: 'recurring', parameters: { amount: scaleAmount(240) } },
+      ],
+    },
+    {
+      code: '007',
+      name: `${dataset.config.label} Scenario prudent`,
+      description: 'Scenario prudent avec ralentissement commercial',
+      assumptions: [
+        { name: 'Variation prix -2%', category: 'pricing', assumption_type: 'percentage_change', parameters: { rate: -2 } },
+        { name: 'Charges reduites 4%', category: 'expense_reduction', assumption_type: 'percentage_change', parameters: { rate: 4 } },
+      ],
+    },
+  ];
+
+  const scenarioRows = [];
+  const assumptionRows = [];
+  const resultRows = [];
+
+  for (let companyIndex = 0; companyIndex < scopedCompanies.length; companyIndex += 1) {
+    const company = scopedCompanies[companyIndex];
+    const companyId = company?.id || null;
+    const companyTag = `C${String(companyIndex + 1).padStart(2, '0')}`;
+    const companyName = String(company?.company_name || `${dataset.config.label} ${companyTag}`);
+    const companySeed = `${userSeed}:company:${companyTag}`;
+    const currentFinancialState = buildScenarioFinancialState(dataset, companyId);
+
+    for (let scenarioIndex = 0; scenarioIndex < scenarioTemplates.length; scenarioIndex += 1) {
+      const template = scenarioTemplates[scenarioIndex];
+      const scenarioId = uuidFromSeed(`${companySeed}:scenario:${template.code}`);
+      const monthOffset = (scenarioIndex + companyIndex) % 3;
+      const baseDate = isoDate(CURRENT_YEAR, 1 + monthOffset, 1);
+      const endDate = isoDate(CURRENT_YEAR + 1, 1 + monthOffset, 1);
+      const createdAt = isoTimestamp(baseDate, 9, (companyIndex * 10 + scenarioIndex) % 60);
+      const scenarioRow = {
+        id: scenarioId,
+        user_id: dataset.userId,
+        company_id: companyId,
+        name: `${template.name} - ${companyName}`,
+        description: `${template.description} (${companyName})`,
+        base_date: baseDate,
+        end_date: endDate,
+        status: 'completed',
+        is_baseline: scenarioIndex === 0,
+        created_at: createdAt,
+        updated_at: createdAt,
+      };
+
+      const scenarioAssumptions = template.assumptions.map((assumption, assumptionIndex) => ({
+        id: uuidFromSeed(`${companySeed}:scenario-assumption:${template.code}:${String(assumptionIndex + 1).padStart(3, '0')}`),
+        scenario_id: scenarioId,
+        name: assumption.name,
+        description: `${assumption.name} - ${companyTag}`,
+        category: assumption.category,
+        assumption_type: assumption.assumption_type,
+        parameters: assumption.parameters,
+        start_date: baseDate,
+        end_date: endDate,
+        created_at: isoTimestamp(baseDate, 10, (assumptionIndex + scenarioIndex) % 60),
+        updated_at: isoTimestamp(baseDate, 10, (assumptionIndex + scenarioIndex) % 60),
+      }));
+
+      const results = await engine.simulateScenario(
+        scenarioRow,
+        scenarioAssumptions,
+        currentFinancialState
+      );
+
+      scenarioRows.push(scenarioRow);
+      assumptionRows.push(...scenarioAssumptions);
+      resultRows.push(
+        ...results.map((result, resultIndex) => ({
+          id: uuidFromSeed(`${companySeed}:scenario-result:${template.code}:${result.date}`),
+          scenario_id: scenarioId,
+          calculation_date: result.date,
+          period_label: result.period_label,
+          metrics: buildScenarioResultMetrics(result),
+          created_at: isoTimestamp(result.date, 18, resultIndex % 50),
+          updated_at: isoTimestamp(result.date, 18, resultIndex % 50),
+        }))
+      );
+    }
+  }
+
+  return {
+    scenarioRows,
+    scenarioAssumptionRows: assumptionRows,
+    scenarioResultRows: resultRows,
+  };
 }
 
 function parseArguments(argv) {
@@ -356,10 +704,15 @@ function buildFixedAssetScheduleRows({
   return rows;
 }
 
-function withAnalyticalDimensions(entry, primaryCompanyId, secondaryCompanyId, revenueAccountCode) {
+function withAnalyticalDimensions(entry, primaryCompanyId, portfolioCompanyIds, revenueAccountCode) {
   const accountCode = String(entry.account_code || '');
+  const portfolioSet = new Set(
+    Array.isArray(portfolioCompanyIds)
+      ? portfolioCompanyIds
+      : [portfolioCompanyIds].filter(Boolean)
+  );
 
-  if (entry.company_id === secondaryCompanyId) {
+  if (portfolioSet.has(entry.company_id)) {
     return {
       ...entry,
       cost_center: 'PORT',
@@ -403,6 +756,190 @@ function withAnalyticalDimensions(entry, primaryCompanyId, secondaryCompanyId, r
   };
 }
 
+function deepCloneSeedValue(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function remapSeedIdentifiers(value, idMap) {
+  if (Array.isArray(value)) {
+    return value.map((item) => remapSeedIdentifiers(item, idMap));
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, remapSeedIdentifiers(entry, idMap)])
+    );
+  }
+
+  if (typeof value === 'string' && idMap.has(value)) {
+    return idMap.get(value);
+  }
+
+  return value;
+}
+
+function appendEmailTag(email, tag) {
+  if (!email || !String(email).includes('@')) {
+    return email;
+  }
+
+  const [localPart, domain] = String(email).split('@');
+  return `${localPart}+${tag}@${domain}`;
+}
+
+function appendUrlTag(url, tag) {
+  if (!url) {
+    return url;
+  }
+
+  try {
+    const parsed = new URL(String(url));
+    parsed.searchParams.set('seed_company', tag);
+    return parsed.toString();
+  } catch {
+    const separator = String(url).includes('?') ? '&' : '?';
+    return `${url}${separator}seed_company=${tag}`;
+  }
+}
+
+function uniquifyClonedRow(tableKey, row, sourceRow, companyTag, userSeed) {
+  const next = { ...row };
+  const suffixedFields = [
+    'invoice_number',
+    'quote_number',
+    'credit_note_number',
+    'delivery_note_number',
+    'order_number',
+    'po_number',
+    'reference',
+    'receipt_number',
+    'sku',
+    'asset_code',
+    'external_id',
+    'requisition_id',
+    'agreement_id',
+    'account_id',
+    'tracking_number',
+    'ap_document_id',
+    'supplier_vat_number',
+    'entry_ref',
+  ];
+
+  for (const field of suffixedFields) {
+    if (typeof next[field] === 'string' && next[field]) {
+      next[field] = `${next[field]}-${companyTag}`;
+    }
+  }
+
+  if (typeof next.email === 'string' && next.email) {
+    next.email = appendEmailTag(next.email, companyTag.toLowerCase());
+  }
+
+  if (typeof next.website === 'string' && next.website) {
+    next.website = appendUrlTag(next.website, companyTag.toLowerCase());
+  }
+
+  if (typeof next.company_name === 'string' && next.company_name && ['clientRows', 'supplierRows'].includes(tableKey)) {
+    next.company_name = `${next.company_name} ${companyTag}`;
+  }
+
+  if (typeof next.contact_name === 'string' && next.contact_name) {
+    next.contact_name = `${next.contact_name} ${companyTag}`;
+  }
+
+  if (typeof next.contact_person === 'string' && next.contact_person) {
+    next.contact_person = `${next.contact_person} ${companyTag}`;
+  }
+
+  if (typeof next.product_name === 'string' && next.product_name) {
+    next.product_name = `${next.product_name} ${companyTag}`;
+  }
+
+  if (typeof next.service_name === 'string' && next.service_name) {
+    next.service_name = `${next.service_name} ${companyTag}`;
+  }
+
+  if (typeof next.name === 'string' && ['projectRows'].includes(tableKey)) {
+    next.name = `${next.name} ${companyTag}`;
+  }
+
+  if (
+    typeof next.name === 'string' &&
+    ['productCategoryRows', 'serviceCategoryRows', 'supplierProductCategoryRows'].includes(tableKey)
+  ) {
+    next.name = `${next.name} ${companyTag}`;
+  }
+
+  if (typeof next.title === 'string' && ['dashboardSnapshotRows', 'recurringInvoiceRows'].includes(tableKey)) {
+    next.title = `${next.title} ${companyTag}`;
+  }
+
+  if (typeof next.peppol_endpoint_id === 'string' && next.peppol_endpoint_id) {
+    next.peppol_endpoint_id = `${next.peppol_endpoint_id}-${companyTag}`;
+  }
+
+  if (typeof next.signature_token === 'string' && next.signature_token) {
+    next.signature_token = uuidFromSeed(`${userSeed}:clone:${companyTag}:signature:${sourceRow.id}`).replace(/-/g, '');
+  }
+
+  if (typeof next.share_token === 'string' && next.share_token) {
+    next.share_token = uuidFromSeed(`${userSeed}:clone:${companyTag}:snapshot:${sourceRow.id}`).replace(/-/g, '').slice(0, 24);
+  }
+
+  if (typeof next.stripe_payment_link_id === 'string' && next.stripe_payment_link_id) {
+    next.stripe_payment_link_id = `${next.stripe_payment_link_id}_${companyTag.toLowerCase()}`;
+  }
+
+  if (typeof next.stripe_payment_intent_id === 'string' && next.stripe_payment_intent_id) {
+    next.stripe_payment_intent_id = `${next.stripe_payment_intent_id}_${companyTag.toLowerCase()}`;
+  }
+
+  if (typeof next.stripe_payment_link_url === 'string' && next.stripe_payment_link_url) {
+    next.stripe_payment_link_url = appendUrlTag(next.stripe_payment_link_url, companyTag.toLowerCase());
+  }
+
+  if (tableKey === 'accountingEntries' && typeof next.source_id === 'string' && next.source_id) {
+    next.source_id = uuidFromSeed(`${userSeed}:clone:${companyTag}:source:${next.source_id}`);
+  }
+
+  return next;
+}
+
+function buildCompanyCloneDataset({ primaryCompanyId, sourceTables, companyRow, companyIndex, userSeed }) {
+  const companyTag = `C${String(companyIndex + 1).padStart(2, '0')}`;
+  const idMap = new Map([[primaryCompanyId, companyRow.id]]);
+
+  for (const [tableKey, rows] of Object.entries(sourceTables)) {
+    for (const row of rows || []) {
+      if (!row?.id) continue;
+      idMap.set(row.id, uuidFromSeed(`${userSeed}:clone:${companyTag}:${tableKey}:${row.id}`));
+    }
+  }
+
+  return Object.fromEntries(
+    Object.entries(sourceTables).map(([tableKey, rows]) => [
+      tableKey,
+      (rows || []).map((sourceRow) => {
+        const clonedRow = remapSeedIdentifiers(deepCloneSeedValue(sourceRow), idMap);
+
+        if (sourceRow?.id && idMap.has(sourceRow.id)) {
+          clonedRow.id = idMap.get(sourceRow.id);
+        }
+
+        if ('company_id' in clonedRow) {
+          clonedRow.company_id = companyRow.id;
+        }
+
+        if (Array.isArray(clonedRow.depends_on)) {
+          clonedRow.depends_on = clonedRow.depends_on.map((dependencyId) => idMap.get(dependencyId) || dependencyId);
+        }
+
+        return uniquifyClonedRow(tableKey, clonedRow, sourceRow, companyTag, userSeed);
+      }),
+    ])
+  );
+}
+
 function ensureBalanced(entryGroups) {
   for (const group of entryGroups) {
     const debit = roundAmount(group.lines.reduce((sum, line) => sum + Number(line.debit || 0), 0));
@@ -415,7 +952,7 @@ function ensureBalanced(entryGroups) {
 }
 
 function buildDemoConfigs() {
-  return {
+  const configs = {
     FR: {
       country: 'FR',
       label: 'France',
@@ -759,6 +1296,10 @@ function buildDemoConfigs() {
       ],
     },
   };
+
+  return Object.fromEntries(
+    Object.entries(configs).map(([key, value]) => [key, ensureMinimumConfigRecords(value)])
+  );
 }
 
 function buildDataset(config) {
@@ -1025,6 +1566,24 @@ function buildEnhancedDataset(config) {
   const amount = (baseValue) => roundAmount(Number(baseValue || 0) * amountFactor);
   const secondaryCompanySeed = buildSecondaryCompanyData(config, base.companyRow);
   const now = new Date().toISOString();
+  const extraCompanyRows = Array.from({ length: 6 }, (_, index) => {
+    const code = String(index + 2).padStart(2, '0');
+    const companyId = index === 0 ? secondaryCompanyId : uuidFromSeed(`${userSeed}:company:portfolio:${code}`);
+    return {
+      id: companyId,
+      user_id: base.userId,
+      ...secondaryCompanySeed,
+      company_name: `${secondaryCompanySeed.company_name} ${index + 1}`,
+      registration_number: `${secondaryCompanySeed.registration_number}-${code}`,
+      tax_id: `${secondaryCompanySeed.tax_id}-${code}`,
+      email: secondaryCompanySeed.email.replace('@', `+${code}@`),
+      bank_account: secondaryCompanySeed.bank_account ? `${secondaryCompanySeed.bank_account}-${code}` : secondaryCompanySeed.bank_account,
+      iban: secondaryCompanySeed.iban ? `${secondaryCompanySeed.iban}${code}` : secondaryCompanySeed.iban,
+      peppol_endpoint_id: secondaryCompanySeed.peppol_endpoint_id ? `${secondaryCompanySeed.peppol_endpoint_id}-${code}` : null,
+      created_at: isoTimestamp(isoDate(CURRENT_YEAR, 1, 4 + index), 8),
+      updated_at: isoTimestamp(isoDate(CURRENT_YEAR, 2, 20 + index), 9),
+    };
+  });
 
   const companyRows = [
     {
@@ -1032,14 +1591,9 @@ function buildEnhancedDataset(config) {
       created_at: base.companyRow.created_at || isoTimestamp(isoDate(CURRENT_YEAR, 1, 2), 8),
       updated_at: isoTimestamp(isoDate(CURRENT_YEAR, 2, 27), 8),
     },
-    {
-      id: secondaryCompanyId,
-      user_id: base.userId,
-      ...secondaryCompanySeed,
-      created_at: isoTimestamp(isoDate(CURRENT_YEAR, 1, 4), 8),
-      updated_at: isoTimestamp(isoDate(CURRENT_YEAR, 2, 28), 9),
-    },
+    ...extraCompanyRows,
   ];
+  const portfolioCompanyIds = extraCompanyRows.map((row) => row.id);
 
   const userCompanyPreferenceRow = {
     user_id: base.userId,
@@ -1124,8 +1678,64 @@ function buildEnhancedDataset(config) {
     ...row,
     company_id: primaryCompanyId,
   }));
+  const primaryPurchaseOrderRows = base.purchaseOrderRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryRecurringInvoiceRows = base.recurringInvoiceRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryPaymentReminderRuleRows = base.paymentReminderRuleRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryPaymentReminderLogRows = base.paymentReminderLogRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryCreditNoteRows = base.creditNoteRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryDeliveryNoteRows = base.deliveryNoteRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryReceivableRows = base.receivableRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryPayableRows = base.payableRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryDebtPaymentRows = base.debtPaymentRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryBankConnectionRows = base.bankConnectionRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryBankSyncHistoryRows = base.bankSyncHistoryRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryBankTransactionRows = base.bankTransactionRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryPeppolLogRows = base.peppolLogRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
 
   const primaryProductCategoryRows = base.productCategoryRows.map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const primaryServiceCategoryRows = base.serviceCategoryRows.map((row) => ({
     ...row,
     company_id: primaryCompanyId,
   }));
@@ -1134,6 +1744,7 @@ function buildEnhancedDataset(config) {
   const primarySupplierProductRows = base.supplierProductRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
   const primarySupplierServiceRows = base.supplierServiceRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
   const primaryProductRows = base.productRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
+  const primaryServiceRows = base.serviceRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
   const primarySupplierOrderRows = base.supplierOrderRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
   const primarySupplierInvoiceRows = base.supplierInvoiceRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
   const primaryStockHistoryRows = base.productStockHistoryRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
@@ -1592,7 +2203,7 @@ function buildEnhancedDataset(config) {
     created_at: isoTimestamp(isoDate(CURRENT_YEAR, 2, 17), 10, 5),
   };
 
-  const fixedAssetRows = [
+  let fixedAssetRows = [
     {
       id: uuidFromSeed(`${userSeed}:fixed-asset:001`),
       user_id: base.userId,
@@ -1637,30 +2248,655 @@ function buildEnhancedDataset(config) {
     },
   ];
 
-  const depreciationScheduleRows = [
-    ...buildFixedAssetScheduleRows({
-      userSeed,
-      assetId: fixedAssetRows[0].id,
-      userId: base.userId,
-      companyId: primaryCompanyId,
-      acquisitionDate: fixedAssetRows[0].acquisition_date,
-      acquisitionCost: fixedAssetRows[0].acquisition_cost,
-      residualValue: fixedAssetRows[0].residual_value,
-      usefulLifeYears: fixedAssetRows[0].useful_life_years,
-      postedPeriods: 2,
-    }),
-    ...buildFixedAssetScheduleRows({
-      userSeed,
-      assetId: fixedAssetRows[1].id,
-      userId: base.userId,
-      companyId: secondaryCompanyId,
-      acquisitionDate: fixedAssetRows[1].acquisition_date,
-      acquisitionCost: fixedAssetRows[1].acquisition_cost,
-      residualValue: fixedAssetRows[1].residual_value,
-      usefulLifeYears: fixedAssetRows[1].useful_life_years,
-      postedPeriods: 1,
+  fixedAssetRows = [
+    ...fixedAssetRows,
+    ...Array.from({ length: 6 }, (_, index) => {
+      const code = String(index + 3).padStart(3, '0');
+      const acquisitionDate = isoDate(CURRENT_YEAR, 2 + (index % 5), 10 + index);
+      const acquisitionCost = amount(2400 + index * 950);
+      const residualValue = amount(180 + index * 40);
+      const usefulLifeYears = 3 + (index % 3);
+      const categories = ['IT', 'Workspace', 'Analytics', 'Operations', 'Compliance', 'Security'];
+      const assetNames = [
+        'Station reporting mobile',
+        'Ecran supervision portefeuille',
+        'Serveur analytics embarque',
+        'Suite materiel delivery',
+        'Coffret conformité fiscale',
+        'Console controle securite',
+      ];
+
+      return {
+        id: uuidFromSeed(`${userSeed}:fixed-asset:${code}`),
+        user_id: base.userId,
+        company_id: primaryCompanyId,
+        asset_name: `${assetNames[index]} ${config.label}`,
+        asset_code: `FA-${config.country}-${code}`,
+        acquisition_date: acquisitionDate,
+        acquisition_cost: acquisitionCost,
+        residual_value: residualValue,
+        useful_life_years: usefulLifeYears,
+        depreciation_method: 'linear',
+        asset_type: 'tangible',
+        category: categories[index],
+        description: `Immobilisation demo ${index + 3} pour la societe active`,
+        status: 'active',
+        account_code_asset: config.accounts.fixedAsset,
+        account_code_depreciation: config.accounts.accumulatedDepreciation,
+        account_code_expense: config.accounts.depreciationExpense,
+        created_at: isoTimestamp(acquisitionDate, 10),
+        updated_at: isoTimestamp(addDays(acquisitionDate, 18), 10, 5),
+      };
     }),
   ];
+
+  const portfolioCompanyDatasets = extraCompanyRows.slice(1).map((companyRow, index) => {
+    const code = String(index + 2).padStart(3, '0');
+    const invoiceMonth = 3 + (index % 4);
+    const invoiceDay = 11 + index;
+    const invoiceDate = isoDate(CURRENT_YEAR, invoiceMonth, invoiceDay);
+    const quoteDate = addDays(invoiceDate, -6);
+    const paymentDate = addDays(invoiceDate, 12);
+    const expenseDate = addDays(invoiceDate, -2);
+    const supplierInvoiceDate = addDays(invoiceDate, 3);
+    const acquisitionDate = addDays(invoiceDate, -8);
+    const quoteHt = amount(5400 + index * 520);
+    const invoiceHt = amount(4900 + index * 560);
+    const invoiceVat = roundAmount(invoiceHt * (config.vatRate / 100));
+    const invoiceTtc = roundAmount(invoiceHt + invoiceVat);
+    const paymentAmount = roundAmount(invoiceTtc * (0.38 + (index % 2) * 0.12));
+    const expenseHt = amount(720 + index * 85);
+    const expenseVat = roundAmount(expenseHt * (config.vatRate / 100));
+    const supplierInvoiceHt = amount(1760 + index * 210);
+    const supplierInvoiceVat = roundAmount(supplierInvoiceHt * (config.vatRate / 100));
+    const fixedAssetCost = amount(2600 + index * 760);
+    const fixedAssetResidual = amount(200 + index * 35);
+
+    const clientRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:client`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      company_name: `${config.label} Portfolio Client ${index + 2}`,
+      contact_name: `Responsable Portfolio ${index + 2}`,
+      email: `portfolio-client-${config.country.toLowerCase()}-${code}@cashpilot.cloud`,
+      address: companyRow.address,
+      city: companyRow.city,
+      postal_code: companyRow.postal_code,
+      country: companyRow.country,
+      phone: companyRow.phone,
+      website: `https://cashpilot.tech/portfolio/${code}`,
+      preferred_currency: companyCurrency,
+      payment_terms: config.country === 'BE' ? '30 dagen' : '30 jours',
+      electronic_invoicing_enabled: true,
+      peppol_endpoint_id: companyRow.peppol_endpoint_id ? `${companyRow.peppol_endpoint_id}-client` : null,
+      peppol_scheme_id: companyRow.peppol_scheme_id || null,
+      notes: `${config.label} portfolio client ${index + 2}`,
+      created_at: isoTimestamp(addDays(quoteDate, -3), 10),
+      updated_at: isoTimestamp(addDays(quoteDate, -3), 10, 5),
+    };
+
+    const quoteRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:quote`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      client_id: clientRow.id,
+      quote_number: `QT-${config.country}-${CURRENT_YEAR}-P${code}`,
+      date: quoteDate,
+      status: 'sent',
+      tax_rate: config.vatRate,
+      total_ht: quoteHt,
+      total_ttc: roundAmount(quoteHt * (1 + config.vatRate / 100)),
+      signature_status: index % 2 === 0 ? 'pending' : 'signed',
+      signature_token: uuidFromSeed(`${userSeed}:portfolio:${code}:quote-token`).replace(/-/g, ''),
+      signature_token_expires_at: isoTimestamp(isoDate(CURRENT_YEAR, 12, 31), 23, 59),
+      signed_by: index % 2 === 0 ? null : clientRow.contact_name,
+      signer_email: clientRow.email,
+      signed_at: index % 2 === 0 ? null : isoTimestamp(addDays(quoteDate, 2), 16, 10),
+      signature_url: index % 2 === 0 ? null : `https://cashpilot.tech/demo-signatures/${config.country.toLowerCase()}-portfolio-${code}.png`,
+      created_at: isoTimestamp(quoteDate, 9),
+    };
+
+    const invoiceRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:invoice`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      client_id: clientRow.id,
+      invoice_number: `${config.country}-PORT-${CURRENT_YEAR}-${code}`,
+      currency: companyCurrency,
+      date: invoiceDate,
+      due_date: addDays(invoiceDate, 30),
+      status: 'sent',
+      payment_status: 'partial',
+      amount_paid: paymentAmount,
+      balance_due: roundAmount(invoiceTtc - paymentAmount),
+      total_ht: invoiceHt,
+      tax_rate: config.vatRate,
+      total_ttc: invoiceTtc,
+      payment_terms_id: base.paymentTermRows[2]?.id || base.paymentTermRows[0]?.id || null,
+      invoice_type: 'product',
+      reference: `REF-${config.country}-PORT-${code}`,
+      header_note: `${config.label} portfolio invoice ${index + 2}`,
+      footer_note: 'Generated for CashPilot demo',
+      terms_and_conditions: 'Portfolio entity demo. Payment due in 30 days.',
+      stripe_payment_link_id: `plink_${config.country.toLowerCase()}_${CURRENT_YEAR}_portfolio_${code}`,
+      stripe_payment_link_url: `https://buy.stripe.com/test_cashpilot_${config.country.toLowerCase()}_portfolio_${code}`,
+      payment_link_created_at: isoTimestamp(invoiceDate, 14, 20),
+      notes: `${config.label} portfolio invoice ${index + 2}`,
+      created_at: isoTimestamp(invoiceDate, 9),
+    };
+
+    const invoiceItemRows = [
+      {
+        id: uuidFromSeed(`${userSeed}:portfolio:${code}:invoice-item:001`),
+        invoice_id: invoiceRow.id,
+        description: `Module portefeuille ${index + 2}`,
+        item_type: 'product',
+        product_id: null,
+        service_id: null,
+        quantity: 3 + index,
+        unit_price: amount(780),
+        total: amount((3 + index) * 780),
+        created_at: isoTimestamp(invoiceDate, 9, 10),
+      },
+      {
+        id: uuidFromSeed(`${userSeed}:portfolio:${code}:invoice-item:002`),
+        invoice_id: invoiceRow.id,
+        description: `Accompagnement consolidation ${index + 2}`,
+        item_type: 'service',
+        product_id: null,
+        service_id: null,
+        quantity: 4 + index,
+        unit_price: amount(360),
+        total: amount((4 + index) * 360),
+        created_at: isoTimestamp(invoiceDate, 9, 20),
+      },
+    ];
+
+    const paymentRow = {
+      code: `P${code}`,
+      month: invoiceMonth,
+      day: Number(paymentDate.slice(8, 10)),
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:payment`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      invoice_id: invoiceRow.id,
+      client_id: clientRow.id,
+      amount: paymentAmount,
+      payment_method: 'bank_transfer',
+      payment_date: paymentDate,
+      reference: `WIRE-${config.country}-${CURRENT_YEAR}-P${code}`,
+      notes: `${config.label} portfolio payment ${index + 2}`,
+      receipt_number: `REC-${config.country}-${CURRENT_YEAR}-P${code}`,
+      is_lump_sum: false,
+      created_at: isoTimestamp(paymentDate, 15),
+    };
+
+    const paymentAllocationRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:payment-allocation`),
+      payment_id: paymentRow.id,
+      invoice_id: invoiceRow.id,
+      amount: paymentAmount,
+      created_at: isoTimestamp(paymentDate, 16),
+    };
+
+    const expenseRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:expense`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      amount: roundAmount(expenseHt + expenseVat),
+      amount_ht: expenseHt,
+      tax_amount: expenseVat,
+      tax_rate: roundAmount(config.vatRate / 100),
+      category: 'consulting',
+      description: `${config.label} portfolio tooling ${index + 2}`,
+      expense_date: expenseDate,
+      created_at: isoTimestamp(expenseDate, 10),
+    };
+
+    const productCategoryRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:product-category`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      name: `${config.label} Portfolio ${index + 2}`,
+      description: `Portfolio stock items ${index + 2}`,
+      created_at: isoTimestamp(addDays(expenseDate, -1), 11),
+      updated_at: isoTimestamp(addDays(expenseDate, -1), 11, 5),
+    };
+
+    const supplierProductCategoryRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:supplier-product-category`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      name: `${config.label} Modules ${index + 2}`,
+      description: `Portfolio supply catalog ${index + 2}`,
+      created_at: isoTimestamp(addDays(expenseDate, -1), 11, 10),
+      updated_at: isoTimestamp(addDays(expenseDate, -1), 11, 15),
+    };
+
+    const supplierRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:supplier`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      company_name: `${config.label} Portfolio Supply ${index + 2}`,
+      contact_person: `Morgan Supply ${index + 2}`,
+      email: `portfolio-supply-${config.country.toLowerCase()}-${code}@cashpilot.cloud`,
+      phone: companyRow.phone,
+      address: companyRow.address,
+      city: companyRow.city,
+      postal_code: companyRow.postal_code,
+      country: companyRow.country,
+      website: 'https://cashpilot.tech/supply',
+      bank_name: companyRow.bank_name,
+      iban: companyRow.iban,
+      bic_swift: companyRow.swift,
+      supplier_type: 'both',
+      payment_terms: config.country === 'BE' ? '30 dagen' : '30 jours',
+      status: 'active',
+      created_at: isoTimestamp(addDays(expenseDate, -1), 12),
+      updated_at: isoTimestamp(addDays(expenseDate, -1), 12, 5),
+    };
+
+    const supplierProductRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:supplier-product`),
+      supplier_id: supplierRow.id,
+      category_id: supplierProductCategoryRow.id,
+      company_id: companyRow.id,
+      product_name: `Module portefeuille ${config.label} ${index + 2}`,
+      description: `Supply catalog for portfolio company ${index + 2}`,
+      sku: `${config.country}-SUP-PORT-${code}`,
+      unit_price: amount(320 + index * 20),
+      unit: 'piece',
+      min_stock_level: 3 + index,
+      created_at: isoTimestamp(addDays(expenseDate, -1), 12, 10),
+      updated_at: isoTimestamp(addDays(expenseDate, -1), 12, 15),
+    };
+
+    const supplierServiceRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:supplier-service`),
+      supplier_id: supplierRow.id,
+      company_id: companyRow.id,
+      service_name: `Support portefeuille ${config.label} ${index + 2}`,
+      description: `Portfolio service support ${index + 2}`,
+      pricing_type: 'fixed',
+      fixed_price: amount(760 + index * 70),
+      hourly_rate: amount(120 + index * 5),
+      unit: 'mission',
+      availability: 'available',
+      created_at: isoTimestamp(addDays(expenseDate, -1), 12, 20),
+      updated_at: isoTimestamp(addDays(expenseDate, -1), 12, 25),
+    };
+
+    const productRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:product`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      category_id: productCategoryRow.id,
+      supplier_id: supplierRow.id,
+      product_name: `Module portefeuille ${config.label} ${index + 2}`,
+      description: `Inventory item used for company ${index + 2}`,
+      sku: `${config.country}-PORT-${code}`,
+      unit_price: amount(610 + index * 45),
+      purchase_price: amount(330 + index * 30),
+      stock_quantity: 10 + index * 2,
+      min_stock_level: 3 + index,
+      unit: 'piece',
+      is_active: true,
+      created_at: isoTimestamp(addDays(expenseDate, -1), 13),
+      updated_at: isoTimestamp(addDays(expenseDate, -1), 13, 5),
+    };
+
+    const supplierOrderRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:supplier-order`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      supplier_id: supplierRow.id,
+      order_number: `SO-${config.country}-${CURRENT_YEAR}-P${code}`,
+      order_date: addDays(invoiceDate, -1),
+      expected_delivery_date: addDays(invoiceDate, 5),
+      actual_delivery_date: addDays(invoiceDate, 4),
+      order_status: 'delivered',
+      total_amount: amount(1920 + index * 230),
+      notes: `Commande portefeuille ${index + 2}`,
+      created_at: isoTimestamp(addDays(invoiceDate, -1), 15),
+      updated_at: isoTimestamp(addDays(invoiceDate, -1), 15, 5),
+    };
+
+    const supplierOrderItemRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:supplier-order-item`),
+      order_id: supplierOrderRow.id,
+      product_id: supplierProductRow.id,
+      service_id: null,
+      quantity: 5 + index,
+      unit_price: amount(320 + index * 20),
+      total_price: roundAmount((5 + index) * amount(320 + index * 20)),
+      created_at: isoTimestamp(addDays(invoiceDate, -1), 15, 10),
+    };
+
+    const supplierInvoiceRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:supplier-invoice`),
+      supplier_id: supplierRow.id,
+      company_id: companyRow.id,
+      invoice_number: `SUP-${config.country}-${CURRENT_YEAR}-P${code}`,
+      invoice_date: supplierInvoiceDate,
+      due_date: addDays(supplierInvoiceDate, 25),
+      currency: companyCurrency,
+      total_amount: roundAmount(supplierInvoiceHt + supplierInvoiceVat),
+      total_ht: supplierInvoiceHt,
+      total_ttc: roundAmount(supplierInvoiceHt + supplierInvoiceVat),
+      vat_rate: config.vatRate,
+      vat_amount: supplierInvoiceVat,
+      payment_status: index % 2 === 0 ? 'pending' : 'overdue',
+      payment_terms: config.country === 'BE' ? '30 dagen' : '30 jours',
+      supplier_name_extracted: supplierRow.company_name,
+      supplier_address_extracted: supplierRow.address,
+      supplier_vat_number: `${config.country}-SUPVAT-P${code}`,
+      notes: `Facture fournisseur portefeuille ${index + 2}`,
+      created_at: isoTimestamp(supplierInvoiceDate, 16),
+      updated_at: isoTimestamp(supplierInvoiceDate, 16, 5),
+      ai_extracted: true,
+      ai_confidence: 0.95,
+      ai_extracted_at: isoTimestamp(supplierInvoiceDate, 16, 10),
+      ai_raw_response: { provider: 'demo', quality: 'high', company: companyRow.id },
+      iban: supplierRow.iban,
+      bic: supplierRow.bic_swift,
+    };
+
+    const supplierInvoiceLineItemRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:supplier-invoice-line`),
+      invoice_id: supplierInvoiceRow.id,
+      description: `Modules portefeuille ${index + 2}`,
+      quantity: 5 + index,
+      unit_price: amount(290 + index * 18),
+      total: supplierInvoiceHt,
+      sort_order: 0,
+      created_at: isoTimestamp(supplierInvoiceDate, 16, 15),
+    };
+
+    const projectRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:project`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      client_id: clientRow.id,
+      name: `${config.label} Portfolio Consolidation ${index + 2}`,
+      description: `Projet multi-societes portfolio ${index + 2}`,
+      budget_hours: 72 + index * 8,
+      hourly_rate: amount(160 + index * 8),
+      status: 'active',
+      start_date: addDays(invoiceDate, -3),
+      end_date: addDays(invoiceDate, 35),
+      created_at: isoTimestamp(addDays(invoiceDate, -3), 9),
+    };
+
+    const taskRows = [
+      {
+        id: uuidFromSeed(`${userSeed}:portfolio:${code}:task:001`),
+        project_id: projectRow.id,
+        invoice_id: invoiceRow.id,
+        quote_id: quoteRow.id,
+        purchase_order_id: null,
+        service_id: null,
+        company_id: companyRow.id,
+        assigned_to: base.teamMemberRows[0]?.name || 'CashPilot Demo Ops',
+        name: `Préparer la consolidation ${index + 2}`,
+        title: `Préparer la consolidation ${index + 2}`,
+        description: `Task demo portfolio ${index + 2}`,
+        status: 'in_progress',
+        priority: 'high',
+        color: '#10b981',
+        estimated_hours: 24 + index * 2,
+        requires_quote: true,
+        started_at: isoTimestamp(addDays(invoiceDate, -2), 9),
+        completed_at: null,
+        due_date: addDays(invoiceDate, 10),
+        start_date: addDays(invoiceDate, -2),
+        end_date: addDays(invoiceDate, 10),
+        depends_on: [],
+        created_at: isoTimestamp(addDays(invoiceDate, -3), 12),
+        updated_at: isoTimestamp(addDays(invoiceDate, 1), 12, 5),
+      },
+      {
+        id: uuidFromSeed(`${userSeed}:portfolio:${code}:task:002`),
+        project_id: projectRow.id,
+        invoice_id: null,
+        quote_id: quoteRow.id,
+        purchase_order_id: null,
+        service_id: null,
+        company_id: companyRow.id,
+        assigned_to: base.teamMemberRows[1]?.name || 'CashPilot Demo Finance',
+        name: `Valider le reporting ${index + 2}`,
+        title: `Valider le reporting ${index + 2}`,
+        description: `Second gantt task portfolio ${index + 2}`,
+        status: 'pending',
+        priority: 'medium',
+        color: '#14b8a6',
+        estimated_hours: 12 + index * 2,
+        requires_quote: true,
+        started_at: null,
+        completed_at: null,
+        due_date: addDays(invoiceDate, 18),
+        start_date: addDays(invoiceDate, 11),
+        end_date: addDays(invoiceDate, 18),
+        depends_on: [],
+        created_at: isoTimestamp(addDays(invoiceDate, 2), 12),
+        updated_at: isoTimestamp(addDays(invoiceDate, 2), 12, 5),
+      },
+    ];
+    taskRows[1].depends_on = [taskRows[0].id];
+
+    const subtaskRows = [
+      {
+        id: uuidFromSeed(`${userSeed}:portfolio:${code}:subtask:001`),
+        task_id: taskRows[0].id,
+        title: `Collecter les donnees ${index + 2}`,
+        status: 'completed',
+        created_at: isoTimestamp(addDays(invoiceDate, -1), 12),
+        updated_at: isoTimestamp(addDays(invoiceDate, -1), 12, 5),
+      },
+      {
+        id: uuidFromSeed(`${userSeed}:portfolio:${code}:subtask:002`),
+        task_id: taskRows[1].id,
+        title: `Diffuser le snapshot ${index + 2}`,
+        status: 'pending',
+        created_at: isoTimestamp(addDays(invoiceDate, 3), 12),
+        updated_at: isoTimestamp(addDays(invoiceDate, 3), 12, 5),
+      },
+    ];
+
+    const timesheetRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:timesheet`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      client_id: clientRow.id,
+      project_id: projectRow.id,
+      task_id: taskRows[0].id,
+      service_id: null,
+      invoice_id: invoiceRow.id,
+      date: addDays(invoiceDate, 4),
+      start_time: '09:00',
+      end_time: '12:00',
+      duration_minutes: 180,
+      hourly_rate: amount(160 + index * 8),
+      description: `Atelier portefeuille ${index + 2}`,
+      notes: null,
+      billable: true,
+      billed_at: isoTimestamp(addDays(invoiceDate, 5), 18),
+      status: 'approved',
+      created_at: isoTimestamp(addDays(invoiceDate, 4), 18),
+    };
+
+    const stockHistoryRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:stock-history`),
+      product_id: productRow.id,
+      user_product_id: productRow.id,
+      company_id: companyRow.id,
+      previous_quantity: 0,
+      new_quantity: productRow.stock_quantity,
+      change_quantity: productRow.stock_quantity,
+      reason: 'purchase',
+      notes: `Stock portefeuille ${index + 2}`,
+      order_id: supplierOrderRow.id,
+      created_by: base.userId,
+      created_at: isoTimestamp(addDays(invoiceDate, 4), 10),
+    };
+
+    const stockAlertRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:stock-alert`),
+      product_id: productRow.id,
+      user_product_id: productRow.id,
+      company_id: companyRow.id,
+      alert_type: 'low_stock',
+      is_active: false,
+      resolved_at: isoTimestamp(addDays(invoiceDate, 8), 9),
+      created_at: isoTimestamp(addDays(invoiceDate, 4), 10, 5),
+    };
+
+    const fixedAssetRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:fixed-asset`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      asset_name: `Studio reporting ${config.label} ${index + 2}`,
+      asset_code: `FA-${config.country}-P${code}`,
+      acquisition_date: acquisitionDate,
+      acquisition_cost: fixedAssetCost,
+      residual_value: fixedAssetResidual,
+      useful_life_years: 3 + (index % 2),
+      depreciation_method: 'linear',
+      asset_type: 'tangible',
+      category: 'Workspace',
+      description: `Espace reporting multisociete ${index + 2}`,
+      status: 'active',
+      account_code_asset: config.accounts.fixedAsset,
+      account_code_depreciation: config.accounts.accumulatedDepreciation,
+      account_code_expense: config.accounts.depreciationExpense,
+      created_at: isoTimestamp(acquisitionDate, 10),
+      updated_at: isoTimestamp(addDays(acquisitionDate, 16), 10, 5),
+    };
+
+    const snapshotRow = {
+      id: uuidFromSeed(`${userSeed}:portfolio:${code}:dashboard-snapshot`),
+      user_id: base.userId,
+      company_id: companyRow.id,
+      snapshot_type: 'dashboard',
+      title: `${config.label} Portfolio Dashboard ${index + 2}`,
+      share_token: uuidFromSeed(`${userSeed}:portfolio:${code}:snapshot-token`).replace(/-/g, '').slice(0, 24),
+      snapshot_data: {
+        currency: companyCurrency,
+        summaryCards: [
+          { label: 'Revenue', value: `${Number(invoiceRow.total_ttc || 0).toLocaleString('en-US')} ${companyCurrency}`, accentClass: 'text-emerald-300' },
+          { label: 'Open balance', value: `${Number(invoiceRow.balance_due || 0).toLocaleString('en-US')} ${companyCurrency}`, accentClass: 'text-amber-300' },
+          { label: 'Projects', value: '1', accentClass: 'text-violet-300' },
+          { label: 'Fixed assets', value: '1', accentClass: 'text-cyan-300' },
+        ],
+      },
+      is_public: true,
+      expires_at: null,
+      created_at: isoTimestamp(addDays(invoiceDate, 6), 10),
+      updated_at: isoTimestamp(addDays(invoiceDate, 6), 10, 5),
+    };
+
+    const invoiceSeed = {
+      code: `P${code}`,
+      number: invoiceRow.invoice_number,
+      totalHt: invoiceHt,
+      month: invoiceMonth,
+      day: invoiceDay,
+    };
+    const paymentSeed = {
+      code: `P${code}`,
+      month: Number(paymentDate.slice(5, 7)),
+      day: Number(paymentDate.slice(8, 10)),
+      amount: paymentAmount,
+    };
+    const expenseSeed = {
+      code: `P${code}`,
+      baseAmount: expenseHt,
+      accountCode: config.expenses[0]?.accountCode || config.accounts.interestExpense,
+      description: expenseRow.description,
+      month: Number(expenseDate.slice(5, 7)),
+      day: Number(expenseDate.slice(8, 10)),
+    };
+    const capexSeed = {
+      code: `P${code}`,
+      amount: fixedAssetRow.acquisition_cost,
+      month: Number(acquisitionDate.slice(5, 7)),
+      day: Number(acquisitionDate.slice(8, 10)),
+      description: fixedAssetRow.asset_name,
+    };
+    const entryGroups = [
+      buildInvoiceEntries(config, invoiceSeed),
+      buildPaymentEntries(config, paymentSeed),
+      buildExpenseEntries(config, expenseSeed),
+      buildCapexEntries(config, capexSeed),
+    ];
+    ensureBalanced(entryGroups);
+
+    const accountingEntries = entryGroups.flatMap((group, groupIndex) =>
+      group.lines.map((line, lineIndex) => ({
+        id: uuidFromSeed(`${userSeed}:portfolio:${code}:entry:${group.ref}:${line.accountCode}:${groupIndex}:${lineIndex}`),
+        user_id: base.userId,
+        company_id: companyRow.id,
+        transaction_date: group.date,
+        description: line.description,
+        account_code: line.accountCode,
+        debit: line.debit,
+        credit: line.credit,
+        source_type: 'manual_demo',
+        source_id: uuidFromSeed(`${userSeed}:portfolio:${code}:source:${group.ref}`),
+        journal: 'DEMO',
+        entry_ref: group.ref,
+        is_auto: false,
+        created_at: isoTimestamp(group.date, 12, 10 + groupIndex + lineIndex),
+      }))
+    );
+
+    return {
+      clientRow,
+      quoteRow,
+      invoiceRow,
+      invoiceItemRows,
+      paymentRow,
+      paymentAllocationRow,
+      expenseRow,
+      productCategoryRow,
+      supplierProductCategoryRow,
+      supplierRow,
+      supplierProductRow,
+      supplierServiceRow,
+      productRow,
+      supplierOrderRow,
+      supplierOrderItemRow,
+      supplierInvoiceRow,
+      supplierInvoiceLineItemRow,
+      projectRow,
+      taskRows,
+      subtaskRows,
+      timesheetRow,
+      stockHistoryRow,
+      stockAlertRow,
+      fixedAssetRow,
+      snapshotRow,
+      accountingEntries,
+    };
+  });
+
+  fixedAssetRows = [
+    ...fixedAssetRows,
+    ...portfolioCompanyDatasets.map((dataset) => dataset.fixedAssetRow),
+  ];
+
+  const depreciationScheduleRows = fixedAssetRows.flatMap((asset, index) =>
+    buildFixedAssetScheduleRows({
+      userSeed,
+      assetId: asset.id,
+      userId: base.userId,
+      companyId: asset.company_id,
+      acquisitionDate: asset.acquisition_date,
+      acquisitionCost: asset.acquisition_cost,
+      residualValue: asset.residual_value,
+      usefulLifeYears: asset.useful_life_years,
+      postedPeriods: index === 0 ? 2 : asset.company_id === primaryCompanyId ? 0 : 1,
+    })
+  );
 
   const analyticalAxisRows = [
     ['cost_center', 'REV', 'Revenue Ops', '#f97316'],
@@ -1913,44 +3149,127 @@ function buildEnhancedDataset(config) {
       ];
     });
 
+  const primaryFixedAssetRows = fixedAssetRows.filter((asset) => asset.company_id === primaryCompanyId);
+  const primaryDepreciationScheduleRows = depreciationScheduleRows.filter((row) => row.company_id === primaryCompanyId);
+  const primaryDashboardSnapshotRows = dashboardSnapshotRows.filter((row) => row.company_id === primaryCompanyId);
+  const primaryAccountingEntryRows = [
+    ...base.accountingEntries.map((entry) => ({ ...entry, company_id: primaryCompanyId })),
+    ...fixedAssetEntries.filter((entry) => entry.company_id === primaryCompanyId),
+  ];
+  const clonedCompanyDatasets = extraCompanyRows.map((companyRow, index) =>
+    buildCompanyCloneDataset({
+      primaryCompanyId,
+      companyRow,
+      companyIndex: index + 1,
+      userSeed,
+      sourceTables: {
+        clientRows: primaryClientRows,
+        invoiceRows: primaryInvoiceRows,
+        paymentRows: primaryPaymentRows,
+        expenseRows: primaryExpenseRows,
+        productCategoryRows: primaryProductCategoryRows,
+        serviceCategoryRows: primaryServiceCategoryRows,
+        supplierRows: primarySupplierRows,
+        supplierProductCategoryRows: primarySupplierProductCategoryRows,
+        supplierProductRows: primarySupplierProductRows,
+        supplierServiceRows: primarySupplierServiceRows,
+        productRows: primaryProductRows,
+        serviceRows: primaryServiceRows,
+        invoiceItemRows: base.invoiceItemRows,
+        paymentAllocationRows: base.paymentAllocationRows,
+        quoteRows: primaryQuoteRows,
+        purchaseOrderRows: primaryPurchaseOrderRows,
+        recurringInvoiceRows: primaryRecurringInvoiceRows,
+        recurringInvoiceLineItemRows: base.recurringInvoiceLineItemRows,
+        paymentReminderRuleRows: primaryPaymentReminderRuleRows,
+        paymentReminderLogRows: primaryPaymentReminderLogRows,
+        supplierOrderRows: primarySupplierOrderRows,
+        supplierOrderItemRows: base.supplierOrderItemRows,
+        supplierInvoiceRows: primarySupplierInvoiceRows,
+        supplierInvoiceLineItemRows: base.supplierInvoiceLineItemRows,
+        projectRows: primaryProjectRows,
+        taskRows: primaryTaskRows,
+        subtaskRows: base.subtaskRows,
+        timesheetRows: primaryTimesheetRows,
+        creditNoteRows: primaryCreditNoteRows,
+        creditNoteItemRows: base.creditNoteItemRows,
+        deliveryNoteRows: primaryDeliveryNoteRows,
+        deliveryNoteItemRows: base.deliveryNoteItemRows,
+        receivableRows: primaryReceivableRows,
+        payableRows: primaryPayableRows,
+        debtPaymentRows: primaryDebtPaymentRows,
+        bankConnectionRows: primaryBankConnectionRows,
+        bankSyncHistoryRows: primaryBankSyncHistoryRows,
+        bankTransactionRows: primaryBankTransactionRows,
+        peppolLogRows: primaryPeppolLogRows,
+        productStockHistoryRows: primaryStockHistoryRows,
+        stockAlertRows: primaryStockAlertRows,
+        fixedAssetRows: primaryFixedAssetRows,
+        depreciationScheduleRows: primaryDepreciationScheduleRows,
+        dashboardSnapshotRows: primaryDashboardSnapshotRows,
+        accountingEntries: primaryAccountingEntryRows,
+      },
+    })
+  );
+
   const accountingEntries = [
     ...base.accountingEntries.map((entry) => ({ ...entry, company_id: primaryCompanyId })),
     ...secondaryAccountingEntries,
+    ...portfolioCompanyDatasets.flatMap((dataset) => dataset.accountingEntries),
+    ...clonedCompanyDatasets.flatMap((dataset) => dataset.accountingEntries),
     ...fixedAssetEntries,
-  ].map((entry) => withAnalyticalDimensions(entry, primaryCompanyId, secondaryCompanyId, config.accounts.revenue));
+  ].map((entry) => withAnalyticalDimensions(entry, primaryCompanyId, portfolioCompanyIds, config.accounts.revenue));
 
   return {
     ...base,
     companyRows,
     userCompanyPreferenceRow,
-    clientRows: [...primaryClientRows, secondaryClientRow],
-    invoiceRows: [...primaryInvoiceRows, secondaryInvoiceRow],
-    paymentRows: [...primaryPaymentRows, secondaryPaymentRow],
-    expenseRows: [...primaryExpenseRows, secondaryExpenseRow],
+    clientRows: [...primaryClientRows, secondaryClientRow, ...portfolioCompanyDatasets.map((dataset) => dataset.clientRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.clientRows)],
+    invoiceRows: [...primaryInvoiceRows, secondaryInvoiceRow, ...portfolioCompanyDatasets.map((dataset) => dataset.invoiceRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.invoiceRows)],
+    paymentRows: [...primaryPaymentRows, secondaryPaymentRow, ...portfolioCompanyDatasets.map((dataset) => dataset.paymentRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.paymentRows)],
+    expenseRows: [...primaryExpenseRows, secondaryExpenseRow, ...portfolioCompanyDatasets.map((dataset) => dataset.expenseRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.expenseRows)],
     accountingEntries,
-    productCategoryRows: [...primaryProductCategoryRows, secondaryProductCategoryRow],
-    supplierRows: [...primarySupplierRows, secondarySupplierRow],
-    supplierProductCategoryRows: [...primarySupplierProductCategoryRows, secondarySupplierProductCategoryRow],
-    supplierProductRows: [...primarySupplierProductRows, secondarySupplierProductRow],
-    supplierServiceRows: [...primarySupplierServiceRows, secondarySupplierServiceRow],
-    productRows: [...primaryProductRows, secondaryProductRow],
-    invoiceItemRows: [...base.invoiceItemRows, ...secondaryInvoiceItemRows],
-    paymentAllocationRows: [...base.paymentAllocationRows, secondaryPaymentAllocationRow],
-    quoteRows: [...primaryQuoteRows, secondaryQuoteRow],
-    supplierOrderRows: [...primarySupplierOrderRows, secondarySupplierOrderRow],
-    supplierOrderItemRows: [...base.supplierOrderItemRows, secondarySupplierOrderItemRow],
-    supplierInvoiceRows: [...primarySupplierInvoiceRows, secondarySupplierInvoiceRow],
-    supplierInvoiceLineItemRows: [...base.supplierInvoiceLineItemRows, secondarySupplierInvoiceLineItemRow],
-    projectRows: [...primaryProjectRows, secondaryProjectRow],
-    taskRows: [...primaryTaskRows, ...secondaryTaskRows],
-    subtaskRows: [...base.subtaskRows, ...secondarySubtaskRows],
-    timesheetRows: [...primaryTimesheetRows, secondaryTimesheetRow],
-    productStockHistoryRows: [...primaryStockHistoryRows, secondaryStockHistoryRow],
-    stockAlertRows: [...primaryStockAlertRows, secondaryStockAlertRow],
-    fixedAssetRows,
-    depreciationScheduleRows,
+    productCategoryRows: [...primaryProductCategoryRows, secondaryProductCategoryRow, ...portfolioCompanyDatasets.map((dataset) => dataset.productCategoryRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.productCategoryRows)],
+    serviceCategoryRows: [...primaryServiceCategoryRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.serviceCategoryRows)],
+    supplierRows: [...primarySupplierRows, secondarySupplierRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierRows)],
+    supplierProductCategoryRows: [...primarySupplierProductCategoryRows, secondarySupplierProductCategoryRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierProductCategoryRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierProductCategoryRows)],
+    supplierProductRows: [...primarySupplierProductRows, secondarySupplierProductRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierProductRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierProductRows)],
+    supplierServiceRows: [...primarySupplierServiceRows, secondarySupplierServiceRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierServiceRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierServiceRows)],
+    productRows: [...primaryProductRows, secondaryProductRow, ...portfolioCompanyDatasets.map((dataset) => dataset.productRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.productRows)],
+    serviceRows: [...primaryServiceRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.serviceRows)],
+    invoiceItemRows: [...base.invoiceItemRows, ...secondaryInvoiceItemRows, ...portfolioCompanyDatasets.flatMap((dataset) => dataset.invoiceItemRows), ...clonedCompanyDatasets.flatMap((dataset) => dataset.invoiceItemRows)],
+    paymentAllocationRows: [...base.paymentAllocationRows, secondaryPaymentAllocationRow, ...portfolioCompanyDatasets.map((dataset) => dataset.paymentAllocationRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.paymentAllocationRows)],
+    quoteRows: [...primaryQuoteRows, secondaryQuoteRow, ...portfolioCompanyDatasets.map((dataset) => dataset.quoteRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.quoteRows)],
+    purchaseOrderRows: [...primaryPurchaseOrderRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.purchaseOrderRows)],
+    recurringInvoiceRows: [...primaryRecurringInvoiceRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.recurringInvoiceRows)],
+    recurringInvoiceLineItemRows: [...base.recurringInvoiceLineItemRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.recurringInvoiceLineItemRows)],
+    paymentReminderRuleRows: [...primaryPaymentReminderRuleRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.paymentReminderRuleRows)],
+    paymentReminderLogRows: [...primaryPaymentReminderLogRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.paymentReminderLogRows)],
+    supplierOrderRows: [...primarySupplierOrderRows, secondarySupplierOrderRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierOrderRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierOrderRows)],
+    supplierOrderItemRows: [...base.supplierOrderItemRows, secondarySupplierOrderItemRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierOrderItemRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierOrderItemRows)],
+    supplierInvoiceRows: [...primarySupplierInvoiceRows, secondarySupplierInvoiceRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierInvoiceRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierInvoiceRows)],
+    supplierInvoiceLineItemRows: [...base.supplierInvoiceLineItemRows, secondarySupplierInvoiceLineItemRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierInvoiceLineItemRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierInvoiceLineItemRows)],
+    projectRows: [...primaryProjectRows, secondaryProjectRow, ...portfolioCompanyDatasets.map((dataset) => dataset.projectRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.projectRows)],
+    taskRows: [...primaryTaskRows, ...secondaryTaskRows, ...portfolioCompanyDatasets.flatMap((dataset) => dataset.taskRows), ...clonedCompanyDatasets.flatMap((dataset) => dataset.taskRows)],
+    subtaskRows: [...base.subtaskRows, ...secondarySubtaskRows, ...portfolioCompanyDatasets.flatMap((dataset) => dataset.subtaskRows), ...clonedCompanyDatasets.flatMap((dataset) => dataset.subtaskRows)],
+    timesheetRows: [...primaryTimesheetRows, secondaryTimesheetRow, ...portfolioCompanyDatasets.map((dataset) => dataset.timesheetRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.timesheetRows)],
+    creditNoteRows: [...primaryCreditNoteRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.creditNoteRows)],
+    creditNoteItemRows: [...base.creditNoteItemRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.creditNoteItemRows)],
+    deliveryNoteRows: [...primaryDeliveryNoteRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.deliveryNoteRows)],
+    deliveryNoteItemRows: [...base.deliveryNoteItemRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.deliveryNoteItemRows)],
+    receivableRows: [...primaryReceivableRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.receivableRows)],
+    payableRows: [...primaryPayableRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.payableRows)],
+    debtPaymentRows: [...primaryDebtPaymentRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.debtPaymentRows)],
+    productStockHistoryRows: [...primaryStockHistoryRows, secondaryStockHistoryRow, ...portfolioCompanyDatasets.map((dataset) => dataset.stockHistoryRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.productStockHistoryRows)],
+    stockAlertRows: [...primaryStockAlertRows, secondaryStockAlertRow, ...portfolioCompanyDatasets.map((dataset) => dataset.stockAlertRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.stockAlertRows)],
+    bankConnectionRows: [...primaryBankConnectionRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.bankConnectionRows)],
+    bankSyncHistoryRows: [...primaryBankSyncHistoryRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.bankSyncHistoryRows)],
+    bankTransactionRows: [...primaryBankTransactionRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.bankTransactionRows)],
+    peppolLogRows: [...primaryPeppolLogRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.peppolLogRows)],
+    fixedAssetRows: [...fixedAssetRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.fixedAssetRows)],
+    depreciationScheduleRows: [...depreciationScheduleRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.depreciationScheduleRows)],
     analyticalAxisRows,
-    dashboardSnapshotRows,
+    dashboardSnapshotRows: [...dashboardSnapshotRows, ...portfolioCompanyDatasets.map((dataset) => dataset.snapshotRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.dashboardSnapshotRows)],
   };
 }
 
@@ -2040,7 +3359,44 @@ async function deleteRowsByIds(client, table, ids) {
   }
 }
 
+async function cleanupScenarioRows(client, userId) {
+  const { data, error } = await client
+    .from('financial_scenarios')
+    .select('id')
+    .eq('user_id', userId);
+
+  if (error) {
+    throw new Error(`Failed to list financial_scenarios: ${error.message}`);
+  }
+
+  const scenarioIds = (data || []).map((row) => row.id).filter(Boolean);
+  if (!scenarioIds.length) {
+    return;
+  }
+
+  const { error: resultsError } = await client.from('scenario_results').delete().in('scenario_id', scenarioIds);
+  if (resultsError) {
+    throw new Error(`Failed to cleanup scenario_results: ${resultsError.message}`);
+  }
+
+  const { error: assumptionsError } = await client.from('scenario_assumptions').delete().in('scenario_id', scenarioIds);
+  if (assumptionsError) {
+    throw new Error(`Failed to cleanup scenario_assumptions: ${assumptionsError.message}`);
+  }
+
+  const { error: comparisonsError } = await client.from('scenario_comparisons').delete().eq('user_id', userId);
+  if (comparisonsError && !String(comparisonsError.message || '').includes('does not exist')) {
+    throw new Error(`Failed to cleanup scenario_comparisons: ${comparisonsError.message}`);
+  }
+
+  const { error: scenariosError } = await client.from('financial_scenarios').delete().eq('user_id', userId);
+  if (scenariosError) {
+    throw new Error(`Failed to cleanup financial_scenarios: ${scenariosError.message}`);
+  }
+}
+
 async function cleanupDemoDataset(client, dataset) {
+  await cleanupScenarioRows(client, dataset.userId);
   await deleteRows(client, 'dashboard_snapshots', 'user_id', dataset.userId);
   await deleteRows(client, 'accounting_depreciation_schedule', 'user_id', dataset.userId);
   await deleteRows(client, 'accounting_fixed_assets', 'user_id', dataset.userId);
@@ -2142,6 +3498,7 @@ async function insertRows(client, table, rows) {
 
 async function applyDataset(client, dataset, options) {
   const authSummary = await ensureAuthUser(client, dataset, options);
+  const scenarioSeed = await buildScenarioSeedRows(dataset);
   await cleanupDemoDataset(client, dataset);
 
   await upsertRows(client, 'profiles', [dataset.profileRow], 'user_id');
@@ -2211,6 +3568,31 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'invoice_settings', [dataset.invoiceSettingsRow], 'id');
   await upsertRows(client, 'expenses', dataset.expenseRows, 'id');
   await upsertRows(client, 'accounting_entries', dataset.accountingEntries, 'id');
+  await upsertRows(client, 'financial_scenarios', scenarioSeed.scenarioRows, 'id');
+  await upsertRows(client, 'scenario_assumptions', scenarioSeed.scenarioAssumptionRows, 'id');
+  await upsertRows(client, 'scenario_results', scenarioSeed.scenarioResultRows, 'id');
+
+  const preferencePayload = {
+    user_id: dataset.userId,
+    active_company_id: dataset.userCompanyPreferenceRow.active_company_id,
+    updated_at: new Date().toISOString(),
+  };
+  const { data: updatedPreferences, error: preferenceUpdateError } = await client
+    .from('user_company_preferences')
+    .update(preferencePayload)
+    .eq('user_id', dataset.userId)
+    .select('user_id');
+  if (preferenceUpdateError) {
+    throw new Error(`Failed to enforce user_company_preferences: ${preferenceUpdateError.message}`);
+  }
+  if (!updatedPreferences || updatedPreferences.length === 0) {
+    const { error: preferenceInsertError } = await client
+      .from('user_company_preferences')
+      .insert(preferencePayload);
+    if (preferenceInsertError) {
+      throw new Error(`Failed to insert user_company_preferences: ${preferenceInsertError.message}`);
+    }
+  }
 
   return {
     ...authSummary,
@@ -2226,6 +3608,7 @@ async function applyDataset(client, dataset, options) {
     quotes: dataset.quoteRows.length,
     recurringInvoices: dataset.recurringInvoiceRows.length,
     projects: dataset.projectRows.length,
+    scenarios: scenarioSeed.scenarioRows.length,
     companies: (dataset.companyRows || [dataset.companyRow]).length,
     fixedAssets: (dataset.fixedAssetRows || []).length,
     analyticalAxes: (dataset.analyticalAxisRows || []).length,
@@ -2324,6 +3707,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error.message);
+  console.error(error?.stack || error?.message || String(error));
   process.exitCode = 1;
 });

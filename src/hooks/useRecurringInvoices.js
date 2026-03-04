@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useRecurringInvoices = () => {
   const { user } = useAuth();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
   const [recurringInvoices, setRecurringInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,7 +14,7 @@ export const useRecurringInvoices = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('recurring_invoices')
         .select(`
           *,
@@ -21,6 +23,9 @@ export const useRecurringInvoices = () => {
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setRecurringInvoices(data || []);
@@ -30,7 +35,7 @@ export const useRecurringInvoices = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   useEffect(() => {
     fetchRecurringInvoices();
@@ -42,7 +47,7 @@ export const useRecurringInvoices = () => {
       const { data, error } = await supabase
         .from('recurring_invoices')
         .insert({
-          ...invoiceData,
+          ...withCompanyScope(invoiceData),
           user_id: user.id,
         })
         .select()
@@ -71,7 +76,7 @@ export const useRecurringInvoices = () => {
     try {
       const { error } = await supabase
         .from('recurring_invoices')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(withCompanyScope({ ...updates, updated_at: new Date().toISOString() }))
         .eq('id', id)
         .eq('user_id', user.id);
 

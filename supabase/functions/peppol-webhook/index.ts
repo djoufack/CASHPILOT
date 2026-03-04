@@ -63,7 +63,7 @@ serve(async (req) => {
         }).eq('id', invoice.id);
 
         await supabaseAdmin.from('peppol_transmission_log').insert({
-          user_id: userId, invoice_id: invoice.id, direction: 'outbound',
+          user_id: userId, company_id: companyRecord.id, invoice_id: invoice.id, direction: 'outbound',
           status: mappedStatus, ap_provider: 'scrada', ap_document_id: body.id,
           error_message: body.errorMessage || null, metadata: body,
         });

@@ -24,7 +24,7 @@ serve(async (req) => {
     // Load invoice
     const { data: invoice } = await supabase
       .from('invoices')
-      .select('id, peppol_document_id, peppol_status')
+      .select('id, company_id, peppol_document_id, peppol_status')
       .eq('id', invoice_id)
       .eq('user_id', user.id)
       .single();
@@ -39,11 +39,16 @@ serve(async (req) => {
     }
 
     // Load Scrada credentials
-    const { data: company } = await supabase
+    let companyQuery = supabase
       .from('company')
-      .select('scrada_company_id, scrada_api_key, scrada_password')
-      .eq('user_id', user.id)
-      .single();
+      .select('id, scrada_company_id, scrada_api_key, scrada_password')
+      .eq('user_id', user.id);
+    if (invoice.company_id) {
+      companyQuery = companyQuery.eq('id', invoice.company_id);
+    } else {
+      companyQuery = companyQuery.order('created_at', { ascending: true }).limit(1);
+    }
+    const { data: company } = await companyQuery.single();
 
     if (!company?.scrada_api_key) throw new HttpError(400, 'Scrada credentials not configured');
 
@@ -85,7 +90,7 @@ serve(async (req) => {
       }).eq('id', invoice_id);
 
       await supabase.from('peppol_transmission_log').insert({
-        user_id: user.id, invoice_id, direction: 'outbound',
+        user_id: user.id, company_id: invoice.company_id || company.id, invoice_id, direction: 'outbound',
         status: mappedStatus, ap_provider: 'scrada',
         ap_document_id: invoice.peppol_document_id,
         error_message: scradaData.errorMessage || null,

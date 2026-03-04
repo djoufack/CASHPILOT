@@ -26,11 +26,13 @@ export const useBankAlerts = () => {
 
     try {
       // Check bank balances
-      const { data: connections } = await supabase
+      let connectionsQuery = supabase
         .from('bank_connections')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'active');
+      connectionsQuery = applyCompanyScope(connectionsQuery, { includeUnassigned: false });
+      const { data: connections } = await connectionsQuery;
 
       (connections || []).forEach(conn => {
         if (conn.account_balance !== null && conn.account_balance < thresholds.low_balance) {
