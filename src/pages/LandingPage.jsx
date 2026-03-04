@@ -546,7 +546,7 @@ const LandingPage = () => {
             </button>
           </div>
           <div className="nav-actions">
-            <LanguageSwitcher />
+            <LanguageSwitcher variant="segmented" />
             <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>{copy.nav.login}</button>
             <button className="btn btn-primary nav-prismatic magnetic-btn" onClick={() => handleNavigate('/signup')}>
               {copy.nav.start} <ArrowRight />
@@ -572,7 +572,7 @@ const LandingPage = () => {
           <button className="nav-peppol-btn nav-prismatic" onClick={() => { setMobileMenuActive(false); handleNavigate('/peppol-guide'); }}>
             <Globe /> {copy.nav.peppolGuide}
           </button>
-          <LanguageSwitcher />
+          <LanguageSwitcher variant="segmented" />
           <div className="mobile-actions">
             <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>{copy.nav.login}</button>
             <button className="btn btn-primary nav-prismatic" onClick={() => handleNavigate('/signup')}>{copy.nav.start}</button>
