@@ -46,7 +46,7 @@ describe('FinancialSimulationEngine', () => {
     expect(results[2].revenue).toBeGreaterThan(results[1].revenue);
   });
 
-  it('applies fixed monthly revenue and recurring expenses without cumulative drift', async () => {
+  it('ramps fixed amount targets across the selected period instead of keeping a flat line', async () => {
     const engine = new FinancialSimulationEngine();
     const results = await engine.simulateScenario(
       baseScenario,
@@ -69,10 +69,10 @@ describe('FinancialSimulationEngine', () => {
       baseFinancialState
     );
 
-    expect(results[0].revenue).toBe(15000);
-    expect(results[0].expenses).toBeGreaterThan(7000);
-    expect(results[1].expenses).toBeCloseTo(results[0].expenses, 5);
-    expect(results[2].expenses).toBeCloseTo(results[1].expenses, 5);
+    expect(results[0].revenue).toBeCloseTo(10000, 5);
+    expect(results[1].revenue).toBeGreaterThan(results[0].revenue);
+    expect(results[2].revenue).toBeCloseTo(15000, 5);
+    expect(results[2].expenses).toBeGreaterThan(results[0].expenses);
   });
 
   it('keeps one-time investments on the balance sheet after the investment month', async () => {

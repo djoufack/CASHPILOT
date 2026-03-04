@@ -3,7 +3,13 @@
  * Calculates financial projections based on scenarios and assumptions
  */
 
-import { addMonths, format, isSameMonth as isSameMonthDateFns, parseISO } from 'date-fns';
+import {
+  addMonths,
+  differenceInCalendarMonths,
+  format,
+  isSameMonth as isSameMonthDateFns,
+  parseISO,
+} from 'date-fns';
 import { sanitizeScenarioAssumptions } from './scenarioAssumptionRules.js';
 
 export class FinancialSimulationEngine {
@@ -79,15 +85,19 @@ export class FinancialSimulationEngine {
     return {
       // Monthly operating run rate
       monthlyRevenue: annualRevenue / 12,
+      baselineMonthlyRevenue: annualRevenue / 12,
       revenueGrowthRate: 0,
       avgPrice,
+      baselineAvgPrice: avgPrice,
       monthlyVolume: annualVolume / 12,
 
       // Monthly expense run rate
       monthlyFixedExpenses: annualFixedExpenses / 12,
+      baselineMonthlyFixedExpenses: annualFixedExpenses / 12,
       monthlyVariableExpensesBase: annualVariableExpenses / 12,
       variableExpenseRatio: annualRevenue > 0 ? annualVariableExpenses / annualRevenue : 0,
       monthlySalaries: annualSalaries / 12,
+      baselineMonthlySalaries: annualSalaries / 12,
 
       // Balance sheet items
       cash: this.toFiniteNumber(currentFinancialState.cash),
@@ -102,6 +112,7 @@ export class FinancialSimulationEngine {
       bfr: this.toFiniteNumber(currentFinancialState.bfr),
       bfrPrevious: this.toFiniteNumber(currentFinancialState.bfr),
       bfrManualAdjustment: 0,
+      baselineBfrManualAdjustment: 0,
       bfrDays: 30, // Default 30 days
       customerPaymentDays: 45,
       supplierPaymentDays: 30,
@@ -189,7 +200,7 @@ export class FinancialSimulationEngine {
 
       switch (assumption.assumption_type) {
         case 'fixed_amount':
-          this.applyAmountToCategory(periodState, assumption.category, amount, 'set');
+          this.applyFixedAmountToCategory(periodState, assumption, amount, date);
           break;
 
         case 'recurring':
@@ -495,6 +506,62 @@ export class FinancialSimulationEngine {
       ? Math.max(0, amount)
       : Math.max(0, state.monthlyRevenue + amount);
     this.syncVolumeFromRevenue(state);
+  }
+
+  applyFixedAmountToCategory(state, assumption, amount, date) {
+    if (!amount && amount !== 0) {
+      return;
+    }
+
+    const targetAmount = this.resolveFixedAmountTarget(state, assumption, amount, date);
+    this.applyAmountToCategory(state, assumption.category, targetAmount, 'set');
+  }
+
+  resolveFixedAmountTarget(state, assumption, amount, date) {
+    if (!assumption?.start_date || !assumption?.end_date) {
+      return amount;
+    }
+
+    const startDate = parseISO(assumption.start_date);
+    const endDate = parseISO(assumption.end_date);
+    const totalSteps = differenceInCalendarMonths(endDate, startDate);
+
+    if (!Number.isFinite(totalSteps) || totalSteps <= 0) {
+      return amount;
+    }
+
+    const elapsedSteps = Math.min(
+      Math.max(differenceInCalendarMonths(date, startDate), 0),
+      totalSteps
+    );
+    const progress = elapsedSteps / totalSteps;
+
+    if (assumption.category === 'expense_reduction' || assumption.category === 'working_capital') {
+      return amount * progress;
+    }
+
+    const baseline = this.getBaselineCategoryValue(state, assumption.category);
+    return baseline + (amount - baseline) * progress;
+  }
+
+  getBaselineCategoryValue(state, category) {
+    switch (category) {
+      case 'pricing':
+        return this.toFiniteNumber(state.baselineAvgPrice, state.avgPrice);
+      case 'expense':
+      case 'social_charges':
+        return this.toFiniteNumber(
+          state.baselineMonthlyFixedExpenses,
+          state.monthlyFixedExpenses
+        );
+      case 'salaries':
+        return this.toFiniteNumber(state.baselineMonthlySalaries, state.monthlySalaries);
+      case 'working_capital':
+      case 'expense_reduction':
+        return this.toFiniteNumber(state.baselineBfrManualAdjustment, 0);
+      default:
+        return this.toFiniteNumber(state.baselineMonthlyRevenue, state.monthlyRevenue);
+    }
   }
 
   applyOneTimePeriodImpact(state, category, amount) {
