@@ -4,6 +4,7 @@
  */
 
 import { addMonths, format, isSameMonth as isSameMonthDateFns, parseISO } from 'date-fns';
+import { sanitizeScenarioAssumptions } from './scenarioAssumptionRules.js';
 
 export class FinancialSimulationEngine {
   constructor() {
@@ -19,6 +20,7 @@ export class FinancialSimulationEngine {
       throw new Error('Scenario and current financial state are required');
     }
 
+    const { validAssumptions } = sanitizeScenarioAssumptions(assumptions);
     const results = [];
     const startDate = parseISO(scenario.base_date);
     const endDate = parseISO(scenario.end_date);
@@ -30,8 +32,8 @@ export class FinancialSimulationEngine {
     // Simulate month by month
     while (currentDate <= endDate) {
       // Apply structural assumptions before building the month view.
-      state = this.applyAssumptions(state, assumptions, currentDate);
-      const periodState = this.buildPeriodState(state, assumptions, currentDate);
+      state = this.applyAssumptions(state, validAssumptions, currentDate);
+      const periodState = this.buildPeriodState(state, validAssumptions, currentDate);
 
       // Calculate all financial metrics
       const metrics = this.calculateMetrics(periodState, currentDate);

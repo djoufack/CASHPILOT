@@ -94,7 +94,10 @@ const ScenarioDetail = () => {
 
       // Load results if scenario is completed
       if (data.status === 'completed') {
-        const scenarioResults = await getScenarioResults(scenarioId);
+        const scenarioResults = await getScenarioResults(scenarioId, {
+          startDate: data.base_date,
+          endDate: data.end_date,
+        });
         setResults(scenarioResults);
       }
     }
