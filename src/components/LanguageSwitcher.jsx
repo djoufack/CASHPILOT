@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Globe } from 'lucide-react';
+import './LanguageSwitcher.css';
 
 const LANGUAGES = [
   { code: 'fr', shortLabel: 'FR', label: 'Français', flag: '🇫🇷' },
@@ -11,7 +12,7 @@ const LANGUAGES = [
   { code: 'nl', shortLabel: 'NL', label: 'Nederlands', flag: '🇳🇱' }
 ];
 
-const LanguageSwitcher = ({ variant = 'dropdown', className = '' }) => {
+const LanguageSwitcher = ({ variant = 'dropdown', className = '', fullWidth = false }) => {
   const { i18n } = useTranslation();
 
   const changeLanguage = (lng) => {
@@ -30,19 +31,20 @@ const LanguageSwitcher = ({ variant = 'dropdown', className = '' }) => {
   if (variant === 'segmented') {
     return (
       <div
-        className={`landing-language-switcher nav-prismatic ${className}`.trim()}
-        role="group"
+        className={`segmented-language-switcher${fullWidth ? ' segmented-language-switcher--full' : ''} ${className}`.trim()}
+        role="radiogroup"
         aria-label="Language switcher"
         style={{ '--active-index': activeIndex }}
       >
-        <span className="landing-language-switcher__thumb" aria-hidden="true" />
+        <span className="segmented-language-switcher__thumb" aria-hidden="true" />
         {LANGUAGES.map((language) => (
           <button
             key={language.code}
             type="button"
             onClick={() => changeLanguage(language.code)}
-            className={`landing-language-switcher__option${currentLanguageCode === language.code ? ' is-active' : ''}`}
-            aria-pressed={currentLanguageCode === language.code}
+            className={`segmented-language-switcher__option${currentLanguageCode === language.code ? ' is-active' : ''}`}
+            role="radio"
+            aria-checked={currentLanguageCode === language.code}
             aria-label={language.label}
           >
             {language.shortLabel}

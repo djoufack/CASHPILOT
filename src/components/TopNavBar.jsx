@@ -111,7 +111,7 @@ const TopNavBar = ({ isCollapsed }) => {
             <NotificationCenterComponent />
           </motion.div>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <LanguageSwitcher />
+            <LanguageSwitcher variant="segmented" />
           </motion.div>
         </div>
 
@@ -175,7 +175,7 @@ const TopNavBar = ({ isCollapsed }) => {
 
                 <div className="flex items-center justify-between px-3 py-2">
                   <span className="text-sm text-gray-400">{t('topNav.language')}</span>
-                  <LanguageSwitcher />
+                  <LanguageSwitcher variant="segmented" />
                 </div>
 
                 <div className="h-px bg-gray-800 my-4" />
