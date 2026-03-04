@@ -846,8 +846,38 @@ function buildCurrentFinancialState(period, financialDiagnostic, balanceSheet, r
 }
 
 async function fetchDataset(client, userId) {
-  const [companyRes, settingsRes, accountsRes, entriesRes, invoicesRes, expensesRes, scenariosRes, supplierInvoices] = await Promise.all([
-    client.from('company').select('*').eq('user_id', userId).maybeSingle(),
+  const [
+    companiesRes,
+    preferenceRes,
+    settingsRes,
+    accountsRes,
+    entriesRes,
+    invoicesRes,
+    expensesRes,
+    scenariosRes,
+    purchaseOrders,
+    suppliers,
+    products,
+    supplierOrders,
+    supplierInvoices,
+    stockHistory,
+    stockAlerts,
+    bankConnections,
+    bankSyncHistory,
+    bankTransactions,
+    peppolLogs,
+    fixedAssets,
+    analyticalAxes,
+    snapshots,
+    quotes,
+    projects,
+    payments,
+  ] = await Promise.all([
+    client.from('company').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
+    fetchOptionalTable(
+      () => client.from('user_company_preferences').select('active_company_id').eq('user_id', userId).maybeSingle(),
+      null
+    ),
     client.from('user_accounting_settings').select('*').eq('user_id', userId).maybeSingle(),
     client.from('accounting_chart_of_accounts').select('*').eq('user_id', userId).order('account_code', { ascending: true }),
     client.from('accounting_entries').select('*').eq('user_id', userId).order('transaction_date', { ascending: false }),
@@ -855,26 +885,137 @@ async function fetchDataset(client, userId) {
     client.from('expenses').select('*').eq('user_id', userId).order('expense_date', { ascending: false }),
     client.from('financial_scenarios').select('id, status').eq('user_id', userId).order('created_at', { ascending: false }),
     fetchOptionalTable(
-      () => client.from('supplier_invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      () => client.from('purchase_orders').select('*').eq('user_id', userId).order('date', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('suppliers').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('products').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('supplier_orders').select('*').eq('user_id', userId).order('order_date', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('supplier_invoices').select('*').order('invoice_date', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('product_stock_history').select('*').order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('stock_alerts').select('*').order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('bank_connections').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('bank_sync_history').select('*').eq('user_id', userId).order('started_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('bank_transactions').select('*').eq('user_id', userId).order('date', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('peppol_transmission_log').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('accounting_fixed_assets').select('*').eq('user_id', userId).order('acquisition_date', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('accounting_analytical_axes').select('*').eq('user_id', userId).eq('is_active', true).order('axis_type'),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('dashboard_snapshots').select('id, company_id, snapshot_type, is_public').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('quotes').select('id, company_id, signature_status, signature_token, signature_url').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('projects').select('id, company_id').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('payments').select('id, company_id, amount').eq('user_id', userId).order('payment_date', { ascending: false }),
       []
     ),
   ]);
 
-  for (const response of [companyRes, settingsRes, accountsRes, entriesRes, invoicesRes, expensesRes, scenariosRes]) {
+  for (const response of [companiesRes, settingsRes, accountsRes, entriesRes, invoicesRes, expensesRes, scenariosRes]) {
     if (response.error) {
       throw response.error;
     }
   }
 
+  const companies = companiesRes.data || [];
+  const preferredCompanyId = preferenceRes?.active_company_id || null;
+  const activeCompany = companies.find((company) => company.id === preferredCompanyId) || companies[0] || null;
+  const activeCompanyId = activeCompany?.id || null;
+  const filterActiveCompany = (rows) => (
+    !activeCompanyId
+      ? (rows || [])
+      : (rows || []).filter((row) => row.company_id === activeCompanyId)
+  );
+
+  const companyCoverage = companies.map((company) => ({
+    id: company.id,
+    name: company.company_name,
+    invoices: (invoicesRes.data || []).filter((row) => row.company_id === company.id).length,
+    quotes: (quotes || []).filter((row) => row.company_id === company.id).length,
+    projects: (projects || []).filter((row) => row.company_id === company.id).length,
+    payments: (payments || []).filter((row) => row.company_id === company.id).length,
+    entries: (entriesRes.data || []).filter((row) => row.company_id === company.id).length,
+    fixedAssets: (fixedAssets || []).filter((row) => row.company_id === company.id).length,
+    snapshots: (snapshots || []).filter((row) => row.company_id === company.id).length,
+    supplierOrders: (supplierOrders || []).filter((row) => row.company_id === company.id).length,
+    supplierInvoices: (supplierInvoices || []).filter((row) => row.company_id === company.id).length,
+    stockEvents: (stockHistory || []).filter((row) => row.company_id === company.id).length,
+  }));
+
   return {
-    company: companyRes.data,
+    company: activeCompany,
+    companies,
+    activeCompanyId,
+    preferredCompanyId,
+    companyCoverage,
     accountingSettings: settingsRes.data,
     accounts: accountsRes.data || [],
-    entries: entriesRes.data || [],
-    invoices: invoicesRes.data || [],
-    expenses: expensesRes.data || [],
-    supplierInvoices: supplierInvoices || [],
+    entries: filterActiveCompany(entriesRes.data || []),
+    invoices: filterActiveCompany(invoicesRes.data || []),
+    expenses: filterActiveCompany(expensesRes.data || []),
+    purchaseOrders: purchaseOrders || [],
+    suppliers: suppliers || [],
+    products: filterActiveCompany(products || []),
+    supplierOrders: filterActiveCompany(supplierOrders || []),
+    supplierInvoices: filterActiveCompany(supplierInvoices || []),
     scenarios: scenariosRes.data || [],
+    stockHistory: filterActiveCompany(stockHistory || []),
+    stockAlerts: filterActiveCompany(stockAlerts || []),
+    bankConnections: bankConnections || [],
+    bankSyncHistory: bankSyncHistory || [],
+    bankTransactions: bankTransactions || [],
+    peppolLogs: peppolLogs || [],
+    fixedAssets: filterActiveCompany(fixedAssets || []),
+    analyticalAxes: analyticalAxes || [],
+    snapshots: snapshots || [],
+    quotes: quotes || [],
+    projects: projects || [],
+    payments: payments || [],
+    allEntries: entriesRes.data || [],
+    allInvoices: invoicesRes.data || [],
   };
 }
 
@@ -1293,6 +1434,51 @@ async function smokeAccount(authKey, account, period, referenceData) {
   const tabFailures = Object.entries(tabs)
     .filter(([, result]) => result?.passed === false)
     .map(([tab]) => tab);
+  const multiCompanyReady =
+    dataset.companies.length >= 2 &&
+    dataset.companyCoverage.filter((company) => company.invoices > 0 && company.entries > 0 && company.projects > 0).length >= 2;
+  const featureCoverage = {
+    multiCompany: multiCompanyReady,
+    fixedAssets: dataset.fixedAssets.length > 0 && dataset.companyCoverage.some((company) => company.fixedAssets > 0),
+    analyticalAccounting: dataset.analyticalAxes.length >= 3 && dataset.entries.some((entry) => entry.cost_center || entry.department || entry.product_line),
+    sharedSnapshots: dataset.snapshots.length >= 2 && dataset.companyCoverage.some((company) => company.snapshots > 0),
+    quoteSignature:
+      dataset.quotes.some((quote) => quote.signature_status === 'pending' && quote.signature_token) &&
+      dataset.quotes.some((quote) => quote.signature_status === 'signed' && quote.signature_url),
+    stripePaymentLinks: dataset.allInvoices.some((invoice) => invoice.stripe_payment_link_url) && dataset.allInvoices.some((invoice) => invoice.stripe_payment_intent_id),
+  };
+  const featureFailures = Object.entries(featureCoverage)
+    .filter(([, passed]) => !passed)
+    .map(([feature]) => `feature:${feature}`);
+  const screenCoverage = {
+    purchasesPage:
+      dataset.purchaseOrders.length >= 2 &&
+      dataset.supplierOrders.length >= 1 &&
+      dataset.companyCoverage.filter((company) => company.supplierOrders > 0).length >= 2,
+    supplierInvoicesPage:
+      dataset.supplierInvoices.length >= 1 &&
+      dataset.supplierInvoices.some((invoice) => invoice.payment_status === 'paid') &&
+      dataset.supplierInvoices.some((invoice) => invoice.payment_status === 'pending') &&
+      dataset.companyCoverage.filter((company) => company.supplierInvoices > 0).length >= 2,
+    stockManagementPage:
+      dataset.products.length >= 1 &&
+      dataset.stockHistory.length >= 1 &&
+      dataset.stockAlerts.length >= 1 &&
+      dataset.companyCoverage.filter((company) => company.stockEvents > 0).length >= 2,
+    bankConnectionsPage:
+      dataset.bankConnections.length >= 2 &&
+      dataset.bankTransactions.length >= 5 &&
+      dataset.bankSyncHistory.some((sync) => sync.status === 'success') &&
+      dataset.bankConnections.some((connection) => connection.status === 'expired' || connection.status === 'error'),
+    peppolPage:
+      dataset.peppolLogs.length >= 3 &&
+      dataset.peppolLogs.some((log) => log.direction === 'outbound' && log.status === 'delivered') &&
+      dataset.peppolLogs.some((log) => log.direction === 'outbound' && log.status === 'pending') &&
+      dataset.peppolLogs.some((log) => log.direction === 'inbound' && log.status === 'accepted'),
+  };
+  const screenFailures = Object.entries(screenCoverage)
+    .filter(([, passed]) => !passed)
+    .map(([screen]) => `screen:${screen}`);
 
   await client.auth.signOut();
 
@@ -1308,17 +1494,34 @@ async function smokeAccount(authKey, account, period, referenceData) {
     regionSource: pilotageSnapshot.regionSource,
     qualityStatus: pilotageSnapshot.qualityGate?.reliabilityStatus || null,
     data: {
+      companies: dataset.companies.length,
+      activeCompanyId: dataset.activeCompanyId,
       companyCountry: dataset.company?.country || null,
       accountingCountry: dataset.accountingSettings?.country || null,
       accounts: dataset.accounts.length,
       entries: dataset.entries.length,
       invoices: dataset.invoices.length,
       expenses: dataset.expenses.length,
+      purchaseOrders: dataset.purchaseOrders.length,
+      supplierOrders: dataset.supplierOrders.length,
       supplierInvoices: dataset.supplierInvoices.length,
+      products: dataset.products.length,
+      stockHistory: dataset.stockHistory.length,
+      stockAlerts: dataset.stockAlerts.length,
+      bankConnections: dataset.bankConnections.length,
+      bankTransactions: dataset.bankTransactions.length,
+      peppolLogs: dataset.peppolLogs.length,
+      fixedAssets: dataset.fixedAssets.length,
+      analyticalAxes: dataset.analyticalAxes.length,
+      snapshots: dataset.snapshots.length,
+      quotes: dataset.quotes.length,
       existingScenarios: dataset.scenarios.length,
       monthlyPoints: pilotageSnapshot.monthlyData.length,
       cashPoints: pilotageSnapshot.cashFlowData.length,
     },
+    companyCoverage: dataset.companyCoverage,
+    featureCoverage,
+    screenCoverage,
     financials: {
       revenue: round(pilotageSnapshot.financialDiagnostic?.margins?.revenue),
       ebitda: round(pilotageSnapshot.financialDiagnostic?.margins?.ebitda),
@@ -1334,10 +1537,14 @@ async function smokeAccount(authKey, account, period, referenceData) {
     tabs,
     passed:
       pilotageSnapshot.region === account.expectedRegion &&
-      tabFailures.length === 0,
+      tabFailures.length === 0 &&
+      featureFailures.length === 0 &&
+      screenFailures.length === 0,
     failures: [
       ...(pilotageSnapshot.region === account.expectedRegion ? [] : [`region:${pilotageSnapshot.region}`]),
       ...tabFailures,
+      ...featureFailures,
+      ...screenFailures,
     ],
   };
 }

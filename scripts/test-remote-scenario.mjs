@@ -122,24 +122,31 @@ async function pickPopulatedUserId(supabase) {
 }
 
 async function fetchDataset(supabase, userId) {
-  const [companyRes, settingsRes, accountsRes, entriesRes] = await Promise.all([
-    supabase.from('company').select('*').eq('user_id', userId).maybeSingle(),
+  const [companiesRes, prefRes, settingsRes, accountsRes, entriesRes] = await Promise.all([
+    supabase.from('company').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
+    supabase.from('user_company_preferences').select('active_company_id').eq('user_id', userId).maybeSingle(),
     supabase.from('user_accounting_settings').select('*').eq('user_id', userId).maybeSingle(),
     supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', userId).order('account_code', { ascending: true }),
     supabase.from('accounting_entries').select('*').eq('user_id', userId).order('transaction_date', { ascending: false }),
   ]);
 
-  for (const response of [companyRes, settingsRes, accountsRes, entriesRes]) {
+  for (const response of [companiesRes, settingsRes, accountsRes, entriesRes]) {
     if (response.error) {
       throw response.error;
     }
   }
 
+  const companies = companiesRes.data || [];
+  const activeCompanyId = prefRes.data?.active_company_id || companies[0]?.id || null;
+  const activeCompany = companies.find((company) => company.id === activeCompanyId) || companies[0] || null;
+
   return {
-    company: companyRes.data,
+    company: activeCompany,
     settings: settingsRes.data,
     accounts: accountsRes.data || [],
-    entries: entriesRes.data || [],
+    entries: activeCompanyId
+      ? (entriesRes.data || []).filter((entry) => entry.company_id === activeCompanyId)
+      : (entriesRes.data || []),
   };
 }
 
