@@ -48,6 +48,7 @@ import useFinancialScenarios from '@/hooks/useFinancialScenarios';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
+import { SCENARIO_ALLOWED_TYPES_BY_CATEGORY } from '@/utils/scenarioAssumptionRules';
 
 const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) => {
   const { addAssumption, updateAssumption, deleteAssumption } = useFinancialScenarios();
@@ -168,20 +169,8 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
     { value: 'payment_terms', label: 'Conditions de paiement' },
   ];
 
-  const allowedTypesByCategory = {
-    revenue: ['growth_rate', 'fixed_amount', 'recurring', 'one_time', 'percentage_change'],
-    expense: ['fixed_amount', 'recurring', 'one_time', 'percentage_change'],
-    salaries: ['fixed_amount', 'recurring', 'one_time', 'percentage_change'],
-    social_charges: ['fixed_amount', 'recurring', 'one_time', 'percentage_change'],
-    investment: ['one_time'],
-    equipment: ['one_time'],
-    pricing: ['growth_rate', 'fixed_amount', 'percentage_change'],
-    expense_reduction: ['fixed_amount', 'recurring', 'percentage_change'],
-    payment_terms: ['payment_terms'],
-    working_capital: ['fixed_amount', 'recurring', 'one_time', 'percentage_change'],
-  };
-
-  const allowedTypeValues = allowedTypesByCategory[formData.category] || typeOptions.map((option) => option.value);
+  const allowedTypeValues =
+    SCENARIO_ALLOWED_TYPES_BY_CATEGORY[formData.category] || typeOptions.map((option) => option.value);
   const availableTypeOptions = typeOptions.filter((option) => allowedTypeValues.includes(option.value));
 
   if (
@@ -512,7 +501,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
                 <Select
                   value={formData.category}
                   onValueChange={(value) => {
-                    const nextAllowedTypes = allowedTypesByCategory[value] || [];
+                    const nextAllowedTypes = SCENARIO_ALLOWED_TYPES_BY_CATEGORY[value] || [];
                     const nextType = nextAllowedTypes.includes(formData.assumption_type)
                       ? formData.assumption_type
                       : (value === 'payment_terms' ? 'payment_terms' : '');

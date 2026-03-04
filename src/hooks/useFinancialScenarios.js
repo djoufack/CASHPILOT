@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { FinancialSimulationEngine } from '@/utils/scenarioSimulationEngine';
+import { sanitizeScenarioAssumptions } from '@/utils/scenarioAssumptionRules';
 
 export function useFinancialScenarios() {
   const { user } = useAuth();
@@ -325,11 +326,28 @@ export function useFinancialScenarios() {
       // Fetch scenario with assumptions
       const scenarioData = await getScenarioWithAssumptions(scenarioId);
       if (!scenarioData) return null;
+      const { validAssumptions, invalidAssumptions } = sanitizeScenarioAssumptions(
+        scenarioData.assumptions
+      );
+
+      if (scenarioData.assumptions?.length > 0 && validAssumptions.length === 0) {
+        throw new Error(
+          'Les hypothèses de ce scénario sont incompatibles. Modifiez-les puis relancez la simulation.'
+        );
+      }
+
+      if (invalidAssumptions.length > 0) {
+        toast({
+          title: 'Hypothèses héritées ignorées',
+          description: `${invalidAssumptions.length} hypothèse(s) incompatible(s) ont été ignorées pour éviter un calcul incohérent.`,
+          variant: 'destructive',
+        });
+      }
 
       // Run simulation using the engine
       const results = await simulationEngine.simulateScenario(
-        scenarioData,
-        scenarioData.assumptions,
+        { ...scenarioData, assumptions: validAssumptions },
+        validAssumptions,
         currentFinancialState
       );
 
@@ -371,15 +389,22 @@ export function useFinancialScenarios() {
       }));
 
       // Delete existing results for this scenario
-      await supabase
+      const { error: deleteError } = await supabase
         .from('scenario_results')
         .delete()
         .eq('scenario_id', scenarioId);
+      // Production did not expose a DELETE policy initially.
+      // We tolerate that case because the upsert below safely replaces existing periods.
+      if (deleteError && deleteError.code !== '42501') {
+        throw deleteError;
+      }
 
-      // Insert new results
+      // Insert or replace the current scenario window.
       const { error: insertError } = await supabase
         .from('scenario_results')
-        .insert(resultsToInsert);
+        .upsert(resultsToInsert, {
+          onConflict: 'scenario_id,calculation_date',
+        });
 
       if (insertError) throw insertError;
 
@@ -406,15 +431,25 @@ export function useFinancialScenarios() {
   }, [user, toast, simulationEngine, getScenarioWithAssumptions, updateScenario]);
 
   // Get scenario results
-  const getScenarioResults = useCallback(async (scenarioId) => {
+  const getScenarioResults = useCallback(async (scenarioId, options = {}) => {
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('scenario_results')
         .select('*')
         .eq('scenario_id', scenarioId)
         .order('calculation_date');
+
+      if (options.startDate) {
+        query = query.gte('calculation_date', options.startDate);
+      }
+
+      if (options.endDate) {
+        query = query.lte('calculation_date', options.endDate);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
