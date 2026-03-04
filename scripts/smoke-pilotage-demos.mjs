@@ -39,6 +39,8 @@ const DEMO_ACCOUNTS = [
   },
 ];
 
+const MIN_DEMO_ROWS = 7;
+
 const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
 const CASH_ACCOUNT_REGEX = /(banque|bank|cash|caisse|tre?sorerie)/i;
 const OPENING_ENTRY_REGEX = /^(open|opening|ouverture|solde[-_\s]?initial)/i;
@@ -278,55 +280,64 @@ function buildCashFlowData(entries, accounts, period) {
 }
 
 async function loadReferenceData(serviceClient) {
-  const [benchmarksRes, multiplesRes, waccRes] = await Promise.all([
-    serviceClient.from('reference_sector_benchmarks').select('*'),
-    serviceClient.from('reference_sector_multiples').select('*'),
-    serviceClient.from('reference_region_wacc').select('*'),
-  ]);
+  try {
+    const [benchmarksRes, multiplesRes, waccRes] = await Promise.all([
+      serviceClient.from('reference_sector_benchmarks').select('*'),
+      serviceClient.from('reference_sector_multiples').select('*'),
+      serviceClient.from('reference_region_wacc').select('*'),
+    ]);
 
-  for (const response of [benchmarksRes, multiplesRes, waccRes]) {
-    if (response.error) {
-      throw response.error;
+    for (const response of [benchmarksRes, multiplesRes, waccRes]) {
+      if (response.error) {
+        throw response.error;
+      }
     }
+
+    return {
+      sectorBenchmarksBySector: (benchmarksRes.data || []).reduce((accumulator, row) => {
+        const sector = row.sector || 'b2b_services';
+        if (!accumulator[sector]) {
+          accumulator[sector] = {};
+        }
+
+        accumulator[sector][row.metric_key] = {
+          low: normalizeNumber(row.low_value),
+          target: normalizeNumber(row.target_value),
+          high: normalizeNumber(row.high_value),
+        };
+        return accumulator;
+      }, {}),
+      sectorMultiplesBySector: (multiplesRes.data || []).reduce((accumulator, row) => {
+        const sector = row.sector || 'b2b_services';
+        if (!accumulator[sector]) {
+          accumulator[sector] = {};
+        }
+
+        accumulator[sector][row.region] = {
+          low: normalizeNumber(row.low_value),
+          mid: normalizeNumber(row.mid_value),
+          high: normalizeNumber(row.high_value),
+        };
+        return accumulator;
+      }, {}),
+      regionWaccByRegion: (waccRes.data || []).reduce((accumulator, row) => {
+        accumulator[row.region] = {
+          riskFree: normalizeNumber(row.risk_free_rate) * 100,
+          premium: normalizeNumber(row.equity_premium) * 100,
+          beta: normalizeNumber(row.beta),
+          wacc: normalizeNumber(row.wacc) * 100,
+        };
+        return accumulator;
+      }, {}),
+    };
+  } catch (error) {
+    console.warn('Reference data unavailable for smoke, continuing with empty benchmarks:', error?.message || error);
+    return {
+      sectorBenchmarksBySector: {},
+      sectorMultiplesBySector: {},
+      regionWaccByRegion: {},
+    };
   }
-
-  return {
-    sectorBenchmarksBySector: (benchmarksRes.data || []).reduce((accumulator, row) => {
-      const sector = row.sector || 'b2b_services';
-      if (!accumulator[sector]) {
-        accumulator[sector] = {};
-      }
-
-      accumulator[sector][row.metric_key] = {
-        low: normalizeNumber(row.low_value),
-        target: normalizeNumber(row.target_value),
-        high: normalizeNumber(row.high_value),
-      };
-      return accumulator;
-    }, {}),
-    sectorMultiplesBySector: (multiplesRes.data || []).reduce((accumulator, row) => {
-      const sector = row.sector || 'b2b_services';
-      if (!accumulator[sector]) {
-        accumulator[sector] = {};
-      }
-
-      accumulator[sector][row.region] = {
-        low: normalizeNumber(row.low_value),
-        mid: normalizeNumber(row.mid_value),
-        high: normalizeNumber(row.high_value),
-      };
-      return accumulator;
-    }, {}),
-    regionWaccByRegion: (waccRes.data || []).reduce((accumulator, row) => {
-      accumulator[row.region] = {
-        riskFree: normalizeNumber(row.risk_free_rate) * 100,
-        premium: normalizeNumber(row.equity_premium) * 100,
-        beta: normalizeNumber(row.beta),
-        wacc: normalizeNumber(row.wacc) * 100,
-      };
-      return accumulator;
-    }, {}),
-  };
 }
 
 function getSectorBenchmarks(referenceData, sector) {
@@ -852,12 +863,21 @@ async function fetchDataset(client, userId) {
     settingsRes,
     accountsRes,
     entriesRes,
+    clientsRes,
     invoicesRes,
     expensesRes,
     scenariosRes,
+    recurringInvoicesRes,
+    creditNotesRes,
+    deliveryNotesRes,
+    receivablesRes,
+    payablesRes,
     purchaseOrders,
     suppliers,
     products,
+    services,
+    productCategories,
+    serviceCategories,
     supplierOrders,
     supplierInvoices,
     stockHistory,
@@ -871,6 +891,7 @@ async function fetchDataset(client, userId) {
     snapshots,
     quotes,
     projects,
+    timesheets,
     payments,
   ] = await Promise.all([
     client.from('company').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
@@ -881,9 +902,33 @@ async function fetchDataset(client, userId) {
     client.from('user_accounting_settings').select('*').eq('user_id', userId).maybeSingle(),
     client.from('accounting_chart_of_accounts').select('*').eq('user_id', userId).order('account_code', { ascending: true }),
     client.from('accounting_entries').select('*').eq('user_id', userId).order('transaction_date', { ascending: false }),
+    fetchOptionalTable(
+      () => client.from('clients').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
     client.from('invoices').select('*').eq('user_id', userId).order('date', { ascending: false }),
     client.from('expenses').select('*').eq('user_id', userId).order('expense_date', { ascending: false }),
-    client.from('financial_scenarios').select('id, status').eq('user_id', userId).order('created_at', { ascending: false }),
+    client.from('financial_scenarios').select('id, status, company_id').eq('user_id', userId).order('created_at', { ascending: false }),
+    fetchOptionalTable(
+      () => client.from('recurring_invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('credit_notes').select('*').eq('user_id', userId).order('date', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('delivery_notes').select('*').eq('user_id', userId).order('date', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('receivables').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('payables').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
     fetchOptionalTable(
       () => client.from('purchase_orders').select('*').eq('user_id', userId).order('date', { ascending: false }),
       []
@@ -894,6 +939,18 @@ async function fetchDataset(client, userId) {
     ),
     fetchOptionalTable(
       () => client.from('products').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('services').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('product_categories').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
+      () => client.from('service_categories').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
       []
     ),
     fetchOptionalTable(
@@ -949,6 +1006,10 @@ async function fetchDataset(client, userId) {
       []
     ),
     fetchOptionalTable(
+      () => client.from('timesheets').select('*').eq('user_id', userId).order('date', { ascending: false }),
+      []
+    ),
+    fetchOptionalTable(
       () => client.from('payments').select('id, company_id, amount').eq('user_id', userId).order('payment_date', { ascending: false }),
       []
     ),
@@ -973,16 +1034,31 @@ async function fetchDataset(client, userId) {
   const companyCoverage = companies.map((company) => ({
     id: company.id,
     name: company.company_name,
+    clients: (clientsRes || []).filter((row) => row.company_id === company.id).length,
     invoices: (invoicesRes.data || []).filter((row) => row.company_id === company.id).length,
     quotes: (quotes || []).filter((row) => row.company_id === company.id).length,
+    expenses: (expensesRes.data || []).filter((row) => row.company_id === company.id).length,
     projects: (projects || []).filter((row) => row.company_id === company.id).length,
+    products: (products || []).filter((row) => row.company_id === company.id).length,
     payments: (payments || []).filter((row) => row.company_id === company.id).length,
     entries: (entriesRes.data || []).filter((row) => row.company_id === company.id).length,
+    recurringInvoices: (recurringInvoicesRes || []).filter((row) => row.company_id === company.id).length,
+    creditNotes: (creditNotesRes || []).filter((row) => row.company_id === company.id).length,
+    deliveryNotes: (deliveryNotesRes || []).filter((row) => row.company_id === company.id).length,
+    receivables: (receivablesRes || []).filter((row) => row.company_id === company.id).length,
+    payables: (payablesRes || []).filter((row) => row.company_id === company.id).length,
+    purchaseOrders: (purchaseOrders || []).filter((row) => row.company_id === company.id).length,
     fixedAssets: (fixedAssets || []).filter((row) => row.company_id === company.id).length,
     snapshots: (snapshots || []).filter((row) => row.company_id === company.id).length,
     supplierOrders: (supplierOrders || []).filter((row) => row.company_id === company.id).length,
     supplierInvoices: (supplierInvoices || []).filter((row) => row.company_id === company.id).length,
     stockEvents: (stockHistory || []).filter((row) => row.company_id === company.id).length,
+    bankConnections: (bankConnections || []).filter((row) => row.company_id === company.id).length,
+    bankSyncHistory: (bankSyncHistory || []).filter((row) => row.company_id === company.id).length,
+    bankTransactions: (bankTransactions || []).filter((row) => row.company_id === company.id).length,
+    peppolLogs: (peppolLogs || []).filter((row) => row.company_id === company.id).length,
+    scenarios: (scenariosRes.data || []).filter((row) => row.company_id === company.id).length,
+    timesheets: (timesheets || []).filter((row) => row.company_id === company.id).length,
   }));
 
   return {
@@ -993,26 +1069,36 @@ async function fetchDataset(client, userId) {
     companyCoverage,
     accountingSettings: settingsRes.data,
     accounts: accountsRes.data || [],
+    clients: filterActiveCompany(clientsRes || []),
     entries: filterActiveCompany(entriesRes.data || []),
     invoices: filterActiveCompany(invoicesRes.data || []),
     expenses: filterActiveCompany(expensesRes.data || []),
-    purchaseOrders: purchaseOrders || [],
+    recurringInvoices: filterActiveCompany(recurringInvoicesRes || []),
+    creditNotes: filterActiveCompany(creditNotesRes || []),
+    deliveryNotes: filterActiveCompany(deliveryNotesRes || []),
+    receivables: filterActiveCompany(receivablesRes || []),
+    payables: filterActiveCompany(payablesRes || []),
+    purchaseOrders: filterActiveCompany(purchaseOrders || []),
     suppliers: suppliers || [],
     products: filterActiveCompany(products || []),
+    services: services || [],
+    productCategories: filterActiveCompany(productCategories || []),
+    serviceCategories: serviceCategories || [],
     supplierOrders: filterActiveCompany(supplierOrders || []),
     supplierInvoices: filterActiveCompany(supplierInvoices || []),
-    scenarios: scenariosRes.data || [],
+    scenarios: filterActiveCompany(scenariosRes.data || []),
     stockHistory: filterActiveCompany(stockHistory || []),
     stockAlerts: filterActiveCompany(stockAlerts || []),
-    bankConnections: bankConnections || [],
-    bankSyncHistory: bankSyncHistory || [],
-    bankTransactions: bankTransactions || [],
-    peppolLogs: peppolLogs || [],
+    bankConnections: filterActiveCompany(bankConnections || []),
+    bankSyncHistory: filterActiveCompany(bankSyncHistory || []),
+    bankTransactions: filterActiveCompany(bankTransactions || []),
+    peppolLogs: filterActiveCompany(peppolLogs || []),
     fixedAssets: filterActiveCompany(fixedAssets || []),
     analyticalAxes: analyticalAxes || [],
     snapshots: snapshots || [],
     quotes: quotes || [],
     projects: projects || [],
+    timesheets: filterActiveCompany(timesheets || []),
     payments: payments || [],
     allEntries: entriesRes.data || [],
     allInvoices: invoicesRes.data || [],
@@ -1435,13 +1521,35 @@ async function smokeAccount(authKey, account, period, referenceData) {
     .filter(([, result]) => result?.passed === false)
     .map(([tab]) => tab);
   const multiCompanyReady =
-    dataset.companies.length >= 2 &&
-    dataset.companyCoverage.filter((company) => company.invoices > 0 && company.entries > 0 && company.projects > 0).length >= 2;
+    dataset.companies.length >= MIN_DEMO_ROWS &&
+    dataset.companyCoverage.every((company) =>
+      company.clients >= MIN_DEMO_ROWS &&
+      company.invoices >= MIN_DEMO_ROWS &&
+      company.quotes >= MIN_DEMO_ROWS &&
+      company.expenses >= MIN_DEMO_ROWS &&
+      company.projects >= MIN_DEMO_ROWS &&
+      company.products >= MIN_DEMO_ROWS &&
+      company.supplierOrders >= MIN_DEMO_ROWS &&
+      company.supplierInvoices >= MIN_DEMO_ROWS &&
+      company.stockEvents >= MIN_DEMO_ROWS &&
+      company.recurringInvoices >= MIN_DEMO_ROWS &&
+      company.creditNotes >= MIN_DEMO_ROWS &&
+      company.deliveryNotes >= MIN_DEMO_ROWS &&
+      company.receivables >= MIN_DEMO_ROWS &&
+      company.payables >= MIN_DEMO_ROWS &&
+      company.purchaseOrders >= MIN_DEMO_ROWS &&
+      company.bankConnections >= MIN_DEMO_ROWS &&
+      company.bankTransactions >= MIN_DEMO_ROWS &&
+      company.peppolLogs >= MIN_DEMO_ROWS &&
+      company.scenarios >= MIN_DEMO_ROWS &&
+      company.timesheets >= MIN_DEMO_ROWS &&
+      company.entries > 0
+    );
   const featureCoverage = {
     multiCompany: multiCompanyReady,
-    fixedAssets: dataset.fixedAssets.length > 0 && dataset.companyCoverage.some((company) => company.fixedAssets > 0),
-    analyticalAccounting: dataset.analyticalAxes.length >= 3 && dataset.entries.some((entry) => entry.cost_center || entry.department || entry.product_line),
-    sharedSnapshots: dataset.snapshots.length >= 2 && dataset.companyCoverage.some((company) => company.snapshots > 0),
+    fixedAssets: dataset.fixedAssets.length >= 2 && dataset.companyCoverage.every((company) => company.fixedAssets >= MIN_DEMO_ROWS),
+    analyticalAccounting: dataset.analyticalAxes.length >= MIN_DEMO_ROWS && dataset.entries.some((entry) => entry.cost_center || entry.department || entry.product_line),
+    sharedSnapshots: dataset.snapshots.length >= 3 && dataset.companyCoverage.some((company) => company.snapshots > 0),
     quoteSignature:
       dataset.quotes.some((quote) => quote.signature_status === 'pending' && quote.signature_token) &&
       dataset.quotes.some((quote) => quote.signature_status === 'signed' && quote.signature_url),
@@ -1451,30 +1559,71 @@ async function smokeAccount(authKey, account, period, referenceData) {
     .filter(([, passed]) => !passed)
     .map(([feature]) => `feature:${feature}`);
   const screenCoverage = {
+    clientsPage: dataset.clients.length >= MIN_DEMO_ROWS,
+    portfolioPage:
+      dataset.companies.length >= MIN_DEMO_ROWS &&
+      dataset.companyCoverage.every((company) =>
+        company.clients >= MIN_DEMO_ROWS &&
+        company.invoices >= MIN_DEMO_ROWS &&
+        company.projects >= MIN_DEMO_ROWS &&
+        company.products >= MIN_DEMO_ROWS
+      ),
+    invoicesPage: dataset.invoices.length >= MIN_DEMO_ROWS,
+    quotesPage: dataset.quotes.length >= MIN_DEMO_ROWS,
+    expensesPage: dataset.expenses.length >= MIN_DEMO_ROWS,
+    recurringInvoicesPage:
+      dataset.recurringInvoices.length >= MIN_DEMO_ROWS &&
+      dataset.companyCoverage.every((company) => company.recurringInvoices >= MIN_DEMO_ROWS),
+    creditNotesPage:
+      dataset.creditNotes.length >= MIN_DEMO_ROWS &&
+      dataset.companyCoverage.every((company) => company.creditNotes >= MIN_DEMO_ROWS),
+    deliveryNotesPage:
+      dataset.deliveryNotes.length >= MIN_DEMO_ROWS &&
+      dataset.companyCoverage.every((company) => company.deliveryNotes >= MIN_DEMO_ROWS),
+    debtManagerPage:
+      dataset.receivables.length >= MIN_DEMO_ROWS &&
+      dataset.payables.length >= MIN_DEMO_ROWS &&
+      dataset.companyCoverage.every((company) => company.receivables >= MIN_DEMO_ROWS && company.payables >= MIN_DEMO_ROWS),
+    purchaseOrdersPage:
+      dataset.purchaseOrders.length >= MIN_DEMO_ROWS &&
+      dataset.companyCoverage.every((company) => company.purchaseOrders >= MIN_DEMO_ROWS),
     purchasesPage:
-      dataset.purchaseOrders.length >= 2 &&
-      dataset.supplierOrders.length >= 1 &&
-      dataset.companyCoverage.filter((company) => company.supplierOrders > 0).length >= 2,
+      dataset.purchaseOrders.length >= MIN_DEMO_ROWS &&
+      dataset.supplierOrders.length >= MIN_DEMO_ROWS &&
+      dataset.companyCoverage.every((company) => company.supplierOrders >= MIN_DEMO_ROWS),
+    suppliersPage: dataset.suppliers.length >= MIN_DEMO_ROWS,
     supplierInvoicesPage:
-      dataset.supplierInvoices.length >= 1 &&
+      dataset.supplierInvoices.length >= MIN_DEMO_ROWS &&
       dataset.supplierInvoices.some((invoice) => invoice.payment_status === 'paid') &&
       dataset.supplierInvoices.some((invoice) => invoice.payment_status === 'pending') &&
-      dataset.companyCoverage.filter((company) => company.supplierInvoices > 0).length >= 2,
+      dataset.companyCoverage.every((company) => company.supplierInvoices >= MIN_DEMO_ROWS),
+    servicesPage: dataset.services.length >= MIN_DEMO_ROWS,
+    categoriesPage:
+      dataset.productCategories.length >= MIN_DEMO_ROWS &&
+      dataset.serviceCategories.length >= MIN_DEMO_ROWS,
     stockManagementPage:
-      dataset.products.length >= 1 &&
-      dataset.stockHistory.length >= 1 &&
-      dataset.stockAlerts.length >= 1 &&
-      dataset.companyCoverage.filter((company) => company.stockEvents > 0).length >= 2,
+      dataset.products.length >= MIN_DEMO_ROWS &&
+      dataset.stockHistory.length >= MIN_DEMO_ROWS &&
+      dataset.stockAlerts.length >= MIN_DEMO_ROWS &&
+      dataset.companyCoverage.every((company) => company.stockEvents >= MIN_DEMO_ROWS),
     bankConnectionsPage:
-      dataset.bankConnections.length >= 2 &&
-      dataset.bankTransactions.length >= 5 &&
+      dataset.bankConnections.length >= MIN_DEMO_ROWS &&
+      dataset.bankTransactions.length >= MIN_DEMO_ROWS &&
       dataset.bankSyncHistory.some((sync) => sync.status === 'success') &&
-      dataset.bankConnections.some((connection) => connection.status === 'expired' || connection.status === 'error'),
+      dataset.bankConnections.some((connection) => connection.status === 'expired' || connection.status === 'error') &&
+      dataset.companyCoverage.every((company) => company.bankConnections >= MIN_DEMO_ROWS && company.bankTransactions >= MIN_DEMO_ROWS),
+    scenariosPage:
+      dataset.scenarios.length >= MIN_DEMO_ROWS &&
+      dataset.scenarios.every((scenario) => scenario.status === 'completed') &&
+      dataset.companyCoverage.every((company) => company.scenarios >= MIN_DEMO_ROWS),
     peppolPage:
-      dataset.peppolLogs.length >= 3 &&
+      dataset.peppolLogs.length >= MIN_DEMO_ROWS &&
       dataset.peppolLogs.some((log) => log.direction === 'outbound' && log.status === 'delivered') &&
       dataset.peppolLogs.some((log) => log.direction === 'outbound' && log.status === 'pending') &&
-      dataset.peppolLogs.some((log) => log.direction === 'inbound' && log.status === 'accepted'),
+      dataset.peppolLogs.some((log) => log.direction === 'inbound' && log.status === 'accepted') &&
+      dataset.companyCoverage.every((company) => company.peppolLogs >= MIN_DEMO_ROWS),
+    projectsPage: dataset.projects.length >= MIN_DEMO_ROWS,
+    timesheetsPage: dataset.timesheets.length >= MIN_DEMO_ROWS,
   };
   const screenFailures = Object.entries(screenCoverage)
     .filter(([, passed]) => !passed)
@@ -1500,21 +1649,33 @@ async function smokeAccount(authKey, account, period, referenceData) {
       accountingCountry: dataset.accountingSettings?.country || null,
       accounts: dataset.accounts.length,
       entries: dataset.entries.length,
+      clients: dataset.clients.length,
       invoices: dataset.invoices.length,
       expenses: dataset.expenses.length,
+      recurringInvoices: dataset.recurringInvoices.length,
+      creditNotes: dataset.creditNotes.length,
+      deliveryNotes: dataset.deliveryNotes.length,
+      receivables: dataset.receivables.length,
+      payables: dataset.payables.length,
       purchaseOrders: dataset.purchaseOrders.length,
+      suppliers: dataset.suppliers.length,
       supplierOrders: dataset.supplierOrders.length,
       supplierInvoices: dataset.supplierInvoices.length,
       products: dataset.products.length,
+      services: dataset.services.length,
+      productCategories: dataset.productCategories.length,
+      serviceCategories: dataset.serviceCategories.length,
       stockHistory: dataset.stockHistory.length,
       stockAlerts: dataset.stockAlerts.length,
       bankConnections: dataset.bankConnections.length,
+      bankSyncHistory: dataset.bankSyncHistory.length,
       bankTransactions: dataset.bankTransactions.length,
       peppolLogs: dataset.peppolLogs.length,
       fixedAssets: dataset.fixedAssets.length,
       analyticalAxes: dataset.analyticalAxes.length,
       snapshots: dataset.snapshots.length,
       quotes: dataset.quotes.length,
+      timesheets: dataset.timesheets.length,
       existingScenarios: dataset.scenarios.length,
       monthlyPoints: pilotageSnapshot.monthlyData.length,
       cashPoints: pilotageSnapshot.cashFlowData.length,

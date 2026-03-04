@@ -9,10 +9,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { FinancialSimulationEngine } from '@/utils/scenarioSimulationEngine';
 import { sanitizeScenarioAssumptions } from '@/utils/scenarioAssumptionRules';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export function useFinancialScenarios() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
   const [scenarios, setScenarios] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -24,11 +26,14 @@ export function useFinancialScenarios() {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('financial_scenarios')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setScenarios(data || []);
@@ -42,7 +47,7 @@ export function useFinancialScenarios() {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [applyCompanyScope, user, toast]);
 
   // Fetch scenario templates
   const fetchTemplates = useCallback(async () => {
@@ -77,7 +82,7 @@ export function useFinancialScenarios() {
       const { data, error } = await supabase
         .from('financial_scenarios')
         .insert([{
-          user_id: user.id,
+          ...withCompanyScope({ user_id: user.id }),
           name: scenarioData.name,
           description: scenarioData.description,
           base_date: scenarioData.base_date,
@@ -108,7 +113,7 @@ export function useFinancialScenarios() {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, fetchScenarios]);
+  }, [user, toast, fetchScenarios, withCompanyScope]);
 
   // Update scenario
   const updateScenario = useCallback(async (scenarioId, updates) => {
@@ -116,13 +121,15 @@ export function useFinancialScenarios() {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('financial_scenarios')
-        .update(updates)
+        .update(withCompanyScope(updates))
         .eq('id', scenarioId)
         .eq('user_id', user.id)
-        .select()
-        .single();
+        .select();
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query.single();
 
       if (error) throw error;
 
@@ -144,7 +151,7 @@ export function useFinancialScenarios() {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, fetchScenarios]);
+  }, [applyCompanyScope, user, toast, fetchScenarios, withCompanyScope]);
 
   // Delete scenario
   const deleteScenario = useCallback(async (scenarioId) => {
@@ -152,11 +159,14 @@ export function useFinancialScenarios() {
 
     try {
       setLoading(true);
-      const { error } = await supabase
+      let query = supabase
         .from('financial_scenarios')
         .delete()
         .eq('id', scenarioId)
         .eq('user_id', user.id);
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { error } = await query;
 
       if (error) throw error;
 
@@ -178,19 +188,21 @@ export function useFinancialScenarios() {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, fetchScenarios]);
+  }, [applyCompanyScope, user, toast, fetchScenarios]);
 
   // Get scenario with assumptions
   const getScenarioWithAssumptions = useCallback(async (scenarioId) => {
     if (!user) return null;
 
     try {
-      const { data: scenario, error: scenarioError } = await supabase
+      let scenarioQuery = supabase
         .from('financial_scenarios')
         .select('*')
         .eq('id', scenarioId)
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', user.id);
+      scenarioQuery = applyCompanyScope(scenarioQuery, { includeUnassigned: false });
+
+      const { data: scenario, error: scenarioError } = await scenarioQuery.single();
 
       if (scenarioError) throw scenarioError;
 
@@ -215,7 +227,7 @@ export function useFinancialScenarios() {
       });
       return null;
     }
-  }, [user, toast]);
+  }, [applyCompanyScope, user, toast]);
 
   // Add assumption to scenario
   const addAssumption = useCallback(async (scenarioId, assumptionData) => {
@@ -492,7 +504,7 @@ export function useFinancialScenarios() {
       const { data, error } = await supabase
         .from('scenario_comparisons')
         .insert([{
-          user_id: user.id,
+          ...withCompanyScope({ user_id: user.id }),
           name: `Comparaison ${new Date().toLocaleDateString()}`,
           scenario_ids: [scenario1Id, scenario2Id],
           comparison_metrics: comparison,
@@ -519,7 +531,7 @@ export function useFinancialScenarios() {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, simulationEngine, getScenarioResults]);
+  }, [user, toast, simulationEngine, getScenarioResults, withCompanyScope]);
 
   // Create scenario from template
   const createFromTemplate = useCallback(async (templateId, scenarioName, baseDate, endDate) => {

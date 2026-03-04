@@ -39,6 +39,7 @@ serve(async (req) => {
           .from('invoices')
           .insert({
             user_id: recurring.user_id,
+            company_id: recurring.company_id || null,
             client_id: recurring.client_id,
             invoice_number: invoiceNumber,
             invoice_date: today,

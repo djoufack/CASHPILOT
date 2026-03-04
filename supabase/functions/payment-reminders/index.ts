@@ -38,22 +38,29 @@ serve(async (req) => {
 
     const results: Array<{ invoice_id: string; rule_id: string; status: string; daysOverdue?: number; error?: string }> = [];
 
-    // Group rules by user_id
-    const rulesByUser = new Map<string, typeof rules>();
+    // Group rules by user_id + company_id
+    const rulesByScope = new Map<string, typeof rules>();
     for (const rule of rules) {
-      const userRules = rulesByUser.get(rule.user_id) || [];
+      const scopeKey = `${rule.user_id}:${rule.company_id || 'none'}`;
+      const userRules = rulesByScope.get(scopeKey) || [];
       userRules.push(rule);
-      rulesByUser.set(rule.user_id, userRules);
+      rulesByScope.set(scopeKey, userRules);
     }
 
     // 2. For each user, find unpaid invoices matching rule criteria
-    for (const [userId, userRules] of rulesByUser) {
+    for (const [scopeKey, userRules] of rulesByScope) {
+      const [userId, companyIdToken] = scopeKey.split(':');
+      const scopeCompanyId = companyIdToken === 'none' ? null : companyIdToken;
       // Fetch unpaid invoices for this user
-      const { data: invoices, error: invError } = await supabase
+      let invoiceQuery = supabase
         .from('invoices')
         .select('*, client:clients(id, name, email)')
         .eq('user_id', userId)
         .in('status', ['sent', 'overdue', 'draft']);
+      if (scopeCompanyId) {
+        invoiceQuery = invoiceQuery.eq('company_id', scopeCompanyId);
+      }
+      const { data: invoices, error: invError } = await invoiceQuery;
 
       if (invError) {
         console.error(`Error fetching invoices for user ${userId}:`, invError);
@@ -141,6 +148,7 @@ serve(async (req) => {
               status: sendStatus,
               recipient_email: invoice.client.email,
               user_id: userId,
+              company_id: rule.company_id || invoice.company_id || null,
             });
 
             // Update invoice status to overdue if past due and not already
@@ -163,6 +171,7 @@ serve(async (req) => {
               status: 'failed',
               recipient_email: invoice.client?.email,
               user_id: userId,
+              company_id: rule.company_id || invoice.company_id || null,
             });
 
             results.push({
@@ -261,6 +270,7 @@ async function handleDefaultReminders(
         status: 'sent',
         recipient_email: invoice.client.email,
         user_id: invoice.user_id,
+        company_id: invoice.company_id || null,
       });
 
       if (invoice.status !== 'overdue') {

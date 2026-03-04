@@ -4,6 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useCreditNotes = () => {
   const [creditNotes, setCreditNotes] = useState([]);
@@ -13,12 +14,13 @@ export const useCreditNotes = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchCreditNotes = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('credit_notes')
         .select(`
           *,
@@ -26,7 +28,11 @@ export const useCreditNotes = () => {
           invoice:invoices(id, invoice_number, total_ttc),
           items:credit_note_items(*)
         `)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setCreditNotes(data || []);
@@ -40,7 +46,7 @@ export const useCreditNotes = () => {
     } finally {
       setLoading(false);
     }
-  }, [t, toast, user]);
+  }, [applyCompanyScope, t, toast, user]);
 
   const createCreditNote = async (creditNoteData, items = []) => {
     if (!user || !supabase) throw new Error('Not authenticated');
@@ -50,7 +56,7 @@ export const useCreditNotes = () => {
 
       const { data, error } = await supabase
         .from('credit_notes')
-        .insert([{ ...creditNoteData, credit_note_number: number, user_id: user.id }])
+        .insert([{ ...withCompanyScope(creditNoteData), credit_note_number: number, user_id: user.id }])
         .select()
         .single();
 
@@ -93,8 +99,9 @@ export const useCreditNotes = () => {
     try {
       const { data: updated, error } = await supabase
         .from('credit_notes')
-        .update(data)
+        .update(withCompanyScope(data))
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -120,7 +127,11 @@ export const useCreditNotes = () => {
     try {
       // Delete items first
       await supabase.from('credit_note_items').delete().eq('credit_note_id', id);
-      const { error } = await supabase.from('credit_notes').delete().eq('id', id);
+      const { error } = await supabase
+        .from('credit_notes')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
       if (error) throw error;
 
       const deletedCreditNote = creditNotes.find(cn => cn.id === id);

@@ -17,6 +17,27 @@ function splitAmount(total, ratios, roundAmount) {
   return pieces;
 }
 
+function ensureMinimumRows(rows, minimum, buildRow) {
+  const result = [...rows];
+  const source = [...rows];
+
+  if (!source.length) {
+    return result;
+  }
+
+  while (result.length < minimum) {
+    const index = result.length;
+    result.push(buildRow(source[index % source.length], index));
+  }
+
+  return result;
+}
+
+function pickCyclic(rows, index) {
+  if (!rows.length) return null;
+  return rows[index % rows.length];
+}
+
 function getLocaleBlueprint(config) {
   switch (config.country) {
     case 'FR':
@@ -182,10 +203,59 @@ export function buildFullDemoDataset(args) {
   } = args;
 
   const locale = getLocaleBlueprint(config);
+  const minimumRecords = 7;
   const currency = config.company.accounting_currency;
   const amountFactor = currency === 'XAF' ? 650 : 1;
   const amount = (base) => clampAmount(base * amountFactor, roundAmount);
   const vatRate = Number(config.vatRate || 0);
+  const clientMetaRows = ensureMinimumRows(locale.clientMeta, minimumRecords, (template, index) => ({
+    ...template,
+    city: `${template.city} ${index + 1}`,
+    postal_code: template.postal_code,
+    country: template.country,
+    phone: template.phone,
+    website: template.website.replace('.demo', `-${index + 1}.demo`),
+    peppol: template.peppol ? `${template.peppol}-${String(index + 1).padStart(2, '0')}` : null,
+  }));
+  const supplierSeeds = ensureMinimumRows(locale.suppliers, minimumRecords, (template, index) => {
+    const code = String(index + 1).padStart(2, '0');
+    return {
+      ...template,
+      key: `${template.key}-x${code}`,
+      company_name: `${template.company_name} ${code}`,
+      contact_person: `${template.contact_person} ${index + 1}`,
+      email: `ops+${config.country.toLowerCase()}-supplier-${code}@cashpilot.cloud`,
+      website: template.website.replace('.demo', `-${code}.demo`),
+      payment_terms: template.payment_terms,
+    };
+  });
+  const productCategorySeeds = ensureMinimumRows(locale.productCategories, minimumRecords, (template, index) => {
+    const code = String(index + 1).padStart(2, '0');
+    return {
+      ...template,
+      key: `${template.key}-x${code}`,
+      name: `${template.name} ${index + 1}`,
+      description: `${template.description} ${index + 1}`,
+    };
+  });
+  const serviceCategorySeeds = ensureMinimumRows(locale.serviceCategories, minimumRecords, (template, index) => {
+    const code = String(index + 1).padStart(2, '0');
+    return {
+      ...template,
+      key: `${template.key}-x${code}`,
+      name: `${template.name} ${index + 1}`,
+      description: `${template.description} ${index + 1}`,
+    };
+  });
+  const teamSeeds = ensureMinimumRows(locale.team, minimumRecords, (template, index) => {
+    const code = String(index + 1).padStart(2, '0');
+    return {
+      ...template,
+      key: `${template.key}-x${code}`,
+      name: `${template.name} ${index + 1}`,
+      email: `${template.key}.${config.country.toLowerCase()}.${code}@cashpilot.demo`,
+    };
+  });
 
   const companyPatch = {
     peppol_endpoint_id: locale.companyPeppol,
@@ -208,7 +278,7 @@ export function buildFullDemoDataset(args) {
   const paymentTermByKey = new Map(locale.paymentTerms.map((term, index) => [term.key, paymentTermRows[index].id]));
 
   const enhancedClientRows = clientRows.map((row, index) => {
-    const meta = locale.clientMeta[index] || locale.clientMeta[0];
+    const meta = clientMetaRows[index] || clientMetaRows[0];
     return {
       ...row,
       city: meta.city,
@@ -224,8 +294,26 @@ export function buildFullDemoDataset(args) {
       updated_at: timestampFor(isoDate(CURRENT_YEAR, 1, 3 + index), 8),
     };
   });
+  const defaultCompanyId =
+    enhancedClientRows[0]?.company_id ||
+    invoiceRows[0]?.company_id ||
+    null;
+  const companyScopeIds = Array.from(
+    new Set(
+      enhancedClientRows
+        .map((row) => row.company_id || defaultCompanyId)
+        .filter(Boolean)
+    )
+  );
+  const resolveScopedCompanyId = (index, fallback = defaultCompanyId) =>
+    companyScopeIds.length > 0
+      ? companyScopeIds[index % companyScopeIds.length]
+      : (fallback || null);
+  const clientCompanyById = new Map(
+    enhancedClientRows.map((row) => [row.id, row.company_id || defaultCompanyId])
+  );
 
-  const productCategoryRows = locale.productCategories.map((category, index) => ({
+  const productCategoryRows = productCategorySeeds.map((category, index) => ({
     id: uuidFromSeed(`${userSeed}:product-category:${category.key}`),
     user_id: userId,
     name: category.name,
@@ -233,9 +321,9 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 6 + index), 9),
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 1, 6 + index), 9, 5),
   }));
-  const productCategoryByKey = new Map(locale.productCategories.map((category, index) => [category.key, productCategoryRows[index].id]));
+  const productCategoryByKey = new Map(productCategorySeeds.map((category, index) => [category.key, productCategoryRows[index].id]));
 
-  const serviceCategoryRows = locale.serviceCategories.map((category, index) => ({
+  const serviceCategoryRows = serviceCategorySeeds.map((category, index) => ({
     id: uuidFromSeed(`${userSeed}:service-category:${category.key}`),
     user_id: userId,
     name: category.name,
@@ -243,9 +331,9 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 10 + index), 9),
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 1, 10 + index), 9, 5),
   }));
-  const serviceCategoryByKey = new Map(locale.serviceCategories.map((category, index) => [category.key, serviceCategoryRows[index].id]));
+  const serviceCategoryByKey = new Map(serviceCategorySeeds.map((category, index) => [category.key, serviceCategoryRows[index].id]));
 
-  const supplierRows = locale.suppliers.map((supplier, index) => ({
+  const supplierRows = supplierSeeds.map((supplier, index) => ({
     id: uuidFromSeed(`${userSeed}:supplier:${supplier.key}`),
     user_id: userId,
     company_name: supplier.company_name,
@@ -269,9 +357,9 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 14 + index), 10),
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 1, 14 + index), 10, 5),
   }));
-  const supplierByKey = new Map(locale.suppliers.map((supplier, index) => [supplier.key, supplierRows[index].id]));
+  const supplierByKey = new Map(supplierSeeds.map((supplier, index) => [supplier.key, supplierRows[index].id]));
 
-  const supplierProductCategoryRows = [
+  let supplierProductCategoryRows = [
     {
       id: uuidFromSeed(`${userSeed}:supplier-product-category:software`),
       user_id: userId,
@@ -287,12 +375,19 @@ export function buildFullDemoDataset(args) {
       created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 19), 10),
     },
   ];
+  supplierProductCategoryRows = ensureMinimumRows(supplierProductCategoryRows, minimumRecords, (template, index) => ({
+    ...template,
+    id: uuidFromSeed(`${userSeed}:supplier-product-category:x${String(index + 1).padStart(3, '0')}`),
+    name: `${template.name} ${index + 1}`,
+    description: `${template.description} ${index + 1}`,
+    created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 19 + index), 10),
+  }));
   const supplierProductCategoryByKey = new Map([
     ['software', supplierProductCategoryRows[0].id],
     ['hardware', supplierProductCategoryRows[1].id],
   ]);
 
-  const supplierProductRows = [
+  let supplierProductRows = [
     ['license', 'infra', 'software', `Licence plateforme ${config.label}`, `${config.country}-LIC-001`, amount(1400), 120, 25, 30, 'licence'],
     ['scanner', 'office', 'hardware', `Kit scanner ${config.label}`, `${config.country}-SCN-002`, amount(380), 18, 6, 12, 'kit'],
     ['ops', 'office', 'hardware', `Bundle operations ${config.label}`, `${config.country}-OPS-003`, amount(120), 40, 10, 15, 'bundle'],
@@ -311,13 +406,33 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 20 + index), 10),
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 1, 20 + index), 10, 5),
   }));
+  supplierProductRows = ensureMinimumRows(supplierProductRows, minimumRecords, (template, index) => {
+    const supplier = pickCyclic(supplierRows, index);
+    const category = pickCyclic(supplierProductCategoryRows, index);
+    const code = String(index + 1).padStart(3, '0');
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:supplier-product:x${code}`),
+      supplier_id: supplier?.id || template.supplier_id,
+      category_id: category?.id || template.category_id,
+      product_name: `${template.product_name} ${index + 1}`,
+      description: `${template.description} ${index + 1}`,
+      sku: `${config.country}-SUP-${code}`,
+      unit_price: roundAmount(Number(template.unit_price || 0) * (1 + index * 0.04)),
+      stock_quantity: Number(template.stock_quantity || 0) + index * 3,
+      min_stock_level: Math.max(2, Number(template.min_stock_level || 0) + index),
+      reorder_quantity: Math.max(4, Number(template.reorder_quantity || 0) + index),
+      created_at: timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 3), 20 + (index % 7)), 10),
+      updated_at: timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 3), 20 + (index % 7)), 10, 5),
+    };
+  });
   const supplierProductByKey = new Map([
     ['license', supplierProductRows[0].id],
     ['scanner', supplierProductRows[1].id],
     ['ops', supplierProductRows[2].id],
   ]);
 
-  const supplierServiceRows = [
+  let supplierServiceRows = [
     ['compliance', 'compliance', `Mission conformite ${config.label}`, 'fixed', amount(2400), amount(160), 'mission'],
     ['support', 'infra', `Support infra ${config.label}`, 'hourly', null, amount(110), 'heure'],
   ].map(([key, supplierKey, serviceName, pricingType, fixedPrice, hourlyRate, unit], index) => ({
@@ -333,8 +448,31 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 24 + index), 10),
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 1, 24 + index), 10, 5),
   }));
+  supplierServiceRows = ensureMinimumRows(supplierServiceRows, minimumRecords, (template, index) => {
+    const supplier = pickCyclic(supplierRows, index);
+    const code = String(index + 1).padStart(3, '0');
+    const pricingType = index % 2 === 0 ? 'fixed' : 'hourly';
+    const fixedPrice = pricingType === 'fixed'
+      ? roundAmount(Number(template.fixed_price || template.hourly_rate || 0) * (1 + index * 0.05))
+      : null;
+    const hourlyRate = pricingType === 'hourly'
+      ? roundAmount(Number(template.hourly_rate || template.fixed_price || 0) * (1 + index * 0.03))
+      : null;
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:supplier-service:x${code}`),
+      supplier_id: supplier?.id || template.supplier_id,
+      service_name: `${template.service_name} ${index + 1}`,
+      description: `${template.description} ${index + 1}`,
+      pricing_type: pricingType,
+      fixed_price: fixedPrice,
+      hourly_rate: hourlyRate,
+      created_at: timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 3), 24 + (index % 5)), 10),
+      updated_at: timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 3), 24 + (index % 5)), 10, 5),
+    };
+  });
 
-  const productRows = [
+  let productRows = [
     ['executive', 'software', 'infra', `Pack pilotage executif ${config.label}`, `${config.country}-PRD-001`, amount(3200), amount(1500), 22, 5, 'licence'],
     ['scanner', 'hardware', 'office', `Scanner embarque ${config.label}`, `${config.country}-PRD-002`, amount(690), amount(360), 4, 6, 'piece'],
     ['ops', 'operations', 'office', `Kit operations ${config.label}`, `${config.country}-PRD-003`, amount(260), amount(120), 0, 3, 'kit'],
@@ -356,6 +494,26 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 26 + index), 12),
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 1, 26 + index), 12, 5),
   }));
+  productRows = ensureMinimumRows(productRows, minimumRecords, (template, index) => {
+    const category = pickCyclic(productCategoryRows, index);
+    const supplier = pickCyclic(supplierRows, index);
+    const code = String(index + 1).padStart(3, '0');
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:product:x${code}`),
+      category_id: category?.id || template.category_id,
+      supplier_id: supplier?.id || template.supplier_id,
+      product_name: `${template.product_name} ${index + 1}`,
+      description: `${template.description} ${index + 1}`,
+      sku: `${config.country}-PRD-${code}`,
+      unit_price: roundAmount(Number(template.unit_price || 0) * (1 + index * 0.05)),
+      purchase_price: roundAmount(Number(template.purchase_price || 0) * (1 + index * 0.03)),
+      stock_quantity: Math.max(0, Number(template.stock_quantity || 0) + (index % 2 === 0 ? index * 2 : -index)),
+      min_stock_level: Math.max(2, Number(template.min_stock_level || 0) + index),
+      created_at: timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 4), 18 + (index % 10)), 12),
+      updated_at: timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 4), 18 + (index % 10)), 12, 5),
+    };
+  });
   const productByKey = new Map([
     ['executive', productRows[0].id],
     ['scanner', productRows[1].id],
@@ -363,7 +521,7 @@ export function buildFullDemoDataset(args) {
     ['cloud', productRows[3].id],
   ]);
 
-  const serviceRows = [
+  let serviceRows = [
     ['advisory', 'advisory', `Diagnostic pilotage ${config.label}`, 'fixed', amount(4200), amount(210), amount(4200), 'mission'],
     ['implementation', 'implementation', `Mise en place reporting ${config.label}`, 'hourly', null, amount(180), amount(180), 'heure'],
     ['support', 'support', `Support continu ${config.label}`, 'hourly', null, amount(120), amount(120), 'heure'],
@@ -382,6 +540,30 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 2, 2 + index), 12),
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 2, 2 + index), 12, 5),
   }));
+  serviceRows = ensureMinimumRows(serviceRows, minimumRecords, (template, index) => {
+    const category = pickCyclic(serviceCategoryRows, index);
+    const code = String(index + 1).padStart(3, '0');
+    const pricingType = index % 3 === 0 ? 'fixed' : 'hourly';
+    const fixedPrice = pricingType === 'fixed'
+      ? roundAmount(Number(template.fixed_price || template.unit_price || 0) * (1 + index * 0.05))
+      : null;
+    const hourlyRate = pricingType === 'hourly'
+      ? roundAmount(Number(template.hourly_rate || template.unit_price || 0) * (1 + index * 0.04))
+      : null;
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:service:x${code}`),
+      category_id: category?.id || template.category_id,
+      service_name: `${template.service_name} ${index + 1}`,
+      description: `${template.description} ${index + 1}`,
+      pricing_type: pricingType,
+      fixed_price: fixedPrice,
+      hourly_rate: hourlyRate,
+      unit_price: pricingType === 'fixed' ? fixedPrice : hourlyRate,
+      created_at: timestampFor(isoDate(CURRENT_YEAR, 2 + (index % 4), 2 + (index % 12)), 12),
+      updated_at: timestampFor(isoDate(CURRENT_YEAR, 2 + (index % 4), 2 + (index % 12)), 12, 5),
+    };
+  });
   const serviceByKey = new Map([
     ['advisory', serviceRows[0].id],
     ['implementation', serviceRows[1].id],
@@ -401,6 +583,9 @@ export function buildFullDemoDataset(args) {
     peppol_document_id: index < 2 ? `${config.country}-PEPPOL-${CURRENT_YEAR}-${index + 1}` : null,
     peppol_error_message: null,
   }));
+  const invoiceCompanyById = new Map(
+    enhancedInvoiceRows.map((row) => [row.id, row.company_id || defaultCompanyId])
+  );
 
   const invoiceItemTemplates = [
     [
@@ -442,7 +627,7 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(paymentRow.payment_date, 16, index * 5),
   }));
 
-  const quoteRows = [
+  let quoteRows = [
     ['001', enhancedClientRows[0].id, isoDate(CURRENT_YEAR, 1, 8), 'accepted', amount(12500)],
     ['002', enhancedClientRows[1].id, isoDate(CURRENT_YEAR, 2, 4), 'sent', amount(9400)],
   ].map(([code, clientId, date, status, totalHt], index) => ({
@@ -457,12 +642,31 @@ export function buildFullDemoDataset(args) {
     total_ttc: roundAmount(totalHt * (1 + vatRate / 100)),
     created_at: timestampFor(date, 9 + index),
   }));
+  quoteRows = ensureMinimumRows(quoteRows, minimumRecords, (template, index) => {
+    const client = pickCyclic(enhancedClientRows, index);
+    const code = String(index + 1).padStart(3, '0');
+    const date = isoDate(CURRENT_YEAR, 1 + (index % 6), 8 + (index % 14));
+    const totalHt = amount(8600 + index * 980);
+    const statuses = ['draft', 'sent', 'accepted', 'accepted', 'sent', 'draft', 'accepted'];
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:quote:x${code}`),
+      client_id: client?.id || template.client_id,
+      quote_number: `QT-${config.country}-${CURRENT_YEAR}-${code}`,
+      date,
+      status: statuses[index % statuses.length],
+      total_ht: totalHt,
+      total_ttc: roundAmount(totalHt * (1 + vatRate / 100)),
+      created_at: timestampFor(date, 9 + (index % 5)),
+    };
+  });
 
-  const purchaseOrderRows = [
+  let purchaseOrderRows = [
     {
       id: uuidFromSeed(`${userSeed}:purchase-order:001`),
       user_id: userId,
       client_id: enhancedClientRows[0].id,
+      company_id: enhancedClientRows[0].company_id || defaultCompanyId,
       payment_terms_id: paymentTermByKey.get('net30'),
       po_number: `PO-${config.country}-${CURRENT_YEAR}-001`,
       date: isoDate(CURRENT_YEAR, 1, 9),
@@ -481,6 +685,7 @@ export function buildFullDemoDataset(args) {
       id: uuidFromSeed(`${userSeed}:purchase-order:002`),
       user_id: userId,
       client_id: enhancedClientRows[1].id,
+      company_id: enhancedClientRows[1].company_id || defaultCompanyId,
       payment_terms_id: paymentTermByKey.get('net15'),
       po_number: `PO-${config.country}-${CURRENT_YEAR}-002`,
       date: isoDate(CURRENT_YEAR, 2, 8),
@@ -497,14 +702,47 @@ export function buildFullDemoDataset(args) {
       updated_at: timestampFor(isoDate(CURRENT_YEAR, 2, 8), 10, 5),
     },
   ];
+  purchaseOrderRows = ensureMinimumRows(purchaseOrderRows, minimumRecords, (template, index) => {
+    const client = pickCyclic(enhancedClientRows, index);
+    const code = String(index + 1).padStart(3, '0');
+    const date = isoDate(CURRENT_YEAR, 1 + (index % 6), 9 + (index % 12));
+    const items = (template.items || []).map((item, itemIndex) => {
+      const quantity = Math.max(1, Number(item.quantity || 1) + (index % 2));
+      const total = roundAmount(Number(item.total || 0) * (1 + index * 0.04 + itemIndex * 0.02));
+      return {
+        ...item,
+        description: `${item.description} ${index + 1}`,
+        quantity,
+        unit_price: roundAmount(total / quantity),
+        total,
+      };
+    });
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:purchase-order:x${code}`),
+      client_id: client?.id || template.client_id,
+      company_id: client?.company_id || template.company_id || defaultCompanyId,
+      payment_terms_id: paymentTermRows[index % paymentTermRows.length]?.id || template.payment_terms_id,
+      po_number: `PO-${config.country}-${CURRENT_YEAR}-${code}`,
+      date,
+      due_date: addDays(date, 18 + (index % 12)),
+      status: ['draft', 'sent', 'confirmed', 'completed', 'sent', 'confirmed', 'cancelled'][index % 7],
+      total: roundAmount(items.reduce((sum, item) => sum + Number(item.total || 0), 0)),
+      notes: `${template.notes} ${index + 1}`,
+      items,
+      created_at: timestampFor(date, 10),
+      updated_at: timestampFor(date, 10, 5),
+    };
+  });
 
-  const recurringInvoiceRows = [
+  let recurringInvoiceRows = [
     ['001', enhancedClientRows[0].id, `Abonnement pilotage ${config.label}`, 'monthly', 'active', 5, amount(1800), true, 2, isoDate(CURRENT_YEAR, 3, 5)],
     ['002', enhancedClientRows[1].id, `Support analytique ${config.label}`, 'quarterly', 'paused', 12, amount(4200), false, 1, isoDate(CURRENT_YEAR, 4, 12)],
   ].map(([code, clientId, title, frequency, status, dayOfMonth, totalHt, autoSend, invoicesGenerated, nextDate], index) => ({
     id: uuidFromSeed(`${userSeed}:recurring-invoice:${code}`),
     user_id: userId,
     client_id: clientId,
+    company_id: clientCompanyById.get(clientId) || defaultCompanyId,
     title,
     description: `${title} demo`,
     currency,
@@ -526,8 +764,38 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 5 + index * 7), 7),
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 2, 5 + index * 7), 7, 5),
   }));
+  recurringInvoiceRows = ensureMinimumRows(recurringInvoiceRows, minimumRecords, (template, index) => {
+    const client = pickCyclic(enhancedClientRows, index);
+    const code = String(index + 1).padStart(3, '0');
+    const totalHt = amount(1650 + index * 540);
+    const startDate = isoDate(CURRENT_YEAR, 1 + (index % 6), 5 + (index % 10));
+    const nextDate = addDays(startDate, 30);
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:recurring-invoice:x${code}`),
+      client_id: client?.id || template.client_id,
+      company_id: client?.company_id || template.company_id || defaultCompanyId,
+      title: `${template.title} ${index + 1}`,
+      description: `${template.description} ${index + 1}`,
+      frequency: ['monthly', 'quarterly', 'monthly', 'yearly', 'monthly', 'quarterly', 'weekly'][index % 7],
+      status: ['active', 'active', 'paused', 'active', 'cancelled', 'completed', 'active'][index % 7],
+      day_of_month: 5 + (index % 20),
+      start_date: startDate,
+      end_date: index % 3 === 0 ? addDays(startDate, 180 + index * 4) : null,
+      next_generation_date: nextDate,
+      next_date: nextDate,
+      total_ht: totalHt,
+      total_tva: roundAmount(totalHt * (vatRate / 100)),
+      total_ttc: roundAmount(totalHt * (1 + vatRate / 100)),
+      auto_send: index % 2 === 0,
+      invoices_generated: (index % 4) + 1,
+      last_generated_at: timestampFor(addDays(nextDate, -30), 7),
+      created_at: timestampFor(startDate, 7),
+      updated_at: timestampFor(addDays(startDate, 32), 7, 5),
+    };
+  });
 
-  const recurringInvoiceLineItemRows = [
+  let recurringInvoiceLineItemRows = [
     ['001', recurringInvoiceRows[0].id, 'Licence pilotage executive', 1, amount(1400)],
     ['002', recurringInvoiceRows[0].id, 'Support prioritaire', 2, amount(200)],
     ['003', recurringInvoiceRows[1].id, 'Coaching CFO trimestriel', 1, amount(4200)],
@@ -541,13 +809,31 @@ export function buildFullDemoDataset(args) {
     sort_order: index,
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 5 + index), 7, 10),
   }));
+  recurringInvoiceLineItemRows = [
+    ...recurringInvoiceLineItemRows,
+    ...recurringInvoiceRows.slice(2).map((row, index) => {
+      const quantity = index % 2 === 0 ? 1 : 2;
+      const total = roundAmount(Number(row.total_ht || 0));
+      return {
+        id: uuidFromSeed(`${userSeed}:recurring-line:x${String(index + 4).padStart(3, '0')}`),
+        recurring_invoice_id: row.id,
+        description: `${row.title} - forfait ${index + 1}`,
+        quantity,
+        unit_price: roundAmount(total / quantity),
+        total,
+        sort_order: 0,
+        created_at: timestampFor(row.start_date || isoDate(CURRENT_YEAR, 1, 5), 7, 10),
+      };
+    }),
+  ];
 
-  const paymentReminderRuleRows = [
-    ['001', 'Pre-due reminder', 3, 0, 1],
-    ['002', 'Overdue sequence', 0, 7, 3],
-  ].map(([code, name, daysBeforeDue, daysAfterDue, maxReminders], index) => ({
+  let paymentReminderRuleRows = [
+    ['001', enhancedInvoiceRows[0].id, 'Pre-due reminder', 3, 0, 1],
+    ['002', enhancedInvoiceRows[1].id, 'Overdue sequence', 0, 7, 3],
+  ].map(([code, invoiceId, name, daysBeforeDue, daysAfterDue, maxReminders], index) => ({
     id: uuidFromSeed(`${userSeed}:payment-reminder-rule:${code}`),
     user_id: userId,
+    company_id: invoiceCompanyById.get(invoiceId) || resolveScopedCompanyId(index),
     name,
     days_before_due: daysBeforeDue,
     days_after_due: daysAfterDue,
@@ -556,13 +842,38 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 6 + index), 8),
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 1, 6 + index), 8, 5),
   }));
+  paymentReminderRuleRows = ensureMinimumRows(paymentReminderRuleRows, minimumRecords, (template, index) => {
+    const code = String(index + 1).padStart(3, '0');
+    const invoice = pickCyclic(enhancedInvoiceRows, index);
+    const invoiceDate = invoice?.date || isoDate(CURRENT_YEAR, 1, 6 + (index % 12));
+    const frequency = [
+      { before: 5, after: 0, max: 1, name: 'Reminder pre-echeance' },
+      { before: 2, after: 0, max: 1, name: 'Relance J-2' },
+      { before: 0, after: 3, max: 2, name: 'Relance retard court' },
+      { before: 0, after: 7, max: 3, name: 'Relance retard standard' },
+      { before: 0, after: 14, max: 4, name: 'Escalade retard' },
+    ][index % 5];
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:payment-reminder-rule:x${code}`),
+      company_id: invoiceCompanyById.get(invoice?.id) || resolveScopedCompanyId(index, template.company_id || defaultCompanyId),
+      name: `${frequency.name} ${index + 1}`,
+      days_before_due: frequency.before,
+      days_after_due: frequency.after,
+      max_reminders: frequency.max,
+      is_active: index % 6 !== 0,
+      created_at: timestampFor(invoiceDate, 8),
+      updated_at: timestampFor(invoiceDate, 8, 5),
+    };
+  });
 
-  const paymentReminderLogRows = [
+  let paymentReminderLogRows = [
     ['001', enhancedInvoiceRows[0].id, paymentReminderRuleRows[0].id, enhancedClientRows[0].email, 1, addDays(enhancedInvoiceRows[0].date, 18)],
     ['002', enhancedInvoiceRows[1].id, paymentReminderRuleRows[1].id, enhancedClientRows[1].email, 1, addDays(enhancedInvoiceRows[1].date, 19)],
   ].map(([code, invoiceId, ruleId, recipientEmail, reminderNumber, sentAt]) => ({
     id: uuidFromSeed(`${userSeed}:payment-reminder-log:${code}`),
     user_id: userId,
+    company_id: invoiceCompanyById.get(invoiceId) || defaultCompanyId,
     invoice_id: invoiceId,
     rule_id: ruleId,
     recipient_email: recipientEmail,
@@ -570,8 +881,27 @@ export function buildFullDemoDataset(args) {
     status: 'sent',
     sent_at: timestampFor(sentAt, 9),
   }));
+  paymentReminderLogRows = ensureMinimumRows(paymentReminderLogRows, minimumRecords, (template, index) => {
+    const code = String(index + 1).padStart(3, '0');
+    const invoice = pickCyclic(enhancedInvoiceRows, index) || enhancedInvoiceRows[0];
+    const client = enhancedClientRows.find((row) => row.id === invoice?.client_id) || pickCyclic(enhancedClientRows, index);
+    const rule = pickCyclic(paymentReminderRuleRows, index) || paymentReminderRuleRows[0];
+    const reminderNumber = (index % 3) + 1;
+    const sentAtDate = addDays(invoice?.date || isoDate(CURRENT_YEAR, 1, 10), 10 + index);
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:payment-reminder-log:x${code}`),
+      company_id: invoiceCompanyById.get(invoice?.id) || rule?.company_id || resolveScopedCompanyId(index, template.company_id || defaultCompanyId),
+      invoice_id: invoice?.id || template.invoice_id,
+      rule_id: rule?.id || template.rule_id,
+      recipient_email: client?.email || template.recipient_email,
+      reminder_number: reminderNumber,
+      status: index % 7 === 0 ? 'failed' : 'sent',
+      sent_at: timestampFor(sentAtDate, 9),
+    };
+  });
 
-  const supplierOrderRows = [
+  let supplierOrderRows = [
     ['001', 'infra', 'delivered', isoDate(CURRENT_YEAR, 1, 18), isoDate(CURRENT_YEAR, 1, 28), isoDate(CURRENT_YEAR, 1, 27), amount(6200), 'Commande fournisseur receptionnee'],
     ['002', 'compliance', 'confirmed', isoDate(CURRENT_YEAR, 2, 14), isoDate(CURRENT_YEAR, 2, 28), null, amount(2400), 'Mission conformite programmee'],
   ].map(([code, supplierKey, orderStatus, orderDate, expectedDeliveryDate, actualDeliveryDate, totalAmount, notes], index) => ({
@@ -588,8 +918,28 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(orderDate, 15),
     updated_at: timestampFor(orderDate, 15, 5 + index),
   }));
+  supplierOrderRows = ensureMinimumRows(supplierOrderRows, minimumRecords, (template, index) => {
+    const supplier = pickCyclic(supplierRows, index);
+    const code = String(index + 1).padStart(3, '0');
+    const orderDate = isoDate(CURRENT_YEAR, 1 + (index % 6), 10 + (index % 12));
+    const totalAmount = amount(2100 + index * 880);
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:supplier-order:x${code}`),
+      supplier_id: supplier?.id || template.supplier_id,
+      order_number: `SO-${config.country}-${CURRENT_YEAR}-${code}`,
+      order_date: orderDate,
+      expected_delivery_date: addDays(orderDate, 8 + (index % 10)),
+      actual_delivery_date: index % 3 === 0 ? addDays(orderDate, 9 + (index % 8)) : null,
+      order_status: ['draft', 'confirmed', 'delivered', 'confirmed', 'received', 'delivered', 'pending'][index % 7],
+      total_amount: totalAmount,
+      notes: `${template.notes} ${index + 1}`,
+      created_at: timestampFor(orderDate, 15),
+      updated_at: timestampFor(orderDate, 15, 5 + (index % 10)),
+    };
+  });
 
-  const supplierOrderItemRows = [
+  let supplierOrderItemRows = [
     ['001', supplierOrderRows[0].id, supplierProductByKey.get('license'), null, 3, amount(1400)],
     ['002', supplierOrderRows[0].id, supplierProductByKey.get('scanner'), null, 4, amount(500)],
     ['003', supplierOrderRows[1].id, null, supplierServiceRows[0].id, 1, amount(2400)],
@@ -603,8 +953,39 @@ export function buildFullDemoDataset(args) {
     total_price: roundAmount(quantity * unitPrice),
     created_at: timestampFor(isoDate(CURRENT_YEAR, 2, 1 + Number(code)), 15),
   }));
+  supplierOrderItemRows = [
+    ...supplierOrderItemRows,
+    ...supplierOrderRows.slice(2).flatMap((row, index) => {
+      const product = pickCyclic(supplierProductRows, index);
+      const service = pickCyclic(supplierServiceRows, index);
+      const quantity = 1 + (index % 3);
+      const price = roundAmount(Number(product?.unit_price || service?.hourly_rate || 0));
+      return [
+        {
+          id: uuidFromSeed(`${userSeed}:supplier-order-item:x${String(index * 2 + 4).padStart(3, '0')}`),
+          order_id: row.id,
+          product_id: product?.id || null,
+          service_id: null,
+          quantity,
+          unit_price: price,
+          total_price: roundAmount(quantity * price),
+          created_at: timestampFor(row.order_date, 15, 10),
+        },
+        {
+          id: uuidFromSeed(`${userSeed}:supplier-order-item:x${String(index * 2 + 5).padStart(3, '0')}`),
+          order_id: row.id,
+          product_id: null,
+          service_id: service?.id || null,
+          quantity: 1,
+          unit_price: roundAmount(Number(service?.fixed_price || service?.hourly_rate || price)),
+          total_price: roundAmount(Number(service?.fixed_price || service?.hourly_rate || price)),
+          created_at: timestampFor(row.order_date, 15, 20),
+        },
+      ];
+    }),
+  ];
 
-  const supplierInvoiceRows = [
+  let supplierInvoiceRows = [
     ['001', 'infra', isoDate(CURRENT_YEAR, 1, 27), isoDate(CURRENT_YEAR, 2, 10), amount(6200), 'paid'],
     ['002', 'compliance', isoDate(CURRENT_YEAR, 2, 20), isoDate(CURRENT_YEAR, 3, 15), amount(2400), 'pending'],
   ].map(([code, supplierKey, invoiceDate, dueDate, totalAmount, paymentStatus], index) => {
@@ -638,8 +1019,37 @@ export function buildFullDemoDataset(args) {
       bic: supplierRow.bic_swift,
     };
   });
+  supplierInvoiceRows = ensureMinimumRows(supplierInvoiceRows, minimumRecords, (template, index) => {
+    const supplier = pickCyclic(supplierRows, index);
+    const code = String(index + 1).padStart(3, '0');
+    const invoiceDate = isoDate(CURRENT_YEAR, 1 + (index % 6), 12 + (index % 11));
+    const totalAmount = amount(2400 + index * 760);
+    const totalHt = roundAmount(totalAmount / (1 + vatRate / 100));
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:supplier-invoice:x${code}`),
+      supplier_id: supplier?.id || template.supplier_id,
+      invoice_number: `SUP-${config.country}-${CURRENT_YEAR}-${code}`,
+      invoice_date: invoiceDate,
+      due_date: addDays(invoiceDate, 15 + (index % 18)),
+      total_amount: totalAmount,
+      total_ht: totalHt,
+      total_ttc: totalAmount,
+      vat_amount: roundAmount(totalAmount - totalHt),
+      payment_status: ['pending', 'paid', 'overdue', 'pending', 'paid', 'pending', 'overdue'][index % 7],
+      payment_terms: index % 2 === 0 ? '30 jours' : '15 jours',
+      supplier_name_extracted: supplier?.company_name || template.supplier_name_extracted,
+      supplier_address_extracted: supplier?.address || template.supplier_address_extracted,
+      supplier_vat_number: `${config.country}-SUPVAT-${code}`,
+      notes: `${template.notes} ${index + 1}`,
+      created_at: timestampFor(invoiceDate, 15),
+      updated_at: timestampFor(invoiceDate, 15, 5),
+      iban: supplier?.iban || template.iban,
+      bic: supplier?.bic_swift || template.bic,
+    };
+  });
 
-  const supplierInvoiceLineItemRows = [
+  let supplierInvoiceLineItemRows = [
     ['001', supplierInvoiceRows[0].id, 'Licence plateforme fournisseur', 3, amount(1400)],
     ['002', supplierInvoiceRows[0].id, 'Support fournisseur', 10, amount(200)],
     ['003', supplierInvoiceRows[1].id, 'Mission conformite et fiscalite', 1, amount(2400)],
@@ -653,8 +1063,25 @@ export function buildFullDemoDataset(args) {
     sort_order: index,
     created_at: timestampFor(isoDate(CURRENT_YEAR, 2, 3 + index), 15),
   }));
+  supplierInvoiceLineItemRows = [
+    ...supplierInvoiceLineItemRows,
+    ...supplierInvoiceRows.slice(2).map((row, index) => {
+      const quantity = 1 + (index % 3);
+      const total = roundAmount(Number(row.total_ht || 0));
+      return {
+        id: uuidFromSeed(`${userSeed}:supplier-invoice-line:x${String(index + 4).padStart(3, '0')}`),
+        invoice_id: row.id,
+        description: `Ligne fournisseur ${index + 1}`,
+        quantity,
+        unit_price: roundAmount(total / quantity),
+        total,
+        sort_order: 0,
+        created_at: timestampFor(row.invoice_date, 15, 10),
+      };
+    }),
+  ];
 
-  const projectRows = [
+  let projectRows = [
     ['001', enhancedClientRows[0].id, `${config.label} Revenue Command Center`, 'Projet de structuration du pilotage', 160, amount(185)],
     ['002', enhancedClientRows[1].id, `${config.label} Cash Flow Rollout`, 'Projet de deploiement cash flow', 120, amount(165)],
   ].map(([code, clientId, name, description, budgetHours, hourlyRate], index) => ({
@@ -668,8 +1095,24 @@ export function buildFullDemoDataset(args) {
     status: 'active',
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1 + index, 6), 9),
   }));
+  projectRows = ensureMinimumRows(projectRows, minimumRecords, (template, index) => {
+    const client = pickCyclic(enhancedClientRows, index);
+    const code = String(index + 1).padStart(3, '0');
+    const startDate = isoDate(CURRENT_YEAR, 1 + (index % 6), 6 + (index % 14));
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:project:x${code}`),
+      client_id: client?.id || template.client_id,
+      name: `${template.name} ${index + 1}`,
+      description: `${template.description} ${index + 1}`,
+      budget_hours: Number(template.budget_hours || 0) + index * 14,
+      hourly_rate: roundAmount(Number(template.hourly_rate || 0) * (1 + index * 0.03)),
+      status: ['active', 'active', 'planning', 'active', 'on_hold', 'completed', 'active'][index % 7],
+      created_at: timestampFor(startDate, 9),
+    };
+  });
 
-  const teamMemberRows = locale.team.map((member, index) => ({
+  const teamMemberRows = teamSeeds.map((member, index) => ({
     id: uuidFromSeed(`${userSeed}:team-member:${member.key}`),
     user_id: userId,
     name: member.name,
@@ -680,7 +1123,7 @@ export function buildFullDemoDataset(args) {
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 1, 3 + index), 8, 5),
   }));
 
-  const taskRows = [
+  let taskRows = [
     ['001', projectRows[0].id, enhancedInvoiceRows[0].id, quoteRows[0].id, purchaseOrderRows[0].id, serviceRows[0].id, teamMemberRows[0].name, 'Structurer le modele de pilotage', 'completed', 'high', 24, isoDate(CURRENT_YEAR, 1, 15)],
     ['002', projectRows[0].id, enhancedInvoiceRows[1].id, quoteRows[1].id, purchaseOrderRows[1].id, serviceRows[1].id, teamMemberRows[1].name, 'Connecter la source comptable', 'in_progress', 'high', 40, isoDate(CURRENT_YEAR, 3, 18)],
     ['003', projectRows[1].id, null, quoteRows[1].id, null, serviceRows[2].id, teamMemberRows[2].name, 'Former les equipes finance', 'pending', 'medium', 16, isoDate(CURRENT_YEAR, 3, 20)],
@@ -707,8 +1150,42 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1 + Math.min(index, 1), 7 + index), 12),
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 2, 10 + index), 12, 5),
   }));
+  taskRows = ensureMinimumRows(taskRows, minimumRecords * 2, (template, index) => {
+    const project = pickCyclic(projectRows, index);
+    const service = pickCyclic(serviceRows, index);
+    const invoice = pickCyclic(enhancedInvoiceRows, index);
+    const quote = pickCyclic(quoteRows, index);
+    const purchaseOrder = pickCyclic(purchaseOrderRows, index);
+    const teamMember = pickCyclic(teamMemberRows, index);
+    const code = String(index + 1).padStart(3, '0');
+    const dueDate = isoDate(CURRENT_YEAR, 1 + (index % 6), 12 + (index % 12));
+    const status = ['completed', 'in_progress', 'pending', 'on_hold', 'pending', 'completed', 'in_progress'][index % 7];
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:task:x${code}`),
+      project_id: project?.id || template.project_id,
+      invoice_id: status === 'pending' ? null : (invoice?.id || template.invoice_id),
+      quote_id: quote?.id || template.quote_id,
+      purchase_order_id: purchaseOrder?.id || template.purchase_order_id,
+      service_id: service?.id || template.service_id,
+      assigned_to: teamMember?.name || template.assigned_to,
+      name: `${template.name} ${index + 1}`,
+      title: `${template.title} ${index + 1}`,
+      description: `${template.description} ${index + 1}`,
+      status,
+      priority: ['high', 'medium', 'low'][index % 3],
+      color: ['#f97316', '#3b82f6', '#a855f7', '#64748b', '#10b981', '#14b8a6', '#eab308'][index % 7],
+      estimated_hours: Number(template.estimated_hours || 0) + (index % 5) * 6,
+      requires_quote: Boolean(quote?.id),
+      started_at: status === 'pending' || status === 'on_hold' ? null : timestampFor(addDays(dueDate, -8), 9),
+      completed_at: status === 'completed' ? timestampFor(addDays(dueDate, -1), 18) : null,
+      due_date: dueDate,
+      created_at: timestampFor(addDays(dueDate, -12), 12),
+      updated_at: timestampFor(addDays(dueDate, -4), 12, 5),
+    };
+  });
 
-  const subtaskRows = [
+  let subtaskRows = [
     ['001', taskRows[0].id, 'Cartographier les KPIs', 'completed'],
     ['002', taskRows[0].id, 'Valider la maquette du dashboard', 'completed'],
     ['003', taskRows[1].id, 'Relier ventes et paiements', 'completed'],
@@ -722,8 +1199,19 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 2, 1 + index), 12),
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 2, 5 + index), 12, 5),
   }));
+  subtaskRows = [
+    ...subtaskRows,
+    ...taskRows.slice(3).map((task, index) => ({
+      id: uuidFromSeed(`${userSeed}:subtask:x${String(index + 6).padStart(3, '0')}`),
+      task_id: task.id,
+      title: `Sous-tache ${index + 1} - ${task.title}`,
+      status: ['pending', 'completed'][index % 2],
+      created_at: timestampFor(task.created_at.slice(0, 10), 12, 15),
+      updated_at: timestampFor(task.created_at.slice(0, 10), 12, 20),
+    })),
+  ];
 
-  const timesheetRows = [
+  let timesheetRows = [
     [enhancedClientRows[0].id, projectRows[0].id, taskRows[0].id, serviceRows[0].id, enhancedInvoiceRows[0].id, isoDate(CURRENT_YEAR, 1, 9), 240, amount(185), 'Workshop KPI et objectifs', true, 'approved'],
     [enhancedClientRows[0].id, projectRows[0].id, taskRows[0].id, serviceRows[0].id, enhancedInvoiceRows[0].id, isoDate(CURRENT_YEAR, 1, 13), 240, amount(185), 'Validation dashboard management', true, 'approved'],
     [enhancedClientRows[1].id, projectRows[0].id, taskRows[1].id, serviceRows[1].id, enhancedInvoiceRows[1].id, isoDate(CURRENT_YEAR, 2, 12), 480, amount(180), 'Configuration flux ventes', true, 'approved'],
@@ -749,14 +1237,43 @@ export function buildFullDemoDataset(args) {
     status,
     created_at: timestampFor(date, 18),
   }));
+  timesheetRows = ensureMinimumRows(timesheetRows, minimumRecords * 2, (template, index) => {
+    const task = pickCyclic(taskRows, index);
+    const project = projectRows.find((row) => row.id === task?.project_id) || pickCyclic(projectRows, index);
+    const client = enhancedClientRows.find((row) => row.id === project?.client_id) || pickCyclic(enhancedClientRows, index);
+    const service = pickCyclic(serviceRows, index);
+    const invoice = pickCyclic(enhancedInvoiceRows, index);
+    const date = isoDate(CURRENT_YEAR, 1 + (index % 6), 7 + (index % 20));
+    const durationMinutes = 120 + (index % 5) * 60;
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:timesheet:x${String(index + 1).padStart(3, '0')}`),
+      client_id: client?.id || template.client_id,
+      project_id: project?.id || template.project_id,
+      task_id: task?.id || template.task_id,
+      service_id: service?.id || template.service_id,
+      invoice_id: index % 3 === 0 ? null : (invoice?.id || template.invoice_id),
+      date,
+      start_time: ['08:30', '09:00', '10:00', '13:00', '14:00'][index % 5],
+      end_time: ['10:30', '12:00', '15:00', '17:00', '18:00'][index % 5],
+      duration_minutes: durationMinutes,
+      hourly_rate: roundAmount(Number(template.hourly_rate || 0) * (1 + index * 0.02)),
+      description: `${template.description} ${index + 1}`,
+      billable: index % 4 !== 0,
+      billed_at: index % 3 === 0 ? null : timestampFor(addDays(date, 1), 18),
+      status: ['approved', 'approved', 'pending', 'submitted'][index % 4],
+      created_at: timestampFor(date, 18),
+    };
+  });
 
   const creditNoteHt = roundAmount(enhancedInvoiceRows[1].total_ht * 0.12);
-  const creditNoteRows = [
+  let creditNoteRows = [
     {
       id: uuidFromSeed(`${userSeed}:credit-note:001`),
       user_id: userId,
       client_id: enhancedInvoiceRows[1].client_id,
       invoice_id: enhancedInvoiceRows[1].id,
+      company_id: invoiceCompanyById.get(enhancedInvoiceRows[1].id) || defaultCompanyId,
       credit_note_number: `CN-${config.country}-${CURRENT_YEAR}-001`,
       date: isoDate(CURRENT_YEAR, 2, 28),
       reason: 'Commercial adjustment demo',
@@ -770,7 +1287,30 @@ export function buildFullDemoDataset(args) {
       updated_at: timestampFor(isoDate(CURRENT_YEAR, 2, 28), 12, 5),
     },
   ];
-  const creditNoteItemRows = [
+  creditNoteRows = ensureMinimumRows(creditNoteRows, minimumRecords, (template, index) => {
+    const invoice = pickCyclic(enhancedInvoiceRows.slice(1), index) || enhancedInvoiceRows[0];
+    const totalHt = roundAmount(Number(invoice?.total_ht || template.total_ht || 0) * (0.08 + (index % 3) * 0.03));
+    const date = addDays(invoice?.date || template.date, 10 + (index % 12));
+    const code = String(index + 1).padStart(3, '0');
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:credit-note:x${code}`),
+      client_id: invoice?.client_id || template.client_id,
+      invoice_id: invoice?.id || template.invoice_id,
+      company_id: invoiceCompanyById.get(invoice?.id) || template.company_id || defaultCompanyId,
+      credit_note_number: `CN-${config.country}-${CURRENT_YEAR}-${code}`,
+      date,
+      reason: `Commercial adjustment demo ${index + 1}`,
+      notes: `${template.notes} ${index + 1}`,
+      status: ['issued', 'draft', 'applied', 'issued', 'cancelled', 'issued', 'draft'][index % 7],
+      tax_amount: roundAmount(totalHt * (vatRate / 100)),
+      total_ht: totalHt,
+      total_ttc: roundAmount(totalHt * (1 + vatRate / 100)),
+      created_at: timestampFor(date, 12),
+      updated_at: timestampFor(date, 12, 5),
+    };
+  });
+  let creditNoteItemRows = [
     {
       id: uuidFromSeed(`${userSeed}:credit-note-item:001`),
       credit_note_id: creditNoteRows[0].id,
@@ -781,8 +1321,17 @@ export function buildFullDemoDataset(args) {
       created_at: timestampFor(isoDate(CURRENT_YEAR, 2, 28), 12, 10),
     },
   ];
+  creditNoteItemRows = creditNoteRows.map((creditNote, index) => ({
+    id: uuidFromSeed(`${userSeed}:credit-note-item:x${String(index + 1).padStart(3, '0')}`),
+    credit_note_id: creditNote.id,
+    description: `Ajustement facture ${index + 1}`,
+    quantity: 1,
+    unit_price: creditNote.total_ht,
+    amount: creditNote.total_ht,
+    created_at: timestampFor(creditNote.date, 12, 10),
+  }));
 
-  const deliveryNoteRows = [
+  let deliveryNoteRows = [
     ['001', enhancedInvoiceRows[0], enhancedClientRows[0], 'delivered', 'Demo Logistics', `${config.country}-TRK-001`, isoDate(CURRENT_YEAR, 1, 11)],
     ['002', enhancedInvoiceRows[1], enhancedClientRows[1], 'pending', 'Demo Parcel', `${config.country}-TRK-002`, isoDate(CURRENT_YEAR, 2, 18)],
   ].map(([code, invoiceRow, clientRow, status, carrier, trackingNumber, date], index) => ({
@@ -790,6 +1339,7 @@ export function buildFullDemoDataset(args) {
     user_id: userId,
     client_id: clientRow.id,
     invoice_id: invoiceRow.id,
+    company_id: invoiceCompanyById.get(invoiceRow.id) || clientRow.company_id || defaultCompanyId,
     delivery_note_number: `DN-${config.country}-${CURRENT_YEAR}-${code}`,
     date,
     delivery_address: clientRow.address,
@@ -800,7 +1350,29 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(date, 14),
     updated_at: timestampFor(date, 14, 5 + index),
   }));
-  const deliveryNoteItemRows = [
+  deliveryNoteRows = ensureMinimumRows(deliveryNoteRows, minimumRecords, (template, index) => {
+    const invoice = pickCyclic(enhancedInvoiceRows, index);
+    const client = enhancedClientRows.find((row) => row.id === invoice?.client_id) || pickCyclic(enhancedClientRows, index);
+    const code = String(index + 1).padStart(3, '0');
+    const date = addDays(invoice?.date || template.date, 2 + (index % 6));
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:delivery-note:x${code}`),
+      client_id: client?.id || template.client_id,
+      invoice_id: invoice?.id || template.invoice_id,
+      company_id: invoiceCompanyById.get(invoice?.id) || client?.company_id || template.company_id || defaultCompanyId,
+      delivery_note_number: `DN-${config.country}-${CURRENT_YEAR}-${code}`,
+      date,
+      delivery_address: client?.address || template.delivery_address,
+      carrier: ['Demo Logistics', 'Demo Parcel', 'Fast Route', 'Urban Cargo'][index % 4],
+      tracking_number: `${config.country}-TRK-${code}`,
+      status: ['pending', 'shipped', 'delivered', 'cancelled', 'pending', 'shipped', 'delivered'][index % 7],
+      notes: `${template.notes} ${index + 1}`,
+      created_at: timestampFor(date, 14),
+      updated_at: timestampFor(date, 14, 5),
+    };
+  });
+  let deliveryNoteItemRows = [
     ['001', deliveryNoteRows[0].id, 'Pack pilotage executif', 2, 'licence'],
     ['002', deliveryNoteRows[1].id, 'Scanner embarque', 2, 'piece'],
   ].map(([code, deliveryNoteId, description, quantity, unit]) => ({
@@ -811,13 +1383,22 @@ export function buildFullDemoDataset(args) {
     unit,
     created_at: timestampFor(isoDate(CURRENT_YEAR, 2, 1 + Number(code)), 14),
   }));
+  deliveryNoteItemRows = deliveryNoteRows.map((deliveryNote, index) => ({
+    id: uuidFromSeed(`${userSeed}:delivery-note-item:x${String(index + 1).padStart(3, '0')}`),
+    delivery_note_id: deliveryNote.id,
+    description: `Colis ${index + 1}`,
+    quantity: 1 + (index % 3),
+    unit: index % 2 === 0 ? 'piece' : 'licence',
+    created_at: timestampFor(deliveryNote.date, 14, 10),
+  }));
 
-  const receivableRows = [
+  let receivableRows = [
     ['001', 'Partenaire demo invest', 'finance@demo-invest.test', '+000 000 000 001', 'loan', amount(2500), amount(1000), isoDate(CURRENT_YEAR, 1, 20), isoDate(CURRENT_YEAR, 3, 10), 'partial'],
     ['002', 'Reseau distribution interne', 'ops@distribution-interne.test', '+000 000 000 002', 'advance', amount(1800), 0, isoDate(CURRENT_YEAR, 1, 28), isoDate(CURRENT_YEAR, 2, 20), 'overdue'],
   ].map(([code, debtorName, debtorEmail, debtorPhone, category, valueAmount, amountPaid, dateLent, dueDate, status], index) => ({
     id: uuidFromSeed(`${userSeed}:receivable:${code}`),
     user_id: userId,
+    company_id: resolveScopedCompanyId(index),
     debtor_name: debtorName,
     debtor_email: debtorEmail,
     debtor_phone: debtorPhone,
@@ -833,13 +1414,38 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(dateLent, 11),
     updated_at: timestampFor(addDays(dateLent, 20 + index), 11),
   }));
+  receivableRows = ensureMinimumRows(receivableRows, minimumRecords, (template, index) => {
+    const code = String(index + 1).padStart(3, '0');
+    const dateLent = isoDate(CURRENT_YEAR, 1 + (index % 6), 8 + (index % 13));
+    const amountValue = amount(1600 + index * 480);
+    const amountPaid = index % 3 === 0 ? 0 : roundAmount(amountValue * 0.4);
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:receivable:x${code}`),
+      company_id: resolveScopedCompanyId(index, template.company_id || defaultCompanyId),
+      debtor_name: `${template.debtor_name} ${index + 1}`,
+      debtor_email: `receivable.${config.country.toLowerCase()}.${code}@cashpilot.demo`,
+      debtor_phone: template.debtor_phone,
+      category: ['loan', 'advance', 'other'][index % 3],
+      amount: amountValue,
+      amount_paid: amountPaid,
+      date_lent: dateLent,
+      due_date: addDays(dateLent, 20 + (index % 15)),
+      status: ['pending', 'partial', 'overdue', 'paid', 'partial', 'pending', 'overdue'][index % 7],
+      description: `Receivable demo ${index + 1}`,
+      notes: `${template.notes} ${index + 1}`,
+      created_at: timestampFor(dateLent, 11),
+      updated_at: timestampFor(addDays(dateLent, 20 + index), 11),
+    };
+  });
 
-  const payableRows = [
+  let payableRows = [
     ['001', 'Investisseur demo bridge', 'bridge@invest.demo', '+000 000 000 101', 'bridge_loan', amount(4200), amount(1400), isoDate(CURRENT_YEAR, 1, 4), isoDate(CURRENT_YEAR, 4, 4), 'partial'],
     ['002', 'Cabinet juridique demo', 'cabinet@juridique.demo', '+000 000 000 102', 'service', amount(1300), 0, isoDate(CURRENT_YEAR, 2, 6), isoDate(CURRENT_YEAR, 2, 28), 'overdue'],
   ].map(([code, creditorName, creditorEmail, creditorPhone, category, valueAmount, amountPaid, dateBorrowed, dueDate, status], index) => ({
     id: uuidFromSeed(`${userSeed}:payable:${code}`),
     user_id: userId,
+    company_id: resolveScopedCompanyId(index + 1),
     creditor_name: creditorName,
     creditor_email: creditorEmail,
     creditor_phone: creditorPhone,
@@ -855,13 +1461,48 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(dateBorrowed, 10),
     updated_at: timestampFor(addDays(dateBorrowed, 25 + index), 10),
   }));
+  payableRows = ensureMinimumRows(payableRows, minimumRecords, (template, index) => {
+    const code = String(index + 1).padStart(3, '0');
+    const dateBorrowed = isoDate(CURRENT_YEAR, 1 + (index % 6), 6 + (index % 13));
+    const amountValue = amount(1800 + index * 510);
+    const amountPaid = index % 3 === 0 ? 0 : roundAmount(amountValue * 0.35);
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:payable:x${code}`),
+      company_id: resolveScopedCompanyId(index + 1, template.company_id || defaultCompanyId),
+      creditor_name: `${template.creditor_name} ${index + 1}`,
+      creditor_email: `payable.${config.country.toLowerCase()}.${code}@cashpilot.demo`,
+      category: ['service', 'bridge_loan', 'supplier', 'tax'][index % 4],
+      amount: amountValue,
+      amount_paid: amountPaid,
+      date_borrowed: dateBorrowed,
+      due_date: addDays(dateBorrowed, 18 + (index % 16)),
+      status: ['pending', 'partial', 'overdue', 'paid', 'pending', 'partial', 'overdue'][index % 7],
+      description: `Payable demo ${index + 1}`,
+      notes: `${template.notes} ${index + 1}`,
+      created_at: timestampFor(dateBorrowed, 10),
+      updated_at: timestampFor(addDays(dateBorrowed, 25 + index), 10),
+    };
+  });
 
-  const debtPaymentRows = [
+  const receivableCompanyById = new Map(
+    receivableRows.map((row) => [row.id, row.company_id || defaultCompanyId])
+  );
+  const payableCompanyById = new Map(
+    payableRows.map((row) => [row.id, row.company_id || defaultCompanyId])
+  );
+
+  let debtPaymentRows = [
     ['001', 'receivable', receivableRows[0].id, amount(1000), isoDate(CURRENT_YEAR, 2, 12)],
     ['002', 'payable', payableRows[0].id, amount(1400), isoDate(CURRENT_YEAR, 2, 12)],
   ].map(([code, recordType, recordId, valueAmount, paymentDate], index) => ({
     id: uuidFromSeed(`${userSeed}:debt-payment:${code}`),
     user_id: userId,
+    company_id: (
+      recordType === 'receivable'
+        ? receivableCompanyById.get(recordId)
+        : payableCompanyById.get(recordId)
+    ) || resolveScopedCompanyId(index),
     record_type: recordType,
     record_id: recordId,
     amount: valueAmount,
@@ -870,8 +1511,35 @@ export function buildFullDemoDataset(args) {
     payment_date: paymentDate,
     created_at: timestampFor(paymentDate, 11, 10 + index * 10),
   }));
+  debtPaymentRows = [
+    ...debtPaymentRows,
+    ...receivableRows.slice(1, 4).map((row, index) => ({
+      id: uuidFromSeed(`${userSeed}:debt-payment:xr${String(index + 3).padStart(3, '0')}`),
+      user_id: userId,
+      company_id: row.company_id || defaultCompanyId,
+      record_type: 'receivable',
+      record_id: row.id,
+      amount: roundAmount(Number(row.amount_paid || 0) || Number(row.amount || 0) * 0.25),
+      payment_method: 'bank_transfer',
+      notes: 'Demo receivable settlement',
+      payment_date: addDays(row.date_lent, 12 + index),
+      created_at: timestampFor(addDays(row.date_lent, 12 + index), 11, 15),
+    })),
+    ...payableRows.slice(1, 4).map((row, index) => ({
+      id: uuidFromSeed(`${userSeed}:debt-payment:xp${String(index + 6).padStart(3, '0')}`),
+      user_id: userId,
+      company_id: row.company_id || defaultCompanyId,
+      record_type: 'payable',
+      record_id: row.id,
+      amount: roundAmount(Number(row.amount_paid || 0) || Number(row.amount || 0) * 0.2),
+      payment_method: 'bank_transfer',
+      notes: 'Demo payable settlement',
+      payment_date: addDays(row.date_borrowed, 14 + index),
+      created_at: timestampFor(addDays(row.date_borrowed, 14 + index), 11, 25),
+    })),
+  ];
 
-  const productStockHistoryRows = [
+  let productStockHistoryRows = [
     [productRows[1].id, 8, 4, -4, 'sale', 'Stock utilise pour demo scanner'],
     [productRows[2].id, 6, 0, -6, 'adjustment', 'Consommation kit operations'],
     [productRows[0].id, 12, 22, 10, 'purchase', 'Reassort demo marketing'],
@@ -888,8 +1556,28 @@ export function buildFullDemoDataset(args) {
     created_by: userId,
     created_at: timestampFor(isoDate(CURRENT_YEAR, 2, 15 + index), 10),
   }));
+  productStockHistoryRows = ensureMinimumRows(productStockHistoryRows, minimumRecords, (template, index) => {
+    const product = pickCyclic(productRows, index);
+    const previousQuantity = Math.max(0, Number(product?.stock_quantity || 0) + (index % 2 === 0 ? -4 : 6));
+    const changeQuantity = index % 3 === 0 ? -3 - index : 4 + index;
+    const newQuantity = Math.max(0, previousQuantity + changeQuantity);
+    const createdDate = isoDate(CURRENT_YEAR, 2 + (index % 4), 10 + (index % 14));
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:stock-history:x${String(index + 1).padStart(3, '0')}`),
+      user_product_id: product?.id || template.user_product_id,
+      product_id: product?.id || template.product_id,
+      previous_quantity: previousQuantity,
+      new_quantity: newQuantity,
+      change_quantity: changeQuantity,
+      reason: ['purchase', 'sale', 'adjustment', 'transfer'][index % 4],
+      notes: `Mouvement stock demo ${index + 1}`,
+      order_id: index % 2 === 0 ? pickCyclic(supplierOrderRows, index)?.id || null : null,
+      created_at: timestampFor(createdDate, 10),
+    };
+  });
 
-  const stockAlertRows = [
+  let stockAlertRows = [
     [productRows[1].id, 'low_stock'],
     [productRows[2].id, 'out_of_stock'],
   ].map(([productId, alertType], index) => ({
@@ -901,6 +1589,20 @@ export function buildFullDemoDataset(args) {
     resolved_at: null,
     created_at: timestampFor(isoDate(CURRENT_YEAR, 2, 15 + index), 10, 5),
   }));
+  stockAlertRows = ensureMinimumRows(stockAlertRows, minimumRecords, (template, index) => {
+    const product = pickCyclic(productRows, index);
+    const createdDate = isoDate(CURRENT_YEAR, 2 + (index % 4), 12 + (index % 10));
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:stock-alert:x${String(index + 1).padStart(3, '0')}`),
+      product_id: product?.id || template.product_id,
+      user_product_id: product?.id || template.user_product_id,
+      alert_type: ['low_stock', 'out_of_stock'][index % 2],
+      is_active: index % 4 !== 0,
+      resolved_at: index % 4 === 0 ? timestampFor(addDays(createdDate, 2), 9) : null,
+      created_at: timestampFor(createdDate, 10, 5),
+    };
+  });
 
   const notificationPreferencesRow = {
     id: uuidFromSeed(`${userSeed}:notification-preferences`),
@@ -919,7 +1621,7 @@ export function buildFullDemoDataset(args) {
     updated_at: timestampFor(isoDate(CURRENT_YEAR, 1, 4), 8, 5),
   };
 
-  const notificationRows = [
+  let notificationRows = [
     ['stock_alert', 'Scanner stock low', `Le produit ${productRows[1].product_name} est sous le seuil minimum.`, false, timestampFor(isoDate(CURRENT_YEAR, 2, 15), 10, 6), null],
     ['peppol', 'Peppol delivery confirmed', `${enhancedInvoiceRows[0].invoice_number} a ete remise via Peppol.`, true, timestampFor(isoDate(CURRENT_YEAR, 1, 12), 8, 50), timestampFor(isoDate(CURRENT_YEAR, 1, 12), 9)],
     ['task', 'Task due soon', `La tache ${taskRows[2].title} doit etre preparee cette semaine.`, false, timestampFor(isoDate(CURRENT_YEAR, 2, 26), 8), null],
@@ -936,8 +1638,21 @@ export function buildFullDemoDataset(args) {
     created_at: createdAt,
     updated_at: readAt || createdAt,
   }));
+  notificationRows = ensureMinimumRows(notificationRows, minimumRecords, (template, index) => {
+    const createdAt = timestampFor(isoDate(CURRENT_YEAR, 2 + (index % 3), 8 + (index % 18)), 8, 10);
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:notification:x${String(index + 1).padStart(3, '0')}`),
+      title: `${template.title} ${index + 1}`,
+      message: `${template.message} ${index + 1}`,
+      is_read: index % 3 === 0,
+      read_at: index % 3 === 0 ? timestampFor(isoDate(CURRENT_YEAR, 2 + (index % 3), 9 + (index % 18)), 9) : null,
+      created_at: createdAt,
+      updated_at: createdAt,
+    };
+  });
 
-  const webhookRows = [
+  let webhookRows = [
     ['001', `https://hooks.demo.cashpilot.cloud/${config.country.toLowerCase()}/primary`, ['invoice.created', 'invoice.paid', 'payment.received'], 0, timestampFor(isoDate(CURRENT_YEAR, 2, 25), 14)],
     ['002', `https://hooks.demo.cashpilot.cloud/${config.country.toLowerCase()}/analytics`, ['client.created', 'expense.created'], 1, timestampFor(isoDate(CURRENT_YEAR, 2, 20), 11)],
   ].map(([code, url, events, failureCount, lastTriggeredAt], index) => ({
@@ -952,8 +1667,27 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 18 + index * 4), 8),
     updated_at: lastTriggeredAt,
   }));
+  webhookRows = ensureMinimumRows(webhookRows, minimumRecords, (template, index) => {
+    const code = String(index + 1).padStart(3, '0');
+    const triggeredAt = timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 4), 18 + (index % 8)), 10);
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:webhook:x${code}`),
+      url: `https://hooks.demo.cashpilot.cloud/${config.country.toLowerCase()}/endpoint-${code}`,
+      events: [
+        ['invoice.created', 'invoice.paid', 'payment.received'],
+        ['quote.signed', 'project.created', 'task.completed'],
+        ['expense.created', 'supplier.invoice.received'],
+      ][index % 3],
+      secret: uuidFromSeed(`${userSeed}:webhook-secret:x${code}`).replace(/-/g, ''),
+      failure_count: index % 3 === 0 ? 1 : 0,
+      last_triggered_at: triggeredAt,
+      created_at: timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 4), 10 + (index % 12)), 8),
+      updated_at: triggeredAt,
+    };
+  });
 
-  const webhookDeliveryRows = [
+  let webhookDeliveryRows = [
     ['001', webhookRows[0].id, 'invoice.created', { invoice_id: enhancedInvoiceRows[0].id }, true, 1, 200, '{"ok":true}', timestampFor(isoDate(CURRENT_YEAR, 1, 10), 9)],
     ['002', webhookRows[0].id, 'payment.received', { payment_id: paymentRows[0]?.id || null }, true, 1, 202, '{"accepted":true}', timestampFor(isoDate(CURRENT_YEAR, 1, 24), 16)],
     ['003', webhookRows[1].id, 'expense.created', { source: 'demo-seed', label: config.label }, false, 2, 500, 'temporary upstream error', timestampFor(isoDate(CURRENT_YEAR, 2, 20), 11)],
@@ -968,13 +1702,28 @@ export function buildFullDemoDataset(args) {
     response_body: responseBody,
     created_at: createdAt,
   }));
+  webhookDeliveryRows = [
+    ...webhookDeliveryRows,
+    ...webhookRows.slice(2).map((webhook, index) => ({
+      id: uuidFromSeed(`${userSeed}:webhook-delivery:x${String(index + 4).padStart(3, '0')}`),
+      webhook_endpoint_id: webhook.id,
+      event: pickCyclic(webhook.events || ['invoice.created'], 0) || 'invoice.created',
+      payload: { demo: true, index: index + 1, country: config.country },
+      delivered: index % 3 !== 0,
+      attempts: index % 3 === 0 ? 2 : 1,
+      status_code: index % 3 === 0 ? 500 : 200,
+      response_body: index % 3 === 0 ? 'temporary upstream error' : '{"ok":true}',
+      created_at: timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 5), 10 + (index % 12)), 11),
+    })),
+  ];
 
-  const bankConnectionRows = [
+  let bankConnectionRows = [
     ['001', locale.bank.primaryInstitutionId, locale.bank.primaryInstitutionName, `${config.country.toLowerCase()}-req-001`, `${config.country.toLowerCase()}-agr-001`, `${config.country.toLowerCase()}-acct-001`, locale.bank.accountName, locale.bank.iban, locale.bank.balance, 'active', timestampFor(isoDate(CURRENT_YEAR, 3, 1), 7), timestampFor(isoDate(CURRENT_YEAR, 5, 30), 0), null],
     ['002', locale.bank.secondaryInstitutionId, locale.bank.secondaryInstitutionName, `${config.country.toLowerCase()}-req-002`, `${config.country.toLowerCase()}-agr-002`, `${config.country.toLowerCase()}-acct-002`, 'Compte secondaire', null, null, 'expired', timestampFor(isoDate(CURRENT_YEAR, 2, 14), 7), timestampFor(isoDate(CURRENT_YEAR, 2, 15), 0), 'Consent expired'],
   ].map(([code, institutionId, institutionName, requisitionId, agreementId, accountId, accountName, accountIban, accountBalance, status, lastSyncAt, expiresAt, syncError], index) => ({
     id: uuidFromSeed(`${userSeed}:bank-connection:${code}`),
     user_id: userId,
+    company_id: resolveScopedCompanyId(index),
     institution_id: institutionId,
     institution_name: institutionName,
     institution_logo: null,
@@ -992,14 +1741,42 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(isoDate(CURRENT_YEAR, 1, 12 + index * 8), 8),
     updated_at: lastSyncAt,
   }));
+  bankConnectionRows = ensureMinimumRows(bankConnectionRows, minimumRecords, (template, index) => {
+    const code = String(index + 1).padStart(3, '0');
+    const lastSyncAt = timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 5), 12 + (index % 10)), 7);
+    const activeStatuses = ['active', 'expired', 'error', 'active', 'pending', 'active', 'revoked'];
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:bank-connection:x${code}`),
+      company_id: resolveScopedCompanyId(index, template.company_id || defaultCompanyId),
+      institution_id: `${config.country.toLowerCase()}-inst-${code}`,
+      institution_name: `${locale.bank.primaryInstitutionName} ${index + 1}`,
+      requisition_id: `${config.country.toLowerCase()}-req-${code}`,
+      agreement_id: `${config.country.toLowerCase()}-agr-${code}`,
+      account_id: `${config.country.toLowerCase()}-acct-${code}`,
+      account_name: `${locale.bank.accountName} ${index + 1}`,
+      account_iban: template.account_iban || (currency === 'EUR' ? `${locale.bank.iban || ''}${code}`.trim() : null),
+      account_balance: Number(locale.bank.balance || 0) + index * amount(120),
+      status: activeStatuses[index % activeStatuses.length],
+      last_sync_at: lastSyncAt,
+      expires_at: timestampFor(addDays(lastSyncAt.slice(0, 10), 60 - index * 3), 0),
+      sync_error: activeStatuses[index % activeStatuses.length] === 'error' ? 'Sync failed' : null,
+      created_at: timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 4), 12 + (index % 8)), 8),
+      updated_at: lastSyncAt,
+    };
+  });
+  const bankConnectionCompanyById = new Map(
+    bankConnectionRows.map((row) => [row.id, row.company_id || defaultCompanyId])
+  );
 
-  const bankSyncHistoryRows = [
+  let bankSyncHistoryRows = [
     ['001', bankConnectionRows[0].id, 'full', 'success', 4, timestampFor(isoDate(CURRENT_YEAR, 1, 12), 8), timestampFor(isoDate(CURRENT_YEAR, 1, 12), 8, 3), null],
     ['002', bankConnectionRows[0].id, 'transactions', 'success', 2, timestampFor(isoDate(CURRENT_YEAR, 3, 1), 7), timestampFor(isoDate(CURRENT_YEAR, 3, 1), 7, 2), null],
     ['003', bankConnectionRows[1].id, 'transactions', 'error', 0, timestampFor(isoDate(CURRENT_YEAR, 2, 15), 7), timestampFor(isoDate(CURRENT_YEAR, 2, 15), 7, 1), 'Consent expired'],
   ].map(([code, bankConnectionId, syncType, status, transactionsSynced, startedAt, completedAt, errorMessage]) => ({
     id: uuidFromSeed(`${userSeed}:bank-sync:${code}`),
     user_id: userId,
+    company_id: bankConnectionCompanyById.get(bankConnectionId) || defaultCompanyId,
     bank_connection_id: bankConnectionId,
     sync_type: syncType,
     status,
@@ -1008,8 +1785,27 @@ export function buildFullDemoDataset(args) {
     completed_at: completedAt,
     error_message: errorMessage,
   }));
+  bankSyncHistoryRows = [
+    ...bankSyncHistoryRows,
+    ...bankConnectionRows.slice(2).map((connection, index) => {
+      const startedAt = timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 5), 10 + (index % 14)), 7);
+      const status = connection.status === 'error' || connection.status === 'expired' ? 'error' : 'success';
+      return {
+        id: uuidFromSeed(`${userSeed}:bank-sync:x${String(index + 4).padStart(3, '0')}`),
+        user_id: userId,
+        company_id: connection.company_id || defaultCompanyId,
+        bank_connection_id: connection.id,
+        sync_type: index % 2 === 0 ? 'transactions' : 'balance',
+        status,
+        transactions_synced: status === 'success' ? 2 + (index % 5) : 0,
+        started_at: startedAt,
+        completed_at: timestampFor(startedAt.slice(0, 10), 7, 2),
+        error_message: status === 'success' ? null : 'Consent expired',
+      };
+    }),
+  ];
 
-  const bankTransactionRows = [
+  let bankTransactionRows = [
     ['001', bankConnectionRows[0].id, enhancedInvoiceRows[0].id, paymentRows[0]?.amount || 0, paymentRows[0]?.payment_date || isoDate(CURRENT_YEAR, 1, 24), enhancedClientRows[0].company_name, 'matched', 0.99, paymentRows[0]?.payment_date || isoDate(CURRENT_YEAR, 1, 24), enhancedInvoiceRows[0].invoice_number],
     ['002', bankConnectionRows[0].id, enhancedInvoiceRows[1].id, paymentRows[1]?.amount || 0, paymentRows[1]?.payment_date || isoDate(CURRENT_YEAR, 2, 26), enhancedClientRows[1].company_name, 'matched', 0.97, paymentRows[1]?.payment_date || isoDate(CURRENT_YEAR, 2, 26), enhancedInvoiceRows[1].invoice_number],
     ['003', bankConnectionRows[0].id, null, -supplierOrderRows[1].total_amount, isoDate(CURRENT_YEAR, 2, 25), supplierRows[2].company_name, 'unreconciled', null, null, supplierInvoiceRows[1].invoice_number],
@@ -1018,6 +1814,10 @@ export function buildFullDemoDataset(args) {
   ].map(([code, bankConnectionId, invoiceId, valueAmount, date, counterparty, reconciliationStatus, matchConfidence, matchedAtDate, remittanceInfo]) => ({
     id: uuidFromSeed(`${userSeed}:bank-transaction:${code}`),
     user_id: userId,
+    company_id:
+      bankConnectionCompanyById.get(bankConnectionId) ||
+      invoiceCompanyById.get(invoiceId) ||
+      defaultCompanyId,
     bank_connection_id: bankConnectionId,
     invoice_id: invoiceId,
     external_id: `${config.country.toLowerCase()}-txn-${code}`,
@@ -1038,15 +1838,51 @@ export function buildFullDemoDataset(args) {
     created_at: timestampFor(date, 16),
     updated_at: timestampFor(date, 16),
   }));
+  bankTransactionRows = ensureMinimumRows(bankTransactionRows, minimumRecords * 2, (template, index) => {
+    const bankConnection = pickCyclic(bankConnectionRows, index);
+    const invoice = pickCyclic(enhancedInvoiceRows, index);
+    const counterparty = index % 2 === 0
+      ? (enhancedClientRows.find((row) => row.id === invoice?.client_id)?.company_name || template.description)
+      : (pickCyclic(supplierRows, index)?.company_name || template.description);
+    const date = isoDate(CURRENT_YEAR, 1 + (index % 6), 10 + (index % 16));
+    const amountValue = index % 2 === 0 ? amount(950 + index * 160) : -amount(680 + index * 140);
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:bank-transaction:x${String(index + 1).padStart(3, '0')}`),
+      company_id:
+        bankConnection?.company_id ||
+        invoiceCompanyById.get(invoice?.id) ||
+        template.company_id ||
+        defaultCompanyId,
+      bank_connection_id: bankConnection?.id || template.bank_connection_id,
+      invoice_id: index % 2 === 0 ? (invoice?.id || null) : null,
+      external_id: `${config.country.toLowerCase()}-txn-x${String(index + 1).padStart(3, '0')}`,
+      amount: amountValue,
+      date,
+      booking_date: date,
+      value_date: date,
+      description: counterparty,
+      debtor_name: amountValue >= 0 ? counterparty : config.company.company_name,
+      creditor_name: amountValue >= 0 ? config.company.company_name : counterparty,
+      remittance_info: index % 2 === 0 ? (invoice?.invoice_number || 'Invoice settlement') : `Charge ${index + 1}`,
+      reference: `BANK-${config.country}-X${String(index + 1).padStart(3, '0')}`,
+      reconciliation_status: amountValue >= 0 ? 'matched' : ['unreconciled', 'ignored', 'matched'][index % 3],
+      match_confidence: amountValue >= 0 ? 0.94 : null,
+      matched_at: amountValue >= 0 ? timestampFor(date, 16) : null,
+      created_at: timestampFor(date, 16),
+      updated_at: timestampFor(date, 16),
+    };
+  });
 
-  const peppolLogRows = [
+  let peppolLogRows = [
     ['001', enhancedInvoiceRows[0].id, 'outbound', 'delivered', enhancedClientRows[0].peppol_endpoint_id, enhancedInvoiceRows[0].peppol_document_id, timestampFor(isoDate(CURRENT_YEAR, 1, 10), 14)],
     ['002', enhancedInvoiceRows[1].id, 'outbound', 'pending', enhancedClientRows[1].peppol_endpoint_id, enhancedInvoiceRows[1].peppol_document_id, timestampFor(isoDate(CURRENT_YEAR, 2, 15), 14)],
     ['003', enhancedInvoiceRows[0].id, 'inbound', 'accepted', locale.companyPeppol, `INBOUND-${config.country}-${CURRENT_YEAR}-001`, timestampFor(isoDate(CURRENT_YEAR, 2, 5), 10)],
-  ].map(([code, invoiceId, direction, status, receiverEndpoint, apDocumentId, createdAt]) => ({
+  ].map(([code, invoiceId, direction, status, receiverEndpoint, apDocumentId, createdAt], index) => ({
     id: uuidFromSeed(`${userSeed}:peppol-log:${code}`),
     user_id: userId,
     invoice_id: invoiceId,
+    company_id: invoiceCompanyById.get(invoiceId) || resolveScopedCompanyId(index),
     direction,
     status,
     ap_provider: 'scrada',
@@ -1058,6 +1894,30 @@ export function buildFullDemoDataset(args) {
     created_at: createdAt,
     updated_at: createdAt,
   }));
+  peppolLogRows = ensureMinimumRows(peppolLogRows, minimumRecords, (template, index) => {
+    const invoice = pickCyclic(enhancedInvoiceRows, index);
+    const client = enhancedClientRows.find((row) => row.id === invoice?.client_id) || pickCyclic(enhancedClientRows, index);
+    const date = timestampFor(isoDate(CURRENT_YEAR, 1 + (index % 6), 10 + (index % 12)), 14);
+    const direction = ['outbound', 'outbound', 'inbound'][index % 3];
+    const status = direction === 'inbound'
+      ? ['accepted', 'accepted', 'delivered'][index % 3]
+      : ['delivered', 'pending', 'accepted', 'error'][index % 4];
+    return {
+      ...template,
+      id: uuidFromSeed(`${userSeed}:peppol-log:x${String(index + 1).padStart(3, '0')}`),
+      invoice_id: direction === 'outbound' ? (invoice?.id || template.invoice_id) : template.invoice_id,
+      company_id: invoiceCompanyById.get(invoice?.id) || client?.company_id || template.company_id || defaultCompanyId,
+      direction,
+      status,
+      ap_document_id: `${direction === 'inbound' ? 'INBOUND' : 'OUTBOUND'}-${config.country}-${CURRENT_YEAR}-${String(index + 1).padStart(3, '0')}`,
+      sender_endpoint: direction === 'outbound' ? locale.companyPeppol : (client?.peppol_endpoint_id || template.sender_endpoint),
+      receiver_endpoint: direction === 'outbound' ? (client?.peppol_endpoint_id || template.receiver_endpoint) : locale.companyPeppol,
+      error_message: status === 'error' ? 'Temporary AP timeout' : null,
+      metadata: { country: config.country, demo: true, index: index + 1 },
+      created_at: date,
+      updated_at: date,
+    };
+  });
 
   const billingPlan = ['free', 'starter', 'pro', 'enterprise'].includes(locale.demoPlan.slug)
     ? locale.demoPlan.slug

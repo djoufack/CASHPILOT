@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useReceivables = () => {
   const [receivables, setReceivables] = useState([]);
@@ -11,15 +12,20 @@ export const useReceivables = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchReceivables = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('receivables')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setReceivables(data || []);
@@ -33,7 +39,7 @@ export const useReceivables = () => {
     } finally {
       setLoading(false);
     }
-  }, [t, toast, user]);
+  }, [applyCompanyScope, t, toast, user]);
 
   const createReceivable = async (data) => {
     if (!user || !supabase) throw new Error('Not authenticated');
@@ -41,7 +47,7 @@ export const useReceivables = () => {
     try {
       const { data: created, error } = await supabase
         .from('receivables')
-        .insert([{ ...data, user_id: user.id }])
+        .insert([{ ...withCompanyScope(data), user_id: user.id }])
         .select()
         .single();
 
@@ -63,8 +69,9 @@ export const useReceivables = () => {
     try {
       const { data: updated, error } = await supabase
         .from('receivables')
-        .update(updates)
+        .update(withCompanyScope(updates))
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -85,7 +92,11 @@ export const useReceivables = () => {
     setLoading(true);
     try {
       await supabase.from('debt_payments').delete().eq('record_type', 'receivable').eq('record_id', id);
-      const { error } = await supabase.from('receivables').delete().eq('id', id);
+      const { error } = await supabase
+        .from('receivables')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
       if (error) throw error;
       setReceivables(prev => prev.filter(r => r.id !== id));
       toast({ title: t('common.success'), description: t('debtManager.deleted') });
@@ -101,9 +112,13 @@ export const useReceivables = () => {
     if (!user || !supabase) throw new Error('Not authenticated');
     setLoading(true);
     try {
+      const receivable = receivables.find(r => r.id === receivableId);
+      if (!receivable) throw new Error('Receivable not found');
+
       // Create payment record
       const { error: payError } = await supabase.from('debt_payments').insert([{
         user_id: user.id,
+        company_id: receivable.company_id || null,
         record_type: 'receivable',
         record_id: receivableId,
         amount,
@@ -113,14 +128,13 @@ export const useReceivables = () => {
       if (payError) throw payError;
 
       // Update receivable amount_paid
-      const receivable = receivables.find(r => r.id === receivableId);
-      if (!receivable) throw new Error('Receivable not found');
       const newAmountPaid = parseFloat(receivable.amount_paid) + parseFloat(amount);
 
       const { data: updated, error: upError } = await supabase
         .from('receivables')
-        .update({ amount_paid: newAmountPaid })
+        .update(withCompanyScope({ amount_paid: newAmountPaid }))
         .eq('id', receivableId)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -137,14 +151,18 @@ export const useReceivables = () => {
   };
 
   const fetchPayments = async (receivableId) => {
-    if (!supabase) return [];
+    if (!supabase || !user) return [];
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('debt_payments')
         .select('*')
+        .eq('user_id', user.id)
         .eq('record_type', 'receivable')
         .eq('record_id', receivableId)
         .order('payment_date', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     } catch {

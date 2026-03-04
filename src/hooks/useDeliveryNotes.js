@@ -4,6 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useDeliveryNotes = () => {
   const [deliveryNotes, setDeliveryNotes] = useState([]);
@@ -13,12 +14,13 @@ export const useDeliveryNotes = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchDeliveryNotes = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('delivery_notes')
         .select(`
           *,
@@ -26,7 +28,11 @@ export const useDeliveryNotes = () => {
           invoice:invoices(id, invoice_number, total_ttc),
           items:delivery_note_items(*)
         `)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setDeliveryNotes(data || []);
@@ -40,7 +46,7 @@ export const useDeliveryNotes = () => {
     } finally {
       setLoading(false);
     }
-  }, [t, toast, user]);
+  }, [applyCompanyScope, t, toast, user]);
 
   const createDeliveryNote = async (deliveryData, items = []) => {
     if (!user || !supabase) throw new Error('Not authenticated');
@@ -50,7 +56,7 @@ export const useDeliveryNotes = () => {
 
       const { data, error } = await supabase
         .from('delivery_notes')
-        .insert([{ ...deliveryData, delivery_note_number: number, user_id: user.id }])
+        .insert([{ ...withCompanyScope(deliveryData), delivery_note_number: number, user_id: user.id }])
         .select()
         .single();
 
@@ -91,8 +97,9 @@ export const useDeliveryNotes = () => {
     try {
       const { data: updated, error } = await supabase
         .from('delivery_notes')
-        .update(data)
+        .update(withCompanyScope(data))
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -117,7 +124,11 @@ export const useDeliveryNotes = () => {
     setLoading(true);
     try {
       await supabase.from('delivery_note_items').delete().eq('delivery_note_id', id);
-      const { error } = await supabase.from('delivery_notes').delete().eq('id', id);
+      const { error } = await supabase
+        .from('delivery_notes')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
       if (error) throw error;
 
       const deletedDeliveryNote = deliveryNotes.find(dn => dn.id === id);

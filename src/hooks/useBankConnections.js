@@ -5,6 +5,7 @@ import {
   clearPendingBankConnection,
   storePendingBankConnection,
 } from '@/utils/bankConnectionRedirect';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 const DEFAULT_BANK_COUNTRY = 'BE';
 
@@ -25,6 +26,7 @@ function normalizeInstitution(row = {}) {
 
 export const useBankConnections = () => {
   const { user } = useAuth();
+  const { activeCompanyId, applyCompanyScope } = useCompanyScope();
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const institutionsCacheRef = useRef(new Map());
@@ -63,11 +65,14 @@ export const useBankConnections = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('bank_connections')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+
+      const { data, error } = await query;
       if (error) throw error;
       setConnections(data || []);
     } catch (err) {
@@ -75,7 +80,7 @@ export const useBankConnections = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   useEffect(() => {
     fetchConnections();
@@ -117,6 +122,7 @@ export const useBankConnections = () => {
       const data = await callBankApi({
         action: 'create-requisition',
         userId: user.id,
+        companyId: activeCompanyId,
         institutionId,
         institutionName,
         country: normalizedCountry,
@@ -132,6 +138,7 @@ export const useBankConnections = () => {
         institutionId,
         institutionName,
         country: normalizedCountry,
+        companyId: activeCompanyId,
       });
 
       window.location.assign(data.link);
@@ -141,14 +148,15 @@ export const useBankConnections = () => {
       console.error('initiateConnection error:', err);
       throw err;
     }
-  }, [callBankApi, user]);
+  }, [activeCompanyId, callBankApi, user]);
 
-  const completeConnection = useCallback(async (requisitionId) => {
+  const completeConnection = useCallback(async (requisitionId, companyId = null) => {
     try {
       const data = await callBankApi({
         action: 'complete-requisition',
         userId: user?.id,
         requisitionId,
+        companyId: companyId || activeCompanyId,
       });
       await fetchConnections();
       return data;
@@ -156,14 +164,15 @@ export const useBankConnections = () => {
       console.error('completeConnection error:', err);
       throw err;
     }
-  }, [callBankApi, fetchConnections, user?.id]);
+  }, [activeCompanyId, callBankApi, fetchConnections, user?.id]);
 
-  const syncConnection = useCallback(async (connectionId) => {
+  const syncConnection = useCallback(async (connectionId, companyId = null) => {
     try {
       const data = await callBankApi({
         action: 'sync-transactions',
         userId: user?.id,
         connectionId,
+        companyId: companyId || activeCompanyId,
       });
       await fetchConnections();
       return data;
@@ -171,15 +180,17 @@ export const useBankConnections = () => {
       console.error('syncConnection error:', err);
       throw err;
     }
-  }, [callBankApi, fetchConnections, user?.id]);
+  }, [activeCompanyId, callBankApi, fetchConnections, user?.id]);
 
   const disconnectBank = async (connectionId) => {
     try {
-      await supabase
+      let query = supabase
         .from('bank_connections')
         .update({ status: 'revoked', updated_at: new Date().toISOString() })
         .eq('id', connectionId)
         .eq('user_id', user.id);
+      query = applyCompanyScope(query, { includeUnassigned: false });
+      await query;
       await fetchConnections();
     } catch (err) {
       console.error('disconnectBank error:', err);

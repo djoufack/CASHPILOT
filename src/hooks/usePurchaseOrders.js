@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const usePurchaseOrders = () => {
   const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -11,6 +12,7 @@ export const usePurchaseOrders = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchPurchaseOrders = useCallback(async (filters = {}) => {
     if (!user) return;
@@ -23,7 +25,9 @@ export const usePurchaseOrders = () => {
       let query = supabase
         .from('purchase_orders')
         .select('*, client:clients(company_name)')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: false });
 
       if (filters.status) query = query.eq('status', filters.status);
 
@@ -45,7 +49,7 @@ export const usePurchaseOrders = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applyCompanyScope, toast, user]);
 
   const createPurchaseOrder = async (poData) => {
     if (!user) return;
@@ -56,7 +60,7 @@ export const usePurchaseOrders = () => {
 
       const { data, error } = await supabase
         .from('purchase_orders')
-        .insert([{ ...poData, po_number: poNumber, user_id: user.id }])
+        .insert([{ ...withCompanyScope(poData), po_number: poNumber, user_id: user.id }])
         .select()
         .single();
 
@@ -89,8 +93,9 @@ export const usePurchaseOrders = () => {
     try {
       const { data, error } = await supabase
         .from('purchase_orders')
-        .update(poData)
+        .update(withCompanyScope(poData))
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -125,7 +130,8 @@ export const usePurchaseOrders = () => {
       const { error } = await supabase
         .from('purchase_orders')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
       if (error) throw error;
 

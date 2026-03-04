@@ -54,7 +54,10 @@ const BankCallbackPage = () => {
       }
 
       try {
-        const result = await completeConnection(pendingConnection.requisitionId);
+        const result = await completeConnection(
+          pendingConnection.requisitionId,
+          pendingConnection.companyId || null
+        );
         clearPendingBankConnection();
 
         if (!active) {
