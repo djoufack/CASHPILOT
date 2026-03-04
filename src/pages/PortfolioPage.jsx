@@ -171,7 +171,7 @@ const PortfolioPage = () => {
           .in('company_id', companyIds),
         supabase
           .from('quotes')
-          .select('id, company_id, quote_number, total_ttc, total, status, created_at, client:clients(company_name, contact_name)')
+          .select('id, company_id, quote_number, total_ttc, status, created_at, client:clients(company_name, contact_name)')
           .in('company_id', companyIds),
       ]);
 
@@ -250,7 +250,7 @@ const PortfolioPage = () => {
 
         if (!CLOSED_QUOTE_STATUSES.has(quote.status)) {
           summary.openQuotes += 1;
-          summary.quotePipeline += toAmount(quote.total_ttc || quote.total);
+          summary.quotePipeline += toAmount(quote.total_ttc);
         }
 
         updateLastActivity(summary, quote.created_at);

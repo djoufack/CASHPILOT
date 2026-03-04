@@ -119,7 +119,7 @@ const QuoteCard = ({ quote, onDelete, onExportPDF, onExportHTML, onRequestSignat
       </div>
       <div className="flex justify-between items-center text-sm text-gray-400 mb-4">
         <span>{quote.date ? new Date(quote.date).toLocaleDateString(locale) : '—'}</span>
-        <span className="text-gradient font-bold text-lg">{formatCurrency(quote.total || quote.total_ttc || 0)}</span>
+        <span className="text-gradient font-bold text-lg">{formatCurrency(quote.total_ttc || 0)}</span>
       </div>
       {quote.notes && <p className="text-xs text-gray-500 mb-4 line-clamp-2">{quote.notes}</p>}
       <div className="flex justify-between items-center gap-2 border-t border-gray-800 pt-3">
@@ -243,7 +243,7 @@ const QuotesPage = () => {
       status: q.status || 'draft',
       statusLabel: t(`quotesPage.status${(q.status || 'draft').charAt(0).toUpperCase()}${(q.status || 'draft').slice(1)}`),
       statusColor: statusColorMap[q.status] || 'bg-gray-500/20 text-gray-400',
-      amount: formatCurrency(q.total || q.total_ttc || 0),
+      amount: formatCurrency(q.total_ttc || 0),
     };
   });
 
@@ -327,7 +327,6 @@ const QuotesPage = () => {
         total_ht: totalHT,
         tax_rate: formData.items[0] ? parseFloat(formData.items[0].tax_rate) || 0 : 0,
         total_ttc: totalTTC,
-        total: totalTTC,
       });
       setIsDialogOpen(false);
       setFormData(createInitialFormData());
@@ -424,7 +423,7 @@ const QuotesPage = () => {
     const exportData = quotes.map(q => ({
       [t('quotesPage.quoteNumber')]: q.quote_number || '',
       [t('quotesPage.client')]: q.client?.company_name || '',
-      [t('invoices.totalTTC')]: q.total || q.total_ttc || '',
+      [t('invoices.totalTTC')]: q.total_ttc || '',
       [t('quotesPage.status')]: statusLabels[q.status] || q.status || '',
       [t('quotesPage.date')]: q.date || '',
     }));
