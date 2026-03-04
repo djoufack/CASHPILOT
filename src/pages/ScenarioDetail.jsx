@@ -14,7 +14,6 @@ import {
   Settings,
   BarChart3,
   FileText,
-  Save,
   Calendar,
   AlertCircle,
   Download,
@@ -224,10 +223,10 @@ const ScenarioDetail = () => {
 
   // Status colors
   const statusColors = {
-    draft: 'bg-gray-100 text-gray-800',
-    active: 'bg-blue-100 text-blue-800',
-    completed: 'bg-green-100 text-green-800',
-    archived: 'bg-orange-100 text-orange-800',
+    draft: 'border border-white/10 bg-white/5 text-slate-200',
+    active: 'border border-blue-400/20 bg-blue-500/10 text-blue-200',
+    completed: 'border border-emerald-400/20 bg-emerald-500/10 text-emerald-200',
+    archived: 'border border-orange-400/20 bg-orange-500/10 text-orange-200',
   };
 
   const statusLabels = {
@@ -239,10 +238,10 @@ const ScenarioDetail = () => {
 
   if (loading && !scenario) {
     return (
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto py-8 px-4 text-white">
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement du scénario...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-slate-400">Chargement du scénario...</p>
         </div>
       </div>
     );
@@ -250,17 +249,17 @@ const ScenarioDetail = () => {
 
   if (!scenario) {
     return (
-      <div className="container mx-auto py-8 px-4">
-        <Card>
+      <div className="container mx-auto py-8 px-4 text-white">
+        <Card className="border-white/10 bg-slate-950/80">
           <CardContent className="py-12 text-center">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-white mb-2">
               Scénario introuvable
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-slate-400 mb-6">
               Le scénario demandé n'existe pas ou vous n'y avez pas accès
             </p>
-            <Button onClick={() => navigate('/app/scenarios')}>
+            <Button onClick={() => navigate('/app/scenarios')} className="bg-orange-500 text-white hover:bg-orange-600">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Retour aux scénarios
             </Button>
@@ -273,13 +272,13 @@ const ScenarioDetail = () => {
   return (
     <>
       <CreditsGuardModal {...modalProps} />
-      <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <div className="container mx-auto max-w-7xl px-4 py-8 text-white">
         {/* Header */}
       <div className="mb-6">
         <Button
           variant="ghost"
           onClick={() => navigate('/app/scenarios')}
-          className="mb-4"
+          className="mb-4 text-slate-200 hover:bg-white/5 hover:text-white"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Retour aux scénarios
@@ -288,7 +287,7 @@ const ScenarioDetail = () => {
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-white">
                 {scenario.name}
               </h1>
               <Badge className={statusColors[scenario.status]}>
@@ -299,11 +298,11 @@ const ScenarioDetail = () => {
               )}
             </div>
 
-            <p className="text-gray-600 mb-4">
+            <p className="text-slate-400 mb-4">
               {scenario.description || 'Aucune description'}
             </p>
 
-            <div className="flex items-center gap-4 text-sm text-gray-600">
+            <div className="flex items-center gap-4 text-sm text-slate-400">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 <span>
@@ -326,6 +325,7 @@ const ScenarioDetail = () => {
                   onClick={handleExportPDF}
                   variant="outline"
                   size="lg"
+                  className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   PDF ({CREDIT_COSTS.PDF_SCENARIO})
@@ -334,6 +334,7 @@ const ScenarioDetail = () => {
                   onClick={handleExportHTML}
                   variant="outline"
                   size="lg"
+                  className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white"
                 >
                   <FileText className="w-4 h-4 mr-2" />
                   HTML ({CREDIT_COSTS.EXPORT_HTML})
@@ -344,6 +345,7 @@ const ScenarioDetail = () => {
               onClick={handleRunSimulation}
               disabled={isRunningSimulation || assumptions.length === 0}
               size="lg"
+              className="bg-orange-500 text-white hover:bg-orange-600 disabled:bg-slate-700 disabled:text-slate-300"
             >
               {isRunningSimulation ? (
                 <>
@@ -363,20 +365,20 @@ const ScenarioDetail = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="assumptions" className="flex items-center gap-2">
+        <TabsList className="mb-6 grid w-full grid-cols-3 border border-white/10 bg-slate-950/80">
+          <TabsTrigger value="assumptions" className="flex items-center gap-2 text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
             <Settings className="w-4 h-4" />
             Hypothèses
           </TabsTrigger>
           <TabsTrigger
             value="results"
             disabled={!results}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white"
           >
             <BarChart3 className="w-4 h-4" />
             Résultats
           </TabsTrigger>
-          <TabsTrigger value="info" className="flex items-center gap-2">
+          <TabsTrigger value="info" className="flex items-center gap-2 text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
             <FileText className="w-4 h-4" />
             Informations
           </TabsTrigger>
@@ -401,16 +403,16 @@ const ScenarioDetail = () => {
               currency={scenarioCurrency}
             />
           ) : (
-            <Card>
+            <Card className="border-white/10 bg-slate-950/80 text-white">
               <CardContent className="py-12 text-center">
-                <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <BarChart3 className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">
                   Aucun résultat disponible
                 </h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-slate-400 mb-6">
                   Configurez vos hypothèses puis lancez la simulation pour voir les projections
                 </p>
-                <Button onClick={() => setActiveTab('assumptions')}>
+                <Button onClick={() => setActiveTab('assumptions')} className="bg-orange-500 text-white hover:bg-orange-600">
                   <Settings className="w-4 h-4 mr-2" />
                   Configurer les hypothèses
                 </Button>
@@ -421,10 +423,10 @@ const ScenarioDetail = () => {
 
         {/* Info Tab */}
         <TabsContent value="info">
-          <Card>
+          <Card className="border-white/10 bg-slate-950/80 text-white">
             <CardHeader>
-              <CardTitle>Informations du scénario</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-white">Informations du scénario</CardTitle>
+              <CardDescription className="text-slate-400">
                 Détails et paramètres de la simulation
               </CardDescription>
             </CardHeader>
@@ -432,11 +434,11 @@ const ScenarioDetail = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Nom</Label>
-                    <p className="mt-1 text-sm text-gray-900">{scenario.name}</p>
+                    <Label className="text-sm font-medium text-slate-500">Nom</Label>
+                    <p className="mt-1 text-sm text-white">{scenario.name}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Statut</Label>
+                    <Label className="text-sm font-medium text-slate-500">Statut</Label>
                     <p className="mt-1">
                       <Badge className={statusColors[scenario.status]}>
                         {statusLabels[scenario.status]}
@@ -444,26 +446,26 @@ const ScenarioDetail = () => {
                     </p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Date de début</Label>
-                    <p className="mt-1 text-sm text-gray-900">
+                    <Label className="text-sm font-medium text-slate-500">Date de début</Label>
+                    <p className="mt-1 text-sm text-white">
                       {format(new Date(scenario.base_date), 'dd MMMM yyyy', { locale: fr })}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Date de fin</Label>
-                    <p className="mt-1 text-sm text-gray-900">
+                    <Label className="text-sm font-medium text-slate-500">Date de fin</Label>
+                    <p className="mt-1 text-sm text-white">
                       {format(new Date(scenario.end_date), 'dd MMMM yyyy', { locale: fr })}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Créé le</Label>
-                    <p className="mt-1 text-sm text-gray-900">
+                    <Label className="text-sm font-medium text-slate-500">Créé le</Label>
+                    <p className="mt-1 text-sm text-white">
                       {format(new Date(scenario.created_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Modifié le</Label>
-                    <p className="mt-1 text-sm text-gray-900">
+                    <Label className="text-sm font-medium text-slate-500">Modifié le</Label>
+                    <p className="mt-1 text-sm text-white">
                       {format(new Date(scenario.updated_at), 'dd MMMM yyyy à HH:mm', { locale: fr })}
                     </p>
                   </div>
@@ -471,8 +473,8 @@ const ScenarioDetail = () => {
 
                 {scenario.description && (
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Description</Label>
-                    <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
+                    <Label className="text-sm font-medium text-slate-500">Description</Label>
+                    <p className="mt-1 text-sm text-slate-200 whitespace-pre-wrap">
                       {scenario.description}
                     </p>
                   </div>
