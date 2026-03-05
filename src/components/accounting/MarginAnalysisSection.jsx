@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, DollarSign, Activity, Target } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
+import RatioInfoPopover from './RatioInfoPopover';
 
 /**
  * Section Analyse des Marges
@@ -35,22 +36,25 @@ const MarginAnalysisSection = ({ data, currency = 'EUR' }) => {
   } = data;
 
   // Composant pour une carte de metrique
-  const MetricCard = ({ icon: Icon, label, value, percentage, colorClass }) => (
+  const MetricCard = ({ icon: Icon, label, value, percentage, colorClass, info }) => (
     <Card className="bg-gray-900/50 border border-gray-800">
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <div className="p-2 bg-gray-800 rounded-lg">
             <Icon className={`w-5 h-5 ${colorClass || 'text-blue-400'}`} />
           </div>
-          {percentage !== undefined && (
-            <span
-              className={`text-sm font-semibold ${
-                percentage >= 0 ? 'text-green-400' : 'text-red-400'
-              }`}
-            >
-              {percentage.toFixed(1)}%
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {percentage !== undefined && (
+              <span
+                className={`text-sm font-semibold ${
+                  percentage >= 0 ? 'text-green-400' : 'text-red-400'
+                }`}
+              >
+                {percentage.toFixed(1)}%
+              </span>
+            )}
+            {info && <RatioInfoPopover {...info} />}
+          </div>
         </div>
         <p className="text-sm text-gray-400 mb-1">{label}</p>
         <p className={`text-2xl font-bold ${
@@ -82,6 +86,13 @@ const MarginAnalysisSection = ({ data, currency = 'EUR' }) => {
           label="Chiffre d'affaires"
           value={revenue}
           colorClass="text-blue-400"
+          info={{
+            title: "Chiffre d'affaires",
+            formula: 'Somme des ventes HT sur la periode',
+            definition: "Le chiffre d'affaires mesure le total des ventes realisees sur la periode.",
+            utility: "Il sert a suivre la croissance commerciale et a comparer la performance d'une periode a l'autre.",
+            interpretation: "Si le CA augmente de facon reguliere, l'activite progresse. S'il baisse, analysez volume, prix et perte clients.",
+          }}
         />
         <MetricCard
           icon={Target}
@@ -89,6 +100,13 @@ const MarginAnalysisSection = ({ data, currency = 'EUR' }) => {
           value={grossMargin}
           percentage={grossMarginPercent}
           colorClass={grossMargin >= 0 ? 'text-green-400' : 'text-red-400'}
+          info={{
+            title: 'Marge brute',
+            formula: "Marge brute = CA - couts directs",
+            definition: "La marge brute represente ce qu'il reste apres avoir paye les couts directement lies aux ventes.",
+            utility: "Elle permet de verifier si les prix couvrent correctement les couts de production/achat.",
+            interpretation: "Une marge brute elevee indique une bonne capacite a degager de la valeur. Une baisse signale souvent une pression sur les prix ou des couts en hausse.",
+          }}
         />
         <MetricCard
           icon={Activity}
@@ -96,6 +114,13 @@ const MarginAnalysisSection = ({ data, currency = 'EUR' }) => {
           value={ebitda}
           percentage={ebitdaMargin}
           colorClass={ebitda >= 0 ? 'text-purple-400' : 'text-red-400'}
+          info={{
+            title: 'EBE / EBITDA',
+            formula: "EBITDA = resultat d'exploitation avant amortissements et provisions",
+            definition: "L'EBITDA mesure la performance operationnelle pure, avant elements non cash.",
+            utility: "Il sert a juger la rentabilite reelle de l'activite et a comparer des entreprises de taille differente.",
+            interpretation: "Un EBITDA positif et stable est un signal de robustesse. Une baisse continue indique une deterioration de la performance operationnelle.",
+          }}
         />
         <MetricCard
           icon={TrendingUp}
@@ -103,6 +128,13 @@ const MarginAnalysisSection = ({ data, currency = 'EUR' }) => {
           value={operatingResult}
           percentage={operatingMargin}
           colorClass={operatingResult >= 0 ? 'text-green-400' : 'text-red-400'}
+          info={{
+            title: "Resultat d'exploitation",
+            formula: "Resultat d'exploitation = produits d'exploitation - charges d'exploitation",
+            definition: "Ce resultat montre le profit issu du coeur du metier, hors elements financiers et exceptionnels.",
+            utility: "Il permet de savoir si l'entreprise gagne de l'argent sur son activite principale.",
+            interpretation: "Positif: activite rentable. Negatif: le modele operationnel doit etre corrige (prix, couts, efficacite).",
+          }}
         />
       </div>
 

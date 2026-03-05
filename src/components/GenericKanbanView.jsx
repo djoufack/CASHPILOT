@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 
-const KanbanCard = ({ item, onView, onEdit, onDelete, isDragOverlay }) => (
+const KanbanCard = ({ item, onView, onEdit, onDelete, renderActions, isDragOverlay }) => (
   <motion.div
     initial={isDragOverlay ? false : { opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
@@ -52,7 +52,7 @@ const KanbanCard = ({ item, onView, onEdit, onDelete, isDragOverlay }) => (
       </p>
     )}
 
-    {(onView || onEdit || onDelete) && (
+    {(onView || onEdit || onDelete || renderActions) && (
       <div className="flex items-center gap-1 pt-2 border-t border-gray-700/50 pl-6">
         {onEdit && (
           <Button size="sm" variant="ghost" className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 h-7 px-2 text-xs"
@@ -60,24 +60,29 @@ const KanbanCard = ({ item, onView, onEdit, onDelete, isDragOverlay }) => (
             <Edit className="w-3 h-3 mr-1" />Edit
           </Button>
         )}
-        {onView && (
-          <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-7 px-2 text-xs ml-auto"
-            onClick={(e) => { e.stopPropagation(); onView(item); }}>
-            <Eye className="w-3 h-3" />
-          </Button>
-        )}
-        {onDelete && (
-          <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 px-2 text-xs"
-            onClick={(e) => { e.stopPropagation(); onDelete(item); }}>
-            <Trash2 className="w-3 h-3" />
-          </Button>
+        {(renderActions || onView || onDelete) && (
+          <div className="ml-auto flex items-center gap-1">
+            {renderActions && renderActions(item)}
+            {onView && (
+              <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-7 px-2 text-xs"
+                onClick={(e) => { e.stopPropagation(); onView(item); }}>
+                <Eye className="w-3 h-3" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 px-2 text-xs"
+                onClick={(e) => { e.stopPropagation(); onDelete(item); }}>
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
         )}
       </div>
     )}
   </motion.div>
 );
 
-const SortableKanbanItem = ({ item, onView, onEdit, onDelete }) => {
+const SortableKanbanItem = ({ item, onView, onEdit, onDelete, renderActions }) => {
   const {
     attributes,
     listeners,
@@ -95,12 +100,12 @@ const SortableKanbanItem = ({ item, onView, onEdit, onDelete }) => {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="mb-3">
-      <KanbanCard item={item} onView={onView} onEdit={onEdit} onDelete={onDelete} />
+      <KanbanCard item={item} onView={onView} onEdit={onEdit} onDelete={onDelete} renderActions={renderActions} />
     </div>
   );
 };
 
-const KanbanColumn = ({ column, items, onView, onEdit, onDelete, emptyMessage }) => {
+const KanbanColumn = ({ column, items, onView, onEdit, onDelete, renderActions, emptyMessage }) => {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   return (
@@ -116,7 +121,14 @@ const KanbanColumn = ({ column, items, onView, onEdit, onDelete, emptyMessage })
       >
         <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
           {items.map(item => (
-            <SortableKanbanItem key={item.id} item={item} onView={onView} onEdit={onEdit} onDelete={onDelete} />
+            <SortableKanbanItem
+              key={item.id}
+              item={item}
+              onView={onView}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              renderActions={renderActions}
+            />
           ))}
         </SortableContext>
         {items.length === 0 && (
@@ -137,6 +149,7 @@ const KanbanColumn = ({ column, items, onView, onEdit, onDelete, emptyMessage })
  * @param {Function} onView - (item) => void (optional)
  * @param {Function} onEdit - (item) => void (optional)
  * @param {Function} onDelete - (item) => void (optional)
+ * @param {Function} renderActions - (item) => ReactNode (optional)
  * @param {string} emptyMessage - Text shown when a column is empty
  */
 const GenericKanbanView = ({
@@ -146,6 +159,7 @@ const GenericKanbanView = ({
   onView,
   onEdit,
   onDelete,
+  renderActions,
   emptyMessage,
 }) => {
   const { t } = useTranslation();
@@ -216,6 +230,7 @@ const GenericKanbanView = ({
               onView={onView}
               onEdit={onEdit}
               onDelete={onDelete}
+              renderActions={renderActions}
               emptyMessage={dropMessage}
             />
           ))}

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wallet, TrendingDown, TrendingUp, DollarSign, ArrowRightLeft, CreditCard } from 'lucide-react';
+import { Wallet, TrendingUp, DollarSign, ArrowRightLeft, CreditCard } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
+import RatioInfoPopover from './RatioInfoPopover';
 
 /**
  * Section Analyse du Financement
@@ -36,18 +37,21 @@ const FinancingAnalysisSection = ({ data, currency = 'EUR' }) => {
   } = data;
 
   // Composant pour une carte de metrique de financement
-  const FinanceMetricCard = ({ icon: Icon, label, value, subLabel, colorClass, badge }) => (
+  const FinanceMetricCard = ({ icon: Icon, label, value, subLabel, colorClass, badge, info }) => (
     <Card className="bg-gray-900/50 border border-gray-800">
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <div className="p-2 bg-gray-800 rounded-lg">
             <Icon className={`w-5 h-5 ${colorClass || 'text-purple-400'}`} />
           </div>
-          {badge && (
-            <span className={`text-xs px-2 py-1 rounded-full font-medium ${badge.className}`}>
-              {badge.text}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {badge && (
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${badge.className}`}>
+                {badge.text}
+              </span>
+            )}
+            {info && <RatioInfoPopover {...info} />}
+          </div>
         </div>
         <p className="text-sm text-gray-400 mb-1">{label}</p>
         <p className={`text-2xl font-bold ${
@@ -89,6 +93,13 @@ const FinancingAnalysisSection = ({ data, currency = 'EUR' }) => {
           value={caf}
           subLabel="Ressources generees par l'activite"
           colorClass={caf >= 0 ? 'text-green-400' : 'text-red-400'}
+          info={{
+            title: "Capacite d'Autofinancement (CAF)",
+            formula: 'CAF = resultat net + charges calculees - produits calcules',
+            definition: "La CAF mesure la capacite de l'entreprise a generer du cash via son activite.",
+            utility: "Elle aide a estimer la capacite a rembourser la dette, investir, ou distribuer des dividendes.",
+            interpretation: "CAF positive: creation de ressources internes. CAF negative: dependance au financement externe.",
+          }}
         />
         <FinanceMetricCard
           icon={ArrowRightLeft}
@@ -97,6 +108,13 @@ const FinancingAnalysisSection = ({ data, currency = 'EUR' }) => {
           subLabel="Besoin de financement du cycle d'exploitation"
           colorClass={bfr >= 0 ? 'text-orange-400' : 'text-green-400'}
           badge={getBFRVariationBadge()}
+          info={{
+            title: 'Besoin en Fonds de Roulement (BFR)',
+            formula: 'BFR = stocks + creances clients - dettes fournisseurs',
+            definition: "Le BFR represente le cash immobilise dans l'exploitation courante.",
+            utility: "Il permet de piloter les delais de paiement clients/fournisseurs et la gestion des stocks.",
+            interpretation: "BFR eleve: l'activite consomme du cash. BFR faible ou negatif: cycle d'exploitation plus favorable.",
+          }}
         />
         <FinanceMetricCard
           icon={TrendingUp}
@@ -104,6 +122,13 @@ const FinancingAnalysisSection = ({ data, currency = 'EUR' }) => {
           value={operatingCashFlow}
           subLabel="CAF - Variation BFR"
           colorClass={operatingCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}
+          info={{
+            title: "Flux de Tresorerie d'Exploitation",
+            formula: "Flux d'exploitation = CAF - variation du BFR",
+            definition: "Ce flux indique la tresorerie generee ou consommee par le coeur d'activite.",
+            utility: "Il aide a verifier si l'activite finance ses besoins sans recourir systematiquement a la dette.",
+            interpretation: "Flux positif: activite saine en cash. Flux negatif: tension de tresorerie a surveiller rapidement.",
+          }}
         />
       </div>
 
@@ -143,9 +168,18 @@ const FinancingAnalysisSection = ({ data, currency = 'EUR' }) => {
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-gray-800">
-                  <span className="text-sm font-semibold text-gray-300">
-                    Ratio d'endettement
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-gray-300">
+                      Ratio d'endettement
+                    </span>
+                    <RatioInfoPopover
+                      title="Ratio d'endettement"
+                      formula="Ratio = dettes totales / capitaux propres"
+                      definition="Ce ratio mesure le poids de la dette par rapport aux fonds propres."
+                      utility="Il sert a evaluer le risque financier et la marge de manoeuvre pour emprunter."
+                      interpretation="Au-dela de 1, la dette depasse les fonds propres. Plus il monte, plus la structure est sensible aux chocs."
+                    />
+                  </div>
                   <span className={`text-sm font-bold ${
                     (totalDebt / equity) > 1 ? 'text-orange-400' : 'text-green-400'
                   }`}>
