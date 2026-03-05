@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Package, Search, Plus, Trash2, Download, FileText, Wallet, TrendingUp, Target, BarChart3 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { exportStockListPDF, exportStockListHTML } from '@/services/exportListsPDF';
@@ -292,199 +292,183 @@ const StockManagement = () => {
     <>
       <CreditsGuardModal {...modalProps} />
       <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gradient">Gestion du Stock</h1>
-            <p className="text-gray-400">Gérez votre inventaire, alertes et mouvements de stock.</p>
+      {/* Tabs */}
+      <Tabs defaultValue="cockpit" className="w-full space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+          <div className="space-y-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gradient">Gestion du Stock</h1>
+              <p className="text-gray-400">Gérez votre inventaire, alertes et mouvements de stock.</p>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Rechercher..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 bg-gray-800 border-gray-700 text-white w-full sm:w-[260px]"
+                />
+              </div>
+
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-full sm:w-[220px] bg-gray-800 border-gray-700 text-white">
+                  <SelectValue placeholder="Toutes catégories" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                  <SelectItem value="all">Toutes catégories</SelectItem>
+                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              <Button onClick={() => setShowAddDialog(true)} className="bg-orange-500 hover:bg-orange-600">
+                <Plus className="h-4 w-4 mr-2" /> Nouveau produit
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <ExportButton
-              data={filteredProducts}
-              columns={productExportColumns}
-              filename="products"
-            />
-            <Button onClick={handleExportPDF} size="sm" variant="outline" className="border-gray-600 hover:bg-gray-700">
-              <Download className="w-4 h-4 mr-2" />
-              PDF ({CREDIT_COSTS.PDF_REPORT})
-            </Button>
-            <Button onClick={handleExportHTML} size="sm" variant="outline" className="border-gray-600 hover:bg-gray-700">
-              <FileText className="w-4 h-4 mr-2" />
-              HTML ({CREDIT_COSTS.EXPORT_HTML})
-            </Button>
+
+          <div className="space-y-4 lg:self-start">
+            <div className="flex gap-2 flex-wrap lg:justify-end">
+              <ExportButton
+                data={filteredProducts}
+                columns={productExportColumns}
+                filename="products"
+              />
+              <Button onClick={handleExportPDF} size="sm" variant="outline" className="border-gray-600 hover:bg-gray-700">
+                <Download className="w-4 h-4 mr-2" />
+                PDF ({CREDIT_COSTS.PDF_REPORT})
+              </Button>
+              <Button onClick={handleExportHTML} size="sm" variant="outline" className="border-gray-600 hover:bg-gray-700">
+                <FileText className="w-4 h-4 mr-2" />
+                HTML ({CREDIT_COSTS.EXPORT_HTML})
+              </Button>
+            </div>
+
+            <TabsList className="bg-gray-900 border border-gray-800 w-full h-auto p-1 grid grid-cols-2 md:grid-cols-4 gap-1">
+              <TabsTrigger value="cockpit">Cockpit stock</TabsTrigger>
+              <TabsTrigger value="inventory">Inventaire</TabsTrigger>
+              <TabsTrigger value="history">Historique</TabsTrigger>
+              <TabsTrigger value="adjustments">Gestion stock</TabsTrigger>
+            </TabsList>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Rechercher..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-gray-800 border-gray-700 text-white w-full sm:w-[200px]"
-            />
-          </div>
-
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-full sm:w-[180px] bg-gray-800 border-gray-700 text-white">
-              <SelectValue placeholder="Toutes catégories" />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700 text-white">
-              <SelectItem value="all">Toutes catégories</SelectItem>
-              {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-orange-500 hover:bg-orange-600">
-                <Plus className="h-4 w-4 mr-2" /> Nouveau produit
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Ajouter un produit</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Nom du produit *</Label>
-                    <Input className="bg-gray-800 border-gray-700" value={newProduct.product_name}
-                      onChange={e => setNewProduct(p => ({ ...p, product_name: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>SKU</Label>
-                    <Input className="bg-gray-800 border-gray-700" value={newProduct.sku}
-                      onChange={e => setNewProduct(p => ({ ...p, sku: e.target.value }))} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Prix de vente ({currencySymbol})</Label>
-                    <Input type="number" className="bg-gray-800 border-gray-700" value={newProduct.unit_price}
-                      onChange={e => setNewProduct(p => ({ ...p, unit_price: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Prix d'achat ({currencySymbol})</Label>
-                    <Input type="number" className="bg-gray-800 border-gray-700" value={newProduct.purchase_price}
-                      onChange={e => setNewProduct(p => ({ ...p, purchase_price: e.target.value }))} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Unité</Label>
-                    <Input className="bg-gray-800 border-gray-700" value={newProduct.unit}
-                      onChange={e => setNewProduct(p => ({ ...p, unit: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Stock initial</Label>
-                    <Input type="number" className="bg-gray-800 border-gray-700" value={newProduct.stock_quantity}
-                      onChange={e => setNewProduct(p => ({ ...p, stock_quantity: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Stock min.</Label>
-                    <Input type="number" className="bg-gray-800 border-gray-700" value={newProduct.min_stock_level}
-                      onChange={e => setNewProduct(p => ({ ...p, min_stock_level: e.target.value }))} />
-                  </div>
+        {/* Adjustments Tab */}
+        <TabsContent value="adjustments" className="mt-4">
+          <Card className="bg-gray-900 border-gray-800 max-w-lg mx-auto">
+            <CardHeader>
+              <CardTitle>Ajustement manuel du stock</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Produit</Label>
+                <Select value={adjProductId} onValueChange={setAdjProductId}>
+                  <SelectTrigger className="bg-gray-800 border-gray-700">
+                    <SelectValue placeholder="Sélectionnez un produit..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                    {products.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.product_name} (actuel : {p.stock_quantity})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nouvelle quantité</Label>
+                  <Input type="number" className="bg-gray-800 border-gray-700" value={adjNewQty}
+                    onChange={e => setAdjNewQty(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Catégorie</Label>
-                  <Select value={newProduct.category_id} onValueChange={v => setNewProduct(p => ({ ...p, category_id: v }))}>
+                  <Label>Raison</Label>
+                  <Select value={adjReason} onValueChange={setAdjReason}>
                     <SelectTrigger className="bg-gray-800 border-gray-700">
-                      <SelectValue placeholder="Aucune" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                      {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      <SelectItem value="adjustment">Ajustement</SelectItem>
+                      <SelectItem value="reception">Réception</SelectItem>
+                      <SelectItem value="sale">Vente</SelectItem>
+                      <SelectItem value="damage">Perte/Casse</SelectItem>
+                      <SelectItem value="return">Retour</SelectItem>
+                      <SelectItem value="inventory">Inventaire</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea className="bg-gray-800 border-gray-700" value={newProduct.description}
-                    onChange={e => setNewProduct(p => ({ ...p, description: e.target.value }))} />
-                </div>
               </div>
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => setShowAddDialog(false)}>Annuler</Button>
-                <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleAddProduct}
-                  disabled={!newProduct.product_name || loading}>
-                  Créer
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Total Produits</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gradient">{totalProducts}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Stock bas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">{lowStockCount}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Rupture</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-500">{outOfStockCount}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Valeur du stock</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-400">{formatNumber(totalValue)} {currencySymbol}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Active Alerts */}
-      {alerts.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg">Alertes actives</h3>
-          <div className="grid gap-2">
-            {alerts.map(alert => (
-              <Alert key={alert.id} className="bg-gray-900 border border-gray-800 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className={`h-5 w-5 ${alert.alert_type === 'out_of_stock' ? 'text-red-500' : 'text-yellow-500'}`} />
-                  <div>
-                    <AlertTitle className="text-gradient">{alert.product?.product_name}</AlertTitle>
-                    <AlertDescription className="text-gray-400">
-                      Actuel : {alert.product?.stock_quantity} | Min : {alert.product?.min_stock_level}
-                    </AlertDescription>
-                  </div>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => resolveAlert(alert.id)}>Résoudre</Button>
-              </Alert>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <Tabs defaultValue="cockpit" className="w-full">
-        <TabsList className="bg-gray-900 border-gray-800">
-          <TabsTrigger value="cockpit">Cockpit stock</TabsTrigger>
-          <TabsTrigger value="inventory">Inventaire</TabsTrigger>
-          <TabsTrigger value="history">Historique</TabsTrigger>
-          <TabsTrigger value="adjustments">Ajustements</TabsTrigger>
-        </TabsList>
+              <div className="space-y-2">
+                <Label>Notes</Label>
+                <Input className="bg-gray-800 border-gray-700" placeholder="Notes optionnelles..."
+                  value={adjNotes} onChange={e => setAdjNotes(e.target.value)} />
+              </div>
+              <Button className="w-full bg-orange-500 hover:bg-orange-600" onClick={handleAdjustment}
+                disabled={!adjProductId || adjNewQty === '' || historyLoading}>
+                Mettre à jour le stock
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="cockpit" className="mt-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-400">Total Produits</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-gradient">{totalProducts}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-400">Stock bas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-500">{lowStockCount}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-400">Rupture</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-500">{outOfStockCount}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-400">Valeur du stock</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-400">{formatNumber(totalValue)} {currencySymbol}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {alerts.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="font-semibold text-lg">Alertes actives</h3>
+              <div className="grid gap-2">
+                {alerts.map(alert => (
+                  <Alert key={alert.id} className="bg-gray-900 border border-gray-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className={`h-5 w-5 ${alert.alert_type === 'out_of_stock' ? 'text-red-500' : 'text-yellow-500'}`} />
+                      <div>
+                        <AlertTitle className="text-gradient">{alert.product?.product_name}</AlertTitle>
+                        <AlertDescription className="text-gray-400">
+                          Actuel : {alert.product?.stock_quantity} | Min : {alert.product?.min_stock_level}
+                        </AlertDescription>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => resolveAlert(alert.id)}>Résoudre</Button>
+                  </Alert>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="pb-2">
@@ -835,64 +819,82 @@ const StockManagement = () => {
           )}
         </TabsContent>
 
-        {/* Adjustments Tab */}
-        <TabsContent value="adjustments" className="mt-4">
-          <Card className="bg-gray-900 border-gray-800 max-w-lg mx-auto">
-            <CardHeader>
-              <CardTitle>Ajustement manuel du stock</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Produit</Label>
-                <Select value={adjProductId} onValueChange={setAdjProductId}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700">
-                    <SelectValue placeholder="Sélectionnez un produit..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                    {products.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.product_name} (actuel : {p.stock_quantity})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nouvelle quantité</Label>
-                  <Input type="number" className="bg-gray-800 border-gray-700" value={adjNewQty}
-                    onChange={e => setAdjNewQty(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Raison</Label>
-                  <Select value={adjReason} onValueChange={setAdjReason}>
-                    <SelectTrigger className="bg-gray-800 border-gray-700">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                      <SelectItem value="adjustment">Ajustement</SelectItem>
-                      <SelectItem value="reception">Réception</SelectItem>
-                      <SelectItem value="sale">Vente</SelectItem>
-                      <SelectItem value="damage">Perte/Casse</SelectItem>
-                      <SelectItem value="return">Retour</SelectItem>
-                      <SelectItem value="inventory">Inventaire</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Notes</Label>
-                <Input className="bg-gray-800 border-gray-700" placeholder="Notes optionnelles..."
-                  value={adjNotes} onChange={e => setAdjNotes(e.target.value)} />
-              </div>
-              <Button className="w-full bg-orange-500 hover:bg-orange-600" onClick={handleAdjustment}
-                disabled={!adjProductId || adjNewQty === '' || historyLoading}>
-                Mettre à jour le stock
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
+
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Ajouter un produit</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nom du produit *</Label>
+                <Input className="bg-gray-800 border-gray-700" value={newProduct.product_name}
+                  onChange={e => setNewProduct(p => ({ ...p, product_name: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>SKU</Label>
+                <Input className="bg-gray-800 border-gray-700" value={newProduct.sku}
+                  onChange={e => setNewProduct(p => ({ ...p, sku: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Prix de vente ({currencySymbol})</Label>
+                <Input type="number" className="bg-gray-800 border-gray-700" value={newProduct.unit_price}
+                  onChange={e => setNewProduct(p => ({ ...p, unit_price: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Prix d'achat ({currencySymbol})</Label>
+                <Input type="number" className="bg-gray-800 border-gray-700" value={newProduct.purchase_price}
+                  onChange={e => setNewProduct(p => ({ ...p, purchase_price: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Unité</Label>
+                <Input className="bg-gray-800 border-gray-700" value={newProduct.unit}
+                  onChange={e => setNewProduct(p => ({ ...p, unit: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Stock initial</Label>
+                <Input type="number" className="bg-gray-800 border-gray-700" value={newProduct.stock_quantity}
+                  onChange={e => setNewProduct(p => ({ ...p, stock_quantity: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Stock min.</Label>
+                <Input type="number" className="bg-gray-800 border-gray-700" value={newProduct.min_stock_level}
+                  onChange={e => setNewProduct(p => ({ ...p, min_stock_level: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Catégorie</Label>
+              <Select value={newProduct.category_id} onValueChange={v => setNewProduct(p => ({ ...p, category_id: v }))}>
+                <SelectTrigger className="bg-gray-800 border-gray-700">
+                  <SelectValue placeholder="Aucune" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea className="bg-gray-800 border-gray-700" value={newProduct.description}
+                onChange={e => setNewProduct(p => ({ ...p, description: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowAddDialog(false)}>Annuler</Button>
+            <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleAddProduct}
+              disabled={!newProduct.product_name || loading}>
+              Créer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      </div>
     </>
   );
 };
