@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
 
 export const useAIChat = () => {
   const { user } = useAuth();
+  const activeCompanyId = useActiveCompanyId();
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,7 +34,13 @@ export const useAIChat = () => {
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId: user.id, message: text, context }),
+          body: JSON.stringify({
+            userId: user.id,
+            message: text,
+            context,
+            activeCompanyId,
+            currentPath: typeof window !== 'undefined' ? window.location.pathname : null,
+          }),
         }
       );
 
@@ -106,7 +114,7 @@ export const useAIChat = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, messages]);
+  }, [activeCompanyId, user, messages]);
 
   const clearChat = useCallback(() => setMessages([]), []);
 

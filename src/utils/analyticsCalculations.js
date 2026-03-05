@@ -1,5 +1,13 @@
 
 import { differenceInCalendarDays, format, parseISO, isValid } from 'date-fns';
+import {
+  buildCanonicalRevenueCollectionSnapshot,
+  getCanonicalInvoiceAmount,
+  getCanonicalInvoiceBalanceDue,
+  isCanonicalInvoiceBooked,
+  isCanonicalInvoiceCollected,
+  isCanonicalInvoiceOverdue,
+} from '@/shared/canonicalDashboardSnapshot';
 
 const roundMetric = (value, decimals = 2) => Number((Number(value) || 0).toFixed(decimals));
 
@@ -9,33 +17,22 @@ const parseDateValue = (value) => {
   return isValid(parsed) ? parsed : null;
 };
 
-const getInvoiceTotal = (invoice) => Number(invoice?.total_ttc ?? invoice?.total ?? 0);
+const getInvoiceTotal = (invoice) => Number(getCanonicalInvoiceAmount(invoice) || 0);
 
 const getInvoiceBalanceDue = (invoice) => {
-  const rawBalance = invoice?.balance_due;
-  if (rawBalance == null || rawBalance === '') {
-    const total = getInvoiceTotal(invoice);
-    const paymentStatus = invoice?.payment_status;
-    if (paymentStatus === 'paid' || paymentStatus === 'overpaid') {
-      return 0;
-    }
-    return total;
-  }
-  return Number(rawBalance || 0);
+  return getCanonicalInvoiceBalanceDue(invoice);
 };
 
 const isInvoiceCollected = (invoice) => {
-  return invoice?.status === 'paid' || invoice?.payment_status === 'paid' || invoice?.payment_status === 'overpaid';
+  return isCanonicalInvoiceCollected(invoice);
 };
 
 const isInvoiceBooked = (invoice) => {
-  return invoice?.status && !['draft', 'cancelled'].includes(invoice.status);
+  return isCanonicalInvoiceBooked(invoice);
 };
 
 const isInvoiceOverdue = (invoice, referenceDate = new Date()) => {
-  const dueDate = parseDateValue(invoice?.due_date);
-  if (!dueDate) return false;
-  return differenceInCalendarDays(referenceDate, dueDate) > 0 && getInvoiceBalanceDue(invoice) > 0;
+  return isCanonicalInvoiceOverdue(invoice, referenceDate);
 };
 
 export const aggregateRevenueByMonth = (invoices) => {
@@ -44,17 +41,16 @@ export const aggregateRevenueByMonth = (invoices) => {
   const revenueMap = {};
 
   invoices.forEach(inv => {
-    if (inv.status === 'paid' && (inv.date || inv.created_at)) {
-      const dateStr = inv.date || inv.created_at;
-      const date = parseISO(dateStr);
-      if (isValid(date)) {
-        const monthKey = format(date, 'yyyy-MM');
-        if (!revenueMap[monthKey]) {
-          revenueMap[monthKey] = 0;
-        }
-        revenueMap[monthKey] += Number(inv.total || 0);
-      }
+    if (!isInvoiceCollected(inv)) return;
+
+    const date = parseDateValue(inv?.invoice_date || inv?.date || inv?.created_at);
+    if (!date) return;
+
+    const monthKey = format(date, 'yyyy-MM');
+    if (!revenueMap[monthKey]) {
+      revenueMap[monthKey] = 0;
     }
+    revenueMap[monthKey] += getInvoiceTotal(inv);
   });
 
   return Object.entries(revenueMap).map(([key, value]) => ({
@@ -94,13 +90,13 @@ export const aggregateRevenueByClient = (invoices) => {
   const clientMap = {};
 
   invoices.forEach(inv => {
-    if (inv.status === 'paid') {
-      const clientName = inv.client?.company_name || 'Unknown Client';
-      if (!clientMap[clientName]) {
-        clientMap[clientName] = 0;
-      }
-      clientMap[clientName] += Number(inv.total || 0);
+    if (!isInvoiceCollected(inv)) return;
+
+    const clientName = inv.client?.company_name || 'Unknown Client';
+    if (!clientMap[clientName]) {
+      clientMap[clientName] = 0;
     }
+    clientMap[clientName] += getInvoiceTotal(inv);
   });
 
   return Object.entries(clientMap).map(([name, value]) => ({
@@ -133,7 +129,7 @@ export const aggregateProjectPerformance = (timesheets, invoices) => {
   // If not available, revenue will stay 0 for project-specific view.
   if (invoices) {
     invoices.forEach(inv => {
-      if (inv.status === 'paid' && inv.project_id) {
+      if (isInvoiceCollected(inv) && inv.project_id) {
         // We need a way to map ID to name. 
         // Without a projects list passed in, we might assume invoice has project name snapshot
         // or we try to match with timesheet project names if possible.
@@ -143,7 +139,7 @@ export const aggregateProjectPerformance = (timesheets, invoices) => {
          if (!projectMap[projectName]) {
             projectMap[projectName] = { hours: 0, revenue: 0 };
         }
-        projectMap[projectName].revenue += Number(inv.total || 0);
+        projectMap[projectName].revenue += getInvoiceTotal(inv);
       }
     });
   }
@@ -174,23 +170,16 @@ export const formatChartData = (revenueData, expensesData) => {
 };
 
 export const computeExecutiveMetrics = (invoices = [], expenses = [], timesheets = []) => {
-  const bookedRevenue = invoices
-    .filter(isInvoiceBooked)
-    .reduce((sum, invoice) => sum + getInvoiceTotal(invoice), 0);
+  const canonicalRevenue = buildCanonicalRevenueCollectionSnapshot({
+    invoices,
+    expenses,
+  });
 
-  const collectedRevenue = invoices
-    .filter(isInvoiceCollected)
-    .reduce((sum, invoice) => sum + getInvoiceTotal(invoice), 0);
-
-  const outstandingReceivables = invoices
-    .filter(invoice => getInvoiceBalanceDue(invoice) > 0 && invoice?.status !== 'cancelled')
-    .reduce((sum, invoice) => sum + getInvoiceBalanceDue(invoice), 0);
-
-  const overdueReceivables = invoices
-    .filter(invoice => isInvoiceOverdue(invoice))
-    .reduce((sum, invoice) => sum + getInvoiceBalanceDue(invoice), 0);
-
-  const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense?.amount || 0), 0);
+  const bookedRevenue = canonicalRevenue.bookedRevenue;
+  const collectedRevenue = canonicalRevenue.collectedRevenue;
+  const outstandingReceivables = canonicalRevenue.outstandingReceivables;
+  const overdueReceivables = canonicalRevenue.overdueReceivables;
+  const totalExpenses = canonicalRevenue.totalExpenses;
 
   const totalHours = timesheets.reduce((sum, timesheet) => sum + (Number(timesheet?.duration_minutes || 0) / 60), 0);
   const billableHours = timesheets
@@ -206,12 +195,12 @@ export const computeExecutiveMetrics = (invoices = [], expenses = [], timesheets
     return sum + (hours * rate);
   }, 0);
 
-  const collectionRate = bookedRevenue > 0 ? (collectedRevenue / bookedRevenue) * 100 : 0;
+  const collectionRate = canonicalRevenue.collectionRate;
   const billableUtilization = totalHours > 0 ? (billableHours / totalHours) * 100 : 0;
   const invoicingCoverage = billableHours > 0 ? (invoicedHours / billableHours) * 100 : 0;
   const averageBillableRate = billableHours > 0 ? weightedRateBase / billableHours : 0;
-  const grossMargin = collectedRevenue - totalExpenses;
-  const grossMarginPct = collectedRevenue > 0 ? (grossMargin / collectedRevenue) * 100 : 0;
+  const grossMargin = canonicalRevenue.grossMargin;
+  const grossMarginPct = canonicalRevenue.grossMarginPct;
 
   return {
     bookedRevenue: roundMetric(bookedRevenue),

@@ -372,6 +372,11 @@ const LandingPage = () => {
     .toLowerCase()
     .split('-')[0];
   const copy = landingPageContent[languageCode] || landingPageContent.en;
+  const legalLinkLabels = languageCode === 'fr'
+    ? { privacy: 'Politique de confidentialite', legal: 'Mentions legales' }
+    : languageCode === 'nl'
+      ? { privacy: 'Privacybeleid', legal: 'Juridische vermeldingen' }
+      : { privacy: 'Privacy policy', legal: 'Legal notice' };
 
   const handleNavigate = (path) => {
     console.log(`Navigating to: ${path}`);
@@ -505,7 +510,7 @@ const LandingPage = () => {
   const advantageIcons = [Sparkles, Globe, Lightbulb, Zap, Shield, Star, Bot, Lock, Brain, Landmark];
 
   return (
-    <div className={`landing-page${demoBannerVisible ? ' has-demo-banner' : ''}`}>
+    <div id="top" className={`landing-page${demoBannerVisible ? ' has-demo-banner' : ''}`}>
       {/* Demo Banner */}
       {demoBannerVisible && (
         <DemoBanner onDismiss={() => setDemoBannerVisible(false)} />
@@ -1105,10 +1110,12 @@ const LandingPage = () => {
             <div className="footer-section">
               <h4>{copy.footer.linksTitle}</h4>
               <div className="footer-links">
-                <a href="#">{copy.footer.links.about}</a>
+                <a href="#top" onClick={(e) => handleSmoothScroll(e, '#top')}>{copy.footer.links.about}</a>
                 <a href="#features">{copy.footer.links.features}</a>
-                <a href="#">{copy.footer.links.pricing}</a>
-                <a href="#">{copy.footer.links.support}</a>
+                <a href="/pricing" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>{copy.footer.links.pricing}</a>
+                <a href="/peppol-guide" onClick={(e) => { e.preventDefault(); handleNavigate('/peppol-guide'); }}>{copy.footer.links.support}</a>
+                <a href="/privacy" onClick={(e) => { e.preventDefault(); handleNavigate('/privacy'); }}>{legalLinkLabels.privacy}</a>
+                <a href="/legal" onClick={(e) => { e.preventDefault(); handleNavigate('/legal'); }}>{legalLinkLabels.legal}</a>
               </div>
             </div>
           </div>

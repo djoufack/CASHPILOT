@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { generatedTools, generatedHandlers, generatedWriteTools } from './generated_crud.ts';
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 const CORS: Record<string, string> = {
@@ -32,6 +33,226 @@ type SB = ReturnType<typeof createClient>;
 
 function jsonRes(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+}
+
+const MAX_REQUEST_BYTES = 512 * 1024; // 512KB
+const MAX_BATCH_REQUESTS = 25;
+const MAX_ARG_DEPTH = 6;
+const MAX_ARG_KEYS = 120;
+const MAX_ARG_ARRAY_LENGTH = 120;
+const MAX_ARG_STRING_LENGTH = 4000;
+const HTTP_RATE_LIMIT = { maxRequests: 240, windowMs: 60_000, keyPrefix: 'mcp-http' };
+const TOOL_RATE_LIMIT = { maxRequests: 120, windowMs: 60_000, keyPrefix: 'mcp-tool' };
+
+type JsonSchema = {
+  type?: string;
+  description?: string;
+  enum?: unknown[];
+  required?: string[];
+  properties?: Record<string, JsonSchema>;
+  items?: JsonSchema;
+};
+
+type ToolDefinition = {
+  name: string;
+  inputSchema?: JsonSchema;
+};
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function sanitizeString(value: string): string {
+  return value.trim().slice(0, MAX_ARG_STRING_LENGTH);
+}
+
+function sanitizeJsonValue(value: unknown, depth = 0): unknown {
+  if (depth > MAX_ARG_DEPTH) return null;
+  if (value === null || value === undefined) return null;
+
+  if (typeof value === 'string') return sanitizeString(value);
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'boolean') return value;
+
+  if (Array.isArray(value)) {
+    return value
+      .slice(0, MAX_ARG_ARRAY_LENGTH)
+      .map((item) => sanitizeJsonValue(item, depth + 1));
+  }
+
+  if (!isPlainObject(value)) return null;
+
+  const out: Record<string, unknown> = {};
+  let count = 0;
+  for (const [key, nested] of Object.entries(value)) {
+    if (count >= MAX_ARG_KEYS) break;
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+    out[key] = sanitizeJsonValue(nested, depth + 1);
+    count++;
+  }
+
+  return out;
+}
+
+function sanitizeArgs(rawArgs: unknown): { ok: true; value: Record<string, unknown> } | { ok: false; message: string } {
+  if (rawArgs === undefined || rawArgs === null) return { ok: true, value: {} };
+  if (!isPlainObject(rawArgs)) return { ok: false, message: 'arguments must be a JSON object' };
+  const sanitized = sanitizeJsonValue(rawArgs, 0);
+  if (!isPlainObject(sanitized)) return { ok: false, message: 'arguments payload is invalid' };
+  return { ok: true, value: sanitized };
+}
+
+function coerceNumber(value: unknown, integerOnly = false): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    if (integerOnly && !Number.isInteger(value)) return null;
+    return value;
+  }
+  if (typeof value === 'string' && value !== '') {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return null;
+    if (integerOnly && !Number.isInteger(parsed)) return null;
+    return parsed;
+  }
+  return null;
+}
+
+function isIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return false;
+  return date.toISOString().slice(0, 10) === value;
+}
+
+function validateValueAgainstSchema(
+  value: unknown,
+  schema: JsonSchema | undefined,
+  path: string,
+): { ok: true; value: unknown } | { ok: false; message: string } {
+  if (!schema) return { ok: true, value };
+
+  const expectedType = schema.type;
+  let nextValue = value;
+
+  if (expectedType === 'number' || expectedType === 'integer') {
+    const parsed = coerceNumber(value, expectedType === 'integer');
+    if (parsed === null) return { ok: false, message: `${path} must be a ${expectedType}` };
+    nextValue = parsed;
+  } else if (expectedType === 'string') {
+    if (typeof value !== 'string') return { ok: false, message: `${path} must be a string` };
+    const cleaned = sanitizeString(value);
+    if (cleaned.length === 0 && value.length > 0) {
+      return { ok: false, message: `${path} cannot be blank` };
+    }
+    if ((path.endsWith('date') || path.endsWith('_date')) && cleaned.length > 0 && !isIsoDate(cleaned)) {
+      return { ok: false, message: `${path} must use YYYY-MM-DD format` };
+    }
+    nextValue = cleaned;
+  } else if (expectedType === 'boolean') {
+    if (typeof value === 'boolean') {
+      nextValue = value;
+    } else if (value === 'true' || value === 'false') {
+      nextValue = value === 'true';
+    } else {
+      return { ok: false, message: `${path} must be a boolean` };
+    }
+  } else if (expectedType === 'array') {
+    if (!Array.isArray(value)) return { ok: false, message: `${path} must be an array` };
+    const out: unknown[] = [];
+    for (let index = 0; index < Math.min(value.length, MAX_ARG_ARRAY_LENGTH); index++) {
+      const nested = validateValueAgainstSchema(value[index], schema.items, `${path}[${index}]`);
+      if (!nested.ok) return nested;
+      out.push(nested.value);
+    }
+    nextValue = out;
+  } else if (expectedType === 'object') {
+    if (!isPlainObject(value)) return { ok: false, message: `${path} must be an object` };
+    const nested = validateObjectAgainstSchema(value, schema, path);
+    if (!nested.ok) return nested;
+    nextValue = nested.value;
+  }
+
+  if (Array.isArray(schema.enum) && schema.enum.length > 0 && !schema.enum.includes(nextValue)) {
+    return { ok: false, message: `${path} has an unsupported value` };
+  }
+
+  return { ok: true, value: nextValue };
+}
+
+function validateObjectAgainstSchema(
+  value: Record<string, unknown>,
+  schema: JsonSchema,
+  path: string,
+): { ok: true; value: Record<string, unknown> } | { ok: false; message: string } {
+  const properties = schema.properties || {};
+  const required = Array.isArray(schema.required) ? schema.required : [];
+
+  // Keep only declared keys when schema provides an explicit property map.
+  const keys = Object.keys(properties);
+  const useWhitelist = keys.length > 0;
+  const output: Record<string, unknown> = {};
+
+  for (const [key, entryValue] of Object.entries(value)) {
+    if (useWhitelist && !properties[key]) continue;
+    const fieldSchema = properties[key];
+    const field = validateValueAgainstSchema(entryValue, fieldSchema, `${path}.${key}`);
+    if (!field.ok) return field;
+    output[key] = field.value;
+  }
+
+  for (const key of required) {
+    const present = Object.prototype.hasOwnProperty.call(output, key);
+    if (!present || output[key] === null || output[key] === undefined || output[key] === '') {
+      return { ok: false, message: `${path}.${key} is required` };
+    }
+  }
+
+  return { ok: true, value: output };
+}
+
+type RateLimitCheck = {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
+};
+
+async function enforceRateLimit(
+  sb: SB,
+  scope: 'http' | 'tool',
+  rateKey: string,
+  config: { maxRequests: number; windowMs: number; keyPrefix: string },
+): Promise<RateLimitCheck> {
+  const windowSeconds = Math.max(1, Math.floor(config.windowMs / 1000));
+  const persistentRateKey = `${scope}:${rateKey}`;
+
+  try {
+    const { data, error } = await sb.rpc('enforce_rate_limit', {
+      p_scope: scope,
+      p_rate_key: persistentRateKey,
+      p_max_requests: config.maxRequests,
+      p_window_seconds: windowSeconds,
+    });
+
+    if (!error) {
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) {
+        const resetAt = new Date(String(row.reset_at || '')).getTime();
+        return {
+          allowed: Boolean(row.allowed),
+          remaining: Number(row.remaining ?? 0),
+          resetAt: Number.isFinite(resetAt) ? resetAt : (Date.now() + config.windowMs),
+        };
+      }
+    }
+  } catch (_) {
+    // Fall through to in-memory fallback.
+  }
+
+  const fallback = checkRateLimit(persistentRateKey, config);
+  return {
+    allowed: fallback.allowed,
+    remaining: fallback.remaining,
+    resetAt: fallback.resetAt,
+  };
 }
 
 // ─── JSON-RPC helpers ────────────────────────────────────────────────────────
@@ -257,6 +478,27 @@ const TOOLS = [
 // Core tools only (hand-written, no generated CRUD) — used when ?tools=core
 // The hand-written tools are all entries before the spread of generatedTools.
 const CORE_TOOLS = TOOLS.slice(0, TOOLS.length - generatedTools.length);
+const TOOLS_BY_NAME = new Map<string, ToolDefinition>(
+  TOOLS.map((tool) => [tool.name, tool as ToolDefinition]),
+);
+
+function validateToolArgs(
+  toolName: string,
+  rawArgs: unknown,
+): { ok: true; args: Record<string, unknown> } | { ok: false; message: string } {
+  const sanitized = sanitizeArgs(rawArgs);
+  if (!sanitized.ok) return sanitized;
+
+  const tool = TOOLS_BY_NAME.get(toolName);
+  const schema = tool?.inputSchema;
+  if (!schema || schema.type !== 'object') {
+    return { ok: true, args: sanitized.value };
+  }
+
+  const validated = validateObjectAgainstSchema(sanitized.value, schema, 'arguments');
+  if (!validated.ok) return validated;
+  return { ok: true, args: validated.value };
+}
 
 // ─── Scope requirements ──────────────────────────────────────────────────────
 const WRITE_TOOLS = new Set(['create_client', 'create_invoice', 'create_payment', 'update_invoice_status', 'init_accounting', ...Array.from(generatedWriteTools)]);
@@ -776,7 +1018,7 @@ const HANDLERS: Record<string, Handler> = {
 // ─── JSON-RPC Request Handler ────────────────────────────────────────────────
 async function handleRpc(
   r: { method?: string; params?: Record<string, unknown>; id?: unknown },
-  sb: SB, uid: string, scopes: string[], coreOnly = false,
+  sb: SB, uid: string, scopes: string[], coreOnly = false, rateKey = uid,
 ): Promise<unknown | null> {
   const { method, params, id } = r;
 
@@ -799,7 +1041,28 @@ async function handleRpc(
 
     case 'tools/call': {
       const toolName = params?.name as string;
-      const args = (params?.arguments as Record<string, unknown>) || {};
+      if (!toolName || typeof toolName !== 'string') {
+        return rpcOk(id, { content: [{ type: 'text', text: 'Invalid tool call: missing tool name.' }], isError: true });
+      }
+
+      const toolRate = await enforceRateLimit(sb, 'tool', `${rateKey}:${toolName}`, TOOL_RATE_LIMIT);
+      if (!toolRate.allowed) {
+        const retryAfterSeconds = Math.max(1, Math.ceil((toolRate.resetAt - Date.now()) / 1000));
+        return rpcOk(id, {
+          content: [{ type: 'text', text: `Rate limit exceeded for ${toolName}. Retry in ${retryAfterSeconds}s.` }],
+          isError: true,
+        });
+      }
+
+      const validatedArgs = validateToolArgs(toolName, params?.arguments);
+      if (!validatedArgs.ok) {
+        return rpcOk(id, {
+          content: [{ type: 'text', text: `Invalid arguments for ${toolName}: ${validatedArgs.message}` }],
+          isError: true,
+        });
+      }
+
+      const args = validatedArgs.args;
       const handler = HANDLERS[toolName];
       if (!handler) {
         return rpcOk(id, { content: [{ type: 'text', text: `Unknown tool: ${toolName}. Use tools/list to see available tools.` }], isError: true });
@@ -854,6 +1117,17 @@ serve(async (req: Request) => {
     return jsonRes({ jsonrpc: '2.0', error: { code: -32600, message: 'Method not allowed' } }, 405);
   }
 
+  const contentLengthHeader = req.headers.get('content-length');
+  if (contentLengthHeader) {
+    const contentLength = Number(contentLengthHeader);
+    if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) {
+      return jsonRes(
+        rpcErr(null, -32600, `Payload too large. Max allowed is ${Math.floor(MAX_REQUEST_BYTES / 1024)}KB.`),
+        413,
+      );
+    }
+  }
+
   try {
     // ── Authenticate via API key (header OR query param) ────────
     const url = new URL(req.url);
@@ -892,6 +1166,12 @@ serve(async (req: Request) => {
 
     const userId: string = keyData.user_id;
     const scopes: string[] = keyData.scopes || ['read'];
+    const rateKey = `${keyData.id}:${userId}`;
+
+    const httpRate = await enforceRateLimit(sb, 'http', rateKey, HTTP_RATE_LIMIT);
+    if (!httpRate.allowed) {
+      return rateLimitResponse(httpRate, CORS);
+    }
 
     // ── Determine tool filtering mode ───────────────────────────
     // ?tools=core returns only hand-written tools (~39) to stay under
@@ -910,10 +1190,22 @@ serve(async (req: Request) => {
     // ── Handle batch or single request ──────────────────────────
     const isBatch = Array.isArray(body);
     const requests = isBatch ? body : [body];
+    if (isBatch && requests.length > MAX_BATCH_REQUESTS) {
+      return jsonRes(
+        rpcErr(null, -32600, `Batch too large: max ${MAX_BATCH_REQUESTS} requests per call.`),
+        400,
+      );
+    }
+
     const responses: unknown[] = [];
 
     for (const r of requests) {
-      const resp = await handleRpc(r, sb, userId, scopes, coreOnly);
+      if (!isPlainObject(r)) {
+        responses.push(rpcErr(null, -32600, 'Invalid Request'));
+        continue;
+      }
+
+      const resp = await handleRpc(r, sb, userId, scopes, coreOnly, rateKey);
       if (resp !== null) responses.push(resp);
     }
 

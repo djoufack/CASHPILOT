@@ -87,6 +87,8 @@ const PaymentSuccessPage = lazyRetry(() => import('./pages/PaymentSuccessPage'))
 const PortfolioPage = lazyRetry(() => import('./pages/PortfolioPage'));
 const IntegrationsHubPage = lazyRetry(() => import('./pages/IntegrationsHubPage'));
 const SharedSnapshotPage = lazyRetry(() => import('./pages/SharedSnapshotPage'));
+const PrivacyPage = lazyRetry(() => import('./pages/PrivacyPage'));
+const LegalPage = lazyRetry(() => import('./pages/LegalPage'));
 
 // Lazy-loaded feature components
 const SupplierMap = lazyRetry(() => import('@/components/SupplierMap'));
@@ -127,6 +129,8 @@ const AuthWrapper = () => {
             <Route path="/reset-password" element={<Suspense fallback={<PageLoader />}><ResetPasswordPage /></Suspense>} />
             <Route path="/pricing" element={<Suspense fallback={<PageLoader />}><PricingPage /></Suspense>} />
             <Route path="/peppol-guide" element={<Suspense fallback={<PageLoader />}><PeppolGuidePage /></Suspense>} />
+            <Route path="/privacy" element={<Suspense fallback={<PageLoader />}><PrivacyPage /></Suspense>} />
+            <Route path="/legal" element={<Suspense fallback={<PageLoader />}><LegalPage /></Suspense>} />
             <Route path="/quote-sign/:token" element={<Suspense fallback={<PageLoader />}><QuoteSignPage /></Suspense>} />
             <Route path="/payment-success" element={<Suspense fallback={<PageLoader />}><PaymentSuccessPage /></Suspense>} />
             <Route path="/shared/:token" element={<Suspense fallback={<PageLoader />}><SharedSnapshotPage /></Suspense>} />
