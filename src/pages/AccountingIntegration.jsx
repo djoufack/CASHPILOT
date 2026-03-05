@@ -60,6 +60,7 @@ const AccountingIntegration = () => {
     startDate: `${year}-01-01`,
     endDate: `${year}-12-31`
   });
+  const [diagnosticViewSnapshot, setDiagnosticViewSnapshot] = useState(null);
 
   const { company } = useCompany();
   const { isInitialized, isInitializing, country, settings, initializeForCountry, toggleAutoJournal } = useAccountingInit();
@@ -90,6 +91,7 @@ const AccountingIntegration = () => {
     taxEstimate,
     monthlyData,
     financialDiagnostic,
+    financialDiagnosticComparatives,
     consistencyWarnings,
     refresh
   } = useAccountingData(period.startDate, period.endDate);
@@ -140,7 +142,7 @@ const AccountingIntegration = () => {
 
   const handleExportDiagnosticPDF = () => {
     guardedAction(CREDIT_COSTS.GENERATE_FINANCIAL_DIAGNOSTIC, 'Financial Diagnostic PDF', () =>
-      exportFinancialDiagnosticPDF(financialDiagnostic, companyInfo, period)
+      exportFinancialDiagnosticPDF(financialDiagnostic, companyInfo, period, diagnosticViewSnapshot)
     );
   };
 
@@ -171,7 +173,7 @@ const AccountingIntegration = () => {
 
   const handleExportDiagnosticHTML = () => {
     guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Financial Diagnostic HTML', () =>
-      exportFinancialDiagnosticHTML(financialDiagnostic, companyInfo, `${period.startDate} - ${period.endDate}`)
+      exportFinancialDiagnosticHTML(financialDiagnostic, companyInfo, `${period.startDate} - ${period.endDate}`, diagnosticViewSnapshot)
     );
   };
 
@@ -431,6 +433,10 @@ const AccountingIntegration = () => {
               diagnostic={financialDiagnostic}
               period={period}
               currency={companyCurrency}
+              monthlyData={monthlyData}
+              trialBalance={trialBalance}
+              comparatives={financialDiagnosticComparatives}
+              onViewStateChange={setDiagnosticViewSnapshot}
               onExportPDF={handleExportDiagnosticPDF}
               onExportHTML={handleExportDiagnosticHTML}
             />

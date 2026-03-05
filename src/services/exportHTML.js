@@ -604,11 +604,52 @@ export const exportTaxEstimationHTML = (taxData, companyInfo, period) => {
  * @param {Object} companyInfo - Informations société
  * @param {string} period - Période
  */
-export const exportFinancialDiagnosticHTML = (diagnostic, companyInfo, period) => {
-  if (!diagnostic) {
+export const exportFinancialDiagnosticHTML = (diagnostic, companyInfo, period, viewSnapshot = null) => {
+  if (!diagnostic || !diagnostic.valid) {
     alert('Données insuffisantes pour générer le diagnostic');
     return;
   }
+
+  const fmtCurrency = (value) => (Number(value || 0)).toFixed(2);
+  const fmtPct = (value) => `${Number(value || 0).toFixed(1)}%`;
+  const snapshotCards = Array.isArray(viewSnapshot?.visibleCards) ? viewSnapshot.visibleCards : [];
+
+  const snapshotSection = snapshotCards.length > 0
+    ? `
+      <div class="section">
+        <h2 class="section-title">VUE COURANTE EXPORTEE</h2>
+        <div class="summary" style="background:#f8fafc;border-left-color:#334155;">
+          <p><strong>Mode:</strong> ${viewSnapshot?.mode || 'detail'}</p>
+          <p><strong>Comparateur:</strong> ${viewSnapshot?.comparisonLabel || 'N/A'}</p>
+          <p><strong>Filtre:</strong> ${viewSnapshot?.sectionFilter || 'all'} | <strong>Tri:</strong> ${viewSnapshot?.sortMode || 'custom'}</p>
+          <p><strong>Secteur benchmark:</strong> ${viewSnapshot?.benchmarkSector || 'N/A'}</p>
+          <p><strong>Periode:</strong> ${viewSnapshot?.period?.label || period} | <strong>Comparee:</strong> ${viewSnapshot?.period?.comparedLabel || 'N/A'}</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Categorie</th>
+              <th>Carte</th>
+              <th style="width: 18%; text-align: right">Courant</th>
+              <th style="width: 18%; text-align: right">Comparatif</th>
+              <th style="width: 18%; text-align: right">Benchmark</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${snapshotCards.map((card) => `
+              <tr>
+                <td>${card.section || '-'}</td>
+                <td>${card.title || '-'}</td>
+                <td style="text-align:right">${card.formattedCurrentValue || '-'}</td>
+                <td style="text-align:right">${card.formattedComparisonValue || '-'}</td>
+                <td style="text-align:right">${card.formattedBenchmarkValue || '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `
+    : '';
 
   const content = `
     <div class="header">
@@ -616,36 +657,38 @@ export const exportFinancialDiagnosticHTML = (diagnostic, companyInfo, period) =
       <p>Diagnostic Financier - Période: ${period}</p>
     </div>
 
+    ${snapshotSection}
+
     <div class="section">
       <h2 class="section-title">ANALYSE DES MARGES</h2>
       <table>
         <thead>
           <tr>
             <th>Indicateur</th>
-            <th style="width: 20%; text-align: right">Montant (€)</th>
+            <th style="width: 20%; text-align: right">Montant</th>
             <th style="width: 15%; text-align: right">% CA</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>Chiffre d'affaires</td>
-            <td style="text-align: right">${diagnostic.revenue?.toFixed(2) || '0.00'}</td>
+            <td style="text-align: right">${fmtCurrency(diagnostic.margins.revenue)}</td>
             <td style="text-align: right">100%</td>
           </tr>
           <tr>
             <td>Marge brute</td>
-            <td style="text-align: right">${diagnostic.grossMargin?.toFixed(2) || '0.00'}</td>
-            <td style="text-align: right">${diagnostic.grossMarginRate ? (diagnostic.grossMarginRate * 100).toFixed(1) : '0.0'}%</td>
+            <td style="text-align: right">${fmtCurrency(diagnostic.margins.grossMargin)}</td>
+            <td style="text-align: right">${fmtPct(diagnostic.margins.grossMarginPercent)}</td>
           </tr>
           <tr>
             <td>EBITDA</td>
-            <td style="text-align: right">${diagnostic.ebitda?.toFixed(2) || '0.00'}</td>
-            <td style="text-align: right">${diagnostic.ebitdaRate ? (diagnostic.ebitdaRate * 100).toFixed(1) : '0.0'}%</td>
+            <td style="text-align: right">${fmtCurrency(diagnostic.margins.ebitda)}</td>
+            <td style="text-align: right">${fmtPct(diagnostic.margins.ebitdaMargin)}</td>
           </tr>
           <tr class="total-row">
             <td>Résultat d'exploitation</td>
-            <td style="text-align: right">${diagnostic.operatingResult?.toFixed(2) || '0.00'}</td>
-            <td style="text-align: right">${diagnostic.operatingMarginRate ? (diagnostic.operatingMarginRate * 100).toFixed(1) : '0.0'}%</td>
+            <td style="text-align: right">${fmtCurrency(diagnostic.margins.operatingResult)}</td>
+            <td style="text-align: right">${fmtPct(diagnostic.margins.operatingMargin)}</td>
           </tr>
         </tbody>
       </table>
@@ -657,30 +700,16 @@ export const exportFinancialDiagnosticHTML = (diagnostic, companyInfo, period) =
         <thead>
           <tr>
             <th>Indicateur</th>
-            <th style="width: 25%; text-align: right">Montant (€)</th>
+            <th style="width: 25%; text-align: right">Montant</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>Capacité d'Autofinancement (CAF)</td>
-            <td style="text-align: right">${diagnostic.caf?.toFixed(2) || '0.00'}</td>
-          </tr>
-          <tr>
-            <td>Fonds de Roulement</td>
-            <td style="text-align: right">${diagnostic.workingCapital?.toFixed(2) || '0.00'}</td>
-          </tr>
-          <tr>
-            <td>Besoin en Fonds de Roulement (BFR)</td>
-            <td style="text-align: right">${diagnostic.bfr?.toFixed(2) || '0.00'}</td>
-          </tr>
-          <tr>
-            <td>Flux de Trésorerie d'Exploitation</td>
-            <td style="text-align: right">${diagnostic.operatingCashFlow?.toFixed(2) || '0.00'}</td>
-          </tr>
-          <tr class="total-row">
-            <td>Endettement Net</td>
-            <td style="text-align: right">${diagnostic.netDebt?.toFixed(2) || '0.00'}</td>
-          </tr>
+          <tr><td>Capacité d'Autofinancement (CAF)</td><td style="text-align: right">${fmtCurrency(diagnostic.financing.caf)}</td></tr>
+          <tr><td>Fonds de Roulement</td><td style="text-align: right">${fmtCurrency(diagnostic.financing.workingCapital)}</td></tr>
+          <tr><td>Besoin en Fonds de Roulement (BFR)</td><td style="text-align: right">${fmtCurrency(diagnostic.financing.bfr)}</td></tr>
+          <tr><td>Variation BFR</td><td style="text-align: right">${fmtCurrency(diagnostic.financing.bfrVariation)}</td></tr>
+          <tr><td>Flux de Trésorerie d'Exploitation</td><td style="text-align: right">${fmtCurrency(diagnostic.financing.operatingCashFlow)}</td></tr>
+          <tr class="total-row"><td>Endettement Net</td><td style="text-align: right">${fmtCurrency(diagnostic.financing.netDebt)}</td></tr>
         </tbody>
       </table>
     </div>
@@ -696,38 +725,18 @@ export const exportFinancialDiagnosticHTML = (diagnostic, companyInfo, period) =
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td rowspan="2"><strong>Rentabilité</strong></td>
-            <td>ROE (Return on Equity)</td>
-            <td style="text-align: right">${diagnostic.roe ? (diagnostic.roe * 100).toFixed(1) : '0.0'}%</td>
-          </tr>
-          <tr>
-            <td>ROCE (Return on Capital Employed)</td>
-            <td style="text-align: right">${diagnostic.roce ? (diagnostic.roce * 100).toFixed(1) : '0.0'}%</td>
-          </tr>
-          <tr>
-            <td rowspan="3"><strong>Liquidité</strong></td>
-            <td>Ratio de Liquidité Générale</td>
-            <td style="text-align: right">${diagnostic.currentRatio?.toFixed(2) || '0.00'}</td>
-          </tr>
-          <tr>
-            <td>Ratio de Liquidité Réduite</td>
-            <td style="text-align: right">${diagnostic.quickRatio?.toFixed(2) || '0.00'}</td>
-          </tr>
-          <tr>
-            <td>Ratio de Liquidité Immédiate</td>
-            <td style="text-align: right">${diagnostic.cashRatio?.toFixed(2) || '0.00'}</td>
-          </tr>
-          <tr>
-            <td><strong>Endettement</strong></td>
-            <td>Levier Financier (Dette/CP)</td>
-            <td style="text-align: right">${diagnostic.financialLeverage?.toFixed(2) || '0.00'}</td>
-          </tr>
+          <tr><td rowspan="3"><strong>Rentabilité</strong></td><td>ROE</td><td style="text-align: right">${fmtPct(diagnostic.ratios.profitability.roe)}</td></tr>
+          <tr><td>ROA</td><td style="text-align: right">${fmtPct(diagnostic.ratios.profitability.roa)}</td></tr>
+          <tr><td>ROCE</td><td style="text-align: right">${fmtPct(diagnostic.ratios.profitability.roce)}</td></tr>
+          <tr><td rowspan="3"><strong>Liquidité</strong></td><td>Liquidité Générale</td><td style="text-align: right">${Number(diagnostic.ratios.liquidity.currentRatio || 0).toFixed(2)}</td></tr>
+          <tr><td>Liquidité Réduite</td><td style="text-align: right">${Number(diagnostic.ratios.liquidity.quickRatio || 0).toFixed(2)}</td></tr>
+          <tr><td>Liquidité Immédiate</td><td style="text-align: right">${Number(diagnostic.ratios.liquidity.cashRatio || 0).toFixed(2)}</td></tr>
+          <tr><td><strong>Endettement</strong></td><td>Levier Financier</td><td style="text-align: right">${Number(diagnostic.ratios.leverage.financialLeverage || 0).toFixed(2)}</td></tr>
         </tbody>
       </table>
     </div>
   `;
 
   const html = generateHTMLDocument(`Diagnostic Financier - ${period}`, content);
-  downloadHTML(html, `diagnostic-${period.replace(/\s+/g, '-')}`);
+  downloadHTML(html, `diagnostic-${String(period).replace(/\s+/g, '-')}`);
 };
