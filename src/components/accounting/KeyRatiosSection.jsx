@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, TrendingUp, Droplets, Scale } from 'lucide-react';
 import RatioGauge from './RatioGauge';
+import RatioInfoPopover from './RatioInfoPopover';
 
 const KeyRatiosSection = ({ data }) => {
   if (!data) {
@@ -46,6 +47,13 @@ const KeyRatiosSection = ({ data }) => {
               format="percentage"
               thresholds={{ excellent: 20, good: 15, warning: 10, poor: 5 }}
               description="Resultat net / Capitaux propres"
+              info={{
+                title: 'ROE (Rentabilite des capitaux propres)',
+                formula: 'ROE = resultat net / capitaux propres',
+                definition: "Le ROE mesure le rendement genere pour les actionnaires.",
+                utility: "Il permet d'evaluer l'efficacite de l'utilisation des fonds propres.",
+                interpretation: "Plus le ROE est eleve, plus les capitaux investis sont rentables. Un ROE faible durable peut signaler une rentabilite insuffisante.",
+              }}
             />
             <RatioGauge
               label="Rentabilite du Capital Employe (ROCE)"
@@ -53,6 +61,13 @@ const KeyRatiosSection = ({ data }) => {
               format="percentage"
               thresholds={{ excellent: 15, good: 10, warning: 7, poor: 3 }}
               description="Resultat d'exploitation / Capital employe"
+              info={{
+                title: 'ROCE (Rentabilite du capital employe)',
+                formula: "ROCE = resultat d'exploitation / capital employe",
+                definition: "Le ROCE mesure la performance des ressources durables mobilisees.",
+                utility: "Il aide a juger si les investissements creent suffisamment de valeur.",
+                interpretation: "ROCE eleve: bonne efficacite du capital. ROCE faible: capital sous-performant ou charges trop elevees.",
+              }}
             />
             <RatioGauge
               label="Marge Operationnelle"
@@ -60,6 +75,13 @@ const KeyRatiosSection = ({ data }) => {
               format="percentage"
               thresholds={{ excellent: 20, good: 15, warning: 10, poor: 5 }}
               description="Resultat d'exploitation / CA"
+              info={{
+                title: 'Marge operationnelle',
+                formula: "Marge operationnelle = resultat d'exploitation / CA",
+                definition: "Elle indique la part du chiffre d'affaires qui reste apres les charges d'exploitation.",
+                utility: "Elle sert a mesurer la solidite economique du modele operationnel.",
+                interpretation: "Une marge qui progresse traduit une meilleure maitrise des charges. Une marge en baisse appelle une analyse couts/prix.",
+              }}
             />
             <RatioGauge
               label="Marge Nette"
@@ -67,6 +89,13 @@ const KeyRatiosSection = ({ data }) => {
               format="percentage"
               thresholds={{ excellent: 15, good: 10, warning: 5, poor: 2 }}
               description="Resultat net / CA"
+              info={{
+                title: 'Marge nette',
+                formula: 'Marge nette = resultat net / CA',
+                definition: "La marge nette represente le benefice final conserve pour 1 euro de vente.",
+                utility: "Elle donne une vision globale de la rentabilite apres toutes les charges.",
+                interpretation: "Marge nette elevee: activite rentable et bien pilotee. Faible ou negative: rentabilite finale fragile.",
+              }}
             />
           </div>
 
@@ -96,6 +125,13 @@ const KeyRatiosSection = ({ data }) => {
               format="number"
               thresholds={{ excellent: 2.0, good: 1.5, warning: 1.0, poor: 0.75 }}
               description="Actifs circulants / Passifs courants"
+              info={{
+                title: 'Liquidite generale',
+                formula: 'Ratio = actifs circulants / passifs courants',
+                definition: "Ce ratio mesure la capacite a payer les dettes a court terme avec les actifs a court terme.",
+                utility: "Il alerte sur le risque de tension de tresorerie immediate.",
+                interpretation: "Au-dessus de 1, la situation est generalement rassurante. En dessous de 1, le risque de paiement augmente.",
+              }}
             />
             <RatioGauge
               label="Ratio de Liquidite Reduite"
@@ -103,6 +139,13 @@ const KeyRatiosSection = ({ data }) => {
               format="number"
               thresholds={{ excellent: 1.5, good: 1.0, warning: 0.75, poor: 0.5 }}
               description="(Actifs circulants - Stocks) / Passifs courants"
+              info={{
+                title: 'Liquidite reduite',
+                formula: 'Ratio = (actifs circulants - stocks) / passifs courants',
+                definition: "Il evalue la capacite de paiement court terme sans compter la vente des stocks.",
+                utility: "Utile pour les activites ou les stocks sont peu liquides.",
+                interpretation: "Proche ou au-dessus de 1: bonne solvabilite court terme. Trop faible: dependance forte aux ventes de stocks.",
+              }}
             />
             <RatioGauge
               label="Ratio de Liquidite Immediate"
@@ -110,6 +153,13 @@ const KeyRatiosSection = ({ data }) => {
               format="number"
               thresholds={{ excellent: 0.5, good: 0.3, warning: 0.2, poor: 0.1 }}
               description="Tresorerie / Passifs courants"
+              info={{
+                title: 'Liquidite immediate',
+                formula: 'Ratio = tresorerie disponible / passifs courants',
+                definition: "Ce ratio mesure la capacite a payer immediatement les dettes court terme avec la tresorerie disponible.",
+                utility: "Il permet d'anticiper les urgences de tresorerie.",
+                interpretation: "Un ratio trop bas signale une reserve de cash limitee face aux echeances proches.",
+              }}
             />
           </div>
 
@@ -194,6 +244,13 @@ const KeyRatiosSection = ({ data }) => {
               inverse={true}
               thresholds={{ excellent: 0.5, good: 1.0, warning: 2.0, poor: 3.0 }}
               description="Dettes financieres / Capitaux propres"
+              info={{
+                title: 'Levier financier',
+                formula: 'Levier = dettes financieres / capitaux propres',
+                definition: "Le levier mesure le niveau de financement par la dette par rapport aux fonds propres.",
+                utility: "Il sert a evaluer le risque financier et la sensibilite de l'entreprise.",
+                interpretation: "Plus le levier est eleve, plus le risque de tension de remboursement est important.",
+              }}
             />
 
             {/* Autonomie financiere card */}
@@ -205,7 +262,16 @@ const KeyRatiosSection = ({ data }) => {
                   </div>
                 </div>
                 <p className="text-sm text-gray-400 mb-1">
-                  Ratio d'Autonomie Financiere
+                  <span className="inline-flex items-center gap-1">
+                    Ratio d'Autonomie Financiere
+                    <RatioInfoPopover
+                      title="Ratio d'autonomie financiere"
+                      formula='Autonomie = capitaux propres / (capitaux propres + dettes)'
+                      definition="Ce ratio mesure la part des ressources financee par les fonds propres."
+                      utility="Il permet d'apprecier l'independance financiere de l'entreprise."
+                      interpretation="Plus il est eleve, plus l'entreprise est autonome et moins elle depend des creanciers."
+                    />
+                  </span>
                 </p>
                 <p className="text-2xl font-bold text-gray-100">
                   {leverage.financialLeverage !== 0

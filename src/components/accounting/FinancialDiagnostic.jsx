@@ -7,6 +7,7 @@ import { fr } from 'date-fns/locale';
 import MarginAnalysisSection from './MarginAnalysisSection';
 import FinancingAnalysisSection from './FinancingAnalysisSection';
 import KeyRatiosSection from './KeyRatiosSection';
+import RatioInfoPopover from './RatioInfoPopover';
 
 const FinancialDiagnostic = ({ diagnostic, period, currency = 'EUR', onExportPDF, onExportHTML }) => {
   if (!diagnostic) {
@@ -121,7 +122,16 @@ const FinancialDiagnostic = ({ diagnostic, period, currency = 'EUR', onExportPDF
           {/* Summary cards */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-500 mb-1">CA de la periode</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-gray-500">CA de la periode</p>
+                <RatioInfoPopover
+                  title="CA de la periode"
+                  formula="Somme des ventes HT sur la periode choisie"
+                  definition="Le CA de la periode represente le niveau d'activite commerciale sur l'intervalle selectionne."
+                  utility="Il permet de comparer les periodes et d'identifier les tendances de croissance ou de ralentissement."
+                  interpretation="Une progression continue indique une dynamique commerciale positive. Une baisse appelle une analyse client/prix/volume."
+                />
+              </div>
               <p className="text-xl font-bold text-blue-400">
                 {new Intl.NumberFormat('fr-FR', {
                   style: 'currency',
@@ -130,7 +140,16 @@ const FinancialDiagnostic = ({ diagnostic, period, currency = 'EUR', onExportPDF
               </p>
             </div>
             <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-500 mb-1">Marge EBITDA</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-gray-500">Marge EBITDA</p>
+                <RatioInfoPopover
+                  title="Marge EBITDA"
+                  formula='Marge EBITDA = EBITDA / CA'
+                  definition="La marge EBITDA montre la part du CA convertie en performance operationnelle avant amortissements."
+                  utility="Elle aide a mesurer la rentabilite courante du modele economique, independamment des effets comptables non cash."
+                  interpretation="Plus elle est elevee et stable, plus l'activite est solide. Une baisse continue est un signal d'alerte operationnel."
+                />
+              </div>
               <p className={`text-xl font-bold ${
                 diagnostic.margins.ebitdaMargin >= 10
                   ? 'text-green-400'
@@ -142,7 +161,16 @@ const FinancialDiagnostic = ({ diagnostic, period, currency = 'EUR', onExportPDF
               </p>
             </div>
             <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-500 mb-1">Flux de tresorerie</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-gray-500">Flux de tresorerie</p>
+                <RatioInfoPopover
+                  title="Flux de tresorerie d'exploitation"
+                  formula="Flux = CAF - variation BFR"
+                  definition="Ce flux represente la tresorerie reelle generee ou consommee par l'activite."
+                  utility="Il permet de verifier si l'entreprise finance son exploitation avec son propre cash."
+                  interpretation="Flux positif: capacite d'autofinancement operationnelle. Flux negatif: pression de tresorerie a traiter rapidement."
+                />
+              </div>
               <p className={`text-xl font-bold ${
                 diagnostic.financing.operatingCashFlow >= 0
                   ? 'text-green-400'

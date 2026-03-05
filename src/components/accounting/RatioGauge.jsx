@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import RatioInfoPopover from './RatioInfoPopover';
 
 const RatioGauge = ({
   label,
@@ -10,7 +11,8 @@ const RatioGauge = ({
   inverse = false,
   unit = '',
   description = '',
-  currency = 'EUR'
+  currency = 'EUR',
+  info,
 }) => {
   const formatValue = (val) => {
     if (!val && val !== 0) return '-';
@@ -104,7 +106,10 @@ const RatioGauge = ({
               <p className="text-xs text-gray-500 mt-1">{description}</p>
             )}
           </div>
-          {trendIcon}
+          <div className="flex items-center gap-1.5">
+            {info && <RatioInfoPopover {...info} />}
+            {trendIcon}
+          </div>
         </div>
 
         {/* Main value */}

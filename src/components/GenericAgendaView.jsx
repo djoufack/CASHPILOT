@@ -19,6 +19,7 @@ const groupConfig = {
  * @param {Function} onEdit - Callback when clicking edit
  * @param {Function} onDelete - Callback when clicking delete
  * @param {Function} onView - Callback when clicking view
+ * @param {Function} renderActions - Optional custom actions renderer per item
  * @param {Function} renderBadge - Optional custom badge renderer
  * @param {string} dateField - The field name for the date (default: 'date')
  * @param {Array} paidStatuses - Statuses that count as "completed" and won't be in overdue (default: ['paid', 'cancelled'])
@@ -28,6 +29,7 @@ const GenericAgendaView = ({
   onEdit,
   onDelete,
   onView,
+  renderActions,
   renderBadge,
   dateField = 'date',
   paidStatuses = ['paid', 'cancelled', 'completed', 'accepted', 'converted'],
@@ -62,7 +64,17 @@ const GenericAgendaView = ({
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {records.map(item => (
-            <AgendaCard key={item.id} item={item} dateField={dateField} onEdit={onEdit} onView={onView} onDelete={onDelete} renderBadge={renderBadge} isDone={isDone} />
+            <AgendaCard
+              key={item.id}
+              item={item}
+              dateField={dateField}
+              onEdit={onEdit}
+              onView={onView}
+              onDelete={onDelete}
+              renderActions={renderActions}
+              renderBadge={renderBadge}
+              isDone={isDone}
+            />
           ))}
         </div>
       </div>
@@ -83,7 +95,7 @@ const GenericAgendaView = ({
   );
 };
 
-const AgendaCard = ({ item, dateField, onEdit, onView, onDelete, renderBadge, isDone }) => {
+const AgendaCard = ({ item, dateField, onEdit, onView, onDelete, renderActions, renderBadge, isDone }) => {
   const done = isDone(item);
 
   return (
@@ -122,17 +134,22 @@ const AgendaCard = ({ item, dateField, onEdit, onView, onDelete, renderBadge, is
             <Edit className="w-3 h-3 mr-1" />Edit
           </Button>
         )}
-        {onView && (
-          <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-7 px-2 text-xs ml-auto"
-            onClick={() => onView(item)}>
-            <Eye className="w-3 h-3" />
-          </Button>
-        )}
-        {onDelete && (
-          <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 px-2 text-xs"
-            onClick={() => onDelete(item)}>
-            <Trash2 className="w-3 h-3" />
-          </Button>
+        {(renderActions || onView || onDelete) && (
+          <div className="ml-auto flex items-center gap-1">
+            {renderActions && renderActions(item)}
+            {onView && (
+              <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-7 px-2 text-xs"
+                onClick={() => onView(item)}>
+                <Eye className="w-3 h-3" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 px-2 text-xs"
+                onClick={() => onDelete(item)}>
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </motion.div>
