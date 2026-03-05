@@ -40,7 +40,7 @@ const KeyRatiosSection = ({ data }) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             <RatioGauge
               label="Rentabilite des Capitaux Propres (ROE)"
               value={profitability.roe}
@@ -118,7 +118,7 @@ const KeyRatiosSection = ({ data }) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             <RatioGauge
               label="Ratio de Liquidite Generale"
               value={liquidity.currentRatio}
@@ -262,7 +262,7 @@ const KeyRatiosSection = ({ data }) => {
                   </div>
                 </div>
                 <p className="text-sm text-gray-400 mb-1">
-                  <span className="inline-flex items-center gap-1">
+                  <span className="flex items-start gap-1 min-w-0">
                     <RatioInfoPopover
                       title="Ratio d'autonomie financiere"
                       formula='Autonomie = capitaux propres / (capitaux propres + dettes)'
@@ -270,7 +270,7 @@ const KeyRatiosSection = ({ data }) => {
                       utility="Il permet d'apprecier l'independance financiere de l'entreprise."
                       interpretation="Plus il est eleve, plus l'entreprise est autonome et moins elle depend des creanciers."
                     />
-                    Ratio d'Autonomie Financiere
+                    <span className="min-w-0 break-words leading-5">Ratio d'Autonomie Financiere</span>
                   </span>
                 </p>
                 <p className="text-2xl font-bold text-gray-100">
