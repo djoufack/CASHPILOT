@@ -37,7 +37,7 @@ const MarginAnalysisSection = ({ data, currency = 'EUR' }) => {
 
   // Composant pour une carte de metrique
   const MetricCard = ({ icon: Icon, label, value, percentage, colorClass, info }) => (
-    <Card className="bg-gray-900/50 border border-gray-800">
+    <Card className="min-w-0 bg-gray-900/50 border border-gray-800">
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <div className="p-2 bg-gray-800 rounded-lg">
@@ -54,9 +54,9 @@ const MarginAnalysisSection = ({ data, currency = 'EUR' }) => {
           )}
         </div>
         <p className="text-sm text-gray-400 mb-1">
-          <span className="inline-flex items-start gap-1">
+          <span className="flex items-start gap-1 min-w-0">
             {info && <RatioInfoPopover {...info} />}
-            <span>{label}</span>
+            <span className="min-w-0 break-words leading-5">{label}</span>
           </span>
         </p>
         <p className={`text-2xl font-bold ${
@@ -82,7 +82,7 @@ const MarginAnalysisSection = ({ data, currency = 'EUR' }) => {
       </div>
 
       {/* Grid de metriques */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           icon={DollarSign}
           label="Chiffre d'affaires"

@@ -96,15 +96,15 @@ const RatioGauge = ({
   const gaugePercentage = getGaugePercentage();
 
   return (
-    <Card className="bg-gray-900/50 border border-gray-800">
+    <Card className="min-w-0 bg-gray-900/50 border border-gray-800">
       <CardContent className="p-4">
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-400">
-              <span className="inline-flex items-start gap-1">
+              <span className="flex items-start gap-1 min-w-0">
                 {info && <RatioInfoPopover {...info} />}
-                <span>{label}</span>
+                <span className="min-w-0 break-words leading-5">{label}</span>
               </span>
             </p>
             {description && (
