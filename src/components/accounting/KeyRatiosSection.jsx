@@ -263,7 +263,6 @@ const KeyRatiosSection = ({ data }) => {
                 </div>
                 <p className="text-sm text-gray-400 mb-1">
                   <span className="inline-flex items-center gap-1">
-                    Ratio d'Autonomie Financiere
                     <RatioInfoPopover
                       title="Ratio d'autonomie financiere"
                       formula='Autonomie = capitaux propres / (capitaux propres + dettes)'
@@ -271,6 +270,7 @@ const KeyRatiosSection = ({ data }) => {
                       utility="Il permet d'apprecier l'independance financiere de l'entreprise."
                       interpretation="Plus il est eleve, plus l'entreprise est autonome et moins elle depend des creanciers."
                     />
+                    Ratio d'Autonomie Financiere
                   </span>
                 </p>
                 <p className="text-2xl font-bold text-gray-100">

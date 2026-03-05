@@ -44,16 +44,18 @@ const FinancingAnalysisSection = ({ data, currency = 'EUR' }) => {
           <div className="p-2 bg-gray-800 rounded-lg">
             <Icon className={`w-5 h-5 ${colorClass || 'text-purple-400'}`} />
           </div>
-          <div className="flex items-center gap-2">
-            {badge && (
-              <span className={`text-xs px-2 py-1 rounded-full font-medium ${badge.className}`}>
-                {badge.text}
-              </span>
-            )}
-            {info && <RatioInfoPopover {...info} />}
-          </div>
+          {badge && (
+            <span className={`text-xs px-2 py-1 rounded-full font-medium ${badge.className}`}>
+              {badge.text}
+            </span>
+          )}
         </div>
-        <p className="text-sm text-gray-400 mb-1">{label}</p>
+        <p className="text-sm text-gray-400 mb-1">
+          <span className="inline-flex items-start gap-1">
+            {info && <RatioInfoPopover {...info} />}
+            <span>{label}</span>
+          </span>
+        </p>
         <p className={`text-2xl font-bold ${
           value >= 0 ? 'text-gray-100' : 'text-red-400'
         }`}>
@@ -169,9 +171,6 @@ const FinancingAnalysisSection = ({ data, currency = 'EUR' }) => {
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-gray-800">
                   <div className="flex items-center gap-1">
-                    <span className="text-sm font-semibold text-gray-300">
-                      Ratio d'endettement
-                    </span>
                     <RatioInfoPopover
                       title="Ratio d'endettement"
                       formula="Ratio = dettes totales / capitaux propres"
@@ -179,6 +178,9 @@ const FinancingAnalysisSection = ({ data, currency = 'EUR' }) => {
                       utility="Il sert a evaluer le risque financier et la marge de manoeuvre pour emprunter."
                       interpretation="Au-dela de 1, la dette depasse les fonds propres. Plus il monte, plus la structure est sensible aux chocs."
                     />
+                    <span className="text-sm font-semibold text-gray-300">
+                      Ratio d'endettement
+                    </span>
                   </div>
                   <span className={`text-sm font-bold ${
                     (totalDebt / equity) > 1 ? 'text-orange-400' : 'text-green-400'
