@@ -347,16 +347,65 @@ export async function exportReconciliationPDF(reconciliationData, companyInfo, p
 // FINANCIAL DIAGNOSTIC PDF
 // ============================================================================
 
-export async function exportFinancialDiagnosticPDF(diagnostic, companyInfo, period) {
+export async function exportFinancialDiagnosticPDF(diagnostic, companyInfo, period, viewSnapshot = null) {
   if (!diagnostic || !diagnostic.valid) {
     console.error('Diagnostic invalide pour l\'export PDF');
     return;
   }
 
   const { margins, financing, ratios } = diagnostic;
+  const snapshotCards = Array.isArray(viewSnapshot?.visibleCards) ? viewSnapshot.visibleCards : [];
+  const snapshotMode = viewSnapshot?.mode || 'detail';
+  const snapshotComparison = viewSnapshot?.comparisonLabel || 'N/A';
+  const snapshotSector = viewSnapshot?.benchmarkSector || 'N/A';
+  const snapshotFilter = viewSnapshot?.sectionFilter || 'all';
+  const snapshotSort = viewSnapshot?.sortMode || 'custom';
+
+  const renderSnapshotSection = () => {
+    if (snapshotCards.length === 0) return '';
+
+    const rows = snapshotCards.map((card, index) => `
+      <tr style="${index % 2 === 0 ? 'background:#F9FAFB;' : ''}">
+        <td style="padding:7px;font-size:10px;">${card.section || '-'}</td>
+        <td style="padding:7px;font-size:10px;font-weight:600;">${card.title || '-'}</td>
+        <td style="padding:7px;text-align:right;font-family:monospace;font-size:10px;">${card.formattedCurrentValue || '-'}</td>
+        <td style="padding:7px;text-align:right;font-family:monospace;font-size:10px;">${card.formattedComparisonValue || '-'}</td>
+        <td style="padding:7px;text-align:right;font-family:monospace;font-size:10px;">${card.formattedBenchmarkValue || '-'}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <h2 style="font-size:16px;color:#0F172A;border-bottom:2px solid #0F172A;padding-bottom:5px;margin:20px 0 10px;">
+        Vue Courante Exportee (Premium)
+      </h2>
+      <div style="padding:10px;border:1px solid #CBD5E1;background:#F8FAFC;border-radius:6px;margin-bottom:10px;">
+        <p style="margin:0;font-size:10px;color:#334155;">
+          Mode: <strong>${snapshotMode}</strong> | Comparateur: <strong>${snapshotComparison}</strong> |
+          Filtre: <strong>${snapshotFilter}</strong> | Tri: <strong>${snapshotSort}</strong> |
+          Secteur benchmark: <strong>${snapshotSector}</strong>
+        </p>
+        <p style="margin:4px 0 0;font-size:10px;color:#475569;">
+          Periode courante: ${viewSnapshot?.period?.label || 'N/A'} | Periode comparee: ${viewSnapshot?.period?.comparedLabel || 'N/A'}
+        </p>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:15px;">
+        <thead>
+          <tr style="background:#E2E8F0;">
+            <th style="padding:7px;text-align:left;font-size:10px;">Categorie</th>
+            <th style="padding:7px;text-align:left;font-size:10px;">Carte</th>
+            <th style="padding:7px;text-align:right;font-size:10px;">Courant</th>
+            <th style="padding:7px;text-align:right;font-size:10px;">Comparatif</th>
+            <th style="padding:7px;text-align:right;font-size:10px;">Benchmark</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  };
 
   const html = `
     ${createHeader('Diagnostic Financier', companyInfo, period)}
+    ${renderSnapshotSection()}
 
     <!-- Section 1: Analyse des Marges -->
     <h2 style="font-size:16px;color:#3B82F6;border-bottom:2px solid #3B82F6;padding-bottom:5px;margin:20px 0 10px;">

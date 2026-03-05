@@ -37,6 +37,15 @@ function resolvePeriodBounds(startDate, endDate) {
   };
 }
 
+function shiftDateInput(dateInput, { years = 0, months = 0, days = 0 } = {}) {
+  if (!dateInput) return null;
+  const shifted = new Date(`${dateInput}T00:00:00`);
+  if (Number.isFinite(years) && years !== 0) shifted.setFullYear(shifted.getFullYear() + years);
+  if (Number.isFinite(months) && months !== 0) shifted.setMonth(shifted.getMonth() + months);
+  if (Number.isFinite(days) && days !== 0) shifted.setDate(shifted.getDate() + days);
+  return formatDateInput(shifted);
+}
+
 function isOptionalSchemaError(error) {
   if (!error) return false;
   if (OPTIONAL_SCHEMA_ERROR_CODES.has(error.code)) return true;
@@ -255,6 +264,36 @@ export const useAccountingData = (startDate, endDate) => {
   const computed = useMemo(() => {
     if (!period.startDate || !period.endDate) return null;
 
+    const buildDiagnosticForRange = (rangeStartDate, rangeEndDate) => {
+      if (!rangeStartDate || !rangeEndDate) return null;
+
+      const rangeBalanceSheet = buildBalanceSheetFromEntries(accounts, entries, rangeStartDate, rangeEndDate);
+      const rangeIncomeStatement = buildIncomeStatementFromEntries(accounts, entries, rangeStartDate, rangeEndDate);
+      const previousEndDate = shiftDateInput(rangeStartDate, { days: -1 });
+      const previousBalanceSheet = buildBalanceSheetFromEntries(
+        accounts,
+        entries,
+        null,
+        previousEndDate
+      );
+      const previousRangeData = {
+        balanceSheet: previousBalanceSheet,
+        financing: {
+          bfr: calculateBFR(previousBalanceSheet),
+        },
+      };
+
+      return buildFinancialDiagnostic(
+        entries,
+        accounts,
+        rangeBalanceSheet,
+        rangeIncomeStatement,
+        rangeStartDate,
+        rangeEndDate,
+        previousRangeData
+      );
+    };
+
     // Balance sheet & income statement — always entry-based
     const balanceSheet = buildBalanceSheetFromEntries(accounts, entries, period.startDate, period.endDate);
     const incomeStatement = buildIncomeStatementFromEntries(accounts, entries, period.startDate, period.endDate);
@@ -318,6 +357,21 @@ export const useAccountingData = (startDate, endDate) => {
       previousPeriodData
     );
 
+    const financialDiagnosticComparatives = {
+      monthOverMonth: buildDiagnosticForRange(
+        shiftDateInput(period.startDate, { months: -1 }),
+        shiftDateInput(period.endDate, { months: -1 })
+      ),
+      quarterOverQuarter: buildDiagnosticForRange(
+        shiftDateInput(period.startDate, { months: -3 }),
+        shiftDateInput(period.endDate, { months: -3 })
+      ),
+      yearOverYear: buildDiagnosticForRange(
+        shiftDateInput(period.startDate, { years: -1 }),
+        shiftDateInput(period.endDate, { years: -1 })
+      ),
+    };
+
     // Consistency validation
     const consistencyWarnings = validateAccountingConsistency(
       { revenue, totalExpenses, netIncome },
@@ -351,6 +405,7 @@ export const useAccountingData = (startDate, endDate) => {
       generalLedger,
       journalBook,
       financialDiagnostic,
+      financialDiagnosticComparatives,
       consistencyWarnings,
       qualityGate,
     };
@@ -390,6 +445,11 @@ export const useAccountingData = (startDate, endDate) => {
       generalLedger: [],
       journalBook: [],
       financialDiagnostic: null,
+      financialDiagnosticComparatives: {
+        monthOverMonth: null,
+        quarterOverQuarter: null,
+        yearOverYear: null,
+      },
       consistencyWarnings: [],
       qualityGate: null,
     }),
