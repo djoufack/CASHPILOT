@@ -120,7 +120,7 @@ const FinancialDiagnostic = ({ diagnostic, period, currency = 'EUR', onExportPDF
           </div>
 
           {/* Summary cards */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-3">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-xs text-gray-500">CA de la periode</p>
@@ -183,6 +183,26 @@ const FinancialDiagnostic = ({ diagnostic, period, currency = 'EUR', onExportPDF
                 }).format(diagnostic.financing.operatingCashFlow)}
               </p>
             </div>
+            <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-gray-500">Endettement net</p>
+                <RatioInfoPopover
+                  title="Endettement net"
+                  formula="Endettement net = dettes financieres - tresorerie"
+                  definition="L'endettement net mesure la dette residuelle apres prise en compte de la tresorerie disponible."
+                  utility="Il sert a evaluer la pression financiere reelle et la capacite de desendettement."
+                  interpretation="Un endettement net faible ou negatif ameliore la flexibilite financiere. Un niveau eleve exige un pilotage de cash strict."
+                />
+              </div>
+              <p className={`text-xl font-bold ${
+                diagnostic.financing.netDebt <= 0 ? 'text-green-400' : 'text-orange-400'
+              }`}>
+                {new Intl.NumberFormat('fr-FR', {
+                  style: 'currency',
+                  currency: currency
+                }).format(diagnostic.financing.netDebt)}
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -190,12 +210,8 @@ const FinancialDiagnostic = ({ diagnostic, period, currency = 'EUR', onExportPDF
       {/* Section 1: Analyse des Marges */}
       <MarginAnalysisSection data={diagnostic.margins} />
 
-      <div className="border-t border-gray-800 my-8" />
-
       {/* Section 2: Analyse du Financement */}
       <FinancingAnalysisSection data={diagnostic.financing} />
-
-      <div className="border-t border-gray-800 my-8" />
 
       {/* Section 3: Ratios Cles */}
       <KeyRatiosSection data={diagnostic.ratios} />
