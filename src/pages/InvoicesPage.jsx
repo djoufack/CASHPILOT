@@ -457,11 +457,14 @@ const InvoicesPage = () => {
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead className="bg-gray-800/50">
-                          <tr>
-                            <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                              {t('invoices.invoiceNumber')}
-                            </th>
+	                        <thead className="bg-gray-800/50">
+	                          <tr>
+	                            <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+	                              Documents
+	                            </th>
+	                            <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+	                              {t('invoices.invoiceNumber')}
+	                            </th>
                             <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
                               {t('clients.companyName')}
                             </th>
@@ -486,14 +489,48 @@ const InvoicesPage = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-700">
-                          {paginatedInvoices.map((invoice) => {
-                            const client = clients.find(c => c.id === (invoice.client_id || invoice.clientId));
-                            const currency = client?.preferred_currency || client?.preferredCurrency || 'EUR';
-                            return (
-                              <tr key={invoice.id} className="hover:bg-gray-700/50 transition-colors">
-                                <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
-                                  {invoice.invoice_number || invoice.invoiceNumber}
-                                </td>
+	                          {paginatedInvoices.map((invoice) => {
+	                            const client = clients.find(c => c.id === (invoice.client_id || invoice.clientId));
+	                            const currency = client?.preferred_currency || client?.preferredCurrency || 'EUR';
+	                            return (
+	                              <tr key={invoice.id} className="hover:bg-gray-700/50 transition-colors">
+	                                <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm">
+	                                  <div className="flex items-center gap-2">
+	                                    <Button
+	                                      variant="outline"
+	                                      size="sm"
+	                                      onClick={() => handleViewInvoice(invoice)}
+	                                      className="border-blue-500/40 text-blue-300 hover:bg-blue-900/20 h-8 px-2"
+	                                      title={t('common.view') || 'Visualiser'}
+	                                    >
+	                                      <Eye className="w-4 h-4" />
+	                                      <span className="hidden xl:inline ml-1">{t('common.view') || 'Visualiser'}</span>
+	                                    </Button>
+	                                    <Button
+	                                      variant="outline"
+	                                      size="sm"
+	                                      onClick={() => handleExportInvoicePDF(invoice)}
+	                                      className="border-purple-500/40 text-purple-300 hover:bg-purple-900/20 h-8 px-2"
+	                                      title="Export PDF (2 crédits)"
+	                                    >
+	                                      <Download className="w-4 h-4" />
+	                                      <span className="hidden xl:inline ml-1">PDF</span>
+	                                    </Button>
+	                                    <Button
+	                                      variant="outline"
+	                                      size="sm"
+	                                      onClick={() => handleExportInvoiceHTML(invoice)}
+	                                      className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/20 h-8 px-2"
+	                                      title="Export HTML (2 crédits)"
+	                                    >
+	                                      <FileText className="w-4 h-4" />
+	                                      <span className="hidden xl:inline ml-1">HTML</span>
+	                                    </Button>
+	                                  </div>
+	                                </td>
+	                                <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
+	                                  {invoice.invoice_number || invoice.invoiceNumber}
+	                                </td>
                                 <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
                                   {client?.company_name || client?.companyName || 'Unknown'}
                                 </td>
@@ -541,36 +578,18 @@ const InvoicesPage = () => {
                                     >
                                       <DollarSign className="w-4 h-4" />
                                     </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => { setHistoryInvoice(invoice); setIsHistoryOpen(true); }}
-                                      className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20 h-8 w-8 p-0"
-                                      title={t('payments.history')}
-                                    >
-                                      <History className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleExportInvoicePDF(invoice)}
-                                      className="text-purple-400 hover:text-purple-300 hover:bg-purple-900/20 h-8 w-8 p-0"
-                                      title="Export PDF (2 crédits)"
-                                    >
-                                      <Download className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleExportInvoiceHTML(invoice)}
-                                      className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20 h-8 w-8 p-0"
-                                      title="Export HTML (2 crédits)"
-                                    >
-                                      <FileText className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
+	                                    <Button
+	                                      variant="ghost"
+	                                      size="sm"
+	                                      onClick={() => { setHistoryInvoice(invoice); setIsHistoryOpen(true); }}
+	                                      className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20 h-8 w-8 p-0"
+	                                      title={t('payments.history')}
+	                                    >
+	                                      <History className="w-4 h-4" />
+	                                    </Button>
+	                                    <Button
+	                                      variant="ghost"
+	                                      size="sm"
                                       onClick={() => handleOpenEmailModal(invoice)}
                                       disabled={emailSending}
                                       className="text-sky-400 hover:text-sky-300 hover:bg-sky-900/20 h-8 w-8 p-0"
@@ -617,17 +636,9 @@ const InvoicesPage = () => {
                                         </Button>
                                       )
                                     )}
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleViewInvoice(invoice)}
-                                      className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 h-8 w-8 p-0"
-                                    >
-                                      <Eye className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
+	                                    <Button
+	                                      variant="ghost"
+	                                      size="sm"
                                       onClick={() => handleDeleteClick(invoice)}
                                       className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
                                     >
