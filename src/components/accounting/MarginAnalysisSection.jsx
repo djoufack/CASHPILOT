@@ -43,20 +43,22 @@ const MarginAnalysisSection = ({ data, currency = 'EUR' }) => {
           <div className="p-2 bg-gray-800 rounded-lg">
             <Icon className={`w-5 h-5 ${colorClass || 'text-blue-400'}`} />
           </div>
-          <div className="flex items-center gap-2">
-            {percentage !== undefined && (
-              <span
-                className={`text-sm font-semibold ${
-                  percentage >= 0 ? 'text-green-400' : 'text-red-400'
-                }`}
-              >
-                {percentage.toFixed(1)}%
-              </span>
-            )}
-            {info && <RatioInfoPopover {...info} />}
-          </div>
+          {percentage !== undefined && (
+            <span
+              className={`text-sm font-semibold ${
+                percentage >= 0 ? 'text-green-400' : 'text-red-400'
+              }`}
+            >
+              {percentage.toFixed(1)}%
+            </span>
+          )}
         </div>
-        <p className="text-sm text-gray-400 mb-1">{label}</p>
+        <p className="text-sm text-gray-400 mb-1">
+          <span className="inline-flex items-start gap-1">
+            {info && <RatioInfoPopover {...info} />}
+            <span>{label}</span>
+          </span>
+        </p>
         <p className={`text-2xl font-bold ${
           value >= 0 ? 'text-gray-100' : 'text-red-400'
         }`}>

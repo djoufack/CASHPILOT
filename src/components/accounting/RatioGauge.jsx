@@ -100,16 +100,22 @@ const RatioGauge = ({
       <CardContent className="p-4">
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-gray-400">{label}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-400">
+              <span className="inline-flex items-start gap-1">
+                {info && <RatioInfoPopover {...info} />}
+                <span>{label}</span>
+              </span>
+            </p>
             {description && (
               <p className="text-xs text-gray-500 mt-1">{description}</p>
             )}
           </div>
-          <div className="flex items-center gap-1.5">
-            {info && <RatioInfoPopover {...info} />}
-            {trendIcon}
-          </div>
+          {trendIcon && (
+            <div className="flex items-center gap-1.5">
+              {trendIcon}
+            </div>
+          )}
         </div>
 
         {/* Main value */}
