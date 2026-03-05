@@ -88,7 +88,7 @@ const FinancingAnalysisSection = ({ data, currency = 'EUR' }) => {
       </div>
 
       {/* Grid de metriques principales */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <FinanceMetricCard
           icon={DollarSign}
           label="Capacite d'Autofinancement (CAF)"

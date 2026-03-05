@@ -1,5 +1,5 @@
 // CashPilot Service Worker
-const CACHE_NAME = 'cashpilot-v4';
+const CACHE_NAME = 'cashpilot-v5';
 const STATIC_ASSETS = [
   '/manifest.json',
 ];

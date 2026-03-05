@@ -40,7 +40,7 @@ const KeyRatiosSection = ({ data }) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <RatioGauge
               label="Rentabilite des Capitaux Propres (ROE)"
               value={profitability.roe}
@@ -118,7 +118,7 @@ const KeyRatiosSection = ({ data }) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <RatioGauge
               label="Ratio de Liquidite Generale"
               value={liquidity.currentRatio}
