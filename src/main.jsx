@@ -8,6 +8,9 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ReferenceDataProvider } from '@/contexts/ReferenceDataContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import OnboardingTour from '@/components/OnboardingTour';
+import { initializeErrorTracking } from '@/services/errorTracking';
+
+initializeErrorTracking();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <AuthProvider>

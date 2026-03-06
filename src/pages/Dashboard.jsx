@@ -13,14 +13,16 @@ import { useCashFlow } from '@/hooks/useCashFlow';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { formatCurrency, formatCompactCurrency } from '@/utils/currencyService';
-import { calculateTrend, formatTrendLabel, calculateProfitMargin, getInvoiceAmount } from '@/utils/calculations';
+import { formatTrendLabel } from '@/utils/calculations';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
+import { buildCanonicalDashboardSnapshot, getCanonicalInvoiceAmount } from '@/shared/canonicalDashboardSnapshot';
 import { Users, Clock, FileText, TrendingUp, DollarSign, Activity, Loader2, ArrowUp, ArrowDown, Download, Package, Wrench, Wallet, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, Legend } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { exportDashboardPDF, exportDashboardHTML } from '@/services/exportReports';
+import { captureError } from '@/services/errorTracking';
 import AccountingHealthWidget from '@/components/AccountingHealthWidget';
 import ObligationsPanel from '@/components/dashboard/ObligationsPanel';
 import SnapshotShareDialog from '@/components/SnapshotShareDialog';
@@ -59,11 +61,31 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user) {
-      dashboardFetchersRef.current.fetchInvoices();
-      dashboardFetchersRef.current.fetchTimesheets();
-      dashboardFetchersRef.current.fetchProjects();
-      dashboardFetchersRef.current.fetchClients();
-      dashboardFetchersRef.current.fetchExpenses();
+      const loadDashboardData = async () => {
+        const fetchers = [
+          { name: 'invoices', run: dashboardFetchersRef.current.fetchInvoices },
+          { name: 'timesheets', run: dashboardFetchersRef.current.fetchTimesheets },
+          { name: 'projects', run: dashboardFetchersRef.current.fetchProjects },
+          { name: 'clients', run: dashboardFetchersRef.current.fetchClients },
+          { name: 'expenses', run: dashboardFetchersRef.current.fetchExpenses },
+        ];
+
+        const results = await Promise.allSettled(fetchers.map((fetcher) => fetcher.run()));
+
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            captureError(result.reason, {
+              tags: { scope: 'dashboard', action: `fetch_${fetchers[index].name}` },
+            });
+          }
+        });
+      };
+
+      loadDashboardData().catch((error) => {
+        captureError(error, {
+          tags: { scope: 'dashboard', action: 'initial_load' },
+        });
+      });
     }
   }, [user]);
 
@@ -80,143 +102,19 @@ const Dashboard = () => {
       };
     }
 
-    // --- Revenue: include both "sent" and "paid" invoices, use total_ttc preferably ---
-    const billedInvoices = invoices.filter(inv => ['sent', 'paid'].includes(inv.status));
-    const totalRevenue = billedInvoices.reduce((sum, inv) => sum + getInvoiceAmount(inv), 0);
-
-    // --- Total Expenses ---
-    const totalExpenses = (expenses || []).reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
-
-    // --- Profit Margin (fixed formula) ---
-    const profitMargin = calculateProfitMargin(totalRevenue, totalExpenses);
-
-    // --- Net Cash Flow ---
-    const netCashFlow = totalRevenue - totalExpenses;
-
-    // --- Occupancy Rate ---
-    const totalDurationMinutes = timesheets.reduce((sum, ts) => sum + (ts.duration_minutes || 0), 0);
-    const totalBudgetMinutes = projects.reduce((sum, p) => sum + (p.budget_hours || 0), 0) * 60;
-    let occupancyRate = 0;
-    if (totalBudgetMinutes > 0) {
-      occupancyRate = (totalDurationMinutes / totalBudgetMinutes) * 100;
-    } else if (totalDurationMinutes > 0) {
-      occupancyRate = projects.length > 0 ? 100 : 0;
-    }
-
-    // --- Real Trends (current month vs previous month) ---
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-
-    const getInvDate = (inv) => inv.date || inv.invoice_date || inv.created_at;
-
-    const currentMonthRevenue = billedInvoices
-      .filter(inv => { const d = new Date(getInvDate(inv)); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; })
-      .reduce((sum, inv) => sum + getInvoiceAmount(inv), 0);
-
-    const prevMonthRevenue = billedInvoices
-      .filter(inv => { const d = new Date(getInvDate(inv)); return d.getMonth() === prevMonth && d.getFullYear() === prevYear; })
-      .reduce((sum, inv) => sum + getInvoiceAmount(inv), 0);
-
-    const revenueTrend = calculateTrend(currentMonthRevenue, prevMonthRevenue);
-
-    // Expense trends
-    const currentMonthExpenses = (expenses || [])
-      .filter(exp => { const d = new Date(exp.expense_date || exp.created_at); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; })
-      .reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
-    const prevMonthExpenses = (expenses || [])
-      .filter(exp => { const d = new Date(exp.expense_date || exp.created_at); return d.getMonth() === prevMonth && d.getFullYear() === prevYear; })
-      .reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
-
-    const prevMonthMargin = calculateProfitMargin(prevMonthRevenue, prevMonthExpenses);
-    const currentMonthMargin = calculateProfitMargin(currentMonthRevenue, currentMonthExpenses);
-    const marginTrend = calculateTrend(currentMonthMargin, prevMonthMargin);
-
-    // Occupancy trend
-    const currentMonthDuration = timesheets
-      .filter(ts => { const d = new Date(ts.date || ts.created_at); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; })
-      .reduce((sum, ts) => sum + (ts.duration_minutes || 0), 0);
-    const prevMonthDuration = timesheets
-      .filter(ts => { const d = new Date(ts.date || ts.created_at); return d.getMonth() === prevMonth && d.getFullYear() === prevYear; })
-      .reduce((sum, ts) => sum + (ts.duration_minutes || 0), 0);
-    const occupancyTrend = calculateTrend(currentMonthDuration, prevMonthDuration);
-
-    // --- Revenue chart by month (year-aware to avoid cross-year merging) ---
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const getMonthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const getMonthLabel = (date) => `${monthNames[date.getMonth()]} ${String(date.getFullYear()).slice(2)}`;
-    const revenueByMonth = {};
-    billedInvoices.forEach(inv => {
-      const date = new Date(getInvDate(inv));
-      const key = getMonthKey(date);
-      if (!revenueByMonth[key]) revenueByMonth[key] = { name: getMonthLabel(date), sortKey: key, revenue: 0 };
-      revenueByMonth[key].revenue += getInvoiceAmount(inv);
+    const snapshot = buildCanonicalDashboardSnapshot({
+      invoices,
+      expenses,
+      timesheets,
+      projects,
     });
-    const chartRevenue = Object.values(revenueByMonth)
-      .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-
-    // --- Revenue by client ---
-    const revenueByClient = {};
-    billedInvoices.forEach(inv => {
-      const clientName = inv.client?.company_name || 'Other';
-      revenueByClient[clientName] = (revenueByClient[clientName] || 0) + getInvoiceAmount(inv);
-    });
-    const chartClient = Object.entries(revenueByClient)
-      .map(([name, amount]) => ({ name, amount }))
-      .sort((a, b) => b.amount - a.amount);
-
-    // --- Revenue breakdown by type ---
-    const revenueByType = { product: 0, service: 0, other: 0 };
-    const classifyItem = (item) => {
-      if (item.item_type === 'product' || item.product_id) return 'product';
-      if (item.item_type === 'service' || item.item_type === 'timesheet' || item.service_id) return 'service';
-      return 'other';
-    };
-    billedInvoices.forEach(inv => {
-      const items = inv.items || [];
-      if (items.length > 0) {
-        items.forEach(item => {
-          const itemTotal = item.total || (item.quantity * item.unit_price) || 0;
-          revenueByType[classifyItem(item)] += itemTotal;
-        });
-      } else {
-        revenueByType.other += getInvoiceAmount(inv);
-      }
-    });
-
-    // --- Monthly breakdown by type for stacked chart (year-aware) ---
-    const revenueByMonthType = {};
-    billedInvoices.forEach(inv => {
-      const date = new Date(getInvDate(inv));
-      const key = getMonthKey(date);
-      if (!revenueByMonthType[key]) {
-        revenueByMonthType[key] = { name: getMonthLabel(date), sortKey: key, products: 0, services: 0, other: 0 };
-      }
-      const items = inv.items || [];
-      if (items.length > 0) {
-        items.forEach(item => {
-          const itemTotal = item.total || (item.quantity * item.unit_price) || 0;
-          const cat = classifyItem(item);
-          if (cat === 'product') revenueByMonthType[key].products += itemTotal;
-          else if (cat === 'service') revenueByMonthType[key].services += itemTotal;
-          else revenueByMonthType[key].other += itemTotal;
-        });
-      } else {
-        revenueByMonthType[key].other += getInvoiceAmount(inv);
-      }
-    });
-
-    const revenueBreakdownData = Object.values(revenueByMonthType)
-      .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
     return {
-      metrics: { revenue: totalRevenue, profitMargin, occupancyRate, totalExpenses, netCashFlow, revenueTrend, marginTrend, occupancyTrend },
-      revenueData: chartRevenue,
-      clientRevenueData: chartClient,
-      revenueByType,
-      revenueBreakdownData,
+      metrics: snapshot.metrics,
+      revenueData: snapshot.revenueData,
+      clientRevenueData: snapshot.clientRevenueData,
+      revenueByType: snapshot.revenueByType,
+      revenueBreakdownData: snapshot.revenueBreakdownData,
       recentInvoices: [...invoices].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5),
       recentTimesheets: [...timesheets].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5),
     };
@@ -227,13 +125,20 @@ const Dashboard = () => {
       CREDIT_COSTS.PDF_REPORT,
       'Dashboard Report PDF',
       async () => {
-        await exportDashboardPDF({
-          metrics,
-          revenueData,
-          clientRevenueData,
-          recentInvoices,
-          recentTimesheets
-        }, company);
+        try {
+          await exportDashboardPDF({
+            metrics,
+            revenueData,
+            clientRevenueData,
+            recentInvoices,
+            recentTimesheets
+          }, company);
+        } catch (error) {
+          captureError(error, {
+            tags: { scope: 'dashboard', action: 'export_pdf' },
+          });
+          throw error;
+        }
       }
     );
   };
@@ -243,13 +148,20 @@ const Dashboard = () => {
       CREDIT_COSTS.EXPORT_HTML,
       'Dashboard Report HTML',
       () => {
-        exportDashboardHTML({
-          metrics,
-          revenueData,
-          clientRevenueData,
-          recentInvoices,
-          recentTimesheets
-        }, company);
+        try {
+          exportDashboardHTML({
+            metrics,
+            revenueData,
+            clientRevenueData,
+            recentInvoices,
+            recentTimesheets
+          }, company);
+        } catch (error) {
+          captureError(error, {
+            tags: { scope: 'dashboard', action: 'export_html' },
+          });
+          throw error;
+        }
       }
     );
   };
@@ -299,7 +211,7 @@ const Dashboard = () => {
       id: invoice.id,
       label: invoice.invoice_number,
       subtitle: invoice.client?.company_name || 'Client',
-      amountLabel: formatCurrency(getInvoiceAmount(invoice), cc),
+      amountLabel: formatCurrency(getCanonicalInvoiceAmount(invoice), cc),
       status: invoice.status,
     })),
     recentTimesheets: recentTimesheets.map((timesheet) => ({
@@ -799,7 +711,7 @@ const Dashboard = () => {
                       <p className="text-xs text-gray-500">{inv.client?.company_name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-gradient font-semibold text-sm" title={formatCurrency(getInvoiceAmount(inv), cc)}>{formatCompactCurrency(getInvoiceAmount(inv), cc)}</p>
+                      <p className="text-gradient font-semibold text-sm" title={formatCurrency(getCanonicalInvoiceAmount(inv), cc)}>{formatCompactCurrency(getCanonicalInvoiceAmount(inv), cc)}</p>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                         inv.status === 'paid' ? 'bg-green-500/10 text-green-400' :
                         inv.status === 'sent' ? 'bg-blue-500/10 text-blue-400' :
