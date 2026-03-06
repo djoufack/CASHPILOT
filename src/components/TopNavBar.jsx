@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
@@ -14,6 +14,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import NotificationCenterComponent from '@/components/NotificationCenter';
 import CompanySwitcher from '@/components/CompanySwitcher';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 const TopNavBar = ({ isCollapsed }) => {
   const { t } = useTranslation();
@@ -23,6 +24,20 @@ const TopNavBar = ({ isCollapsed }) => {
   const { availableCredits, loading: creditsLoading, unlimitedAccess, unlimitedAccessLabel } = useCredits();
   const { companies, activeCompany, switchCompany } = useCompany();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileDialogRef = useRef(null);
+  const mobileCloseButtonRef = useRef(null);
+
+  const handleCloseMobileMenu = useCallback(() => {
+    setMobileMenuOpen(false);
+  }, []);
+
+  useFocusTrap({
+    active: mobileMenuOpen,
+    containerRef: mobileDialogRef,
+    onEscape: handleCloseMobileMenu,
+    initialFocusRef: mobileCloseButtonRef,
+    restoreFocus: true,
+  });
 
   const handleLogout = () => {
     logout()
@@ -150,15 +165,18 @@ const TopNavBar = ({ isCollapsed }) => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              ref={mobileDialogRef}
               className="absolute right-0 top-0 bottom-0 w-72 bg-gray-950 border-l border-gray-800/50 p-4"
               role="dialog"
               aria-modal="true"
+              aria-labelledby="topnav-mobile-menu-title"
               aria-label={t('topNav.menu')}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-6">
-                <span className="text-lg font-semibold text-white">{t('topNav.menu')}</span>
+                <span id="topnav-mobile-menu-title" className="text-lg font-semibold text-white">{t('topNav.menu')}</span>
                 <motion.button
+                  ref={mobileCloseButtonRef}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setMobileMenuOpen(false)}
                   className="p-2 text-gray-400 hover:text-white"

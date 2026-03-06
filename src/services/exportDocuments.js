@@ -1,5 +1,10 @@
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
+import DOMPurify from 'dompurify';
+
+const setSafeHtml = (element, html) => {
+  element.innerHTML = DOMPurify.sanitize(String(html || ''));
+};
 
 const toFiniteNumber = (value) => {
   const numeric = Number(value);
@@ -585,7 +590,7 @@ const generatePurchaseOrderHTML = (purchaseOrder, companyInfo) => {
 export const exportInvoicePDF = async (invoice, companyInfo) => {
   const htmlContent = generateInvoiceHTML(invoice, companyInfo);
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlContent;
+  setSafeHtml(tempDiv, htmlContent);
   document.body.appendChild(tempDiv);
 
   const options = {
@@ -613,7 +618,7 @@ export const exportInvoicePDF = async (invoice, companyInfo) => {
 export const exportQuotePDF = async (quote, companyInfo) => {
   const htmlContent = generateQuoteHTML(quote, companyInfo);
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlContent;
+  setSafeHtml(tempDiv, htmlContent);
   document.body.appendChild(tempDiv);
 
   const options = {
@@ -641,7 +646,7 @@ export const exportQuotePDF = async (quote, companyInfo) => {
 export const exportDeliveryNotePDF = async (deliveryNote, companyInfo) => {
   const htmlContent = generateDeliveryNoteHTML(deliveryNote, companyInfo);
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlContent;
+  setSafeHtml(tempDiv, htmlContent);
   document.body.appendChild(tempDiv);
 
   const options = {
@@ -669,7 +674,7 @@ export const exportDeliveryNotePDF = async (deliveryNote, companyInfo) => {
 export const exportCreditNotePDF = async (creditNote, companyInfo) => {
   const htmlContent = generateCreditNoteHTML(creditNote, companyInfo);
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlContent;
+  setSafeHtml(tempDiv, htmlContent);
   document.body.appendChild(tempDiv);
 
   const options = {
@@ -697,7 +702,7 @@ export const exportCreditNotePDF = async (creditNote, companyInfo) => {
 export const exportPurchaseOrderPDF = async (purchaseOrder, companyInfo) => {
   const htmlContent = generatePurchaseOrderHTML(purchaseOrder, companyInfo);
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlContent;
+  setSafeHtml(tempDiv, htmlContent);
   document.body.appendChild(tempDiv);
 
   const options = {

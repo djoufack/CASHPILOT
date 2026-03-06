@@ -5,6 +5,7 @@
 
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
+import DOMPurify from 'dompurify';
 
 const PDF_OPTIONS = {
   margin: 10,
@@ -49,7 +50,7 @@ function createContainer(html) {
   el.style.fontSize = '12px';
   el.style.color = '#1F2937';
   el.style.padding = '15px';
-  el.innerHTML = html;
+  el.innerHTML = DOMPurify.sanitize(String(html || ''));
   document.body.appendChild(el);
   return el;
 }

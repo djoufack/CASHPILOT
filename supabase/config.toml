@@ -1,67 +1,67 @@
 project_id = "rfzvrezrcigzmldgvntz"
 
 [functions.ai-chatbot]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-fraud-detection]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-ml-forecast]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-sentiment]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-tax-optimization]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-voice-expense]
-verify_jwt = false
+verify_jwt = true
 
 [functions.audit-comptable]
-verify_jwt = false
+verify_jwt = true
 
 [functions.delete-account]
-verify_jwt = false
+verify_jwt = true
 
 [functions.export-user-data]
-verify_jwt = false
+verify_jwt = true
 
 [functions.extract-invoice]
-verify_jwt = false
+verify_jwt = true
 
 [functions.gocardless-auth]
-verify_jwt = false
+verify_jwt = true
 
 [functions.peppol-account-info]
-verify_jwt = false
+verify_jwt = true
 
 [functions.peppol-check]
-verify_jwt = false
+verify_jwt = true
 
 [functions.peppol-configure]
-verify_jwt = false
+verify_jwt = true
 
 [functions.peppol-inbound]
-verify_jwt = false
+verify_jwt = true
 
 [functions.peppol-poll-status]
-verify_jwt = false
+verify_jwt = true
 
 [functions.peppol-send]
-verify_jwt = false
+verify_jwt = true
 
 [functions.quote-sign-request]
-verify_jwt = false
+verify_jwt = true
 
 [functions.quote-sign-submit]
 verify_jwt = false
 
 [functions.send-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.stripe-invoice-link]
-verify_jwt = false
+verify_jwt = true
 
 [functions.stripe-subscription-checkout]
 verify_jwt = false
@@ -70,7 +70,16 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.webhooks]
-verify_jwt = false
+verify_jwt = true
 
 [functions.supplier-approval-notifications]
+verify_jwt = true
+
+[functions.generate-recurring]
+verify_jwt = false
+
+[functions.payment-reminders]
+verify_jwt = false
+
+[functions.peppol-webhook]
 verify_jwt = false

@@ -26,6 +26,7 @@ serve(async (req) => {
   // --- HMAC-SHA256 signature verification ---
   const rawBody = await req.text();
   const scradaWebhookSecret = Deno.env.get('SCRADA_WEBHOOK_SECRET');
+  const allowInsecureWebhooks = Deno.env.get('ALLOW_INSECURE_WEBHOOKS') === 'true';
   const hmacHeader = req.headers.get('x-scrada-hmac-sha256') || '';
 
   if (scradaWebhookSecret) {
@@ -42,7 +43,13 @@ serve(async (req) => {
       });
     }
   } else {
-    console.warn('SCRADA_WEBHOOK_SECRET not configured — skipping HMAC verification');
+    if (!allowInsecureWebhooks) {
+      console.error('SCRADA_WEBHOOK_SECRET is required for peppol-webhook');
+      return new Response(JSON.stringify({ error: 'Webhook security misconfigured (missing SCRADA_WEBHOOK_SECRET)' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    console.warn('ALLOW_INSECURE_WEBHOOKS=true — skipping HMAC verification');
   }
 
   try {

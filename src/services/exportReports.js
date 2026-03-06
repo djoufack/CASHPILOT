@@ -1,5 +1,10 @@
 import { captureElementAsImage, saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
+import DOMPurify from 'dompurify';
+
+const setSafeHtml = (element, html) => {
+  element.innerHTML = DOMPurify.sanitize(String(html || ''));
+};
 
 /**
  * Capture chart/element as image
@@ -64,7 +69,7 @@ export const exportAnalyticsPDF = async (data, companyInfo) => {
   `;
 
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = content;
+  setSafeHtml(tempDiv, content);
   document.body.appendChild(tempDiv);
 
   const options = {
@@ -144,7 +149,7 @@ export const exportSupplierReportPDF = async (reportData, companyInfo) => {
   `;
 
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = content;
+  setSafeHtml(tempDiv, content);
   document.body.appendChild(tempDiv);
 
   const options = {
@@ -362,7 +367,7 @@ export const exportDashboardPDF = async (data, companyInfo) => {
   `;
 
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = content;
+  setSafeHtml(tempDiv, content);
   document.body.appendChild(tempDiv);
 
   const options = {
