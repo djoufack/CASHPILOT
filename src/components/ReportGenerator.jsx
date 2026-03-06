@@ -484,7 +484,7 @@ const ReportGenerator = () => {
           const data = await ensureReportData();
           const html = getHtml(data);
           container = document.createElement('div');
-          container.innerHTML = html;
+          container.innerHTML = DOMPurify.sanitize(html);
           document.body.appendChild(container);
 
           await saveElementAsPdf(container, {

@@ -130,9 +130,19 @@ export const useClients = () => {
     if (!supabase) throw new Error("Supabase not configured");
     setLoading(true);
     try {
+      const sanitizedData = { ...clientData };
+      if (sanitizedData.company_name) sanitizedData.company_name = sanitizeText(sanitizedData.company_name);
+      if (sanitizedData.contact_name) sanitizedData.contact_name = sanitizeText(sanitizedData.contact_name);
+      if (sanitizedData.address) sanitizedData.address = sanitizeText(sanitizedData.address);
+      if (sanitizedData.city) sanitizedData.city = sanitizeText(sanitizedData.city);
+      if (sanitizedData.postal_code) sanitizedData.postal_code = sanitizeText(sanitizedData.postal_code);
+      if (sanitizedData.country) sanitizedData.country = sanitizeText(sanitizedData.country);
+      if (sanitizedData.phone) sanitizedData.phone = sanitizeText(sanitizedData.phone);
+      if (sanitizedData.notes) sanitizedData.notes = sanitizeText(sanitizedData.notes);
+
       const { data, error } = await supabase
         .from('clients')
-        .update(withCompanyScope(clientData))
+        .update(withCompanyScope(sanitizedData))
         .eq('id', id)
         .select()
         .single();

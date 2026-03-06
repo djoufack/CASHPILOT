@@ -1,5 +1,10 @@
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
+import DOMPurify from 'dompurify';
+
+const setSafeHtml = (element, html) => {
+  element.innerHTML = DOMPurify.sanitize(String(html || ''));
+};
 
 /**
  * Export Expenses List to PDF
@@ -68,7 +73,7 @@ export const exportExpensesListPDF = async (expenses, companyInfo, filters = {})
   `;
 
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = content;
+  setSafeHtml(tempDiv, content);
   document.body.appendChild(tempDiv);
 
   const options = {
@@ -155,7 +160,7 @@ export const exportStockListPDF = async (stockItems, companyInfo) => {
   `;
 
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = content;
+  setSafeHtml(tempDiv, content);
   document.body.appendChild(tempDiv);
 
   const options = {
@@ -250,7 +255,7 @@ export const exportTimesheetsListPDF = async (timesheets, companyInfo, filters =
   `;
 
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = content;
+  setSafeHtml(tempDiv, content);
   document.body.appendChild(tempDiv);
 
   const options = {
@@ -334,7 +339,7 @@ export const exportProjectsListPDF = async (projects, companyInfo) => {
   `;
 
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = content;
+  setSafeHtml(tempDiv, content);
   document.body.appendChild(tempDiv);
 
   const options = {
@@ -433,7 +438,7 @@ export const exportDebtListPDF = async (debts, companyInfo, type = 'receivables'
   `;
 
   const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = content;
+  setSafeHtml(tempDiv, content);
   document.body.appendChild(tempDiv);
 
   const options = {

@@ -48,6 +48,8 @@ import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
+import { escapeHTML } from '@/utils/sanitize';
+import DOMPurify from 'dompurify';
 
 const ClientManager = () => {
   const { t } = useTranslation();
@@ -190,28 +192,31 @@ const ClientManager = () => {
   };
 
   const generateClientSheetHTML = (client) => {
-    const companyName = company?.name || company?.company_name || 'CashPilot';
+    const companyName = escapeHTML(company?.name || company?.company_name || 'CashPilot');
     const details = [
-      { label: t('clients.companyName'), value: client.company_name || '-' },
-      { label: t('clients.contactName'), value: client.contact_name || '-' },
-      { label: t('clients.email'), value: client.email || '-' },
-      { label: t('clients.phone', 'Téléphone'), value: client.phone || '-' },
-      { label: t('clients.preferredCurrency'), value: client.preferred_currency || '-' },
-      { label: t('clients.vatNumber'), value: client.vat_number || '-' },
-      { label: t('clients.address'), value: client.address || '-' },
-      { label: t('clients.city', 'Ville'), value: client.city || '-' },
-      { label: t('clients.country', 'Pays'), value: client.country || '-' },
-      { label: 'IBAN', value: client.iban || '-' },
-      { label: 'BIC/SWIFT', value: client.bic_swift || '-' },
-      { label: t('peppol.endpointId'), value: client.peppol_endpoint_id || '-' },
-      { label: t('clients.createdAt', 'Créé le'), value: client.created_at ? new Date(client.created_at).toLocaleDateString('fr-FR') : '-' },
+      { label: escapeHTML(t('clients.companyName')), value: escapeHTML(client.company_name || '-') },
+      { label: escapeHTML(t('clients.contactName')), value: escapeHTML(client.contact_name || '-') },
+      { label: escapeHTML(t('clients.email')), value: escapeHTML(client.email || '-') },
+      { label: escapeHTML(t('clients.phone', 'Téléphone')), value: escapeHTML(client.phone || '-') },
+      { label: escapeHTML(t('clients.preferredCurrency')), value: escapeHTML(client.preferred_currency || '-') },
+      { label: escapeHTML(t('clients.vatNumber')), value: escapeHTML(client.vat_number || '-') },
+      { label: escapeHTML(t('clients.address')), value: escapeHTML(client.address || '-') },
+      { label: escapeHTML(t('clients.city', 'Ville')), value: escapeHTML(client.city || '-') },
+      { label: escapeHTML(t('clients.country', 'Pays')), value: escapeHTML(client.country || '-') },
+      { label: 'IBAN', value: escapeHTML(client.iban || '-') },
+      { label: 'BIC/SWIFT', value: escapeHTML(client.bic_swift || '-') },
+      { label: escapeHTML(t('peppol.endpointId')), value: escapeHTML(client.peppol_endpoint_id || '-') },
+      {
+        label: escapeHTML(t('clients.createdAt', 'Créé le')),
+        value: escapeHTML(client.created_at ? new Date(client.created_at).toLocaleDateString('fr-FR') : '-'),
+      },
     ];
 
     return `
       <div style="font-family: Arial, sans-serif; max-width: 860px; margin: 0 auto; color: #1f2937; background:#f8fafc; padding:24px;">
         <div style="background:#0f172a; color:white; border-radius:10px; padding:20px 24px; margin-bottom:18px;">
           <h1 style="margin:0; font-size:28px;">Fiche client</h1>
-          <p style="margin:8px 0 0 0; color:#cbd5e1;">${client.company_name || '-'}</p>
+          <p style="margin:8px 0 0 0; color:#cbd5e1;">${escapeHTML(client.company_name || '-')}</p>
         </div>
         <div style="background:white; border:1px solid #e2e8f0; border-radius:10px; padding:18px 20px;">
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px 20px;">
@@ -225,7 +230,7 @@ const ClientManager = () => {
           ${client.notes ? `
             <div style="margin-top:16px; border:1px solid #e2e8f0; border-radius:8px; padding:12px; background:#f8fafc;">
               <p style="margin:0; font-size:12px; color:#64748b;">Notes</p>
-              <p style="margin:6px 0 0 0; font-size:14px; color:#0f172a;">${client.notes}</p>
+              <p style="margin:6px 0 0 0; font-size:14px; color:#0f172a;">${escapeHTML(client.notes)}</p>
             </div>
           ` : ''}
         </div>
@@ -240,7 +245,7 @@ const ClientManager = () => {
       t('credits.costs.pdfReport', 'Export PDF'),
       async () => {
         const wrapper = document.createElement('div');
-        wrapper.innerHTML = generateClientSheetHTML(client);
+        wrapper.innerHTML = DOMPurify.sanitize(generateClientSheetHTML(client));
         await saveElementAsPdf(wrapper, {
           margin: 0.5,
           filename: `FicheClient_${client.company_name || 'client'}_${formatDateInput()}.pdf`,
