@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { useAIChat } from '@/hooks/useAIChat';
 import { useCredits } from '@/hooks/useCredits';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const AIChatWidget = () => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [position, setPosition] = useState(() => {
@@ -24,6 +26,7 @@ const AIChatWidget = () => {
   const { fetchCredits } = useCredits();
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const panelRef = useRef(null);
   const panelDragControls = useDragControls();
 
   useEffect(() => {
@@ -32,6 +35,53 @@ const AIChatWidget = () => {
 
   useEffect(() => {
     if (isOpen) inputRef.current?.focus();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !panelRef.current) return undefined;
+
+    const panelElement = panelRef.current;
+    const focusableSelector = 'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])';
+
+    const getFocusableElements = () => Array
+      .from(panelElement.querySelectorAll(focusableSelector))
+      .filter((element) => (
+        !element.hasAttribute('disabled')
+        && element.getAttribute('aria-hidden') !== 'true'
+      ));
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setIsOpen(false);
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey) {
+        if (activeElement === firstElement || !panelElement.contains(activeElement)) {
+          event.preventDefault();
+          lastElement.focus();
+        }
+        return;
+      }
+
+      if (activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    panelElement.addEventListener('keydown', handleKeyDown);
+    return () => panelElement.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
   const handleDragEnd = (event, info) => {
@@ -79,6 +129,7 @@ const AIChatWidget = () => {
             exit={{ scale: 0 }}
             whileDrag={{ scale: 1.1, cursor: 'grabbing' }}
             className="fixed top-0 left-0 z-50 w-14 h-14 bg-orange-500 hover:bg-orange-600 rounded-full shadow-lg flex items-center justify-center text-white cursor-grab"
+            aria-label={t('aiChat.openWidget', 'Open AI assistant')}
           >
             <MessageCircle className="w-6 h-6" />
           </motion.button>
@@ -89,6 +140,7 @@ const AIChatWidget = () => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            ref={panelRef}
             drag
             dragMomentum={false}
             dragElastic={0}
@@ -99,6 +151,9 @@ const AIChatWidget = () => {
             animate={{ opacity: 1, scale: 1, x: position.x, y: position.y }}
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed top-0 left-0 z-50 w-96 h-[500px] bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ai-chat-widget-title"
           >
             {/* Header */}
             <div
@@ -111,13 +166,24 @@ const AIChatWidget = () => {
             >
               <div className="flex items-center gap-2">
                 <Bot className="w-5 h-5 text-orange-400" />
-                <span className="text-white font-semibold text-sm">Assistant IA</span>
+                <span id="ai-chat-widget-title" className="text-white font-semibold text-sm">
+                  {t('aiChat.title', 'Assistant IA')}
+                </span>
               </div>
               <div className="flex items-center gap-1">
-                <button onClick={clearChat} className="text-gray-400 hover:text-white p-1" title="Effacer">
+                <button
+                  onClick={clearChat}
+                  className="text-gray-400 hover:text-white p-1"
+                  title={t('aiChat.clear', 'Effacer')}
+                  aria-label={t('aiChat.clear', 'Effacer')}
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
-                <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white p-1">
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-gray-400 hover:text-white p-1"
+                  aria-label={t('aiChat.close', "Fermer l'assistant IA")}
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -128,8 +194,8 @@ const AIChatWidget = () => {
               {messages.length === 0 && (
                 <div className="text-center text-gray-500 text-sm mt-8">
                   <Bot className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-                  <p>Bonjour ! Je suis votre assistant comptable IA.</p>
-                  <p className="mt-1">Posez-moi une question sur vos finances.</p>
+                  <p>{t('aiChat.welcome', 'Bonjour ! Je suis votre assistant comptable IA.')}</p>
+                  <p className="mt-1">{t('aiChat.prompt', 'Posez-moi une question sur vos finances.')}</p>
                 </div>
               )}
               {messages.map((msg, i) => (
@@ -177,15 +243,17 @@ const AIChatWidget = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Posez votre question..."
+                  placeholder={t('aiChat.inputPlaceholder', 'Posez votre question...')}
                   className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
                   disabled={isLoading}
+                  aria-label={t('aiChat.inputLabel', "Message pour l'assistant IA")}
                 />
                 <Button
                   onClick={handleSend}
                   disabled={isLoading || !input.trim()}
                   size="sm"
                   className="bg-orange-500 hover:bg-orange-600 px-3"
+                  aria-label={t('aiChat.send', 'Envoyer')}
                 >
                   <Send className="w-4 h-4" />
                 </Button>

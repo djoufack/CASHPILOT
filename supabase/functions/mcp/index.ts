@@ -5,7 +5,7 @@ import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 const CORS: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, x-api-key, mcp-session-id, authorization, apikey',
   'Access-Control-Expose-Headers': 'mcp-session-id',

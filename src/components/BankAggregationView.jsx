@@ -1,14 +1,18 @@
 import React from 'react';
 import { useBankConnections } from '@/hooks/useBankConnections';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Building2, TrendingUp } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#ec4899'];
 
 const BankAggregationView = () => {
-  const { connections, totalBalance } = useBankConnections();
+  const { t } = useTranslation();
+  const { connections, totalBalance, bankMetrics } = useBankConnections();
 
-  const activeConnections = connections.filter(c => c.status === 'active' && c.account_balance != null);
+  const activeConnections = connections.filter((connection) => (
+    bankMetrics.syncableConnectionIds.includes(connection.id) && connection.account_balance != null
+  ));
 
   const chartData = activeConnections.map((conn, i) => ({
     name: conn.account_name || conn.institution_name || `Compte ${i + 1}`,
@@ -20,7 +24,7 @@ const BankAggregationView = () => {
   if (activeConnections.length === 0) {
     return (
       <div className="text-center py-6 text-gray-500 text-sm">
-        Aucun compte actif
+        {t('bank.noActiveAccount', 'Aucun compte actif')}
       </div>
     );
   }
@@ -32,7 +36,9 @@ const BankAggregationView = () => {
           <TrendingUp className="w-4 h-4 text-orange-400" />
           <span className="text-lg font-bold text-white">{Number(totalBalance).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</span>
         </div>
-        <span className="text-xs text-gray-500">{activeConnections.length} compte(s)</span>
+        <span className="text-xs text-gray-500">
+          {t('bank.accountCount', '{{count}} compte(s)', { count: activeConnections.length })}
+        </span>
       </div>
 
       <ResponsiveContainer width="100%" height={160}>

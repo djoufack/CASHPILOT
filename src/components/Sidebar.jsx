@@ -238,13 +238,18 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           size="icon"
           onClick={toggleSidebar}
           className="text-gray-500 hover:text-white hover:bg-gray-800/50 h-8 w-8"
+          aria-label={isCollapsed ? t('common.expandSidebar', 'Étendre la barre latérale') : t('common.collapseSidebar', 'Réduire la barre latérale')}
         >
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </Button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 overflow-y-auto overflow-x-hidden mt-2 custom-scrollbar">
+      <nav
+        className="flex-1 px-2 overflow-y-auto overflow-x-hidden mt-2 custom-scrollbar"
+        role="navigation"
+        aria-label={t('common.primaryNavigation', 'Navigation principale')}
+      >
         <TooltipProvider delayDuration={0}>
           {visibleCategories.map(category => {
             if (category.type === 'direct') {
@@ -351,6 +356,7 @@ const CategoryGroup = ({ category, isCollapsed, isExpanded, onToggle, currentPat
                 ? "bg-orange-500/10 text-orange-400"
                 : "text-gray-500 hover:bg-gray-800/50 hover:text-gray-200"
             )}
+            aria-label={category.label}
           >
             <Icon size={20} className={cn(
               "shrink-0 transition-colors",
@@ -377,6 +383,7 @@ const CategoryGroup = ({ category, isCollapsed, isExpanded, onToggle, currentPat
             ? "text-orange-400"
             : "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200"
         )}
+        aria-expanded={isExpanded}
       >
         <Icon size={18} className={cn(
           "shrink-0 transition-colors",
@@ -463,11 +470,16 @@ const FlatSidebar = ({ isCollapsed, toggleSidebar, navItems, location }) => (
         size="icon"
         onClick={toggleSidebar}
         className="text-gray-500 hover:text-white hover:bg-gray-800/50 h-8 w-8"
+        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </Button>
     </div>
-    <nav className="flex-1 px-2 overflow-y-auto overflow-x-hidden mt-2 custom-scrollbar">
+    <nav
+      className="flex-1 px-2 overflow-y-auto overflow-x-hidden mt-2 custom-scrollbar"
+      role="navigation"
+      aria-label="Primary navigation"
+    >
       <TooltipProvider delayDuration={0}>
         {navItems.map((item, index) => {
           if (item.type === 'separator') {

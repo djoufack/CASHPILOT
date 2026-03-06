@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { validateEmail } from '@/utils/validation';
+import { validateEmail, validatePasswordStrength } from '@/utils/validation';
 import { useToast } from '@/components/ui/use-toast';
 
 const SignupPage = () => {
@@ -33,7 +33,9 @@ const SignupPage = () => {
     const newErrors = {};
     if (!fullName.trim()) newErrors.fullName = "Full Name is required";
     if (!validateEmail(email)) newErrors.email = "Invalid email address";
-    if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    if (!validatePasswordStrength(password)) {
+      newErrors.password = t('validation.passwordTooWeak') || "Password must be at least 12 characters and include 1 uppercase letter, 1 number, and 1 special character";
+    }
     if (password !== confirmPassword) newErrors.confirmPassword = "Passwords do not match";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

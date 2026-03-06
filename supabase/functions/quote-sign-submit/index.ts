@@ -2,7 +2,7 @@ import { createServiceClient } from '../_shared/billing.ts';
 import { deliverWebhookEvent } from '../_shared/webhooks.ts';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 

@@ -15,7 +15,7 @@ import {
 import { buildCanonicalOperationsSnapshot } from '../../../src/shared/canonicalOperationsSnapshot.js';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -374,6 +374,13 @@ const sanitizeUserMessage = (value: unknown) => {
   return value.replace(/\u0000/g, '').trim();
 };
 
+const escapeXml = (value: unknown) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&apos;');
+
 const sanitizeConversationContext = (
   value: unknown,
 ): Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> => {
@@ -718,6 +725,7 @@ serve(async (req) => {
       return acc;
     }, {} as Record<string, number>);
     const resolvedCompanyName = companyRes.data?.company_name || profileRes.data?.company_name || 'l\'entreprise';
+    const escapedCompanyName = escapeXml(resolvedCompanyName);
     const canonicalFacts: CanonicalAssistantFacts = {
       companyName: resolvedCompanyName,
       dashboard: canonicalDashboard,
@@ -751,7 +759,7 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const systemPrompt = `Tu es l'EXPERT-COMPTABLE & DIRECTEUR FINANCIER (CFO) DIGITAL de ${resolvedCompanyName}.
+    const systemPrompt = `Tu es l'EXPERT-COMPTABLE & DIRECTEUR FINANCIER (CFO) DIGITAL de ${escapedCompanyName}.
 
 Tu combines l'expertise d'un cabinet comptable traditionnel ET d'un directeur financier expérimenté. Tu es responsable de:
 - La gestion comptable, fiscale et réglementaire (rôle Expert-Comptable)

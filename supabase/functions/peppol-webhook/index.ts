@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { consumeCredits, HttpError, refundCredits } from '../_shared/billing.ts';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-scrada-topic, x-scrada-hmac-sha256, x-scrada-company-id, x-scrada-event-id, x-scrada-triggered-at, x-scrada-attempt',
 };
 
