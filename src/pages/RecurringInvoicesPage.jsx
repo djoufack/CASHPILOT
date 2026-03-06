@@ -4,6 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { useRecurringInvoices } from '@/hooks/useRecurringInvoices';
 import { usePaymentReminders } from '@/hooks/usePaymentReminders';
 import { useClients } from '@/hooks/useClients';
+import { useCompany } from '@/hooks/useCompany';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,7 +34,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Edit, Trash2, Play, Pause, RefreshCw, Calendar, Bell, XCircle, Clock, Mail } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import GenericCalendarView from '@/components/GenericCalendarView';
+import GenericAgendaView from '@/components/GenericAgendaView';
+import GenericKanbanView from '@/components/GenericKanbanView';
+import { exportInvoicePDF, exportInvoiceHTML } from '@/services/exportDocuments';
+import { Plus, Edit, Trash2, Play, Pause, RefreshCw, Calendar, Bell, XCircle, Clock, Mail, Download, FileText, CalendarDays, CalendarClock, Kanban, List } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/utils/calculations';
@@ -87,8 +95,11 @@ const RecurringInvoicesPage = () => {
     toggleRule,
   } = usePaymentReminders();
   const { clients } = useClients();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
 
   const [activeTab, setActiveTab] = useState('recurring');
+  const [recurringViewMode, setRecurringViewMode] = useState('list');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
@@ -117,6 +128,49 @@ const RecurringInvoicesPage = () => {
     monthly: t('recurringInvoices.frequencies.monthly'),
     quarterly: t('recurringInvoices.frequencies.quarterly'),
     yearly: t('recurringInvoices.frequencies.yearly'),
+  };
+
+  const toInvoiceDocumentModel = (recurring) => {
+    const client = clients.find((c) => c.id === recurring.client_id);
+    return {
+      invoice_number: recurring.recurring_number || recurring.title || `REC-${recurring.id?.slice?.(0, 8) || 'N/A'}`,
+      date: recurring.next_generation_date || recurring.start_date || formatDateInput(),
+      due_date: recurring.next_generation_date || recurring.end_date || null,
+      status: recurring.status,
+      client,
+      tax_rate: recurring.tva_rate || 0,
+      items: (recurring.line_items || []).map((li) => ({
+        description: li.description || '',
+        quantity: Number(li.quantity || 0),
+        unit_price: Number(li.unit_price || 0),
+        total: Number(li.total || 0),
+        tax_rate: recurring.tva_rate || 0,
+      })),
+      total_ht: recurring.total_ht || 0,
+      total_ttc: recurring.total_ttc || 0,
+      total_tva: recurring.total_tva || 0,
+      notes: recurring.description || '',
+    };
+  };
+
+  const handleExportRecurringPDF = (recurring) => {
+    guardedAction(
+      CREDIT_COSTS.PDF_REPORT,
+      t('credits.costs.pdfReport', 'Export PDF'),
+      async () => {
+        await exportInvoicePDF(toInvoiceDocumentModel(recurring), company);
+      }
+    );
+  };
+
+  const handleExportRecurringHTML = (recurring) => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      t('credits.costs.exportHtml'),
+      () => {
+        exportInvoiceHTML(toInvoiceDocumentModel(recurring), company);
+      }
+    );
   };
 
   const recalcTotals = (items, tvaRate) => {
@@ -276,6 +330,55 @@ const RecurringInvoicesPage = () => {
     await deleteRule(id);
   };
 
+  const recurringCalendarStatusColors = {
+    active: { bg: '#22c55e', border: '#16a34a', text: '#fff' },
+    paused: { bg: '#eab308', border: '#ca8a04', text: '#000' },
+    completed: { bg: '#3b82f6', border: '#2563eb', text: '#fff' },
+    cancelled: { bg: '#6b7280', border: '#4b5563', text: '#fff' },
+  };
+
+  const recurringCalendarLegend = [
+    { label: t('recurringInvoices.status.active'), color: '#22c55e' },
+    { label: t('recurringInvoices.status.paused'), color: '#eab308' },
+    { label: t('recurringInvoices.status.completed'), color: '#3b82f6' },
+    { label: t('recurringInvoices.status.cancelled'), color: '#6b7280' },
+  ];
+
+  const recurringCalendarEvents = recurringInvoices.map((recurring) => ({
+    id: recurring.id,
+    title: recurring.title,
+    date: recurring.next_generation_date || recurring.start_date,
+    status: recurring.status || 'active',
+    resource: recurring,
+  }));
+
+  const recurringAgendaItems = recurringInvoices.map((recurring) => {
+    const client = clients.find((c) => c.id === recurring.client_id);
+    const statusColorMap = {
+      active: 'bg-green-500/20 text-green-400',
+      paused: 'bg-yellow-500/20 text-yellow-400',
+      completed: 'bg-blue-500/20 text-blue-400',
+      cancelled: 'bg-gray-500/20 text-gray-400',
+    };
+    return {
+      id: recurring.id,
+      title: recurring.title,
+      subtitle: client?.company_name || client?.name || '-',
+      date: recurring.next_generation_date || recurring.start_date,
+      status: recurring.status || 'active',
+      statusLabel: t(`recurringInvoices.status.${recurring.status}`) || recurring.status,
+      statusColor: statusColorMap[recurring.status] || 'bg-gray-500/20 text-gray-400',
+      amount: formatCurrency(Number(recurring.total_ttc || 0), recurring.currency || 'EUR'),
+    };
+  });
+
+  const recurringKanbanColumns = [
+    { id: 'active', title: t('recurringInvoices.status.active'), color: 'bg-green-500/20 text-green-400' },
+    { id: 'paused', title: t('recurringInvoices.status.paused'), color: 'bg-yellow-500/20 text-yellow-400' },
+    { id: 'completed', title: t('recurringInvoices.status.completed'), color: 'bg-blue-500/20 text-blue-400' },
+    { id: 'cancelled', title: t('recurringInvoices.status.cancelled'), color: 'bg-gray-500/20 text-gray-400' },
+  ];
+
   const tabs = [
     { id: 'recurring', label: t('reminders.tabRecurring'), icon: RefreshCw },
     { id: 'reminders', label: t('reminders.tabReminders'), icon: Bell },
@@ -287,6 +390,7 @@ const RecurringInvoicesPage = () => {
         <title>{t('recurringInvoices.title')} - {t('app.name')}</title>
         <meta name="description" content="Manage recurring invoices and payment reminders" />
       </Helmet>
+      <CreditsGuardModal {...modalProps} />
 
       <div className="container mx-auto">
         <motion.div
@@ -361,136 +465,200 @@ const RecurringInvoicesPage = () => {
                 {t('recurringInvoices.noItems')}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-800/50">
-                    <tr>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        {t('recurringInvoices.fields.title')}
-                      </th>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
-                        {t('recurringInvoices.fields.client')}
-                      </th>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
-                        {t('recurringInvoices.fields.frequency')}
-                      </th>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
-                        {t('recurringInvoices.fields.nextGeneration')}
-                      </th>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        {t('recurringInvoices.fields.amountTTC')}
-                      </th>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
-                        {t('recurringInvoices.generated')}
-                      </th>
-                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        {t('recurringInvoices.fields.status')}
-                      </th>
-                      <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        {t('common.actions')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800">
-                    {recurringInvoices.map((recurring) => {
-                      const client = clients.find((c) => c.id === recurring.client_id);
-                      const clientName = client?.company_name || client?.name || '-';
-                      return (
-                        <tr key={recurring.id} className="hover:bg-gray-800/30 transition-colors">
-                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
-                            {recurring.title}
-                          </td>
-                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
-                            {clientName}
-                          </td>
-                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
-                            <span className="inline-flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5 text-gray-500" />
-                              {frequencyLabels[recurring.frequency] || recurring.frequency}
-                              {recurring.interval_count > 1 && ` (x${recurring.interval_count})`}
-                            </span>
-                          </td>
-                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden lg:table-cell">
-                            {recurring.next_generation_date
-                              ? format(new Date(recurring.next_generation_date), 'MMM dd, yyyy')
-                              : '-'}
-                          </td>
-                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                            {formatCurrency(Number(recurring.total_ttc || 0), recurring.currency || 'EUR')}
-                          </td>
-                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
-                            <span className="inline-flex items-center gap-1 text-gray-400">
-                              <Clock className="w-3.5 h-3.5" />
-                              {recurring.invoices_generated || 0}
-                            </span>
-                          </td>
-                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm">
-                            <span
-                              className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[recurring.status] || 'bg-gray-500/20 text-gray-400'}`}
-                            >
-                              {t(`recurringInvoices.status.${recurring.status}`) || recurring.status}
-                            </span>
-                          </td>
-                          <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex items-center justify-end space-x-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleToggleStatus(recurring)}
-                                className={`h-8 w-8 p-0 ${
-                                  recurring.status === 'active'
-                                    ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-900/20'
-                                    : 'text-green-400 hover:text-green-300 hover:bg-green-900/20'
-                                }`}
-                                title={
-                                  recurring.status === 'active'
-                                    ? t('recurringInvoices.actions.pause')
-                                    : t('recurringInvoices.actions.activate')
-                                }
-                                disabled={recurring.status === 'completed' || recurring.status === 'cancelled'}
-                              >
-                                {recurring.status === 'active' ? (
-                                  <Pause className="w-4 h-4" />
-                                ) : (
-                                  <Play className="w-4 h-4" />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleCancelClick(recurring.id)}
-                                className="text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 h-8 w-8 p-0"
-                                title={t('recurringInvoices.actions.cancel')}
-                                disabled={recurring.status === 'completed' || recurring.status === 'cancelled'}
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openEdit(recurring)}
-                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 h-8 w-8 p-0"
-                                title={t('common.edit')}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteClick(recurring.id)}
-                                className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
-                                title={t('common.delete')}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
+              <Tabs value={recurringViewMode} onValueChange={setRecurringViewMode} className="w-full">
+                <TabsList className="bg-gray-800 border-b border-gray-700 w-full justify-start rounded-none">
+                  <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+                    <List className="w-4 h-4 mr-2" /> {t('common.list')}
+                  </TabsTrigger>
+                  <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+                    <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar')}
+                  </TabsTrigger>
+                  <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+                    <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda')}
+                  </TabsTrigger>
+                  <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+                    <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban')}
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="list" className="mt-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-800/50">
+                        <tr>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                            {t('recurringInvoices.fields.title')}
+                          </th>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
+                            {t('recurringInvoices.fields.client')}
+                          </th>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                            {t('recurringInvoices.fields.frequency')}
+                          </th>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
+                            {t('recurringInvoices.fields.nextGeneration')}
+                          </th>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                            {t('recurringInvoices.fields.amountTTC')}
+                          </th>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                            {t('recurringInvoices.generated')}
+                          </th>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                            {t('recurringInvoices.fields.status')}
+                          </th>
+                          <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                            {t('common.actions')}
+                          </th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody className="divide-y divide-gray-800">
+                        {recurringInvoices.map((recurring) => {
+                          const client = clients.find((c) => c.id === recurring.client_id);
+                          const clientName = client?.company_name || client?.name || '-';
+                          return (
+                            <tr key={recurring.id} className="hover:bg-gray-800/30 transition-colors">
+                              <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                                {recurring.title}
+                              </td>
+                              <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
+                                {clientName}
+                              </td>
+                              <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
+                                <span className="inline-flex items-center gap-1">
+                                  <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                                  {frequencyLabels[recurring.frequency] || recurring.frequency}
+                                  {recurring.interval_count > 1 && ` (x${recurring.interval_count})`}
+                                </span>
+                              </td>
+                              <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden lg:table-cell">
+                                {recurring.next_generation_date
+                                  ? format(new Date(recurring.next_generation_date), 'MMM dd, yyyy')
+                                  : '-'}
+                              </td>
+                              <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                                {formatCurrency(Number(recurring.total_ttc || 0), recurring.currency || 'EUR')}
+                              </td>
+                              <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
+                                <span className="inline-flex items-center gap-1 text-gray-400">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  {recurring.invoices_generated || 0}
+                                </span>
+                              </td>
+                              <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[recurring.status] || 'bg-gray-500/20 text-gray-400'}`}
+                                >
+                                  {t(`recurringInvoices.status.${recurring.status}`) || recurring.status}
+                                </span>
+                              </td>
+                              <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div className="flex items-center justify-end space-x-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleExportRecurringPDF(recurring)}
+                                    className="text-purple-400 hover:text-purple-300 hover:bg-purple-900/20 h-8 w-8 p-0"
+                                    title={`PDF (${CREDIT_COSTS.PDF_REPORT})`}
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleExportRecurringHTML(recurring)}
+                                    className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20 h-8 w-8 p-0"
+                                    title={`HTML (${CREDIT_COSTS.EXPORT_HTML})`}
+                                  >
+                                    <FileText className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleToggleStatus(recurring)}
+                                    className={`h-8 w-8 p-0 ${
+                                      recurring.status === 'active'
+                                        ? 'text-yellow-400 hover:text-yellow-300 hover:bg-yellow-900/20'
+                                        : 'text-green-400 hover:text-green-300 hover:bg-green-900/20'
+                                    }`}
+                                    title={
+                                      recurring.status === 'active'
+                                        ? t('recurringInvoices.actions.pause')
+                                        : t('recurringInvoices.actions.activate')
+                                    }
+                                    disabled={recurring.status === 'completed' || recurring.status === 'cancelled'}
+                                  >
+                                    {recurring.status === 'active' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleCancelClick(recurring.id)}
+                                    className="text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 h-8 w-8 p-0"
+                                    title={t('recurringInvoices.actions.cancel')}
+                                    disabled={recurring.status === 'completed' || recurring.status === 'cancelled'}
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => openEdit(recurring)}
+                                    className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 h-8 w-8 p-0"
+                                    title={t('common.edit')}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteClick(recurring.id)}
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
+                                    title={t('common.delete')}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="calendar" className="p-4">
+                  <GenericCalendarView
+                    events={recurringCalendarEvents}
+                    statusColors={recurringCalendarStatusColors}
+                    legend={recurringCalendarLegend}
+                    onSelectEvent={(recurring) => openEdit(recurring)}
+                  />
+                </TabsContent>
+
+                <TabsContent value="agenda" className="p-4">
+                  <GenericAgendaView
+                    items={recurringAgendaItems}
+                    dateField="date"
+                    onView={(item) => {
+                      const recurring = recurringInvoices.find((r) => r.id === item.id);
+                      if (recurring) openEdit(recurring);
+                    }}
+                    onDelete={(item) => handleDeleteClick(item.id)}
+                    paidStatuses={['completed', 'cancelled']}
+                  />
+                </TabsContent>
+
+                <TabsContent value="kanban" className="p-4">
+                  <GenericKanbanView
+                    columns={recurringKanbanColumns}
+                    items={recurringAgendaItems}
+                    onStatusChange={async (id, status) => await toggleStatus(id, status)}
+                    onDelete={(item) => handleDeleteClick(item.id)}
+                  />
+                </TabsContent>
+              </Tabs>
             )}
           </motion.div>
         )}

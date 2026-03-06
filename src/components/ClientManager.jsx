@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useClients } from '@/hooks/useClients';
+import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,8 +33,9 @@ import {
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useReferenceData } from '@/contexts/ReferenceDataContext';
-import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard, ArchiveRestore, Archive, Globe, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Building2, MapPin, FileText, CreditCard, ArchiveRestore, Archive, Globe, CheckCircle, XCircle, Loader2, Download, LayoutGrid, List } from 'lucide-react';
 import ExportButton from '@/components/ExportButton';
 import { motion } from 'framer-motion';
 import { validateEmail } from '@/utils/validation';
@@ -42,10 +44,16 @@ import { Currency } from '@/types';
 import { usePagination } from '@/hooks/usePagination';
 import { usePeppolCheck } from '@/hooks/usePeppolCheck';
 import PaginationControls from '@/components/PaginationControls';
+import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import CreditsGuardModal from '@/components/CreditsGuardModal';
+import { saveElementAsPdf } from '@/services/pdfExportRuntime';
+import { formatDateInput } from '@/utils/dateFormatting';
 
 const ClientManager = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { company } = useCompany();
+  const { guardedAction, modalProps } = useCreditsGuard();
   const { clients, loading, createClient, updateClient, deleteClient, restoreClient, fetchDeletedClients } = useClients();
   const { checkRegistration, checking: peppolChecking, result: peppolResult, reset: resetPeppolCheck } = usePeppolCheck();
   const { countryOptions, currencyOptions } = useReferenceData();
@@ -54,6 +62,7 @@ const ClientManager = () => {
   const [editingClient, setEditingClient] = useState(null);
   const [clientToDelete, setClientToDelete] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState('list');
   const [showArchived, setShowArchived] = useState(false);
   const [archivedClients, setArchivedClients] = useState([]);
   const [loadingArchived, setLoadingArchived] = useState(false);
@@ -180,6 +189,88 @@ const ClientManager = () => {
     setIsDeleteDialogOpen(true);
   };
 
+  const generateClientSheetHTML = (client) => {
+    const companyName = company?.name || company?.company_name || 'CashPilot';
+    const details = [
+      { label: t('clients.companyName'), value: client.company_name || '-' },
+      { label: t('clients.contactName'), value: client.contact_name || '-' },
+      { label: t('clients.email'), value: client.email || '-' },
+      { label: t('clients.phone', 'Téléphone'), value: client.phone || '-' },
+      { label: t('clients.preferredCurrency'), value: client.preferred_currency || '-' },
+      { label: t('clients.vatNumber'), value: client.vat_number || '-' },
+      { label: t('clients.address'), value: client.address || '-' },
+      { label: t('clients.city', 'Ville'), value: client.city || '-' },
+      { label: t('clients.country', 'Pays'), value: client.country || '-' },
+      { label: 'IBAN', value: client.iban || '-' },
+      { label: 'BIC/SWIFT', value: client.bic_swift || '-' },
+      { label: t('peppol.endpointId'), value: client.peppol_endpoint_id || '-' },
+      { label: t('clients.createdAt', 'Créé le'), value: client.created_at ? new Date(client.created_at).toLocaleDateString('fr-FR') : '-' },
+    ];
+
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 860px; margin: 0 auto; color: #1f2937; background:#f8fafc; padding:24px;">
+        <div style="background:#0f172a; color:white; border-radius:10px; padding:20px 24px; margin-bottom:18px;">
+          <h1 style="margin:0; font-size:28px;">Fiche client</h1>
+          <p style="margin:8px 0 0 0; color:#cbd5e1;">${client.company_name || '-'}</p>
+        </div>
+        <div style="background:white; border:1px solid #e2e8f0; border-radius:10px; padding:18px 20px;">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px 20px;">
+            ${details.map((row) => `
+              <div style="border-bottom:1px solid #f1f5f9; padding:8px 0;">
+                <p style="margin:0; font-size:12px; color:#64748b;">${row.label}</p>
+                <p style="margin:4px 0 0 0; font-size:14px; color:#0f172a; font-weight:600;">${row.value}</p>
+              </div>
+            `).join('')}
+          </div>
+          ${client.notes ? `
+            <div style="margin-top:16px; border:1px solid #e2e8f0; border-radius:8px; padding:12px; background:#f8fafc;">
+              <p style="margin:0; font-size:12px; color:#64748b;">Notes</p>
+              <p style="margin:6px 0 0 0; font-size:14px; color:#0f172a;">${client.notes}</p>
+            </div>
+          ` : ''}
+        </div>
+        <p style="margin-top:14px; font-size:11px; color:#64748b; text-align:center;">${companyName} • ${new Date().toLocaleDateString('fr-FR')}</p>
+      </div>
+    `;
+  };
+
+  const handleExportClientPDF = (client) => {
+    guardedAction(
+      CREDIT_COSTS.PDF_REPORT,
+      t('credits.costs.pdfReport', 'Export PDF'),
+      async () => {
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = generateClientSheetHTML(client);
+        await saveElementAsPdf(wrapper, {
+          margin: 0.5,
+          filename: `FicheClient_${client.company_name || 'client'}_${formatDateInput()}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        });
+      }
+    );
+  };
+
+  const handleExportClientHTML = (client) => {
+    guardedAction(
+      CREDIT_COSTS.EXPORT_HTML,
+      t('credits.costs.exportHtml'),
+      () => {
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Fiche client</title></head><body style="margin:0;">${generateClientSheetHTML(client)}</body></html>`;
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `FicheClient_${client.company_name || 'client'}_${formatDateInput()}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    );
+  };
+
   const handleConfirmDelete = async () => {
     if (clientToDelete) {
       await deleteClient(clientToDelete.id);
@@ -216,8 +307,50 @@ const ClientManager = () => {
     { key: 'created_at', header: 'Date', type: 'date', width: 12 },
   ];
 
+  const renderClientActions = (client) => (
+    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => handleExportClientPDF(client)}
+        className="text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
+        title="Export PDF"
+      >
+        <Download className="w-4 h-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => handleExportClientHTML(client)}
+        className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/20"
+        title="Export HTML"
+      >
+        <FileText className="w-4 h-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => handleOpenDialog(client)}
+        className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20"
+        title={t('common.edit')}
+      >
+        <Edit className="w-4 h-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => handleDeleteClick(client)}
+        className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+        title={t('common.delete')}
+      >
+        <Trash2 className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
+      <CreditsGuardModal {...modalProps} />
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="relative w-full md:max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -334,78 +467,109 @@ const ClientManager = () => {
       ) : filteredClients.length === 0 ? (
         <div className="text-center py-8 text-gray-400">{t('clients.noClients')}</div>
       ) : (
-        <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-800/50">
-                <tr>
-                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    {t('clients.companyName')}
-                  </th>
-                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
-                    {t('clients.contactName')}
-                  </th>
-                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
-                    {t('clients.email')}
-                  </th>
-                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
-                    {t('clients.preferredCurrency')}
-                  </th>
-                  <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    {t('clients.actions')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-700">
-                {paginatedClients.map((client) => (
-                  <motion.tr
-                    key={client.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="hover:bg-gray-700/50 transition-colors cursor-pointer"
-                    onClick={() => handleOpenDialog(client)}
-                  >
-                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
-                      {client.company_name}
-                      {/* Mobile Only Details */}
-                      <div className="md:hidden text-xs text-gray-400 mt-1">
-                         {client.contact_name}
-                      </div>
-                    </td>
-                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
-                      {client.contact_name}
-                    </td>
-                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden lg:table-cell">
-                      {client.email}
-                    </td>
-                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden lg:table-cell">
-                      {client.preferred_currency}
-                    </td>
-                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenDialog(client)}
-                          className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(client)}
-                          className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
+          <TabsList className="bg-gray-800 border border-gray-700 mb-4">
+            <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <List className="w-4 h-4 mr-2" /> {t('common.list')}
+            </TabsTrigger>
+            <TabsTrigger value="gallery" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+              <LayoutGrid className="w-4 h-4 mr-2" /> {t('common.gallery')}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="list">
+            <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-800/50">
+                    <tr>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        {t('clients.companyName')}
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                        {t('clients.contactName')}
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
+                        {t('clients.email')}
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
+                        {t('clients.preferredCurrency')}
+                      </th>
+                      <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        {t('clients.actions')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {paginatedClients.map((client) => (
+                      <motion.tr
+                        key={client.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="hover:bg-gray-700/50 transition-colors cursor-pointer"
+                        onClick={() => handleOpenDialog(client)}
+                      >
+                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
+                          {client.company_name}
+                          <div className="md:hidden text-xs text-gray-400 mt-1">
+                            {client.contact_name}
+                          </div>
+                        </td>
+                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
+                          {client.contact_name}
+                        </td>
+                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden lg:table-cell">
+                          {client.email}
+                        </td>
+                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden lg:table-cell">
+                          {client.preferred_currency}
+                        </td>
+                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          {renderClientActions(client)}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="gallery">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {paginatedClients.map((client) => (
+                <motion.div
+                  key={client.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gray-800 border border-gray-700 rounded-xl p-4 shadow-xl"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-semibold text-gradient">{client.company_name}</p>
+                      <p className="text-sm text-gray-300 mt-1">{client.contact_name || '-'}</p>
+                      <p className="text-xs text-gray-400 mt-1">{client.email || '-'}</p>
+                    </div>
+                    <span className="text-xs px-2 py-1 rounded bg-gray-700 text-gray-300">{client.preferred_currency || '-'}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs mt-4">
+                    <div className="bg-gray-900/50 rounded p-2">
+                      <p className="text-gray-500">TVA</p>
+                      <p className="text-gray-300 mt-1">{client.vat_number || '-'}</p>
+                    </div>
+                    <div className="bg-gray-900/50 rounded p-2">
+                      <p className="text-gray-500">{t('clients.phone', 'Téléphone')}</p>
+                      <p className="text-gray-300 mt-1">{client.phone || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="pt-3 mt-3 border-t border-gray-700">
+                    {renderClientActions(client)}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </TabsContent>
+
           <PaginationControls
             currentPage={pagination.currentPage}
             totalPages={pagination.totalPages}
@@ -419,7 +583,7 @@ const ClientManager = () => {
             onGoToPage={pagination.goToPage}
             onChangePageSize={pagination.changePageSize}
           />
-        </div>
+        </Tabs>
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

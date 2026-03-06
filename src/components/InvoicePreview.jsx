@@ -20,8 +20,11 @@ import ModernTemplate from '@/components/invoice-templates/ModernTemplate';
 import MinimalTemplate from '@/components/invoice-templates/MinimalTemplate';
 import BoldTemplate from '@/components/invoice-templates/BoldTemplate';
 import ProfessionalTemplate from '@/components/invoice-templates/ProfessionalTemplate';
+import DMGDefaultTemplate from '@/components/invoice-templates/DMGDefaultTemplate';
+import { DEFAULT_INVOICE_TEMPLATE_ID } from '@/config/invoiceTemplates';
 
 const templateComponents = {
+  dmg_default: DMGDefaultTemplate,
   classic: ClassicTemplate,
   modern: ModernTemplate,
   minimal: MinimalTemplate,
@@ -80,7 +83,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
   };
 
   const theme = getTheme(settings.color_theme);
-  const TemplateComponent = templateComponents[settings.template_id] || ClassicTemplate;
+  const TemplateComponent = templateComponents[settings.template_id] || templateComponents[DEFAULT_INVOICE_TEMPLATE_ID];
 
   return (
     <div className="space-y-4">

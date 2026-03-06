@@ -726,9 +726,9 @@ const ConnectionSettings = () => {
 
   return (
     <div className="space-y-6">
-      <RestApiSection keys={apiKeys} keysLoading={keysLoading} onKeysChanged={fetchKeys} />
-      <McpConfigSection />
+      <McpConfigSection onKeysChanged={fetchKeys} />
       <McpConnectorSection />
+      <RestApiSection keys={apiKeys} keysLoading={keysLoading} onKeysChanged={fetchKeys} />
     </div>
   );
 };

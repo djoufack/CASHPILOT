@@ -13,7 +13,7 @@ const LANGUAGES = [
 ];
 
 const LanguageSwitcher = ({ variant = 'dropdown', className = '', fullWidth = false }) => {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
@@ -33,7 +33,7 @@ const LanguageSwitcher = ({ variant = 'dropdown', className = '', fullWidth = fa
       <div
         className={`segmented-language-switcher${fullWidth ? ' segmented-language-switcher--full' : ''} ${className}`.trim()}
         role="radiogroup"
-        aria-label="Language switcher"
+        aria-label={t('common.language', 'Language')}
         style={{ '--active-index': activeIndex }}
       >
         <span className="segmented-language-switcher__thumb" aria-hidden="true" />
@@ -57,7 +57,12 @@ const LanguageSwitcher = ({ variant = 'dropdown', className = '', fullWidth = fa
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="w-full justify-start md:justify-center md:w-auto text-gray-400 hover:text-white">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start md:justify-center md:w-auto text-gray-400 hover:text-white"
+          aria-label={t('common.language', 'Language')}
+        >
           <Globe className="w-4 h-4 mr-2" />
           <span className="md:hidden lg:inline">{currentLang.label}</span>
           <span className="hidden md:inline lg:hidden">{currentLang.code.toUpperCase()}</span>

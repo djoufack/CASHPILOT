@@ -41,7 +41,12 @@
     "copy": "Kopiëren",
     "copied": "Gekopieerd",
     "close": "Sluiten",
-    "topNavigation": "Bovenste navigatie"
+    "topNavigation": "Bovenste navigatie",
+    "primaryNavigation": "Primaire navigatie",
+    "openNavigation": "Navigatie openen",
+    "expandSidebar": "Zijbalk uitklappen",
+    "collapseSidebar": "Zijbalk inklappen",
+    "skipToContent": "Naar hoofdinhoud"
   },
   "aiChat": {
     "title": "AI-assistent",
@@ -58,6 +63,16 @@
     "noActiveAccount": "Geen actieve rekening",
     "accountCount": "{{count}} rekening(en)",
     "accountFallback": "Rekening {{index}}"
+  },
+  "clientPortal": {
+    "pageTitle": "Klantportaal",
+    "title": "Klantportaal",
+    "navigation": "Navigatie van klantportaal",
+    "recentInvoices": "Recente facturen",
+    "paid": "Betaald",
+    "due": "Vervalt",
+    "pendingApprovals": "Goedkeuringen in afwachting",
+    "noPendingTimesheets": "Geen urenstaten in afwachting van goedkeuring."
   },
   "nav": {
     "dashboard": "Dashboard",

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { useCompany } from '@/hooks/useCompany';
-import invoiceTemplates from '@/config/invoiceTemplates';
+import invoiceTemplates, { DEFAULT_INVOICE_TEMPLATE_ID } from '@/config/invoiceTemplates';
 import { themeList, getTheme } from '@/config/invoiceThemes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,8 +25,10 @@ import ModernTemplate from '@/components/invoice-templates/ModernTemplate';
 import MinimalTemplate from '@/components/invoice-templates/MinimalTemplate';
 import BoldTemplate from '@/components/invoice-templates/BoldTemplate';
 import ProfessionalTemplate from '@/components/invoice-templates/ProfessionalTemplate';
+import DMGDefaultTemplate from '@/components/invoice-templates/DMGDefaultTemplate';
 
 const templateComponents = {
+  dmg_default: DMGDefaultTemplate,
   classic: ClassicTemplate,
   modern: ModernTemplate,
   minimal: MinimalTemplate,
@@ -137,7 +139,7 @@ const InvoiceCustomization = () => {
   };
 
   const currentTheme = getTheme(localSettings.color_theme);
-  const TemplateComponent = templateComponents[localSettings.template_id] || ClassicTemplate;
+  const TemplateComponent = templateComponents[localSettings.template_id] || templateComponents[DEFAULT_INVOICE_TEMPLATE_ID];
 
   if (loading) {
     return <div className="text-gray-400 p-4">{t('invoiceSettings.loading')}</div>;
@@ -181,6 +183,7 @@ const InvoiceCustomization = () => {
                   }`}
                 >
                   <div className="w-full h-16 rounded mb-2 flex items-center justify-center text-2xl" style={{ backgroundColor: getTheme(localSettings.color_theme).secondary }}>
+                    {tmpl.id === 'dmg_default' && '🧾'}
                     {tmpl.id === 'classic' && '📄'}
                     {tmpl.id === 'modern' && '🎨'}
                     {tmpl.id === 'minimal' && '✨'}

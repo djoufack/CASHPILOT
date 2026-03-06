@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Briefcase, ArrowRight, Loader2, Calendar, List, CalendarDays, CalendarClock, Download, FileText, Kanban } from 'lucide-react';
+import { Plus, Search, Briefcase, Loader2, Calendar, List, CalendarDays, CalendarClock, Download, FileText, Kanban, Eye, Pencil, Trash2, LayoutGrid } from 'lucide-react';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
 import { format, parseISO } from 'date-fns';
@@ -41,52 +41,80 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const ProjectCard = ({ project }) => {
+const getProjectStatusClasses = (status) => {
+  if (status === 'completed') return 'bg-green-900/20 text-green-400 border-green-800';
+  if (status === 'active' || status === 'in_progress') return 'bg-orange-500/10 text-orange-400 border-orange-800';
+  if (status === 'on_hold') return 'bg-yellow-900/20 text-yellow-400 border-yellow-800';
+  if (status === 'cancelled') return 'bg-red-900/20 text-red-400 border-red-800';
+  return 'bg-gray-800 text-gray-400 border-gray-700';
+};
+
+const ProjectCard = ({ project, onEdit, onDelete, t }) => {
   const progress = project.progress || 0;
+  const status = project.status || 'active';
+  const statusLabel = status.replace('_', ' ');
 
   return (
-    <Link to={`/projects/${project.id}`}>
-      <motion.div
-        whileHover={{ y: -5, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
-        className="bg-gray-900 border border-gray-800 rounded-xl p-4 md:p-6 h-full flex flex-col justify-between group transition-all"
-      >
-        <div>
-          <div className="flex justify-between items-start mb-4">
-             <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-               <Briefcase className="w-6 h-6 text-orange-400" />
-             </div>
-             <span className={`text-[10px] md:text-xs px-2 py-1 rounded-full border capitalize ${
-               project.status === 'completed' ? 'bg-green-900/20 text-green-400 border-green-800' :
-               project.status === 'active' || project.status === 'in_progress' ? 'bg-orange-500/10 text-orange-400 border-orange-800' :
-               'bg-gray-800 text-gray-400 border-gray-700'
-             }`}>
-               {project.status || 'Active'}
-             </span>
+    <motion.div
+      whileHover={{ y: -5, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
+      className="bg-gray-900 border border-gray-800 rounded-xl p-4 md:p-6 h-full flex flex-col justify-between group transition-all"
+    >
+      <div>
+        <div className="flex justify-between items-start mb-4">
+          <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+            <Briefcase className="w-6 h-6 text-orange-400" />
           </div>
-
-          <h3 className="text-lg md:text-xl font-bold text-gradient mb-2 group-hover:text-orange-400 transition-colors">{project.name}</h3>
-          <p className="text-xs md:text-sm text-gray-400 mb-4 line-clamp-2">{project.description || 'No description provided.'}</p>
-
-          <div className="flex flex-col gap-2 text-xs md:text-sm text-gray-500 mb-6">
-            <span className="flex items-center"><Briefcase className="w-4 h-4 mr-2" /> {project.client?.company_name}</span>
-            <span className="flex items-center"><Calendar className="w-4 h-4 mr-2" /> {format(parseISO(project.created_at), 'MMM d, yyyy')}</span>
-          </div>
+          <span className={`text-[10px] md:text-xs px-2 py-1 rounded-full border capitalize ${getProjectStatusClasses(status)}`}>
+            {statusLabel}
+          </span>
         </div>
 
-        <div className="mb-4">
-           <div className="flex justify-between text-xs text-gray-400 mb-1">
-             <span>Progress</span>
-             <span>{progress}%</span>
-           </div>
-           <Progress value={progress} className="h-2" />
-        </div>
+        <h3 className="text-lg md:text-xl font-bold text-gradient mb-2 group-hover:text-orange-400 transition-colors">{project.name}</h3>
+        <p className="text-xs md:text-sm text-gray-400 mb-4 line-clamp-2">{project.description || 'No description provided.'}</p>
 
-        <div className="flex items-center justify-between border-t border-gray-800 pt-4 mt-auto">
-          <span className="text-sm font-medium text-gray-400">View Details</span>
-          <ArrowRight className="w-4 h-4 text-orange-400 transform group-hover:translate-x-1 transition-transform" />
+        <div className="flex flex-col gap-2 text-xs md:text-sm text-gray-500 mb-6">
+          <span className="flex items-center"><Briefcase className="w-4 h-4 mr-2" /> {project.client?.company_name || '-'}</span>
+          <span className="flex items-center"><Calendar className="w-4 h-4 mr-2" /> {project.created_at ? format(parseISO(project.created_at), 'MMM d, yyyy') : '-'}</span>
         </div>
-      </motion.div>
-    </Link>
+      </div>
+
+      <div className="mb-4">
+        <div className="flex justify-between text-xs text-gray-400 mb-1">
+          <span>Progress</span>
+          <span>{progress}%</span>
+        </div>
+        <Progress value={progress} className="h-2" />
+      </div>
+
+      <div className="flex items-center justify-between border-t border-gray-800 pt-4 mt-auto gap-2">
+        <Button asChild variant="outline" size="sm" className="border-blue-500/40 text-blue-300 hover:bg-blue-900/20">
+          <Link to={`/app/projects/${project.id}`}>
+            <Eye className="w-4 h-4 mr-1" />
+            {t('common.view') || 'View'}
+          </Link>
+        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(project)}
+            className="text-orange-300 hover:text-orange-200 hover:bg-orange-900/20 h-8 w-8 p-0"
+            title={t('common.edit') || 'Edit'}
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(project)}
+            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
+            title={t('common.delete') || 'Delete'}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    </motion.div>
   );
 };
 
@@ -101,7 +129,7 @@ const initialFormData = {
 
 const ProjectsPage = () => {
   const { t } = useTranslation();
-  const { projects, loading, createProject, updateProject } = useProjects();
+  const { projects, loading, createProject, updateProject, deleteProject } = useProjects();
   const { clients } = useClients();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
@@ -111,6 +139,7 @@ const ProjectsPage = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [submitting, setSubmitting] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  const [editingProject, setEditingProject] = useState(null);
   const companyCurrency = resolveAccountingCurrency(company);
 
   // Get company currency symbol
@@ -187,8 +216,42 @@ const ProjectsPage = () => {
   const paginatedProjects = filteredProjects.slice(pagination.from, pagination.to + 1);
 
   const handleOpenDialog = () => {
+    setEditingProject(null);
     setFormData(initialFormData);
     setIsDialogOpen(true);
+  };
+
+  const handleDialogChange = (open) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setEditingProject(null);
+      setFormData(initialFormData);
+    }
+  };
+
+  const handleEditProject = (project) => {
+    setEditingProject(project);
+    setFormData({
+      name: project.name || '',
+      description: project.description || '',
+      client_id: project.client_id || '',
+      budget_hours: project.budget_hours?.toString() || '',
+      hourly_rate: project.hourly_rate?.toString() || '',
+      status: project.status || 'active',
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteProject = async (project) => {
+    if (!project?.id) return;
+    const confirmed = window.confirm(`Delete project "${project.name}"?`);
+    if (!confirmed) return;
+
+    try {
+      await deleteProject(project.id);
+    } catch {
+      // Error handled in hook toast
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -197,15 +260,23 @@ const ProjectsPage = () => {
 
     setSubmitting(true);
     try {
-      await createProject({
+      const payload = {
         name: formData.name.trim(),
         description: formData.description.trim() || null,
         client_id: formData.client_id || null,
         budget_hours: formData.budget_hours ? parseInt(formData.budget_hours, 10) : null,
         hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
         status: formData.status,
-      });
+      };
+
+      if (editingProject) {
+        await updateProject(editingProject.id, payload);
+      } else {
+        await createProject(payload);
+      }
+
       setIsDialogOpen(false);
+      setEditingProject(null);
       setFormData(initialFormData);
     } catch {
       // Error handled by hook toast
@@ -346,6 +417,9 @@ const ProjectsPage = () => {
               <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
                 <List className="w-4 h-4 mr-2" /> {t('common.list') || 'List'}
               </TabsTrigger>
+              <TabsTrigger value="gallery" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+                <LayoutGrid className="w-4 h-4 mr-2" /> {t('common.gallery') || 'Gallery'}
+              </TabsTrigger>
               <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
                 <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar') || 'Calendar'}
               </TabsTrigger>
@@ -359,9 +433,125 @@ const ProjectsPage = () => {
 
             <TabsContent value="list">
               {loading ? (
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {[1, 2, 3].map(i => <div key={i} className="h-64 bg-gray-900 rounded-xl animate-pulse" />)}
-                 </div>
+                <div className="h-64 bg-gray-900 rounded-xl animate-pulse" />
+              ) : filteredProjects.length === 0 ? (
+                <div className="text-center py-20 bg-gray-900/30 rounded-xl border border-gray-800 border-dashed">
+                  <p className="text-gray-400 text-lg">No projects found.</p>
+                </div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gray-800 rounded-lg border border-gray-700 shadow-xl overflow-hidden"
+                >
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-800/50">
+                        <tr>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                            {t('common.projects') || 'Projects'}
+                          </th>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
+                            {t('clients.companyName') || 'Client'}
+                          </th>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
+                            {t('invoices.issueDate') || 'Created'}
+                          </th>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                            {t('common.status') || 'Status'}
+                          </th>
+                          <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden xl:table-cell">
+                            Progress
+                          </th>
+                          <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                            {t('common.actions') || 'Actions'}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700">
+                        {paginatedProjects.map(project => {
+                          const status = project.status || 'active';
+                          return (
+                            <tr key={project.id} className="hover:bg-gray-700/40 transition-colors">
+                              <td className="px-4 md:px-6 py-4 text-sm">
+                                <div className="font-semibold text-gradient">{project.name}</div>
+                                <div className="text-gray-400 text-xs mt-1 line-clamp-1">{project.description || '-'}</div>
+                              </td>
+                              <td className="px-4 md:px-6 py-4 text-sm text-gray-300 hidden md:table-cell">
+                                {project.client?.company_name || '-'}
+                              </td>
+                              <td className="px-4 md:px-6 py-4 text-sm text-gray-300 hidden lg:table-cell">
+                                {project.created_at ? format(parseISO(project.created_at), 'MMM d, yyyy') : '-'}
+                              </td>
+                              <td className="px-4 md:px-6 py-4 text-sm">
+                                <span className={`text-xs px-2 py-1 rounded-full border capitalize ${getProjectStatusClasses(status)}`}>
+                                  {status.replace('_', ' ')}
+                                </span>
+                              </td>
+                              <td className="px-4 md:px-6 py-4 text-sm text-gray-300 hidden xl:table-cell">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-28">
+                                    <Progress value={project.progress || 0} className="h-2" />
+                                  </div>
+                                  <span className="text-xs text-gray-400">{project.progress || 0}%</span>
+                                </div>
+                              </td>
+                              <td className="px-4 md:px-6 py-4 text-right text-sm">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button asChild variant="outline" size="sm" className="border-blue-500/40 text-blue-300 hover:bg-blue-900/20 h-8 px-2">
+                                    <Link to={`/app/projects/${project.id}`}>
+                                      <Eye className="w-4 h-4" />
+                                      <span className="hidden lg:inline ml-1">{t('common.view') || 'View'}</span>
+                                    </Link>
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEditProject(project)}
+                                    className="text-orange-300 hover:text-orange-200 hover:bg-orange-900/20 h-8 w-8 p-0"
+                                    title={t('common.edit') || 'Edit'}
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteProject(project)}
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
+                                    title={t('common.delete') || 'Delete'}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <PaginationControls
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalCount={pagination.totalCount}
+                    pageSize={pagination.pageSize}
+                    pageSizeOptions={pagination.pageSizeOptions}
+                    hasNextPage={pagination.hasNextPage}
+                    hasPrevPage={pagination.hasPrevPage}
+                    onNextPage={pagination.nextPage}
+                    onPrevPage={pagination.prevPage}
+                    onGoToPage={pagination.goToPage}
+                    onChangePageSize={pagination.changePageSize}
+                  />
+                </motion.div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="gallery">
+              {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3].map(i => <div key={i} className="h-64 bg-gray-900 rounded-xl animate-pulse" />)}
+                </div>
               ) : filteredProjects.length === 0 ? (
                 <div className="text-center py-20 bg-gray-900/30 rounded-xl border border-gray-800 border-dashed">
                   <p className="text-gray-400 text-lg">No projects found.</p>
@@ -370,7 +560,13 @@ const ProjectsPage = () => {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {paginatedProjects.map(project => (
-                      <ProjectCard key={project.id} project={project} />
+                      <ProjectCard
+                        key={project.id}
+                        project={project}
+                        onEdit={handleEditProject}
+                        onDelete={handleDeleteProject}
+                        t={t}
+                      />
                     ))}
                   </div>
                   <PaginationControls
@@ -416,10 +612,12 @@ const ProjectsPage = () => {
           </Tabs>
         </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-gradient text-xl">New Project</DialogTitle>
+            <DialogTitle className="text-gradient text-xl">
+              {editingProject ? `${t('common.edit') || 'Edit'} Project` : 'New Project'}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -511,12 +709,12 @@ const ProjectsPage = () => {
             </div>
 
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              <Button type="button" variant="outline" onClick={() => handleDialogChange(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
                 Cancel
               </Button>
               <Button type="submit" disabled={submitting || !formData.name.trim()} className="bg-orange-500 hover:bg-orange-600 text-white">
-                {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                Create Project
+                {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : editingProject ? <Pencil className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                {editingProject ? `${t('common.edit') || 'Edit'} Project` : 'Create Project'}
               </Button>
             </DialogFooter>
           </form>

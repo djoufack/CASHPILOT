@@ -43,7 +43,12 @@
     "copy": "Copy",
     "copied": "Copied",
     "close": "Close",
-    "topNavigation": "Top navigation"
+    "topNavigation": "Top navigation",
+    "primaryNavigation": "Primary navigation",
+    "openNavigation": "Open navigation",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "skipToContent": "Skip to main content"
   },
   "aiChat": {
     "title": "AI Assistant",
@@ -60,6 +65,16 @@
     "noActiveAccount": "No active account",
     "accountCount": "{{count}} account(s)",
     "accountFallback": "Account {{index}}"
+  },
+  "clientPortal": {
+    "pageTitle": "Client Portal",
+    "title": "Client Portal",
+    "navigation": "Client portal navigation",
+    "recentInvoices": "Recent Invoices",
+    "paid": "Paid",
+    "due": "Due",
+    "pendingApprovals": "Pending Approvals",
+    "noPendingTimesheets": "No timesheets pending approval."
   },
   "nav": {
     "dashboard": "Dashboard",

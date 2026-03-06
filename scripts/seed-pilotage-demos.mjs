@@ -1993,6 +1993,8 @@ function buildEnhancedDataset(config) {
     created_at: isoTimestamp(isoDate(CURRENT_YEAR, 2, 5), 13),
     updated_at: isoTimestamp(isoDate(CURRENT_YEAR, 2, 5), 13, 5),
   };
+  // Keep demo sales lines explicitly linked to a stock-tracked product.
+  secondaryInvoiceItemRows[0].product_id = secondaryProductRow.id;
 
   const secondarySupplierOrderDate = isoDate(CURRENT_YEAR, 2, 11);
   const secondarySupplierOrderRow = {
@@ -2544,6 +2546,8 @@ function buildEnhancedDataset(config) {
       created_at: isoTimestamp(addDays(expenseDate, -1), 13),
       updated_at: isoTimestamp(addDays(expenseDate, -1), 13, 5),
     };
+    // Keep demo sales lines explicitly linked to a stock-tracked product.
+    invoiceItemRows[0].product_id = productRow.id;
 
     const supplierOrderRow = {
       id: uuidFromSeed(`${userSeed}:portfolio:${code}:supplier-order`),

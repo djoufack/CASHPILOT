@@ -42,6 +42,7 @@ const BankConnectionsPage = () => {
     disconnectBank,
     syncConnection,
     totalBalance,
+    bankMetrics,
     refresh,
   } = useBankConnections();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -176,17 +177,9 @@ const BankConnectionsPage = () => {
       .slice(0, 80);
   }, [deferredSearch, institutions]);
 
-  const activeConnections = useMemo(
-    () => connections.filter((connection) => connection.status === 'active' && connection.account_id),
-    [connections]
-  );
-
-  const balanceCurrencies = useMemo(
-    () => [...new Set(activeConnections.map((connection) => String(connection.account_currency || 'EUR').toUpperCase()))],
-    [activeConnections]
-  );
-
-  const hasMixedCurrencies = balanceCurrencies.length > 1;
+  const syncableConnections = useMemo(() => (
+    connections.filter((connection) => bankMetrics.syncableConnectionIds.includes(connection.id))
+  ), [bankMetrics.syncableConnectionIds, connections]);
 
   const countrySelectOptions = useMemo(() => {
     if (countryOptions?.length) {
@@ -251,7 +244,7 @@ const BankConnectionsPage = () => {
   };
 
   const handleSyncAll = async () => {
-    if (!activeConnections.length) {
+    if (!syncableConnections.length) {
       return;
     }
 
@@ -260,7 +253,7 @@ const BankConnectionsPage = () => {
     let successCount = 0;
     let failureCount = 0;
 
-    for (const connection of activeConnections) {
+    for (const connection of syncableConnections) {
       try {
         const result = await syncConnection(connection.id);
         syncedTotal += Number(result?.synced || 0);
@@ -318,7 +311,7 @@ const BankConnectionsPage = () => {
           <Button
             variant="outline"
             onClick={handleSyncAll}
-            disabled={syncingAll || activeConnections.length === 0}
+            disabled={syncingAll || syncableConnections.length === 0}
             className="border-gray-700 bg-gray-900 text-white hover:bg-gray-800"
           >
             {syncingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
@@ -338,11 +331,11 @@ const BankConnectionsPage = () => {
             <div>
               <p className="text-sm text-gray-400">{t('bankConnectionsPage.syncedBalances')}</p>
               <p className="text-3xl font-bold text-white">
-                {formatAmount(totalBalance, balanceCurrencies[0] || 'EUR')}
+                {formatAmount(totalBalance, bankMetrics.balanceCurrencies[0] || 'EUR')}
               </p>
               <p className="mt-1 text-xs text-gray-500">
-                {hasMixedCurrencies
-                  ? t('bankConnectionsPage.balanceMixedCurrencies', { currencies: balanceCurrencies.join(', ') })
+                {bankMetrics.hasMixedCurrencies
+                  ? t('bankConnectionsPage.balanceMixedCurrencies', { currencies: bankMetrics.balanceCurrencies.join(', ') })
                   : t('bankConnectionsPage.balanceAggregated')}
               </p>
             </div>
@@ -353,18 +346,18 @@ const BankConnectionsPage = () => {
           <p className="text-sm text-gray-400">{t('bankConnectionsPage.bankEstate')}</p>
           <div className="mt-4 grid grid-cols-3 gap-3 text-center">
             <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
-              <p className="text-2xl font-semibold text-white">{connections.length}</p>
+              <p className="text-2xl font-semibold text-white">{bankMetrics.totalConnections}</p>
               <p className="text-xs text-gray-500">{t('bankConnectionsPage.metrics.connections')}</p>
             </div>
             <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
               <p className="text-2xl font-semibold text-green-400">
-                {connections.filter((connection) => connection.status === 'active').length}
+                {bankMetrics.activeConnections}
               </p>
               <p className="text-xs text-gray-500">{t('bankConnectionsPage.metrics.active')}</p>
             </div>
             <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
               <p className="text-2xl font-semibold text-yellow-400">
-                {connections.filter((connection) => connection.status === 'pending').length}
+                {bankMetrics.pendingConnections}
               </p>
               <p className="text-xs text-gray-500">{t('bankConnectionsPage.metrics.pending')}</p>
             </div>

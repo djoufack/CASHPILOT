@@ -122,7 +122,7 @@ const SettingsPage = () => {
     },
     {
       value: 'connections',
-      label: 'Connexions',
+      label: 'Connexions API & MCP',
       icon: Plug,
       activeClassName: 'data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400',
       content: <ConnectionSettings />,
