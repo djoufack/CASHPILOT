@@ -398,10 +398,7 @@ const generateDeliveryNoteHTML = (deliveryNote, companyInfo) => {
  * Generate HTML content for Credit Note document
  */
 const generateCreditNoteHTML = (creditNote, companyInfo) => {
-  const items = creditNote.items || [];
-  const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-  const totalTax = items.reduce((sum, item) => sum + (item.quantity * item.unit_price * item.tax_rate / 100), 0);
-  const total = subtotal + totalTax;
+  const { items, subtotal, totalTax, total } = computeInvoiceTotals(creditNote);
 
   return `
     <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
@@ -450,10 +447,10 @@ const generateCreditNoteHTML = (creditNote, companyInfo) => {
           ${items.map(item => `
             <tr style="border-bottom: 1px solid #e5e7eb;">
               <td style="padding: 12px;">${item.description || ''}</td>
-              <td style="padding: 12px; text-align: center;">${item.quantity || 0}</td>
-              <td style="padding: 12px; text-align: right;">${(item.unit_price || 0).toFixed(2)} €</td>
-              <td style="padding: 12px; text-align: right;">${item.tax_rate || 0}%</td>
-              <td style="padding: 12px; text-align: right; font-weight: 600;">${((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)} €</td>
+              <td style="padding: 12px; text-align: center;">${item.quantity}</td>
+              <td style="padding: 12px; text-align: right;">${item.unit_price.toFixed(2)} €</td>
+              <td style="padding: 12px; text-align: right;">${item.tax_rate}%</td>
+              <td style="padding: 12px; text-align: right; font-weight: 600;">${item._lineSubtotal.toFixed(2)} €</td>
             </tr>
           `).join('')}
         </tbody>
