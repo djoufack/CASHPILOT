@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
@@ -181,6 +182,7 @@ const PricingPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a]">
+      <Helmet><title>{t('pages.pricing', 'Pricing')} | CashPilot</title></Helmet>
       {/* Navigation bar */}
       <nav
         className="fixed top-0 left-0 right-0 z-50 bg-[#0a0e1a]/80 backdrop-blur-xl border-b border-gray-800/50"

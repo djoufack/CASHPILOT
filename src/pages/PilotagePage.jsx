@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -51,6 +52,7 @@ const PilotagePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-950 p-4 md:p-6 space-y-6">
+      <Helmet><title>{t('pages.pilotage', 'Pilotage')} | CashPilot</title></Helmet>
       {/* Page header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

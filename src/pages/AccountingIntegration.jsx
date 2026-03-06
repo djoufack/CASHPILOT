@@ -288,6 +288,7 @@ const AccountingIntegration = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
+      <Helmet><title>{t('pages.accounting', 'Accounting Integration')} | CashPilot</title></Helmet>
       <CreditsGuardModal {...modalProps} />
       {/* Header */}
       <div className="mb-2">

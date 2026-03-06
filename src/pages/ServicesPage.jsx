@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useServices, useServiceCategories } from '@/hooks/useServices';
 import { useCompany } from '@/hooks/useCompany';
@@ -175,6 +176,7 @@ const ServicesPage = () => {
 
   return (
     <div className="p-8 min-h-screen bg-gray-950 text-white space-y-6">
+      <Helmet><title>{t('pages.services', 'Services')} | CashPilot</title></Helmet>
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

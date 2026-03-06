@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useSupplierReports } from '@/hooks/useSupplierReports';
 import { useCompany } from '@/hooks/useCompany';
@@ -194,6 +195,7 @@ const SupplierReports = () => {
 
   return (
     <>
+      <Helmet><title>{t('pages.supplierReports', 'Supplier Reports')} | CashPilot</title></Helmet>
       <CreditsGuardModal {...modalProps} />
       <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
