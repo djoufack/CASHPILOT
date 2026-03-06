@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGDPR } from '@/hooks/useGDPR';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Shield, X, Settings2, Cookie } from 'lucide-react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 const GDPRConsentBanner = () => {
   const { t } = useTranslation();
   const { consentStatus, saveConsent, hasConsented, loading } = useGDPR();
   const [visible, setVisible] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
+  const customizePanelRef = useRef(null);
+  const customizeCloseButtonRef = useRef(null);
   const [localConsent, setLocalConsent] = useState({
     necessary: true,
     cookies: false,
@@ -60,6 +63,18 @@ const GDPRConsentBanner = () => {
     setShowCustomize(false);
   };
 
+  const handleCloseCustomize = useCallback(() => {
+    setShowCustomize(false);
+  }, []);
+
+  useFocusTrap({
+    active: visible && showCustomize,
+    containerRef: customizePanelRef,
+    onEscape: handleCloseCustomize,
+    initialFocusRef: customizeCloseButtonRef,
+    restoreFocus: true,
+  });
+
   if (!visible) return null;
 
   return (
@@ -68,7 +83,7 @@ const GDPRConsentBanner = () => {
       {showCustomize && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]"
-          onClick={() => setShowCustomize(false)}
+          onClick={handleCloseCustomize}
           aria-hidden="true"
         />
       )}
@@ -76,9 +91,10 @@ const GDPRConsentBanner = () => {
       {/* Banner */}
       <div
         className="fixed bottom-0 left-0 right-0 z-[9999] p-4 sm:p-6"
-        role="dialog"
+        role={showCustomize ? 'dialog' : 'region'}
         aria-label={t('gdpr.banner.title')}
-        aria-modal="false"
+        aria-modal={showCustomize ? 'true' : 'false'}
+        aria-labelledby={showCustomize ? 'gdpr-customize-title' : undefined}
       >
         <div
           className="max-w-4xl mx-auto rounded-2xl border border-gray-700/50 shadow-2xl"
@@ -137,21 +153,22 @@ const GDPRConsentBanner = () => {
             </div>
           ) : (
             /* Customize panel */
-            <div className="p-4 sm:p-6">
+            <div className="p-4 sm:p-6" ref={customizePanelRef}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
                     <Shield className="w-5 h-5 text-orange-400" />
                   </div>
-                  <h3 className="text-base sm:text-lg font-semibold text-white">
+                  <h3 id="gdpr-customize-title" className="text-base sm:text-lg font-semibold text-white">
                     {t('gdpr.banner.customize')}
                   </h3>
                 </div>
                 <Button
+                  ref={customizeCloseButtonRef}
                   variant="ghost"
                   size="icon"
                   className="text-gray-400 hover:text-white"
-                  onClick={() => setShowCustomize(false)}
+                  onClick={handleCloseCustomize}
                   aria-label={t('common.cancel')}
                 >
                   <X className="w-5 h-5" />
@@ -223,7 +240,7 @@ const GDPRConsentBanner = () => {
                 <Button
                   variant="outline"
                   className="border-gray-600 text-gray-300 hover:bg-gray-800/50 hover:text-white"
-                  onClick={() => setShowCustomize(false)}
+                  onClick={handleCloseCustomize}
                 >
                   {t('common.cancel')}
                 </Button>

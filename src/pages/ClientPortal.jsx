@@ -21,10 +21,19 @@ const ClientPortal = () => {
                 <title>Client Portal</title>
             </Helmet>
             <div className="min-h-screen bg-gray-950">
-                <nav className="bg-gray-900 border-b border-gray-800 p-4">
+                <nav
+                    className="bg-gray-900 border-b border-gray-800 p-4"
+                    role="navigation"
+                    aria-label="Client portal navigation"
+                >
                     <div className="container mx-auto flex justify-between items-center">
                         <h1 className="text-xl font-bold text-gradient">Client Portal</h1>
-                        <Button variant="ghost" onClick={handleLogout} className="text-gray-400 hover:text-white">
+                        <Button
+                            variant="ghost"
+                            onClick={handleLogout}
+                            className="text-gray-400 hover:text-white"
+                            aria-label="Log out"
+                        >
                             <LogOut className="w-4 h-4 mr-2" /> Logout
                         </Button>
                     </div>

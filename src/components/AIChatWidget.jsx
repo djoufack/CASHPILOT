@@ -167,22 +167,22 @@ const AIChatWidget = () => {
               <div className="flex items-center gap-2">
                 <Bot className="w-5 h-5 text-orange-400" />
                 <span id="ai-chat-widget-title" className="text-white font-semibold text-sm">
-                  {t('aiChat.title', 'Assistant IA')}
+                  {t('aiChat.title', 'AI Assistant')}
                 </span>
               </div>
               <div className="flex items-center gap-1">
                 <button
                   onClick={clearChat}
                   className="text-gray-400 hover:text-white p-1"
-                  title={t('aiChat.clear', 'Effacer')}
-                  aria-label={t('aiChat.clear', 'Effacer')}
+                  title={t('aiChat.clear', 'Clear')}
+                  aria-label={t('aiChat.clear', 'Clear')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setIsOpen(false)}
                   className="text-gray-400 hover:text-white p-1"
-                  aria-label={t('aiChat.close', "Fermer l'assistant IA")}
+                  aria-label={t('aiChat.close', 'Close AI assistant')}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -194,8 +194,8 @@ const AIChatWidget = () => {
               {messages.length === 0 && (
                 <div className="text-center text-gray-500 text-sm mt-8">
                   <Bot className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-                  <p>{t('aiChat.welcome', 'Bonjour ! Je suis votre assistant comptable IA.')}</p>
-                  <p className="mt-1">{t('aiChat.prompt', 'Posez-moi une question sur vos finances.')}</p>
+                  <p>{t('aiChat.welcome', 'Hello! I am your AI accounting assistant.')}</p>
+                  <p className="mt-1">{t('aiChat.prompt', 'Ask me a question about your finances.')}</p>
                 </div>
               )}
               {messages.map((msg, i) => (
@@ -243,17 +243,17 @@ const AIChatWidget = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={t('aiChat.inputPlaceholder', 'Posez votre question...')}
+                  placeholder={t('aiChat.inputPlaceholder', 'Ask your question...')}
                   className="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
                   disabled={isLoading}
-                  aria-label={t('aiChat.inputLabel', "Message pour l'assistant IA")}
+                  aria-label={t('aiChat.inputLabel', 'Message for AI assistant')}
                 />
                 <Button
                   onClick={handleSend}
                   disabled={isLoading || !input.trim()}
                   size="sm"
                   className="bg-orange-500 hover:bg-orange-600 px-3"
-                  aria-label={t('aiChat.send', 'Envoyer')}
+                  aria-label={t('aiChat.send', 'Send')}
                 >
                   <Send className="w-4 h-4" />
                 </Button>

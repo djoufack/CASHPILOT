@@ -531,7 +531,13 @@ const LandingPage = () => {
       <div className="cursor-dot" ref={cursorDotRef}></div>
 
       {/* Navigation */}
-      <nav id="navbar" className={`navbar ${navbarScrolled ? 'scrolled' : ''}`} ref={navbarRef}>
+      <nav
+        id="navbar"
+        className={`navbar ${navbarScrolled ? 'scrolled' : ''}`}
+        ref={navbarRef}
+        role="navigation"
+        aria-label={copy.nav?.ariaLabel || 'Primary navigation'}
+      >
         <div className="nav-container">
           <a href="#" className="nav-logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
             <Wallet className="logo-icon" />

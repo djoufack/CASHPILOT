@@ -65,7 +65,11 @@ const Navigation = () => {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-gradient-to-r from-yellow-600 via-blue-600 to-purple-600 shadow-xl px-4 md:px-6 lg:px-8">
+    <nav
+      className="sticky top-0 z-50 bg-gradient-to-r from-yellow-600 via-blue-600 to-purple-600 shadow-xl px-4 md:px-6 lg:px-8"
+      role="navigation"
+      aria-label={t('common.primaryNavigation', 'Primary navigation')}
+    >
       <div className="container mx-auto">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4 md:space-x-8">
@@ -114,6 +118,7 @@ const Navigation = () => {
                 variant="ghost"
                 size="sm"
                 className="text-white hover:bg-white/10 flex items-center space-x-1"
+                aria-label={t('common.language', 'Language')}
               >
                 <Globe className="w-4 h-4" />
                 <span className="font-semibold text-xs hidden sm:inline">
@@ -124,7 +129,12 @@ const Navigation = () => {
 
             <div className="hidden sm:block">
               <Link to="/settings">
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white hover:bg-white/10"
+                  aria-label={t('common.settings')}
+                >
                   <Settings className="w-4 h-4" />
                 </Button>
               </Link>
@@ -135,13 +145,19 @@ const Navigation = () => {
               variant="ghost" 
               size="icon" 
               className="text-white hover:bg-white/10 text-red-200 hover:text-red-100"
+              aria-label={t('common.logout')}
             >
               <LogOut className="w-4 h-4" />
             </Button>
             
             {/* Mobile Menu Button - for Navigation only context, usually handled by Sidebar now */}
             <div className="lg:hidden">
-               <Button variant="ghost" size="icon" className="text-white">
+               <Button
+                 variant="ghost"
+                 size="icon"
+                 className="text-white"
+                 aria-label={t('common.openNavigation', 'Open navigation')}
+               >
                   <Menu className="w-5 h-5" />
                </Button>
             </div>
