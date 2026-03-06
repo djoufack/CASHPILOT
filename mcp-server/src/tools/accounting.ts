@@ -17,7 +17,7 @@ export function registerAccountingTools(server: McpServer) {
         .eq('user_id', getUserId())
         .order('account_code', { ascending: true });
 
-      if (category) query = query.eq('account_category', category);
+      if (category) query = query.or(`account_category.eq.${category},account_type.eq.${category}`);
 
       const { data, error } = await query;
       if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
@@ -67,20 +67,27 @@ export function registerAccountingTools(server: McpServer) {
     async ({ date }) => {
       const cutoff = date ?? new Date().toISOString().split('T')[0];
 
-      const { data, error } = await supabase
-        .from('accounting_entries')
-        .select('account_code, account_name, debit, credit')
-        .eq('user_id', getUserId())
-        .lte('transaction_date', cutoff);
+      const [entriesRes, accountsRes] = await Promise.all([
+        supabase.from('accounting_entries').select('account_code, debit, credit')
+          .eq('user_id', getUserId()).lte('transaction_date', cutoff),
+        supabase.from('accounting_chart_of_accounts').select('account_code, account_name')
+          .eq('user_id', getUserId())
+      ]);
 
+      const { data, error } = entriesRes;
       if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+
+      const nameMap: Record<string, string> = {};
+      for (const acc of accountsRes.data ?? []) {
+        nameMap[acc.account_code] = acc.account_name || '';
+      }
 
       const balances: Record<string, { account_code: string; account_name: string; total_debit: number; total_credit: number; balance: number }> = {};
 
       for (const entry of data ?? []) {
         const code = entry.account_code;
         if (!balances[code]) {
-          balances[code] = { account_code: code, account_name: entry.account_name || '', total_debit: 0, total_credit: 0, balance: 0 };
+          balances[code] = { account_code: code, account_name: nameMap[code] || '', total_debit: 0, total_credit: 0, balance: 0 };
         }
         balances[code].total_debit += parseFloat(entry.debit || '0');
         balances[code].total_credit += parseFloat(entry.credit || '0');

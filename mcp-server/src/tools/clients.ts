@@ -43,9 +43,9 @@ export function registerClientTools(server: McpServer) {
     async ({ client_id }) => {
       const [clientRes, invoicesRes] = await Promise.all([
         supabase.from('clients').select('*').eq('id', client_id).eq('user_id', getUserId()).single(),
-        supabase.from('invoices').select('id, invoice_number, invoice_date, total_ttc, status, payment_status')
+        supabase.from('invoices').select('id, invoice_number, date, total_ttc, status, payment_status')
           .eq('client_id', client_id).eq('user_id', getUserId())
-          .order('invoice_date', { ascending: false }).limit(10)
+          .order('date', { ascending: false }).limit(10)
       ]);
 
       if (clientRes.error) return { content: [{ type: 'text' as const, text: `Error: ${clientRes.error.message}` }] };

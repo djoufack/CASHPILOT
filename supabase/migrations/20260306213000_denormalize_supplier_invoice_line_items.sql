@@ -11,11 +11,13 @@ ALTER TABLE public.supplier_invoice_line_items
   ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 
 -- ============================================================
--- 2. Backfill existing rows from supplier_invoices
+-- 2. Backfill existing rows via supplier_invoices -> suppliers
+--    (supplier_invoices has no user_id; it's on suppliers)
 -- ============================================================
 UPDATE public.supplier_invoice_line_items sil
-SET user_id = si.user_id
+SET user_id = s.user_id
 FROM public.supplier_invoices si
+JOIN public.suppliers s ON s.id = si.supplier_id
 WHERE si.id = sil.invoice_id
   AND sil.user_id IS NULL;
 
@@ -42,9 +44,10 @@ SET search_path = public
 AS $$
 BEGIN
   IF NEW.user_id IS NULL THEN
-    SELECT user_id INTO NEW.user_id
-    FROM public.supplier_invoices
-    WHERE id = NEW.invoice_id;
+    SELECT s.user_id INTO NEW.user_id
+    FROM public.supplier_invoices si
+    JOIN public.suppliers s ON s.id = si.supplier_id
+    WHERE si.id = NEW.invoice_id;
   END IF;
   RETURN NEW;
 END;

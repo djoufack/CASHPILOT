@@ -14,16 +14,23 @@ export function registerExportTools(server: McpServer) {
       end_date: z.string().describe('End date (YYYY-MM-DD)')
     },
     async ({ start_date, end_date }) => {
-      const { data: entries, error } = await supabase
-        .from('accounting_entries')
-        .select('*')
-        .eq('user_id', getUserId())
-        .gte('transaction_date', start_date)
-        .lte('transaction_date', end_date)
-        .order('transaction_date', { ascending: true });
+      const [entriesRes, accountsRes] = await Promise.all([
+        supabase.from('accounting_entries').select('*')
+          .eq('user_id', getUserId())
+          .gte('transaction_date', start_date).lte('transaction_date', end_date)
+          .order('transaction_date', { ascending: true }),
+        supabase.from('accounting_chart_of_accounts').select('account_code, account_name')
+          .eq('user_id', getUserId())
+      ]);
 
+      const { data: entries, error } = entriesRes;
       if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
       if (!entries?.length) return { content: [{ type: 'text' as const, text: 'No entries found for the given period.' }] };
+
+      const nameMap: Record<string, string> = {};
+      for (const acc of accountsRes.data ?? []) {
+        nameMap[acc.account_code] = acc.account_name || '';
+      }
 
       // FEC header
       const header = 'JournalCode|JournalLib|EcritureNum|EcritureDate|CompteNum|CompteLib|CompAuxNum|CompAuxLib|PieceRef|PieceDate|EcritureLib|Debit|Credit|EcritureLet|DateLet|ValidDate|Montantdevise|Idevise';
@@ -36,7 +43,7 @@ export function registerExportTools(server: McpServer) {
           String(i + 1),
           date,
           e.account_code || '',
-          e.account_name || '',
+          nameMap[e.account_code] || '',
           '', // CompAuxNum
           '', // CompAuxLib
           e.reference || '',

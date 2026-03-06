@@ -107,7 +107,7 @@ export function registerPaymentTools(server: McpServer) {
     async ({ days_overdue }) => {
       let query = supabase
         .from('invoices')
-        .select(`id, invoice_number, invoice_date, due_date, total_ttc, payment_status, balance_due, client:clients(id, company_name)`)
+        .select(`id, invoice_number, date, due_date, total_ttc, payment_status, balance_due, client:clients(id, company_name)`)
         .eq('user_id', getUserId())
         .in('payment_status', ['unpaid', 'partial'])
         .order('due_date', { ascending: true });
