@@ -580,7 +580,8 @@
       "updated": "Groepsupdate voltooid",
       "updatedDesc": "{{count}} factuur/facturen bijgewerkt."
     },
-    "uploadSuccess": "Factuur succesvol toegevoegd"
+    "uploadSuccess": "Factuur succesvol toegevoegd",
+    "aiExtracted": "AI-geëxtraheerd"
   },
   "supplierReports": {
     "title": "Leveranciersrapporten",

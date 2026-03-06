@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,7 @@ const NotificationCenter = () => {
 
   return (
     <div className="p-8 min-h-screen bg-gray-950 text-white max-w-4xl mx-auto space-y-6">
+      <Helmet><title>Notifications | CashPilot</title></Helmet>
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">

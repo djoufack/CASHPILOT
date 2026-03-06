@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -113,6 +114,7 @@ const PeppolGuidePage = () => {
 
   return (
     <div className="peppol-guide">
+      <Helmet><title>Peppol Guide | CashPilot</title></Helmet>
       {/* ── Navbar ── */}
       <nav className="pg-navbar" role="navigation" aria-label="Navigation Peppol">
         <div className="pg-navbar-inner">

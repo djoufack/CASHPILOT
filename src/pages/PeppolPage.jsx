@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Helmet } from 'react-helmet';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -454,6 +455,7 @@ const PeppolPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] p-4 sm:p-6 lg:p-8 space-y-6">
+      <Helmet><title>{t('pages.peppol', 'Peppol')} | CashPilot</title></Helmet>
       <CreditsGuardModal {...creditsModalProps} />
       <CreditsGuardModal {...inboundCreditsModalProps} />
 
