@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { validateEmail, validatePasswordStrength } from '@/utils/validation';
 import { useToast } from '@/components/ui/use-toast';
+import { sanitizeText } from '@/utils/sanitize';
 
 const SignupPage = () => {
   const [loading, setLoading] = useState(false);
@@ -31,8 +32,9 @@ const SignupPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
+    const normalizedEmail = sanitizeText(email).trim().toLowerCase();
     if (!fullName.trim()) newErrors.fullName = "Full Name is required";
-    if (!validateEmail(email)) newErrors.email = "Invalid email address";
+    if (!validateEmail(normalizedEmail)) newErrors.email = "Invalid email address";
     if (!validatePasswordStrength(password)) {
       newErrors.password = t('validation.passwordTooWeak') || "Password must be at least 12 characters and include 1 uppercase letter, 1 number, and 1 special character";
     }
@@ -49,7 +51,8 @@ const SignupPage = () => {
     setErrors({});
 
     try {
-      await signUp(email, password, fullName, companyName, role);
+      const normalizedEmail = sanitizeText(email).trim().toLowerCase();
+      await signUp(normalizedEmail, password, fullName, companyName, role);
       
       setSuccess(true);
       toast({
@@ -65,6 +68,9 @@ const SignupPage = () => {
     } catch (error) {
       console.error(error);
       let errorMessage = error.message;
+      if (error.code === 'AUTH_RATE_LIMITED') {
+        errorMessage = `Too many attempts. Try again in ${error.retryAfterSeconds || 60} seconds.`;
+      }
       if (error.message.includes('User already registered')) {
         errorMessage = "Email is already registered. Please log in.";
       }

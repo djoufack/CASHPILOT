@@ -9,6 +9,14 @@ import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Mail } from 'lucide-reac
 import { validateEmail } from '@/utils/validation';
 import { useToast } from '@/components/ui/use-toast';
 import supabase from '@/lib/customSupabaseClient';
+import { sanitizeText } from '@/utils/sanitize';
+import {
+  assertRateLimitAllowed,
+  recordRateLimitFailure,
+  recordRateLimitSuccess,
+} from '@/utils/authRateLimit';
+
+const FORGOT_PASSWORD_SCOPE = 'forgot-password';
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -20,7 +28,8 @@ const ForgotPasswordPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!validateEmail(email)) {
+    const normalizedEmail = sanitizeText(email).trim().toLowerCase();
+    if (!validateEmail(normalizedEmail)) {
       newErrors.email = t('validation.invalidEmail') || "Invalid email address";
     }
     setErrors(newErrors);
@@ -36,11 +45,15 @@ const ForgotPasswordPage = () => {
     setErrors({});
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const normalizedEmail = sanitizeText(email).trim().toLowerCase();
+      assertRateLimitAllowed(FORGOT_PASSWORD_SCOPE, normalizedEmail);
+
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) throw error;
+      recordRateLimitSuccess(FORGOT_PASSWORD_SCOPE, normalizedEmail);
 
       setSuccess(true);
       toast({
@@ -51,11 +64,16 @@ const ForgotPasswordPage = () => {
 
     } catch (error) {
       console.error('Password reset error:', error);
+      const normalizedEmail = sanitizeText(email).trim().toLowerCase();
+      recordRateLimitFailure(FORGOT_PASSWORD_SCOPE, normalizedEmail);
+      const errorMessage = error.code === 'AUTH_RATE_LIMITED'
+        ? `Too many attempts. Try again in ${error.retryAfterSeconds || 60} seconds.`
+        : (error.message || t('auth.passwordResetError') || "Une erreur est survenue");
 
-      setErrors({ submit: error.message || t('auth.passwordResetError') || "Une erreur est survenue" });
+      setErrors({ submit: errorMessage });
       toast({
         title: t('common.error') || "Erreur",
-        description: error.message || t('auth.passwordResetError') || "Impossible d'envoyer l'email",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
