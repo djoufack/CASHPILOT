@@ -57,11 +57,15 @@ async function main() {
   const adminClient = buildClient(supabaseUrl, serviceRoleKey);
   const serviceClient = buildClient(supabaseUrl, serviceRoleKey);
   const userClient = buildClient(supabaseUrl, anonKey);
+  const approverClient = buildClient(supabaseUrl, anonKey);
 
   const email = `smoke.approval.${runId}@cashpilot.test`;
   const password = `CashPilot!${runId}Aa`;
+  const approverEmail = `smoke.approver.${runId}@cashpilot.test`;
+  const approverPassword = `CashPilot!${runId}Bb`;
 
   let tempUserId = null;
+  let approverUserId = null;
   const cleanup = {
     companyId: null,
     supplierId: null,
@@ -99,6 +103,16 @@ async function main() {
     tempUserId = createdUser.user.id;
     summary.user = { id: tempUserId, email };
 
+    const { data: approverUser, error: createApproverError } = await adminClient.auth.admin.createUser({
+      email: approverEmail,
+      password: approverPassword,
+      email_confirm: true,
+      user_metadata: { full_name: `Smoke Approver ${runId}` },
+    });
+    if (createApproverError) throw createApproverError;
+    approverUserId = approverUser.user.id;
+    summary.details.approver = { id: approverUserId, email: approverEmail };
+
     const { data: company, error: companyError } = await serviceClient
       .from('company')
       .insert([{
@@ -125,10 +139,36 @@ async function main() {
       }, { onConflict: 'user_id' });
     if (prefsError) throw prefsError;
 
+    const { error: approverPrefsError } = await serviceClient
+      .from('user_company_preferences')
+      .upsert({
+        user_id: approverUserId,
+        active_company_id: company.id,
+        updated_at: nowIso,
+      }, { onConflict: 'user_id' });
+    if (approverPrefsError) throw approverPrefsError;
+
+    const { error: approverRoleError } = await serviceClient
+      .from('user_roles')
+      .upsert({
+        user_id: approverUserId,
+        role: 'admin',
+        updated_at: nowIso,
+      }, { onConflict: 'user_id' });
+    if (approverRoleError) throw approverRoleError;
+
     const { data: signInData, error: signInError } = await userClient.auth.signInWithPassword({ email, password });
     if (signInError) throw signInError;
     const accessToken = signInData?.session?.access_token;
     assertCondition(Boolean(accessToken), 'Sign-in succeeded but access token is missing.');
+
+    const { data: approverSignInData, error: approverSignInError } = await approverClient.auth.signInWithPassword({
+      email: approverEmail,
+      password: approverPassword,
+    });
+    if (approverSignInError) throw approverSignInError;
+    const approverAccessToken = approverSignInData?.session?.access_token;
+    assertCondition(Boolean(approverAccessToken), 'Approver sign-in succeeded but access token is missing.');
 
     const { data: supplier, error: supplierError } = await userClient
       .from('suppliers')
@@ -204,6 +244,7 @@ async function main() {
     if (invoiceCheckError) throw invoiceCheckError;
     summary.details.firstInvoiceCheck = invoiceCheck;
 
+    const notificationCheckStart = new Date().toISOString();
     const notifyResponse = await fetch(`${supabaseUrl}/functions/v1/supplier-approval-notifications`, {
       method: 'POST',
       headers: {
@@ -236,9 +277,10 @@ async function main() {
 
     const { data: notificationRows, error: notificationQueryError } = await serviceClient
       .from('notifications')
-      .select('id, user_id, type, related_id, created_at')
+      .select('id, user_id, type, title, message, created_at')
+      .eq('user_id', approverUserId)
       .eq('type', 'supplier_approval_pending')
-      .eq('related_id', firstInvoiceId)
+      .gte('created_at', notificationCheckStart)
       .order('created_at', { ascending: false });
     if (notificationQueryError) throw notificationQueryError;
 
@@ -251,13 +293,13 @@ async function main() {
 
     const approvalPayload = {
       approval_status: 'approved',
-      approved_by: tempUserId,
+      approved_by: approverUserId,
       approved_at: new Date().toISOString(),
       rejected_reason: null,
     };
 
-    let bulkApprovalMode = 'user';
-    const { error: bulkApprovalError } = await userClient
+    let bulkApprovalMode = 'approver_user';
+    const { error: bulkApprovalError } = await approverClient
       .from('supplier_invoices')
       .update(approvalPayload)
       .in('id', cleanup.invoiceIds);
@@ -279,7 +321,11 @@ async function main() {
 
     summary.checks.bulkApprovalApplied = Array.isArray(approvedRows)
       && approvedRows.length === cleanup.invoiceIds.length
-      && approvedRows.every((row) => row.approval_status === 'approved' && row.approved_by === tempUserId && Boolean(row.approved_at));
+      && approvedRows.every((row) => row.approval_status === 'approved' && row.approved_by === approverUserId && Boolean(row.approved_at));
+    assertCondition(bulkApprovalMode === 'approver_user', 'Bulk approval required service-role fallback instead of approver user flow.', {
+      bulkApprovalError,
+      bulkApprovalMode,
+    });
     assertCondition(summary.checks.bulkApprovalApplied, 'Bulk approval update did not persist expected metadata.', {
       approvedRows,
       approvalPayload,
@@ -333,6 +379,9 @@ async function main() {
       if (cleanup.notificationIds.length) {
         await safeDeleteByIds(serviceClient, 'notifications', cleanup.notificationIds);
       }
+      if (approverUserId) {
+        await safeDeleteByEq(serviceClient, 'user_roles', 'user_id', approverUserId);
+      }
       if (cleanup.invoiceIds.length) {
         await safeDeleteByIds(serviceClient, 'supplier_invoices', cleanup.invoiceIds);
       }
@@ -344,6 +393,9 @@ async function main() {
       }
       if (tempUserId) {
         await safeDeleteByEq(serviceClient, 'user_company_preferences', 'user_id', tempUserId);
+      }
+      if (approverUserId) {
+        await safeDeleteByEq(serviceClient, 'user_company_preferences', 'user_id', approverUserId);
       }
       if (cleanup.companyId) {
         await safeDeleteByIds(serviceClient, 'company', [cleanup.companyId]);
@@ -360,6 +412,16 @@ async function main() {
         summary.cleanup.userDeleted = true;
       } catch (deleteUserError) {
         summary.cleanup.deleteUserError = deleteUserError.message;
+      }
+    }
+
+    if (approverUserId) {
+      try {
+        const { error: deleteApproverError } = await adminClient.auth.admin.deleteUser(approverUserId);
+        if (deleteApproverError) throw deleteApproverError;
+        summary.cleanup.approverUserDeleted = true;
+      } catch (deleteApproverError) {
+        summary.cleanup.deleteApproverError = deleteApproverError.message;
       }
     }
   }
