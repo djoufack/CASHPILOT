@@ -35,12 +35,31 @@
     "list": "List",
     "calendar": "Calendar",
     "agenda": "Agenda",
+    "gallery": "Gallery",
     "kanban": "Kanban",
     "kanbanDropHere": "Drop items here",
     "view": "View",
     "print": "Print",
     "copy": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "close": "Close",
+    "topNavigation": "Top navigation"
+  },
+  "aiChat": {
+    "title": "AI Assistant",
+    "openWidget": "Open AI assistant",
+    "clear": "Clear",
+    "close": "Close AI assistant",
+    "welcome": "Hello! I am your AI accounting assistant.",
+    "prompt": "Ask me a question about your finances.",
+    "inputPlaceholder": "Ask your question...",
+    "inputLabel": "Message for AI assistant",
+    "send": "Send"
+  },
+  "bank": {
+    "noActiveAccount": "No active account",
+    "accountCount": "{{count}} account(s)",
+    "accountFallback": "Account {{index}}"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -337,7 +356,11 @@
     "copySignatureLink": "Copy link",
     "signatureLinkCopied": "Link copied!",
     "signerEmail": "Signer email (optional)",
-    "sendSignatureRequest": "Send request"
+    "sendSignatureRequest": "Send request",
+    "documents": "Documents",
+    "signatureStatus": "Signature",
+    "signatureUnsigned": "Unsigned",
+    "quoteDetails": "Quote details"
   },
   "purchaseOrdersPage": {
     "title": "Purchase Orders",
@@ -476,7 +499,11 @@
     "invalidTimeFormat": "Invalid time format",
     "useHHMM": "Please use HH:MM format for start and end times.",
     "invalidTimeRange": "Invalid time range",
-    "endAfterStart": "End time must be after start time."
+    "endAfterStart": "End time must be after start time.",
+    "passwordRequired": "Password is required",
+    "passwordTooShort": "Password must be at least 12 characters",
+    "passwordTooWeak": "Password must be at least 12 characters and include 1 uppercase letter, 1 number, and 1 special character",
+    "passwordsDoNotMatch": "Passwords do not match"
   },
   "admin": {
     "users": "User Management",
@@ -1394,7 +1421,7 @@
     "invalidResetLink": "Invalid reset link",
     "requestNewResetLink": "Please request a new reset link",
     "passwordRequired": "Password is required",
-    "passwordTooShort": "Password must be at least 6 characters",
+    "passwordTooShort": "Password must be at least 12 characters",
     "passwordsDoNotMatch": "Passwords do not match",
     "demoTitle": "Try without signing up",
     "demoSubtitle": "Click an account to log in instantly",

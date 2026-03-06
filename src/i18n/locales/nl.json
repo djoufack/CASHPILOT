@@ -33,8 +33,31 @@
     "list": "Lijst",
     "calendar": "Kalender",
     "agenda": "Agenda",
+    "gallery": "Galerij",
     "kanban": "Kanban",
-    "kanbanDropHere": "Plaats items hier"
+    "kanbanDropHere": "Plaats items hier",
+    "view": "Bekijken",
+    "print": "Afdrukken",
+    "copy": "Kopiëren",
+    "copied": "Gekopieerd",
+    "close": "Sluiten",
+    "topNavigation": "Bovenste navigatie"
+  },
+  "aiChat": {
+    "title": "AI-assistent",
+    "openWidget": "AI-assistent openen",
+    "clear": "Wissen",
+    "close": "AI-assistent sluiten",
+    "welcome": "Hallo! Ik ben uw AI-boekhoudassistent.",
+    "prompt": "Stel me een vraag over uw financiën.",
+    "inputPlaceholder": "Stel uw vraag...",
+    "inputLabel": "Bericht voor AI-assistent",
+    "send": "Verzenden"
+  },
+  "bank": {
+    "noActiveAccount": "Geen actieve rekening",
+    "accountCount": "{{count}} rekening(en)",
+    "accountFallback": "Rekening {{index}}"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -129,6 +152,47 @@
     "noClientEmail": "Deze klant heeft geen e-mailadres",
     "emailSentTo": "Factuur verzonden naar {{email}}"
   },
+  "quotesPage": {
+    "title": "Offertes",
+    "subtitle": "Beheer uw voorstellen en schattingen",
+    "create": "Nieuwe offerte",
+    "searchPlaceholder": "Zoek een offerte...",
+    "allStatuses": "Alle",
+    "emptyTitle": "Nog geen offertes",
+    "emptyDescription": "Maak uw eerste offerte om naar een klant te sturen.",
+    "lineItems": "Regels",
+    "addLine": "Regel toevoegen",
+    "subtotal": "Subtotaal (excl. btw)",
+    "vat": "Btw",
+    "totalInclVat": "Totaal (incl. btw)",
+    "notesPlaceholder": "Extra notities...",
+    "exportCsv": "Exporteer CSV",
+    "exportExcel": "Exporteer Excel",
+    "exportPdfTitle": "Exporteer PDF ({{credits}} credits)",
+    "exportHtmlTitle": "Exporteer HTML ({{credits}} credits)",
+    "quoteNumber": "Offertenummer",
+    "client": "Klant",
+    "date": "Datum",
+    "status": "Status",
+    "statusDraft": "Concept",
+    "statusSent": "Verzonden",
+    "statusAccepted": "Geaccepteerd",
+    "statusRejected": "Geweigerd",
+    "statusExpired": "Vervallen",
+    "requestSignature": "Handtekening aanvragen",
+    "signatureLink": "Handtekenlink",
+    "signaturePending": "Wacht op handtekening",
+    "signatureSigned": "Ondertekend",
+    "signatureRejected": "Geweigerd",
+    "copySignatureLink": "Link kopiëren",
+    "signatureLinkCopied": "Link gekopieerd!",
+    "signerEmail": "E-mail ondertekenaar (optioneel)",
+    "sendSignatureRequest": "Verzoek verzenden",
+    "documents": "Documenten",
+    "signatureStatus": "Handtekening",
+    "signatureUnsigned": "Niet ondertekend",
+    "quoteDetails": "Offertedetails"
+  },
   "timesheets": {
     "title": "Urenstaten",
     "notes": "Notities",
@@ -199,7 +263,11 @@
     }
   },
   "validation": {
-    "invalidEmail": "Ongeldig e-mailadres"
+    "invalidEmail": "Ongeldig e-mailadres",
+    "passwordRequired": "Wachtwoord is verplicht",
+    "passwordTooShort": "Wachtwoord moet minstens 12 tekens bevatten",
+    "passwordTooWeak": "Wachtwoord moet minstens 12 tekens bevatten, met 1 hoofdletter, 1 cijfer en 1 speciaal teken",
+    "passwordsDoNotMatch": "Wachtwoorden komen niet overeen"
   },
   "admin": {
     "users": "Gebruikersbeheer",
@@ -875,7 +943,7 @@
     "invalidResetLink": "Ongeldige resetlink",
     "requestNewResetLink": "Vraag een nieuwe resetlink aan",
     "passwordRequired": "Wachtwoord is verplicht",
-    "passwordTooShort": "Wachtwoord moet minimaal 6 tekens bevatten",
+    "passwordTooShort": "Wachtwoord moet minimaal 12 tekens bevatten",
     "passwordsDoNotMatch": "Wachtwoorden komen niet overeen",
     "demoTitle": "Probeer zonder registratie",
     "demoSubtitle": "Klik op een account om direct in te loggen",
