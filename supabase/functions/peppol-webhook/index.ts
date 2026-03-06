@@ -9,9 +9,40 @@ const corsHeaders = {
 
 const PEPPOL_RECEIVE_CREDITS = 3;
 
+async function verifyHmacSignature(body: string, signature: string, secret: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const computed = await crypto.subtle.sign('HMAC', key, encoder.encode(body));
+  const computedHex = Array.from(new Uint8Array(computed)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return computedHex === signature.toLowerCase();
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  // --- HMAC-SHA256 signature verification ---
+  const rawBody = await req.text();
+  const scradaWebhookSecret = Deno.env.get('SCRADA_WEBHOOK_SECRET');
+  const hmacHeader = req.headers.get('x-scrada-hmac-sha256') || '';
+
+  if (scradaWebhookSecret) {
+    if (!hmacHeader) {
+      return new Response(JSON.stringify({ error: 'Missing x-scrada-hmac-sha256 header' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const valid = await verifyHmacSignature(rawBody, hmacHeader, scradaWebhookSecret);
+    if (!valid) {
+      console.error('Peppol webhook HMAC signature verification failed');
+      return new Response(JSON.stringify({ error: 'Invalid HMAC signature' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  } else {
+    console.warn('SCRADA_WEBHOOK_SECRET not configured — skipping HMAC verification');
   }
 
   try {
@@ -41,7 +72,7 @@ serve(async (req) => {
 
     // Handle outbound status update
     if (topic === 'peppolOutboundDocument/statusUpdate') {
-      const body = await req.json();
+      const body = JSON.parse(rawBody);
 
       const statusMap: Record<string, string> = {
         'Created': 'pending',
@@ -82,7 +113,7 @@ serve(async (req) => {
 
       let ublXml: string | null = null;
       if (contentType.includes('xml')) {
-        ublXml = await req.text();
+        ublXml = rawBody;
       }
 
       // Check for duplicates
