@@ -1,9 +1,12 @@
+import { Helmet } from 'react-helmet';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import HeroImage from '../components/HeroImage';
 import CallToAction from '../components/CallToAction';
 import WelcomeMessage from '../components/WelcomeMessage';
 
 const HomePage = () => {
+    const { t } = useTranslation();
     return (
         <div
             className='min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden relative'
@@ -11,6 +14,7 @@ const HomePage = () => {
                 background: `radial-gradient(100% 100% at 50% 100%, var(--Gradients-Main-Color-4, #FF9875) 0%, var(--Gradients-Main-Color-3, #B452FF) 15%, var(--Gradients-Main-Color-2, #673DE6) 30%, var(--neutral--800, #1a1b1e) 80%)`
             }}
         >
+            <Helmet><title>{t('homePage.title', 'Welcome')} | CashPilot</title></Helmet>
             <motion.div
                 initial={{ opacity: 0, y: -50 }}
                 animate={{ opacity: 1, y: 0 }}

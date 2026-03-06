@@ -13,7 +13,7 @@ const STATUS_CONFIG = {
   error:     { color: 'bg-red-500/20 text-red-400',       icon: AlertTriangle },
 };
 
-const PeppolStatusBadge = ({ status, errorMessage }) => {
+const PeppolStatusBadge = React.memo(({ status, errorMessage }) => {
   const { t } = useTranslation();
 
   if (!status || status === 'none') return null;
@@ -30,6 +30,6 @@ const PeppolStatusBadge = ({ status, errorMessage }) => {
       {t(`peppol.status.${status}`)}
     </Badge>
   );
-};
+});
 
 export default PeppolStatusBadge;

@@ -3124,5 +3124,130 @@
     "selectCompany": "Sélectionner une société",
     "switchCompany": "Changer de société",
     "activeCompany": "Société active"
+  },
+  "stockManagement": {
+    "title": "Gestion du Stock",
+    "subtitle": "Gérez votre inventaire, alertes et mouvements de stock.",
+    "allCategories": "Toutes catégories",
+    "newProduct": "Nouveau produit",
+    "tabs": {
+      "cockpit": "Cockpit stock",
+      "inventory": "Inventaire",
+      "history": "Historique",
+      "adjustments": "Gestion stock"
+    },
+    "manualAdjustment": "Ajustement manuel du stock",
+    "totalProducts": "Total Produits",
+    "lowStock": "Stock bas",
+    "outOfStock": "Rupture",
+    "stockValue": "Valeur du stock",
+    "activeAlerts": "Alertes actives",
+    "resolve": "Résoudre",
+    "updateStock": "Mettre à jour le stock",
+    "addProduct": "Ajouter un produit"
+  },
+  "scenarioBuilder": {
+    "title": "Simulations Financières",
+    "subtitle": "Créez des scénarios de projection, testez plusieurs hypothèses et comparez l'impact sur votre chiffre d'affaires, votre marge et votre trésorerie.",
+    "fromTemplate": "Depuis un template",
+    "chooseTemplate": "Choisir un template de scénario",
+    "newScenario": "Nouveau scénario",
+    "createNewScenario": "Créer un nouveau scénario",
+    "myScenarios": "Mes Scénarios",
+    "comparison": "Comparaison",
+    "loading": "Chargement des scénarios...",
+    "noScenarios": "Aucun scénario créé",
+    "noScenariosDesc": "Créez votre premier scénario pour projeter l'évolution de votre entreprise et mesurer rapidement l'effet de vos décisions.",
+    "createFirst": "Créer mon premier scénario",
+    "createScenario": "Créer le scénario",
+    "createAndConfigure": "Créer et configurer",
+    "noDescription": "Aucune description",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer le scénario \"{{name}}\" ?",
+    "status": {
+      "draft": "Brouillon",
+      "active": "Actif",
+      "completed": "Complété",
+      "archived": "Archivé"
+    }
+  },
+  "scenarioDetail": {
+    "title": "Détail du scénario",
+    "loading": "Chargement du scénario...",
+    "notFound": "Scénario introuvable",
+    "notFoundDesc": "Le scénario demandé n'existe pas ou vous n'y avez pas accès",
+    "backToScenarios": "Retour aux scénarios",
+    "simulationRunning": "Simulation en cours...",
+    "runSimulation": "Lancer la simulation",
+    "tabs": {
+      "assumptions": "Hypothèses",
+      "results": "Résultats",
+      "info": "Informations"
+    },
+    "noResults": "Aucun résultat disponible",
+    "noResultsDesc": "Configurez vos hypothèses puis lancez la simulation pour voir les projections",
+    "configureAssumptions": "Configurer les hypothèses",
+    "scenarioInfo": "Informations du scénario"
+  },
+  "homePage": {
+    "title": "Accueil"
+  },
+  "supplierProfile": {
+    "title": "Profil fournisseur",
+    "notFound": "Fournisseur introuvable",
+    "backToSuppliers": "Retour aux fournisseurs",
+    "contact": "Contact",
+    "address": "Adresse",
+    "businessDetails": "Détails commerciaux",
+    "bankDetails": "Coordonnées bancaires",
+    "noBankDetails": "Aucune coordonnée bancaire fournie",
+    "overview": "Vue d'ensemble",
+    "services": "Services",
+    "products": "Produits",
+    "overviewComingSoon": "Tableau de bord fournisseur bientôt disponible...",
+    "supplierInvoices": "Factures fournisseur"
+  },
+  "bankCallback": {
+    "title": "Connexion bancaire",
+    "connecting": "Connexion bancaire en cours",
+    "connectingDesc": "Finalisation de l'autorisation GoCardless et synchronisation initiale…",
+    "interrupted": "Connexion bancaire interrompue",
+    "requestNotFound": "Demande bancaire introuvable",
+    "requestNotFoundDesc": "La requête de connexion n'a pas été retrouvée dans cette session. Relancez la connexion depuis CashPilot.",
+    "connected": "Banque connectée",
+    "connectedDesc": "{{accounts}} compte(s) relié(s), {{synced}} transaction(s) synchronisée(s).",
+    "failed": "Échec de la connexion bancaire",
+    "failedDesc": "La finalisation de la connexion bancaire a échoué.",
+    "backToConnections": "Retour aux connexions bancaires"
+  },
+  "paymentSuccess": {
+    "title": "Paiement confirmé",
+    "message": "Votre paiement a bien été pris en compte.",
+    "invoice": "Facture",
+    "safeToClose": "Vous pouvez fermer cette page en toute sécurité.",
+    "backHome": "Retour à l'accueil"
+  },
+  "privacyPage": {
+    "title": "Politique de confidentialité"
+  },
+  "signup": {
+    "title": "Inscription",
+    "subtitle": "Commencez votre aventure aujourd'hui",
+    "login": "Se connecter",
+    "signUp": "S'inscrire",
+    "accountCreated": "Compte créé avec succès",
+    "redirecting": "Compte créé ! Redirection...",
+    "signupSuccess": "Inscription réussie, redirection...",
+    "fullName": "Nom complet",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "signUpButton": "S'inscrire",
+    "errors": {
+      "fullNameRequired": "Le nom complet est requis",
+      "invalidEmail": "Adresse e-mail invalide",
+      "passwordMismatch": "Les mots de passe ne correspondent pas",
+      "rateLimited": "Trop de tentatives. Réessayez dans {{seconds}} secondes.",
+      "alreadyRegistered": "Cet e-mail est déjà enregistré. Veuillez vous connecter."
+    }
   }
 }

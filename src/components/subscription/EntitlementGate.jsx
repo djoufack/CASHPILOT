@@ -46,7 +46,7 @@ const EntitlementGate = ({ featureKey, title, description, children }) => {
             </Link>
           </Button>
           <Button asChild variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
-            <Link to="/app/settings?tab=facturation">Gérer l’abonnement</Link>
+            <Link to="/app/settings?tab=facturation">Gérer l'abonnement</Link>
           </Button>
         </CardContent>
       </Card>

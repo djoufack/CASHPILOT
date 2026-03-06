@@ -15,6 +15,7 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
+import DOMPurify from 'dompurify';
 
 const REPORT_PRESETS = {
   executive: {
@@ -796,7 +797,7 @@ const ReportGenerator = () => {
                 </Button>
               </div>
               <div className="max-h-[520px] overflow-auto rounded-lg border border-gray-200 bg-white p-3">
-                <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewHtml) }} />
               </div>
             </div>
           ) : null}

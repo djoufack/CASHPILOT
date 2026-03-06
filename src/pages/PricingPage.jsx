@@ -298,7 +298,7 @@ const PricingPage = () => {
               Tous les services sont ouverts pendant 3 jours.
             </p>
             <p className="mt-1 text-sm text-emerald-100/80">
-              Fin de l’essai le {new Date(trialEndsAt).toLocaleDateString('fr-FR')}.
+              Fin de l'essai le {new Date(trialEndsAt).toLocaleDateString('fr-FR')}.
               {trialDaysRemaining > 0 ? ` Il reste ${trialDaysRemaining} jour${trialDaysRemaining > 1 ? 's' : ''}.` : ''}
             </p>
           </div>

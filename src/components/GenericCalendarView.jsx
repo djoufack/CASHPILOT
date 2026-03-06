@@ -28,7 +28,7 @@ const localizer = dateFnsLocalizer({
  * @param {Object} statusColors - Map of status to { bg, border, textColor } colors
  * @param {Array} legend - Array of { label, color } for legend display
  */
-const GenericCalendarView = ({
+const GenericCalendarView = React.memo(({
   events = [],
   onSelectDate,
   onSelectEvent,
@@ -141,6 +141,6 @@ const GenericCalendarView = ({
       </div>
     </motion.div>
   );
-};
+});
 
 export default GenericCalendarView;

@@ -8,7 +8,7 @@ import {
   hasHsnCodes
 } from './TemplateEnhancedSections';
 
-const ModernTemplate = ({ invoice, client, items, company, theme, settings }) => {
+const ModernTemplate = React.memo(({ invoice, client, items, company, theme, settings }) => {
   const { t } = useTranslation();
   const getLabel = (key, def) => settings?.custom_labels?.[key] || def;
 
@@ -196,6 +196,6 @@ const ModernTemplate = ({ invoice, client, items, company, theme, settings }) =>
       </div>
     </div>
   );
-};
+});
 
 export default ModernTemplate;

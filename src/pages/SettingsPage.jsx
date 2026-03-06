@@ -1,4 +1,6 @@
 import React, { useMemo } from 'react';
+import { Helmet } from 'react-helmet';
+import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Building2, Bell, CreditCard, Users, Fingerprint, Wifi, Palette, Coins, HardDrive, ShieldAlert, Plug, Shield, Globe } from 'lucide-react';
@@ -43,6 +45,7 @@ const TAB_MAP = {
 };
 
 const SettingsPage = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const requestedTab = TAB_MAP[tabParam] || tabParam || 'profile';
@@ -159,9 +162,10 @@ const SettingsPage = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
+      <Helmet><title>{t('common.settings', 'Settings')} | CashPilot</title></Helmet>
       <div className="mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-gradient">
-          Paramètres
+          {t('common.settings', 'Settings')}
         </h1>
         <p className="text-gray-400 mt-2 text-sm">Gérez votre profil, votre société et vos préférences.</p>
       </div>

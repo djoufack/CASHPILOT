@@ -15,7 +15,7 @@ import { exportToExcel, exportToCSV } from '@/utils/excelExport';
  * @param {boolean} [disabled] - Disable the button
  * @param {string} [size='sm'] - Button size
  */
-const ExportButton = ({
+const ExportButton = React.memo(({
   data,
   columns,
   filename = 'export',
@@ -134,6 +134,6 @@ const ExportButton = ({
       )}
     </div>
   );
-};
+});
 
 export default ExportButton;

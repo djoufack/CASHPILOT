@@ -21,7 +21,7 @@ const StatCard = ({ title, value, icon: Icon, color, subtext }) => (
   </Card>
 );
 
-const SupplierStats = () => {
+const SupplierStats = React.memo(() => {
   const { applyCompanyScope } = useCompanyScope();
   const [stats, setStats] = useState(() => EMPTY_CANONICAL_OPERATIONS_SNAPSHOT.suppliers);
 
@@ -105,6 +105,6 @@ const SupplierStats = () => {
       />
     </div>
   );
-};
+});
 
 export default SupplierStats;

@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { Helmet } from 'react-helmet';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useBankConnections } from '@/hooks/useBankConnections';
@@ -9,13 +11,14 @@ import {
 import { Button } from '@/components/ui/button';
 
 const BankCallbackPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { completeConnection } = useBankConnections();
   const [state, setState] = useState({
     status: 'loading',
-    title: 'Connexion bancaire en cours',
-    description: 'Finalisation de l’autorisation GoCardless et synchronisation initiale…',
+    title: t('bankCallback.connecting', 'Bank connection in progress'),
+    description: t('bankCallback.connectingDesc', 'Finalizing GoCardless authorization and initial sync...'),
   });
 
   useEffect(() => {
@@ -33,7 +36,7 @@ const BankCallbackPage = () => {
 
         setState({
           status: 'error',
-          title: 'Connexion bancaire interrompue',
+          title: t('bankCallback.interrupted', 'Bank connection interrupted'),
           description: details || error,
         });
         return;
@@ -47,8 +50,8 @@ const BankCallbackPage = () => {
 
         setState({
           status: 'error',
-          title: 'Demande bancaire introuvable',
-          description: 'La requête de connexion n’a pas été retrouvée dans cette session. Relancez la connexion depuis CashPilot.',
+          title: t('bankCallback.requestNotFound', 'Bank request not found'),
+          description: t('bankCallback.requestNotFoundDesc', 'The connection request was not found in this session. Restart the connection from CashPilot.'),
         });
         return;
       }
@@ -72,8 +75,8 @@ const BankCallbackPage = () => {
 
         setState({
           status: 'success',
-          title: 'Banque connectée',
-          description: `${accountsCount} compte(s) relié(s), ${syncedCount} transaction(s) synchronisée(s).`,
+          title: t('bankCallback.connected', 'Bank connected'),
+          description: t('bankCallback.connectedDesc', '{{accounts}} account(s) linked, {{synced}} transaction(s) synced.', { accounts: accountsCount, synced: syncedCount }),
         });
 
         window.setTimeout(() => {
@@ -89,8 +92,8 @@ const BankCallbackPage = () => {
 
         setState({
           status: 'error',
-          title: 'Échec de la connexion bancaire',
-          description: err?.message || 'La finalisation de la connexion bancaire a échoué.',
+          title: t('bankCallback.failed', 'Bank connection failed'),
+          description: err?.message || t('bankCallback.failedDesc', 'The bank connection finalization failed.'),
         });
       }
     };
@@ -104,6 +107,7 @@ const BankCallbackPage = () => {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-950 px-4 py-10">
+      <Helmet><title>{t('bankCallback.title', 'Bank Connection')} | CashPilot</title></Helmet>
       <div className="mx-auto flex max-w-xl flex-col items-center rounded-2xl border border-gray-800 bg-gray-900/70 p-8 text-center shadow-xl">
         {state.status === 'loading' && <Loader2 className="mb-4 h-10 w-10 animate-spin text-orange-400" />}
         {state.status === 'success' && <CheckCircle2 className="mb-4 h-10 w-10 text-green-400" />}
@@ -118,7 +122,7 @@ const BankCallbackPage = () => {
               onClick={() => navigate('/app/bank-connections', { replace: true })}
               className="bg-orange-500 hover:bg-orange-600"
             >
-              Retour aux connexions bancaires
+              {t('bankCallback.backToConnections', 'Back to bank connections')}
             </Button>
           </div>
         )}

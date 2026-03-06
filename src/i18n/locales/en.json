@@ -3137,5 +3137,130 @@
     "selectCompany": "Select Company",
     "switchCompany": "Switch Company",
     "activeCompany": "Active Company"
+  },
+  "stockManagement": {
+    "title": "Stock Management",
+    "subtitle": "Manage your inventory, alerts and stock movements.",
+    "allCategories": "All categories",
+    "newProduct": "New product",
+    "tabs": {
+      "cockpit": "Stock Cockpit",
+      "inventory": "Inventory",
+      "history": "History",
+      "adjustments": "Stock Management"
+    },
+    "manualAdjustment": "Manual stock adjustment",
+    "totalProducts": "Total Products",
+    "lowStock": "Low Stock",
+    "outOfStock": "Out of Stock",
+    "stockValue": "Stock Value",
+    "activeAlerts": "Active Alerts",
+    "resolve": "Resolve",
+    "updateStock": "Update stock",
+    "addProduct": "Add a product"
+  },
+  "scenarioBuilder": {
+    "title": "Financial Simulations",
+    "subtitle": "Create projection scenarios, test multiple hypotheses and compare the impact on your revenue, margin and cash flow.",
+    "fromTemplate": "From template",
+    "chooseTemplate": "Choose a scenario template",
+    "newScenario": "New scenario",
+    "createNewScenario": "Create a new scenario",
+    "myScenarios": "My Scenarios",
+    "comparison": "Comparison",
+    "loading": "Loading scenarios...",
+    "noScenarios": "No scenarios created",
+    "noScenariosDesc": "Create your first scenario to project your business evolution and quickly measure the effect of your decisions.",
+    "createFirst": "Create my first scenario",
+    "createScenario": "Create scenario",
+    "createAndConfigure": "Create and configure",
+    "noDescription": "No description",
+    "confirmDelete": "Are you sure you want to delete the scenario \"{{name}}\"?",
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "completed": "Completed",
+      "archived": "Archived"
+    }
+  },
+  "scenarioDetail": {
+    "title": "Scenario Detail",
+    "loading": "Loading scenario...",
+    "notFound": "Scenario not found",
+    "notFoundDesc": "The requested scenario does not exist or you do not have access",
+    "backToScenarios": "Back to scenarios",
+    "simulationRunning": "Simulation running...",
+    "runSimulation": "Run simulation",
+    "tabs": {
+      "assumptions": "Assumptions",
+      "results": "Results",
+      "info": "Information"
+    },
+    "noResults": "No results available",
+    "noResultsDesc": "Configure your assumptions then run the simulation to see projections",
+    "configureAssumptions": "Configure assumptions",
+    "scenarioInfo": "Scenario information"
+  },
+  "homePage": {
+    "title": "Welcome"
+  },
+  "supplierProfile": {
+    "title": "Supplier Profile",
+    "notFound": "Supplier not found",
+    "backToSuppliers": "Back to Suppliers",
+    "contact": "Contact",
+    "address": "Address",
+    "businessDetails": "Business Details",
+    "bankDetails": "Bank Details",
+    "noBankDetails": "No bank details provided",
+    "overview": "Overview",
+    "services": "Services",
+    "products": "Products",
+    "overviewComingSoon": "Supplier dashboard overview coming soon...",
+    "supplierInvoices": "Supplier Invoices"
+  },
+  "bankCallback": {
+    "title": "Bank Connection",
+    "connecting": "Bank connection in progress",
+    "connectingDesc": "Finalizing GoCardless authorization and initial sync...",
+    "interrupted": "Bank connection interrupted",
+    "requestNotFound": "Bank request not found",
+    "requestNotFoundDesc": "The connection request was not found in this session. Restart the connection from CashPilot.",
+    "connected": "Bank connected",
+    "connectedDesc": "{{accounts}} account(s) linked, {{synced}} transaction(s) synced.",
+    "failed": "Bank connection failed",
+    "failedDesc": "The bank connection finalization failed.",
+    "backToConnections": "Back to bank connections"
+  },
+  "paymentSuccess": {
+    "title": "Payment Confirmed",
+    "message": "Your payment has been successfully processed.",
+    "invoice": "Invoice",
+    "safeToClose": "You can safely close this page.",
+    "backHome": "Back to home"
+  },
+  "privacyPage": {
+    "title": "Privacy Policy"
+  },
+  "signup": {
+    "title": "Sign Up",
+    "subtitle": "Start your journey today",
+    "login": "Log in",
+    "signUp": "Sign up",
+    "accountCreated": "Account created successfully",
+    "redirecting": "Account created! Redirecting...",
+    "signupSuccess": "Signup successful, redirecting...",
+    "fullName": "Full Name",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "signUpButton": "Sign Up",
+    "errors": {
+      "fullNameRequired": "Full Name is required",
+      "invalidEmail": "Invalid email address",
+      "passwordMismatch": "Passwords do not match",
+      "rateLimited": "Too many attempts. Try again in {{seconds}} seconds.",
+      "alreadyRegistered": "Email is already registered. Please log in."
+    }
   }
 }

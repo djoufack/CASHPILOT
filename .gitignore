@@ -32,6 +32,9 @@ pnpm-debug.log*
 # Claude Code
 .claude/
 
+# MCP server env
+mcp-server/.env
+
 # Temporary files
 *.tmp
 *.temp

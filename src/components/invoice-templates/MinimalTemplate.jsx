@@ -8,7 +8,7 @@ import {
   hasHsnCodes
 } from './TemplateEnhancedSections';
 
-const MinimalTemplate = ({ invoice, client, items, company, theme, settings }) => {
+const MinimalTemplate = React.memo(({ invoice, client, items, company, theme, settings }) => {
   const { t } = useTranslation();
   const getLabel = (key, def) => settings?.custom_labels?.[key] || def;
 
@@ -180,6 +180,6 @@ const MinimalTemplate = ({ invoice, client, items, company, theme, settings }) =
       </div>
     </div>
   );
-};
+});
 
 export default MinimalTemplate;

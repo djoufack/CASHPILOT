@@ -24,7 +24,7 @@ const groupConfig = {
  * @param {string} dateField - The field name for the date (default: 'date')
  * @param {Array} paidStatuses - Statuses that count as "completed" and won't be in overdue (default: ['paid', 'cancelled'])
  */
-const GenericAgendaView = ({
+const GenericAgendaView = React.memo(({
   items = [],
   onEdit,
   onDelete,
@@ -93,7 +93,7 @@ const GenericAgendaView = ({
       )}
     </motion.div>
   );
-};
+});
 
 const AgendaCard = ({ item, dateField, onEdit, onView, onDelete, renderActions, renderBadge, isDone }) => {
   const done = isDone(item);

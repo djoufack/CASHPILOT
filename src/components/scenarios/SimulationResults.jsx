@@ -122,7 +122,7 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
         tone: 'success',
         title: 'Courbe de revenus dynamique',
         description:
-          'Le chiffre d’affaires évolue bien sur la période. Vous pouvez maintenant comparer son impact sur la trésorerie et la marge.',
+          `Le chiffre d'affaires évolue bien sur la période. Vous pouvez maintenant comparer son impact sur la trésorerie et la marge.`,
       });
     }
 
@@ -131,7 +131,7 @@ const SimulationResults = ({ scenario, results, assumptions, currency = 'EUR' })
         tone: 'neutral',
         title: 'Trésorerie peu sensible',
         description:
-          'Ajoutez des hypothèses de délais de paiement, de BFR ou d’investissement pour faire varier davantage la trésorerie.',
+          `Ajoutez des hypothèses de délais de paiement, de BFR ou d'investissement pour faire varier davantage la trésorerie.`,
       });
     }
 

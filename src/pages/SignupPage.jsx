@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -33,12 +34,12 @@ const SignupPage = () => {
   const validateForm = () => {
     const newErrors = {};
     const normalizedEmail = sanitizeText(email).trim().toLowerCase();
-    if (!fullName.trim()) newErrors.fullName = "Full Name is required";
-    if (!validateEmail(normalizedEmail)) newErrors.email = "Invalid email address";
+    if (!fullName.trim()) newErrors.fullName = t('signup.errors.fullNameRequired', 'Full Name is required');
+    if (!validateEmail(normalizedEmail)) newErrors.email = t('signup.errors.invalidEmail', 'Invalid email address');
     if (!validatePasswordStrength(password)) {
-      newErrors.password = t('validation.passwordTooWeak') || "Password must be at least 12 characters and include 1 uppercase letter, 1 number, and 1 special character";
+      newErrors.password = t('validation.passwordTooWeak', 'Password must be at least 12 characters and include 1 uppercase letter, 1 number, and 1 special character');
     }
-    if (password !== confirmPassword) newErrors.confirmPassword = "Passwords do not match";
+    if (password !== confirmPassword) newErrors.confirmPassword = t('signup.errors.passwordMismatch', 'Passwords do not match');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -56,8 +57,8 @@ const SignupPage = () => {
       
       setSuccess(true);
       toast({
-        title: "Supabase connecté ✅",
-        description: "Compte créé ! Redirection...",
+        title: t('signup.accountCreated', 'Account created successfully'),
+        description: t('signup.redirecting', 'Account created! Redirecting...'),
         className: "bg-green-500 border-none text-white"
       });
       
@@ -69,10 +70,10 @@ const SignupPage = () => {
       console.error(error);
       let errorMessage = error.message;
       if (error.code === 'AUTH_RATE_LIMITED') {
-        errorMessage = `Too many attempts. Try again in ${error.retryAfterSeconds || 60} seconds.`;
+        errorMessage = t('signup.errors.rateLimited', 'Too many attempts. Try again in {{seconds}} seconds.', { seconds: error.retryAfterSeconds || 60 });
       }
       if (error.message.includes('User already registered')) {
-        errorMessage = "Email is already registered. Please log in.";
+        errorMessage = t('signup.errors.alreadyRegistered', 'Email is already registered. Please log in.');
       }
       setErrors({ form: errorMessage });
       setLoading(false);
@@ -81,6 +82,7 @@ const SignupPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 relative overflow-hidden">
+      <Helmet><title>{t('signup.title', 'Sign Up')} | CashPilot</title></Helmet>
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-900/20 rounded-full blur-[100px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-900/20 rounded-full blur-[100px]" />
 
@@ -97,7 +99,7 @@ const SignupPage = () => {
               <h1 className="text-4xl font-bold text-gradient mb-2 tracking-tight">
                 {t('app.name')}
               </h1>
-              <p className="text-gray-400 text-sm">Start your journey today</p>
+              <p className="text-gray-400 text-sm">{t('signup.subtitle', 'Start your journey today')}</p>
             </div>
 
             <div className="flex mb-8 relative bg-gray-900/50 rounded-lg p-1">
@@ -105,10 +107,10 @@ const SignupPage = () => {
                 onClick={() => navigate('/login')}
                 className="flex-1 py-2 text-sm font-medium rounded-md transition-colors relative z-10 text-gray-400 hover:text-gray-200"
               >
-                Se connecter
+                {t('signup.login', 'Log in')}
               </button>
               <button className="flex-1 py-2 text-sm font-medium rounded-md transition-colors relative z-10 text-white">
-                S'inscrire
+                {t('signup.signUp', 'Sign up')}
                 <div className="absolute inset-0 bg-gray-800 rounded-md -z-10 shadow-sm" />
               </button>
             </div>
@@ -120,8 +122,8 @@ const SignupPage = () => {
                  className="flex flex-col items-center justify-center py-8 space-y-4"
                >
                  <CheckCircle2 className="w-16 h-16 text-green-500 animate-pulse" />
-                 <h3 className="text-xl font-bold text-white">Supabase connecté ✅</h3>
-                 <p className="text-gray-400 text-sm">Inscription réussie, redirection...</p>
+                 <h3 className="text-xl font-bold text-white">{t('signup.accountCreated', 'Account created successfully')}</h3>
+                 <p className="text-gray-400 text-sm">{t('signup.signupSuccess', 'Signup successful, redirecting...')}</p>
                </motion.div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
@@ -139,7 +141,7 @@ const SignupPage = () => {
                 </AnimatePresence>
 
                 <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-gray-300">Full Name</Label>
+                  <Label htmlFor="fullName" className="text-gray-300">{t('signup.fullName', 'Full Name')}</Label>
                   <Input
                     id="fullName"
                     value={fullName}
@@ -152,7 +154,7 @@ const SignupPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-300">Email</Label>
+                  <Label htmlFor="email" className="text-gray-300">{t('signup.email', 'Email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -166,7 +168,7 @@ const SignupPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-gray-300">Password</Label>
+                  <Label htmlFor="password" className="text-gray-300">{t('signup.password', 'Password')}</Label>
                   <div className="relative">
                     <Input
                       id="password"
@@ -189,7 +191,7 @@ const SignupPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-gray-300">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword" className="text-gray-300">{t('signup.confirmPassword', 'Confirm Password')}</Label>
                   <Input
                       id="confirmPassword"
                       type="password"
@@ -207,7 +209,7 @@ const SignupPage = () => {
                   disabled={loading}
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 mt-6"
                 >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign Up'}
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('signup.signUpButton', 'Sign Up')}
                 </Button>
               </form>
             )}

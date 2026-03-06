@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 
-const PaginationControls = ({
+const PaginationControls = React.memo(({
   currentPage,
   totalPages,
   totalCount,
@@ -147,6 +147,6 @@ const PaginationControls = ({
       </div>
     </nav>
   );
-};
+});
 
 export default PaginationControls;
