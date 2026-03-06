@@ -550,7 +550,21 @@
     "searchPlaceholder": "Search suppliers...",
     "selectCountry": "Select country",
     "selectTerms": "Select terms",
-    "notesPlaceholder": "Additional notes about this supplier..."
+    "notesPlaceholder": "Additional notes about this supplier...",
+    "services": {
+      "catalog": "Services Catalog",
+      "addService": "Add Service",
+      "serviceName": "Service Name",
+      "pricingType": "Pricing Type",
+      "hourlyRate": "Hourly Rate",
+      "fixedPrice": "Fixed Price",
+      "unit": "Unit",
+      "saveService": "Save Service",
+      "pricing": "Pricing",
+      "ratePrice": "Rate/Price",
+      "actions": "Actions",
+      "noServices": "No services added yet."
+    }
   },
   "supplierInvoices": {
     "title": "Supplier Invoices",

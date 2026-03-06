@@ -502,7 +502,21 @@
     "searchPlaceholder": "Leveranciers zoeken...",
     "selectCountry": "Selecteer land",
     "selectTerms": "Selecteer voorwaarden",
-    "notesPlaceholder": "Extra notities over deze leverancier..."
+    "notesPlaceholder": "Extra notities over deze leverancier...",
+    "services": {
+      "catalog": "Dienstencatalogus",
+      "addService": "Dienst toevoegen",
+      "serviceName": "Naam van de dienst",
+      "pricingType": "Prijstype",
+      "hourlyRate": "Uurtarief",
+      "fixedPrice": "Vaste prijs",
+      "unit": "Eenheid",
+      "saveService": "Dienst opslaan",
+      "pricing": "Prijsstelling",
+      "ratePrice": "Tarief/Prijs",
+      "actions": "Acties",
+      "noServices": "Nog geen diensten toegevoegd."
+    }
   },
   "supplierInvoices": {
     "title": "Leveranciersfacturen",

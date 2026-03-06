@@ -323,7 +323,7 @@ const AccountingMappings = () => {
                     <span className="text-xs text-gray-500">— {mapping.description}</span>
                   )}
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => deleteMapping(mapping.id)}>
+                <Button variant="ghost" size="icon" aria-label="Delete mapping" onClick={() => deleteMapping(mapping.id)}>
                   <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-400" />
                 </Button>
               </CardContent>

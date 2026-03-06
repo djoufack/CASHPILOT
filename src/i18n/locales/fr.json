@@ -537,7 +537,21 @@
     "searchPlaceholder": "Rechercher des fournisseurs...",
     "selectCountry": "Sélectionner un pays",
     "selectTerms": "Sélectionner des conditions",
-    "notesPlaceholder": "Notes additionnelles sur ce fournisseur..."
+    "notesPlaceholder": "Notes additionnelles sur ce fournisseur...",
+    "services": {
+      "catalog": "Catalogue de services",
+      "addService": "Ajouter un service",
+      "serviceName": "Nom du service",
+      "pricingType": "Type de tarification",
+      "hourlyRate": "Taux horaire",
+      "fixedPrice": "Prix fixe",
+      "unit": "Unité",
+      "saveService": "Enregistrer le service",
+      "pricing": "Tarification",
+      "ratePrice": "Taux/Prix",
+      "actions": "Actions",
+      "noServices": "Aucun service ajouté pour le moment."
+    }
   },
   "supplierInvoices": {
     "title": "Factures Fournisseurs",

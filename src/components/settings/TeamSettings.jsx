@@ -108,7 +108,7 @@ const TeamSettings = () => {
                        <SelectItem value="viewer">Viewer</SelectItem>
                      </SelectContent>
                    </Select>
-                   <Button size="icon" variant="ghost" onClick={() => deleteMember(member.id)} className="h-8 w-8 hover:text-red-400">
+                   <Button size="icon" variant="ghost" aria-label="Remove member" onClick={() => deleteMember(member.id)} className="h-8 w-8 hover:text-red-400">
                      <Trash2 size={16} />
                    </Button>
                  </div>
@@ -140,7 +140,7 @@ const TeamSettings = () => {
                            <SelectItem value="viewer">Viewer</SelectItem>
                          </SelectContent>
                        </Select>
-                       <Button size="icon" variant="ghost" onClick={() => deleteMember(member.id)} className="h-8 w-8 hover:text-red-400">
+                       <Button size="icon" variant="ghost" aria-label="Remove member" onClick={() => deleteMember(member.id)} className="h-8 w-8 hover:text-red-400">
                          <Trash2 size={16} />
                        </Button>
                      </div>
