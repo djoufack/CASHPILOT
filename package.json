@@ -43,7 +43,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-pdf/renderer": "^3.1.14",
     "@sentry/react": "^8.55.0",
-    "@supabase/supabase-js": "2.30.0",
+    "@supabase/supabase-js": "^2.39.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "crypto-js": "^4.2.0",
