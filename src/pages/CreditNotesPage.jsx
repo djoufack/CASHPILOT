@@ -95,8 +95,8 @@ const CreditNotesPage = () => {
       async () => {
         const enrichedCN = {
           ...cn,
-          items,
-          client: clients.find(c => c.id === cn.client_id)
+          items: cn.items || [],
+          client: cn.client || clients.find(c => c.id === cn.client_id)
         };
         await exportCreditNotePDF(enrichedCN, company);
       }
@@ -110,8 +110,8 @@ const CreditNotesPage = () => {
       () => {
         const enrichedCN = {
           ...cn,
-          items,
-          client: clients.find(c => c.id === cn.client_id)
+          items: cn.items || [],
+          client: cn.client || clients.find(c => c.id === cn.client_id)
         };
         exportCreditNoteHTML(enrichedCN, company);
       }
