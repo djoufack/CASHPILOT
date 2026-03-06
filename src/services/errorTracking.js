@@ -1,15 +1,12 @@
+import * as Sentry from '@sentry/react';
+
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN?.trim();
 const SENTRY_TRACES_SAMPLE_RATE = Number(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE ?? 0);
 const APP_ENVIRONMENT = import.meta.env.VITE_APP_ENV || import.meta.env.MODE || 'development';
 const APP_RELEASE = import.meta.env.VITE_APP_RELEASE || undefined;
+const SENTRY_ENABLED_IN_DEV = import.meta.env.VITE_SENTRY_ENABLE_DEV === 'true';
 
 let isInitialized = false;
-let hasWarnedSdkMissing = false;
-
-const getSentrySdk = () => {
-  if (typeof window === 'undefined') return null;
-  return window.Sentry && typeof window.Sentry === 'object' ? window.Sentry : null;
-};
 
 const normalizeError = (error) => {
   if (error instanceof Error) return error;
@@ -34,29 +31,27 @@ export const initializeErrorTracking = () => {
 
   if (!SENTRY_DSN) return;
 
-  const sentry = getSentrySdk();
-  if (!sentry || typeof sentry.init !== 'function') {
-    if (import.meta.env.DEV && !hasWarnedSdkMissing) {
-      hasWarnedSdkMissing = true;
-      console.warn('VITE_SENTRY_DSN is defined but Sentry SDK is not loaded in the browser runtime.');
-    }
-    return;
-  }
-
-  sentry.init({
+  Sentry.init({
     dsn: SENTRY_DSN,
     environment: APP_ENVIRONMENT,
     release: APP_RELEASE,
     tracesSampleRate: Number.isFinite(SENTRY_TRACES_SAMPLE_RATE) ? SENTRY_TRACES_SAMPLE_RATE : 0,
+    enabled: import.meta.env.PROD || SENTRY_ENABLED_IN_DEV,
   });
 };
 
 export const captureError = (error, context = {}) => {
   const normalizedError = normalizeError(error);
-  const sentry = getSentrySdk();
 
-  if (sentry && typeof sentry.captureException === 'function') {
-    sentry.captureException(normalizedError, buildContext(context));
+  if (SENTRY_DSN) {
+    Sentry.withScope((scope) => {
+      const formattedContext = buildContext(context);
+      Object.entries(formattedContext.tags || {}).forEach(([key, value]) => scope.setTag(key, value));
+      Object.entries(formattedContext.extra || {}).forEach(([key, value]) => scope.setExtra(key, value));
+      Object.entries(formattedContext.contexts || {}).forEach(([key, value]) => scope.setContext(key, value));
+      if (formattedContext.level) scope.setLevel(formattedContext.level);
+      Sentry.captureException(normalizedError);
+    });
     return;
   }
 
@@ -64,10 +59,15 @@ export const captureError = (error, context = {}) => {
 };
 
 export const captureMessage = (message, context = {}) => {
-  const sentry = getSentrySdk();
-
-  if (sentry && typeof sentry.captureMessage === 'function') {
-    sentry.captureMessage(message, buildContext(context));
+  if (SENTRY_DSN) {
+    Sentry.withScope((scope) => {
+      const formattedContext = buildContext(context);
+      Object.entries(formattedContext.tags || {}).forEach(([key, value]) => scope.setTag(key, value));
+      Object.entries(formattedContext.extra || {}).forEach(([key, value]) => scope.setExtra(key, value));
+      Object.entries(formattedContext.contexts || {}).forEach(([key, value]) => scope.setContext(key, value));
+      if (formattedContext.level) scope.setLevel(formattedContext.level);
+      Sentry.captureMessage(message);
+    });
     return;
   }
 
