@@ -17,7 +17,7 @@ import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportInvoicePDF, exportInvoiceHTML } from '@/services/exportDocuments';
 import ExportButton from '@/components/ExportButton';
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download, Kanban, Mail, Send, Loader2, Link, Copy } from 'lucide-react';
+import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download, Kanban, Mail, Send, Loader2, Link, Copy, LayoutGrid } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
@@ -53,6 +53,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
+import { captureError } from '@/services/errorTracking';
 
 const InvoicesPage = () => {
   const { t } = useTranslation();
@@ -189,14 +190,38 @@ const InvoicesPage = () => {
 
   const handleConfirmDelete = async () => {
     if (invoiceToDelete) {
-      await deleteInvoice(invoiceToDelete.id);
-      setIsDeleteDialogOpen(false);
-      setInvoiceToDelete(null);
+      try {
+        await deleteInvoice(invoiceToDelete.id);
+        setIsDeleteDialogOpen(false);
+        setInvoiceToDelete(null);
+      } catch (error) {
+        captureError(error, {
+          tags: { scope: 'invoices', action: 'delete_invoice' },
+          extra: { invoiceId: invoiceToDelete.id },
+        });
+        toast({
+          title: t('common.error'),
+          description: error?.message || t('common.unexpectedError', 'An unexpected error occurred.'),
+          variant: 'destructive',
+        });
+      }
     }
   };
 
   const handleStatusChange = async (invoiceId, newStatus) => {
-    await updateInvoiceStatus(invoiceId, newStatus);
+    try {
+      await updateInvoiceStatus(invoiceId, newStatus);
+    } catch (error) {
+      captureError(error, {
+        tags: { scope: 'invoices', action: 'update_status' },
+        extra: { invoiceId, newStatus },
+      });
+      toast({
+        title: t('common.error'),
+        description: error?.message || t('common.unexpectedError', 'An unexpected error occurred.'),
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleRecordPayment = (invoice) => {
@@ -215,12 +240,25 @@ const InvoicesPage = () => {
       CREDIT_COSTS.PDF_INVOICE,
       t('credits.costs.pdfInvoice'),
       async () => {
-        const enrichedInvoice = {
-          ...invoice,
-          items: getInvoiceItems(invoice.id),
-          client: clients.find(c => c.id === (invoice.client_id || invoice.clientId))
-        };
-        await exportInvoicePDF(enrichedInvoice, company);
+        try {
+          const enrichedInvoice = {
+            ...invoice,
+            items: getInvoiceItems(invoice.id),
+            client: clients.find(c => c.id === (invoice.client_id || invoice.clientId))
+          };
+          await exportInvoicePDF(enrichedInvoice, company);
+        } catch (error) {
+          captureError(error, {
+            tags: { scope: 'invoices', action: 'export_pdf' },
+            extra: { invoiceId: invoice.id },
+          });
+          toast({
+            title: t('common.error'),
+            description: error?.message || t('common.unexpectedError', 'An unexpected error occurred.'),
+            variant: 'destructive',
+          });
+          throw error;
+        }
       }
     );
   };
@@ -230,12 +268,25 @@ const InvoicesPage = () => {
       CREDIT_COSTS.EXPORT_HTML,
       t('credits.costs.exportHtml'),
       () => {
-        const enrichedInvoice = {
-          ...invoice,
-          items: getInvoiceItems(invoice.id),
-          client: clients.find(c => c.id === (invoice.client_id || invoice.clientId))
-        };
-        exportInvoiceHTML(enrichedInvoice, company);
+        try {
+          const enrichedInvoice = {
+            ...invoice,
+            items: getInvoiceItems(invoice.id),
+            client: clients.find(c => c.id === (invoice.client_id || invoice.clientId))
+          };
+          exportInvoiceHTML(enrichedInvoice, company);
+        } catch (error) {
+          captureError(error, {
+            tags: { scope: 'invoices', action: 'export_html' },
+            extra: { invoiceId: invoice.id },
+          });
+          toast({
+            title: t('common.error'),
+            description: error?.message || t('common.unexpectedError', 'An unexpected error occurred.'),
+            variant: 'destructive',
+          });
+          throw error;
+        }
       }
     );
   };
@@ -270,9 +321,13 @@ const InvoicesPage = () => {
       setEmailModalInvoice(null);
       setEmailModalAddress('');
     } catch (err) {
+      captureError(err, {
+        tags: { scope: 'invoices', action: 'send_email' },
+        extra: { invoiceId: invoice.id, recipientEmail },
+      });
       toast({
         title: t('common.error'),
-        description: err.message,
+        description: err?.message || t('common.unexpectedError', 'An unexpected error occurred.'),
         variant: "destructive",
       });
     }
@@ -293,9 +348,13 @@ const InvoicesPage = () => {
         });
       }
     } catch (err) {
+      captureError(err, {
+        tags: { scope: 'invoices', action: 'generate_payment_link' },
+        extra: { invoiceId: invoice.id },
+      });
       toast({
         title: t('common.error'),
-        description: err.message,
+        description: err?.message || t('common.unexpectedError', 'An unexpected error occurred.'),
         variant: 'destructive',
       });
     } finally {
@@ -303,11 +362,22 @@ const InvoicesPage = () => {
     }
   };
 
-  const handleCopyPaymentLink = (url) => {
-    navigator.clipboard.writeText(url);
-    toast({
-      title: t('invoices.paymentLinkCopied'),
-    });
+  const handleCopyPaymentLink = async (url) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: t('invoices.paymentLinkCopied'),
+      });
+    } catch (error) {
+      captureError(error, {
+        tags: { scope: 'invoices', action: 'copy_payment_link' },
+      });
+      toast({
+        title: t('common.error'),
+        description: error?.message || t('common.unexpectedError', 'An unexpected error occurred.'),
+        variant: 'destructive',
+      });
+    }
   };
 
   const invoiceExportColumns = [
@@ -432,6 +502,9 @@ const InvoicesPage = () => {
               <TabsList className="bg-gray-800 border border-gray-700 mb-4">
                 <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
                   <List className="w-4 h-4 mr-2" /> {t('common.list') || 'List'}
+                </TabsTrigger>
+                <TabsTrigger value="gallery" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+                  <LayoutGrid className="w-4 h-4 mr-2" /> {t('common.gallery') || 'Galerie'}
                 </TabsTrigger>
                 <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
                   <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar') || 'Calendar'}
@@ -669,6 +742,216 @@ const InvoicesPage = () => {
                 </motion.div>
               </TabsContent>
 
+              <TabsContent value="gallery">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
+                  {invoices.length === 0 ? (
+                    <div className="bg-gray-800 rounded-lg border border-gray-700 shadow-xl text-center py-12 text-gray-400">
+                      {t('invoices.noInvoices')}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {paginatedInvoices.map((invoice) => {
+                          const client = clients.find(c => c.id === (invoice.client_id || invoice.clientId));
+                          const currency = client?.preferred_currency || client?.preferredCurrency || 'EUR';
+                          const invoiceNumber = invoice.invoice_number || invoice.invoiceNumber;
+                          const issueDate = invoice.date || invoice.issueDate;
+                          const dueDate = invoice.due_date || invoice.dueDate;
+                          const hasPaymentLink = !!invoice.stripe_payment_link_url;
+
+                          return (
+                            <div
+                              key={invoice.id}
+                              className="bg-gray-800 rounded-xl border border-gray-700 shadow-xl p-4 flex flex-col gap-4"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-semibold text-gradient">{invoiceNumber}</p>
+                                  <p className="text-xs text-gray-400 mt-1">{client?.company_name || client?.companyName || 'Unknown'}</p>
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${INVOICE_STATUS_COLORS[invoice.status] || INVOICE_STATUS_COLORS.draft}`}>
+                                    {t(`status.${invoice.status || 'draft'}`)}
+                                  </span>
+                                  {getPaymentStatusBadge(invoice.payment_status)}
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
+                                  <p className="text-gray-400">{t('invoices.issueDate')}</p>
+                                  <p className="text-gray-200 mt-1">{issueDate ? format(new Date(issueDate), 'MMM dd, yyyy') : '-'}</p>
+                                </div>
+                                <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
+                                  <p className="text-gray-400">{t('invoices.dueDate')}</p>
+                                  <p className="text-gray-200 mt-1">{dueDate ? format(new Date(dueDate), 'MMM dd, yyyy') : '-'}</p>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
+                                  <p className="text-gray-400 text-xs">{t('invoices.total')}</p>
+                                  <p className="text-gray-100 font-semibold mt-1">{formatCurrency(Number(invoice.total_ttc || invoice.total || 0), currency)}</p>
+                                </div>
+                                <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
+                                  <p className="text-gray-400 text-xs">{t('payments.balanceDue')}</p>
+                                  <p className={`font-semibold mt-1 ${Number(invoice.balance_due || 0) > 0 ? 'text-orange-400' : 'text-green-400'}`}>
+                                    {formatCurrency(Number(invoice.balance_due || invoice.total_ttc || 0), currency)}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 pt-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewInvoice(invoice)}
+                                  className="border-blue-500/40 text-blue-300 hover:bg-blue-900/20 h-8 px-2"
+                                  title={t('common.view') || 'Visualiser'}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleExportInvoicePDF(invoice)}
+                                  className="border-purple-500/40 text-purple-300 hover:bg-purple-900/20 h-8 px-2"
+                                  title="Export PDF"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleExportInvoiceHTML(invoice)}
+                                  className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/20 h-8 px-2"
+                                  title="Export HTML"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                </Button>
+                                <div className="ml-auto">
+                                  <Select
+                                    value={invoice.status}
+                                    onValueChange={(value) => handleStatusChange(invoice.id, value)}
+                                  >
+                                    <SelectTrigger className={`w-28 ${getStatusColor(invoice.status)} text-white border-none h-8 text-xs`}>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-gray-700 border-gray-600 text-white">
+                                      <SelectItem value="draft">{t('status.draft')}</SelectItem>
+                                      <SelectItem value="sent">{t('status.sent')}</SelectItem>
+                                      <SelectItem value="paid">{t('status.paid')}</SelectItem>
+                                      <SelectItem value="overdue">{t('status.overdue')}</SelectItem>
+                                      <SelectItem value="cancelled">{t('status.cancelled')}</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-end gap-1 pt-2 border-t border-gray-700">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRecordPayment(invoice)}
+                                  className="text-green-400 hover:text-green-300 hover:bg-green-900/20 h-8 w-8 p-0"
+                                  title={t('payments.recordPayment')}
+                                >
+                                  <DollarSign className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => { setHistoryInvoice(invoice); setIsHistoryOpen(true); }}
+                                  className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20 h-8 w-8 p-0"
+                                  title={t('payments.history')}
+                                >
+                                  <History className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenEmailModal(invoice)}
+                                  disabled={emailSending}
+                                  className="text-sky-400 hover:text-sky-300 hover:bg-sky-900/20 h-8 w-8 p-0"
+                                  title={t('invoices.sendByEmail')}
+                                >
+                                  <Mail className="w-4 h-4" />
+                                </Button>
+                                {invoice.status !== 'paid' && (
+                                  hasPaymentLink ? (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleCopyPaymentLink(invoice.stripe_payment_link_url)}
+                                        className="text-violet-400 hover:text-violet-300 hover:bg-violet-900/20 h-8 w-8 p-0"
+                                        title={t('invoices.copyPaymentLink')}
+                                      >
+                                        <Copy className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => window.open(invoice.stripe_payment_link_url, '_blank')}
+                                        className="text-violet-400 hover:text-violet-300 hover:bg-violet-900/20 h-8 w-8 p-0"
+                                        title={t('invoices.copyPaymentLink')}
+                                      >
+                                        <Link className="w-4 h-4" />
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleGeneratePaymentLink(invoice)}
+                                      disabled={!!paymentLinkLoading[invoice.id]}
+                                      className="text-violet-400 hover:text-violet-300 hover:bg-violet-900/20 h-8 w-8 p-0"
+                                      title={t('invoices.generatePaymentLink')}
+                                    >
+                                      {paymentLinkLoading[invoice.id] ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Link className="w-4 h-4" />
+                                      )}
+                                    </Button>
+                                  )
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteClick(invoice)}
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
+                                  title={t('common.delete') || 'Delete'}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <PaginationControls
+                        currentPage={pagination.currentPage}
+                        totalPages={pagination.totalPages}
+                        totalCount={pagination.totalCount}
+                        pageSize={pagination.pageSize}
+                        pageSizeOptions={pagination.pageSizeOptions}
+                        hasNextPage={pagination.hasNextPage}
+                        hasPrevPage={pagination.hasPrevPage}
+                        onNextPage={pagination.nextPage}
+                        onPrevPage={pagination.prevPage}
+                        onGoToPage={pagination.goToPage}
+                        onChangePageSize={pagination.changePageSize}
+                      />
+                    </>
+                  )}
+                </motion.div>
+              </TabsContent>
+
               <TabsContent value="calendar">
                 <GenericCalendarView
                   events={invoiceCalendarEvents}
@@ -693,7 +976,7 @@ const InvoicesPage = () => {
                 <GenericKanbanView
                   columns={invoiceKanbanColumns}
                   items={invoiceAgendaItems}
-                  onStatusChange={(id, status) => updateInvoiceStatus(id, status)}
+                  onStatusChange={handleStatusChange}
                   onView={(item) => handleViewInvoice(invoices.find(i => i.id === item.id))}
                   onDelete={(item) => handleDeleteClick(invoices.find(i => i.id === item.id))}
                 />

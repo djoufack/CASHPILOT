@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { useCredits } from '@/hooks/useCredits';
 import { useEntitlements } from '@/hooks/useEntitlements';
+import { captureError } from '@/services/errorTracking';
 
 /**
  * Credit costs per action type
@@ -210,6 +211,10 @@ export const useCreditsGuard = () => {
       await action();
       return true;
     } catch (err) {
+      captureError(err, {
+        tags: { scope: 'credits_guard', action: 'guarded_action' },
+        extra: { label, cost },
+      });
       console.error('Guarded action failed:', err);
       return false;
     }
