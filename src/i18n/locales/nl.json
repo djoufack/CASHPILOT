@@ -48,7 +48,9 @@
     "openNavigation": "Navigatie openen",
     "expandSidebar": "Zijbalk uitklappen",
     "collapseSidebar": "Zijbalk inklappen",
-    "skipToContent": "Naar hoofdinhoud"
+    "skipToContent": "Naar hoofdinhoud",
+    "switchToLightMode": "Naar lichte modus",
+    "switchToDarkMode": "Naar donkere modus"
   },
   "aiChat": {
     "title": "AI-assistent",
@@ -3230,5 +3232,14 @@
     "products": "Producten",
     "services": "Diensten",
     "supplierInvoices": "Leveranciersfacturen"
+  },
+  "notifications": {
+    "title": "Meldingen",
+    "toggle": "Meldingen openen",
+    "unreadCount": "{{count}} ongelezen meldingen",
+    "markAllRead": "Alles als gelezen markeren",
+    "empty": "Geen meldingen",
+    "markRead": "Markeren als gelezen",
+    "delete": "Melding verwijderen"
   }
 }

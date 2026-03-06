@@ -2,7 +2,8 @@
 // Exports all user data as JSON for GDPR compliance (Right of Portability - Article 20)
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
+import { createServiceClient, HttpError, requireAuthenticatedUser } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
@@ -14,29 +15,34 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const supabase = createServiceClient();
+
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Verify the requesting user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
+    const user = await requireAuthenticatedUser(req);
     const userId = user.id;
+
+    const rateLimit = checkRateLimit(userId, {
+      maxRequests: 2,
+      windowMs: 6 * 60 * 60 * 1000,
+      keyPrefix: 'export-user-data',
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit, corsHeaders);
+    }
+
+    const processingThresholdIso = new Date(Date.now() - (15 * 60 * 1000)).toISOString();
+    const { data: inProgressExport } = await supabase
+      .from('data_export_requests')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('status', 'processing')
+      .gte('requested_at', processingThresholdIso)
+      .maybeSingle();
+
+    if (inProgressExport?.id) {
+      throw new HttpError(409, 'An export is already being generated. Please wait a few minutes.');
+    }
 
     // Create a data export request record
     const { data: exportRequest, error: insertError } = await supabase
@@ -97,12 +103,13 @@ serve(async (req) => {
 
     // Query all tables in parallel for better performance
     const queryResults = await Promise.allSettled(
-      tablesToExport.map(table =>
+      tablesToExport.map((table) =>
         supabase.from(table).select('*').eq('user_id', userId).then(res => ({ table, ...res }))
       )
     );
 
-    for (const result of queryResults) {
+    for (let index = 0; index < queryResults.length; index += 1) {
+      const result = queryResults[index];
       if (result.status === 'fulfilled') {
         const { table, data, error } = result.value;
         if (!error && data) {
@@ -113,7 +120,7 @@ serve(async (req) => {
         }
       } else {
         // Table might not exist or have different structure, skip
-        const table = tablesToExport[queryResults.indexOf(result)];
+        const table = tablesToExport[index];
         collectionLog.push({ table, count: 0, status: 'skipped' });
       }
     }
@@ -204,9 +211,12 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Export user data error:', error);
+    const status = error instanceof HttpError ? error.status : 500;
+    const message = error instanceof HttpError ? error.message : 'Unable to export user data';
+
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: message }),
+      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

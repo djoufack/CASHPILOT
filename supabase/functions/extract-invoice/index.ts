@@ -33,6 +33,7 @@ Return a JSON object with the following fields:
 If a field cannot be determined, set it to null. For amounts, always return numbers (not strings).`;
 
 const CREDIT_COST = 3;
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -111,6 +112,10 @@ serve(async (req) => {
 
     // 4. Convert to base64
     const arrayBuffer = await fileData.arrayBuffer();
+    if (arrayBuffer.byteLength > MAX_FILE_SIZE_BYTES) {
+      throw new HttpError(413, 'File too large. Maximum allowed size is 10MB.');
+    }
+
     const uint8Array = new Uint8Array(arrayBuffer);
     let binary = '';
     for (let i = 0; i < uint8Array.length; i++) {
@@ -181,9 +186,12 @@ serve(async (req) => {
     }
 
     console.error('Extract invoice error:', error);
+    const status = error instanceof HttpError ? error.status : 500;
+    const message = error instanceof HttpError ? error.message : 'Extraction failed';
+
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: error instanceof HttpError ? error.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: message }),
+      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

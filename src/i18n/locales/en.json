@@ -48,7 +48,9 @@
     "openNavigation": "Open navigation",
     "expandSidebar": "Expand sidebar",
     "collapseSidebar": "Collapse sidebar",
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "switchToLightMode": "Switch to light mode",
+    "switchToDarkMode": "Switch to dark mode"
   },
   "aiChat": {
     "title": "AI Assistant",
@@ -3262,5 +3264,14 @@
       "rateLimited": "Too many attempts. Try again in {{seconds}} seconds.",
       "alreadyRegistered": "Email is already registered. Please log in."
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "toggle": "Open notifications",
+    "unreadCount": "{{count}} unread notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications",
+    "markRead": "Mark as read",
+    "delete": "Delete notification"
   }
 }
