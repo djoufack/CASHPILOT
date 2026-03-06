@@ -994,7 +994,8 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
     }
 
     const status = error instanceof HttpError ? error.status : 500;
-    return new Response(JSON.stringify({ error: error.message }),
+    console.error('AI chatbot error:', error);
+    return new Response(JSON.stringify({ error: 'An error occurred' }),
       { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

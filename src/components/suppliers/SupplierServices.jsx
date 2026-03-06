@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSupplierServices } from '@/hooks/useSupplierServices';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const SupplierServices = ({ supplierId }) => {
+  const { t } = useTranslation();
   const { services, createService, deleteService } = useSupplierServices(supplierId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -31,29 +33,29 @@ const SupplierServices = ({ supplierId }) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gradient">Services Catalog</h3>
+        <h3 className="text-lg font-semibold text-gradient">{t('suppliers.services.catalog')}</h3>
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
-              <Plus className="mr-2 h-4 w-4" /> Add Service
+              <Plus className="mr-2 h-4 w-4" /> {t('suppliers.services.addService')}
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-gray-800 border-gray-700 text-white">
             <DialogHeader>
-              <DialogTitle>Add Service</DialogTitle>
+              <DialogTitle>{t('suppliers.services.addService')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label>Service Name</Label>
-                <Input 
+                <Label>{t('suppliers.services.serviceName')}</Label>
+                <Input
                   value={formData.service_name}
                   onChange={(e) => setFormData({...formData, service_name: e.target.value})}
-                  required 
+                  required
                   className="bg-gray-700 border-gray-600"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Pricing Type</Label>
+                <Label>{t('suppliers.services.pricingType')}</Label>
                 <Select 
                   value={formData.pricing_type} 
                   onValueChange={(val) => setFormData({...formData, pricing_type: val})}
@@ -62,15 +64,15 @@ const SupplierServices = ({ supplierId }) => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                    <SelectItem value="hourly">Hourly Rate</SelectItem>
-                    <SelectItem value="fixed">Fixed Price</SelectItem>
+                    <SelectItem value="hourly">{t('suppliers.services.hourlyRate')}</SelectItem>
+                    <SelectItem value="fixed">{t('suppliers.services.fixedPrice')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
               {formData.pricing_type === 'hourly' ? (
                 <div className="space-y-2">
-                   <Label>Hourly Rate</Label>
+                   <Label>{t('suppliers.services.hourlyRate')}</Label>
                    <Input 
                       type="number"
                       value={formData.hourly_rate}
@@ -80,7 +82,7 @@ const SupplierServices = ({ supplierId }) => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                   <Label>Fixed Price</Label>
+                   <Label>{t('suppliers.services.fixedPrice')}</Label>
                    <Input 
                       type="number"
                       value={formData.fixed_price}
@@ -91,7 +93,7 @@ const SupplierServices = ({ supplierId }) => {
               )}
               
               <div className="space-y-2">
-                 <Label>Unit</Label>
+                 <Label>{t('suppliers.services.unit')}</Label>
                  <Input 
                     value={formData.unit}
                     onChange={(e) => setFormData({...formData, unit: e.target.value})}
@@ -99,7 +101,7 @@ const SupplierServices = ({ supplierId }) => {
                  />
               </div>
 
-              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600">Save Service</Button>
+              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600">{t('suppliers.services.saveService')}</Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -109,11 +111,11 @@ const SupplierServices = ({ supplierId }) => {
         <Table>
           <TableHeader>
             <TableRow className="border-gray-800">
-              <TableHead className="text-gray-400">Service Name</TableHead>
-              <TableHead className="text-gray-400">Pricing</TableHead>
-              <TableHead className="text-gray-400">Rate/Price</TableHead>
-              <TableHead className="text-gray-400">Unit</TableHead>
-              <TableHead className="text-right text-gray-400">Actions</TableHead>
+              <TableHead className="text-gray-400">{t('suppliers.services.serviceName')}</TableHead>
+              <TableHead className="text-gray-400">{t('suppliers.services.pricing')}</TableHead>
+              <TableHead className="text-gray-400">{t('suppliers.services.ratePrice')}</TableHead>
+              <TableHead className="text-gray-400">{t('suppliers.services.unit')}</TableHead>
+              <TableHead className="text-right text-gray-400">{t('suppliers.services.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -143,7 +145,7 @@ const SupplierServices = ({ supplierId }) => {
             ))}
             {services.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-gray-500 py-6">No services added yet.</TableCell>
+                <TableCell colSpan={5} className="text-center text-gray-500 py-6">{t('suppliers.services.noServices')}</TableCell>
               </TableRow>
             )}
           </TableBody>

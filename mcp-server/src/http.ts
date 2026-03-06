@@ -11,7 +11,7 @@ const sessions = new Map<string, StreamableHTTPServerTransport>();
 
 // ── CORS headers applied to every response ───────────────────
 function setCors(res: http.ServerResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', process.env.APP_ORIGIN || 'https://cashpilot.tech');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id');
   res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id');

@@ -122,10 +122,10 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
           )}
         </div>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" onClick={() => onEdit(task)} className="h-8 w-8 text-gray-400 hover:text-orange-400">
+          <Button variant="ghost" size="icon" aria-label="Edit task" onClick={() => onEdit(task)} className="h-8 w-8 text-gray-400 hover:text-orange-400">
             <Edit2 className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => onDelete(task.id)} className="h-8 w-8 text-gray-400 hover:text-red-400">
+          <Button variant="ghost" size="icon" aria-label="Delete task" onClick={() => onDelete(task.id)} className="h-8 w-8 text-gray-400 hover:text-red-400">
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
