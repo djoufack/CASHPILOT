@@ -165,7 +165,11 @@
     "invoiceDetails": "Factuurdetails",
     "sendByEmail": "Versturen per e-mail",
     "noClientEmail": "Deze klant heeft geen e-mailadres",
-    "emailSentTo": "Factuur verzonden naar {{email}}"
+    "emailSentTo": "Factuur verzonden naar {{email}}",
+    "exportFacturXXml": "XML exporteren (Factur-X)",
+    "facturxXmlExported": "Factur-X XML geëxporteerd.",
+    "exportFacturXPdf": "PDF exporteren (Factur-X)",
+    "facturxPdfExported": "Factur-X PDF geëxporteerd."
   },
   "quotesPage": {
     "title": "Offertes",
@@ -302,6 +306,163 @@
     "newSupplier": "Nieuwe leverancier",
     "stock": "Voorraad",
     "reports": "Rapporten"
+  },
+  "supplierInvoices": {
+    "title": "Leveranciersfacturen",
+    "subtitle": "{{count}} factuur/facturen in totaal",
+    "newInvoice": "Nieuwe factuur",
+    "uploadInvoice": "Factuur uploaden",
+    "selectSupplier": "Kies een leverancier",
+    "selectSupplierDesc": "Kies de leverancier voor deze factuur",
+    "chooseSupplier": "Kies een leverancier...",
+    "totalInvoices": "Totaal facturen",
+    "totalAmount": "Totaalbedrag",
+    "pendingInvoices": "In afwachting",
+    "overdueInvoices": "Achterstallig",
+    "allStatuses": "Alle statussen",
+    "allSuppliers": "Alle leveranciers",
+    "filterStatus": "Status",
+    "filterSupplier": "Leverancier",
+    "filterApproval": "Goedkeuring",
+    "allApprovals": "Alle goedkeuringen",
+    "searchPlaceholder": "Zoek op factuurnummer of leverancier...",
+    "invoiceNumber": "Factuurnummer",
+    "supplier": "Leverancier",
+    "date": "Datum",
+    "dueDate": "Vervaldatum",
+    "amount": "Bedrag",
+    "status": "Status",
+    "source": "Bron",
+    "document": "Doc",
+    "actions": "Acties",
+    "statusPending": "In afwachting",
+    "statusPaid": "Betaald",
+    "statusOverdue": "Achterstallig",
+    "approvalPending": "In afwachting van goedkeuring",
+    "approvalApproved": "Goedgekeurd",
+    "approvalRejected": "Afgekeurd",
+    "approvalPendingShort": "Goedkeuringen in afwachting",
+    "colSupplier": "Leverancier",
+    "colInvoiceNumber": "Factuurnummer",
+    "colDate": "Datum",
+    "colDueDate": "Vervaldatum",
+    "colAmount": "Bedrag incl. btw",
+    "colStatus": "Status",
+    "colApproval": "Goedkeuring",
+    "colSource": "Bron",
+    "colDoc": "Document",
+    "manual": "Handmatig",
+    "viewDocument": "Document bekijken",
+    "noInvoices": "Geen leveranciersfacturen",
+    "noInvoicesDesc": "Voeg eerst een leveranciersfactuur toe om te starten.",
+    "noSuppliersYet": "Nog geen leveranciers. Voeg er eerst een toe in de leverancierssectie.",
+    "continue": "Doorgaan",
+    "errorLoading": "Fout bij laden",
+    "statusUpdated": "Status bijgewerkt",
+    "approvalUpdated": "Goedkeuring bijgewerkt",
+    "deleted": "Factuur verwijderd",
+    "created": "Factuur opgeslagen",
+    "createdDesc": "De leveranciersfactuur is succesvol opgeslagen.",
+    "deleteTitle": "Factuur verwijderen",
+    "deleteConfirm": "Deze actie kan niet ongedaan worden gemaakt. De leveranciersfactuur wordt definitief verwijderd.",
+    "rejectReasonTitle": "Reden van afwijzing",
+    "rejectReasonDesc": "Leg uit waarom deze factuur wordt afgewezen voordat u doorgaat.",
+    "rejectReasonPlaceholder": "Reden (optioneel)",
+    "rejectAction": "Afwijzing bevestigen",
+    "approvalHistory": "Goedkeuringsgeschiedenis",
+    "approvedBy": "Goedgekeurd door",
+    "approvedAt": "Goedgekeurd op",
+    "rejectedReason": "Reden van afwijzing",
+    "noApprovalHistory": "Nog geen goedkeuringsactie",
+    "bulk": {
+      "selectPage": "Pagina selecteren",
+      "selectInvoice": "Factuur selecteren",
+      "selectedCount": "{{count}} factuur/facturen geselecteerd",
+      "approve": "Selectie goedkeuren",
+      "markPending": "Markeren als in afwachting",
+      "clearSelection": "Selectie wissen",
+      "noSelection": "Geen factuur geselecteerd",
+      "updated": "Groepsupdate voltooid",
+      "updatedDesc": "{{count}} factuur/facturen bijgewerkt."
+    }
+  },
+  "reportBuilder": {
+    "title": "Rapportbouwer",
+    "labels": {
+      "preset": "Preset",
+      "periodStart": "Startperiode",
+      "periodEnd": "Eindperiode",
+      "sections": "Rapportsecties",
+      "templates": "Templates"
+    },
+    "presets": {
+      "executive": "Directie",
+      "operations": "Operaties",
+      "compliance": "Compliance",
+      "custom": "Aangepast"
+    },
+    "placeholders": {
+      "templateName": "Templatenaam",
+      "loadTemplate": "Template laden",
+      "noTemplate": "Geen template"
+    },
+    "actions": {
+      "saveTemplate": "Opslaan"
+    },
+    "sections": {
+      "overview": "Overzicht",
+      "cashflow": "Kasstroom",
+      "invoices": "Klantenfacturen",
+      "suppliers": "Leveranciersfacturen",
+      "taxes": "Btw & compliance"
+    },
+    "validation": {
+      "missingDates": "Selecteer een start- en einddatum.",
+      "invalidRange": "De einddatum moet op of na de startdatum liggen."
+    },
+    "preview": {
+      "cta": "Rapportvoorbeeld",
+      "title": "Rapportvoorbeeld",
+      "hide": "Voorbeeld verbergen",
+      "readyTitle": "Voorbeeld klaar"
+    },
+    "refreshData": "Gegevens verversen",
+    "downloadPdf": "PDF downloaden",
+    "downloadHtml": "HTML downloaden",
+    "downloadJson": "JSON downloaden",
+    "toasts": {
+      "refreshed": "Gegevens ververst",
+      "templatesLoadError": "Kan templates niet laden vanuit de database.",
+      "templateNameRequired": "Templatenaam verplicht",
+      "userRequired": "U moet aangemeld zijn om templates op te slaan.",
+      "templateSaved": "Template opgeslagen",
+      "templateSavedDescription": "{{name}} is nu beschikbaar.",
+      "templateLoaded": "Template geladen"
+    },
+    "html": {
+      "revenue": "Omzet",
+      "expenses": "Uitgaven",
+      "grossProfit": "Brutowinst",
+      "overdueInvoices": "Achterstallige facturen",
+      "cashIn": "Ontvangsten (betalingen)",
+      "cashOut": "Uitgaven (kosten)",
+      "netCash": "Netto kasstroom",
+      "number": "Nr.",
+      "client": "Klant",
+      "date": "Datum",
+      "status": "Status",
+      "amount": "Bedrag",
+      "supplier": "Leverancier",
+      "paymentStatus": "Betalingsstatus",
+      "approval": "Goedkeuring",
+      "vatCollected": "Geïnde BTW (verkoop)",
+      "vatDeductible": "Aftrekbare BTW (aankopen + kosten)",
+      "vatNet": "Netto BTW",
+      "company": "Bedrijf",
+      "preset": "Preset",
+      "period": "Periode",
+      "generatedOn": "Gegenereerd op"
+    }
   },
   "services": {
     "title": "Diensten"
@@ -1119,6 +1280,11 @@
         "title": "Integratierecepten",
         "description": "Kant-en-klare ingangen voor CRM, meldingen, matching of externe rapportering.",
         "badge": "Playbooks"
+      },
+      "accounting": {
+        "title": "Boekhoudconnectoren",
+        "description": "Verbind Xero en QuickBooks terwijl CashPilot de canonieke bron van waarheid blijft.",
+        "badge": "Xero + QB"
       }
     },
     "recipes": {
@@ -1136,6 +1302,42 @@
         "title": "n8n / bedrijfsscripts",
         "description": "Stuur interne automatiseringen aan met de REST API en ondertekende events.",
         "cta": "API-sleutel aanmaken"
+      }
+    },
+    "accountingConnectors": {
+      "title": "Boekhoudconnectoren",
+      "description": "Xero en QuickBooks gebruiken dezelfde bron van waarheid als CashPilot.",
+      "currentCompany": "Actieve onderneming",
+      "comingSoonTitle": "Binnenkort beschikbaar",
+      "comingSoonDescription": "OAuth en echte Xero/QuickBooks-synchronisatie worden momenteel afgerond. Acties zijn tijdelijk uitgeschakeld om inconsistente staten te voorkomen.",
+      "status": {
+        "connected": "Verbonden",
+        "pending": "OAuth in afwachting",
+        "error": "Fout",
+        "disconnected": "Niet verbonden"
+      },
+      "fields": {
+        "remoteOrgName": "Naam externe organisatie",
+        "autoSync": "Automatische synchronisatie",
+        "autoSyncDescription": "Activeert neerwaartse synchronisatie van boekingen en tegenpartijen."
+      },
+      "actions": {
+        "connect": "Verbinden",
+        "prepareOauth": "OAuth voorbereiden",
+        "syncNow": "Nu synchroniseren",
+        "disconnect": "Ontkoppelen"
+      },
+      "lastSync": "Laatste sync",
+      "lastError": "Laatste fout",
+      "toasts": {
+        "connectedTitle": "Connector geactiveerd",
+        "connectedDescription": "{{provider}} is verbonden voor {{company}}.",
+        "oauthReadyTitle": "OAuth klaar",
+        "oauthReadyDescription": "De {{provider}}-connector staat in OAuth-wachtstatus.",
+        "disconnectedTitle": "Connector uitgeschakeld",
+        "disconnectedDescription": "{{provider}} is ontkoppeld.",
+        "syncStartedTitle": "Synchronisatie gestart",
+        "syncStartedDescription": "{{provider}}-sync is gepland."
       }
     }
   },

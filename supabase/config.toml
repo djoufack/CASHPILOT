@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.webhooks]
 verify_jwt = false
+
+[functions.supplier-approval-notifications]
+verify_jwt = false
