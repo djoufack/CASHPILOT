@@ -88,6 +88,18 @@ function createCheck(id, ok, details = null) {
   return { id, ok: Boolean(ok), details };
 }
 
+function extractCspBySource(vercelJsonText, source) {
+  try {
+    const parsed = JSON.parse(vercelJsonText);
+    const block = (parsed.headers || []).find((entry) => entry.source === source);
+    if (!block) return null;
+    const csp = (block.headers || []).find((header) => String(header.key || '').toLowerCase() === 'content-security-policy');
+    return csp?.value || null;
+  } catch {
+    return null;
+  }
+}
+
 async function run() {
   const supabaseUrl = requireEnv('SUPABASE_URL');
   const serviceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
@@ -103,13 +115,16 @@ async function run() {
   const accountSummaries = [];
 
   // Static/code checks
-  const [appContent, privacyContent, legalContent, aiChatContent, analyticsContent, mcpContent] = await Promise.all([
+  const [appContent, privacyContent, legalContent, aiChatContent, analyticsContent, mcpContent, vercelConfig, invoiceGuardsMigration, encryptionDoc] = await Promise.all([
     readFile('src/App.jsx', 'utf8'),
     readFile('src/pages/PrivacyPage.jsx', 'utf8'),
     readFile('src/pages/LegalPage.jsx', 'utf8'),
     readFile('supabase/functions/ai-chatbot/index.ts', 'utf8'),
     readFile('src/utils/analyticsCalculations.js', 'utf8'),
     readFile('supabase/functions/mcp/index.ts', 'utf8'),
+    readFile('vercel.json', 'utf8'),
+    readFile('supabase/migrations/20260306103000_financial_coherence_guards.sql', 'utf8'),
+    readFile('docs/security/encryption-at-rest.md', 'utf8'),
   ]);
 
   checks.push(createCheck(
@@ -135,11 +150,46 @@ async function run() {
     'Chatbot deterministic answers are tied to canonical snapshots',
   ));
   checks.push(createCheck(
+    'chatbot_persistent_rate_limit',
+    aiChatContent.includes("rpc('enforce_rate_limit'")
+      && aiChatContent.includes('const enforceRateLimit = async')
+      && aiChatContent.includes('rateLimitResponse(rateLimit, corsHeaders)'),
+    'Chatbot uses persistent DB-backed rate limiting with fallback',
+  ));
+  checks.push(createCheck(
     'analytics_use_canonical_helpers',
     analyticsContent.includes('buildCanonicalRevenueCollectionSnapshot')
       && analyticsContent.includes('getCanonicalInvoiceAmount')
       && analyticsContent.includes('isCanonicalInvoiceCollected'),
     'Analytics calculations use canonical source helpers',
+  ));
+  const mainCsp = extractCspBySource(vercelConfig, '/(.*)');
+  const guideCsp = extractCspBySource(vercelConfig, '/guide/:path*');
+  checks.push(createCheck(
+    'csp_main_without_inline_script',
+    Boolean(mainCsp)
+      && /script-src/i.test(mainCsp)
+      && !/script-src[^;]*'unsafe-inline'/i.test(mainCsp),
+    'Main app CSP removes unsafe-inline from script-src',
+  ));
+  checks.push(createCheck(
+    'csp_guide_override_present',
+    Boolean(guideCsp) && /script-src[^;]*'unsafe-inline'/i.test(guideCsp),
+    'Guide route keeps explicit CSP override for legacy inline docs scripts',
+  ));
+  checks.push(createCheck(
+    'invoice_consistency_guards_present',
+    invoiceGuardsMigration.includes('invoices_total_consistency_chk')
+      && invoiceGuardsMigration.includes('supplier_invoices_supplier_required_chk')
+      && invoiceGuardsMigration.includes('invoices_non_negative_amounts_chk'),
+    'DB migration adds invoice arithmetic and supplier-link consistency guards',
+  ));
+  checks.push(createCheck(
+    'encryption_at_rest_documented',
+    /chiffrement/i.test(encryptionDoc)
+      && /supabase/i.test(encryptionDoc)
+      && /storage/i.test(encryptionDoc),
+    'Data-at-rest encryption is documented for DB and storage layers',
   ));
   checks.push(createCheck(
     'mcp_hardening_enabled',
