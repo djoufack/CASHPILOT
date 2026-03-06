@@ -89,10 +89,22 @@ const MainLayout = () => {
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col md:flex-row">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-orange-500 focus:text-white focus:px-4 focus:py-2 focus:rounded-md"
+      >
+        {t('common.skipToContent', 'Aller au contenu principal')}
+      </a>
+
       {/* Mobile Header */}
       <div className="md:hidden bg-gray-950 border-b border-gray-800/50 p-4 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label={t('common.openNavigation', 'Ouvrir la navigation')}
+          >
             <Menu className="h-6 w-6 text-white" />
           </Button>
           <span className="text-xl font-bold">
@@ -120,6 +132,7 @@ const MainLayout = () => {
       />
 
       <main
+        id="main-content"
         className={`flex-1 transition-all duration-300 ease-in-out
           ${isCollapsed ? 'md:ml-[68px]' : 'md:ml-[260px]'}
           md:pt-14

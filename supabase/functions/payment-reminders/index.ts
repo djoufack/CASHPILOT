@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { paymentReminderTemplate } from '../_shared/emailTemplates.ts';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -290,6 +290,6 @@ async function handleDefaultReminders(
       results,
       mode: 'default_fallback',
     }),
-    { headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' } }
+    { headers: { 'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech', 'Content-Type': 'application/json' } }
   );
 }

@@ -3,7 +3,7 @@ import { createServiceClient, HttpError, requireAuthenticatedUser, requireEntitl
 import { SUPPORTED_WEBHOOK_EVENTS, deliverWebhookEvent } from '../_shared/webhooks.ts';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 

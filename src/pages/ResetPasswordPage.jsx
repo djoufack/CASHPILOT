@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff, Lock, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import supabase from '@/lib/customSupabaseClient';
+import { validatePasswordStrength } from '@/utils/validation';
 
 const ResetPasswordPage = () => {
   const [password, setPassword] = useState('');
@@ -46,8 +47,8 @@ const ResetPasswordPage = () => {
 
     if (!password) {
       newErrors.password = t('validation.passwordRequired') || "Le mot de passe est requis";
-    } else if (password.length < 6) {
-      newErrors.password = t('validation.passwordTooShort') || "Le mot de passe doit contenir au moins 6 caractères";
+    } else if (!validatePasswordStrength(password)) {
+      newErrors.password = t('validation.passwordTooWeak') || "Le mot de passe doit contenir au moins 12 caractères, une majuscule, un chiffre et un caractère spécial";
     }
 
     if (password !== confirmPassword) {

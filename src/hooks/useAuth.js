@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, validateSupabaseConfig } from '@/lib/supabase';
 import { DEFAULT_ROLE, normalizeRole, sanitizeSelfSignupRole } from '@/lib/roles';
+import { validatePasswordStrength } from '@/utils/validation';
 
 export const useAuthSource = () => {
   const [user, setUser] = useState(null);
@@ -223,6 +224,9 @@ export const useAuthSource = () => {
 
   const signUp = async (email, password, fullName, companyName, role) => {
     if (!supabase) throw new Error("Supabase is not configured.");
+    if (!validatePasswordStrength(password)) {
+      throw new Error('Password must be at least 12 characters and include an uppercase letter, a number, and a special character.');
+    }
 
     setLoading(true);
     setError(null);

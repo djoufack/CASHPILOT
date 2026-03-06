@@ -11,6 +11,31 @@ export const validateEmail = (email) => {
   return emailRegex.test(email);
 };
 
+export const PASSWORD_POLICY = Object.freeze({
+  minLength: 12,
+  requireUppercase: true,
+  requireDigit: true,
+  requireSpecial: true,
+});
+
+/**
+ * Validate password against minimum security policy.
+ * Requirements: 12+ chars, uppercase, digit, special char.
+ *
+ * @param {string} password
+ * @returns {boolean}
+ */
+export const validatePasswordStrength = (password) => {
+  if (typeof password !== "string") return false;
+  if (password.length < PASSWORD_POLICY.minLength) return false;
+
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasDigit = /\d/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+  return hasUppercase && hasDigit && hasSpecial;
+};
+
 /**
  * Validate time format (HH:mm)
  * @param {string} time - Time string to validate
