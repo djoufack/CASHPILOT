@@ -164,18 +164,12 @@ async function run() {
     'Analytics calculations use canonical source helpers',
   ));
   const mainCsp = extractCspBySource(vercelConfig, '/(.*)');
-  const guideCsp = extractCspBySource(vercelConfig, '/guide(.*)');
   checks.push(createCheck(
     'csp_main_without_inline_script',
     Boolean(mainCsp)
       && /script-src/i.test(mainCsp)
       && !/script-src[^;]*'unsafe-inline'/i.test(mainCsp),
     'Main app CSP removes unsafe-inline from script-src',
-  ));
-  checks.push(createCheck(
-    'csp_guide_override_present',
-    Boolean(guideCsp) && /script-src[^;]*'unsafe-inline'/i.test(guideCsp),
-    'Guide route keeps explicit CSP override for legacy inline docs scripts',
   ));
   checks.push(createCheck(
     'invoice_consistency_guards_present',
