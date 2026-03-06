@@ -114,7 +114,7 @@ const PeppolGuidePage = () => {
   return (
     <div className="peppol-guide">
       {/* ── Navbar ── */}
-      <nav className="pg-navbar">
+      <nav className="pg-navbar" role="navigation" aria-label="Navigation Peppol">
         <div className="pg-navbar-inner">
           <a href="/" className="pg-logo" onClick={(e) => { e.preventDefault(); handleNavigate('/'); }}>
             <Wallet size={22} />

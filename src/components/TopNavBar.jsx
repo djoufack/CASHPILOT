@@ -49,7 +49,7 @@ const TopNavBar = ({ isCollapsed }) => {
   ];
 
   const NavItem = ({ to, icon: Icon, label, highlight }) => (
-    <Link to={to}>
+    <Link to={to} aria-label={label}>
       <motion.div
         whileHover={{ scale: 1.03, y: -1 }}
         whileTap={{ scale: 0.97 }}
@@ -93,11 +93,15 @@ const TopNavBar = ({ isCollapsed }) => {
         <div className="h-6 w-px bg-gray-800 mx-1" />
 
         {/* Nav Items */}
-        <div className="flex items-center gap-1">
+        <nav
+          className="flex items-center gap-1"
+          role="navigation"
+          aria-label={t('common.topNavigation', 'Navigation supérieure')}
+        >
           {navItems.map((item, index) => (
             <NavItem key={index} {...item} />
           ))}
-        </div>
+        </nav>
 
         {/* Divider */}
         <div className="h-6 w-px bg-gray-800 mx-2" />
@@ -124,6 +128,7 @@ const TopNavBar = ({ isCollapsed }) => {
           whileTap={{ scale: 0.97 }}
           onClick={handleLogout}
           className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-950/30 transition-all duration-200"
+          aria-label={t('common.logout')}
         >
           <LogOut size={18} />
           <span className="text-sm font-medium">{t('common.logout')}</span>
@@ -146,6 +151,9 @@ const TopNavBar = ({ isCollapsed }) => {
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="absolute right-0 top-0 bottom-0 w-72 bg-gray-950 border-l border-gray-800/50 p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('topNav.menu')}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-6">
@@ -154,6 +162,7 @@ const TopNavBar = ({ isCollapsed }) => {
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setMobileMenuOpen(false)}
                   className="p-2 text-gray-400 hover:text-white"
+                  aria-label={t('common.close', 'Close')}
                 >
                   <X size={20} />
                 </motion.button>
