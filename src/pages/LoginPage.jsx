@@ -13,11 +13,12 @@ import { useToast } from '@/components/ui/use-toast';
 import MFAVerifyStep from '@/components/MFAVerifyStep';
 import { supabase } from '@/lib/supabase';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { sanitizeText } from '@/utils/sanitize';
 
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const { signIn } = useAuth(); // Removed connectionStatus, checkConnection
+  const { signIn, verifyMFA } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -43,7 +44,8 @@ const LoginPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!validateEmail(email)) newErrors.email = t('validation.invalidEmail') || "Invalid email address";
+    const normalizedEmail = sanitizeText(email).trim().toLowerCase();
+    if (!validateEmail(normalizedEmail)) newErrors.email = t('validation.invalidEmail') || "Invalid email address";
     if (!password) newErrors.password = t('auth.passwordRequired');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -58,7 +60,8 @@ const LoginPage = () => {
     setErrors({});
 
     try {
-      await signIn(email, password);
+      const normalizedEmail = sanitizeText(email).trim().toLowerCase();
+      await signIn(normalizedEmail, password);
 
       // Check if user has MFA enabled
       const { data: factorsData } = await supabase.auth.mfa.listFactors();
@@ -87,7 +90,9 @@ const LoginPage = () => {
     } catch (error) {
       let errorMessage = error.message;
 
-      if (error.message.includes('Invalid login credentials') || error.message.includes('AuthApiError')) {
+      if (error.code === 'AUTH_RATE_LIMITED') {
+        errorMessage = `Too many attempts. Try again in ${error.retryAfterSeconds || 60} seconds.`;
+      } else if (error.message.includes('Invalid login credentials') || error.message.includes('AuthApiError')) {
         errorMessage = t('mfa.invalidCredentials', 'Invalid email or password. Please try again.');
       } else if (error.message.includes('Email not confirmed')) {
         errorMessage = t('mfa.emailNotConfirmed', 'Please confirm your email before signing in.');
@@ -105,17 +110,7 @@ const LoginPage = () => {
   const handleMFAVerify = async (code) => {
     setLoading(true);
     try {
-      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
-        factorId: mfaFactorId
-      });
-      if (challengeError) throw challengeError;
-
-      const { error: verifyError } = await supabase.auth.mfa.verify({
-        factorId: mfaFactorId,
-        challengeId: challenge.id,
-        code
-      });
-      if (verifyError) throw verifyError;
+      await verifyMFA(mfaFactorId, code);
 
       setSuccess(true);
       toast({

@@ -9,6 +9,13 @@ import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff, Lock, ArrowLeft } from
 import { useToast } from '@/components/ui/use-toast';
 import supabase from '@/lib/customSupabaseClient';
 import { validatePasswordStrength } from '@/utils/validation';
+import {
+  assertRateLimitAllowed,
+  recordRateLimitFailure,
+  recordRateLimitSuccess,
+} from '@/utils/authRateLimit';
+
+const RESET_PASSWORD_SCOPE = 'reset-password';
 
 const ResetPasswordPage = () => {
   const [password, setPassword] = useState('');
@@ -68,11 +75,13 @@ const ResetPasswordPage = () => {
     setErrors({});
 
     try {
+      assertRateLimitAllowed(RESET_PASSWORD_SCOPE, 'global');
       const { error } = await supabase.auth.updateUser({
         password: password
       });
 
       if (error) throw error;
+      recordRateLimitSuccess(RESET_PASSWORD_SCOPE, 'global');
 
       setSuccess(true);
       toast({
@@ -87,11 +96,15 @@ const ResetPasswordPage = () => {
 
     } catch (error) {
       console.error('Password update error:', error);
+      recordRateLimitFailure(RESET_PASSWORD_SCOPE, 'global');
+      const errorMessage = error.code === 'AUTH_RATE_LIMITED'
+        ? `Too many attempts. Try again in ${error.retryAfterSeconds || 60} seconds.`
+        : (error.message || t('auth.passwordUpdateError') || "Une erreur est survenue");
 
-      setErrors({ submit: error.message || t('auth.passwordUpdateError') || "Une erreur est survenue" });
+      setErrors({ submit: errorMessage });
       toast({
         title: t('common.error') || "Erreur",
-        description: error.message || t('auth.passwordUpdateError') || "Impossible de mettre à jour le mot de passe",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

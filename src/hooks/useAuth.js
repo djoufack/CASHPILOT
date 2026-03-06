@@ -3,6 +3,26 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase, validateSupabaseConfig } from '@/lib/supabase';
 import { DEFAULT_ROLE, normalizeRole, sanitizeSelfSignupRole } from '@/lib/roles';
 import { validatePasswordStrength } from '@/utils/validation';
+import { sanitizeText } from '@/utils/sanitize';
+import {
+  assertRateLimitAllowed,
+  recordRateLimitFailure,
+  recordRateLimitSuccess,
+} from '@/utils/authRateLimit';
+
+const AUTH_SCOPE_SIGN_IN = 'sign-in';
+const AUTH_SCOPE_SIGN_UP = 'sign-up';
+const AUTH_SCOPE_MFA_VERIFY = 'mfa-verify';
+
+const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+const sanitizeOptionalText = (value) => {
+  if (typeof value !== 'string') return null;
+  const sanitized = sanitizeText(value).trim();
+  return sanitized || null;
+};
+const sanitizeOptionalScalar = (value) => (
+  typeof value === 'string' ? sanitizeText(value).trim() : value
+);
 
 export const useAuthSource = () => {
   const [user, setUser] = useState(null);
@@ -228,29 +248,41 @@ export const useAuthSource = () => {
       throw new Error('Password must be at least 12 characters and include an uppercase letter, a number, and a special character.');
     }
 
+    const normalizedEmail = normalizeEmail(email);
+    const sanitizedFullName = sanitizeOptionalText(fullName);
+    const sanitizedCompanyName = sanitizeOptionalText(companyName);
+    const safeRole = sanitizeSelfSignupRole(role);
+
+    if (!sanitizedFullName) {
+      throw new Error('Full name is required.');
+    }
+
+    assertRateLimitAllowed(AUTH_SCOPE_SIGN_UP, normalizedEmail);
+
     setLoading(true);
     setError(null);
 
     try {
-      const safeRole = sanitizeSelfSignupRole(role);
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: {
           data: {
-            full_name: fullName,
+            full_name: sanitizedFullName,
           }
         }
       });
 
       if (error) throw error;
 
+      recordRateLimitSuccess(AUTH_SCOPE_SIGN_UP, normalizedEmail);
+
       if (data.user) {
         // Create profile
         const profileData = {
           user_id: data.user.id,
-          full_name: fullName,
-          company_name: companyName || null,
+          full_name: sanitizedFullName,
+          company_name: sanitizedCompanyName,
           role: safeRole,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -278,6 +310,7 @@ export const useAuthSource = () => {
 
       return data;
     } catch (err) {
+      recordRateLimitFailure(AUTH_SCOPE_SIGN_UP, normalizedEmail);
       console.error("SignUp error:", err);
       setError(err.message);
       throw err;
@@ -288,17 +321,21 @@ export const useAuthSource = () => {
 
   const signIn = async (email, password) => {
     if (!supabase) throw new Error("Supabase is not configured.");
+    const normalizedEmail = normalizeEmail(email);
+    assertRateLimitAllowed(AUTH_SCOPE_SIGN_IN, normalizedEmail);
 
     setLoading(true);
     setError(null);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
       });
 
       if (error) throw error;
+
+      recordRateLimitSuccess(AUTH_SCOPE_SIGN_IN, normalizedEmail);
 
       if (data.user) {
         await fetchUserProfile(data.user);
@@ -311,6 +348,7 @@ export const useAuthSource = () => {
 
       return data;
     } catch (err) {
+      recordRateLimitFailure(AUTH_SCOPE_SIGN_IN, normalizedEmail);
       console.error("SignIn error:", err);
       setError(err.message);
       throw err;
@@ -346,7 +384,7 @@ export const useAuthSource = () => {
       const safeUpdates = Object.fromEntries(
         allowedFields
           .filter((field) => Object.prototype.hasOwnProperty.call(updates, field))
-          .map((field) => [field, updates[field]])
+          .map((field) => [field, sanitizeOptionalScalar(updates[field])])
       );
 
       if (Object.keys(safeUpdates).length === 0) {
@@ -401,15 +439,24 @@ export const useAuthSource = () => {
 
   const verifyMFA = async (factorId, code) => {
     if (!supabase) throw new Error('Supabase not configured');
-    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId });
-    if (challengeError) throw challengeError;
-    const { data, error } = await supabase.auth.mfa.verify({
-      factorId,
-      challengeId: challenge.id,
-      code
-    });
-    if (error) throw error;
-    return data;
+    const scopeId = user?.id || factorId || 'global';
+    assertRateLimitAllowed(AUTH_SCOPE_MFA_VERIFY, scopeId);
+
+    try {
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId });
+      if (challengeError) throw challengeError;
+      const { data, error } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: challenge.id,
+        code
+      });
+      if (error) throw error;
+      recordRateLimitSuccess(AUTH_SCOPE_MFA_VERIFY, scopeId);
+      return data;
+    } catch (err) {
+      recordRateLimitFailure(AUTH_SCOPE_MFA_VERIFY, scopeId);
+      throw err;
+    }
   };
 
   const unenrollMFA = async (factorId) => {
