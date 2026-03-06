@@ -35,12 +35,31 @@
     "list": "Liste",
     "calendar": "Calendrier",
     "agenda": "Agenda",
+    "gallery": "Galerie",
     "kanban": "Kanban",
     "kanbanDropHere": "Déposez les éléments ici",
     "view": "Visualiser",
     "print": "Imprimer",
     "copy": "Copier",
-    "copied": "Copié"
+    "copied": "Copié",
+    "close": "Fermer",
+    "topNavigation": "Navigation supérieure"
+  },
+  "aiChat": {
+    "title": "Assistant IA",
+    "openWidget": "Ouvrir l'assistant IA",
+    "clear": "Effacer",
+    "close": "Fermer l'assistant IA",
+    "welcome": "Bonjour ! Je suis votre assistant comptable IA.",
+    "prompt": "Posez-moi une question sur vos finances.",
+    "inputPlaceholder": "Posez votre question...",
+    "inputLabel": "Message pour l'assistant IA",
+    "send": "Envoyer"
+  },
+  "bank": {
+    "noActiveAccount": "Aucun compte actif",
+    "accountCount": "{{count}} compte(s)",
+    "accountFallback": "Compte {{index}}"
   },
   "nav": {
     "dashboard": "Tableau de bord",
@@ -324,7 +343,11 @@
     "copySignatureLink": "Copier le lien",
     "signatureLinkCopied": "Lien copié !",
     "signerEmail": "Email du signataire (optionnel)",
-    "sendSignatureRequest": "Envoyer la demande"
+    "sendSignatureRequest": "Envoyer la demande",
+    "documents": "Documents",
+    "signatureStatus": "Signature",
+    "signatureUnsigned": "Non signé",
+    "quoteDetails": "Détails du devis"
   },
   "purchaseOrdersPage": {
     "title": "Bons de commande",
@@ -463,7 +486,11 @@
     "invalidTimeFormat": "Format horaire invalide",
     "useHHMM": "Veuillez utiliser le format HH:MM pour les heures de début et de fin.",
     "invalidTimeRange": "Plage horaire invalide",
-    "endAfterStart": "L'heure de fin doit être postérieure à l'heure de début."
+    "endAfterStart": "L'heure de fin doit être postérieure à l'heure de début.",
+    "passwordRequired": "Le mot de passe est requis",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 12 caractères",
+    "passwordTooWeak": "Le mot de passe doit contenir au moins 12 caractères, une majuscule, un chiffre et un caractère spécial",
+    "passwordsDoNotMatch": "Les mots de passe ne correspondent pas"
   },
   "admin": {
     "users": "Gestion des utilisateurs",
@@ -1381,7 +1408,7 @@
     "invalidResetLink": "Lien invalide",
     "requestNewResetLink": "Veuillez demander un nouveau lien de réinitialisation",
     "passwordRequired": "Le mot de passe est requis",
-    "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 12 caractères",
     "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
     "demoTitle": "Essayer sans inscription",
     "demoSubtitle": "Cliquez sur un compte pour vous connecter instantanément",
