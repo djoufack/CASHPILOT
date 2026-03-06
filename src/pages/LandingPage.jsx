@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { gsap } from 'gsap';
@@ -511,6 +512,7 @@ const LandingPage = () => {
 
   return (
     <div id="top" className={`landing-page${demoBannerVisible ? ' has-demo-banner' : ''}`}>
+      <Helmet><title>CashPilot</title></Helmet>
       {/* Demo Banner */}
       {demoBannerVisible && (
         <DemoBanner onDismiss={() => setDemoBannerVisible(false)} />

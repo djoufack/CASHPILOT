@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useReceivables } from '@/hooks/useReceivables';
 import { usePayables } from '@/hooks/usePayables';
@@ -470,6 +471,7 @@ const DebtManagerPage = () => {
 
   return (
     <>
+      <Helmet><title>{t('pages.debtManager', 'Debt Manager')} | CashPilot</title></Helmet>
       <CreditsGuardModal {...modalProps} />
       <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
         {/* Header */}

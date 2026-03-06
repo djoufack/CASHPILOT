@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useProductCategories, useProducts } from '@/hooks/useProducts';
 import { useServiceCategories, useServices } from '@/hooks/useServices';
@@ -235,6 +236,7 @@ const CategoriesPage = () => {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-8 max-w-6xl mx-auto">
+      <Helmet><title>{t('pages.categories', 'Categories')} | CashPilot</title></Helmet>
       {/* Header with gradient accent */}
       <div className="relative">
         <div className="absolute -top-4 -left-4 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl" />
