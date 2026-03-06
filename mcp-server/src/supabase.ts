@@ -58,10 +58,38 @@ export async function logout(): Promise<void> {
 }
 
 /**
- * Get the current authenticated user ID. Throws if not logged in.
+ * Proactively refresh the session if it expires within 5 minutes.
+ * Called before operations that need a valid token.
+ */
+export async function ensureSessionValid(): Promise<void> {
+  if (!currentSession) return;
+  const expiresAt = currentSession.expires_at || 0;
+  const now = Math.floor(Date.now() / 1000);
+  if (expiresAt - now < 300) { // < 5 min remaining
+    const { data, error } = await supabase.auth.refreshSession();
+    if (!error && data.session) {
+      currentSession = data.session;
+      currentUserId = data.session.user?.id ?? currentUserId;
+    } else if (expiresAt < now) {
+      // Token already expired and refresh failed — force re-login
+      currentSession = null;
+      currentUserId = null;
+      throw new Error('Session expired and refresh failed. Please login again.');
+    }
+  }
+}
+
+/**
+ * Get the current authenticated user ID. Throws if not logged in or session expired.
  */
 export function getUserId(): string {
   if (!currentUserId) throw new Error('Not authenticated. Use the "login" tool first.');
+  // Hard check: reject already-expired tokens
+  if (currentSession?.expires_at && currentSession.expires_at < Math.floor(Date.now() / 1000)) {
+    currentSession = null;
+    currentUserId = null;
+    throw new Error('Session expired. Please login again.');
+  }
   return currentUserId;
 }
 

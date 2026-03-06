@@ -50,7 +50,12 @@
     "collapseSidebar": "Réduire la barre latérale",
     "skipToContent": "Aller au contenu principal",
     "switchToLightMode": "Passer en mode clair",
-    "switchToDarkMode": "Passer en mode sombre"
+    "switchToDarkMode": "Passer en mode sombre",
+    "loading": "Chargement...",
+    "somethingWentWrong": "Une erreur est survenue",
+    "tryAgain": "Réessayer",
+    "reloadPage": "Recharger la page",
+    "unexpectedError": "Une erreur inattendue s'est produite."
   },
   "aiChat": {
     "title": "Assistant IA",
@@ -3274,5 +3279,10 @@
     "empty": "Aucune notification",
     "markRead": "Marquer comme lue",
     "delete": "Supprimer la notification"
+  },
+  "pageError": {
+    "title": "Une erreur est survenue",
+    "description": "Une erreur s'est produite lors du chargement de cette page. Le reste de l'application reste disponible.",
+    "retry": "Réessayer"
   }
 }

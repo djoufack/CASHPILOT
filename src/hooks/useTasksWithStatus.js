@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useTasksWithStatus = (projectId, initialFilters = {}) => {
   const [tasks, setTasks] = useState([]);

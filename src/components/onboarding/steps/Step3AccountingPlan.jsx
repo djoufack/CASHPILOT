@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, ArrowRight, FileText, Upload, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const PLAN_META = {

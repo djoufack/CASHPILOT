@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { buildNotificationPayloads, fetchObligationSnapshot } from '@/lib/obligations';
 import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';

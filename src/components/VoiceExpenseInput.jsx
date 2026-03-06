@@ -3,7 +3,7 @@ import { Mic, MicOff, Loader2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { formatDateInput } from '@/utils/dateFormatting';
 
 // Check browser support (outside component to avoid re-creation)

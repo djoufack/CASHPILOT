@@ -8,14 +8,16 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PageLoader from './components/PageLoader';
 import { Toaster } from '@/components/ui/toaster';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import PageErrorBoundary from './components/PageErrorBoundary';
 import GDPRConsentBanner from './components/GDPRConsentBanner';
 import { useAccountingGuard } from '@/hooks/useAccountingGuard';
 import UserPreferenceSync from '@/components/UserPreferenceSync';
 import { EntitlementsProvider } from '@/contexts/EntitlementsContext';
 import EntitlementGate from '@/components/subscription/EntitlementGate';
 import { ENTITLEMENT_KEYS } from '@/utils/subscriptionEntitlements';
+import { useTranslation } from 'react-i18next';
 import './i18n/config';
 
 // Retry wrapper for lazy imports - handles chunk load failures after deployments
@@ -112,33 +114,34 @@ const AccountingGuard = () => {
 // Wrapper to handle auth redirects
 const AuthWrapper = () => {
     const { user, loading } = useAuth();
+    const { t } = useTranslation();
 
     if (loading) {
-        return <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">Loading...</div>;
+        return <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">{t('common.loading')}</div>;
     }
 
     return (
         <Routes>
             {/* Public Landing Page */}
-            <Route path="/" element={user ? <Navigate to="/app" replace /> : <Suspense fallback={<PageLoader />}><LandingPage /></Suspense>} />
+            <Route path="/" element={user ? <Navigate to="/app" replace /> : <PageErrorBoundary><Suspense fallback={<PageLoader />}><LandingPage /></Suspense></PageErrorBoundary>} />
 
             {/* Public Routes - Redirect to /app if logged in */}
-            <Route path="/login" element={user ? <Navigate to="/app" replace /> : <Suspense fallback={<PageLoader />}><LoginPage /></Suspense>} />
-            <Route path="/signup" element={user ? <Navigate to="/app" replace /> : <Suspense fallback={<PageLoader />}><SignupPage /></Suspense>} />
-            <Route path="/forgot-password" element={user ? <Navigate to="/app" replace /> : <Suspense fallback={<PageLoader />}><ForgotPasswordPage /></Suspense>} />
-            <Route path="/reset-password" element={<Suspense fallback={<PageLoader />}><ResetPasswordPage /></Suspense>} />
-            <Route path="/pricing" element={<Suspense fallback={<PageLoader />}><PricingPage /></Suspense>} />
-            <Route path="/peppol-guide" element={<Suspense fallback={<PageLoader />}><PeppolGuidePage /></Suspense>} />
-            <Route path="/privacy" element={<Suspense fallback={<PageLoader />}><PrivacyPage /></Suspense>} />
-            <Route path="/legal" element={<Suspense fallback={<PageLoader />}><LegalPage /></Suspense>} />
-            <Route path="/quote-sign/:token" element={<Suspense fallback={<PageLoader />}><QuoteSignPage /></Suspense>} />
-            <Route path="/payment-success" element={<Suspense fallback={<PageLoader />}><PaymentSuccessPage /></Suspense>} />
-            <Route path="/shared/:token" element={<Suspense fallback={<PageLoader />}><SharedSnapshotPage /></Suspense>} />
+            <Route path="/login" element={user ? <Navigate to="/app" replace /> : <PageErrorBoundary><Suspense fallback={<PageLoader />}><LoginPage /></Suspense></PageErrorBoundary>} />
+            <Route path="/signup" element={user ? <Navigate to="/app" replace /> : <PageErrorBoundary><Suspense fallback={<PageLoader />}><SignupPage /></Suspense></PageErrorBoundary>} />
+            <Route path="/forgot-password" element={user ? <Navigate to="/app" replace /> : <PageErrorBoundary><Suspense fallback={<PageLoader />}><ForgotPasswordPage /></Suspense></PageErrorBoundary>} />
+            <Route path="/reset-password" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ResetPasswordPage /></Suspense></PageErrorBoundary>} />
+            <Route path="/pricing" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><PricingPage /></Suspense></PageErrorBoundary>} />
+            <Route path="/peppol-guide" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><PeppolGuidePage /></Suspense></PageErrorBoundary>} />
+            <Route path="/privacy" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><PrivacyPage /></Suspense></PageErrorBoundary>} />
+            <Route path="/legal" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><LegalPage /></Suspense></PageErrorBoundary>} />
+            <Route path="/quote-sign/:token" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><QuoteSignPage /></Suspense></PageErrorBoundary>} />
+            <Route path="/payment-success" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><PaymentSuccessPage /></Suspense></PageErrorBoundary>} />
+            <Route path="/shared/:token" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><SharedSnapshotPage /></Suspense></PageErrorBoundary>} />
 
             {/* Client Portal */}
             <Route path="/client-portal/*" element={
                 user && (user.role === 'client' || user.role === 'admin')
-                ? <Suspense fallback={<PageLoader />}><ClientPortal /></Suspense>
+                ? <PageErrorBoundary><Suspense fallback={<PageLoader />}><ClientPortal /></Suspense></PageErrorBoundary>
                 : <Navigate to="/login" replace />
             } />
 
@@ -148,14 +151,14 @@ const AuthWrapper = () => {
                    <MainLayout />
                 </AdminRoute>
             }>
-                <Route index element={<Suspense fallback={<PageLoader />}><AdminPage /></Suspense>} />
-                <Route path="seed-data" element={<Suspense fallback={<PageLoader />}><SeedDataManager /></Suspense>} />
+                <Route index element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><AdminPage /></Suspense></PageErrorBoundary>} />
+                <Route path="seed-data" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><SeedDataManager /></Suspense></PageErrorBoundary>} />
             </Route>
 
             {/* Onboarding - Protected, standalone (no MainLayout) */}
             <Route path="/app/onboarding" element={
                 <ProtectedRoute>
-                    <Suspense fallback={<PageLoader />}><OnboardingWizard /></Suspense>
+                    <PageErrorBoundary><Suspense fallback={<PageLoader />}><OnboardingWizard /></Suspense></PageErrorBoundary>
                 </ProtectedRoute>
             } />
 
@@ -165,92 +168,100 @@ const AuthWrapper = () => {
                     <MainLayout />
                 </ProtectedRoute>
             }>
-                <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
-                <Route path="clients" element={<Suspense fallback={<PageLoader />}><ClientsPage /></Suspense>} />
-                <Route path="clients/:id" element={<Suspense fallback={<PageLoader />}><ClientProfile /></Suspense>} />
-                <Route path="projects" element={<Suspense fallback={<PageLoader />}><ProjectsPage /></Suspense>} />
-                <Route path="projects/:projectId" element={<Suspense fallback={<PageLoader />}><ProjectDetail /></Suspense>} />
-                <Route path="timesheets" element={<Suspense fallback={<PageLoader />}><TimesheetsPage /></Suspense>} />
-                <Route path="invoices" element={<Suspense fallback={<PageLoader />}><InvoicesPage /></Suspense>} />
-                <Route path="recurring-invoices" element={<Suspense fallback={<PageLoader />}><RecurringInvoicesPage /></Suspense>} />
-                <Route path="credit-notes" element={<Suspense fallback={<PageLoader />}><CreditNotesPage /></Suspense>} />
-                <Route path="delivery-notes" element={<Suspense fallback={<PageLoader />}><DeliveryNotesPage /></Suspense>} />
-                <Route path="quotes" element={<Suspense fallback={<PageLoader />}><QuotesPage /></Suspense>} />
-                <Route path="expenses" element={<Suspense fallback={<PageLoader />}><ExpensesPage /></Suspense>} />
-                <Route path="purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrdersPage /></Suspense>} />
-                <Route path="purchases" element={<Suspense fallback={<PageLoader />}><PurchasesPage /></Suspense>} />
-                <Route path="supplier-invoices" element={<Suspense fallback={<PageLoader />}><SupplierInvoicesPage /></Suspense>} />
-                <Route path="peppol" element={<Suspense fallback={<PageLoader />}><PeppolPage /></Suspense>} />
+                <Route index element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><Dashboard /></Suspense></PageErrorBoundary>} />
+                <Route path="clients" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ClientsPage /></Suspense></PageErrorBoundary>} />
+                <Route path="clients/:id" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ClientProfile /></Suspense></PageErrorBoundary>} />
+                <Route path="projects" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ProjectsPage /></Suspense></PageErrorBoundary>} />
+                <Route path="projects/:projectId" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ProjectDetail /></Suspense></PageErrorBoundary>} />
+                <Route path="timesheets" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><TimesheetsPage /></Suspense></PageErrorBoundary>} />
+                <Route path="invoices" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><InvoicesPage /></Suspense></PageErrorBoundary>} />
+                <Route path="recurring-invoices" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><RecurringInvoicesPage /></Suspense></PageErrorBoundary>} />
+                <Route path="credit-notes" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><CreditNotesPage /></Suspense></PageErrorBoundary>} />
+                <Route path="delivery-notes" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><DeliveryNotesPage /></Suspense></PageErrorBoundary>} />
+                <Route path="quotes" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><QuotesPage /></Suspense></PageErrorBoundary>} />
+                <Route path="expenses" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ExpensesPage /></Suspense></PageErrorBoundary>} />
+                <Route path="purchase-orders" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><PurchaseOrdersPage /></Suspense></PageErrorBoundary>} />
+                <Route path="purchases" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><PurchasesPage /></Suspense></PageErrorBoundary>} />
+                <Route path="supplier-invoices" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><SupplierInvoicesPage /></Suspense></PageErrorBoundary>} />
+                <Route path="peppol" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><PeppolPage /></Suspense></PageErrorBoundary>} />
 
                 {/* Stock (produits du User) */}
-                <Route path="stock" element={<Suspense fallback={<PageLoader />}><StockManagement /></Suspense>} />
-                <Route path="services" element={<Suspense fallback={<PageLoader />}><ServicesPage /></Suspense>} />
-                <Route path="categories" element={<Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense>} />
+                <Route path="stock" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><StockManagement /></Suspense></PageErrorBoundary>} />
+                <Route path="services" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ServicesPage /></Suspense></PageErrorBoundary>} />
+                <Route path="categories" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense></PageErrorBoundary>} />
                 <Route path="suppliers/stock" element={<Navigate to="/app/stock" replace />} />
 
                 {/* Supplier Routes */}
-                <Route path="suppliers" element={<Suspense fallback={<PageLoader />}><SuppliersPage /></Suspense>} />
-                <Route path="suppliers/reports" element={<Suspense fallback={<PageLoader />}><SupplierReports /></Suspense>} />
-                <Route path="suppliers/accounting" element={<Suspense fallback={<PageLoader />}><AccountingIntegration /></Suspense>} />
-                <Route path="suppliers/:id" element={<Suspense fallback={<PageLoader />}><SupplierProfile /></Suspense>} />
+                <Route path="suppliers" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><SuppliersPage /></Suspense></PageErrorBoundary>} />
+                <Route path="suppliers/reports" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><SupplierReports /></Suspense></PageErrorBoundary>} />
+                <Route path="suppliers/accounting" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><AccountingIntegration /></Suspense></PageErrorBoundary>} />
+                <Route path="suppliers/:id" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><SupplierProfile /></Suspense></PageErrorBoundary>} />
 
                 {/* New Feature Routes */}
-                <Route path="suppliers/map" element={<div className="h-[calc(100vh-100px)] p-4"><Suspense fallback={<PageLoader />}><SupplierMap /></Suspense></div>} />
-                <Route path="products/barcode" element={<div className="p-4"><Suspense fallback={<PageLoader />}><BarcodeScanner /></Suspense></div>} />
-                <Route path="reports/generator" element={<div className="p-4"><Suspense fallback={<PageLoader />}><ReportGenerator /></Suspense></div>} />
+                <Route path="suppliers/map" element={<PageErrorBoundary><div className="h-[calc(100vh-100px)] p-4"><Suspense fallback={<PageLoader />}><SupplierMap /></Suspense></div></PageErrorBoundary>} />
+                <Route path="products/barcode" element={<PageErrorBoundary><div className="p-4"><Suspense fallback={<PageLoader />}><BarcodeScanner /></Suspense></div></PageErrorBoundary>} />
+                <Route path="reports/generator" element={<PageErrorBoundary><div className="p-4"><Suspense fallback={<PageLoader />}><ReportGenerator /></Suspense></div></PageErrorBoundary>} />
 
-                <Route path="notifications" element={<Suspense fallback={<PageLoader />}><NotificationCenter /></Suspense>} />
+                <Route path="notifications" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><NotificationCenter /></Suspense></PageErrorBoundary>} />
 
-                <Route path="debt-manager" element={<Suspense fallback={<PageLoader />}><DebtManagerPage /></Suspense>} />
+                <Route path="debt-manager" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><DebtManagerPage /></Suspense></PageErrorBoundary>} />
                 <Route path="scenarios" element={
-                  <Suspense fallback={<PageLoader />}>
-                    <EntitlementGate
-                      featureKey={ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL}
-                      title="Scénarios financiers"
-                    >
-                      <ScenarioBuilder />
-                    </EntitlementGate>
-                  </Suspense>
+                  <PageErrorBoundary>
+                    <Suspense fallback={<PageLoader />}>
+                      <EntitlementGate
+                        featureKey={ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL}
+                        title="Scénarios financiers"
+                      >
+                        <ScenarioBuilder />
+                      </EntitlementGate>
+                    </Suspense>
+                  </PageErrorBoundary>
                 } />
                 <Route path="scenarios/:scenarioId" element={
-                  <Suspense fallback={<PageLoader />}>
-                    <EntitlementGate
-                      featureKey={ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL}
-                      title="Scénarios financiers"
-                    >
-                      <ScenarioDetail />
-                    </EntitlementGate>
-                  </Suspense>
+                  <PageErrorBoundary>
+                    <Suspense fallback={<PageLoader />}>
+                      <EntitlementGate
+                        featureKey={ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL}
+                        title="Scénarios financiers"
+                      >
+                        <ScenarioDetail />
+                      </EntitlementGate>
+                    </Suspense>
+                  </PageErrorBoundary>
                 } />
-                <Route path="cash-flow" element={<Suspense fallback={<PageLoader />}><CashFlowPage /></Suspense>} />
-                <Route path="audit-comptable" element={<Suspense fallback={<PageLoader />}><AuditComptable /></Suspense>} />
-                <Route path="pilotage" element={<Suspense fallback={<PageLoader />}><PilotagePage /></Suspense>} />
-                <Route path="bank-connections" element={<Suspense fallback={<PageLoader />}><BankConnectionsPage /></Suspense>} />
-                <Route path="portfolio" element={<Suspense fallback={<PageLoader />}><PortfolioPage /></Suspense>} />
-                <Route path="integrations" element={<Suspense fallback={<PageLoader />}><IntegrationsHubPage /></Suspense>} />
-                <Route path="bank-callback" element={<Suspense fallback={<PageLoader />}><BankCallbackPage /></Suspense>} />
+                <Route path="cash-flow" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><CashFlowPage /></Suspense></PageErrorBoundary>} />
+                <Route path="audit-comptable" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><AuditComptable /></Suspense></PageErrorBoundary>} />
+                <Route path="pilotage" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><PilotagePage /></Suspense></PageErrorBoundary>} />
+                <Route path="bank-connections" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><BankConnectionsPage /></Suspense></PageErrorBoundary>} />
+                <Route path="portfolio" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><PortfolioPage /></Suspense></PageErrorBoundary>} />
+                <Route path="integrations" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><IntegrationsHubPage /></Suspense></PageErrorBoundary>} />
+                <Route path="bank-callback" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><BankCallbackPage /></Suspense></PageErrorBoundary>} />
                 <Route path="analytics" element={
-                  <Suspense fallback={<PageLoader />}>
-                    <EntitlementGate
-                      featureKey={ENTITLEMENT_KEYS.ANALYTICS_REPORTS}
-                      title="Rapports analytiques"
-                    >
-                      <AnalyticsPage />
-                    </EntitlementGate>
-                  </Suspense>
+                  <PageErrorBoundary>
+                    <Suspense fallback={<PageLoader />}>
+                      <EntitlementGate
+                        featureKey={ENTITLEMENT_KEYS.ANALYTICS_REPORTS}
+                        title="Rapports analytiques"
+                      >
+                        <AnalyticsPage />
+                      </EntitlementGate>
+                    </Suspense>
+                  </PageErrorBoundary>
                 } />
-                <Route path="security" element={<Suspense fallback={<PageLoader />}><SecuritySettings /></Suspense>} />
+                <Route path="security" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><SecuritySettings /></Suspense></PageErrorBoundary>} />
                 <Route path="webhooks" element={
-                  <Suspense fallback={<PageLoader />}>
-                    <EntitlementGate
-                      featureKey={ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS}
-                      title="API & Webhooks"
-                    >
-                      <WebhooksPage />
-                    </EntitlementGate>
-                  </Suspense>
+                  <PageErrorBoundary>
+                    <Suspense fallback={<PageLoader />}>
+                      <EntitlementGate
+                        featureKey={ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS}
+                        title="API & Webhooks"
+                      >
+                        <WebhooksPage />
+                      </EntitlementGate>
+                    </Suspense>
+                  </PageErrorBoundary>
                 } />
-                <Route path="settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
+                <Route path="settings" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><SettingsPage /></Suspense></PageErrorBoundary>} />
             </Route>
 
             {/* Fallback */}

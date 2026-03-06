@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom/client';
 import App from '@/App';
 import '@/index.css';
 import '@/styles/light-theme.css';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { ReferenceDataProvider } from '@/contexts/ReferenceDataContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import OnboardingTour from '@/components/OnboardingTour';

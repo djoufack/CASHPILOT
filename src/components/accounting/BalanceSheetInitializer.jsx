@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAccounting } from '@/hooks/useAccounting';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   createOpeningBalanceEntries,
   deleteOpeningBalanceEntries,

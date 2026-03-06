@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useInvoiceUpload } from '@/hooks/useInvoiceUpload';
 import { useInvoiceExtraction } from '@/hooks/useInvoiceExtraction';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

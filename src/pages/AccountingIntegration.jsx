@@ -45,7 +45,7 @@ import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { formatNumber } from '@/utils/calculations';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { ENTITLEMENT_KEYS, filterEntitledItems } from '@/utils/subscriptionEntitlements';
