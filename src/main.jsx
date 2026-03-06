@@ -9,18 +9,22 @@ import { ReferenceDataProvider } from '@/contexts/ReferenceDataContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import OnboardingTour from '@/components/OnboardingTour';
 import { initializeErrorTracking } from '@/services/errorTracking';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 
 initializeErrorTracking();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <AuthProvider>
-    <ReferenceDataProvider>
-      <ThemeProvider>
-        <App />
-        <OnboardingTour />
-      </ThemeProvider>
-    </ReferenceDataProvider>
-  </AuthProvider>
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <ReferenceDataProvider>
+        <ThemeProvider>
+          <App />
+          <OnboardingTour />
+        </ThemeProvider>
+      </ReferenceDataProvider>
+    </AuthProvider>
+  </QueryClientProvider>
 );
 
 // Register Service Worker only in production
