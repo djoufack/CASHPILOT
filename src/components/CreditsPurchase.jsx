@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useCredits } from '@/hooks/useCredits';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { createCheckoutSession, redirectToCheckout, formatPrice } from '@/services/stripeService';
 import { Button } from '@/components/ui/button';

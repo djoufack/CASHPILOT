@@ -50,7 +50,12 @@
     "collapseSidebar": "Zijbalk inklappen",
     "skipToContent": "Naar hoofdinhoud",
     "switchToLightMode": "Naar lichte modus",
-    "switchToDarkMode": "Naar donkere modus"
+    "switchToDarkMode": "Naar donkere modus",
+    "loading": "Laden...",
+    "somethingWentWrong": "Er is iets misgegaan",
+    "tryAgain": "Opnieuw proberen",
+    "reloadPage": "Pagina herladen",
+    "unexpectedError": "Er is een onverwachte fout opgetreden."
   },
   "aiChat": {
     "title": "AI-assistent",
@@ -3255,5 +3260,10 @@
     "empty": "Geen meldingen",
     "markRead": "Markeren als gelezen",
     "delete": "Melding verwijderen"
+  },
+  "pageError": {
+    "title": "Er is iets misgegaan",
+    "description": "Er is een fout opgetreden bij het laden van deze pagina. De rest van de applicatie is nog beschikbaar.",
+    "retry": "Opnieuw proberen"
   }
 }

@@ -50,7 +50,12 @@
     "collapseSidebar": "Collapse sidebar",
     "skipToContent": "Skip to main content",
     "switchToLightMode": "Switch to light mode",
-    "switchToDarkMode": "Switch to dark mode"
+    "switchToDarkMode": "Switch to dark mode",
+    "loading": "Loading...",
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Try again",
+    "reloadPage": "Reload Page",
+    "unexpectedError": "An unexpected error occurred."
   },
   "aiChat": {
     "title": "AI Assistant",
@@ -3287,5 +3292,10 @@
     "empty": "No notifications",
     "markRead": "Mark as read",
     "delete": "Delete notification"
+  },
+  "pageError": {
+    "title": "Something went wrong",
+    "description": "An error occurred while loading this page. The rest of the application is still available.",
+    "retry": "Retry"
   }
 }

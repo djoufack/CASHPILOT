@@ -1,7 +1,7 @@
 
 import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24;

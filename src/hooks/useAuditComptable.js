@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { formatDateInput, formatStartOfYearInput } from '@/utils/dateFormatting';
 
 const CACHE_KEY = 'cashpilot_audit_cache';

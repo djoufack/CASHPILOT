@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Wallet, ArrowRight, Globe, Clock, Zap, ChevronDown,
   Send, Search, Download, CheckCircle2, Lightbulb, AlertTriangle,

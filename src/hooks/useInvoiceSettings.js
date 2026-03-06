@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import invoiceTemplates, { DEFAULT_INVOICE_TEMPLATE_ID } from '@/config/invoiceTemplates';
 
 const DEFAULT_SETTINGS = {
@@ -27,20 +27,24 @@ export const useInvoiceSettings = () => {
   const { user } = useAuth();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+
+  const userId = user?.id;
 
   const fetchSettings = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('invoice_settings')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching invoice settings:', error);
       }
+      if (!mountedRef.current) return;
       if (data) {
         setSettings({
           ...DEFAULT_SETTINGS,
@@ -53,18 +57,20 @@ export const useInvoiceSettings = () => {
     } catch (err) {
       console.error('Error fetching invoice settings:', err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchSettings();
+    return () => { mountedRef.current = false; };
   }, [fetchSettings]);
 
   const saveSettings = async (newSettings) => {
-    if (!user) return;
+    if (!userId) return;
     const payload = {
-      user_id: user.id,
+      user_id: userId,
       template_id: resolveTemplateId(newSettings.template_id),
       color_theme: newSettings.color_theme,
       custom_labels: newSettings.custom_labels || {},

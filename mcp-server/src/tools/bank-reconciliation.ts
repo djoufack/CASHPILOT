@@ -26,7 +26,10 @@ export function registerBankReconciliationTools(server: McpServer) {
         .order('date', { ascending: false })
         .limit(maxTx);
 
-      if (txErr) return { content: [{ type: 'text' as const, text: `Error fetching transactions: ${txErr.message}` }] };
+      if (txErr) {
+        console.error('[auto_reconcile] DB error (transactions):', txErr);
+        return { content: [{ type: 'text' as const, text: `Error fetching transactions: ${txErr.message}` }] };
+      }
 
       const { data: invoices, error: invErr } = await supabase
         .from('invoices')
@@ -34,7 +37,10 @@ export function registerBankReconciliationTools(server: McpServer) {
         .eq('user_id', userId)
         .in('status', ['sent', 'overdue']);
 
-      if (invErr) return { content: [{ type: 'text' as const, text: `Error fetching invoices: ${invErr.message}` }] };
+      if (invErr) {
+        console.error('[auto_reconcile] DB error (invoices):', invErr);
+        return { content: [{ type: 'text' as const, text: `Error fetching invoices: ${invErr.message}` }] };
+      }
 
       if (!transactions?.length || !invoices?.length) {
         return { content: [{ type: 'text' as const, text: JSON.stringify({ matched: 0, message: 'No unreconciled transactions or unpaid invoices found.' }) }] };
@@ -42,7 +48,9 @@ export function registerBankReconciliationTools(server: McpServer) {
 
       const matched: Array<{ transaction_id: string; invoice_id: string; invoice_number: string; amount: number; confidence: number }> = [];
       const usedInvoices = new Set<string>();
+      const now = new Date().toISOString();
 
+      // Phase 1: scoring / matching (pure computation, no DB writes)
       for (const tx of transactions) {
         let bestMatch: typeof invoices[0] | null = null;
         let bestScore = 0;
@@ -72,18 +80,6 @@ export function registerBankReconciliationTools(server: McpServer) {
 
         const confidence = bestScore / 100;
         if (bestMatch && confidence >= minConfidence) {
-          await supabase.from('bank_transactions').update({
-            invoice_id: bestMatch.id,
-            reconciliation_status: 'matched',
-            match_confidence: confidence,
-            matched_at: new Date().toISOString()
-          }).eq('id', tx.id);
-
-          await supabase.from('invoices').update({
-            status: 'paid',
-            payment_status: 'paid'
-          }).eq('id', bestMatch.id);
-
           usedInvoices.add(bestMatch.id);
           matched.push({
             transaction_id: tx.id,
@@ -93,6 +89,30 @@ export function registerBankReconciliationTools(server: McpServer) {
             confidence
           });
         }
+      }
+
+      // Phase 2: batch all DB updates in parallel
+      if (matched.length > 0) {
+        const updatePromises: Promise<unknown>[] = [];
+
+        for (const m of matched) {
+          updatePromises.push(
+            supabase.from('bank_transactions').update({
+              invoice_id: m.invoice_id,
+              reconciliation_status: 'matched',
+              match_confidence: m.confidence,
+              matched_at: now
+            }).eq('id', m.transaction_id)
+          );
+          updatePromises.push(
+            supabase.from('invoices').update({
+              status: 'paid',
+              payment_status: 'paid'
+            }).eq('id', m.invoice_id)
+          );
+        }
+
+        await Promise.all(updatePromises);
       }
 
       return {
@@ -133,7 +153,10 @@ export function registerBankReconciliationTools(server: McpServer) {
         .select()
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) {
+        console.error('[match_bank_line] DB error:', error);
+        return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      }
       return { content: [{ type: 'text' as const, text: `Line matched successfully.\n${JSON.stringify(data, null, 2)}` }] };
     }
   );
@@ -163,7 +186,10 @@ export function registerBankReconciliationTools(server: McpServer) {
         .select()
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) {
+        console.error('[unmatch_bank_line] DB error:', error);
+        return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      }
       return { content: [{ type: 'text' as const, text: `Line unmatched successfully.\n${JSON.stringify(data, null, 2)}` }] };
     }
   );
@@ -190,7 +216,10 @@ export function registerBankReconciliationTools(server: McpServer) {
         .eq('user_id', userId)
         .in('id', line_ids);
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) {
+        console.error('[ignore_bank_lines] DB error:', error);
+        return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      }
       return { content: [{ type: 'text' as const, text: `${line_ids.length} line(s) marked as ignored.` }] };
     }
   );
@@ -211,7 +240,10 @@ export function registerBankReconciliationTools(server: McpServer) {
         .eq('statement_id', statement_id)
         .eq('user_id', userId);
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) {
+        console.error('[get_reconciliation_summary] DB error:', error);
+        return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      }
       if (!lines?.length) return { content: [{ type: 'text' as const, text: 'No lines found for this statement.' }] };
 
       const matched = lines.filter(l => l.reconciliation_status === 'matched');
@@ -256,7 +288,10 @@ export function registerBankReconciliationTools(server: McpServer) {
         .eq('user_id', userId)
         .single();
 
-      if (lineErr || !bankLine) return { content: [{ type: 'text' as const, text: `Error: ${lineErr?.message || 'Line not found'}` }] };
+      if (lineErr || !bankLine) {
+        console.error('[search_match_candidates] DB error:', lineErr);
+        return { content: [{ type: 'text' as const, text: `Error: ${lineErr?.message || 'Line not found'}` }] };
+      }
 
       const bankAmount = parseFloat(String(bankLine.amount)) || 0;
       const bankDesc = (bankLine.description || bankLine.reference || '').toLowerCase();
@@ -413,7 +448,10 @@ export function registerBankReconciliationTools(server: McpServer) {
         .select()
         .single();
 
-      if (stmtErr) return { content: [{ type: 'text' as const, text: `Error creating statement: ${stmtErr.message}` }] };
+      if (stmtErr) {
+        console.error('[import_bank_statement] DB error (statement):', stmtErr);
+        return { content: [{ type: 'text' as const, text: `Error creating statement: ${stmtErr.message}` }] };
+      }
 
       const lineRecords = lines.map((line, i) => ({
         statement_id: statement.id,
@@ -433,7 +471,10 @@ export function registerBankReconciliationTools(server: McpServer) {
         .from('bank_statement_lines')
         .insert(lineRecords);
 
-      if (linesErr) return { content: [{ type: 'text' as const, text: `Statement created but error inserting lines: ${linesErr.message}` }] };
+      if (linesErr) {
+        console.error('[import_bank_statement] DB error (lines):', linesErr);
+        return { content: [{ type: 'text' as const, text: `Statement created but error inserting lines: ${linesErr.message}` }] };
+      }
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify({

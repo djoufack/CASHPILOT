@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Upload, FileSpreadsheet, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { parseCSV } from '@/utils/csvParser';
 import * as XLSX from 'xlsx';
 
