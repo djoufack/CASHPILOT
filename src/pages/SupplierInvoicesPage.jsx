@@ -9,6 +9,8 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useCreditsGuard } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import UploadInvoiceModal from '@/components/UploadInvoiceModal';
+import RejectApprovalDialog from '@/components/suppliers/RejectApprovalDialog';
+import ApprovalHistoryDialog from '@/components/suppliers/ApprovalHistoryDialog';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/utils/calculations';
@@ -19,6 +21,7 @@ import PaginationControls from '@/components/PaginationControls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +54,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { notifyPendingSupplierApproval } from '@/services/supplierApprovalNotifications';
 import {
   FileText,
   Plus,
@@ -95,6 +99,8 @@ const SupplierInvoicesPage = () => {
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [rejectTargetInvoice, setRejectTargetInvoice] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState([]);
+  const [historyInvoice, setHistoryInvoice] = useState(null);
 
   // Pagination
   const pagination = usePagination({ pageSize: 25 });
@@ -191,6 +197,40 @@ const SupplierInvoicesPage = () => {
     pagination.to + 1
   );
 
+  useEffect(() => {
+    setSelectedInvoiceIds((prev) =>
+      prev.filter((id) => filteredInvoices.some((invoice) => invoice.id === id))
+    );
+  }, [filteredInvoices]);
+
+  const selectedIdSet = useMemo(() => new Set(selectedInvoiceIds), [selectedInvoiceIds]);
+  const allPageSelected =
+    paginatedInvoices.length > 0
+    && paginatedInvoices.every((invoice) => selectedIdSet.has(invoice.id));
+
+  const toggleInvoiceSelection = useCallback((invoiceId, checked) => {
+    setSelectedInvoiceIds((prev) => {
+      const exists = prev.includes(invoiceId);
+      if (checked && !exists) return [...prev, invoiceId];
+      if (!checked && exists) return prev.filter((id) => id !== invoiceId);
+      return prev;
+    });
+  }, []);
+
+  const toggleSelectAllPage = useCallback((checked) => {
+    setSelectedInvoiceIds((prev) => {
+      if (!checked) {
+        return prev.filter((id) => !paginatedInvoices.some((invoice) => invoice.id === id));
+      }
+
+      const next = new Set(prev);
+      for (const invoice of paginatedInvoices) {
+        next.add(invoice.id);
+      }
+      return Array.from(next);
+    });
+  }, [paginatedInvoices]);
+
   // ---------- KPI CALCULATIONS ----------
 
   const supplierInvoiceMetrics = useMemo(
@@ -241,23 +281,40 @@ const SupplierInvoicesPage = () => {
     }
   };
 
+  const buildApprovalPayload = (approvalStatus, rejectedReasonValue = null) => {
+    const payload = { approval_status: approvalStatus };
+
+    if (approvalStatus === 'approved') {
+      payload.approved_by = user?.id || null;
+      payload.approved_at = new Date().toISOString();
+      payload.rejected_reason = null;
+    } else if (approvalStatus === 'rejected') {
+      payload.approved_by = null;
+      payload.approved_at = null;
+      payload.rejected_reason = rejectedReasonValue || null;
+    } else {
+      payload.approved_by = null;
+      payload.approved_at = null;
+      payload.rejected_reason = null;
+    }
+
+    return payload;
+  };
+
+  const notifyPendingApproval = useCallback(async (invoiceId, actionLabel) => {
+    try {
+      await notifyPendingSupplierApproval({
+        invoiceId,
+        action: actionLabel,
+      });
+    } catch (notifyError) {
+      console.error('supplier approval notification failed', notifyError);
+    }
+  }, []);
+
   const handleUpdateApproval = async (invoiceId, approvalStatus, rejectedReasonValue = null) => {
     try {
-      const payload = { approval_status: approvalStatus };
-
-      if (approvalStatus === 'approved') {
-        payload.approved_by = user?.id || null;
-        payload.approved_at = new Date().toISOString();
-        payload.rejected_reason = null;
-      } else if (approvalStatus === 'rejected') {
-        payload.approved_by = null;
-        payload.approved_at = null;
-        payload.rejected_reason = rejectedReasonValue || null;
-      } else {
-        payload.approved_by = null;
-        payload.approved_at = null;
-        payload.rejected_reason = null;
-      }
+      const payload = buildApprovalPayload(approvalStatus, rejectedReasonValue);
 
       const { error } = await supabase
         .from('supplier_invoices')
@@ -278,10 +335,64 @@ const SupplierInvoicesPage = () => {
         title: t('supplierInvoices.approvalUpdated', 'Approbation mise a jour'),
         className: 'bg-green-600 border-none text-white',
       });
+
+      if (approvalStatus === 'pending') {
+        notifyPendingApproval(invoiceId, 'pending_updated');
+      }
     } catch (err) {
       toast({
         title: t('common.error', 'Erreur'),
         description: err.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleBulkApproval = async (approvalStatus) => {
+    if (selectedInvoiceIds.length === 0) {
+      toast({
+        title: t('supplierInvoices.bulk.noSelection', 'Aucune facture sélectionnée'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const payload = buildApprovalPayload(approvalStatus);
+    try {
+      const { error } = await supabase
+        .from('supplier_invoices')
+        .update(payload)
+        .in('id', selectedInvoiceIds);
+
+      if (error) throw error;
+
+      const selectedSet = new Set(selectedInvoiceIds);
+      setInvoices((prev) =>
+        prev.map((invoice) => (
+          selectedSet.has(invoice.id)
+            ? { ...invoice, ...payload }
+            : invoice
+        ))
+      );
+
+      if (approvalStatus === 'pending') {
+        await Promise.allSettled(
+          selectedInvoiceIds.map((id) => notifyPendingApproval(id, 'pending_bulk'))
+        );
+      }
+
+      toast({
+        title: t('supplierInvoices.bulk.updated', 'Mise à jour groupée effectuée'),
+        description: t('supplierInvoices.bulk.updatedDesc', '{{count}} facture(s) mises à jour.', {
+          count: selectedInvoiceIds.length,
+        }),
+        className: 'bg-green-600 border-none text-white',
+      });
+      setSelectedInvoiceIds([]);
+    } catch (error) {
+      toast({
+        title: t('common.error', 'Erreur'),
+        description: error.message,
         variant: 'destructive',
       });
     }
@@ -437,6 +548,9 @@ const SupplierInvoicesPage = () => {
       }
 
       setInvoices((prev) => [newInvoice, ...prev]);
+      if ((newInvoice.approval_status || 'pending') === 'pending') {
+        notifyPendingApproval(newInvoice.id, 'pending_created');
+      }
 
       toast({
         title: t('supplierInvoices.created', 'Facture enregistree'),
@@ -649,6 +763,46 @@ const SupplierInvoicesPage = () => {
           </div>
         </motion.div>
 
+        {selectedInvoiceIds.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#0f1528]/80 border border-amber-500/30 backdrop-blur rounded-xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+          >
+            <p className="text-sm text-amber-200">
+              {t('supplierInvoices.bulk.selectedCount', '{{count}} facture(s) sélectionnée(s)', {
+                count: selectedInvoiceIds.length,
+              })}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-emerald-500 text-emerald-300 hover:bg-emerald-500/10"
+                onClick={() => handleBulkApproval('approved')}
+              >
+                {t('supplierInvoices.bulk.approve', 'Approuver la sélection')}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-blue-500 text-blue-300 hover:bg-blue-500/10"
+                onClick={() => handleBulkApproval('pending')}
+              >
+                {t('supplierInvoices.bulk.markPending', 'Marquer en attente')}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-gray-300 hover:bg-white/5"
+                onClick={() => setSelectedInvoiceIds([])}
+              >
+                {t('supplierInvoices.bulk.clearSelection', 'Vider la sélection')}
+              </Button>
+            </div>
+          </motion.div>
+        ) : null}
+
         {/* Table / Empty / Loading */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -694,6 +848,13 @@ const SupplierInvoicesPage = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="border-white/10 hover:bg-transparent">
+                    <TableHead className="w-10 text-center">
+                      <Checkbox
+                        checked={allPageSelected}
+                        onCheckedChange={(value) => toggleSelectAllPage(!!value)}
+                        aria-label={t('supplierInvoices.bulk.selectPage', 'Sélectionner la page')}
+                      />
+                    </TableHead>
                     <TableHead className="text-gray-400">
                       {t('supplierInvoices.colSupplier', 'Fournisseur')}
                     </TableHead>
@@ -738,6 +899,14 @@ const SupplierInvoicesPage = () => {
                         key={inv.id}
                         className="border-white/5 hover:bg-white/5"
                       >
+                        <TableCell className="text-center">
+                          <Checkbox
+                            checked={selectedIdSet.has(inv.id)}
+                            onCheckedChange={(value) => toggleInvoiceSelection(inv.id, !!value)}
+                            aria-label={t('supplierInvoices.bulk.selectInvoice', 'Sélectionner la facture')}
+                          />
+                        </TableCell>
+
                         {/* Supplier */}
                         <TableCell className="text-gray-300">
                           {inv.supplier?.id ? (
@@ -825,7 +994,16 @@ const SupplierInvoicesPage = () => {
                                 </SelectItem>
                               </SelectContent>
                             </Select>
-                            {getApprovalBadge(inv.approval_status || 'pending')}
+                            <div className="flex items-center gap-1">
+                              {getApprovalBadge(inv.approval_status || 'pending')}
+                              <button
+                                onClick={() => setHistoryInvoice(inv)}
+                                className="p-0.5 rounded hover:bg-gray-700/50 text-gray-400 hover:text-orange-400 transition-colors"
+                                title={t('supplierInvoices.approvalHistory', 'Approval history')}
+                              >
+                                <Clock className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                             {inv.approval_status === 'rejected' && inv.rejected_reason ? (
                               <p className="text-[10px] text-rose-300 max-w-[180px] leading-tight">
                                 {inv.rejected_reason}
@@ -975,56 +1153,18 @@ const SupplierInvoicesPage = () => {
         onUploadSuccess={handleUploadSuccess}
       />
 
-      {/* Reject approval reason */}
-      <Dialog
+      <RejectApprovalDialog
         open={!!rejectTargetInvoice}
+        reason={rejectReason}
+        onReasonChange={setRejectReason}
+        onConfirm={handleConfirmReject}
         onOpenChange={(open) => {
           if (!open) {
             setRejectTargetInvoice(null);
             setRejectReason('');
           }
         }}
-      >
-        <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-gradient text-lg">
-              {t('supplierInvoices.rejectReasonTitle', 'Motif de rejet')}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-1">
-            <p className="text-sm text-gray-400">
-              {t(
-                'supplierInvoices.rejectReasonDesc',
-                'Expliquez pourquoi cette facture est rejetée avant de continuer.'
-              )}
-            </p>
-            <Input
-              value={rejectReason}
-              onChange={(event) => setRejectReason(event.target.value)}
-              className="bg-gray-800 border-gray-700 text-white"
-              placeholder={t('supplierInvoices.rejectReasonPlaceholder', 'Motif (optionnel)')}
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRejectTargetInvoice(null);
-                setRejectReason('');
-              }}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
-            >
-              {t('common.cancel', 'Annuler')}
-            </Button>
-            <Button
-              onClick={handleConfirmReject}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              {t('supplierInvoices.rejectAction', 'Confirmer le rejet')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog
@@ -1058,6 +1198,12 @@ const SupplierInvoicesPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ApprovalHistoryDialog
+        open={!!historyInvoice}
+        onOpenChange={(open) => { if (!open) setHistoryInvoice(null); }}
+        invoice={historyInvoice}
+      />
     </>
   );
 };

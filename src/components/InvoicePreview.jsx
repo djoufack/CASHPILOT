@@ -9,7 +9,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useCompany } from '@/hooks/useCompany';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { exportUBL } from '@/services/exportUBL';
-import { exportFacturX, validateForFacturX } from '@/services/exportFacturX';
+import { exportFacturXPdf, validateForFacturX } from '@/services/exportFacturX';
+import { saveElementAsPdfBytes } from '@/services/pdfExportRuntime';
 import { usePeppolSend } from '@/hooks/usePeppolSend';
 import PeppolStatusBadge from '@/components/peppol/PeppolStatusBadge';
 import { getTheme } from '@/config/invoiceThemes';
@@ -87,7 +88,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
     );
   };
 
-  const handleExportFacturXPackage = async () => {
+  const handleExportFacturXXml = async () => {
     await guardedAction(
       CREDIT_COSTS.PDF_INVOICE,
       t('credits.costPdfExport'),
@@ -98,16 +99,15 @@ const InvoicePreview = ({ invoice, client, items }) => {
             throw new Error(validation.errors.join(', '));
           }
 
-          const invoiceNumber = invoice.invoice_number || invoice.invoiceNumber || 'invoice';
-          const { blob, filename } = await exportFacturX(invoice, company, client, 'EN16931');
+          const pdfBytes = await saveElementAsPdfBytes(invoiceRef.current);
+          const { blob, filename } = await exportFacturXPdf(pdfBytes, invoice, company, client, 'EN16931');
           downloadBlob(blob, filename);
-          await exportInvoiceToPDF(invoiceRef.current, `${invoiceNumber}-factur-x`);
 
           toast({
             title: 'Success',
             description: t(
-              'invoices.facturxPackageExported',
-              'Factur-X package exported (XML + PDF).'
+              'invoices.facturxPdfExported',
+              'Factur-X PDF exported.'
             ),
           });
         } catch (error) {
@@ -141,14 +141,14 @@ const InvoicePreview = ({ invoice, client, items }) => {
 
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
-            onClick={handleExportFacturXPackage}
+            onClick={handleExportFacturXXml}
             variant="outline"
             className="border-teal-500/30 text-teal-300 hover:bg-teal-500/10"
           >
             <FileArchive className="w-4 h-4 mr-2" />
             {t(
-              'invoices.exportFacturXPackage',
-              'Factur-X PDF+XML'
+              'invoices.exportFacturXPdf',
+              'Export PDF (Factur-X)'
             )} ({CREDIT_COSTS.PDF_INVOICE} {t('credits.creditsLabel')})
           </Button>
         </motion.div>

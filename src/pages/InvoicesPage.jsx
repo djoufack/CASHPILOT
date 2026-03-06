@@ -292,6 +292,8 @@ const InvoicesPage = () => {
     );
   };
 
+  // XML-only export from list view (no rendered element available for PDF embedding).
+  // Full Factur-X PDF+XML is available from InvoicePreview.
   const handleExportInvoiceFacturX = (invoice) => {
     guardedAction(
       CREDIT_COSTS.PDF_INVOICE,
@@ -311,13 +313,6 @@ const InvoicesPage = () => {
           anchor.download = filename;
           anchor.click();
           URL.revokeObjectURL(url);
-
-          const enrichedInvoice = {
-            ...invoice,
-            items: getInvoiceItems(invoice.id),
-            client,
-          };
-          await exportInvoicePDF(enrichedInvoice, company);
         } catch (error) {
           captureError(error, {
             tags: { scope: 'invoices', action: 'export_facturx' },
@@ -647,10 +642,10 @@ const InvoicesPage = () => {
 	                                      size="sm"
 	                                      onClick={() => handleExportInvoiceFacturX(invoice)}
 	                                      className="border-teal-500/40 text-teal-300 hover:bg-teal-900/20 h-8 px-2"
-	                                      title="Factur-X PDF+XML (2 crédits)"
+	                                      title={`${t('invoices.exportFacturXXml', 'Export XML (Factur-X)')} (2 ${t('credits.creditsLabel')})`}
 	                                    >
 	                                      <FileArchive className="w-4 h-4" />
-	                                      <span className="hidden xl:inline ml-1">Factur-X</span>
+	                                      <span className="hidden xl:inline ml-1">{t('invoices.exportFacturXXml', 'Export XML (Factur-X)')}</span>
 	                                    </Button>
 	                                  </div>
 	                                </td>
@@ -891,7 +886,7 @@ const InvoicesPage = () => {
                                   size="sm"
                                   onClick={() => handleExportInvoiceFacturX(invoice)}
                                   className="border-teal-500/40 text-teal-300 hover:bg-teal-900/20 h-8 px-2"
-                                  title="Factur-X PDF+XML"
+                                  title={t('invoices.exportFacturXXml', 'Export XML (Factur-X)')}
                                 >
                                   <FileArchive className="w-4 h-4" />
                                 </Button>

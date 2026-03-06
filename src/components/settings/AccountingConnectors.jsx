@@ -11,6 +11,8 @@ import { useCompany } from '@/hooks/useCompany';
 import { useAccountingIntegrations } from '@/hooks/useAccountingIntegrations';
 import { Building2, CheckCircle2, CircleDashed, Link2Off, RefreshCw } from 'lucide-react';
 
+const CONNECTORS_COMING_SOON = true;
+
 const PROVIDERS = [
   {
     id: 'xero',
@@ -26,16 +28,32 @@ const PROVIDERS = [
   },
 ];
 
-const statusBadge = (status) => {
+const statusBadge = (status, t) => {
   switch (status) {
     case 'connected':
-      return <Badge className="bg-emerald-500/20 text-emerald-300 border-0">Connected</Badge>;
+      return (
+        <Badge className="bg-emerald-500/20 text-emerald-300 border-0">
+          {t('integrationsHub.accountingConnectors.status.connected', 'Connected')}
+        </Badge>
+      );
     case 'pending':
-      return <Badge className="bg-amber-500/20 text-amber-300 border-0">Pending OAuth</Badge>;
+      return (
+        <Badge className="bg-amber-500/20 text-amber-300 border-0">
+          {t('integrationsHub.accountingConnectors.status.pending', 'Pending OAuth')}
+        </Badge>
+      );
     case 'error':
-      return <Badge className="bg-red-500/20 text-red-300 border-0">Error</Badge>;
+      return (
+        <Badge className="bg-red-500/20 text-red-300 border-0">
+          {t('integrationsHub.accountingConnectors.status.error', 'Error')}
+        </Badge>
+      );
     default:
-      return <Badge className="bg-slate-500/20 text-slate-300 border-0">Disconnected</Badge>;
+      return (
+        <Badge className="bg-slate-500/20 text-slate-300 border-0">
+          {t('integrationsHub.accountingConnectors.status.disconnected', 'Disconnected')}
+        </Badge>
+      );
   }
 };
 
@@ -59,8 +77,8 @@ const AccountingConnectors = () => {
   const [busyProvider, setBusyProvider] = useState(null);
 
   const companyName = useMemo(
-    () => company?.company_name || company?.name || 'Current company',
-    [company]
+    () => company?.company_name || company?.name || t('integrationsHub.accountingConnectors.currentCompany', 'Current company'),
+    [company, t]
   );
 
   const updateForm = (provider, patch) => {
@@ -93,8 +111,12 @@ const AccountingConnectors = () => {
       const payload = formState[provider];
       await connectProvider(provider, payload);
       toast({
-        title: 'Connecteur activé',
-        description: `${provider === 'xero' ? 'Xero' : 'QuickBooks'} est connecté pour ${companyName}.`,
+        title: t('integrationsHub.accountingConnectors.toasts.connectedTitle', 'Connector enabled'),
+        description: t(
+          'integrationsHub.accountingConnectors.toasts.connectedDescription',
+          `${provider === 'xero' ? 'Xero' : 'QuickBooks'} is connected for ${companyName}.`,
+          { provider: provider === 'xero' ? 'Xero' : 'QuickBooks', company: companyName }
+        ),
       });
     });
   };
@@ -104,8 +126,12 @@ const AccountingConnectors = () => {
       const payload = formState[provider];
       await markProviderPending(provider, payload);
       toast({
-        title: 'OAuth prêt',
-        description: `Le connecteur ${provider === 'xero' ? 'Xero' : 'QuickBooks'} est marqué en attente OAuth.`,
+        title: t('integrationsHub.accountingConnectors.toasts.oauthReadyTitle', 'OAuth ready'),
+        description: t(
+          'integrationsHub.accountingConnectors.toasts.oauthReadyDescription',
+          `${provider === 'xero' ? 'Xero' : 'QuickBooks'} connector is marked as pending OAuth.`,
+          { provider: provider === 'xero' ? 'Xero' : 'QuickBooks' }
+        ),
       });
     });
   };
@@ -114,8 +140,12 @@ const AccountingConnectors = () => {
     await withProviderBusy(provider, async () => {
       await disconnectProvider(provider);
       toast({
-        title: 'Connecteur désactivé',
-        description: `${provider === 'xero' ? 'Xero' : 'QuickBooks'} est déconnecté.`,
+        title: t('integrationsHub.accountingConnectors.toasts.disconnectedTitle', 'Connector disabled'),
+        description: t(
+          'integrationsHub.accountingConnectors.toasts.disconnectedDescription',
+          `${provider === 'xero' ? 'Xero' : 'QuickBooks'} is disconnected.`,
+          { provider: provider === 'xero' ? 'Xero' : 'QuickBooks' }
+        ),
       });
     });
   };
@@ -124,8 +154,12 @@ const AccountingConnectors = () => {
     await withProviderBusy(provider, async () => {
       await requestSync(provider);
       toast({
-        title: 'Synchronisation lancée',
-        description: `La synchro ${provider === 'xero' ? 'Xero' : 'QuickBooks'} a été planifiée.`,
+        title: t('integrationsHub.accountingConnectors.toasts.syncStartedTitle', 'Sync started'),
+        description: t(
+          'integrationsHub.accountingConnectors.toasts.syncStartedDescription',
+          `${provider === 'xero' ? 'Xero' : 'QuickBooks'} sync has been scheduled.`,
+          { provider: provider === 'xero' ? 'Xero' : 'QuickBooks' }
+        ),
       });
     });
   };
@@ -138,15 +172,34 @@ const AccountingConnectors = () => {
             <Building2 className="w-5 h-5 text-cyan-400" />
           </div>
           <div>
-            <CardTitle className="text-lg">Connecteurs comptables</CardTitle>
+            <CardTitle className="text-lg">
+              {t('integrationsHub.accountingConnectors.title', 'Accounting connectors')}
+            </CardTitle>
             <CardDescription className="text-gray-400">
-              Xero et QuickBooks utilisent la même source de vérité que CashPilot.
+              {t(
+                'integrationsHub.accountingConnectors.description',
+                'Xero and QuickBooks use the same source of truth as CashPilot.'
+              )}
             </CardDescription>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {CONNECTORS_COMING_SOON ? (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <p className="text-sm font-semibold text-amber-200">
+              {t('integrationsHub.accountingConnectors.comingSoonTitle', 'Coming soon')}
+            </p>
+            <p className="text-xs text-amber-100/90 mt-1">
+              {t(
+                'integrationsHub.accountingConnectors.comingSoonDescription',
+                'OAuth and real synchronization for Xero/QuickBooks are currently being finalized. Actions are temporarily disabled to avoid inconsistent data states.'
+              )}
+            </p>
+          </div>
+        ) : null}
+
         {PROVIDERS.map((provider) => {
           const state = providerState[provider.id];
           const isBusy = busyProvider === provider.id;
@@ -162,7 +215,7 @@ const AccountingConnectors = () => {
                   <p className="text-xs text-gray-400">{provider.subtitle}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {statusBadge(status)}
+                  {statusBadge(status, t)}
                   {loading ? (
                     <CircleDashed className="w-4 h-4 animate-spin text-gray-400" />
                   ) : isConnected ? (
@@ -173,7 +226,9 @@ const AccountingConnectors = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-gray-400">Nom organisation distante</Label>
+                  <Label className="text-xs text-gray-400">
+                    {t('integrationsHub.accountingConnectors.fields.remoteOrgName', 'Remote organization name')}
+                  </Label>
                   <Input
                     value={formState[provider.id].external_company_name}
                     onChange={(event) => updateForm(provider.id, { external_company_name: event.target.value })}
@@ -194,58 +249,68 @@ const AccountingConnectors = () => {
 
               <div className="flex items-center justify-between rounded-lg bg-gray-900/60 border border-gray-700/50 px-3 py-2">
                 <div>
-                  <p className="text-sm text-white">Synchronisation auto</p>
-                  <p className="text-xs text-gray-500">Active la synchro descendante des écritures et tiers</p>
+                  <p className="text-sm text-white">
+                    {t('integrationsHub.accountingConnectors.fields.autoSync', 'Auto sync')}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {t(
+                      'integrationsHub.accountingConnectors.fields.autoSyncDescription',
+                      'Enables downstream synchronization for entries and counterparties.'
+                    )}
+                  </p>
                 </div>
                 <Switch
                   checked={formState[provider.id].sync_enabled}
                   onCheckedChange={(value) => updateForm(provider.id, { sync_enabled: value })}
+                  disabled={CONNECTORS_COMING_SOON}
                 />
               </div>
 
               {state?.last_sync_at ? (
                 <p className="text-xs text-gray-500">
-                  Dernière sync: {new Date(state.last_sync_at).toLocaleString()}
+                  {t('integrationsHub.accountingConnectors.lastSync', 'Last sync')}: {new Date(state.last_sync_at).toLocaleString()}
                 </p>
               ) : null}
               {state?.last_error ? (
-                <p className="text-xs text-red-300">Dernière erreur: {state.last_error}</p>
+                <p className="text-xs text-red-300">
+                  {t('integrationsHub.accountingConnectors.lastError', 'Last error')}: {state.last_error}
+                </p>
               ) : null}
 
               <div className="flex flex-wrap gap-2">
                 <Button
                   onClick={() => handleConnect(provider.id)}
-                  disabled={isBusy}
+                  disabled={isBusy || CONNECTORS_COMING_SOON}
                   className="bg-cyan-600 hover:bg-cyan-700 text-white"
                 >
                   {isBusy ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Connecter
+                  {t('integrationsHub.accountingConnectors.actions.connect', 'Connect')}
                 </Button>
                 <Button
                   variant="outline"
                   className="border-amber-500/40 text-amber-300 hover:bg-amber-900/20"
-                  disabled={isBusy}
+                  disabled={isBusy || CONNECTORS_COMING_SOON}
                   onClick={() => handlePrepareOauth(provider.id)}
                 >
-                  Préparer OAuth
+                  {t('integrationsHub.accountingConnectors.actions.prepareOauth', 'Prepare OAuth')}
                 </Button>
                 <Button
                   variant="outline"
                   className="border-green-500/40 text-green-300 hover:bg-green-900/20"
-                  disabled={isBusy || !canSync}
+                  disabled={isBusy || !canSync || CONNECTORS_COMING_SOON}
                   onClick={() => handleSync(provider.id)}
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Sync now
+                  {t('integrationsHub.accountingConnectors.actions.syncNow', 'Sync now')}
                 </Button>
                 <Button
                   variant="outline"
                   className="border-red-500/40 text-red-300 hover:bg-red-900/20"
-                  disabled={isBusy}
+                  disabled={isBusy || CONNECTORS_COMING_SOON}
                   onClick={() => handleDisconnect(provider.id)}
                 >
                   <Link2Off className="w-4 h-4 mr-2" />
-                  Déconnecter
+                  {t('integrationsHub.accountingConnectors.actions.disconnect', 'Disconnect')}
                 </Button>
               </div>
             </div>

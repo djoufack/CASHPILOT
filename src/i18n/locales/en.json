@@ -217,7 +217,11 @@
     "generatePaymentLink": "Generate payment link",
     "copyPaymentLink": "Copy link",
     "paymentLinkCopied": "Link copied!",
-    "paymentLinkGenerated": "Payment link created"
+    "paymentLinkGenerated": "Payment link created",
+    "exportFacturXXml": "Export XML (Factur-X)",
+    "facturxXmlExported": "Factur-X XML exported.",
+    "exportFacturXPdf": "Export PDF (Factur-X)",
+    "facturxPdfExported": "Factur-X PDF exported."
   },
   "timesheets": {
     "title": "Timesheets",
@@ -585,7 +589,18 @@
     "created": "Invoice recorded",
     "createdDesc": "The supplier invoice has been recorded successfully.",
     "deleteTitle": "Delete invoice",
-    "deleteConfirm": "This action cannot be undone. The supplier invoice will be permanently deleted."
+    "deleteConfirm": "This action cannot be undone. The supplier invoice will be permanently deleted.",
+    "bulk": {
+      "selectPage": "Select page",
+      "selectInvoice": "Select invoice",
+      "selectedCount": "{{count}} invoice(s) selected",
+      "approve": "Approve selection",
+      "markPending": "Mark as pending",
+      "clearSelection": "Clear selection",
+      "noSelection": "No invoice selected",
+      "updated": "Bulk update completed",
+      "updatedDesc": "{{count}} invoice(s) updated."
+    }
   },
   "supplierReports": {
     "title": "Supplier Reports",
@@ -621,6 +636,84 @@
       "received": "Received",
       "cancelled": "Cancelled",
       "draft": "Draft"
+    }
+  },
+  "reportBuilder": {
+    "title": "Report Builder",
+    "labels": {
+      "preset": "Preset",
+      "periodStart": "Period start",
+      "periodEnd": "Period end",
+      "sections": "Report sections",
+      "templates": "Templates"
+    },
+    "presets": {
+      "executive": "Executive",
+      "operations": "Operations",
+      "compliance": "Compliance",
+      "custom": "Custom"
+    },
+    "placeholders": {
+      "templateName": "Template name",
+      "loadTemplate": "Load template",
+      "noTemplate": "No template"
+    },
+    "actions": {
+      "saveTemplate": "Save"
+    },
+    "sections": {
+      "overview": "Overview",
+      "cashflow": "Cashflow",
+      "invoices": "Customer invoices",
+      "suppliers": "Supplier invoices",
+      "taxes": "VAT & compliance"
+    },
+    "validation": {
+      "missingDates": "Please select a start and end date.",
+      "invalidRange": "The end date must be on or after the start date."
+    },
+    "preview": {
+      "cta": "Preview report",
+      "title": "Report preview",
+      "hide": "Hide preview",
+      "readyTitle": "Preview ready"
+    },
+    "refreshData": "Refresh data",
+    "downloadPdf": "Download PDF",
+    "downloadHtml": "Download HTML",
+    "downloadJson": "Download JSON",
+    "toasts": {
+      "refreshed": "Data refreshed",
+      "templatesLoadError": "Unable to load templates from database.",
+      "templateNameRequired": "Template name required",
+      "userRequired": "You must be signed in to save templates.",
+      "templateSaved": "Template saved",
+      "templateSavedDescription": "{{name}} is now available.",
+      "templateLoaded": "Template loaded"
+    },
+    "html": {
+      "revenue": "Revenue",
+      "expenses": "Expenses",
+      "grossProfit": "Gross profit",
+      "overdueInvoices": "Overdue invoices",
+      "cashIn": "Cash in (payments)",
+      "cashOut": "Cash out (expenses)",
+      "netCash": "Net cash",
+      "number": "No.",
+      "client": "Client",
+      "date": "Date",
+      "status": "Status",
+      "amount": "Amount",
+      "supplier": "Supplier",
+      "paymentStatus": "Payment status",
+      "approval": "Approval",
+      "vatCollected": "VAT collected (sales)",
+      "vatDeductible": "VAT deductible (purchases + expenses)",
+      "vatNet": "Net VAT",
+      "company": "Company",
+      "preset": "Preset",
+      "period": "Period",
+      "generatedOn": "Generated on"
     }
   },
   "accounting": {
@@ -2093,6 +2186,8 @@
     "overdueInvoices": "Overdue",
     "allStatuses": "All statuses",
     "allSuppliers": "All suppliers",
+    "filterApproval": "Approval",
+    "allApprovals": "All approvals",
     "searchPlaceholder": "Search by invoice # or supplier...",
     "invoiceNumber": "Invoice #",
     "supplier": "Supplier",
@@ -2106,12 +2201,38 @@
     "statusPending": "Pending",
     "statusPaid": "Paid",
     "statusOverdue": "Overdue",
+    "approvalPending": "Pending approval",
+    "approvalApproved": "Approved",
+    "approvalRejected": "Rejected",
+    "approvalPendingShort": "Pending approvals",
+    "colApproval": "Approval",
     "noInvoices": "No supplier invoices",
     "noInvoicesDesc": "Start by adding a supplier invoice",
     "deleteConfirm": "Delete this invoice?",
     "uploadSuccess": "Invoice added successfully",
+    "approvalUpdated": "Approval updated",
+    "rejectReasonTitle": "Rejection reason",
+    "rejectReasonDesc": "Explain why this invoice is rejected before continuing.",
+    "rejectReasonPlaceholder": "Reason (optional)",
+    "rejectAction": "Confirm rejection",
     "aiExtracted": "AI Extracted",
-    "viewDocument": "View document"
+    "viewDocument": "View document",
+    "approvalHistory": "Approval history",
+    "approvedBy": "Approved by",
+    "approvedAt": "Approved on",
+    "rejectedReason": "Rejection reason",
+    "noApprovalHistory": "No approval action yet",
+    "bulk": {
+      "selectPage": "Select page",
+      "selectInvoice": "Select invoice",
+      "selectedCount": "{{count}} invoice(s) selected",
+      "approve": "Approve selection",
+      "markPending": "Mark as pending",
+      "clearSelection": "Clear selection",
+      "noSelection": "No invoice selected",
+      "updated": "Bulk update completed",
+      "updatedDesc": "{{count}} invoice(s) updated."
+    }
   },
   "peppolPage": {
     "title": "Peppol e-Invoicing",
@@ -2522,6 +2643,11 @@
         "title": "Integration recipes",
         "description": "Ready entry points for CRM, notifications, reconciliation, or external reporting.",
         "badge": "Playbooks"
+      },
+      "accounting": {
+        "title": "Accounting connectors",
+        "description": "Connect Xero and QuickBooks while keeping CashPilot as the canonical source of truth.",
+        "badge": "Xero + QB"
       }
     },
     "recipes": {
@@ -2539,6 +2665,42 @@
         "title": "n8n / business scripts",
         "description": "Drive internal automations with the REST API and signed events.",
         "cta": "Create an API key"
+      }
+    },
+    "accountingConnectors": {
+      "title": "Accounting connectors",
+      "description": "Xero and QuickBooks use the same source of truth as CashPilot.",
+      "currentCompany": "Current company",
+      "comingSoonTitle": "Coming soon",
+      "comingSoonDescription": "OAuth and real Xero/QuickBooks synchronization are being finalized. Actions are temporarily disabled to avoid inconsistent states.",
+      "status": {
+        "connected": "Connected",
+        "pending": "Pending OAuth",
+        "error": "Error",
+        "disconnected": "Disconnected"
+      },
+      "fields": {
+        "remoteOrgName": "Remote organization name",
+        "autoSync": "Auto sync",
+        "autoSyncDescription": "Enables downstream synchronization for entries and counterparties."
+      },
+      "actions": {
+        "connect": "Connect",
+        "prepareOauth": "Prepare OAuth",
+        "syncNow": "Sync now",
+        "disconnect": "Disconnect"
+      },
+      "lastSync": "Last sync",
+      "lastError": "Last error",
+      "toasts": {
+        "connectedTitle": "Connector enabled",
+        "connectedDescription": "{{provider}} is connected for {{company}}.",
+        "oauthReadyTitle": "OAuth ready",
+        "oauthReadyDescription": "{{provider}} connector is marked as pending OAuth.",
+        "disconnectedTitle": "Connector disabled",
+        "disconnectedDescription": "{{provider}} is disconnected.",
+        "syncStartedTitle": "Sync started",
+        "syncStartedDescription": "{{provider}} sync has been scheduled."
       }
     }
   },

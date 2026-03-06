@@ -204,7 +204,11 @@
     "generatePaymentLink": "Générer lien de paiement",
     "copyPaymentLink": "Copier le lien",
     "paymentLinkCopied": "Lien copié !",
-    "paymentLinkGenerated": "Lien de paiement créé"
+    "paymentLinkGenerated": "Lien de paiement créé",
+    "exportFacturXXml": "Exporter XML (Factur-X)",
+    "facturxXmlExported": "XML Factur-X exporté.",
+    "exportFacturXPdf": "Exporter PDF (Factur-X)",
+    "facturxPdfExported": "PDF Factur-X exporté."
   },
   "timesheets": {
     "title": "Feuilles de temps",
@@ -572,7 +576,18 @@
     "created": "Facture enregistr\u00e9e",
     "createdDesc": "La facture fournisseur a \u00e9t\u00e9 enregistr\u00e9e avec succ\u00e8s.",
     "deleteTitle": "Supprimer la facture",
-    "deleteConfirm": "Cette action est irr\u00e9versible. La facture fournisseur sera d\u00e9finitivement supprim\u00e9e."
+    "deleteConfirm": "Cette action est irr\u00e9versible. La facture fournisseur sera d\u00e9finitivement supprim\u00e9e.",
+    "bulk": {
+      "selectPage": "S\u00e9lectionner la page",
+      "selectInvoice": "S\u00e9lectionner la facture",
+      "selectedCount": "{{count}} facture(s) s\u00e9lectionn\u00e9e(s)",
+      "approve": "Approuver la s\u00e9lection",
+      "markPending": "Marquer en attente",
+      "clearSelection": "Vider la s\u00e9lection",
+      "noSelection": "Aucune facture s\u00e9lectionn\u00e9e",
+      "updated": "Mise \u00e0 jour group\u00e9e effectu\u00e9e",
+      "updatedDesc": "{{count}} facture(s) mises \u00e0 jour."
+    }
   },
   "supplierReports": {
     "title": "Rapports fournisseurs",
@@ -608,6 +623,84 @@
       "received": "Réceptionnée",
       "cancelled": "Annulée",
       "draft": "Brouillon"
+    }
+  },
+  "reportBuilder": {
+    "title": "G\u00e9n\u00e9rateur de rapports",
+    "labels": {
+      "preset": "Pr\u00e9set",
+      "periodStart": "P\u00e9riode d\u00e9but",
+      "periodEnd": "P\u00e9riode fin",
+      "sections": "Sections du rapport",
+      "templates": "Templates"
+    },
+    "presets": {
+      "executive": "Direction",
+      "operations": "Op\u00e9rations",
+      "compliance": "Conformit\u00e9",
+      "custom": "Personnalis\u00e9"
+    },
+    "placeholders": {
+      "templateName": "Nom du template",
+      "loadTemplate": "Charger template",
+      "noTemplate": "Aucun template"
+    },
+    "actions": {
+      "saveTemplate": "Enregistrer"
+    },
+    "sections": {
+      "overview": "Vue d’ensemble",
+      "cashflow": "Cashflow",
+      "invoices": "Factures clients",
+      "suppliers": "Factures fournisseurs",
+      "taxes": "TVA & conformité"
+    },
+    "validation": {
+      "missingDates": "Veuillez sélectionner une date de début et une date de fin.",
+      "invalidRange": "La date de fin doit être postérieure ou égale à la date de début."
+    },
+    "preview": {
+      "cta": "Prévisualiser le rapport",
+      "title": "Aperçu du rapport",
+      "hide": "Masquer l’aperçu",
+      "readyTitle": "Aperçu prêt"
+    },
+    "refreshData": "Rafraîchir les données",
+    "downloadPdf": "Télécharger PDF",
+    "downloadHtml": "Télécharger HTML",
+    "downloadJson": "Télécharger JSON",
+    "toasts": {
+      "refreshed": "Données rafraîchies",
+      "templatesLoadError": "Impossible de charger les templates depuis la base.",
+      "templateNameRequired": "Nom du template requis",
+      "userRequired": "Vous devez être connecté pour enregistrer un template.",
+      "templateSaved": "Template enregistré",
+      "templateSavedDescription": "{{name}} est maintenant disponible.",
+      "templateLoaded": "Template chargé"
+    },
+    "html": {
+      "revenue": "Chiffre d'affaires",
+      "expenses": "Dépenses",
+      "grossProfit": "Marge brute",
+      "overdueInvoices": "Factures en retard",
+      "cashIn": "Encaissements (paiements)",
+      "cashOut": "Décaissements (dépenses)",
+      "netCash": "Net de trésorerie",
+      "number": "N°",
+      "client": "Client",
+      "date": "Date",
+      "status": "Statut",
+      "amount": "Montant",
+      "supplier": "Fournisseur",
+      "paymentStatus": "Statut paiement",
+      "approval": "Approbation",
+      "vatCollected": "TVA collectée (ventes)",
+      "vatDeductible": "TVA déductible (achats + dépenses)",
+      "vatNet": "TVA nette",
+      "company": "Entreprise",
+      "preset": "Preset",
+      "period": "Période",
+      "generatedOn": "Généré le"
     }
   },
   "accounting": {
@@ -2080,6 +2173,8 @@
     "overdueInvoices": "En retard",
     "allStatuses": "Tous les statuts",
     "allSuppliers": "Tous les fournisseurs",
+    "filterApproval": "Approbation",
+    "allApprovals": "Toutes les approbations",
     "searchPlaceholder": "Rechercher par N° facture ou fournisseur...",
     "invoiceNumber": "N° Facture",
     "supplier": "Fournisseur",
@@ -2093,12 +2188,38 @@
     "statusPending": "En attente",
     "statusPaid": "Payée",
     "statusOverdue": "En retard",
+    "approvalPending": "En attente d'approbation",
+    "approvalApproved": "Approuvée",
+    "approvalRejected": "Rejetée",
+    "approvalPendingShort": "Approvals en attente",
+    "colApproval": "Approbation",
     "noInvoices": "Aucune facture fournisseur",
     "noInvoicesDesc": "Commencez par ajouter une facture fournisseur",
     "deleteConfirm": "Supprimer cette facture ?",
     "uploadSuccess": "Facture ajoutée avec succès",
+    "approvalUpdated": "Approbation mise à jour",
+    "rejectReasonTitle": "Motif de rejet",
+    "rejectReasonDesc": "Expliquez pourquoi cette facture est rejetée avant de continuer.",
+    "rejectReasonPlaceholder": "Motif (optionnel)",
+    "rejectAction": "Confirmer le rejet",
     "aiExtracted": "Extraite par IA",
-    "viewDocument": "Voir le document"
+    "viewDocument": "Voir le document",
+    "approvalHistory": "Historique d'approbation",
+    "approvedBy": "Approuv\u00e9 par",
+    "approvedAt": "Approuv\u00e9 le",
+    "rejectedReason": "Motif de rejet",
+    "noApprovalHistory": "Aucune action d'approbation",
+    "bulk": {
+      "selectPage": "S\u00e9lectionner la page",
+      "selectInvoice": "S\u00e9lectionner la facture",
+      "selectedCount": "{{count}} facture(s) s\u00e9lectionn\u00e9e(s)",
+      "approve": "Approuver la s\u00e9lection",
+      "markPending": "Marquer en attente",
+      "clearSelection": "Vider la s\u00e9lection",
+      "noSelection": "Aucune facture s\u00e9lectionn\u00e9e",
+      "updated": "Mise \u00e0 jour group\u00e9e effectu\u00e9e",
+      "updatedDesc": "{{count}} facture(s) mises \u00e0 jour."
+    }
   },
   "peppolPage": {
     "title": "Peppol e-Invoicing",
@@ -2509,6 +2630,11 @@
         "title": "Recettes d’intégration",
         "description": "Points d’entrée prêts pour CRM, notifications, rapprochement ou reporting externe.",
         "badge": "Playbooks"
+      },
+      "accounting": {
+        "title": "Connecteurs comptables",
+        "description": "Connectez Xero et QuickBooks tout en conservant CashPilot comme source canonique de vérité.",
+        "badge": "Xero + QB"
       }
     },
     "recipes": {
@@ -2526,6 +2652,42 @@
         "title": "n8n / scripts métier",
         "description": "Pilotez vos automatisations internes avec l’API REST et les événements signés.",
         "cta": "Créer une clé API"
+      }
+    },
+    "accountingConnectors": {
+      "title": "Connecteurs comptables",
+      "description": "Xero et QuickBooks utilisent la même source de vérité que CashPilot.",
+      "currentCompany": "Société active",
+      "comingSoonTitle": "Bientôt disponible",
+      "comingSoonDescription": "OAuth et la synchronisation réelle Xero/QuickBooks sont en cours de finalisation. Les actions sont temporairement désactivées pour éviter tout état incohérent.",
+      "status": {
+        "connected": "Connecté",
+        "pending": "OAuth en attente",
+        "error": "Erreur",
+        "disconnected": "Déconnecté"
+      },
+      "fields": {
+        "remoteOrgName": "Nom organisation distante",
+        "autoSync": "Synchronisation auto",
+        "autoSyncDescription": "Active la synchro descendante des écritures et tiers."
+      },
+      "actions": {
+        "connect": "Connecter",
+        "prepareOauth": "Préparer OAuth",
+        "syncNow": "Sync now",
+        "disconnect": "Déconnecter"
+      },
+      "lastSync": "Dernière sync",
+      "lastError": "Dernière erreur",
+      "toasts": {
+        "connectedTitle": "Connecteur activé",
+        "connectedDescription": "{{provider}} est connecté pour {{company}}.",
+        "oauthReadyTitle": "OAuth prêt",
+        "oauthReadyDescription": "Le connecteur {{provider}} est marqué en attente OAuth.",
+        "disconnectedTitle": "Connecteur désactivé",
+        "disconnectedDescription": "{{provider}} est déconnecté.",
+        "syncStartedTitle": "Synchronisation lancée",
+        "syncStartedDescription": "La synchro {{provider}} a été planifiée."
       }
     }
   },

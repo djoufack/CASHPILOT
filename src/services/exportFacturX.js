@@ -34,6 +34,46 @@ const escapeXml = (str) => {
     .replace(/'/g, '&apos;');
 };
 
+const REQUIRED_FACTURX_TAGS = [
+  'rsm:CrossIndustryInvoice',
+  'rsm:ExchangedDocumentContext',
+  'rsm:ExchangedDocument',
+  'rsm:SupplyChainTradeTransaction',
+  'ram:ApplicableHeaderTradeAgreement',
+  'ram:ApplicableHeaderTradeSettlement'
+];
+
+export const validateFacturXXmlStructure = (xml) => {
+  const errors = [];
+  if (!xml || typeof xml !== 'string') {
+    return { isValid: false, errors: ['Empty XML payload'] };
+  }
+
+  if (!xml.includes('xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"')) {
+    errors.push('Missing CII rsm namespace declaration');
+  }
+
+  for (const tag of REQUIRED_FACTURX_TAGS) {
+    if (!xml.includes(`<${tag}`)) {
+      errors.push(`Missing required tag: ${tag}`);
+    }
+  }
+
+  // Browser runtime validation for malformed XML.
+  if (typeof DOMParser !== 'undefined') {
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    const parseError = doc.getElementsByTagName('parsererror');
+    if (parseError && parseError.length > 0) {
+      errors.push('Malformed XML document');
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
 /**
  * Format date to Factur-X format (YYYYMMDD)
  */
@@ -226,6 +266,11 @@ export const exportFacturX = async (invoice, seller, buyer, profile = 'BASIC') =
   }
 
   const xml = generateFacturXXml(invoice, seller, buyer, profile);
+  const xmlValidation = validateFacturXXmlStructure(xml);
+  if (!xmlValidation.isValid) {
+    throw new Error(`Invalid Factur-X XML: ${xmlValidation.errors.join(', ')}`);
+  }
+
   const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
 
   return {
@@ -254,10 +299,56 @@ export const validateForFacturX = (invoice, seller, buyer) => {
   };
 };
 
+/**
+ * Embed Factur-X XML inside a PDF as an attachment (EN16931 compliant).
+ * Requires pdf-lib. Takes raw PDF bytes from pdfExportRuntime.saveElementAsPdfBytes().
+ * @param {ArrayBuffer} pdfBytes - Raw PDF bytes
+ * @param {Object} invoice - Invoice data
+ * @param {Object} seller - Seller/company info
+ * @param {Object} buyer - Buyer/client info
+ * @param {string} profile - Factur-X profile
+ * @returns {Object} { blob, filename, profile, xml }
+ */
+export const exportFacturXPdf = async (pdfBytes, invoice, seller, buyer, profile = 'EN16931') => {
+  const { PDFDocument, AFRelationship } = await import('pdf-lib');
+
+  const xml = generateFacturXXml(invoice, seller, buyer, profile);
+  const xmlValidation = validateFacturXXmlStructure(xml);
+  if (!xmlValidation.isValid) {
+    throw new Error(`Invalid Factur-X XML: ${xmlValidation.errors.join(', ')}`);
+  }
+
+  const pdfDoc = await PDFDocument.load(pdfBytes);
+
+  await pdfDoc.attach(
+    new TextEncoder().encode(xml),
+    'factur-x.xml',
+    {
+      mimeType: 'text/xml',
+      description: `Factur-X ${profile} invoice data`,
+      afRelationship: AFRelationship.Alternative,
+    }
+  );
+
+  pdfDoc.setTitle(`Invoice ${invoice.invoice_number || ''}`);
+  pdfDoc.setSubject('Factur-X Invoice');
+  pdfDoc.setProducer('CashPilot');
+
+  const modifiedPdfBytes = await pdfDoc.save();
+  return {
+    blob: new Blob([modifiedPdfBytes], { type: 'application/pdf' }),
+    filename: `factur-x-${invoice.invoice_number || 'invoice'}.pdf`,
+    profile,
+    xml,
+  };
+};
+
 export default {
   generateFacturXXml,
   exportFacturX,
+  exportFacturXPdf,
   validateForFacturX,
+  validateFacturXXmlStructure,
   FACTURX_PROFILES,
   DOCUMENT_TYPES
 };

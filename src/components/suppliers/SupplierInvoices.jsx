@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import GenericKanbanView from '@/components/GenericKanbanView';
+import RejectApprovalDialog from '@/components/suppliers/RejectApprovalDialog';
 import { Plus, Trash2, Sparkles, FileText, List, CalendarDays, CalendarClock, Kanban, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
@@ -22,6 +23,8 @@ const SupplierInvoices = ({ supplierId }) => {
   const { invoices, loading, createInvoice, createLineItems, deleteInvoice, updateStatus, updateApprovalStatus, getSignedUrl } = useSupplierInvoices(supplierId);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  const [rejectTargetInvoice, setRejectTargetInvoice] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
   const { t } = useTranslation();
 
   const handleUploadSuccess = async (formData, file) => {
@@ -104,6 +107,23 @@ const SupplierInvoices = ({ supplierId }) => {
     { id: 'overdue', title: t('supplierInvoices.statusOverdue'), color: 'bg-red-500/20 text-red-400' },
   ];
 
+  const handleApprovalSelect = (invoice, nextStatus) => {
+    if (nextStatus === 'rejected') {
+      setRejectTargetInvoice(invoice);
+      setRejectReason(invoice?.rejected_reason || '');
+      return;
+    }
+
+    updateApprovalStatus(invoice.id, nextStatus);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectTargetInvoice) return;
+    await updateApprovalStatus(rejectTargetInvoice.id, 'rejected', rejectReason);
+    setRejectTargetInvoice(null);
+    setRejectReason('');
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -176,7 +196,7 @@ const SupplierInvoices = ({ supplierId }) => {
                       <td className="py-2 px-3 text-center">
                         <Select
                           value={inv.approval_status || 'pending'}
-                          onValueChange={(val) => updateApprovalStatus(inv.id, val)}
+                          onValueChange={(val) => handleApprovalSelect(inv, val)}
                         >
                           <SelectTrigger className="h-7 w-28 bg-transparent border-gray-700 text-xs">
                             <SelectValue />
@@ -258,6 +278,19 @@ const SupplierInvoices = ({ supplierId }) => {
         onClose={() => setIsUploadOpen(false)}
         supplierId={supplierId}
         onUploadSuccess={handleUploadSuccess}
+      />
+
+      <RejectApprovalDialog
+        open={!!rejectTargetInvoice}
+        reason={rejectReason}
+        onReasonChange={setRejectReason}
+        onConfirm={handleConfirmReject}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRejectTargetInvoice(null);
+            setRejectReason('');
+          }
+        }}
       />
     </div>
   );

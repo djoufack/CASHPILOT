@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { notifyPendingSupplierApproval } from '@/services/supplierApprovalNotifications';
 
 export const useSupplierInvoices = (supplierId) => {
   const [invoices, setInvoices] = useState([]);
@@ -96,6 +97,13 @@ export const useSupplierInvoices = (supplierId) => {
       
       setInvoices([data, ...invoices]);
       toast({ title: "Success", description: "Invoice recorded successfully" });
+
+      if ((data?.approval_status || 'pending') === 'pending') {
+        notifyPendingSupplierApproval({ invoiceId: data.id, action: 'pending_created' }).catch((notifyError) => {
+          console.error('supplier approval notification failed', notifyError);
+        });
+      }
+
       return data;
     } catch (err) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -167,6 +175,12 @@ export const useSupplierInvoices = (supplierId) => {
         )
       );
       toast({ title: 'Updated', description: 'Approval status updated' });
+
+      if (approvalStatus === 'pending') {
+        notifyPendingSupplierApproval({ invoiceId: id, action: 'pending_updated' }).catch((notifyError) => {
+          console.error('supplier approval notification failed', notifyError);
+        });
+      }
     } catch (err) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
