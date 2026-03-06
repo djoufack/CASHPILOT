@@ -82,7 +82,7 @@ const ProjectDetail = () => {
         <div className="container mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <Link to="/projects">
+            <Link to="/app/projects">
               <Button variant="ghost" className="mb-4 pl-0 text-gray-400 hover:text-white hover:bg-transparent">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Back to Projects
               </Button>

@@ -1,9 +1,12 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, ShoppingCart, AlertTriangle, FileText } from 'lucide-react';
+import { AlertTriangle, FileText, Package, ShoppingCart, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import {
+  buildCanonicalOperationsSnapshot,
+  EMPTY_CANONICAL_OPERATIONS_SNAPSHOT,
+} from '@/shared/canonicalOperationsSnapshot';
 
 const StatCard = ({ title, value, icon: Icon, color, subtext }) => (
   <Card className="bg-gray-800 border-gray-700 shadow-lg">
@@ -20,45 +23,48 @@ const StatCard = ({ title, value, icon: Icon, color, subtext }) => (
 
 const SupplierStats = () => {
   const { applyCompanyScope } = useCompanyScope();
-  const [stats, setStats] = useState({
-    totalSuppliers: 0,
-    totalProducts: 0,
-    lowStock: 0,
-    pendingOrders: 0,
-    overdueInvoices: 0
-  });
+  const [stats, setStats] = useState(() => EMPTY_CANONICAL_OPERATIONS_SNAPSHOT.suppliers);
 
   useEffect(() => {
     const fetchStats = async () => {
-      // 1. Suppliers
-      const { count: suppliersCount } = await applyCompanyScope(
-        supabase.from('suppliers').select('*', { count: 'exact', head: true })
-      );
-      
-      // 2. Products & Low Stock (from user's own products table)
-      const { data: products } = await applyCompanyScope(
-        supabase.from('products').select('stock_quantity, min_stock_level')
-      );
-      const totalProducts = products?.length || 0;
-      const lowStock = products?.filter(p => p.stock_quantity <= p.min_stock_level).length || 0;
+      try {
+        const suppliersQuery = applyCompanyScope(
+          supabase.from('suppliers').select('id, status')
+        );
+        const productsQuery = applyCompanyScope(
+          supabase.from('products').select('id, stock_quantity, min_stock_level')
+        );
+        const ordersQuery = applyCompanyScope(
+          supabase.from('supplier_orders').select('id, order_status, total_amount, total_ttc, amount')
+        );
+        const invoicesQuery = applyCompanyScope(
+          supabase.from('supplier_invoices').select('id, payment_status, total_amount, total_ttc, amount')
+        );
 
-      // 3. Pending Orders
-      const { count: pendingOrders } = await applyCompanyScope(
-        supabase.from('supplier_orders').select('*', { count: 'exact', head: true }).eq('order_status', 'pending')
-      );
+        const [suppliersRes, productsRes, ordersRes, invoicesRes] = await Promise.all([
+          suppliersQuery,
+          productsQuery,
+          ordersQuery,
+          invoicesQuery,
+        ]);
 
-      // 4. Overdue Invoices (rough check on status, ideally check due_date too)
-      const { count: overdueInvoices } = await applyCompanyScope(
-        supabase.from('supplier_invoices').select('*', { count: 'exact', head: true }).eq('payment_status', 'overdue')
-      );
+        if (suppliersRes.error) throw suppliersRes.error;
+        if (productsRes.error) throw productsRes.error;
+        if (ordersRes.error) throw ordersRes.error;
+        if (invoicesRes.error) throw invoicesRes.error;
 
-      setStats({
-        totalSuppliers: suppliersCount || 0,
-        totalProducts,
-        lowStock,
-        pendingOrders: pendingOrders || 0,
-        overdueInvoices: overdueInvoices || 0
-      });
+        const snapshot = buildCanonicalOperationsSnapshot({
+          suppliers: suppliersRes.data || [],
+          products: productsRes.data || [],
+          supplierOrders: ordersRes.data || [],
+          supplierInvoices: invoicesRes.data || [],
+        });
+
+        setStats(snapshot.suppliers);
+      } catch (error) {
+        console.error('Error fetching supplier stats:', error);
+        setStats(EMPTY_CANONICAL_OPERATIONS_SNAPSHOT.suppliers);
+      }
     };
 
     fetchStats();
@@ -80,14 +86,14 @@ const SupplierStats = () => {
       />
       <StatCard
         title="Stock bas"
-        value={stats.lowStock}
+        value={stats.lowStockProducts}
         icon={AlertTriangle}
         color="text-red-500"
         subtext="Nécessite attention"
       />
       <StatCard
         title="Commandes en cours"
-        value={stats.pendingOrders}
+        value={stats.inProgressOrders}
         icon={ShoppingCart}
         color="text-yellow-500"
       />

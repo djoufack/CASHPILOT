@@ -6,6 +6,7 @@ import {
   storePendingBankConnection,
 } from '@/utils/bankConnectionRedirect';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { buildCanonicalOperationsSnapshot } from '@/shared/canonicalOperationsSnapshot';
 
 const DEFAULT_BANK_COUNTRY = 'BE';
 
@@ -198,9 +199,10 @@ export const useBankConnections = () => {
     }
   };
 
-  const totalBalance = useMemo(() => connections
-    .filter((connection) => connection.status === 'active' && connection.account_balance != null)
-    .reduce((sum, connection) => sum + parseFloat(connection.account_balance), 0), [connections]);
+  const bankMetrics = useMemo(
+    () => buildCanonicalOperationsSnapshot({ bankConnections: connections }).bank,
+    [connections]
+  );
 
   return {
     connections,
@@ -210,7 +212,8 @@ export const useBankConnections = () => {
     completeConnection,
     syncConnection,
     disconnectBank,
-    totalBalance,
+    totalBalance: bankMetrics.totalBalance,
+    bankMetrics,
     refresh: fetchConnections,
   };
 };

@@ -43,7 +43,12 @@
     "copy": "Copier",
     "copied": "Copié",
     "close": "Fermer",
-    "topNavigation": "Navigation supérieure"
+    "topNavigation": "Navigation supérieure",
+    "primaryNavigation": "Navigation principale",
+    "openNavigation": "Ouvrir la navigation",
+    "expandSidebar": "Étendre la barre latérale",
+    "collapseSidebar": "Réduire la barre latérale",
+    "skipToContent": "Aller au contenu principal"
   },
   "aiChat": {
     "title": "Assistant IA",
@@ -60,6 +65,16 @@
     "noActiveAccount": "Aucun compte actif",
     "accountCount": "{{count}} compte(s)",
     "accountFallback": "Compte {{index}}"
+  },
+  "clientPortal": {
+    "pageTitle": "Portail client",
+    "title": "Portail client",
+    "navigation": "Navigation du portail client",
+    "recentInvoices": "Factures récentes",
+    "paid": "Payée",
+    "due": "Échéance",
+    "pendingApprovals": "Validations en attente",
+    "noPendingTimesheets": "Aucune feuille de temps en attente de validation."
   },
   "nav": {
     "dashboard": "Tableau de bord",

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/utils/calculations';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
+import { buildCanonicalOperationsSnapshot } from '@/shared/canonicalOperationsSnapshot';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
 import { Button } from '@/components/ui/button';
@@ -185,34 +185,18 @@ const SupplierInvoicesPage = () => {
 
   // ---------- KPI CALCULATIONS ----------
 
-  const totalCount = filteredInvoices.length;
-  const totalAmount = filteredInvoices.reduce(
-    (sum, inv) => sum + (parseFloat(inv.total_amount) || parseFloat(inv.total_ttc) || 0),
-    0
+  const supplierInvoiceMetrics = useMemo(
+    () => buildCanonicalOperationsSnapshot({ supplierInvoices: filteredInvoices }).suppliers.supplierInvoices,
+    [filteredInvoices]
   );
 
-  const pendingInvoices = filteredInvoices.filter(
-    (inv) => inv.payment_status === 'pending'
-  );
-  const pendingCount = pendingInvoices.length;
-  const pendingAmount = pendingInvoices.reduce(
-    (sum, inv) => sum + (parseFloat(inv.total_amount) || parseFloat(inv.total_ttc) || 0),
-    0
-  );
-
-  const overdueInvoices = filteredInvoices.filter(
-    (inv) => inv.payment_status === 'overdue'
-  );
-  const overdueCount = overdueInvoices.length;
-  const overdueAmount = overdueInvoices.reduce(
-    (sum, inv) => sum + (parseFloat(inv.total_amount) || parseFloat(inv.total_ttc) || 0),
-    0
-  );
-
-  const paidInvoices = filteredInvoices.filter(
-    (inv) => inv.payment_status === 'paid'
-  );
-  const paidCount = paidInvoices.length;
+  const totalCount = supplierInvoiceMetrics.totalCount;
+  const totalAmount = supplierInvoiceMetrics.totalAmount;
+  const pendingCount = supplierInvoiceMetrics.pendingCount;
+  const pendingAmount = supplierInvoiceMetrics.pendingAmount;
+  const overdueCount = supplierInvoiceMetrics.overdueCount;
+  const overdueAmount = supplierInvoiceMetrics.overdueAmount;
+  const paidCount = supplierInvoiceMetrics.paidCount;
 
   // ---------- ACTIONS ----------
 

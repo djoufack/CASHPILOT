@@ -17,7 +17,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Trash2, Truck, Search, List, CalendarDays, CalendarClock, Download, FileText, Kanban } from 'lucide-react';
+import { Plus, Trash2, Truck, Search, List, CalendarDays, CalendarClock, Download, FileText, Kanban, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { usePagination } from '@/hooks/usePagination';
@@ -37,6 +37,7 @@ const DeliveryNotesPage = () => {
   const { guardedAction, modalProps } = useCreditsGuard();
 
   const [showCreate, setShowCreate] = useState(false);
+  const [selectedDeliveryNote, setSelectedDeliveryNote] = useState(null);
   const [search, setSearch] = useState('');
   const [formData, setFormData] = useState({
     invoice_id: '',
@@ -289,6 +290,15 @@ const DeliveryNotesPage = () => {
                               {t('deliveryNotes.markDelivered')}
                             </Button>
                           )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-blue-400 hover:text-blue-300 h-8"
+                            title={t('common.view') || 'Visualiser'}
+                            onClick={() => setSelectedDeliveryNote(dn)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
                           <Button size="sm" variant="ghost" className="text-purple-400 hover:text-purple-300 h-8" title="Export PDF (2 crédits)"
                             onClick={() => handleExportDeliveryNotePDF(dn)}>
                             <Download className="w-4 h-4" />
@@ -451,6 +461,94 @@ const DeliveryNotesPage = () => {
               <Truck className="w-4 h-4 mr-2" />{t('deliveryNotes.generate')}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!selectedDeliveryNote} onOpenChange={(open) => !open && setSelectedDeliveryNote(null)}>
+        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-gradient">
+              {t('common.view') || 'Visualiser'} {selectedDeliveryNote?.delivery_note_number || ''}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedDeliveryNote && (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="bg-gray-700/30 rounded-lg p-3">
+                  <p className="text-gray-400">{t('timesheets.client')}</p>
+                  <p className="text-white font-medium mt-1">{selectedDeliveryNote.client?.company_name || '-'}</p>
+                </div>
+                <div className="bg-gray-700/30 rounded-lg p-3">
+                  <p className="text-gray-400">{t('timesheets.date')}</p>
+                  <p className="text-white font-medium mt-1">
+                    {selectedDeliveryNote.date ? format(new Date(selectedDeliveryNote.date), 'dd/MM/yyyy') : '-'}
+                  </p>
+                </div>
+                <div className="bg-gray-700/30 rounded-lg p-3">
+                  <p className="text-gray-400">{t('common.status')}</p>
+                  <p className="text-white font-medium mt-1">{t(`deliveryNotes.status.${selectedDeliveryNote.status}`)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-gray-700/30 rounded-lg p-3">
+                  <p className="text-gray-400">{t('deliveryNotes.carrier')}</p>
+                  <p className="text-white font-medium mt-1">{selectedDeliveryNote.carrier || '-'}</p>
+                </div>
+                <div className="bg-gray-700/30 rounded-lg p-3">
+                  <p className="text-gray-400">{t('deliveryNotes.tracking')}</p>
+                  <p className="text-white font-medium mt-1">{selectedDeliveryNote.tracking_number || '-'}</p>
+                </div>
+              </div>
+
+              <div className="bg-gray-700/30 rounded-lg p-3">
+                <p className="text-gray-400">{t('deliveryNotes.deliveryAddress')}</p>
+                <p className="text-white font-medium mt-1">{selectedDeliveryNote.delivery_address || '-'}</p>
+              </div>
+
+              <div className="bg-gray-700/30 rounded-lg p-3">
+                <p className="text-gray-400 mb-2">{t('deliveryNotes.items')}</p>
+                {Array.isArray(selectedDeliveryNote.items) && selectedDeliveryNote.items.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedDeliveryNote.items.map((item, idx) => (
+                      <div key={`${selectedDeliveryNote.id}-item-${idx}`} className="flex items-center justify-between border-b border-gray-700/70 pb-2 last:border-0">
+                        <span className="text-gray-200">{item.description || '-'}</span>
+                        <span className="text-gray-400">{item.quantity || 0} {item.unit || ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">{t('deliveryNotes.noItems', 'Aucune ligne disponible')}</p>
+                )}
+              </div>
+
+              {selectedDeliveryNote.notes && (
+                <div className="bg-gray-700/30 rounded-lg p-3">
+                  <p className="text-gray-400">{t('timesheets.notes')}</p>
+                  <p className="text-white mt-1">{selectedDeliveryNote.notes}</p>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="border-purple-500/40 text-purple-300 hover:bg-purple-900/20"
+                  onClick={() => handleExportDeliveryNotePDF(selectedDeliveryNote)}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/20"
+                  onClick={() => handleExportDeliveryNoteHTML(selectedDeliveryNote)}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  HTML
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
       </div>

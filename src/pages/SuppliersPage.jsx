@@ -388,7 +388,7 @@ const SuppliersPage = () => {
             )},
             { header: 'Actions', accessor: (s) => (
               <div className="flex justify-end gap-2">
-                <Link to={`/suppliers/${s.id}`}>
+                <Link to={`/app/suppliers/${s.id}`}>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-white">
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -416,7 +416,7 @@ const SuppliersPage = () => {
                 <div className="flex items-center justify-between pt-3 border-t border-gray-700">
                   <Badge variant="outline" className="capitalize border-orange-500/30 text-orange-400">{supplier.supplier_type}</Badge>
                   <div className="flex gap-2">
-                    <Link to={`/suppliers/${supplier.id}`}>
+                    <Link to={`/app/suppliers/${supplier.id}`}>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-white">
                         <Eye className="h-4 w-4" />
                       </Button>

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import invoiceTemplates, { DEFAULT_INVOICE_TEMPLATE_ID } from '@/config/invoiceTemplates';
 
 const DEFAULT_SETTINGS = {
-  template_id: 'classic',
+  template_id: DEFAULT_INVOICE_TEMPLATE_ID,
   color_theme: 'default',
   custom_labels: {},
   show_logo: true,
@@ -11,6 +12,15 @@ const DEFAULT_SETTINGS = {
   show_payment_terms: true,
   footer_text: '',
   font_family: 'Inter',
+};
+
+const TEMPLATE_IDS = new Set(invoiceTemplates.map((template) => template.id));
+
+const resolveTemplateId = (templateId) => {
+  if (templateId && TEMPLATE_IDS.has(templateId)) {
+    return templateId;
+  }
+  return DEFAULT_INVOICE_TEMPLATE_ID;
 };
 
 export const useInvoiceSettings = () => {
@@ -32,7 +42,13 @@ export const useInvoiceSettings = () => {
         console.error('Error fetching invoice settings:', error);
       }
       if (data) {
-        setSettings({ ...DEFAULT_SETTINGS, ...data });
+        setSettings({
+          ...DEFAULT_SETTINGS,
+          ...data,
+          template_id: resolveTemplateId(data.template_id),
+        });
+      } else {
+        setSettings(DEFAULT_SETTINGS);
       }
     } catch (err) {
       console.error('Error fetching invoice settings:', err);
@@ -49,7 +65,7 @@ export const useInvoiceSettings = () => {
     if (!user) return;
     const payload = {
       user_id: user.id,
-      template_id: newSettings.template_id,
+      template_id: resolveTemplateId(newSettings.template_id),
       color_theme: newSettings.color_theme,
       custom_labels: newSettings.custom_labels || {},
       show_logo: newSettings.show_logo,
@@ -71,7 +87,11 @@ export const useInvoiceSettings = () => {
       throw error;
     }
 
-    setSettings({ ...DEFAULT_SETTINGS, ...data });
+    setSettings({
+      ...DEFAULT_SETTINGS,
+      ...data,
+      template_id: resolveTemplateId(data.template_id),
+    });
     return data;
   };
 

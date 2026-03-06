@@ -43,5 +43,6 @@ Plaid supported countries/products: https://support.plaid.com/hc/en-us/articles/
 Plaid MCP: https://plaid.com/docs/resources/mcp/
 GoCardless MCP: https://developer.gocardless.com/developer-tools/mcp/
 TrueLayer MCP preview: https://docs.truelayer.com/docs/truelayer-mcp-integration-for-claude-ai
+
 Je peux maintenant vous proposer l’architecture cible complète “connexion banques -> réconciliation -> écriture comptable”.
 Ou je peux directement implémenter la passe suivante dans le code: vrai sélecteur de banque, callback, sync transactions, et réconciliation initiale.
