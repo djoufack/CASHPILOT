@@ -26,6 +26,7 @@ const MAX_CONTEXT_PARTS = 3;
 const MAX_CONTEXT_PART_LENGTH = 1500;
 const GEMINI_CACHE_TTL_MS = 10 * 60 * 1000;
 const GEMINI_CACHE_MAX_ENTRIES = 300;
+const CHATBOT_RATE_LIMIT = { maxRequests: 50, windowMs: 15 * 60 * 1000, keyPrefix: 'ai-chatbot' };
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const normalizeStatus = (value: unknown) => String(value || '').trim().toLowerCase();
 const normalizeQuestion = (value: string) => String(value || '')
@@ -307,6 +308,52 @@ const fetchScopedCount = async (
   return count ?? 0;
 };
 
+type RateLimitCheck = {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
+};
+
+const enforceRateLimit = async (
+  serviceClient: ReturnType<typeof createServiceClient>,
+  scope: string,
+  rateKey: string,
+  config: { maxRequests: number; windowMs: number; keyPrefix: string },
+): Promise<RateLimitCheck> => {
+  const windowSeconds = Math.max(1, Math.floor(config.windowMs / 1000));
+  const persistentRateKey = `${scope}:${rateKey}`;
+
+  try {
+    const { data, error } = await serviceClient.rpc('enforce_rate_limit', {
+      p_scope: scope,
+      p_rate_key: persistentRateKey,
+      p_max_requests: config.maxRequests,
+      p_window_seconds: windowSeconds,
+    });
+
+    if (!error) {
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) {
+        const resetAt = new Date(String(row.reset_at || '')).getTime();
+        return {
+          allowed: Boolean(row.allowed),
+          remaining: Number(row.remaining ?? 0),
+          resetAt: Number.isFinite(resetAt) ? resetAt : (Date.now() + config.windowMs),
+        };
+      }
+    }
+  } catch (_) {
+    // Fall through to in-memory fallback when RPC is unavailable.
+  }
+
+  const fallback = checkRateLimit(persistentRateKey, config);
+  return {
+    allowed: fallback.allowed,
+    remaining: fallback.remaining,
+    resetAt: fallback.resetAt,
+  };
+};
+
 const assertNoCriticalQueryError = (
   responses: Array<{ name: string; error: { message: string; code?: string | null; details?: string | null; hint?: string | null } | null }>,
 ) => {
@@ -429,11 +476,12 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const rateLimit = checkRateLimit(resolvedUserId, {
-      keyPrefix: 'ai-chatbot',
-      maxRequests: 50,
-      windowMs: 15 * 60 * 1000,
-    });
+    const rateLimit = await enforceRateLimit(
+      supabase,
+      'ai-chatbot',
+      resolvedUserId,
+      CHATBOT_RATE_LIMIT,
+    );
     if (!rateLimit.allowed) {
       return rateLimitResponse(rateLimit, corsHeaders);
     }
