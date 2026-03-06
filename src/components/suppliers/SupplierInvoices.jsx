@@ -19,7 +19,7 @@ const statusColors = {
 };
 
 const SupplierInvoices = ({ supplierId }) => {
-  const { invoices, loading, createInvoice, createLineItems, deleteInvoice, updateStatus, getSignedUrl } = useSupplierInvoices(supplierId);
+  const { invoices, loading, createInvoice, createLineItems, deleteInvoice, updateStatus, updateApprovalStatus, getSignedUrl } = useSupplierInvoices(supplierId);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
   const { t } = useTranslation();
@@ -33,6 +33,7 @@ const SupplierInvoices = ({ supplierId }) => {
       vat_amount: formData.total_tva ? parseFloat(formData.total_tva) : null,
       vat_rate: parseFloat(formData.vat_rate) || 0,
       payment_status: formData.payment_status,
+      approval_status: formData.approval_status || 'pending',
       total_ht: formData.total_ht ? parseFloat(formData.total_ht) : null,
       total_ttc: formData.total_ttc ? parseFloat(formData.total_ttc) : null,
       currency: formData.currency || 'EUR',
@@ -146,6 +147,7 @@ const SupplierInvoices = ({ supplierId }) => {
                     <th className="py-2 px-3 text-left">{t('supplierInvoices.date')}</th>
                     <th className="py-2 px-3 text-right">{t('supplierInvoices.amount')}</th>
                     <th className="py-2 px-3 text-center">{t('supplierInvoices.status')}</th>
+                    <th className="py-2 px-3 text-center">{t('supplierInvoices.colApproval', 'Approval')}</th>
                     <th className="py-2 px-3 text-center">{t('supplierInvoices.source')}</th>
                     <th className="py-2 px-3 text-center">{t('supplierInvoices.document')}</th>
                     <th className="py-2 px-3 text-right">{t('supplierInvoices.actions')}</th>
@@ -168,6 +170,21 @@ const SupplierInvoices = ({ supplierId }) => {
                             <SelectItem value="pending">{t('supplierInvoices.statusPending')}</SelectItem>
                             <SelectItem value="paid">{t('supplierInvoices.statusPaid')}</SelectItem>
                             <SelectItem value="overdue">{t('supplierInvoices.statusOverdue')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="py-2 px-3 text-center">
+                        <Select
+                          value={inv.approval_status || 'pending'}
+                          onValueChange={(val) => updateApprovalStatus(inv.id, val)}
+                        >
+                          <SelectTrigger className="h-7 w-28 bg-transparent border-gray-700 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                            <SelectItem value="pending">{t('supplierInvoices.approvalPending', 'Pending')}</SelectItem>
+                            <SelectItem value="approved">{t('supplierInvoices.approvalApproved', 'Approved')}</SelectItem>
+                            <SelectItem value="rejected">{t('supplierInvoices.approvalRejected', 'Rejected')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </td>

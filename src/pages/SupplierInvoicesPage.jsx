@@ -64,6 +64,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Receipt,
+  ShieldCheck,
 } from 'lucide-react';
 
 const SupplierInvoicesPage = () => {
@@ -83,6 +84,7 @@ const SupplierInvoicesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [supplierFilter, setSupplierFilter] = useState('all');
+  const [approvalFilter, setApprovalFilter] = useState('all');
 
   // Upload flow state
   const [isSupplierSelectOpen, setIsSupplierSelectOpen] = useState(false);
@@ -91,6 +93,8 @@ const SupplierInvoicesPage = () => {
 
   // Delete confirmation state
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [rejectTargetInvoice, setRejectTargetInvoice] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   // Pagination
   const pagination = usePagination({ pageSize: 25 });
@@ -170,7 +174,11 @@ const SupplierInvoicesPage = () => {
     const matchesSupplier =
       supplierFilter === 'all' || inv.supplier_id === supplierFilter;
 
-    return matchesSearch && matchesStatus && matchesSupplier;
+    const currentApproval = inv.approval_status || 'pending';
+    const matchesApproval =
+      approvalFilter === 'all' || currentApproval === approvalFilter;
+
+    return matchesSearch && matchesStatus && matchesSupplier && matchesApproval;
   });
 
   // Pagination sync
@@ -197,6 +205,12 @@ const SupplierInvoicesPage = () => {
   const overdueCount = supplierInvoiceMetrics.overdueCount;
   const overdueAmount = supplierInvoiceMetrics.overdueAmount;
   const paidCount = supplierInvoiceMetrics.paidCount;
+  const approvalPendingCount = filteredInvoices.filter(
+    (invoice) => (invoice.approval_status || 'pending') === 'pending'
+  ).length;
+  const approvedCount = filteredInvoices.filter(
+    (invoice) => (invoice.approval_status || 'pending') === 'approved'
+  ).length;
 
   // ---------- ACTIONS ----------
 
@@ -225,6 +239,69 @@ const SupplierInvoicesPage = () => {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleUpdateApproval = async (invoiceId, approvalStatus, rejectedReasonValue = null) => {
+    try {
+      const payload = { approval_status: approvalStatus };
+
+      if (approvalStatus === 'approved') {
+        payload.approved_by = user?.id || null;
+        payload.approved_at = new Date().toISOString();
+        payload.rejected_reason = null;
+      } else if (approvalStatus === 'rejected') {
+        payload.approved_by = null;
+        payload.approved_at = null;
+        payload.rejected_reason = rejectedReasonValue || null;
+      } else {
+        payload.approved_by = null;
+        payload.approved_at = null;
+        payload.rejected_reason = null;
+      }
+
+      const { error } = await supabase
+        .from('supplier_invoices')
+        .update(payload)
+        .eq('id', invoiceId);
+
+      if (error) throw error;
+
+      setInvoices((prev) =>
+        prev.map((inv) =>
+          inv.id === invoiceId
+            ? { ...inv, ...payload }
+            : inv
+        )
+      );
+
+      toast({
+        title: t('supplierInvoices.approvalUpdated', 'Approbation mise a jour'),
+        className: 'bg-green-600 border-none text-white',
+      });
+    } catch (err) {
+      toast({
+        title: t('common.error', 'Erreur'),
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleApprovalSelect = (invoice, nextStatus) => {
+    if (nextStatus === 'rejected') {
+      setRejectTargetInvoice(invoice);
+      setRejectReason(invoice?.rejected_reason || '');
+      return;
+    }
+
+    handleUpdateApproval(invoice.id, nextStatus);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectTargetInvoice) return;
+    await handleUpdateApproval(rejectTargetInvoice.id, 'rejected', rejectReason);
+    setRejectTargetInvoice(null);
+    setRejectReason('');
   };
 
   const handleDelete = async () => {
@@ -317,6 +394,7 @@ const SupplierInvoicesPage = () => {
         vat_amount: formData.total_tva ? parseFloat(formData.total_tva) : null,
         vat_rate: parseFloat(formData.vat_rate) || 0,
         payment_status: formData.payment_status || 'pending',
+        approval_status: formData.approval_status || 'pending',
         total_ht: formData.total_ht ? parseFloat(formData.total_ht) : null,
         total_ttc: formData.total_ttc ? parseFloat(formData.total_ttc) : null,
         currency: formData.currency || currency,
@@ -376,23 +454,25 @@ const SupplierInvoicesPage = () => {
 
   // ---------- STATUS HELPERS ----------
 
-  const getStatusBadge = (status) => {
+  const getApprovalBadge = (approvalStatus) => {
     const config = {
       pending: {
-        className: 'bg-yellow-500/20 text-yellow-400 border-0',
-        label: t('supplierInvoices.statusPending', 'En attente'),
+        className: 'bg-amber-500/20 text-amber-300 border-0',
+        label: t('supplierInvoices.approvalPending', 'En attente d\'approbation'),
       },
-      paid: {
-        className: 'bg-green-500/20 text-green-400 border-0',
-        label: t('supplierInvoices.statusPaid', 'Payee'),
+      approved: {
+        className: 'bg-emerald-500/20 text-emerald-300 border-0',
+        label: t('supplierInvoices.approvalApproved', 'Approuvee'),
       },
-      overdue: {
-        className: 'bg-red-500/20 text-red-400 border-0',
-        label: t('supplierInvoices.statusOverdue', 'En retard'),
+      rejected: {
+        className: 'bg-rose-500/20 text-rose-300 border-0',
+        label: t('supplierInvoices.approvalRejected', 'Rejetee'),
       },
     };
-    const c = config[status] || config.pending;
-    return <Badge className={c.className}>{c.label}</Badge>;
+
+    const normalized = approvalStatus || 'pending';
+    const item = config[normalized] || config.pending;
+    return <Badge className={item.className}>{item.label}</Badge>;
   };
 
   // ---------- KPI CARDS ----------
@@ -408,7 +488,7 @@ const SupplierInvoicesPage = () => {
     {
       label: t('supplierInvoices.paid', 'Payees'),
       value: paidCount,
-      sub: null,
+      sub: `${approvedCount} ${t('supplierInvoices.approvalApproved', 'approuvees')}`,
       icon: <CheckCircle className="w-5 h-5 text-green-400" />,
       bg: 'bg-green-500/10',
     },
@@ -425,6 +505,13 @@ const SupplierInvoicesPage = () => {
       sub: formatCurrency(overdueAmount, currency),
       icon: <AlertTriangle className="w-5 h-5 text-red-400" />,
       bg: 'bg-red-500/10',
+    },
+    {
+      label: t('supplierInvoices.approvalPendingShort', 'Approvals en attente'),
+      value: approvalPendingCount,
+      sub: null,
+      icon: <ShieldCheck className="w-5 h-5 text-amber-300" />,
+      bg: 'bg-amber-500/10',
     },
   ];
 
@@ -466,7 +553,7 @@ const SupplierInvoicesPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+          className="grid grid-cols-2 md:grid-cols-5 gap-4"
         >
           {kpiCards.map((kpi, idx) => (
             <div
@@ -540,6 +627,25 @@ const SupplierInvoicesPage = () => {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+              <SelectTrigger className="w-full md:w-[220px] bg-gray-900 border-gray-800 text-white">
+                <SelectValue placeholder={t('supplierInvoices.filterApproval', 'Approbation')} />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-900 border-gray-800">
+                <SelectItem value="all" className="text-white hover:bg-gray-800">
+                  {t('supplierInvoices.allApprovals', 'Toutes les approbations')}
+                </SelectItem>
+                <SelectItem value="pending" className="text-white hover:bg-gray-800">
+                  {t('supplierInvoices.approvalPending', 'En attente d\'approbation')}
+                </SelectItem>
+                <SelectItem value="approved" className="text-white hover:bg-gray-800">
+                  {t('supplierInvoices.approvalApproved', 'Approuvee')}
+                </SelectItem>
+                <SelectItem value="rejected" className="text-white hover:bg-gray-800">
+                  {t('supplierInvoices.approvalRejected', 'Rejetee')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </motion.div>
 
@@ -605,6 +711,9 @@ const SupplierInvoicesPage = () => {
                     </TableHead>
                     <TableHead className="text-gray-400 text-center">
                       {t('supplierInvoices.colStatus', 'Statut')}
+                    </TableHead>
+                    <TableHead className="text-gray-400 text-center">
+                      {t('supplierInvoices.colApproval', 'Approbation')}
                     </TableHead>
                     <TableHead className="text-gray-400 text-center">
                       {t('supplierInvoices.colSource', 'Source')}
@@ -692,6 +801,37 @@ const SupplierInvoicesPage = () => {
                               </SelectItem>
                             </SelectContent>
                           </Select>
+                        </TableCell>
+
+                        {/* Approval */}
+                        <TableCell className="text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <Select
+                              value={inv.approval_status || 'pending'}
+                              onValueChange={(value) => handleApprovalSelect(inv, value)}
+                            >
+                              <SelectTrigger className="h-7 w-36 bg-transparent border-gray-700 text-xs mx-auto">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                                <SelectItem value="pending">
+                                  {t('supplierInvoices.approvalPending', 'En attente d\'approbation')}
+                                </SelectItem>
+                                <SelectItem value="approved">
+                                  {t('supplierInvoices.approvalApproved', 'Approuvee')}
+                                </SelectItem>
+                                <SelectItem value="rejected">
+                                  {t('supplierInvoices.approvalRejected', 'Rejetee')}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {getApprovalBadge(inv.approval_status || 'pending')}
+                            {inv.approval_status === 'rejected' && inv.rejected_reason ? (
+                              <p className="text-[10px] text-rose-300 max-w-[180px] leading-tight">
+                                {inv.rejected_reason}
+                              </p>
+                            ) : null}
+                          </div>
                         </TableCell>
 
                         {/* Source (AI badge) */}
@@ -834,6 +974,57 @@ const SupplierInvoicesPage = () => {
         supplierId={selectedSupplierId}
         onUploadSuccess={handleUploadSuccess}
       />
+
+      {/* Reject approval reason */}
+      <Dialog
+        open={!!rejectTargetInvoice}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRejectTargetInvoice(null);
+            setRejectReason('');
+          }
+        }}
+      >
+        <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-gradient text-lg">
+              {t('supplierInvoices.rejectReasonTitle', 'Motif de rejet')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <p className="text-sm text-gray-400">
+              {t(
+                'supplierInvoices.rejectReasonDesc',
+                'Expliquez pourquoi cette facture est rejetée avant de continuer.'
+              )}
+            </p>
+            <Input
+              value={rejectReason}
+              onChange={(event) => setRejectReason(event.target.value)}
+              className="bg-gray-800 border-gray-700 text-white"
+              placeholder={t('supplierInvoices.rejectReasonPlaceholder', 'Motif (optionnel)')}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRejectTargetInvoice(null);
+                setRejectReason('');
+              }}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
+              {t('common.cancel', 'Annuler')}
+            </Button>
+            <Button
+              onClick={handleConfirmReject}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {t('supplierInvoices.rejectAction', 'Confirmer le rejet')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog

@@ -1,11 +1,12 @@
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Bot, Cable, Globe, Puzzle, Webhook } from 'lucide-react';
+import { Bot, Building2, Cable, Globe, Puzzle, Webhook } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import ConnectionSettings from '@/components/settings/ConnectionSettings';
+import AccountingConnectors from '@/components/settings/AccountingConnectors';
 
 const IntegrationsHubPage = () => {
   const { t } = useTranslation();
@@ -38,6 +39,16 @@ const IntegrationsHubPage = () => {
       icon: Puzzle,
       accentClass: 'text-violet-300',
       badge: t('integrationsHub.cards.recipes.badge'),
+    },
+    {
+      title: t('integrationsHub.cards.accounting.title', 'Accounting Connectors'),
+      description: t(
+        'integrationsHub.cards.accounting.description',
+        'Connect Xero and QuickBooks while keeping one canonical source of truth in CashPilot.'
+      ),
+      icon: Building2,
+      accentClass: 'text-teal-300',
+      badge: t('integrationsHub.cards.accounting.badge', 'Xero + QB'),
     },
   ];
 
@@ -97,7 +108,7 @@ const IntegrationsHubPage = () => {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {integrationCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -145,6 +156,7 @@ const IntegrationsHubPage = () => {
               {t('integrationsHub.readySubtitle')}
             </p>
           </div>
+          <AccountingConnectors />
           <ConnectionSettings />
         </section>
       </div>

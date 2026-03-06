@@ -3,12 +3,13 @@ import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { exportInvoiceToPDF } from '@/services/exportPDF';
-import { Download, FileCode, Send } from 'lucide-react';
+import { Download, FileArchive, FileCode, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/components/ui/use-toast';
 import { useCompany } from '@/hooks/useCompany';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { exportUBL } from '@/services/exportUBL';
+import { exportFacturX, validateForFacturX } from '@/services/exportFacturX';
 import { usePeppolSend } from '@/hooks/usePeppolSend';
 import PeppolStatusBadge from '@/components/peppol/PeppolStatusBadge';
 import { getTheme } from '@/config/invoiceThemes';
@@ -41,15 +42,19 @@ const InvoicePreview = ({ invoice, client, items }) => {
   const { guardedAction, modalProps } = useCreditsGuard();
   const { sendViaPeppol, sending, canUsePeppol, creditsModalProps } = usePeppolSend();
 
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleExportUBL = async () => {
     try {
       const { blob, filename } = await exportUBL(invoice, company, client, items);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, filename);
       toast({ title: 'Success', description: t('peppol.exportUBL') });
     } catch (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -82,6 +87,40 @@ const InvoicePreview = ({ invoice, client, items }) => {
     );
   };
 
+  const handleExportFacturXPackage = async () => {
+    await guardedAction(
+      CREDIT_COSTS.PDF_INVOICE,
+      t('credits.costPdfExport'),
+      async () => {
+        try {
+          const validation = validateForFacturX(invoice, company, client);
+          if (!validation.isValid) {
+            throw new Error(validation.errors.join(', '));
+          }
+
+          const invoiceNumber = invoice.invoice_number || invoice.invoiceNumber || 'invoice';
+          const { blob, filename } = await exportFacturX(invoice, company, client, 'EN16931');
+          downloadBlob(blob, filename);
+          await exportInvoiceToPDF(invoiceRef.current, `${invoiceNumber}-factur-x`);
+
+          toast({
+            title: 'Success',
+            description: t(
+              'invoices.facturxPackageExported',
+              'Factur-X package exported (XML + PDF).'
+            ),
+          });
+        } catch (error) {
+          toast({
+            title: 'Error',
+            description: error.message || t('messages.error.pdfExportFailed'),
+            variant: 'destructive',
+          });
+        }
+      }
+    );
+  };
+
   const theme = getTheme(settings.color_theme);
   const TemplateComponent = templateComponents[settings.template_id] || templateComponents[DEFAULT_INVOICE_TEMPLATE_ID];
 
@@ -97,6 +136,20 @@ const InvoicePreview = ({ invoice, client, items }) => {
           >
             <Download className="w-4 h-4 mr-2" />
             {t('invoices.exportPDF')} ({CREDIT_COSTS.PDF_INVOICE} {t('credits.creditsLabel')})
+          </Button>
+        </motion.div>
+
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button
+            onClick={handleExportFacturXPackage}
+            variant="outline"
+            className="border-teal-500/30 text-teal-300 hover:bg-teal-500/10"
+          >
+            <FileArchive className="w-4 h-4 mr-2" />
+            {t(
+              'invoices.exportFacturXPackage',
+              'Factur-X PDF+XML'
+            )} ({CREDIT_COSTS.PDF_INVOICE} {t('credits.creditsLabel')})
           </Button>
         </motion.div>
 

@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const WEBHOOK_EVENTS = [
   // Invoices
@@ -38,173 +39,188 @@ export const WEBHOOK_EVENTS = [
 
 export const useWebhooks = () => {
   const { user } = useAuth();
-  const [webhooks, setWebhooks] = useState([]);
-  const [webhookLogs, setWebhookLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
+  const userId = user?.id;
 
   const fetchWebhooks = useCallback(async () => {
-    if (!user) return;
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('webhook_endpoints')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+    if (!userId) return [];
 
-      if (fetchError) throw fetchError;
-      setWebhooks(data || []);
-    } catch (err) {
-      console.error('fetchWebhooks error:', err);
-      setError(err.message);
-    }
-  }, [user]);
+    const { data, error: fetchError } = await supabase
+      .from('webhook_endpoints')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (fetchError) throw fetchError;
+    return data || [];
+  }, [userId]);
 
   const fetchWebhookLogs = useCallback(async () => {
-    if (!user) return;
-    try {
-      // Fetch deliveries for the user's endpoints
-      const { data: endpoints } = await supabase
-        .from('webhook_endpoints')
-        .select('id')
-        .eq('user_id', user.id);
+    if (!userId) return [];
 
-      if (!endpoints?.length) {
-        setWebhookLogs([]);
-        return;
-      }
+    const { data: endpoints, error: endpointError } = await supabase
+      .from('webhook_endpoints')
+      .select('id')
+      .eq('user_id', userId);
 
-      const endpointIds = endpoints.map(ep => ep.id);
-      const { data, error: fetchError } = await supabase
-        .from('webhook_deliveries')
-        .select('*, endpoint:webhook_endpoints(id, url)')
-        .in('webhook_endpoint_id', endpointIds)
-        .order('created_at', { ascending: false })
-        .limit(100);
+    if (endpointError) throw endpointError;
+    if (!endpoints?.length) return [];
 
-      if (fetchError) throw fetchError;
-      setWebhookLogs(data || []);
-    } catch (err) {
-      console.error('fetchWebhookLogs error:', err);
-      setError(err.message);
-    }
-  }, [user]);
+    const endpointIds = endpoints.map((ep) => ep.id);
+    const { data, error: fetchError } = await supabase
+      .from('webhook_deliveries')
+      .select('*, endpoint:webhook_endpoints(id, url)')
+      .in('webhook_endpoint_id', endpointIds)
+      .order('created_at', { ascending: false })
+      .limit(100);
 
-  const fetchAll = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    setError(null);
-    await Promise.all([fetchWebhooks(), fetchWebhookLogs()]);
-    setLoading(false);
-  }, [user, fetchWebhooks, fetchWebhookLogs]);
+    if (fetchError) throw fetchError;
+    return data || [];
+  }, [userId]);
 
-  useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+  const webhooksQuery = useQuery({
+    queryKey: ['webhooks', userId],
+    queryFn: fetchWebhooks,
+    enabled: Boolean(userId),
+  });
+
+  const webhookLogsQuery = useQuery({
+    queryKey: ['webhook-deliveries', userId],
+    queryFn: fetchWebhookLogs,
+    enabled: Boolean(userId),
+  });
+
+  const invalidateWebhooks = useCallback(async () => {
+    if (!userId) return;
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['webhooks', userId] }),
+      queryClient.invalidateQueries({ queryKey: ['webhook-deliveries', userId] }),
+    ]);
+  }, [queryClient, userId]);
 
   const addWebhook = async ({ url, events, secret }) => {
-    if (!user) return;
-    try {
-      const { data, error: insertError } = await supabase
-        .from('webhook_endpoints')
-        .insert({
-          user_id: user.id,
-          url,
-          events,
-          secret: secret || crypto.randomUUID().replace(/-/g, ''),
-          is_active: true,
-          failure_count: 0,
-        })
-        .select()
-        .single();
+    if (!userId) return null;
 
-      if (insertError) throw insertError;
-      await fetchWebhooks();
-      return data;
-    } catch (err) {
-      console.error('addWebhook error:', err);
-      throw err;
-    }
+    const { data, error: insertError } = await supabase
+      .from('webhook_endpoints')
+      .insert({
+        user_id: userId,
+        url,
+        events,
+        secret: secret || crypto.randomUUID().replace(/-/g, ''),
+        is_active: true,
+        failure_count: 0,
+      })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+    return data;
   };
 
   const updateWebhook = async (id, updates) => {
-    if (!user) return;
-    try {
-      const { error: updateError } = await supabase
-        .from('webhook_endpoints')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('user_id', user.id);
+    if (!userId) return null;
 
-      if (updateError) throw updateError;
-      await fetchWebhooks();
-    } catch (err) {
-      console.error('updateWebhook error:', err);
-      throw err;
-    }
+    const { error: updateError } = await supabase
+      .from('webhook_endpoints')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (updateError) throw updateError;
+    return true;
   };
 
   const deleteWebhook = async (id) => {
-    if (!user) return;
-    try {
-      const { error: deleteError } = await supabase
-        .from('webhook_endpoints')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+    if (!userId) return null;
 
-      if (deleteError) throw deleteError;
-      await fetchAll();
-    } catch (err) {
-      console.error('deleteWebhook error:', err);
-      throw err;
-    }
+    const { error: deleteError } = await supabase
+      .from('webhook_endpoints')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (deleteError) throw deleteError;
+    return true;
   };
 
   const toggleWebhook = async (id, isActive) => {
-    await updateWebhook(id, { is_active: isActive });
+    return updateWebhook(id, { is_active: isActive });
   };
 
   const testWebhook = async (id) => {
-    if (!user) return;
-    try {
-      const webhook = webhooks.find(w => w.id === id);
-      if (!webhook) throw new Error('Webhook not found');
+    if (!userId) return null;
 
-      // Send a test event via the webhooks Edge Function
-      const { data, error: invokeError } = await supabase.functions.invoke('webhooks', {
-        body: {
-          userId: user.id,
-          event: webhook.events?.[0] || 'invoice.created',
-          payload: {
-            test: true,
-            message: 'This is a test webhook delivery from CashPilot',
-            timestamp: new Date().toISOString(),
-          },
+    const { data: webhook, error: webhookError } = await supabase
+      .from('webhook_endpoints')
+      .select('events')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (webhookError) throw webhookError;
+    if (!webhook) throw new Error('Webhook not found');
+
+    const { data, error: invokeError } = await supabase.functions.invoke('webhooks', {
+      body: {
+        userId,
+        event: webhook.events?.[0] || 'invoice.created',
+        payload: {
+          test: true,
+          message: 'This is a test webhook delivery from CashPilot',
+          timestamp: new Date().toISOString(),
         },
-      });
+      },
+    });
 
-      if (invokeError) throw invokeError;
-
-      // Refresh logs to show the test delivery
-      await fetchWebhookLogs();
-      return data;
-    } catch (err) {
-      console.error('testWebhook error:', err);
-      throw err;
-    }
+    if (invokeError) throw invokeError;
+    return data;
   };
 
+  const addWebhookMutation = useMutation({
+    mutationFn: addWebhook,
+    onSuccess: invalidateWebhooks,
+  });
+
+  const updateWebhookMutation = useMutation({
+    mutationFn: ({ id, updates }) => updateWebhook(id, updates),
+    onSuccess: invalidateWebhooks,
+  });
+
+  const deleteWebhookMutation = useMutation({
+    mutationFn: deleteWebhook,
+    onSuccess: invalidateWebhooks,
+  });
+
+  const testWebhookMutation = useMutation({
+    mutationFn: testWebhook,
+    onSuccess: invalidateWebhooks,
+  });
+
+  const refresh = useCallback(async () => {
+    await Promise.all([webhooksQuery.refetch(), webhookLogsQuery.refetch()]);
+  }, [webhooksQuery, webhookLogsQuery]);
+
+  const error = webhooksQuery.error || webhookLogsQuery.error
+    || addWebhookMutation.error || updateWebhookMutation.error
+    || deleteWebhookMutation.error || testWebhookMutation.error;
+
+  const loading = webhooksQuery.isLoading
+    || webhookLogsQuery.isLoading
+    || addWebhookMutation.isPending
+    || updateWebhookMutation.isPending
+    || deleteWebhookMutation.isPending;
+
   return {
-    webhooks,
-    webhookLogs,
+    webhooks: webhooksQuery.data || [],
+    webhookLogs: webhookLogsQuery.data || [],
     loading,
-    error,
-    addWebhook,
-    updateWebhook,
-    deleteWebhook,
-    toggleWebhook,
-    testWebhook,
-    refresh: fetchAll,
+    error: error?.message || null,
+    addWebhook: (payload) => addWebhookMutation.mutateAsync(payload),
+    updateWebhook: (id, updates) => updateWebhookMutation.mutateAsync({ id, updates }),
+    deleteWebhook: (id) => deleteWebhookMutation.mutateAsync(id),
+    toggleWebhook: (id, isActive) => updateWebhookMutation.mutateAsync({ id, updates: { is_active: isActive } }),
+    testWebhook: (id) => testWebhookMutation.mutateAsync(id),
+    refresh,
   };
 };

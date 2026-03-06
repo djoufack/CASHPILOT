@@ -83,7 +83,12 @@ export const useSupplierInvoices = (supplierId) => {
 
       const { data, error } = await supabase
         .from('supplier_invoices')
-        .insert([{ ...withCompanyScope(invoiceData), file_url: fileUrl, supplier_id: supplierId }])
+        .insert([{
+          ...withCompanyScope(invoiceData),
+          file_url: fileUrl,
+          supplier_id: supplierId,
+          approval_status: invoiceData.approval_status || 'pending',
+        }])
         .select()
         .single();
 
@@ -129,6 +134,44 @@ export const useSupplierInvoices = (supplierId) => {
       }
   };
 
+  const updateApprovalStatus = async (id, approvalStatus, rejectedReason = null) => {
+    try {
+      const payload = { approval_status: approvalStatus };
+
+      if (approvalStatus === 'approved') {
+        payload.approved_at = new Date().toISOString();
+        payload.approved_by = user?.id || null;
+        payload.rejected_reason = null;
+      } else if (approvalStatus === 'rejected') {
+        payload.rejected_reason = rejectedReason || null;
+        payload.approved_at = null;
+        payload.approved_by = null;
+      } else {
+        payload.rejected_reason = null;
+        payload.approved_at = null;
+        payload.approved_by = null;
+      }
+
+      const { error } = await supabase
+        .from('supplier_invoices')
+        .update(payload)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setInvoices((prev) =>
+        prev.map((invoice) =>
+          invoice.id === id
+            ? { ...invoice, ...payload }
+            : invoice
+        )
+      );
+      toast({ title: 'Updated', description: 'Approval status updated' });
+    } catch (err) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  };
+
   const createLineItems = async (invoiceId, items) => {
     if (!items || items.length === 0) return;
     try {
@@ -163,6 +206,7 @@ export const useSupplierInvoices = (supplierId) => {
     createLineItems,
     deleteInvoice,
     updateStatus,
+    updateApprovalStatus,
     getSignedUrl
   };
 };

@@ -15,9 +15,10 @@ import { useEmailService } from '@/hooks/useEmailService';
 import { useToast } from '@/components/ui/use-toast';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportInvoicePDF, exportInvoiceHTML } from '@/services/exportDocuments';
+import { exportFacturX, validateForFacturX } from '@/services/exportFacturX';
 import ExportButton from '@/components/ExportButton';
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download, Kanban, Mail, Send, Loader2, Link, Copy, LayoutGrid } from 'lucide-react';
+import { Eye, Trash2, FileText, DollarSign, Banknote, History, Zap, CalendarDays, CalendarClock, List, Download, FileArchive, Kanban, Mail, Send, Loader2, Link, Copy, LayoutGrid } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
@@ -278,6 +279,48 @@ const InvoicesPage = () => {
         } catch (error) {
           captureError(error, {
             tags: { scope: 'invoices', action: 'export_html' },
+            extra: { invoiceId: invoice.id },
+          });
+          toast({
+            title: t('common.error'),
+            description: error?.message || t('common.unexpectedError', 'An unexpected error occurred.'),
+            variant: 'destructive',
+          });
+          throw error;
+        }
+      }
+    );
+  };
+
+  const handleExportInvoiceFacturX = (invoice) => {
+    guardedAction(
+      CREDIT_COSTS.PDF_INVOICE,
+      t('credits.costs.pdfInvoice'),
+      async () => {
+        try {
+          const client = clients.find(c => c.id === (invoice.client_id || invoice.clientId));
+          const validation = validateForFacturX(invoice, company, client || {});
+          if (!validation.isValid) {
+            throw new Error(validation.errors.join(', '));
+          }
+
+          const { blob, filename } = await exportFacturX(invoice, company, client || {}, 'EN16931');
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement('a');
+          anchor.href = url;
+          anchor.download = filename;
+          anchor.click();
+          URL.revokeObjectURL(url);
+
+          const enrichedInvoice = {
+            ...invoice,
+            items: getInvoiceItems(invoice.id),
+            client,
+          };
+          await exportInvoicePDF(enrichedInvoice, company);
+        } catch (error) {
+          captureError(error, {
+            tags: { scope: 'invoices', action: 'export_facturx' },
             extra: { invoiceId: invoice.id },
           });
           toast({
@@ -599,6 +642,16 @@ const InvoicesPage = () => {
 	                                      <FileText className="w-4 h-4" />
 	                                      <span className="hidden xl:inline ml-1">HTML</span>
 	                                    </Button>
+	                                    <Button
+	                                      variant="outline"
+	                                      size="sm"
+	                                      onClick={() => handleExportInvoiceFacturX(invoice)}
+	                                      className="border-teal-500/40 text-teal-300 hover:bg-teal-900/20 h-8 px-2"
+	                                      title="Factur-X PDF+XML (2 crédits)"
+	                                    >
+	                                      <FileArchive className="w-4 h-4" />
+	                                      <span className="hidden xl:inline ml-1">Factur-X</span>
+	                                    </Button>
 	                                  </div>
 	                                </td>
 	                                <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
@@ -832,6 +885,15 @@ const InvoicesPage = () => {
                                   title="Export HTML"
                                 >
                                   <FileText className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleExportInvoiceFacturX(invoice)}
+                                  className="border-teal-500/40 text-teal-300 hover:bg-teal-900/20 h-8 px-2"
+                                  title="Factur-X PDF+XML"
+                                >
+                                  <FileArchive className="w-4 h-4" />
                                 </Button>
                                 <div className="ml-auto">
                                   <Select
