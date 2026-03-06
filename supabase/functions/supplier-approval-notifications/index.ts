@@ -29,16 +29,28 @@ const insertNotifications = async (
   supabase: ReturnType<typeof createClient>,
   rows: Array<Record<string, unknown>>,
 ) => {
-  const withIsRead = rows.map((row) => ({ ...row, is_read: false }));
-  const { error: withIsReadError } = await supabase.from('notifications').insert(withIsRead);
-  if (!withIsReadError) return;
+  const minimalRows = rows.map((row) => ({
+    user_id: row.user_id,
+    type: row.type,
+    message: row.message,
+  }));
 
-  // Legacy schemas may still use `read` instead of `is_read`.
-  const fallbackRows = rows.map((row) => ({ ...row, read: false }));
-  const { error: fallbackError } = await supabase.from('notifications').insert(fallbackRows);
-  if (fallbackError) {
-    throw fallbackError;
+  const attempts: Array<Array<Record<string, unknown>>> = [
+    rows.map((row) => ({ ...row, is_read: false })),
+    rows.map((row) => ({ ...row, read: false })),
+    minimalRows,
+    minimalRows.map((row) => ({ ...row, is_read: false })),
+    minimalRows.map((row) => ({ ...row, read: false })),
+  ];
+
+  let lastError: unknown = null;
+  for (const payload of attempts) {
+    const { error } = await supabase.from('notifications').insert(payload);
+    if (!error) return;
+    lastError = error;
   }
+
+  throw lastError;
 };
 
 serve(async (req) => {
@@ -170,7 +182,6 @@ serve(async (req) => {
         type: 'supplier_approval_pending',
         title,
         message,
-        related_id: invoice.id,
       })),
     );
 
