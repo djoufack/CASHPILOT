@@ -37,12 +37,12 @@ CREATE INDEX IF NOT EXISTS idx_timesheets_unbilled
     ON timesheets(user_id, billable, invoice_id)
     WHERE invoice_id IS NULL AND billable = true;
 
-CREATE INDEX IF NOT EXISTS idx_supplier_invoices_user_payment
-    ON supplier_invoices(user_id, payment_status)
+CREATE INDEX IF NOT EXISTS idx_supplier_invoices_supplier_payment
+    ON supplier_invoices(supplier_id, payment_status)
     WHERE payment_status != 'paid';
 
-CREATE INDEX IF NOT EXISTS idx_supplier_invoices_user_supplier_date
-    ON supplier_invoices(user_id, supplier_id, invoice_date DESC);
+CREATE INDEX IF NOT EXISTS idx_supplier_invoices_supplier_date
+    ON supplier_invoices(supplier_id, invoice_date DESC);
 
 -- ---------------------------------------------------------------------------
 -- 2. Accounting / reporting composites
@@ -85,7 +85,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_invoice
 -- ---------------------------------------------------------------------------
 
 CREATE INDEX IF NOT EXISTS idx_dashboard_snapshots_company_date
-    ON dashboard_snapshots(company_id, snapshot_date DESC);
+    ON dashboard_snapshots(company_id, created_at DESC);
 
 -- ---------------------------------------------------------------------------
 -- 6. Reference table lookups

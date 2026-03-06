@@ -7,14 +7,31 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables');
 }
 
-const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+// In-memory storage for Node.js (no localStorage available).
+// This lets Supabase JS persist the session and automatically include
+// the JWT in PostgREST requests — without reassigning the client instance.
+const memoryStorage: Record<string, string> = {};
+const customStorage = {
+  getItem: (key: string) => memoryStorage[key] ?? null,
+  setItem: (key: string, value: string) => { memoryStorage[key] = value; },
+  removeItem: (key: string) => { delete memoryStorage[key]; },
+};
+
+const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: customStorage,
+    persistSession: true,
+    autoRefreshToken: false,
+  }
+});
 
 let currentUserId: string | null = null;
 let currentSession: Session | null = null;
 
 /**
  * Login with email/password. Sets the session for all subsequent queries.
- * RLS policies apply automatically after login.
+ * Uses in-memory storage so the existing client instance automatically
+ * includes the JWT in all PostgREST requests (no reassignment needed).
  */
 export async function login(email: string, password: string): Promise<{ userId: string; email: string }> {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -34,6 +51,10 @@ export async function logout(): Promise<void> {
   await supabase.auth.signOut();
   currentSession = null;
   currentUserId = null;
+  // Clear in-memory storage
+  for (const key of Object.keys(memoryStorage)) {
+    delete memoryStorage[key];
+  }
 }
 
 /**

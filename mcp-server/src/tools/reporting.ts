@@ -17,7 +17,7 @@ export function registerReportingTools(server: McpServer) {
 
       const { data: entries, error } = await supabase
         .from('accounting_entries')
-        .select('account_code, account_name, debit, credit')
+        .select('account_code, debit, credit')
         .eq('user_id', userId)
         .gte('transaction_date', start_date)
         .lte('transaction_date', end_date);
@@ -26,12 +26,14 @@ export function registerReportingTools(server: McpServer) {
 
       const { data: accounts } = await supabase
         .from('accounting_chart_of_accounts')
-        .select('account_code, account_name, account_category')
+        .select('account_code, account_name, account_type, account_category')
         .eq('user_id', userId);
 
       const categoryMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       for (const acc of accounts ?? []) {
-        categoryMap[acc.account_code] = acc.account_category || 'other';
+        categoryMap[acc.account_code] = acc.account_category || acc.account_type || 'other';
+        nameMap[acc.account_code] = acc.account_name || '';
       }
 
       const accountTotals: Record<string, { code: string; name: string; category: string; debit: number; credit: number }> = {};
@@ -40,7 +42,7 @@ export function registerReportingTools(server: McpServer) {
         if (!accountTotals[code]) {
           accountTotals[code] = {
             code,
-            name: e.account_name || '',
+            name: nameMap[code] || '',
             category: categoryMap[code] || (code.startsWith('7') ? 'revenue' : code.startsWith('6') ? 'expense' : 'other'),
             debit: 0,
             credit: 0
@@ -88,7 +90,7 @@ export function registerReportingTools(server: McpServer) {
 
       const { data: entries, error } = await supabase
         .from('accounting_entries')
-        .select('account_code, account_name, debit, credit')
+        .select('account_code, debit, credit')
         .eq('user_id', userId)
         .lte('transaction_date', cutoff);
 
@@ -96,12 +98,14 @@ export function registerReportingTools(server: McpServer) {
 
       const { data: accounts } = await supabase
         .from('accounting_chart_of_accounts')
-        .select('account_code, account_name, account_category')
+        .select('account_code, account_name, account_type, account_category')
         .eq('user_id', userId);
 
       const categoryMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       for (const acc of accounts ?? []) {
-        categoryMap[acc.account_code] = acc.account_category || 'other';
+        categoryMap[acc.account_code] = acc.account_category || acc.account_type || 'other';
+        nameMap[acc.account_code] = acc.account_name || '';
       }
 
       const accountTotals: Record<string, { code: string; name: string; category: string; balance: number }> = {};
@@ -113,7 +117,7 @@ export function registerReportingTools(server: McpServer) {
             : code.startsWith('4') ? 'liability' : 'other';
           accountTotals[code] = {
             code,
-            name: e.account_name || '',
+            name: nameMap[code] || '',
             category: categoryMap[code] || fallback,
             balance: 0
           };
