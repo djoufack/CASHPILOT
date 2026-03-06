@@ -269,21 +269,8 @@ serve(async (req) => {
         // Add credits
         await ensureUserCreditsRow(supabase, userId);
 
-        const { data: currentCredits } = await supabase
-          .from('user_credits')
-          .select('paid_credits')
-          .eq('user_id', userId)
-          .single();
-
-        const currentPaid = currentCredits?.paid_credits || 0;
-
         const { error: updateError } = await supabase
-          .from('user_credits')
-          .update({
-            paid_credits: currentPaid + credits,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', userId);
+          .rpc('increment_paid_credits', { p_user_id: userId, p_amount: credits });
 
         if (updateError) {
           console.error('Failed to update credits:', updateError);
