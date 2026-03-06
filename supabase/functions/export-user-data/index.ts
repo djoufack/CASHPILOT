@@ -95,21 +95,25 @@ serve(async (req) => {
 
     const collectionLog: Array<{ table: string; count: number; status: string }> = [];
 
-    for (const table of tablesToExport) {
-      try {
-        const { data, error } = await supabase
-          .from(table)
-          .select('*')
-          .eq('user_id', userId);
+    // Query all tables in parallel for better performance
+    const queryResults = await Promise.allSettled(
+      tablesToExport.map(table =>
+        supabase.from(table).select('*').eq('user_id', userId).then(res => ({ table, ...res }))
+      )
+    );
 
+    for (const result of queryResults) {
+      if (result.status === 'fulfilled') {
+        const { table, data, error } = result.value;
         if (!error && data) {
           (exportData.data as Record<string, unknown>)[table] = data;
           collectionLog.push({ table, count: data.length, status: 'success' });
         } else if (error) {
           collectionLog.push({ table, count: 0, status: `error: ${error.message}` });
         }
-      } catch (e) {
+      } else {
         // Table might not exist or have different structure, skip
+        const table = tablesToExport[queryResults.indexOf(result)];
         collectionLog.push({ table, count: 0, status: 'skipped' });
       }
     }

@@ -28,6 +28,8 @@ serve(async (req) => {
     if (fetchError) throw fetchError;
 
     const results = [];
+    const allLineItems: Array<{ invoice_id: string; description: string; quantity: number; unit_price: number; total: number }> = [];
+    const recurringUpdates: Array<{ id: string; update: Record<string, unknown> }> = [];
 
     for (const recurring of (dueInvoices || [])) {
       try {
@@ -57,16 +59,17 @@ serve(async (req) => {
 
         if (createError) throw createError;
 
-        // Copy line items to invoice_items
+        // Collect line items for bulk insert
         if (recurring.line_items?.length > 0) {
-          const lineItems = recurring.line_items.map((item: any) => ({
-            invoice_id: invoice.id,
-            description: item.description,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            total: item.total,
-          }));
-          await supabase.from('invoice_items').insert(lineItems);
+          for (const item of recurring.line_items) {
+            allLineItems.push({
+              invoice_id: invoice.id,
+              description: item.description,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              total: item.total,
+            });
+          }
         }
 
         // Calculate next generation date
@@ -75,21 +78,35 @@ serve(async (req) => {
         // Check if completed
         const isCompleted = recurring.end_date && nextDate > recurring.end_date;
 
-        await supabase
-          .from('recurring_invoices')
-          .update({
+        recurringUpdates.push({
+          id: recurring.id,
+          update: {
             next_generation_date: isCompleted ? recurring.next_generation_date : nextDate,
             last_generated_at: new Date().toISOString(),
             invoices_generated: (recurring.invoices_generated || 0) + 1,
             status: isCompleted ? 'completed' : 'active',
             updated_at: new Date().toISOString(),
-          })
-          .eq('id', recurring.id);
+          },
+        });
 
         results.push({ recurring_id: recurring.id, invoice_id: invoice.id, status: 'generated' });
       } catch (err) {
         results.push({ recurring_id: recurring.id, status: 'error', error: (err as Error).message });
       }
+    }
+
+    // Bulk insert all line items in a single query
+    if (allLineItems.length > 0) {
+      await supabase.from('invoice_items').insert(allLineItems);
+    }
+
+    // Batch update all recurring invoice records in parallel
+    if (recurringUpdates.length > 0) {
+      await Promise.all(
+        recurringUpdates.map(r =>
+          supabase.from('recurring_invoices').update(r.update).eq('id', r.id)
+        )
+      );
     }
 
     return new Response(

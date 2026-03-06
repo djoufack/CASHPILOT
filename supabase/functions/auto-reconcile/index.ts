@@ -76,18 +76,31 @@ serve(async (req) => {
 
       const confidence = bestScore / 100;
       if (bestMatch && confidence >= threshold) {
-        // Auto-reconcile
-        await supabase.from('bank_transactions').update({ invoice_id: bestMatch.id }).eq('id', tx.id);
-        await supabase.from('invoices').update({ status: 'paid', paid_date: tx.date }).eq('id', bestMatch.id);
-
         usedInvoices.add(bestMatch.id);
         matched.push({
           transaction_id: tx.id,
           invoice_id: bestMatch.id,
           invoice_number: bestMatch.invoice_number,
           confidence,
+          date: tx.date,
         });
       }
+    }
+
+    // Batch update all matches in parallel
+    if (matched.length > 0) {
+      await Promise.all(matched.flatMap(m => [
+        supabase.from('bank_transactions').update({
+          invoice_id: m.invoice_id,
+          reconciliation_status: 'matched',
+          match_confidence: m.confidence,
+          matched_at: new Date().toISOString(),
+        }).eq('id', m.transaction_id),
+        supabase.from('invoices').update({
+          status: 'paid',
+          paid_date: m.date,
+        }).eq('id', m.invoice_id),
+      ]));
     }
 
     return new Response(JSON.stringify({ success: true, matched: matched.length, details: matched }),
