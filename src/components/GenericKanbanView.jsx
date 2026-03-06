@@ -152,7 +152,7 @@ const KanbanColumn = ({ column, items, onView, onEdit, onDelete, renderActions, 
  * @param {Function} renderActions - (item) => ReactNode (optional)
  * @param {string} emptyMessage - Text shown when a column is empty
  */
-const GenericKanbanView = ({
+const GenericKanbanView = React.memo(({
   columns = [],
   items = [],
   onStatusChange,
@@ -242,6 +242,6 @@ const GenericKanbanView = ({
       </DndContext>
     </motion.div>
   );
-};
+});
 
 export default GenericKanbanView;

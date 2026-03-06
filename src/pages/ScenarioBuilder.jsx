@@ -4,6 +4,8 @@
  */
 
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,6 +66,7 @@ const getDefaultFormData = () => ({
 });
 
 const ScenarioBuilder = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const {
     scenarios,
@@ -97,10 +100,10 @@ const ScenarioBuilder = () => {
   };
 
   const statusLabels = {
-    draft: 'Brouillon',
-    active: 'Actif',
-    completed: 'Complété',
-    archived: 'Archivé',
+    draft: t('scenarioBuilder.status.draft', 'Draft'),
+    active: t('scenarioBuilder.status.active', 'Active'),
+    completed: t('scenarioBuilder.status.completed', 'Completed'),
+    archived: t('scenarioBuilder.status.archived', 'Archived'),
   };
 
   const handleInputChange = (e) => {
@@ -171,7 +174,7 @@ const ScenarioBuilder = () => {
   };
 
   const handleDeleteScenario = async (scenarioId, scenarioName) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer le scénario "${scenarioName}" ?`)) {
+    if (window.confirm(t('scenarioBuilder.confirmDelete', 'Are you sure you want to delete the scenario "{{name}}"?', { name: scenarioName }))) {
       await deleteScenario(scenarioId);
     }
   };
@@ -182,15 +185,15 @@ const ScenarioBuilder = () => {
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8 text-white">
+      <Helmet><title>{t('scenarioBuilder.title', 'Financial Simulations')} | CashPilot</title></Helmet>
       <div className="mb-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-2xl">
             <h1 className="mb-2 text-4xl font-bold text-white">
-              Simulations Financières
+              {t('scenarioBuilder.title', 'Financial Simulations')}
             </h1>
             <p className="text-slate-400">
-              Créez des scénarios de projection, testez plusieurs hypothèses et comparez
-              l’impact sur votre chiffre d’affaires, votre marge et votre trésorerie.
+              {t('scenarioBuilder.subtitle', 'Create projection scenarios, test multiple hypotheses and compare the impact on your revenue, margin and cash flow.')}
             </p>
           </div>
 
@@ -199,14 +202,14 @@ const ScenarioBuilder = () => {
               <DialogTrigger asChild>
                 <Button variant="outline" className="flex items-center gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white">
                   <FileText className="h-4 w-4" />
-                  Depuis un template
+                  {t('scenarioBuilder.fromTemplate', 'From template')}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-h-[80vh] max-w-4xl overflow-y-auto border-white/10 bg-slate-950 text-white">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Choisir un template de scénario</DialogTitle>
+                  <DialogTitle className="text-white">{t('scenarioBuilder.chooseTemplate', 'Choose a scenario template')}</DialogTitle>
                   <DialogDescription className="text-slate-400">
-                    Sélectionnez un modèle prêt à l’emploi, puis ajustez sa période de projection.
+                    Sélectionnez un modèle prêt à l'emploi, puis ajustez sa période de projection.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -254,7 +257,7 @@ const ScenarioBuilder = () => {
                   <div className="space-y-4 border-t border-white/10 pt-4">
                     <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/5 p-4 text-sm text-slate-300">
                       Le template prépare la structure du scénario. Vous pourrez ensuite affiner
-                      les hypothèses, les revenus, les coûts et la trésorerie dans l’écran de détail.
+                      les hypothèses, les revenus, les coûts et la trésorerie dans l'écran de détail.
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -319,14 +322,14 @@ const ScenarioBuilder = () => {
                       setSelectedTemplate(null);
                     }}
                   >
-                    Annuler
+                    {t('common.cancel', 'Cancel')}
                   </Button>
                   <Button
                     onClick={handleCreateFromTemplate}
                     disabled={!selectedTemplate || hasInvalidDateRange}
                     className="bg-orange-500 text-white hover:bg-orange-600"
                   >
-                    Créer le scénario
+                    {t('scenarioBuilder.createScenario', 'Create scenario')}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -336,12 +339,12 @@ const ScenarioBuilder = () => {
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2 bg-orange-500 text-white hover:bg-orange-600">
                   <Plus className="h-4 w-4" />
-                  Nouveau scénario
+                  {t('scenarioBuilder.newScenario', 'New scenario')}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[720px] border-white/10 bg-slate-950 text-white">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Créer un nouveau scénario</DialogTitle>
+                  <DialogTitle className="text-white">{t('scenarioBuilder.createNewScenario', 'Create a new scenario')}</DialogTitle>
                   <DialogDescription className="text-slate-400">
                     Définissez les paramètres de base de votre simulation financière
                   </DialogDescription>
@@ -360,7 +363,7 @@ const ScenarioBuilder = () => {
                       </div>
                       <div className="rounded-xl border border-white/10 bg-slate-950/60 p-3">
                         <p className="text-xs uppercase tracking-[0.18em] text-slate-500">2. Définir la période</p>
-                        <p className="mt-1 text-sm text-slate-200">Choisissez l’horizon de projection adapté: 12, 18 ou 24 mois.</p>
+                        <p className="mt-1 text-sm text-slate-200">Choisissez l'horizon de projection adapté: 12, 18 ou 24 mois.</p>
                       </div>
                       <div className="rounded-xl border border-white/10 bg-slate-950/60 p-3">
                         <p className="text-xs uppercase tracking-[0.18em] text-slate-500">3. Configurer</p>
@@ -391,7 +394,7 @@ const ScenarioBuilder = () => {
 
                     <div>
                       <Label htmlFor="description" className="text-slate-200">Description</Label>
-                      <p className="mt-1 text-xs text-slate-500">Optionnel. Résumez l’objectif: hausse des prix, recrutement, stress trésorerie, etc.</p>
+                      <p className="mt-1 text-xs text-slate-500">Optionnel. Résumez l'objectif: hausse des prix, recrutement, stress trésorerie, etc.</p>
                       <Textarea
                         id="description"
                         name="description"
@@ -469,7 +472,7 @@ const ScenarioBuilder = () => {
 
                 <DialogFooter className="items-center sm:justify-between">
                   <p className="text-xs text-slate-500">
-                    Le scénario s’ouvrira ensuite sur l’écran de configuration détaillée.
+                    Le scénario s'ouvrira ensuite sur l'écran de configuration détaillée.
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -477,14 +480,14 @@ const ScenarioBuilder = () => {
                       className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white"
                       onClick={() => setIsCreateDialogOpen(false)}
                     >
-                      Annuler
+                      {t('common.cancel', 'Cancel')}
                     </Button>
                     <Button
                       onClick={handleCreateScenario}
                       disabled={!formData.name || !formData.base_date || !formData.end_date || hasInvalidDateRange}
                       className="bg-orange-500 text-white hover:bg-orange-600"
                     >
-                      Créer et configurer
+                      {t('scenarioBuilder.createAndConfigure', 'Create and configure')}
                     </Button>
                   </div>
                 </DialogFooter>
@@ -498,11 +501,11 @@ const ScenarioBuilder = () => {
         <TabsList className="grid w-full max-w-md grid-cols-2 border border-white/10 bg-slate-950/80">
           <TabsTrigger value="scenarios" className="flex items-center gap-2 text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
             <BarChart3 className="h-4 w-4" />
-            Mes Scénarios
+            {t('scenarioBuilder.myScenarios', 'My Scenarios')}
           </TabsTrigger>
           <TabsTrigger value="comparison" className="flex items-center gap-2 text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
             <GitCompare className="h-4 w-4" />
-            Comparaison
+            {t('scenarioBuilder.comparison', 'Comparison')}
           </TabsTrigger>
         </TabsList>
 
@@ -510,22 +513,21 @@ const ScenarioBuilder = () => {
           {loading && scenarios.length === 0 ? (
             <div className="py-12 text-center">
               <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-slate-400">Chargement des scénarios...</p>
+              <p className="mt-4 text-slate-400">{t('scenarioBuilder.loading', 'Loading scenarios...')}</p>
             </div>
           ) : scenarios.length === 0 ? (
             <Card className="border-white/10 bg-slate-950/70">
               <CardContent className="py-12 text-center">
                 <BarChart3 className="mx-auto mb-4 h-16 w-16 text-slate-500" />
                 <h3 className="mb-2 text-xl font-semibold text-white">
-                  Aucun scénario créé
+                  {t('scenarioBuilder.noScenarios', 'No scenarios created')}
                 </h3>
                 <p className="mx-auto mb-6 max-w-md text-slate-400">
-                  Créez votre premier scénario pour projeter l’évolution de votre entreprise
-                  et mesurer rapidement l’effet de vos décisions.
+                  {t('scenarioBuilder.noScenariosDesc', 'Create your first scenario to project your business evolution and quickly measure the effect of your decisions.')}
                 </p>
                 <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-orange-500 text-white hover:bg-orange-600">
                   <Plus className="mr-2 h-4 w-4" />
-                  Créer mon premier scénario
+                  {t('scenarioBuilder.createFirst', 'Create my first scenario')}
                 </Button>
               </CardContent>
             </Card>
@@ -549,7 +551,7 @@ const ScenarioBuilder = () => {
                           )}
                         </div>
                         <CardDescription className="line-clamp-2 text-slate-400">
-                          {scenario.description || 'Aucune description'}
+                          {scenario.description || t('scenarioBuilder.noDescription', 'No description')}
                         </CardDescription>
                       </div>
 
@@ -565,13 +567,13 @@ const ScenarioBuilder = () => {
                             handleOpenScenario(scenario.id);
                           }}>
                             <Edit className="mr-2 h-4 w-4" />
-                            Modifier
+                            {t('common.edit', 'Edit')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation();
                           }}>
                             <Copy className="mr-2 h-4 w-4" />
-                            Dupliquer
+                            {t('common.copy', 'Copy')}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-red-600"
@@ -581,7 +583,7 @@ const ScenarioBuilder = () => {
                             }}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Supprimer
+                            {t('common.delete', 'Delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

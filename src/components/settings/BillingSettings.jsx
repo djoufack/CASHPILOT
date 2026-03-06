@@ -106,10 +106,10 @@ const BillingSettings = () => {
                     <h3 className="text-xl font-bold text-emerald-300">Essai complet</h3>
                   </div>
                   <p className="mt-2 text-sm text-emerald-100/80">
-                    Tous les services sont actifs jusqu’au {trialEndsAt ? format(new Date(trialEndsAt), 'dd/MM/yyyy') : '-'}.
+                    Tous les services sont actifs jusqu'au {trialEndsAt ? format(new Date(trialEndsAt), 'dd/MM/yyyy') : '-'}.
                   </p>
                   <p className="mt-1 text-xs text-emerald-200/70">
-                    À la fin de l’essai, le compte repassera sur le plan gratuit si aucun abonnement payant n’est actif.
+                    À la fin de l'essai, le compte repassera sur le plan gratuit si aucun abonnement payant n'est actif.
                   </p>
                 </div>
                 <Button onClick={() => navigate('/pricing')} className="w-full bg-orange-500 hover:bg-orange-600">

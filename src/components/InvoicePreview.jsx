@@ -100,7 +100,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
           }
 
           const pdfBytes = await saveElementAsPdfBytes(invoiceRef.current);
-          const { blob, filename } = await exportFacturXPdf(pdfBytes, invoice, company, client, 'EN16931');
+          const { blob, filename } = await exportFacturXPdf(pdfBytes, invoice, company, client, 'EN16931', items);
           downloadBlob(blob, filename);
 
           toast({

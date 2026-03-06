@@ -1,5 +1,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { Helmet } from 'react-helmet';
+import { useTranslation } from 'react-i18next';
 import { useStockAlerts, useStockHistory } from '@/hooks/useStockHistory';
 import { useProducts, useProductCategories } from '@/hooks/useProducts';
 import { useCompany } from '@/hooks/useCompany';
@@ -26,6 +28,7 @@ import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
 
 const StockManagement = () => {
+  const { t } = useTranslation();
   const { alerts, fetchAlerts, resolveAlert } = useStockAlerts();
   const { getProductHistory, addHistoryEntry, loading: historyLoading } = useStockHistory();
   const { products, loading, createProduct, updateProduct, deleteProduct, fetchProducts } = useProducts();
@@ -290,6 +293,7 @@ const StockManagement = () => {
 
   return (
     <>
+      <Helmet><title>{t('stockManagement.title', 'Stock Management')} | CashPilot</title></Helmet>
       <CreditsGuardModal {...modalProps} />
       <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
       {/* Tabs */}
@@ -297,14 +301,14 @@ const StockManagement = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
           <div className="space-y-4">
             <div>
-              <h1 className="text-3xl font-bold text-gradient">Gestion du Stock</h1>
-              <p className="text-gray-400">Gérez votre inventaire, alertes et mouvements de stock.</p>
+              <h1 className="text-3xl font-bold text-gradient">{t('stockManagement.title', 'Stock Management')}</h1>
+              <p className="text-gray-400">{t('stockManagement.subtitle', 'Manage your inventory, alerts and stock movements.')}</p>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Rechercher..."
+                  placeholder={t('common.search', 'Search...')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9 bg-gray-800 border-gray-700 text-white w-full sm:w-[260px]"
@@ -313,16 +317,16 @@ const StockManagement = () => {
 
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger className="w-full sm:w-[220px] bg-gray-800 border-gray-700 text-white">
-                  <SelectValue placeholder="Toutes catégories" />
+                  <SelectValue placeholder={t('stockManagement.allCategories', 'All categories')} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                  <SelectItem value="all">Toutes catégories</SelectItem>
+                  <SelectItem value="all">{t('stockManagement.allCategories', 'All categories')}</SelectItem>
                   {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
 
               <Button onClick={() => setShowAddDialog(true)} className="bg-orange-500 hover:bg-orange-600">
-                <Plus className="h-4 w-4 mr-2" /> Nouveau produit
+                <Plus className="h-4 w-4 mr-2" /> {t('stockManagement.newProduct', 'New product')}
               </Button>
             </div>
           </div>
@@ -345,10 +349,10 @@ const StockManagement = () => {
             </div>
 
             <TabsList className="bg-gray-900 border border-gray-800 w-full h-auto p-1 grid grid-cols-2 md:grid-cols-4 gap-1">
-              <TabsTrigger value="cockpit">Cockpit stock</TabsTrigger>
-              <TabsTrigger value="inventory">Inventaire</TabsTrigger>
-              <TabsTrigger value="history">Historique</TabsTrigger>
-              <TabsTrigger value="adjustments">Gestion stock</TabsTrigger>
+              <TabsTrigger value="cockpit">{t('stockManagement.tabs.cockpit', 'Stock Cockpit')}</TabsTrigger>
+              <TabsTrigger value="inventory">{t('stockManagement.tabs.inventory', 'Inventory')}</TabsTrigger>
+              <TabsTrigger value="history">{t('stockManagement.tabs.history', 'History')}</TabsTrigger>
+              <TabsTrigger value="adjustments">{t('stockManagement.tabs.adjustments', 'Stock Management')}</TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -357,7 +361,7 @@ const StockManagement = () => {
         <TabsContent value="adjustments" className="mt-4">
           <Card className="bg-gray-900 border-gray-800 max-w-lg mx-auto">
             <CardHeader>
-              <CardTitle>Ajustement manuel du stock</CardTitle>
+              <CardTitle>{t('stockManagement.manualAdjustment', 'Manual stock adjustment')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -405,7 +409,7 @@ const StockManagement = () => {
               </div>
               <Button className="w-full bg-orange-500 hover:bg-orange-600" onClick={handleAdjustment}
                 disabled={!adjProductId || adjNewQty === '' || historyLoading}>
-                Mettre à jour le stock
+                {t('stockManagement.updateStock', 'Update stock')}
               </Button>
             </CardContent>
           </Card>
@@ -415,7 +419,7 @@ const StockManagement = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">Total Produits</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-400">{t('stockManagement.totalProducts', 'Total Products')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-gradient">{totalProducts}</div>
@@ -423,7 +427,7 @@ const StockManagement = () => {
             </Card>
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">Stock bas</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-400">{t('stockManagement.lowStock', 'Low Stock')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-yellow-500">{lowStockCount}</div>
@@ -431,7 +435,7 @@ const StockManagement = () => {
             </Card>
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">Rupture</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-400">{t('stockManagement.outOfStock', 'Out of Stock')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-500">{outOfStockCount}</div>
@@ -439,7 +443,7 @@ const StockManagement = () => {
             </Card>
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">Valeur du stock</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-400">{t('stockManagement.stockValue', 'Stock Value')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-400">{formatNumber(totalValue)} {currencySymbol}</div>
@@ -449,7 +453,7 @@ const StockManagement = () => {
 
           {alerts.length > 0 && (
             <div className="space-y-2">
-              <h3 className="font-semibold text-lg">Alertes actives</h3>
+              <h3 className="font-semibold text-lg">{t('stockManagement.activeAlerts', 'Active Alerts')}</h3>
               <div className="grid gap-2">
                 {alerts.map(alert => (
                   <Alert key={alert.id} className="bg-gray-900 border border-gray-800 flex items-center justify-between">
@@ -462,7 +466,7 @@ const StockManagement = () => {
                         </AlertDescription>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" onClick={() => resolveAlert(alert.id)}>Résoudre</Button>
+                    <Button size="sm" variant="outline" onClick={() => resolveAlert(alert.id)}>{t('stockManagement.resolve', 'Resolve')}</Button>
                   </Alert>
                 ))}
               </div>
@@ -824,7 +828,7 @@ const StockManagement = () => {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
           <DialogHeader>
-            <DialogTitle>Ajouter un produit</DialogTitle>
+            <DialogTitle>{t('stockManagement.addProduct', 'Add a product')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -886,10 +890,10 @@ const StockManagement = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowAddDialog(false)}>Annuler</Button>
+            <Button variant="ghost" onClick={() => setShowAddDialog(false)}>{t('common.cancel', 'Cancel')}</Button>
             <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleAddProduct}
               disabled={!newProduct.product_name || loading}>
-              Créer
+              {t('common.create', 'Create')}
             </Button>
           </DialogFooter>
         </DialogContent>

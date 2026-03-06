@@ -1,5 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
+import { Helmet } from 'react-helmet';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,6 +13,7 @@ import SupplierProducts from '@/components/suppliers/SupplierProducts';
 import SupplierInvoices from '@/components/suppliers/SupplierInvoices';
 
 const SupplierProfile = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const { getSupplierById } = useSuppliers();
   const [supplier, setSupplier] = useState(null);
@@ -25,14 +28,15 @@ const SupplierProfile = () => {
     fetch();
   }, [getSupplierById, id]);
 
-  if (loading) return <div className="p-8 text-white">Loading...</div>;
-  if (!supplier) return <div className="p-8 text-white">Supplier not found</div>;
+  if (loading) return <div className="p-8 text-white">{t('loading.page', 'Loading...')}</div>;
+  if (!supplier) return <div className="p-8 text-white">{t('supplierProfile.notFound', 'Supplier not found')}</div>;
 
   return (
     <div className="p-8 min-h-screen bg-gray-950 text-white space-y-6">
+      <Helmet><title>{supplier.company_name || t('supplierProfile.title', 'Supplier Profile')} | CashPilot</title></Helmet>
       <Link to="/suppliers">
         <Button variant="ghost" className="mb-4 pl-0 text-gray-400 hover:text-white">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Suppliers
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t('supplierProfile.backToSuppliers', 'Back to Suppliers')}
         </Button>
       </Link>
 
@@ -60,7 +64,7 @@ const SupplierProfile = () => {
           <div className="grid md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                <Mail className="h-3 w-3" /> Contact
+                <Mail className="h-3 w-3" /> {t('supplierProfile.contact', 'Contact')}
               </h4>
               <div className="text-sm">
                 <p className="font-medium text-gradient">{supplier.contact_person || 'N/A'}</p>
@@ -78,7 +82,7 @@ const SupplierProfile = () => {
             </div>
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                <MapPin className="h-3 w-3" /> Address
+                <MapPin className="h-3 w-3" /> {t('supplierProfile.address', 'Address')}
               </h4>
               <div className="text-sm text-gray-400">
                 {supplier.address ? (
@@ -94,7 +98,7 @@ const SupplierProfile = () => {
             </div>
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                <FileText className="h-3 w-3" /> Business Details
+                <FileText className="h-3 w-3" /> {t('supplierProfile.businessDetails', 'Business Details')}
               </h4>
               <div className="text-sm text-gray-400">
                 <p>Type: <span className="text-gradient capitalize">{supplier.supplier_type}</span></p>
@@ -109,7 +113,7 @@ const SupplierProfile = () => {
           <div className="grid md:grid-cols-3 gap-6 pt-4 border-t border-gray-800">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                <CreditCard className="h-3 w-3" /> Bank Details
+                <CreditCard className="h-3 w-3" /> {t('supplierProfile.bankDetails', 'Bank Details')}
               </h4>
               <div className="text-sm text-gray-400">
                 {supplier.bank_name || supplier.iban ? (
@@ -119,7 +123,7 @@ const SupplierProfile = () => {
                     <p>BIC/SWIFT: <span className="text-white font-mono text-xs">{supplier.bic_swift || 'N/A'}</span></p>
                   </>
                 ) : (
-                  <p>No bank details provided</p>
+                  <p>{t('supplierProfile.noBankDetails', 'No bank details provided')}</p>
                 )}
               </div>
             </div>
@@ -138,19 +142,19 @@ const SupplierProfile = () => {
       {/* Tabs for Details */}
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="bg-gray-900 border-gray-800">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="overview">{t('supplierProfile.overview', 'Overview')}</TabsTrigger>
           {(supplier.supplier_type === 'service' || supplier.supplier_type === 'both') && (
-            <TabsTrigger value="services">Services</TabsTrigger>
+            <TabsTrigger value="services">{t('supplierProfile.services', 'Services')}</TabsTrigger>
           )}
           {(supplier.supplier_type === 'product' || supplier.supplier_type === 'both') && (
-            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="products">{t('supplierProfile.products', 'Products')}</TabsTrigger>
           )}
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
+          <TabsTrigger value="invoices">{t('common.invoices', 'Invoices')}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="mt-6">
           <div className="p-8 border border-gray-800 rounded-lg bg-gray-900/30 text-center text-gray-400">
-            Supplier dashboard overview coming soon...
+            {t('supplierProfile.overviewComingSoon', 'Supplier dashboard overview coming soon...')}
           </div>
         </TabsContent>
         
@@ -164,7 +168,7 @@ const SupplierProfile = () => {
 
         <TabsContent value="invoices" className="mt-6">
            <div className="p-4 border border-gray-800 rounded-lg bg-gray-900/30">
-               <h3 className="text-lg font-bold mb-4">Supplier Invoices</h3>
+               <h3 className="text-lg font-bold mb-4">{t('supplierProfile.supplierInvoices', 'Supplier Invoices')}</h3>
                {/* Simplified Invoice View - Full Implementation would use SupplierInvoices component */}
                <div className="text-gray-400">Invoice management module loaded.</div>
            </div>

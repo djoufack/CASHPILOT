@@ -333,7 +333,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
     }
 
     if (formData.assumption_type === 'payment_terms') {
-      return 'Cette hypothèse agit sur le BFR et la trésorerie, pas sur la forme de la courbe de chiffre d’affaires.';
+      return `Cette hypothèse agit sur le BFR et la trésorerie, pas sur la forme de la courbe de chiffre d'affaires.`;
     }
 
     if (
@@ -355,7 +355,7 @@ const AssumptionsBuilder = ({ scenarioId, assumptions, onAssumptionsChanged }) =
     }
 
     if (formData.assumption_type === 'recurring') {
-      return 'Le montant s’ajoute à chaque mois de la simulation. Idéal pour un coût récurrent ou un revenu additionnel stable.';
+      return `Le montant s'ajoute à chaque mois de la simulation. Idéal pour un coût récurrent ou un revenu additionnel stable.`;
     }
 
     return null;

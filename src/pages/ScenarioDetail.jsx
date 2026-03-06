@@ -4,6 +4,8 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { Helmet } from 'react-helmet';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +57,7 @@ function getAnnualizationFactor(startDate, endDate) {
 }
 
 const ScenarioDetail = () => {
+  const { t } = useTranslation();
   const { scenarioId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -230,10 +233,10 @@ const ScenarioDetail = () => {
   };
 
   const statusLabels = {
-    draft: 'Brouillon',
-    active: 'Actif',
-    completed: 'Complété',
-    archived: 'Archivé',
+    draft: t('scenarioBuilder.status.draft', 'Draft'),
+    active: t('scenarioBuilder.status.active', 'Active'),
+    completed: t('scenarioBuilder.status.completed', 'Completed'),
+    archived: t('scenarioBuilder.status.archived', 'Archived'),
   };
 
   if (loading && !scenario) {
@@ -241,7 +244,7 @@ const ScenarioDetail = () => {
       <div className="container mx-auto py-8 px-4 text-white">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-slate-400">Chargement du scénario...</p>
+          <p className="mt-4 text-slate-400">{t('scenarioDetail.loading', 'Loading scenario...')}</p>
         </div>
       </div>
     );
@@ -254,14 +257,14 @@ const ScenarioDetail = () => {
           <CardContent className="py-12 text-center">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">
-              Scénario introuvable
+              {t('scenarioDetail.notFound', 'Scenario not found')}
             </h3>
             <p className="text-slate-400 mb-6">
-              Le scénario demandé n'existe pas ou vous n'y avez pas accès
+              {t('scenarioDetail.notFoundDesc', 'The requested scenario does not exist or you do not have access')}
             </p>
             <Button onClick={() => navigate('/app/scenarios')} className="bg-orange-500 text-white hover:bg-orange-600">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour aux scénarios
+              {t('scenarioDetail.backToScenarios', 'Back to scenarios')}
             </Button>
           </CardContent>
         </Card>
@@ -271,6 +274,7 @@ const ScenarioDetail = () => {
 
   return (
     <>
+      <Helmet><title>{scenario?.name || t('scenarioDetail.title', 'Scenario Detail')} | CashPilot</title></Helmet>
       <CreditsGuardModal {...modalProps} />
       <div className="container mx-auto max-w-7xl px-4 py-8 text-white">
         {/* Header */}
@@ -281,7 +285,7 @@ const ScenarioDetail = () => {
           className="mb-4 text-slate-200 hover:bg-white/5 hover:text-white"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Retour aux scénarios
+          {t('scenarioDetail.backToScenarios', 'Back to scenarios')}
         </Button>
 
         <div className="flex items-start justify-between">
@@ -299,7 +303,7 @@ const ScenarioDetail = () => {
             </div>
 
             <p className="text-slate-400 mb-4">
-              {scenario.description || 'Aucune description'}
+              {scenario.description || t('scenarioBuilder.noDescription', 'No description')}
             </p>
 
             <div className="flex items-center gap-4 text-sm text-slate-400">
@@ -350,12 +354,12 @@ const ScenarioDetail = () => {
               {isRunningSimulation ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Simulation en cours...
+                  {t('scenarioDetail.simulationRunning', 'Simulation running...')}
                 </>
               ) : (
                 <>
                   <PlayCircle className="w-5 h-5 mr-2" />
-                  Lancer la simulation
+                  {t('scenarioDetail.runSimulation', 'Run simulation')}
                 </>
               )}
             </Button>
@@ -368,7 +372,7 @@ const ScenarioDetail = () => {
         <TabsList className="mb-6 grid w-full grid-cols-3 border border-white/10 bg-slate-950/80">
           <TabsTrigger value="assumptions" className="flex items-center gap-2 text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
             <Settings className="w-4 h-4" />
-            Hypothèses
+            {t('scenarioDetail.tabs.assumptions', 'Assumptions')}
           </TabsTrigger>
           <TabsTrigger
             value="results"
@@ -376,11 +380,11 @@ const ScenarioDetail = () => {
             className="flex items-center gap-2 text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white"
           >
             <BarChart3 className="w-4 h-4" />
-            Résultats
+            {t('scenarioDetail.tabs.results', 'Results')}
           </TabsTrigger>
           <TabsTrigger value="info" className="flex items-center gap-2 text-slate-400 data-[state=active]:bg-orange-500 data-[state=active]:text-white">
             <FileText className="w-4 h-4" />
-            Informations
+            {t('scenarioDetail.tabs.info', 'Information')}
           </TabsTrigger>
         </TabsList>
 
@@ -407,14 +411,14 @@ const ScenarioDetail = () => {
               <CardContent className="py-12 text-center">
                 <BarChart3 className="w-16 h-16 text-slate-500 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">
-                  Aucun résultat disponible
+                  {t('scenarioDetail.noResults', 'No results available')}
                 </h3>
                 <p className="text-slate-400 mb-6">
-                  Configurez vos hypothèses puis lancez la simulation pour voir les projections
+                  {t('scenarioDetail.noResultsDesc', 'Configure your assumptions then run the simulation to see projections')}
                 </p>
                 <Button onClick={() => setActiveTab('assumptions')} className="bg-orange-500 text-white hover:bg-orange-600">
                   <Settings className="w-4 h-4 mr-2" />
-                  Configurer les hypothèses
+                  {t('scenarioDetail.configureAssumptions', 'Configure assumptions')}
                 </Button>
               </CardContent>
             </Card>
@@ -425,7 +429,7 @@ const ScenarioDetail = () => {
         <TabsContent value="info">
           <Card className="border-white/10 bg-slate-950/80 text-white">
             <CardHeader>
-              <CardTitle className="text-white">Informations du scénario</CardTitle>
+              <CardTitle className="text-white">{t('scenarioDetail.scenarioInfo', 'Scenario information')}</CardTitle>
               <CardDescription className="text-slate-400">
                 Détails et paramètres de la simulation
               </CardDescription>

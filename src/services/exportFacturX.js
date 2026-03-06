@@ -175,6 +175,113 @@ const generateTradeHeader = (invoice, seller, buyer) => {
 };
 
 /**
+ * Derive EN16931 tax category code from a VAT rate.
+ * S = standard (rate > 0), Z = zero-rated (rate === 0),
+ * E = exempt, AE = reverse charge (caller can override via item.tax_category).
+ */
+const deriveTaxCategoryCode = (rate, explicitCategory) => {
+  if (explicitCategory && ['S', 'Z', 'E', 'AE'].includes(explicitCategory)) {
+    return explicitCategory;
+  }
+  return Number(rate) === 0 ? 'Z' : 'S';
+};
+
+/**
+ * Generate IncludedSupplyChainTradeLineItem elements from invoice items.
+ * @param {Array} items - Invoice line items
+ * @returns {string} XML fragment with all line items
+ */
+const generateLineItems = (items) => {
+  if (!items || items.length === 0) return '';
+
+  return items.map((item, index) => {
+    const lineId = index + 1;
+    const quantity = item.quantity || 1;
+    const unitPrice = item.unit_price ?? item.price ?? 0;
+    const lineTotal = item.total ?? (quantity * unitPrice);
+    const vatRate = item.vat_rate ?? item.tax_rate ?? 20;
+    const categoryCode = deriveTaxCategoryCode(vatRate, item.tax_category);
+    const unitCode = item.unit_code || 'C62';
+
+    return `
+    <ram:IncludedSupplyChainTradeLineItem>
+      <ram:AssociatedDocumentLineDocument>
+        <ram:LineID>${lineId}</ram:LineID>
+      </ram:AssociatedDocumentLineDocument>
+      <ram:SpecifiedTradeProduct>
+        <ram:Name>${escapeXml(item.description || item.name || '')}</ram:Name>
+      </ram:SpecifiedTradeProduct>
+      <ram:SpecifiedLineTradeAgreement>
+        <ram:NetPriceProductTradePrice>
+          <ram:ChargeAmount>${formatAmount(unitPrice)}</ram:ChargeAmount>
+        </ram:NetPriceProductTradePrice>
+      </ram:SpecifiedLineTradeAgreement>
+      <ram:SpecifiedLineTradeDelivery>
+        <ram:BilledQuantity unitCode="${escapeXml(unitCode)}">${formatAmount(quantity)}</ram:BilledQuantity>
+      </ram:SpecifiedLineTradeDelivery>
+      <ram:SpecifiedLineTradeSettlement>
+        <ram:ApplicableTradeTax>
+          <ram:TypeCode>VAT</ram:TypeCode>
+          <ram:CategoryCode>${categoryCode}</ram:CategoryCode>
+          <ram:RateApplicablePercent>${formatAmount(vatRate)}</ram:RateApplicablePercent>
+        </ram:ApplicableTradeTax>
+        <ram:SpecifiedTradeSettlementLineMonetarySummation>
+          <ram:LineTotalAmount>${formatAmount(lineTotal)}</ram:LineTotalAmount>
+        </ram:SpecifiedTradeSettlementLineMonetarySummation>
+      </ram:SpecifiedLineTradeSettlement>
+    </ram:IncludedSupplyChainTradeLineItem>`;
+  }).join('');
+};
+
+/**
+ * Group invoice items by VAT rate and produce ApplicableTradeTax blocks.
+ * Falls back to single-rate from invoice header when no items are provided.
+ * @param {Object} invoice - Invoice data
+ * @param {Array} items - Invoice line items (optional)
+ * @returns {string} XML fragment with one or more ApplicableTradeTax blocks
+ */
+const generateTaxBreakdown = (invoice, items) => {
+  if (!items || items.length === 0) {
+    // Fallback: single tax block from invoice header
+    const rate = invoice.vat_rate ?? 20;
+    const categoryCode = deriveTaxCategoryCode(rate);
+    return `
+      <ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>${formatAmount(invoice.total_vat || 0)}</ram:CalculatedAmount>
+        <ram:TypeCode>VAT</ram:TypeCode>
+        <ram:BasisAmount>${formatAmount(invoice.total_ht || 0)}</ram:BasisAmount>
+        <ram:CategoryCode>${categoryCode}</ram:CategoryCode>
+        <ram:RateApplicablePercent>${formatAmount(rate)}</ram:RateApplicablePercent>
+      </ram:ApplicableTradeTax>`;
+  }
+
+  // Group items by rate + category
+  const taxGroups = {};
+  for (const item of items) {
+    const rate = item.vat_rate ?? item.tax_rate ?? 20;
+    const categoryCode = deriveTaxCategoryCode(rate, item.tax_category);
+    const key = `${categoryCode}_${rate}`;
+    if (!taxGroups[key]) {
+      taxGroups[key] = { rate, categoryCode, basisAmount: 0, taxAmount: 0 };
+    }
+    const quantity = item.quantity || 1;
+    const unitPrice = item.unit_price ?? item.price ?? 0;
+    const lineTotal = item.total ?? (quantity * unitPrice);
+    taxGroups[key].basisAmount += lineTotal;
+    taxGroups[key].taxAmount += lineTotal * (Number(rate) / 100);
+  }
+
+  return Object.values(taxGroups).map(group => `
+      <ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>${formatAmount(group.taxAmount)}</ram:CalculatedAmount>
+        <ram:TypeCode>VAT</ram:TypeCode>
+        <ram:BasisAmount>${formatAmount(group.basisAmount)}</ram:BasisAmount>
+        <ram:CategoryCode>${group.categoryCode}</ram:CategoryCode>
+        <ram:RateApplicablePercent>${formatAmount(group.rate)}</ram:RateApplicablePercent>
+      </ram:ApplicableTradeTax>`).join('');
+};
+
+/**
  * Generate Trade Delivery
  */
 const generateTradeDelivery = (invoice) => {
@@ -191,7 +298,7 @@ const generateTradeDelivery = (invoice) => {
 /**
  * Generate Trade Settlement
  */
-const generateTradeSettlement = (invoice, seller, currency) => {
+const generateTradeSettlement = (invoice, seller, currency, items) => {
   const dueDate = invoice.due_date || invoice.invoice_date;
 
   return `
@@ -205,14 +312,7 @@ const generateTradeSettlement = (invoice, seller, currency) => {
         ${seller.bic ? `<ram:PayeeSpecifiedCreditorFinancialInstitution>
           <ram:BICID>${escapeXml(seller.bic)}</ram:BICID>
         </ram:PayeeSpecifiedCreditorFinancialInstitution>` : ''}
-      </ram:SpecifiedTradeSettlementPaymentMeans>` : ''}
-      <ram:ApplicableTradeTax>
-        <ram:CalculatedAmount>${formatAmount(invoice.total_vat || 0)}</ram:CalculatedAmount>
-        <ram:TypeCode>VAT</ram:TypeCode>
-        <ram:BasisAmount>${formatAmount(invoice.total_ht || 0)}</ram:BasisAmount>
-        <ram:CategoryCode>S</ram:CategoryCode>
-        <ram:RateApplicablePercent>${invoice.vat_rate || 20}</ram:RateApplicablePercent>
-      </ram:ApplicableTradeTax>
+      </ram:SpecifiedTradeSettlementPaymentMeans>` : ''}${generateTaxBreakdown(invoice, items)}
       <ram:SpecifiedTradePaymentTerms>
         <ram:DueDateDateTime>
           <udt:DateTimeString format="102">${formatDate(dueDate)}</udt:DateTimeString>
@@ -238,15 +338,16 @@ const generateTradeSettlement = (invoice, seller, currency) => {
  * @param {string} profile - Factur-X profile (MINIMUM, BASIC, EN16931)
  * @returns {string} Complete XML string
  */
-export const generateFacturXXml = (invoice, seller, buyer, profile = 'BASIC') => {
+export const generateFacturXXml = (invoice, seller, buyer, profile = 'BASIC', items = []) => {
   const currency = resolveInvoiceCurrency(invoice, buyer, seller);
   const xml = [
     generateHeader(invoice, profile),
     generateDocumentContext(profile),
     generateExchangedDocument(invoice),
     generateTradeHeader(invoice, seller, buyer),
+    generateLineItems(items),
     generateTradeDelivery(invoice),
-    generateTradeSettlement(invoice, seller, currency)
+    generateTradeSettlement(invoice, seller, currency, items)
   ].join('');
 
   return xml;
@@ -260,12 +361,12 @@ export const generateFacturXXml = (invoice, seller, buyer, profile = 'BASIC') =>
  * @param {string} profile - Profile level
  * @returns {Object} { blob, filename, profile }
  */
-export const exportFacturX = async (invoice, seller, buyer, profile = 'BASIC') => {
+export const exportFacturX = async (invoice, seller, buyer, profile = 'BASIC', items = []) => {
   if (!invoice || !invoice.invoice_number) {
     throw new Error('Invoice number is required');
   }
 
-  const xml = generateFacturXXml(invoice, seller, buyer, profile);
+  const xml = generateFacturXXml(invoice, seller, buyer, profile, items);
   const xmlValidation = validateFacturXXmlStructure(xml);
   if (!xmlValidation.isValid) {
     throw new Error(`Invalid Factur-X XML: ${xmlValidation.errors.join(', ')}`);
@@ -309,10 +410,10 @@ export const validateForFacturX = (invoice, seller, buyer) => {
  * @param {string} profile - Factur-X profile
  * @returns {Object} { blob, filename, profile, xml }
  */
-export const exportFacturXPdf = async (pdfBytes, invoice, seller, buyer, profile = 'EN16931') => {
+export const exportFacturXPdf = async (pdfBytes, invoice, seller, buyer, profile = 'EN16931', items = []) => {
   const { PDFDocument, AFRelationship } = await import('pdf-lib');
 
-  const xml = generateFacturXXml(invoice, seller, buyer, profile);
+  const xml = generateFacturXXml(invoice, seller, buyer, profile, items);
   const xmlValidation = validateFacturXXmlStructure(xml);
   if (!xmlValidation.isValid) {
     throw new Error(`Invalid Factur-X XML: ${xmlValidation.errors.join(', ')}`);
@@ -349,6 +450,7 @@ export default {
   exportFacturXPdf,
   validateForFacturX,
   validateFacturXXmlStructure,
+  deriveTaxCategoryCode,
   FACTURX_PROFILES,
   DOCUMENT_TYPES
 };

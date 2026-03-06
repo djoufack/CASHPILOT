@@ -1,4 +1,5 @@
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { Helmet } from 'react-helmet';
 import { useSearchParams } from 'react-router-dom';
 import {
   Building2,
@@ -289,6 +290,7 @@ const BankConnectionsPage = () => {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
+      <Helmet><title>{t('nav.bankConnections', 'Bank Connections')} | CashPilot</title></Helmet>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-white">

@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import SupplierStats from '@/components/suppliers/SupplierStats';
 import { Button } from '@/components/ui/button';
@@ -92,6 +93,7 @@ const SuppliersPage = () => {
 
   return (
     <div className="p-4 md:p-8 min-h-screen bg-gray-950 text-white space-y-6 md:space-y-8">
+      <Helmet><title>{t('common.suppliers', 'Suppliers')} | CashPilot</title></Helmet>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gradient">

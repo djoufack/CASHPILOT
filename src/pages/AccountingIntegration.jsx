@@ -7,6 +7,7 @@ import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, S
 import { useAccountingData } from '@/hooks/useAccountingData';
 import { useAccountingInit } from '@/hooks/useAccountingInit';
 import { useCompany } from '@/hooks/useCompany';
+import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import PeriodSelector from '@/components/accounting/PeriodSelector';

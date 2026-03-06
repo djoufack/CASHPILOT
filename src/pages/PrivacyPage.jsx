@@ -1,15 +1,19 @@
 import React from 'react';
+import { Helmet } from 'react-helmet';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 const sectionTitle = 'text-xl font-semibold text-white mb-3';
 const paragraph = 'text-gray-300 leading-relaxed';
 
 const PrivacyPage = () => {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gray-950 text-white">
+      <Helmet><title>{t('privacyPage.title', 'Privacy Policy')} | CashPilot</title></Helmet>
       <main className="max-w-4xl mx-auto px-6 py-12">
         <header className="mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold mb-3">Politique de confidentialite</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-3">{t('privacyPage.title', 'Privacy Policy')}</h1>
           <p className="text-gray-400">
             Version du 2026-03-05
           </p>

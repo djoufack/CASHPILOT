@@ -8,7 +8,7 @@ import {
   hasHsnCodes
 } from './TemplateEnhancedSections';
 
-const ClassicTemplate = ({ invoice, client, items, company, theme, settings }) => {
+const ClassicTemplate = React.memo(({ invoice, client, items, company, theme, settings }) => {
   const { t } = useTranslation();
   const getLabel = (key, def) => settings?.custom_labels?.[key] || def;
 
@@ -206,6 +206,6 @@ const ClassicTemplate = ({ invoice, client, items, company, theme, settings }) =
       </div>
     </div>
   );
-};
+});
 
 export default ClassicTemplate;

@@ -52,7 +52,7 @@ const normalizeItems = (items = []) => {
   });
 };
 
-const DMGDefaultTemplate = ({ invoice, client, items, company, settings }) => {
+const DMGDefaultTemplate = React.memo(({ invoice, client, items, company, settings }) => {
   const { t } = useTranslation();
   const currency = client?.preferredCurrency || client?.preferred_currency || 'EUR';
   const issueDate = invoice?.date || invoice?.issueDate;
@@ -223,6 +223,6 @@ const DMGDefaultTemplate = ({ invoice, client, items, company, settings }) => {
       </div>
     </div>
   );
-};
+});
 
 export default DMGDefaultTemplate;
