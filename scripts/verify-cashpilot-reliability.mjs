@@ -164,7 +164,7 @@ async function run() {
     'Analytics calculations use canonical source helpers',
   ));
   const mainCsp = extractCspBySource(vercelConfig, '/(.*)');
-  const guideCsp = extractCspBySource(vercelConfig, '/guide/:path*');
+  const guideCsp = extractCspBySource(vercelConfig, '/guide(.*)');
   checks.push(createCheck(
     'csp_main_without_inline_script',
     Boolean(mainCsp)
