@@ -238,9 +238,18 @@ export function registerSupplierInvoiceTools(server: McpServer) {
       limit: z.number().optional().describe('Max results (default 50)'),
     },
     async ({ supplier_id, payment_status, limit }) => {
+      // Get user's supplier IDs for defense-in-depth filtering
+      const userId = getUserId();
+      const { data: userSuppliers } = await supabase
+        .from('suppliers')
+        .select('id')
+        .eq('user_id', userId);
+      const supplierIds = (userSuppliers ?? []).map(s => s.id);
+
       let query = supabase
         .from('supplier_invoices')
         .select('*, supplier:suppliers(id, company_name, contact_person)')
+        .in('supplier_id', supplierIds.length > 0 ? supplierIds : ['00000000-0000-0000-0000-000000000000'])
         .order('created_at', { ascending: false })
         .limit(limit ?? 50);
 
@@ -264,10 +273,13 @@ export function registerSupplierInvoiceTools(server: McpServer) {
       invoice_id: z.string().describe('Supplier invoice UUID'),
     },
     async ({ invoice_id }) => {
+      // Verify ownership through supplier relationship
+      const userId = getUserId();
       const { data, error } = await supabase
         .from('supplier_invoices')
-        .select('*, supplier:suppliers(*), line_items:supplier_invoice_line_items(*)')
+        .select('*, supplier:suppliers!inner(*), line_items:supplier_invoice_line_items(*)')
         .eq('id', invoice_id)
+        .eq('supplier.user_id', userId)
         .single();
 
       if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
@@ -309,6 +321,18 @@ export function registerSupplierInvoiceTools(server: McpServer) {
       invoice_id: z.string().describe('Supplier invoice UUID'),
     },
     async ({ invoice_id }) => {
+      // Verify ownership through supplier relationship
+      const userId = getUserId();
+      const { data: ownership } = await supabase
+        .from('supplier_invoices')
+        .select('supplier:suppliers!inner(user_id)')
+        .eq('id', invoice_id)
+        .eq('supplier.user_id', userId)
+        .maybeSingle();
+      if (!ownership) {
+        return { content: [{ type: 'text' as const, text: 'Supplier invoice not found or access denied.' }] };
+      }
+
       const { data, error } = await supabase
         .from('supplier_invoices')
         .select('id, invoice_number, file_url, supplier_name_extracted')
@@ -360,6 +384,18 @@ export function registerSupplierInvoiceTools(server: McpServer) {
       payment_status: z.enum(['pending', 'paid', 'partial', 'overdue']).describe('New payment status'),
     },
     async ({ invoice_id, payment_status }) => {
+      // Verify ownership through supplier relationship
+      const userId = getUserId();
+      const { data: ownership } = await supabase
+        .from('supplier_invoices')
+        .select('supplier:suppliers!inner(user_id)')
+        .eq('id', invoice_id)
+        .eq('supplier.user_id', userId)
+        .maybeSingle();
+      if (!ownership) {
+        return { content: [{ type: 'text' as const, text: 'Supplier invoice not found or access denied.' }] };
+      }
+
       const { data, error } = await supabase
         .from('supplier_invoices')
         .update({ payment_status, updated_at: new Date().toISOString() })
