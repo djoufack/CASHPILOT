@@ -103,6 +103,52 @@ export const useExpenses = () => {
     }
   };
 
+  const updateExpense = async (id, updates) => {
+    if (!user) return;
+    if (!supabase) throw new Error("Supabase not configured");
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      logAction('update', 'expense', null, data);
+      setExpenses(prev => prev.map(e => e.id === id ? data : e));
+      void triggerWebhook('expense.updated', { id: data.id, company_id: data.company_id, amount: data.amount });
+      toast({ title: "Dépense mise à jour" });
+      return data;
+    } catch (err) {
+      setError(err.message);
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteExpense = async (id) => {
+    if (!user) return;
+    if (!supabase) throw new Error("Supabase not configured");
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('expenses').delete().eq('id', id);
+      if (error) throw error;
+      logAction('delete', 'expense', { id }, null);
+      setExpenses(prev => prev.filter(e => e.id !== id));
+      void triggerWebhook('expense.deleted', { id });
+      toast({ title: "Dépense supprimée" });
+    } catch (err) {
+      setError(err.message);
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchExpenses();
   }, [fetchExpenses]);
@@ -113,6 +159,8 @@ export const useExpenses = () => {
     error,
     totalCount,
     fetchExpenses,
-    createExpense
+    createExpense,
+    updateExpense,
+    deleteExpense
   };
 };

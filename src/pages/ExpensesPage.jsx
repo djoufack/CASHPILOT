@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Search, Receipt, Loader2, Trash2, List, CalendarDays, CalendarClock, Download, FileText } from 'lucide-react';
+import { Plus, Search, Receipt, Loader2, Trash2, List, CalendarDays, CalendarClock, Download, FileText, Eye, Pencil, MoreHorizontal } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
@@ -24,16 +24,54 @@ import { exportExpensesListPDF, exportExpensesListHTML } from '@/services/export
 import ExportButton from '@/components/ExportButton';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { formatDateInput } from '@/utils/dateFormatting';
+
+const ExpenseActions = ({ expense, onView, onEdit, onDelete, onExportPDF, onExportHTML }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
+        <MoreHorizontal className="w-4 h-4" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-8 z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-1 min-w-[160px]">
+            <button onClick={() => { onView(expense); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+              <Eye className="w-3.5 h-3.5" /> Visualiser
+            </button>
+            <button onClick={() => { onEdit(expense); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+              <Pencil className="w-3.5 h-3.5" /> Modifier
+            </button>
+            <button onClick={() => { onExportPDF(expense); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+              <Download className="w-3.5 h-3.5" /> Export PDF
+            </button>
+            <button onClick={() => { onExportHTML(expense); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+              <FileText className="w-3.5 h-3.5" /> Export HTML
+            </button>
+            <div className="border-t border-gray-700 my-1" />
+            <button onClick={() => { onDelete(expense); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300">
+              <Trash2 className="w-3.5 h-3.5" /> Supprimer
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 const ExpensesPage = () => {
   const { t } = useTranslation();
-  const { expenses, loading, createExpense } = useExpenses();
+  const { expenses, loading, createExpense, updateExpense, deleteExpense } = useExpenses();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  const [viewExpense, setViewExpense] = useState(null);
+  const [editExpense, setEditExpense] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const companyCurrency = resolveAccountingCurrency(company);
 
   // Get company currency symbol
@@ -83,6 +121,61 @@ const ExpensesPage = () => {
         exportExpensesListHTML(filteredExpenses, company, { searchTerm });
       }
     );
+  };
+
+  const handleView = (exp) => setViewExpense(exp);
+
+  const handleEdit = (exp) => {
+    setEditExpense(exp);
+    setFormData({
+      description: exp.description || '',
+      amount: exp.amount || '',
+      category: exp.category || 'general',
+      date: exp.expense_date || exp.date || formatDateInput(),
+      expense_date: exp.expense_date || exp.date || formatDateInput(),
+      notes: exp.notes || '',
+      supplier_name: exp.supplier_name || '',
+    });
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await updateExpense(editExpense.id, {
+        description: formData.description,
+        amount: parseFloat(formData.amount),
+        category: formData.category,
+        expense_date: formData.expense_date || formData.date,
+        notes: formData.notes,
+        supplier_name: formData.supplier_name,
+      });
+      setEditExpense(null);
+      setFormData(emptyForm);
+    } catch (err) {
+      console.error('Error updating expense:', err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteExpense(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error('Error deleting expense:', err);
+    }
+  };
+
+  const handleSingleExportPDF = (exp) => {
+    guardedAction(CREDIT_COSTS.PDF_REPORT, 'Single Expense PDF', async () => {
+      await exportExpensesListPDF([exp], company, { searchTerm: '' });
+    });
+  };
+
+  const handleSingleExportHTML = (exp) => {
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Single Expense HTML', () => {
+      exportExpensesListHTML([exp], company, { searchTerm: '' });
+    });
   };
 
   const pagination = usePagination({ pageSize: 25 });
@@ -267,18 +360,29 @@ const ExpensesPage = () => {
                         <th className="text-left p-4 text-gray-400 font-medium hidden md:table-cell">Catégorie</th>
                         <th className="text-left p-4 text-gray-400 font-medium hidden lg:table-cell">Fournisseur</th>
                         <th className="text-right p-4 text-gray-400 font-medium">Montant</th>
+                        <th className="text-right p-4 text-gray-400 font-medium w-12">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {paginatedExpenses.map((exp) => (
                         <tr key={exp.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                           <td className="p-4 text-gray-400 text-sm">
-                            {exp.date ? new Date(exp.date).toLocaleDateString('fr-FR') : '—'}
+                            {(exp.expense_date || exp.date) ? new Date(exp.expense_date || exp.date).toLocaleDateString('fr-FR') : '—'}
                           </td>
                           <td className="p-4 text-gradient font-medium">{exp.description || '—'}</td>
                           <td className="p-4 text-gray-400 hidden md:table-cell capitalize">{exp.category || '—'}</td>
                           <td className="p-4 text-gray-400 hidden lg:table-cell">{exp.supplier_name || '—'}</td>
                           <td className="p-4 text-right text-gradient font-semibold">{formatCurrency(exp.amount || 0, companyCurrency)}</td>
+                          <td className="p-4 text-right">
+                            <ExpenseActions
+                              expense={exp}
+                              onView={handleView}
+                              onEdit={handleEdit}
+                              onDelete={setDeleteTarget}
+                              onExportPDF={handleSingleExportPDF}
+                              onExportHTML={handleSingleExportHTML}
+                            />
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -306,6 +410,7 @@ const ExpensesPage = () => {
               events={expenseCalendarEvents}
               statusColors={expenseCategoryColors}
               legend={expenseCalendarLegend}
+              onSelectEvent={(event) => handleView(event.resource)}
             />
           </TabsContent>
 
@@ -314,10 +419,165 @@ const ExpensesPage = () => {
               items={expenseAgendaItems}
               dateField="date"
               paidStatuses={[]}
+              renderActions={(item) => {
+                const exp = expenses.find(e => e.id === item.id);
+                if (!exp) return null;
+                return (
+                  <div className="flex gap-1">
+                    <button onClick={() => handleView(exp)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="Visualiser"><Eye className="w-4 h-4" /></button>
+                    <button onClick={() => handleEdit(exp)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="Modifier"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => handleSingleExportPDF(exp)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="PDF"><Download className="w-4 h-4" /></button>
+                    <button onClick={() => handleSingleExportHTML(exp)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="HTML"><FileText className="w-4 h-4" /></button>
+                    <button onClick={() => setDeleteTarget(exp)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                );
+              }}
             />
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* View Expense Dialog */}
+      <Dialog open={!!viewExpense} onOpenChange={() => setViewExpense(null)}>
+        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gradient">Détails de la dépense</DialogTitle>
+          </DialogHeader>
+          {viewExpense && (
+            <div className="space-y-4 mt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Description</p>
+                  <p className="text-white font-medium">{viewExpense.description || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Montant</p>
+                  <p className="text-gradient font-bold text-lg">{formatCurrency(viewExpense.amount || 0, companyCurrency)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Date</p>
+                  <p className="text-white">{(viewExpense.expense_date || viewExpense.date) ? new Date(viewExpense.expense_date || viewExpense.date).toLocaleDateString('fr-FR') : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Catégorie</p>
+                  <p className="text-white capitalize">{viewExpense.category || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Fournisseur</p>
+                  <p className="text-white">{viewExpense.supplier_name || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Méthode de paiement</p>
+                  <p className="text-white capitalize">{viewExpense.payment_method || '—'}</p>
+                </div>
+                {viewExpense.amount_ht != null && (
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase">Montant HT</p>
+                    <p className="text-white">{formatCurrency(viewExpense.amount_ht, companyCurrency)}</p>
+                  </div>
+                )}
+                {viewExpense.tax_amount != null && (
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase">TVA</p>
+                    <p className="text-white">{formatCurrency(viewExpense.tax_amount, companyCurrency)} ({((viewExpense.tax_rate || 0) * 100).toFixed(0)}%)</p>
+                  </div>
+                )}
+              </div>
+              {viewExpense.notes && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Notes</p>
+                  <p className="text-gray-300 text-sm mt-1">{viewExpense.notes}</p>
+                </div>
+              )}
+              <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+                <Button size="sm" variant="outline" className="border-gray-600" onClick={() => { handleSingleExportPDF(viewExpense); }}>
+                  <Download className="w-4 h-4 mr-2" /> PDF
+                </Button>
+                <Button size="sm" variant="outline" className="border-gray-600" onClick={() => { handleSingleExportHTML(viewExpense); }}>
+                  <FileText className="w-4 h-4 mr-2" /> HTML
+                </Button>
+                <Button size="sm" onClick={() => { handleEdit(viewExpense); setViewExpense(null); }} className="bg-orange-500 hover:bg-orange-600">
+                  <Pencil className="w-4 h-4 mr-2" /> Modifier
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Expense Dialog */}
+      <Dialog open={!!editExpense} onOpenChange={() => { setEditExpense(null); setFormData(emptyForm); }}>
+        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gradient">Modifier la dépense</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Description *</Label>
+                <Input value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} required placeholder="Achat de fournitures..." className="bg-gray-700 border-gray-600" />
+              </div>
+              <div className="space-y-2">
+                <Label>Montant ({currencySymbol}) *</Label>
+                <Input type="number" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required placeholder="0.00" className="bg-gray-700 border-gray-600" />
+              </div>
+              <div className="space-y-2">
+                <Label>Date *</Label>
+                <Input type="date" value={formData.expense_date || formData.date} onChange={(e) => setFormData({ ...formData, expense_date: e.target.value, date: e.target.value })} required className="bg-gray-700 border-gray-600" />
+              </div>
+              <div className="space-y-2">
+                <Label>Catégorie</Label>
+                <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                    <SelectItem value="general">Général</SelectItem>
+                    <SelectItem value="office">Bureau</SelectItem>
+                    <SelectItem value="travel">Déplacement</SelectItem>
+                    <SelectItem value="software">Logiciels</SelectItem>
+                    <SelectItem value="hardware">Matériel</SelectItem>
+                    <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="meals">Repas</SelectItem>
+                    <SelectItem value="telecom">Télécom</SelectItem>
+                    <SelectItem value="insurance">Assurance</SelectItem>
+                    <SelectItem value="rent">Loyer</SelectItem>
+                    <SelectItem value="consulting">Consulting</SelectItem>
+                    <SelectItem value="operations">Opérations</SelectItem>
+                    <SelectItem value="other">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Fournisseur</Label>
+                <Input value={formData.supplier_name} onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })} placeholder="Nom du fournisseur" className="bg-gray-700 border-gray-600" />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Notes</Label>
+                <Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Notes optionnelles..." rows={2} className="bg-gray-700 border-gray-600" />
+              </div>
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button type="button" variant="outline" onClick={() => { setEditExpense(null); setFormData(emptyForm); }} className="border-gray-600 text-gray-300">Annuler</Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600">Enregistrer</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent className="bg-gray-800 border-gray-700 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette dépense ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              {deleteTarget && (<>Vous allez supprimer <strong className="text-white">"{deleteTarget.description}"</strong> ({formatCurrency(deleteTarget.amount || 0, companyCurrency)}). Cette action est irréversible.</>)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-700">Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Add Expense Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
