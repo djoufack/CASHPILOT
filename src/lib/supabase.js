@@ -1,5 +1,5 @@
 
-import { supabase, supabaseAnonKey, supabaseUrl } from './customSupabaseClient';
+import { supabase } from './customSupabaseClient';
 
 // Re-export the client to maintain compatibility with existing imports
 export { supabase };
@@ -8,8 +8,8 @@ export { supabase };
  * Validates that the Supabase configuration is present and correct.
  */
 export const validateSupabaseConfig = () => {
-  const url = supabaseUrl;
-  const key = supabaseAnonKey;
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   const isUrlValid = url && url !== '__SUPABASE_URL__' && url.startsWith('http');
   const isKeyValid = key && key !== '__SUPABASE_ANON_KEY__';
