@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, ClipboardList, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Kanban, Download, FileText } from 'lucide-react';
+import { Plus, ClipboardList, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Kanban, Download, FileText, Eye, Pencil } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
 import { usePagination } from '@/hooks/usePagination';
@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const emptyItem = { description: '', quantity: 1, unit_price: 0, tax_rate: 21 };
 
@@ -48,7 +49,7 @@ const createInitialFormData = () => ({
   items: [{ ...emptyItem }],
 });
 
-const POCard = ({ po, onDelete, onExportPDF, onExportHTML }) => {
+const POCard = ({ po, onView, onEdit, onDelete, onExportPDF, onExportHTML }) => {
   const { t, i18n } = useTranslation();
   const locale = i18n.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
 
@@ -89,6 +90,12 @@ const POCard = ({ po, onDelete, onExportPDF, onExportHTML }) => {
       </div>
       {po.notes && <p className="text-xs text-gray-500 mb-4 line-clamp-2">{po.notes}</p>}
       <div className="flex justify-end gap-2 border-t border-gray-800 pt-3">
+        <Button variant="ghost" size="sm" onClick={() => onView(po)} className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20" title="Visualiser">
+          <Eye className="w-4 h-4" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => onEdit(po)} className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20" title="Modifier">
+          <Pencil className="w-4 h-4" />
+        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -132,6 +139,11 @@ const PurchaseOrdersPage = () => {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [viewMode, setViewMode] = useState('list');
+  const [viewPO, setViewPO] = useState(null);
+  const [editPO, setEditPO] = useState(null);
+  const [editFormData, setEditFormData] = useState(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const poCalendarStatusColors = {
     draft: { bg: '#6b7280', border: '#4b5563', text: '#fff' },
@@ -278,12 +290,85 @@ const PurchaseOrdersPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
     try {
-      await deletePurchaseOrder(id);
+      await deletePurchaseOrder(deleteTarget.id);
+      setDeleteTarget(null);
     } catch {
       // Error handled by hook toast
     }
+  };
+
+  const handleView = (po) => setViewPO(po);
+
+  const handleEdit = (po) => {
+    setEditPO(po);
+    setEditFormData({
+      client_id: po.client_id || '',
+      date: po.date || formatDateInput(),
+      due_date: po.due_date || '',
+      notes: po.notes || '',
+      status: po.status || 'draft',
+      items: po.items && po.items.length > 0
+        ? po.items.map(item => ({
+            description: item.description || '',
+            quantity: item.quantity || 1,
+            unit_price: item.unit_price || 0,
+            tax_rate: item.tax_rate || 21,
+          }))
+        : [{ ...emptyItem }],
+    });
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editPO || !editFormData.client_id) return;
+    setEditSubmitting(true);
+    let totalHT = 0;
+    let totalTax = 0;
+    editFormData.items.forEach(item => {
+      const lineHT = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
+      totalHT += lineHT;
+      totalTax += lineHT * ((parseFloat(item.tax_rate) || 0) / 100);
+    });
+    try {
+      await updatePurchaseOrder(editPO.id, {
+        client_id: editFormData.client_id,
+        date: editFormData.date || formatDateInput(),
+        due_date: editFormData.due_date || null,
+        notes: editFormData.notes.trim() || null,
+        status: editFormData.status,
+        items: editFormData.items.map(item => ({
+          description: item.description,
+          quantity: parseFloat(item.quantity) || 0,
+          unit_price: parseFloat(item.unit_price) || 0,
+          tax_rate: parseFloat(item.tax_rate) || 0,
+        })),
+        total: totalHT + totalTax,
+      });
+      setEditPO(null);
+      setEditFormData(null);
+    } catch {
+      // Error handled by hook toast
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleEditItemChange = (index, field, value) => {
+    const newItems = [...editFormData.items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setEditFormData({ ...editFormData, items: newItems });
+  };
+
+  const addEditItem = () => {
+    setEditFormData({ ...editFormData, items: [...editFormData.items, { ...emptyItem }] });
+  };
+
+  const removeEditItem = (index) => {
+    if (editFormData.items.length <= 1) return;
+    setEditFormData({ ...editFormData, items: editFormData.items.filter((_, i) => i !== index) });
   };
 
   const handleExportPurchaseOrderPDF = (po) => {
@@ -410,7 +495,7 @@ const PurchaseOrdersPage = () => {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {paginatedPOs.map(po => (
-                    <POCard key={po.id} po={po} onDelete={handleDelete} onExportPDF={handleExportPurchaseOrderPDF} onExportHTML={handleExportPurchaseOrderHTML} />
+                    <POCard key={po.id} po={po} onView={handleView} onEdit={handleEdit} onDelete={(id) => setDeleteTarget(purchaseOrders.find(p => p.id === id))} onExportPDF={handleExportPurchaseOrderPDF} onExportHTML={handleExportPurchaseOrderHTML} />
                   ))}
                 </div>
                 <PaginationControls
@@ -435,6 +520,7 @@ const PurchaseOrdersPage = () => {
               events={poCalendarEvents}
               statusColors={poCalendarStatusColors}
               legend={poCalendarLegend}
+              onSelectEvent={(event) => handleView(event.resource)}
             />
           </TabsContent>
 
@@ -442,8 +528,20 @@ const PurchaseOrdersPage = () => {
             <GenericAgendaView
               items={poAgendaItems}
               dateField="date"
-              onDelete={(item) => handleDelete(item.id)}
               paidStatuses={['completed', 'received', 'cancelled']}
+              renderActions={(item) => {
+                const po = purchaseOrders.find(p => p.id === item.id);
+                if (!po) return null;
+                return (
+                  <div className="flex gap-1">
+                    <button onClick={() => handleView(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="Visualiser"><Eye className="w-4 h-4" /></button>
+                    <button onClick={() => handleEdit(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="Modifier"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => handleExportPurchaseOrderPDF(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="PDF"><Download className="w-4 h-4" /></button>
+                    <button onClick={() => handleExportPurchaseOrderHTML(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="HTML"><FileText className="w-4 h-4" /></button>
+                    <button onClick={() => setDeleteTarget(po)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                );
+              }}
             />
           </TabsContent>
 
@@ -452,7 +550,19 @@ const PurchaseOrdersPage = () => {
               columns={poKanbanColumns}
               items={poAgendaItems}
               onStatusChange={async (id, status) => await updatePurchaseOrder(id, { status })}
-              onDelete={(item) => handleDelete(item.id)}
+              renderActions={(item) => {
+                const po = purchaseOrders.find(p => p.id === item.id);
+                if (!po) return null;
+                return (
+                  <div className="flex gap-1">
+                    <button onClick={() => handleView(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="Visualiser"><Eye className="w-4 h-4" /></button>
+                    <button onClick={() => handleEdit(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="Modifier"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => handleExportPurchaseOrderPDF(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="PDF"><Download className="w-4 h-4" /></button>
+                    <button onClick={() => handleExportPurchaseOrderHTML(po)} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white" title="HTML"><FileText className="w-4 h-4" /></button>
+                    <button onClick={() => setDeleteTarget(po)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                );
+              }}
             />
           </TabsContent>
         </Tabs>
@@ -610,6 +720,194 @@ const PurchaseOrdersPage = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* View PO Dialog */}
+      <Dialog open={!!viewPO} onOpenChange={() => setViewPO(null)}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-gradient text-xl">{viewPO?.po_number}</DialogTitle>
+          </DialogHeader>
+          {viewPO && (
+            <div className="space-y-4 mt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Client</p>
+                  <p className="text-white font-medium">{viewPO.client?.company_name || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Statut</p>
+                  <p className="text-white capitalize">{viewPO.status || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Date</p>
+                  <p className="text-white">{viewPO.date ? new Date(viewPO.date).toLocaleDateString('fr-FR') : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Date de livraison</p>
+                  <p className="text-white">{viewPO.due_date ? new Date(viewPO.due_date).toLocaleDateString('fr-FR') : '—'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs text-gray-500 uppercase">Total</p>
+                  <p className="text-gradient font-bold text-lg">{formatCurrency(viewPO.total || 0)}</p>
+                </div>
+              </div>
+              {viewPO.items && viewPO.items.length > 0 && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase mb-2">Lignes</p>
+                  <div className="bg-gray-800/50 rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-700">
+                          <th className="text-left p-2 text-gray-400">Description</th>
+                          <th className="text-right p-2 text-gray-400">Qté</th>
+                          <th className="text-right p-2 text-gray-400">P.U.</th>
+                          <th className="text-right p-2 text-gray-400">TVA</th>
+                          <th className="text-right p-2 text-gray-400">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {viewPO.items.map((item, i) => {
+                          const lineTotal = (item.quantity || 0) * (item.unit_price || 0);
+                          return (
+                            <tr key={i} className="border-b border-gray-700/50">
+                              <td className="p-2 text-white">{item.description || '—'}</td>
+                              <td className="p-2 text-right text-gray-300">{item.quantity}</td>
+                              <td className="p-2 text-right text-gray-300">{formatCurrency(item.unit_price || 0)}</td>
+                              <td className="p-2 text-right text-gray-300">{item.tax_rate || 0}%</td>
+                              <td className="p-2 text-right text-gradient font-medium">{formatCurrency(lineTotal * (1 + (item.tax_rate || 0) / 100))}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              {viewPO.notes && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Notes</p>
+                  <p className="text-gray-300 text-sm mt-1">{viewPO.notes}</p>
+                </div>
+              )}
+              <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+                <Button size="sm" variant="outline" className="border-gray-600" onClick={() => handleExportPurchaseOrderPDF(viewPO)}>
+                  <Download className="w-4 h-4 mr-2" /> PDF
+                </Button>
+                <Button size="sm" variant="outline" className="border-gray-600" onClick={() => handleExportPurchaseOrderHTML(viewPO)}>
+                  <FileText className="w-4 h-4 mr-2" /> HTML
+                </Button>
+                <Button size="sm" onClick={() => { handleEdit(viewPO); setViewPO(null); }} className="bg-orange-500 hover:bg-orange-600">
+                  <Pencil className="w-4 h-4 mr-2" /> Modifier
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit PO Dialog */}
+      <Dialog open={!!editPO} onOpenChange={() => { setEditPO(null); setEditFormData(null); }}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-gradient text-xl">Modifier {editPO?.po_number}</DialogTitle>
+          </DialogHeader>
+          {editFormData && (
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-gray-300">{t('quotesPage.client')} *</Label>
+                <Select value={editFormData.client_id} onValueChange={(value) => setEditFormData({ ...editFormData, client_id: value })}>
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue placeholder={t('invoices.selectClient')} /></SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700">
+                    {clients.map(client => (
+                      <SelectItem key={client.id} value={client.id} className="text-white hover:bg-gray-700">{client.company_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-300">{t('quotesPage.date')}</Label>
+                  <Input type="date" value={editFormData.date} onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })} className="bg-gray-800 border-gray-700 text-white" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-300">{t('purchaseOrdersPage.deliveryDate')}</Label>
+                  <Input type="date" value={editFormData.due_date} onChange={(e) => setEditFormData({ ...editFormData, due_date: e.target.value })} className="bg-gray-800 border-gray-700 text-white" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-300">Statut</Label>
+                <Select value={editFormData.status} onValueChange={(val) => setEditFormData({ ...editFormData, status: val })}>
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectItem value="draft" className="text-white hover:bg-gray-700">{t('purchaseOrdersPage.statusDraft')}</SelectItem>
+                    <SelectItem value="sent" className="text-white hover:bg-gray-700">{t('purchaseOrdersPage.statusSent')}</SelectItem>
+                    <SelectItem value="confirmed" className="text-white hover:bg-gray-700">{t('purchaseOrdersPage.statusConfirmed')}</SelectItem>
+                    <SelectItem value="completed" className="text-white hover:bg-gray-700">{t('purchaseOrdersPage.statusCompleted')}</SelectItem>
+                    <SelectItem value="cancelled" className="text-white hover:bg-gray-700">{t('purchaseOrdersPage.statusCancelled')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-300">{t('purchaseOrdersPage.items')}</Label>
+                <div className="space-y-3">
+                  {editFormData.items.map((item, index) => (
+                    <div key={index} className="bg-gray-800/50 rounded-lg p-3 space-y-2">
+                      <Input placeholder={t('invoices.description')} value={item.description} onChange={(e) => handleEditItemChange(index, 'description', e.target.value)} className="bg-gray-800 border-gray-700 text-white" />
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
+                        <div>
+                          <Label className="text-gray-500 text-xs">{t('invoices.quantity')}</Label>
+                          <Input type="number" min="0" step="0.01" value={item.quantity} onChange={(e) => handleEditItemChange(index, 'quantity', e.target.value)} className="bg-gray-800 border-gray-700 text-white" />
+                        </div>
+                        <div>
+                          <Label className="text-gray-500 text-xs">{t('invoices.unitPrice')}</Label>
+                          <Input type="number" min="0" step="0.01" value={item.unit_price} onChange={(e) => handleEditItemChange(index, 'unit_price', e.target.value)} className="bg-gray-800 border-gray-700 text-white" />
+                        </div>
+                        <div>
+                          <Label className="text-gray-500 text-xs">{t('invoices.taxRate')}</Label>
+                          <Input type="number" min="0" step="0.01" value={item.tax_rate} onChange={(e) => handleEditItemChange(index, 'tax_rate', e.target.value)} className="bg-gray-800 border-gray-700 text-white" />
+                        </div>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeEditItem(index)} disabled={editFormData.items.length <= 1} className="text-red-400 hover:text-red-300 hover:bg-red-900/20">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addEditItem} className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full">
+                  <Plus className="w-4 h-4 mr-2" /> {t('purchaseOrdersPage.addLine')}
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-300">{t('timesheets.notes')}</Label>
+                <Textarea value={editFormData.notes} onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })} placeholder={t('purchaseOrdersPage.notesPlaceholder')} className="bg-gray-800 border-gray-700 text-white min-h-[60px]" />
+              </div>
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => { setEditPO(null); setEditFormData(null); }} className="border-gray-700 text-gray-300 hover:bg-gray-800">{t('common.cancel')}</Button>
+                <Button type="submit" disabled={editSubmitting || !editFormData.client_id} className="bg-orange-500 hover:bg-orange-600 text-white">
+                  {editSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Pencil className="w-4 h-4 mr-2" />}
+                  Enregistrer
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent className="bg-gray-800 border-gray-700 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce bon de commande ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              {deleteTarget && (<>Vous allez supprimer <strong className="text-white">"{deleteTarget.po_number}"</strong> ({formatCurrency(deleteTarget.total || 0)}). Cette action est irréversible.</>)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gray-600 text-gray-300 hover:bg-gray-700">Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700 text-white">Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
