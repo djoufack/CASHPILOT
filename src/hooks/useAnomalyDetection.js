@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { supabaseUrl } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const useAnomalyDetection = () => {
@@ -14,7 +15,7 @@ export const useAnomalyDetection = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-anomaly-detect`,
+        `${supabaseUrl}/functions/v1/ai-anomaly-detect`,
         {
           method: 'POST',
           headers: {
