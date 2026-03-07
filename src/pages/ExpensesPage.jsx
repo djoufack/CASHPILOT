@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
@@ -64,6 +65,7 @@ const ExpenseActions = ({ expense, onView, onEdit, onDelete, onExportPDF, onExpo
 const ExpensesPage = () => {
   const { t } = useTranslation();
   const { expenses, loading, createExpense, updateExpense, deleteExpense } = useExpenses();
+  const { suppliers } = useSuppliers();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,7 +86,7 @@ const ExpensesPage = () => {
     date: formatDateInput(),
     expense_date: formatDateInput(),
     notes: '',
-    supplier_name: ''
+    supplier_id: ''
   };
   const [formData, setFormData] = useState(emptyForm);
 
@@ -94,7 +96,8 @@ const ExpensesPage = () => {
       await createExpense({
         ...formData,
         amount: parseFloat(formData.amount),
-        expense_date: formData.expense_date || formData.date
+        expense_date: formData.expense_date || formData.date,
+        supplier_id: formData.supplier_id || null,
       });
       setIsDialogOpen(false);
       setFormData(emptyForm);
@@ -134,7 +137,7 @@ const ExpensesPage = () => {
       date: exp.expense_date || exp.date || formatDateInput(),
       expense_date: exp.expense_date || exp.date || formatDateInput(),
       notes: exp.notes || '',
-      supplier_name: exp.supplier_name || '',
+      supplier_id: exp.supplier_id || '',
     });
   };
 
@@ -147,7 +150,7 @@ const ExpensesPage = () => {
         category: formData.category,
         expense_date: formData.expense_date || formData.date,
         notes: formData.notes,
-        supplier_name: formData.supplier_name,
+        supplier_id: formData.supplier_id || null,
       });
       setEditExpense(null);
       setFormData(emptyForm);
@@ -183,7 +186,7 @@ const ExpensesPage = () => {
 
   const filteredExpenses = expenses.filter(exp =>
     (exp.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (exp.supplier_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (exp.supplier?.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (exp.category || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -199,7 +202,7 @@ const ExpensesPage = () => {
     { key: 'category', header: t('debtManager.category', 'Category'), width: 15 },
     { key: 'amount', header: t('payments.amount', 'Amount'), type: 'currency', width: 14 },
     { key: 'date', header: 'Date', type: 'date', width: 12 },
-    { key: 'supplier_name', header: 'Fournisseur', width: 20 },
+    { key: 'supplier', header: 'Fournisseur', width: 20, accessor: (exp) => exp.supplier?.company_name || '' },
     { key: 'notes', header: 'Notes', width: 25 },
   ];
 
@@ -237,7 +240,7 @@ const ExpensesPage = () => {
   const expenseAgendaItems = filteredExpenses.map(exp => ({
     id: exp.id,
     title: exp.description || 'Expense',
-    subtitle: exp.supplier_name || exp.category || '',
+    subtitle: exp.supplier?.company_name || exp.category || '',
     date: exp.date,
     status: exp.category || 'general',
     statusLabel: (exp.category || 'general').charAt(0).toUpperCase() + (exp.category || 'general').slice(1),
@@ -371,7 +374,7 @@ const ExpensesPage = () => {
                           </td>
                           <td className="p-4 text-gradient font-medium">{exp.description || '—'}</td>
                           <td className="p-4 text-gray-400 hidden md:table-cell capitalize">{exp.category || '—'}</td>
-                          <td className="p-4 text-gray-400 hidden lg:table-cell">{exp.supplier_name || '—'}</td>
+                          <td className="p-4 text-gray-400 hidden lg:table-cell">{exp.supplier?.company_name || '—'}</td>
                           <td className="p-4 text-right text-gradient font-semibold">{formatCurrency(exp.amount || 0, companyCurrency)}</td>
                           <td className="p-4 text-right">
                             <ExpenseActions
@@ -464,7 +467,7 @@ const ExpensesPage = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Fournisseur</p>
-                  <p className="text-white">{viewExpense.supplier_name || '—'}</p>
+                  <p className="text-white">{viewExpense.supplier?.company_name || '—'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Méthode de paiement</p>
@@ -548,7 +551,15 @@ const ExpensesPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Fournisseur</Label>
-                <Input value={formData.supplier_name} onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })} placeholder="Nom du fournisseur" className="bg-gray-700 border-gray-600" />
+                <Select value={formData.supplier_id || '__none__'} onValueChange={(val) => setFormData({ ...formData, supplier_id: val === '__none__' ? '' : val })}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600"><SelectValue placeholder="Sélectionner un fournisseur" /></SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-60">
+                    <SelectItem value="__none__">— Aucun —</SelectItem>
+                    {(suppliers || []).map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.company_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>Notes</Label>
@@ -644,12 +655,17 @@ const ExpensesPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Fournisseur</Label>
-                <Input
-                  value={formData.supplier_name}
-                  onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
-                  placeholder="Nom du fournisseur"
-                  className="bg-gray-700 border-gray-600"
-                />
+                <Select value={formData.supplier_id || '__none__'} onValueChange={(val) => setFormData({ ...formData, supplier_id: val === '__none__' ? '' : val })}>
+                  <SelectTrigger className="bg-gray-700 border-gray-600">
+                    <SelectValue placeholder="Sélectionner un fournisseur" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-60">
+                    <SelectItem value="__none__">— Aucun —</SelectItem>
+                    {(suppliers || []).map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.company_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>Notes</Label>
