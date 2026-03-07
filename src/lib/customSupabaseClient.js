@@ -4,8 +4,12 @@ import { createClient } from '@supabase/supabase-js';
 // to prevent "Lock broken by another request with the 'steal' option" AbortErrors
 // is to remove navigator.locks before the client initialises.  GoTrue then falls
 // back to its built-in lockNoOp, which is safe for single-tab usage.
-if (typeof globalThis !== 'undefined' && globalThis.navigator) {
-  Object.defineProperty(globalThis.navigator, 'locks', { value: undefined, writable: true });
+try {
+  if (typeof globalThis !== 'undefined' && globalThis.navigator && globalThis.navigator.locks) {
+    Object.defineProperty(globalThis.navigator, 'locks', { value: undefined, configurable: true, writable: true });
+  }
+} catch (_e) {
+  // navigator.locks may be non-configurable in some browsers — ignore
 }
 
 const normalizeEnv = (value) => {
