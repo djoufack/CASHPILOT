@@ -520,7 +520,7 @@ const PurchaseOrdersPage = () => {
               events={poCalendarEvents}
               statusColors={poCalendarStatusColors}
               legend={poCalendarLegend}
-              onSelectEvent={(event) => handleView(event.resource)}
+              onSelectEvent={(po) => handleView(po)}
             />
           </TabsContent>
 

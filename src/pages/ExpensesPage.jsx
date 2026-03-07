@@ -413,7 +413,7 @@ const ExpensesPage = () => {
               events={expenseCalendarEvents}
               statusColors={expenseCategoryColors}
               legend={expenseCalendarLegend}
-              onSelectEvent={(event) => handleView(event.resource)}
+              onSelectEvent={(exp) => handleView(exp)}
             />
           </TabsContent>
 
