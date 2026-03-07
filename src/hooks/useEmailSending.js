@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { supabaseUrl } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   sendInvoiceEmail as sendInvoiceEmailService,
@@ -31,7 +32,7 @@ export const useEmailSending = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`,
+        `${supabaseUrl}/functions/v1/send-email`,
         {
           method: 'POST',
           headers: {

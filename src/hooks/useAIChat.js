@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { supabaseAnonKey, supabaseUrl } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
 
@@ -26,12 +27,12 @@ export const useAIChat = () => {
       }));
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chatbot`,
+        `${supabaseUrl}/functions/v1/ai-chatbot`,
         {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session?.access_token}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'apikey': supabaseAnonKey,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({

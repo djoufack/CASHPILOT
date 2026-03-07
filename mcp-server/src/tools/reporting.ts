@@ -135,17 +135,32 @@ export function registerReportingTools(server: McpServer) {
       const liabilities = allAccounts.filter(a => a.category === 'liability');
       const equity = allAccounts.filter(a => a.category === 'equity');
 
+      // Compute net result from revenue (class 7) and expense (class 6) accounts
+      const revenueAccounts = allAccounts.filter(a => a.category === 'revenue');
+      const expenseAccounts = allAccounts.filter(a => a.category === 'expense');
+      const totalRevenue = revenueAccounts.reduce((s, a) => s + Math.abs(a.balance), 0);
+      const totalExpenses = expenseAccounts.reduce((s, a) => s + Math.abs(a.balance), 0);
+      const netResult = totalRevenue - totalExpenses;
+
       const totalAssets = assets.reduce((s, a) => s + a.balance, 0);
       const totalLiabilities = liabilities.reduce((s, a) => s + Math.abs(a.balance), 0);
       const totalEquity = equity.reduce((s, a) => s + Math.abs(a.balance), 0);
+      const totalEquityWithResult = totalEquity + netResult;
+
+      // Include net result as a synthetic equity line
+      const equityAccounts = format(equity);
+      if (Math.abs(netResult) > 0.01) {
+        equityAccounts.push({ code: '120', name: 'Résultat de l\'exercice', balance: round(Math.abs(netResult)) });
+      }
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify({
           date: cutoff,
           assets: { accounts: format(assets), total: round(totalAssets) },
           liabilities: { accounts: format(liabilities), total: round(totalLiabilities) },
-          equity: { accounts: format(equity), total: round(totalEquity) },
-          balanced: Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01
+          equity: { accounts: equityAccounts, total: round(totalEquityWithResult) },
+          net_result: round(netResult),
+          balanced: Math.abs(totalAssets - (totalLiabilities + totalEquityWithResult)) < 0.01
         }, null, 2) }]
       };
     }

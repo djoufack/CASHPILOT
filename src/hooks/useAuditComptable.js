@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { supabaseUrl } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatDateInput, formatStartOfYearInput } from '@/utils/dateFormatting';
 
@@ -85,7 +86,7 @@ export const useAuditComptable = (options = false) => {
       if (categories) body.categories = categories;
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/audit-comptable`,
+        `${supabaseUrl}/functions/v1/audit-comptable`,
         {
           method: 'POST',
           headers: {
