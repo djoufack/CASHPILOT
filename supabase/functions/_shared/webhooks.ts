@@ -52,6 +52,8 @@ async function deliverWebhook(
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10_000);
       const res = await fetch(endpoint.url, {
         method: 'POST',
         headers: {
@@ -62,7 +64,9 @@ async function deliverWebhook(
           'X-Webhook-Delivery-Attempt': String(attempt),
         },
         body: payloadStr,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       const responseBody = await res.text().catch(() => '');
       lastStatusCode = res.status;

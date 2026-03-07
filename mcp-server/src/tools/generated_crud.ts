@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { supabase, getUserId } from '../supabase.js';
+import { sanitizeRecord } from '../utils/sanitize.js';
 
 export function registerGeneratedCrudTools(server: McpServer) {
 
@@ -26,7 +27,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('bank_connections').insert([payload]).select().single();
+      const { data, error } = await supabase.from('bank_connections').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into bank_connections: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created bank_connections record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -54,7 +55,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('bank_connections').update(updates).eq('id', id);
+      let query = supabase.from('bank_connections').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating bank_connections: ' + error.message }] };
@@ -128,7 +129,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('payables').insert([payload]).select().single();
+      const { data, error } = await supabase.from('payables').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into payables: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created payables record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -154,7 +155,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('payables').update(updates).eq('id', id);
+      let query = supabase.from('payables').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating payables: ' + error.message }] };
@@ -228,7 +229,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
-      const { data, error } = await supabase.from('invoice_items').insert([payload]).select().single();
+      const { data, error } = await supabase.from('invoice_items').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into invoice_items: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created invoice_items record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -255,7 +256,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('invoice_items').update(updates).eq('id', id);
+      let query = supabase.from('invoice_items').update(sanitizeRecord(updates)).eq('id', id);
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating invoice_items: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated invoice_items record:\n' + JSON.stringify(data, null, 2) }] };
@@ -322,7 +323,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('services').insert([payload]).select().single();
+      const { data, error } = await supabase.from('services').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into services: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created services record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -345,7 +346,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('services').update(updates).eq('id', id);
+      let query = supabase.from('services').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating services: ' + error.message }] };
@@ -425,7 +426,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('suppliers').insert([payload]).select().single();
+      const { data, error } = await supabase.from('suppliers').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into suppliers: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created suppliers record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -457,7 +458,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('suppliers').update(updates).eq('id', id);
+      let query = supabase.from('suppliers').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating suppliers: ' + error.message }] };
@@ -524,7 +525,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('payment_reminder_rules').insert([payload]).select().single();
+      const { data, error } = await supabase.from('payment_reminder_rules').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into payment_reminder_rules: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created payment_reminder_rules record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -543,7 +544,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('payment_reminder_rules').update(updates).eq('id', id);
+      let query = supabase.from('payment_reminder_rules').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating payment_reminder_rules: ' + error.message }] };
@@ -612,7 +613,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('quotes').insert([payload]).select().single();
+      const { data, error } = await supabase.from('quotes').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into quotes: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created quotes record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -633,7 +634,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('quotes').update(updates).eq('id', id);
+      let query = supabase.from('quotes').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating quotes: ' + error.message }] };
@@ -710,7 +711,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('bank_statements').insert([payload]).select().single();
+      const { data, error } = await supabase.from('bank_statements').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into bank_statements: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created bank_statements record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -739,7 +740,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('bank_statements').update(updates).eq('id', id);
+      let query = supabase.from('bank_statements').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating bank_statements: ' + error.message }] };
@@ -806,7 +807,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
-      const { data, error } = await supabase.from('supplier_order_items').insert([payload]).select().single();
+      const { data, error } = await supabase.from('supplier_order_items').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into supplier_order_items: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created supplier_order_items record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -826,7 +827,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('supplier_order_items').update(updates).eq('id', id);
+      let query = supabase.from('supplier_order_items').update(sanitizeRecord(updates)).eq('id', id);
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating supplier_order_items: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated supplier_order_items record:\n' + JSON.stringify(data, null, 2) }] };
@@ -892,7 +893,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('supplier_orders').insert([payload]).select().single();
+      const { data, error } = await supabase.from('supplier_orders').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into supplier_orders: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created supplier_orders record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -914,7 +915,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('supplier_orders').update(updates).eq('id', id);
+      let query = supabase.from('supplier_orders').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating supplier_orders: ' + error.message }] };
@@ -978,7 +979,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('service_categories').insert([payload]).select().single();
+      const { data, error } = await supabase.from('service_categories').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into service_categories: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created service_categories record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -994,7 +995,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('service_categories').update(updates).eq('id', id);
+      let query = supabase.from('service_categories').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating service_categories: ' + error.message }] };
@@ -1073,7 +1074,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('company').insert([payload]).select().single();
+      const { data, error } = await supabase.from('company').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into company: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created company record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -1104,7 +1105,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('company').update(updates).eq('id', id);
+      let query = supabase.from('company').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating company: ' + error.message }] };
@@ -1183,7 +1184,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('bank_transactions').insert([payload]).select().single();
+      const { data, error } = await supabase.from('bank_transactions').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into bank_transactions: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created bank_transactions record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -1214,7 +1215,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('bank_transactions').update(updates).eq('id', id);
+      let query = supabase.from('bank_transactions').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating bank_transactions: ' + error.message }] };
@@ -1279,7 +1280,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('payment_terms').insert([payload]).select().single();
+      const { data, error } = await supabase.from('payment_terms').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into payment_terms: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created payment_terms record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -1296,7 +1297,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('payment_terms').update(updates).eq('id', id);
+      let query = supabase.from('payment_terms').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating payment_terms: ' + error.message }] };
@@ -1369,7 +1370,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('credit_notes').insert([payload]).select().single();
+      const { data, error } = await supabase.from('credit_notes').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into credit_notes: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created credit_notes record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -1394,7 +1395,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('credit_notes').update(updates).eq('id', id);
+      let query = supabase.from('credit_notes').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating credit_notes: ' + error.message }] };
@@ -1470,7 +1471,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('bank_reconciliation_sessions').insert([payload]).select().single();
+      const { data, error } = await supabase.from('bank_reconciliation_sessions').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into bank_reconciliation_sessions: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created bank_reconciliation_sessions record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -1498,7 +1499,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('bank_reconciliation_sessions').update(updates).eq('id', id);
+      let query = supabase.from('bank_reconciliation_sessions').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating bank_reconciliation_sessions: ' + error.message }] };
@@ -1570,7 +1571,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('expenses').insert([payload]).select().single();
+      const { data, error } = await supabase.from('expenses').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into expenses: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created expenses record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -1594,7 +1595,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('expenses').update(updates).eq('id', id);
+      let query = supabase.from('expenses').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating expenses: ' + error.message }] };
@@ -1668,7 +1669,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('receivables').insert([payload]).select().single();
+      const { data, error } = await supabase.from('receivables').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into receivables: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created receivables record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -1694,7 +1695,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('receivables').update(updates).eq('id', id);
+      let query = supabase.from('receivables').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating receivables: ' + error.message }] };
@@ -1772,7 +1773,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('bank_statement_lines').insert([payload]).select().single();
+      const { data, error } = await supabase.from('bank_statement_lines').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into bank_statement_lines: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created bank_statement_lines record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -1802,7 +1803,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('bank_statement_lines').update(updates).eq('id', id);
+      let query = supabase.from('bank_statement_lines').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating bank_statement_lines: ' + error.message }] };
@@ -1871,7 +1872,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('accounting_tax_rates').insert([payload]).select().single();
+      const { data, error } = await supabase.from('accounting_tax_rates').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into accounting_tax_rates: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created accounting_tax_rates record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -1892,7 +1893,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('accounting_tax_rates').update(updates).eq('id', id);
+      let query = supabase.from('accounting_tax_rates').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating accounting_tax_rates: ' + error.message }] };
@@ -1958,7 +1959,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('recurring_invoices').insert([payload]).select().single();
+      const { data, error } = await supabase.from('recurring_invoices').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into recurring_invoices: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created recurring_invoices record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -1976,7 +1977,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('recurring_invoices').update(updates).eq('id', id);
+      let query = supabase.from('recurring_invoices').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating recurring_invoices: ' + error.message }] };
@@ -2047,7 +2048,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('purchase_orders').insert([payload]).select().single();
+      const { data, error } = await supabase.from('purchase_orders').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into purchase_orders: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created purchase_orders record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -2070,7 +2071,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('purchase_orders').update(updates).eq('id', id);
+      let query = supabase.from('purchase_orders').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating purchase_orders: ' + error.message }] };
@@ -2140,7 +2141,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
-      const { data, error } = await supabase.from('invoice_settings').insert([payload]).select().single();
+      const { data, error } = await supabase.from('invoice_settings').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into invoice_settings: ' + error.message }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created invoice_settings record:\n' + JSON.stringify(data, null, 2) }] };
     }
@@ -2162,7 +2163,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
-      let query = supabase.from('invoice_settings').update(updates).eq('id', id);
+      let query = supabase.from('invoice_settings').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: 'Error updating invoice_settings: ' + error.message }] };

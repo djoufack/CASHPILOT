@@ -5,7 +5,7 @@
  * via a Supabase Edge Function. This client-side module provides the interface.
  */
 
-import { supabaseUrl, supabaseAnonKey } from '@/lib/customSupabaseClient';
+import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/customSupabaseClient';
 
 /**
  * Create a Stripe Checkout session for credit purchase
@@ -23,11 +23,17 @@ export const createCheckoutSession = async ({ priceId, credits, userId, customer
     throw new Error('Supabase URL not configured');
   }
 
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    throw new Error('Authentication required');
+  }
+
   const response = await fetch(`${supabaseUrl}/functions/v1/stripe-checkout`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabaseAnonKey}`,
+      apikey: supabaseAnonKey,
+      'Authorization': `Bearer ${session.access_token}`,
     },
     body: JSON.stringify({
       priceId,

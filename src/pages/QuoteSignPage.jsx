@@ -46,17 +46,12 @@ export default function QuoteSignPage() {
   const fetchQuote = async () => {
     setLoading(true);
     try {
-      const { data, error: fetchError } = await supabase
-        .from('quotes')
-        .select('*, clients(company_name, contact_name, email)')
-        .eq('signature_token', token)
-        .eq('signature_status', 'pending')
-        .gt('signature_token_expires_at', new Date().toISOString())
-        .maybeSingle();
-
+      const { data, error: fetchError } = await supabase.functions.invoke('quote-sign-get', {
+        body: { token },
+      });
       if (fetchError) throw fetchError;
-      if (!data) setError(t('quoteSignPage.invalidLink'));
-      else setQuote(data);
+      if (!data?.quote) setError(t('quoteSignPage.invalidLink'));
+      else setQuote(data.quote);
     } catch (err) {
       setError(err.message || t('quoteSignPage.loadError'));
     } finally {

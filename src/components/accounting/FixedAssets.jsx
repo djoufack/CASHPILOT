@@ -130,7 +130,7 @@ const ScheduleDialog = ({ asset, fetchSchedule, postDepreciationEntry }) => {
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white">
+        <Button variant="ghost" size="icon" aria-label="View asset details" className="h-7 w-7 text-gray-400 hover:text-white">
           <Eye className="w-4 h-4" />
         </Button>
       </DialogTrigger>

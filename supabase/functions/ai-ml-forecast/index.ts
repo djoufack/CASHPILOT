@@ -1,9 +1,13 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 const CREDIT_COST = 3;
@@ -20,8 +24,12 @@ serve(async (req) => {
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
     const authUser = await requireAuthenticatedUser(req);
-    const { userId, historicalData, forecastMonths = 6 } = await req.json();
     resolvedUserId = authUser.id;
+
+    const rateLimit = checkRateLimit(resolvedUserId, { maxRequests: 10, windowMs: 60_000, keyPrefix: 'ai-forecast' });
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit, corsHeaders);
+
+    const { userId, historicalData, forecastMonths = 6 } = await req.json();
 
     if ((userId && userId !== resolvedUserId) || !historicalData) {
       return new Response(JSON.stringify({ error: 'Missing userId or historicalData' }), {

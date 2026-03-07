@@ -35,7 +35,8 @@ export default [
 			'react/jsx-uses-vars': 'off', // Non-critical, code works fine
 			'react/jsx-no-comment-textnodes': 'off', // Non-critical, comments could be visible if put inside the JSX, most cases are just rendering text like '///'
 
-			'no-unused-vars': 'off', // Non-critical, code works fine with unused vars
+			'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }],
+			'no-console': ['warn', { allow: ['error', 'warn'] }],
 			'import/no-named-as-default': 'off', // Can cause runtime import errors, usually fine to leave as is
 			'import/no-named-as-default-member': 'off', // Can cause runtime import errors
 

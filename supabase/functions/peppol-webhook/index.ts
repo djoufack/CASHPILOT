@@ -2,9 +2,12 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { consumeCredits, HttpError, refundCredits } from '../_shared/billing.ts';
 
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-scrada-topic, x-scrada-hmac-sha256, x-scrada-company-id, x-scrada-event-id, x-scrada-triggered-at, x-scrada-attempt',
+  ...SECURITY_HEADERS,
 };
 
 const PEPPOL_RECEIVE_CREDITS = 3;

@@ -5,10 +5,12 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { deliverWebhookEvent } from '../_shared/webhooks.ts';
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
+  ...SECURITY_HEADERS,
 };
 
 const ensureUserCreditsRow = async (supabase: ReturnType<typeof createClient>, userId: string) => {

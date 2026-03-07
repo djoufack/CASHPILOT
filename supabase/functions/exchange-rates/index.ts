@@ -1,8 +1,11 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 // In-memory cache for exchange rates (per base currency)

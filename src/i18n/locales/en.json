@@ -55,7 +55,9 @@
     "somethingWentWrong": "Something went wrong",
     "tryAgain": "Try again",
     "reloadPage": "Reload Page",
-    "unexpectedError": "An unexpected error occurred."
+    "unexpectedError": "An unexpected error occurred.",
+    "backToHome": "Back to home",
+    "goToDashboard": "Go to dashboard"
   },
   "aiChat": {
     "title": "AI Assistant",
@@ -120,7 +122,11 @@
     "sales": "Sales",
     "companyPortfolio": "Company Portfolio",
     "integrations": "Integrations",
-    "apiWebhooks": "API & Webhooks"
+    "apiWebhooks": "API & Webhooks",
+    "logoutSuccess": "Logged out",
+    "logoutSuccessDescription": "You have been successfully logged out.",
+    "logoutError": "Error",
+    "logoutErrorDescription": "Failed to log out. Please try again."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1459,7 +1465,220 @@
     "ensure_data": "To generate a complete financial diagnostic, make sure you have:",
     "import_chart": "Imported your OHADA chart of accounts",
     "create_entries": "Created accounting entries (manual or automatic)",
-    "balanced_sheet": "A balanced balance sheet with consistent data"
+    "balanced_sheet": "A balanced balance sheet with consistent data",
+    "insufficient_data_title": "Insufficient data for diagnostic",
+    "insufficient_data_desc": "To generate a complete financial diagnostic, make sure you have imported the chart of accounts and accounting entries.",
+    "cannot_generate": "Unable to generate diagnostic",
+    "errors_detected": "The following errors were detected:",
+    "period_label": "Period:",
+    "comparative_label": "Comparative",
+    "export_premium_pdf": "Export premium PDF",
+    "export_premium_html": "Export premium HTML",
+    "export_pdf_aria": "Export view as PDF",
+    "export_html_aria": "Export view as HTML",
+    "view_gallery": "Gallery",
+    "view_detail": "Detail",
+    "view_comparative": "Comparative Y-1",
+    "filter_all": "All categories",
+    "filter_margins": "Margins",
+    "filter_financing": "Financing",
+    "filter_ratios": "Ratios",
+    "sort_custom": "Custom order",
+    "sort_priority": "Alert priority",
+    "sort_value": "Descending value",
+    "sort_alpha": "Alphabetical",
+    "filter_cards_label": "Filter cards",
+    "sort_cards_label": "Sort cards",
+    "period_comparator_label": "Period comparator",
+    "benchmark_sector_label": "Sector benchmark",
+    "sector_services": "Sector: Services",
+    "sector_commerce": "Sector: Retail",
+    "sector_industry": "Sector: Industry",
+    "customize": "Customize",
+    "customize_cards_aria": "Customize cards",
+    "top3_critical_actions": "Top 3 critical actions",
+    "no_critical_signal": "No critical signal detected for this period. Continue monitoring with the comparative view.",
+    "cta_open_fix": "Direct CTA: open and fix",
+    "open_critical_action_aria": "Open critical action",
+    "export_pdf_mobile_aria": "Export PDF",
+    "open_detail_aria": "Open detail for {{title}}",
+    "current_period": "Current period",
+    "you_label": "You:",
+    "sector_median": "Sector median:",
+    "gap_label": "Gap:",
+    "mini_trend_12m": "12-month mini trend",
+    "why_score": "Why this score?",
+    "how_improve": "How to improve?",
+    "variation_label": "Variation",
+    "note_text": "Diagnostic view controllable by mode, filters and comparatives. Premium exports reflect the current view (sort, filters, period, sector benchmark).",
+    "customize_gallery": "Customize gallery",
+    "customize_gallery_desc": "Hide/reorder cards. Configuration is saved for your next visit.",
+    "show_card_aria": "Show card {{title}}",
+    "move_up_aria": "Move up {{title}}",
+    "move_down_aria": "Move down {{title}}",
+    "reset": "Reset",
+    "close": "Close",
+    "drilldown_title": "Drill-down: {{title}}",
+    "drilldown_desc": "Details of accounts/sources related to this indicator.",
+    "current_value": "Current value",
+    "sector_median_short": "Sector median",
+    "source_accounts_top12": "Source accounts (top 12)",
+    "no_source_accounts": "No accounting source available for this KPI.",
+    "table_code": "Code",
+    "table_account": "Account",
+    "table_balance": "Balance",
+    "cards": {
+      "revenue": {
+        "title": "Revenue",
+        "why": "This KPI directly tracks the company's commercial traction.",
+        "how": "Improve conversion, average basket and customer retention.",
+        "info_title": "Revenue",
+        "info_formula": "Sum of net sales over the period",
+        "info_definition": "Revenue measures the level of commercial activity.",
+        "info_utility": "It serves as the basis for all performance ratios.",
+        "info_interpretation": "A sustained increase is positive. A decrease requires client/price/volume analysis."
+      },
+      "gross_margin": {
+        "title": "Gross margin",
+        "why": "Gross margin shows the ability to convert sales into value.",
+        "how": "Renegotiate purchases, adjust pricing, prioritize higher-contribution offerings.",
+        "info_title": "Gross margin",
+        "info_formula": "Gross margin = Revenue - direct costs",
+        "info_definition": "Gross margin shows value created before overhead costs.",
+        "info_utility": "It validates the price/direct cost pairing.",
+        "info_interpretation": "A decline often reflects pricing pressure or rising direct costs."
+      },
+      "gross_margin_rate": {
+        "title": "Gross margin (%)",
+        "why": "The percentage makes margin comparable across periods.",
+        "how": "Improve product mix and purchasing efficiency."
+      },
+      "ebitda": {
+        "title": "EBITDA",
+        "why": "EBITDA measures operational performance before non-cash items.",
+        "how": "Optimize recurring costs and team productivity."
+      },
+      "ebitda_margin": {
+        "title": "EBITDA margin",
+        "why": "This ratio shows the share of revenue converted into operating performance.",
+        "how": "Automate processes, review discount policy, reduce fixed costs."
+      },
+      "operating_result": {
+        "title": "Operating result",
+        "why": "It indicates whether the core business is profitable.",
+        "how": "Reallocate budget to profitable segments and control OPEX."
+      },
+      "operating_margin": {
+        "title": "Operating margin",
+        "why": "It provides a quick view of economic solidity.",
+        "how": "Manage pricing, productivity and cost structure."
+      },
+      "caf": {
+        "title": "Self-financing capacity (CFO)",
+        "why": "CFO indicates the internal resources generated by the business.",
+        "how": "Improve profitability and limit unproductive costs."
+      },
+      "working_capital": {
+        "title": "Working capital",
+        "why": "Working capital represents the long-term financial safety margin.",
+        "how": "Strengthen equity or extend debt maturity."
+      },
+      "bfr": {
+        "title": "Working capital requirement (WCR)",
+        "why": "WCR measures cash tied up in the operating cycle.",
+        "how": "Speed up collections, optimize inventory, negotiate with suppliers."
+      },
+      "bfr_variation": {
+        "title": "WCR variation",
+        "why": "A positive variation can absorb available cash.",
+        "how": "Implement DSO/DPO tracking and inventory thresholds."
+      },
+      "operating_cashflow": {
+        "title": "Operating cash flow",
+        "why": "This flow validates the business's ability to generate real cash.",
+        "how": "Increase CFO and reduce WCR consumption."
+      },
+      "net_debt": {
+        "title": "Net debt",
+        "why": "It measures the real weight of debt after available cash.",
+        "how": "Deleverage, renegotiate rates, strengthen cash."
+      },
+      "debt_ratio": {
+        "title": "Debt ratio",
+        "why": "It measures the debt / equity weight.",
+        "how": "Limit short-term debt and strengthen equity."
+      },
+      "debt_share": {
+        "title": "Debt share",
+        "why": "This indicator visualizes the level of dependency on debt leverage.",
+        "how": "Diversify financing and reduce circulating cash needs."
+      },
+      "roe": {
+        "title": "ROE",
+        "why": "ROE measures the return on equity.",
+        "how": "Improve net margin and capital turnover."
+      },
+      "roce": {
+        "title": "ROCE",
+        "why": "ROCE measures the performance of capital employed.",
+        "how": "Prioritize high-ROI investments."
+      },
+      "roa": {
+        "title": "ROA",
+        "why": "ROA links profitability and asset efficiency.",
+        "how": "Increase net income and optimize asset usage."
+      },
+      "net_margin": {
+        "title": "Net margin",
+        "why": "Net margin gives the final profitability after all charges.",
+        "how": "Control financial/tax charges and indirect costs."
+      },
+      "current_ratio": {
+        "title": "Current ratio",
+        "why": "It measures the ability to honor short-term debts.",
+        "how": "Strengthen cash and reduce short-term debt."
+      },
+      "quick_ratio": {
+        "title": "Quick ratio",
+        "why": "It tests solvency without selling inventory.",
+        "how": "Better collect receivables and stabilize supplier payment terms."
+      },
+      "cash_ratio": {
+        "title": "Cash ratio",
+        "why": "It measures the immediate cash coverage of short-term debts.",
+        "how": "Maintain cash buffer and weekly cash forecasts."
+      },
+      "financial_leverage": {
+        "title": "Financial leverage",
+        "why": "High leverage increases sensitivity to repayment risk.",
+        "how": "Strengthen equity and reduce unproductive debt."
+      },
+      "autonomy_ratio": {
+        "title": "Financial autonomy",
+        "why": "It measures the share of internal financing.",
+        "how": "Consolidate reserves and prudent management of external financing."
+      }
+    },
+    "alerts": {
+      "operating_margin_title": "Low operating margin",
+      "operating_margin_desc": "Operating margin is at {{value}}%.",
+      "operating_margin_action": "Review cost structure and pricing for low-contribution offerings.",
+      "current_ratio_title": "Short-term liquidity risk",
+      "current_ratio_desc": "The current ratio is at {{value}}.",
+      "current_ratio_action": "Secure immediate cash and accelerate collections.",
+      "leverage_title": "High financial leverage",
+      "leverage_desc": "Financial leverage is at {{value}}.",
+      "leverage_action": "Prioritize debt reduction and targeted recapitalization.",
+      "cashflow_title": "Negative operating cash flow",
+      "cashflow_desc": "Operating cash flow is {{value}}.",
+      "cashflow_action": "Stop non-essential outflows and correct WCR.",
+      "bfr_title": "WCR increasing",
+      "bfr_desc": "WCR variation: +{{value}}.",
+      "bfr_action": "Monitor DSO, DPO and inventory turnover weekly.",
+      "ebitda_margin_title": "EBITDA margin below benchmark",
+      "ebitda_margin_desc": "EBITDA margin is at {{value}}%.",
+      "ebitda_margin_action": "Review operational processes and fixed costs."
+    }
   },
   "mfa": {
     "title": "Two-Factor Authentication",
@@ -1736,7 +1955,8 @@
   "errors": {
     "unauthorized": "You do not have permission to access this resource.",
     "notFound": "Resource not found.",
-    "general": "Something went wrong."
+    "general": "Something went wrong.",
+    "pageNotFound": "This page could not be found."
   },
   "onboarding": {
     "back": "Back",

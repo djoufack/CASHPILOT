@@ -10,35 +10,44 @@ import { supabase } from '@/lib/supabase';
  */
 export const calculateVATBreakdown = async (userId, startDate, endDate) => {
   // Fetch invoices for the period
-  const { data: invoices } = await supabase
+  const { data: invoices, error: invoicesError } = await supabase
     .from('invoices')
-    .select('total_ht, total_vat, vat_rate, status')
+    .select('total_ht, total_ttc, tax_rate, status')
     .eq('user_id', userId)
-    .gte('invoice_date', startDate)
-    .lte('invoice_date', endDate)
+    .gte('date', startDate)
+    .lte('date', endDate)
     .eq('status', 'paid');
+  if (invoicesError) throw invoicesError;
 
   // Fetch expenses for the period
-  const { data: expenses } = await supabase
+  const { data: expenses, error: expensesError } = await supabase
     .from('expenses')
     .select('amount, vat_amount, vat_rate, category')
     .eq('user_id', userId)
     .gte('date', startDate)
     .lte('date', endDate);
+  if (expensesError) throw expensesError;
 
   // Calculate output VAT (TVA collectee)
   const outputVAT = {
-    total: invoices?.reduce((sum, inv) => sum + (inv.total_vat || 0), 0) || 0,
+    total: invoices?.reduce((sum, inv) => {
+      const totalHt = Number(inv.total_ht || 0);
+      const totalTtc = Number(inv.total_ttc || 0);
+      return sum + Math.max(0, (totalTtc - totalHt));
+    }, 0) || 0,
     byRate: {}
   };
 
   invoices?.forEach(inv => {
-    const rate = inv.vat_rate || 20;
+    const rate = inv.tax_rate || 20;
+    const totalHt = Number(inv.total_ht || 0);
+    const totalTtc = Number(inv.total_ttc || 0);
+    const totalVat = Math.max(0, (totalTtc - totalHt));
     if (!outputVAT.byRate[rate]) {
       outputVAT.byRate[rate] = { base: 0, vat: 0 };
     }
-    outputVAT.byRate[rate].base += inv.total_ht || 0;
-    outputVAT.byRate[rate].vat += inv.total_vat || 0;
+    outputVAT.byRate[rate].base += totalHt;
+    outputVAT.byRate[rate].vat += totalVat;
   });
 
   // Calculate input VAT (TVA deductible)

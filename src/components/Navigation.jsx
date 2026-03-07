@@ -40,15 +40,15 @@ const Navigation = () => {
       .then(() => {
         navigate('/login');
         toast({
-          title: "Logged out",
-          description: "You have been successfully logged out.",
+          title: t('nav.logoutSuccess'),
+          description: t('nav.logoutSuccessDescription'),
         });
       })
       .catch((error) => {
         console.error("Logout failed:", error);
         toast({
-          title: "Error",
-          description: "Failed to log out. Please try again.",
+          title: t('nav.logoutError'),
+          description: t('nav.logoutErrorDescription'),
           variant: "destructive",
         });
       });
@@ -57,7 +57,7 @@ const Navigation = () => {
   const navItems = [
     { path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
     { path: '/clients', label: t('nav.clients'), icon: Users },
-    { path: '/projects', label: 'Projects', icon: Briefcase },
+    { path: '/projects', label: t('nav.projects'), icon: Briefcase },
     { path: '/timesheets', label: t('nav.timesheets'), icon: Clock },
     { path: '/invoices', label: t('nav.invoices'), icon: FileText },
     { path: '/quotes', label: t('nav.quotes'), icon: FileSignature },

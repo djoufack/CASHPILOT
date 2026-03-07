@@ -1,9 +1,12 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
+  ...SECURITY_HEADERS,
 };
 
 // ---------------------------------------------------------------------------
@@ -33,6 +36,19 @@ function formatDateFacturX(date: string | null | undefined): string {
 function formatAmount(amount: number | string | null | undefined): string {
   if (amount === null || amount === undefined) return '0.00';
   return Number(amount).toFixed(2);
+}
+
+// ---------------------------------------------------------------------------
+// Date validation utility
+// ---------------------------------------------------------------------------
+
+function validateDate(dateStr: string | null): { valid: boolean; value?: string; error?: string } {
+  if (!dateStr) return { valid: true };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return { valid: false, error: 'Invalid date format. Expected YYYY-MM-DD.' };
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return { valid: false, error: 'Invalid date value.' };
+  if (d.getFullYear() < 1900 || d.getFullYear() > 2100) return { valid: false, error: 'Date out of range (1900-2100).' };
+  return { valid: true, value: dateStr };
 }
 
 // ---------------------------------------------------------------------------
@@ -92,6 +108,8 @@ serve(async (req) => {
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const keyHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
+    let resolvedKey: Record<string, unknown> | null = null;
+
     const { data: keyData, error: keyError } = await supabase
       .from('api_keys')
       .select('*')
@@ -99,19 +117,49 @@ serve(async (req) => {
       .eq('is_active', true)
       .single();
 
-    if (keyError || !keyData) {
+    if (!keyError && keyData) {
+      resolvedKey = keyData;
+    } else {
+      // Fallback: check for superseded key within grace period
+      const { data: supersededKey } = await supabase
+        .from('api_keys')
+        .select('*')
+        .eq('key_hash', keyHash)
+        .not('superseded_at', 'is', null)
+        .single();
+
+      if (supersededKey) {
+        const graceDays = supersededKey.grace_period_days ?? 7;
+        const supersededAt = new Date(supersededKey.superseded_at);
+        const graceEnd = new Date(supersededAt.getTime() + graceDays * 86_400_000);
+        if (new Date() <= graceEnd) {
+          resolvedKey = supersededKey;
+        } else {
+          return jsonResponse({ error: 'API key has been rotated and grace period expired' }, 401);
+        }
+      }
+    }
+
+    if (!resolvedKey) {
       return jsonResponse({ error: 'Invalid API key' }, 401);
     }
 
     // Check expiration
-    if (keyData.expires_at && new Date(keyData.expires_at) < new Date()) {
+    if (resolvedKey.expires_at && new Date(resolvedKey.expires_at as string) < new Date()) {
       return jsonResponse({ error: 'API key expired' }, 401);
     }
 
     // Update last used
-    await supabase.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', keyData.id);
+    await supabase.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', resolvedKey.id);
 
-    const userId = keyData.user_id;
+    const userId = resolvedKey.user_id as string;
+
+    // Rate limit: 100 requests per minute per user
+    const rl = checkRateLimit(`api-v1:${userId}`, { maxRequests: 100, windowMs: 60_000, keyPrefix: 'api-v1' });
+    if (!rl.allowed) {
+      return rateLimitResponse(rl, corsHeaders);
+    }
+
     const url = new URL(req.url);
     const path = url.pathname.replace(/^\/?(functions\/v1\/)?api-v1\/?/, '');
     const method = req.method;
@@ -127,10 +175,10 @@ serve(async (req) => {
     // -----------------------------------------------------------------------
     const needsWrite = ['POST', 'PUT', 'PATCH'].includes(method);
     const needsDelete = method === 'DELETE';
-    if (needsWrite && !keyData.scopes.includes('write')) {
+    if (needsWrite && !(resolvedKey.scopes as string[]).includes('write')) {
       return jsonResponse({ error: 'Insufficient scope: write required' }, 403);
     }
-    if (needsDelete && !keyData.scopes.includes('delete')) {
+    if (needsDelete && !(resolvedKey.scopes as string[]).includes('delete')) {
       return jsonResponse({ error: 'Insufficient scope: delete required' }, 403);
     }
 
@@ -297,7 +345,7 @@ serve(async (req) => {
         const body = await req.json();
         const filtered = filterFields(body, resource);
         const { data, error } = await supabase.from(resource).insert({ ...filtered, user_id: userId }).select().single();
-        if (error) return jsonResponse({ error: error.message }, 400);
+        if (error) return jsonResponse({ error: 'Invalid request' }, 400);
         return jsonResponse({ data }, 201);
       }
 
@@ -307,14 +355,14 @@ serve(async (req) => {
         const body = await req.json();
         const filtered = filterFields(body, resource);
         const { data, error } = await supabase.from(resource).update(filtered).eq('id', resourceId).eq('user_id', userId).select().single();
-        if (error) return jsonResponse({ error: error.message }, 400);
+        if (error) return jsonResponse({ error: 'Invalid request' }, 400);
         return jsonResponse({ data });
       }
 
       case 'DELETE': {
         if (!resourceId) return jsonResponse({ error: 'Resource ID required' }, 400);
         const { error } = await supabase.from(resource).delete().eq('id', resourceId).eq('user_id', userId);
-        if (error) return jsonResponse({ error: error.message }, 400);
+        if (error) return jsonResponse({ error: 'Delete failed' }, 400);
         return jsonResponse({ success: true });
       }
 
@@ -322,7 +370,8 @@ serve(async (req) => {
         return jsonResponse({ error: 'Method not allowed' }, 405);
     }
   } catch (error) {
-    return jsonResponse({ error: (error as Error).message }, 500);
+    console.error('API error:', (error as Error).message);
+    return jsonResponse({ error: 'Internal server error' }, 500);
   }
 });
 
@@ -348,7 +397,7 @@ async function handleCreatePayment(supabase: ReturnType<typeof createClient>, us
     .single();
 
   if (invErr || !invoice) {
-    return jsonResponse({ error: `Invoice not found: ${invErr?.message || 'unknown'}` }, 404);
+    return jsonResponse({ error: 'Invoice not found' }, 404);
   }
 
   const date = payment_date ?? new Date().toISOString().split('T')[0];
@@ -370,7 +419,7 @@ async function handleCreatePayment(supabase: ReturnType<typeof createClient>, us
     .select()
     .single();
 
-  if (error) return jsonResponse({ error: error.message }, 400);
+  if (error) return jsonResponse({ error: 'Invalid request' }, 400);
 
   // Update invoice payment status
   const totalTtc = parseFloat(invoice.total_ttc || '0');
@@ -417,7 +466,7 @@ async function handlePaymentsUnpaid(supabase: ReturnType<typeof createClient>, u
   }
 
   const { data, error } = await query;
-  if (error) return jsonResponse({ error: error.message }, 500);
+  if (error) return jsonResponse({ error: 'Internal server error' }, 500);
 
   const total = (data ?? []).reduce((s: number, i: { total_ttc: string | number }) => s + parseFloat(String(i.total_ttc || '0')), 0);
 
@@ -434,9 +483,10 @@ async function handlePaymentsReceivables(supabase: ReturnType<typeof createClien
   const { data, error } = await supabase
     .from('receivables')
     .select('*')
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .limit(5000);
 
-  if (error) return jsonResponse({ error: error.message }, 500);
+  if (error) return jsonResponse({ error: 'Internal server error' }, 500);
 
   const stats = {
     total_receivable: 0,
@@ -486,7 +536,7 @@ async function handleAccountingChart(supabase: ReturnType<typeof createClient>, 
   if (category) query = query.eq('account_category', category);
 
   const { data, error } = await query;
-  if (error) return jsonResponse({ error: error.message }, 500);
+  if (error) return jsonResponse({ error: 'Internal server error' }, 500);
 
   return jsonResponse({ data, count: data?.length ?? 0 });
 }
@@ -494,6 +544,10 @@ async function handleAccountingChart(supabase: ReturnType<typeof createClient>, 
 async function handleAccountingEntries(supabase: ReturnType<typeof createClient>, userId: string, url: URL) {
   const startDate = url.searchParams.get('start_date');
   const endDate = url.searchParams.get('end_date');
+  const startCheck = validateDate(startDate);
+  if (!startCheck.valid) return jsonResponse({ error: `start_date: ${startCheck.error}` }, 400);
+  const endCheck = validateDate(endDate);
+  if (!endCheck.valid) return jsonResponse({ error: `end_date: ${endCheck.error}` }, 400);
   const accountCode = url.searchParams.get('account_code');
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
 
@@ -509,25 +563,30 @@ async function handleAccountingEntries(supabase: ReturnType<typeof createClient>
   if (accountCode) query = query.eq('account_code', accountCode);
 
   const { data, error } = await query;
-  if (error) return jsonResponse({ error: error.message }, 500);
+  if (error) return jsonResponse({ error: 'Internal server error' }, 500);
 
   return jsonResponse({ data, count: data?.length ?? 0 });
 }
 
 async function handleTrialBalance(supabase: ReturnType<typeof createClient>, userId: string, url: URL) {
-  const cutoff = url.searchParams.get('date') ?? new Date().toISOString().split('T')[0];
+  const dateParam = url.searchParams.get('date');
+  const dateCheck = validateDate(dateParam);
+  if (!dateCheck.valid) return jsonResponse({ error: dateCheck.error }, 400);
+  const cutoff = dateCheck.value ?? new Date().toISOString().split('T')[0];
 
   const [entriesRes, chartRes] = await Promise.all([
     supabase.from('accounting_entries')
       .select('account_code, debit, credit')
       .eq('user_id', userId)
-      .lte('transaction_date', cutoff),
+      .lte('transaction_date', cutoff)
+      .limit(10000),
     supabase.from('accounting_chart_of_accounts')
       .select('account_code, account_name')
-      .eq('user_id', userId),
+      .eq('user_id', userId)
+      .limit(5000),
   ]);
 
-  if (entriesRes.error) return jsonResponse({ error: entriesRes.error.message }, 500);
+  if (entriesRes.error) return jsonResponse({ error: 'Internal server error' }, 500);
 
   const chartMap: Record<string, string> = {};
   for (const c of chartRes.data ?? []) {
@@ -575,6 +634,10 @@ async function handleTaxSummary(supabase: ReturnType<typeof createClient>, userI
   if (!startDate || !endDate) {
     return jsonResponse({ error: 'start_date and end_date query parameters are required' }, 400);
   }
+  const sCheck = validateDate(startDate);
+  if (!sCheck.valid) return jsonResponse({ error: `start_date: ${sCheck.error}` }, 400);
+  const eCheck = validateDate(endDate);
+  if (!eCheck.valid) return jsonResponse({ error: `end_date: ${eCheck.error}` }, 400);
 
   const [invoicesRes, expensesRes, taxRatesRes] = await Promise.all([
     supabase.from('invoices').select('total_ht, total_ttc, tax_rate, date')
@@ -637,7 +700,7 @@ async function handleAccountingInit(supabase: ReturnType<typeof createClient>, u
     .from('user_accounting_settings')
     .upsert({ user_id: userId, country: country.toUpperCase(), is_initialized: true }, { onConflict: 'user_id' });
 
-  if (error) return jsonResponse({ error: error.message }, 500);
+  if (error) return jsonResponse({ error: 'Internal server error' }, 500);
 
   return jsonResponse({
     data: {
@@ -750,7 +813,7 @@ async function handleTopClients(supabase: ReturnType<typeof createClient>, userI
     .eq('user_id', userId)
     .in('status', ['paid', 'sent']);
 
-  if (error) return jsonResponse({ error: error.message }, 500);
+  if (error) return jsonResponse({ error: 'Internal server error' }, 500);
 
   const clientTotals: Record<string, { client_id: string; company_name: string; email: string; total_revenue: number; invoice_count: number }> = {};
 
@@ -793,7 +856,7 @@ async function handleExportFec(supabase: ReturnType<typeof createClient>, userId
     .lte('transaction_date', endDate)
     .order('transaction_date', { ascending: true });
 
-  if (error) return jsonResponse({ error: error.message }, 500);
+  if (error) return jsonResponse({ error: 'Internal server error' }, 500);
 
   if (!entries?.length) {
     const headerOnly = '\uFEFF' + 'JournalCode|JournalLib|EcritureNum|EcritureDate|CompteNum|CompteLib|CompAuxNum|CompAuxLib|PieceRef|PieceDate|EcritureLib|Debit|Credit|EcritureLet|DateLet|ValidDate|Montantdevise|Idevise';
@@ -930,7 +993,7 @@ async function handleExportFacturx(supabase: ReturnType<typeof createClient>, us
     supabase.from('companies').select('*').eq('user_id', userId).single(),
   ]);
 
-  if (invoiceRes.error) return jsonResponse({ error: `Invoice not found: ${invoiceRes.error.message}` }, 404);
+  if (invoiceRes.error) return jsonResponse({ error: 'Invoice not found' }, 404);
 
   const inv = invoiceRes.data;
   const seller = companyRes.data || {};
@@ -1019,7 +1082,7 @@ async function handleExportBackup(supabase: ReturnType<typeof createClient>, use
   const backup: Record<string, unknown[]> = {};
 
   for (const table of tables) {
-    const { data } = await supabase.from(table).select('*').eq('user_id', userId);
+    const { data } = await supabase.from(table).select('*').eq('user_id', userId).limit(10000);
     backup[table] = data ?? [];
   }
 

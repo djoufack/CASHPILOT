@@ -55,7 +55,9 @@
     "somethingWentWrong": "Une erreur est survenue",
     "tryAgain": "Réessayer",
     "reloadPage": "Recharger la page",
-    "unexpectedError": "Une erreur inattendue s'est produite."
+    "unexpectedError": "Une erreur inattendue s'est produite.",
+    "backToHome": "Retour à l'accueil",
+    "goToDashboard": "Aller au tableau de bord"
   },
   "aiChat": {
     "title": "Assistant IA",
@@ -120,7 +122,11 @@
     "sales": "Ventes",
     "companyPortfolio": "Portefeuille sociétés",
     "integrations": "Intégrations",
-    "apiWebhooks": "API & Webhooks"
+    "apiWebhooks": "API & Webhooks",
+    "logoutSuccess": "Déconnexion réussie",
+    "logoutSuccessDescription": "Vous avez été déconnecté avec succès.",
+    "logoutError": "Erreur",
+    "logoutErrorDescription": "Échec de la déconnexion. Veuillez réessayer."
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -1446,7 +1452,220 @@
     "ensure_data": "Pour générer un diagnostic financier complet, assurez-vous d'avoir:",
     "import_chart": "Importé votre plan comptable OHADA",
     "create_entries": "Créé des écritures comptables (manuelles ou automatiques)",
-    "balanced_sheet": "Un bilan équilibré avec des données cohérentes"
+    "balanced_sheet": "Un bilan équilibré avec des données cohérentes",
+    "insufficient_data_title": "Donnees insuffisantes pour le diagnostic",
+    "insufficient_data_desc": "Pour generer un diagnostic financier complet, assurez-vous d'avoir importe le plan comptable et les ecritures.",
+    "cannot_generate": "Impossible de generer le diagnostic",
+    "errors_detected": "Les erreurs suivantes ont ete detectees:",
+    "period_label": "Periode:",
+    "comparative_label": "Comparatif",
+    "export_premium_pdf": "Export premium PDF",
+    "export_premium_html": "Export premium HTML",
+    "export_pdf_aria": "Exporter la vue en PDF",
+    "export_html_aria": "Exporter la vue en HTML",
+    "view_gallery": "Galerie",
+    "view_detail": "Detail",
+    "view_comparative": "Comparatif N-1",
+    "filter_all": "Toutes categories",
+    "filter_margins": "Marges",
+    "filter_financing": "Financement",
+    "filter_ratios": "Ratios",
+    "sort_custom": "Ordre personnalise",
+    "sort_priority": "Priorite alertes",
+    "sort_value": "Valeur decroissante",
+    "sort_alpha": "Alphabetique",
+    "filter_cards_label": "Filtrer les cartes",
+    "sort_cards_label": "Trier les cartes",
+    "period_comparator_label": "Comparateur de periodes",
+    "benchmark_sector_label": "Benchmark secteur",
+    "sector_services": "Secteur: Services",
+    "sector_commerce": "Secteur: Commerce",
+    "sector_industry": "Secteur: Industrie",
+    "customize": "Personnaliser",
+    "customize_cards_aria": "Personnaliser les cartes",
+    "top3_critical_actions": "Top 3 actions critiques",
+    "no_critical_signal": "Aucun signal critique detecte sur cette periode. Continuez le suivi avec la vue comparative.",
+    "cta_open_fix": "CTA direct: ouvrir et corriger",
+    "open_critical_action_aria": "Ouvrir action critique",
+    "export_pdf_mobile_aria": "Exporter PDF",
+    "open_detail_aria": "Ouvrir le detail de {{title}}",
+    "current_period": "Periode courante",
+    "you_label": "Vous:",
+    "sector_median": "Mediane secteur:",
+    "gap_label": "Ecart:",
+    "mini_trend_12m": "Mini-tendance 12 mois",
+    "why_score": "Pourquoi ce score ?",
+    "how_improve": "Comment l'ameliorer ?",
+    "variation_label": "Variation",
+    "note_text": "Vue diagnostique pilotable par mode, filtres et comparatifs. Les exports premium reprennent la vue courante (tri, filtres, periode, benchmark secteur).",
+    "customize_gallery": "Personnaliser la galerie",
+    "customize_gallery_desc": "Masquer/reordonner les cartes. La configuration est sauvegardee pour votre prochain acces.",
+    "show_card_aria": "Afficher la carte {{title}}",
+    "move_up_aria": "Monter {{title}}",
+    "move_down_aria": "Descendre {{title}}",
+    "reset": "Reinitialiser",
+    "close": "Fermer",
+    "drilldown_title": "Drill-down: {{title}}",
+    "drilldown_desc": "Details des comptes/sources relies a cet indicateur.",
+    "current_value": "Valeur courante",
+    "sector_median_short": "Mediane secteur",
+    "source_accounts_top12": "Comptes sources (top 12)",
+    "no_source_accounts": "Aucune source comptable disponible pour ce KPI.",
+    "table_code": "Code",
+    "table_account": "Compte",
+    "table_balance": "Solde",
+    "cards": {
+      "revenue": {
+        "title": "Chiffre d'affaires",
+        "why": "Ce KPI suit directement la traction commerciale de l'entreprise.",
+        "how": "Ameliorer conversion, panier moyen et retention client.",
+        "info_title": "Chiffre d'affaires",
+        "info_formula": "Somme des ventes HT sur la periode",
+        "info_definition": "Le chiffre d'affaires mesure le niveau d'activite commerciale.",
+        "info_utility": "Il sert de base a tous les ratios de performance.",
+        "info_interpretation": "Une hausse durable est positive. Une baisse impose une analyse client/prix/volume."
+      },
+      "gross_margin": {
+        "title": "Marge brute",
+        "why": "La marge brute montre la capacite a transformer les ventes en valeur.",
+        "how": "Renegocier achats, ajuster pricing, prioriser les offres a meilleure contribution.",
+        "info_title": "Marge brute",
+        "info_formula": "Marge brute = CA - couts directs",
+        "info_definition": "La marge brute montre la valeur creee avant charges de structure.",
+        "info_utility": "Elle valide le couple prix/couts directs.",
+        "info_interpretation": "Une baisse traduit souvent une pression tarifaire ou une hausse des couts directs."
+      },
+      "gross_margin_rate": {
+        "title": "Marge brute (%)",
+        "why": "Le pourcentage rend la marge comparable entre periodes.",
+        "how": "Ameliorer mix produit et efficacite achat."
+      },
+      "ebitda": {
+        "title": "EBE / EBITDA",
+        "why": "L'EBITDA mesure la performance operationnelle avant elements non cash.",
+        "how": "Optimiser charges recurrentes et productivite des equipes."
+      },
+      "ebitda_margin": {
+        "title": "Marge EBITDA",
+        "why": "Ce ratio montre la part de CA convertie en performance d'exploitation.",
+        "how": "Automatiser process, revoir politique de remises, reduire frais fixes."
+      },
+      "operating_result": {
+        "title": "Resultat d'exploitation",
+        "why": "Il indique si le coeur d'activite est rentable.",
+        "how": "Reallouer budget vers segments rentables et maitriser OPEX."
+      },
+      "operating_margin": {
+        "title": "Marge operationnelle",
+        "why": "Elle donne une vision rapide de la solidite economique.",
+        "how": "Piloter prix, productivite et structure de couts."
+      },
+      "caf": {
+        "title": "Capacite d'autofinancement (CAF)",
+        "why": "La CAF indique les ressources internes generees par l'activite.",
+        "how": "Ameliorer rentabilite et limiter charges non productives."
+      },
+      "working_capital": {
+        "title": "Fonds de roulement",
+        "why": "Le FDR represente la marge de securite financiere a long terme.",
+        "how": "Renforcer fonds propres ou allonger maturite de dette."
+      },
+      "bfr": {
+        "title": "Besoin en fonds de roulement (BFR)",
+        "why": "Le BFR mesure le cash immobilise dans le cycle exploitation.",
+        "how": "Accelerer encaissements, optimiser stocks, negocier fournisseurs."
+      },
+      "bfr_variation": {
+        "title": "Variation BFR",
+        "why": "Une variation positive peut absorber la tresorerie disponible.",
+        "how": "Mettre en place suivi DSO/DPO et seuils de stock."
+      },
+      "operating_cashflow": {
+        "title": "Flux de tresorerie d'exploitation",
+        "why": "Ce flux valide la capacite de l'activite a generer du cash reel.",
+        "how": "Augmenter CAF et reduire consommation BFR."
+      },
+      "net_debt": {
+        "title": "Endettement net",
+        "why": "Il mesure le poids reel de la dette apres tresorerie disponible.",
+        "how": "Desendetter, renegocier taux, renforcer cash."
+      },
+      "debt_ratio": {
+        "title": "Ratio d'endettement",
+        "why": "Il mesure le poids dette / capitaux propres.",
+        "how": "Limiter dette courte et renforcer capitaux propres."
+      },
+      "debt_share": {
+        "title": "Part de dette",
+        "why": "Cet indicateur visualise le niveau de dependance au levier dette.",
+        "how": "Diversifier financements et reduire besoins de cash circulant."
+      },
+      "roe": {
+        "title": "ROE",
+        "why": "Le ROE mesure le rendement des fonds propres.",
+        "how": "Ameliorer marge nette et rotation du capital."
+      },
+      "roce": {
+        "title": "ROCE",
+        "why": "Le ROCE mesure la performance du capital employe.",
+        "how": "Prioriser investissements au ROI eleve."
+      },
+      "roa": {
+        "title": "ROA",
+        "why": "Le ROA relie profitabilite et efficacite des actifs.",
+        "how": "Augmenter resultat net et optimiser usage des actifs."
+      },
+      "net_margin": {
+        "title": "Marge nette",
+        "why": "La marge nette donne la profitabilite finale apres toutes charges.",
+        "how": "Maitriser charges financieres/fiscales et couts indirects."
+      },
+      "current_ratio": {
+        "title": "Liquidite generale",
+        "why": "Elle mesure la capacite a honorer les dettes CT.",
+        "how": "Renforcer cash et reduire dettes court terme."
+      },
+      "quick_ratio": {
+        "title": "Liquidite reduite",
+        "why": "Elle teste la solvabilite sans vendre les stocks.",
+        "how": "Mieux collecter creances et stabiliser echeances fournisseurs."
+      },
+      "cash_ratio": {
+        "title": "Liquidite immediate",
+        "why": "Elle mesure la couverture cash immediate des dettes CT.",
+        "how": "Conserver matelas de tresorerie et previsions de cash hebdo."
+      },
+      "financial_leverage": {
+        "title": "Levier financier",
+        "why": "Le levier eleve augmente sensibilite au risque de remboursement.",
+        "how": "Renforcer equity et reduire dette non productive."
+      },
+      "autonomy_ratio": {
+        "title": "Autonomie financiere",
+        "why": "Elle mesure la part de financement interne.",
+        "how": "Consolider reserves et pilotage prudent du financement externe."
+      }
+    },
+    "alerts": {
+      "operating_margin_title": "Marge operationnelle faible",
+      "operating_margin_desc": "La marge operationnelle est a {{value}}%.",
+      "operating_margin_action": "Revoir structure de couts et prix des offres a faible contribution.",
+      "current_ratio_title": "Risque de liquidite court terme",
+      "current_ratio_desc": "Le ratio de liquidite generale est a {{value}}.",
+      "current_ratio_action": "Securiser la tresorerie immediate et accelerer les encaissements.",
+      "leverage_title": "Levier financier eleve",
+      "leverage_desc": "Le levier financier est a {{value}}.",
+      "leverage_action": "Prioriser reduction de dette et recapitalisation ciblee.",
+      "cashflow_title": "Flux d'exploitation negatif",
+      "cashflow_desc": "Le flux de tresorerie est de {{value}}.",
+      "cashflow_action": "Stopper les sorties non essentielles et corriger le BFR.",
+      "bfr_title": "BFR en augmentation",
+      "bfr_desc": "Variation BFR: +{{value}}.",
+      "bfr_action": "Piloter DSO, DPO et rotation stock hebdomadairement.",
+      "ebitda_margin_title": "Marge EBITDA sous benchmark",
+      "ebitda_margin_desc": "La marge EBITDA est a {{value}}%.",
+      "ebitda_margin_action": "Revoir process operationnels et couts fixes."
+    }
   },
   "mfa": {
     "title": "Authentification a deux facteurs",
@@ -1723,7 +1942,8 @@
   "errors": {
     "unauthorized": "Vous n'avez pas la permission d'acc\u00e9der \u00e0 cette ressource.",
     "notFound": "Ressource non trouv\u00e9e.",
-    "general": "Une erreur est survenue."
+    "general": "Une erreur est survenue.",
+    "pageNotFound": "Cette page est introuvable."
   },
   "onboarding": {
     "back": "Retour",

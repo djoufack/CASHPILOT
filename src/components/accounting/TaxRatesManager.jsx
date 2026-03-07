@@ -107,7 +107,7 @@ const TaxRatesManager = () => {
                       <p className="text-xs text-gray-500 mt-1 font-mono">Compte : {rate.account_code}</p>
                     )}
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => deleteTaxRate(rate.id)}>
+                  <Button variant="ghost" size="icon" aria-label="Delete tax rate" onClick={() => deleteTaxRate(rate.id)}>
                     <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-400" />
                   </Button>
                 </div>

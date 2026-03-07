@@ -2,9 +2,12 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { isAuthorizedInternalRequest, unauthorizedInternalRequestResponse } from '../_shared/internalAuth.ts';
 
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 serve(async (req) => {
@@ -49,13 +52,12 @@ serve(async (req) => {
             company_id: recurring.company_id || null,
             client_id: recurring.client_id,
             invoice_number: invoiceNumber,
-            invoice_date: today,
+            date: today,
             due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             status: 'draft',
             currency: recurring.currency,
             total_ht: recurring.total_ht,
-            tva_rate: recurring.tva_rate,
-            total_tva: recurring.total_tva,
+            tax_rate: recurring.tva_rate,
             total_ttc: recurring.total_ttc,
             notes: `Auto-generated from recurring template: ${recurring.title}`,
           })

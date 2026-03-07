@@ -1,12 +1,30 @@
 /**
- * Sanitize text to prevent XSS - adapted from src/hooks/useInvoices.js
+ * Sanitize text to prevent XSS — strips dangerous HTML patterns.
+ * Use for any user-supplied strings before storing or returning.
  */
 export function sanitizeText(str: string | null | undefined): string {
   if (str === null || str === undefined) return '';
   return String(str)
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/on\w+\s*=\s*"[^"]*"/gi, '')
-    .replace(/on\w+\s*=\s*'[^']*'/gi, '');
+    .replace(/on\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/javascript\s*:/gi, '')
+    .replace(/data\s*:\s*text\/html/gi, '');
+}
+
+/**
+ * Sanitize all string values in a flat record (one level deep).
+ * Non-string values are passed through unchanged.
+ */
+export function sanitizeRecord<T extends Record<string, unknown>>(record: T): T {
+  const result = { ...record };
+  for (const key of Object.keys(result)) {
+    const val = result[key];
+    if (typeof val === 'string') {
+      (result as Record<string, unknown>)[key] = sanitizeText(val);
+    }
+  }
+  return result;
 }
 
 /**

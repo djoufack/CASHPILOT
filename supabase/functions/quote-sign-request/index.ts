@@ -1,9 +1,12 @@
 import { createServiceClient, requireAuthenticatedUser, HttpError } from '../_shared/billing.ts';
 import { deliverWebhookEvent } from '../_shared/webhooks.ts';
 
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 Deno.serve(async (req) => {

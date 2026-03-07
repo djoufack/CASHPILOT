@@ -4,9 +4,13 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 const CREDIT_COST = 1;
@@ -38,8 +42,12 @@ serve(async (req) => {
     }
 
     const authUser = await requireAuthenticatedUser(req);
-    const { userId, text } = await req.json();
     resolvedUserId = authUser.id;
+
+    const rateLimit = checkRateLimit(resolvedUserId, { maxRequests: 20, windowMs: 60_000, keyPrefix: 'ai-voice' });
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit, corsHeaders);
+
+    const { userId, text } = await req.json();
 
     if ((userId && userId !== resolvedUserId) || !text) {
       return new Response(

@@ -2,9 +2,12 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { requireAuthenticatedUser } from '../_shared/billing.ts';
 
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 serve(async (req) => {
@@ -24,10 +27,13 @@ serve(async (req) => {
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
     const [invoices, expenses, recurring] = await Promise.all([
-      supabase.from('invoices').select('total_ttc, invoice_date, status').eq('user_id', userId).gte('invoice_date', sixMonthsAgo.toISOString().split('T')[0]),
+      supabase.from('invoices').select('total_ttc, date, status').eq('user_id', userId).gte('date', sixMonthsAgo.toISOString().split('T')[0]),
       supabase.from('expenses').select('amount, date, category').eq('user_id', userId).gte('date', sixMonthsAgo.toISOString().split('T')[0]),
       supabase.from('recurring_invoices').select('total_ttc, frequency, next_generation_date').eq('user_id', userId).eq('status', 'active'),
     ]);
+    if (invoices.error) throw invoices.error;
+    if (expenses.error) throw expenses.error;
+    if (recurring.error) throw recurring.error;
 
     const prompt = `En tant qu'expert comptable, analyse ces données financières des 6 derniers mois et génère des prévisions pour les ${months} prochains mois.
 
