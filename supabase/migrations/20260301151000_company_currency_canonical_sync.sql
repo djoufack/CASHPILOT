@@ -29,7 +29,6 @@ WHERE accounting_currency IS DISTINCT FROM COALESCE(
     public.normalize_currency_code(currency),
     'EUR'
   );
-
 CREATE OR REPLACE FUNCTION public.sync_company_currency_fields()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -44,12 +43,9 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 COMMENT ON FUNCTION public.sync_company_currency_fields() IS
 'Normalizes company accounting_currency and mirrors it into the legacy currency column.';
-
 DROP TRIGGER IF EXISTS trg_company_sync_currency_fields ON public.company;
-
 CREATE TRIGGER trg_company_sync_currency_fields
   BEFORE INSERT OR UPDATE ON public.company
   FOR EACH ROW

@@ -1,0 +1,23 @@
+-- CREATE INDEXES FOR UNINDEXED FOREIGN KEYS
+CREATE INDEX idx_bank_reconciliation_sessions_statement_id ON bank_reconciliation_sessions(statement_id);
+CREATE INDEX idx_bank_statement_lines_statement_id ON bank_statement_lines(statement_id);
+CREATE INDEX idx_barcode_scan_logs_product_id ON barcode_scan_logs(product_id);
+CREATE INDEX idx_delivery_note_items_delivery_note_id ON delivery_note_items(delivery_note_id);
+CREATE INDEX idx_delivery_routes_delivery_location_id ON delivery_routes(delivery_location_id);
+CREATE INDEX idx_delivery_routes_supplier_location_id ON delivery_routes(supplier_location_id);
+CREATE INDEX idx_invoices_payment_terms_id ON invoices(payment_terms_id);
+CREATE INDEX idx_payments_invoice_id ON payments(invoice_id);
+CREATE INDEX idx_pending_subscriptions_plan_id ON pending_subscriptions(plan_id);
+CREATE INDEX idx_product_barcodes_product_id ON product_barcodes(product_id);
+CREATE INDEX idx_purchase_orders_payment_terms_id ON purchase_orders(payment_terms_id);
+CREATE INDEX idx_reference_tax_jurisdictions_currency ON reference_tax_jurisdictions(currency);
+CREATE INDEX idx_scenario_assumptions_scenario_id ON scenario_assumptions(scenario_id);
+CREATE INDEX idx_stock_alerts_user_product_id ON stock_alerts(user_product_id);
+CREATE INDEX idx_supplier_locations_supplier_id ON supplier_locations(supplier_id);
+CREATE INDEX idx_supplier_order_items_service_id ON supplier_order_items(service_id);
+CREATE INDEX idx_supplier_order_items_product_id ON supplier_order_items(product_id);
+CREATE INDEX idx_supplier_reports_cache_supplier_id ON supplier_reports_cache(supplier_id);
+CREATE INDEX idx_tasks_invoice_id ON tasks(invoice_id);
+CREATE INDEX idx_tasks_purchase_order_id ON tasks(purchase_order_id);
+CREATE INDEX idx_user_company_preferences_active_company_id ON user_company_preferences(active_company_id);
+CREATE INDEX idx_user_credits_subscription_plan_id ON user_credits(subscription_plan_id);;

@@ -14,19 +14,15 @@
 
 ALTER TABLE public.company
   ADD COLUMN IF NOT EXISTS accounting_currency VARCHAR(3);
-
 UPDATE public.company
 SET accounting_currency = UPPER(COALESCE(accounting_currency, currency, 'EUR'))
 WHERE accounting_currency IS NULL
    OR accounting_currency <> UPPER(accounting_currency)
    OR accounting_currency = '';
-
 ALTER TABLE public.company
   ALTER COLUMN accounting_currency SET DEFAULT 'EUR';
-
 ALTER TABLE public.company
   ALTER COLUMN accounting_currency SET NOT NULL;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -42,13 +38,10 @@ BEGIN
 EXCEPTION WHEN duplicate_object THEN
   NULL;
 END $$;
-
 COMMENT ON COLUMN public.company.currency IS
 'Legacy company currency field. Until full migration, it should remain aligned with accounting_currency.';
-
 COMMENT ON COLUMN public.company.accounting_currency IS
 'Canonical accounting/reporting currency for analytics, accounting, and steering. ISO 4217 uppercase code.';
-
 -- ----------------------------------------------------------------------------
 -- B. Canonical FX rate storage
 -- ----------------------------------------------------------------------------
@@ -71,29 +64,22 @@ CREATE TABLE IF NOT EXISTS public.fx_rates (
   ),
   CONSTRAINT fx_rates_no_identity_pair CHECK (base_currency <> quote_currency)
 );
-
 CREATE UNIQUE INDEX IF NOT EXISTS idx_fx_rates_global_unique
   ON public.fx_rates(rate_date, base_currency, quote_currency)
   WHERE company_id IS NULL;
-
 CREATE UNIQUE INDEX IF NOT EXISTS idx_fx_rates_company_unique
   ON public.fx_rates(company_id, rate_date, base_currency, quote_currency)
   WHERE company_id IS NOT NULL;
-
 CREATE INDEX IF NOT EXISTS idx_fx_rates_lookup_global
   ON public.fx_rates(base_currency, quote_currency, rate_date DESC)
   WHERE company_id IS NULL;
-
 CREATE INDEX IF NOT EXISTS idx_fx_rates_lookup_company
   ON public.fx_rates(company_id, base_currency, quote_currency, rate_date DESC)
   WHERE company_id IS NOT NULL;
-
 COMMENT ON TABLE public.fx_rates IS
 'Canonical exchange rate table. Global rows have company_id = NULL. Company-specific overrides take precedence.';
-
 COMMENT ON COLUMN public.fx_rates.exchange_rate IS
 'Amount of quote_currency for 1 unit of base_currency on rate_date.';
-
 CREATE OR REPLACE FUNCTION public.touch_fx_rates_updated_at()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -105,13 +91,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_fx_rates_touch_updated_at ON public.fx_rates;
 CREATE TRIGGER trg_fx_rates_touch_updated_at
   BEFORE UPDATE OR INSERT ON public.fx_rates
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_fx_rates_updated_at();
-
 -- ----------------------------------------------------------------------------
 -- C. Helper functions
 -- ----------------------------------------------------------------------------
@@ -123,10 +107,8 @@ IMMUTABLE
 AS $$
   SELECT NULLIF(UPPER(TRIM(COALESCE(p_code, ''))), '');
 $$;
-
 COMMENT ON FUNCTION public.normalize_currency_code(TEXT) IS
 'Normalizes a currency code to uppercase ISO 4217 form.';
-
 CREATE OR REPLACE FUNCTION public.get_exchange_rate(
   p_from_currency TEXT,
   p_to_currency TEXT,
@@ -258,10 +240,8 @@ BEGIN
   RETURN;
 END;
 $$;
-
 COMMENT ON FUNCTION public.get_exchange_rate(TEXT, TEXT, DATE, UUID) IS
 'Returns the best available FX rate between two currencies, preferring company overrides, then global rates, then inverse, then EUR triangulation.';
-
 CREATE OR REPLACE FUNCTION public.convert_currency_amount(
   p_amount NUMERIC,
   p_from_currency TEXT,
@@ -299,27 +279,21 @@ BEGIN
   RETURN ROUND(p_amount * v_rate, GREATEST(COALESCE(p_scale, 6), 0));
 END;
 $$;
-
 COMMENT ON FUNCTION public.convert_currency_amount(NUMERIC, TEXT, TEXT, DATE, UUID, INTEGER) IS
 'Converts an amount using the best available database FX rate. Returns NULL when no conversion path exists.';
-
 REVOKE ALL ON FUNCTION public.normalize_currency_code(TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.get_exchange_rate(TEXT, TEXT, DATE, UUID) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.convert_currency_amount(NUMERIC, TEXT, TEXT, DATE, UUID, INTEGER) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION public.normalize_currency_code(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_exchange_rate(TEXT, TEXT, DATE, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.convert_currency_amount(NUMERIC, TEXT, TEXT, DATE, UUID, INTEGER) TO authenticated;
-
 -- ----------------------------------------------------------------------------
 -- D. RLS
 -- ----------------------------------------------------------------------------
 
 ALTER TABLE public.fx_rates ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "Authenticated users can read accessible fx rates" ON public.fx_rates;
 DROP POLICY IF EXISTS "Users can manage own company fx rates" ON public.fx_rates;
-
 CREATE POLICY "Authenticated users can read accessible fx rates"
 ON public.fx_rates
 FOR SELECT
@@ -336,7 +310,6 @@ USING (
     OR public.is_admin()
   )
 );
-
 CREATE POLICY "Users can manage own company fx rates"
 ON public.fx_rates
 FOR ALL
@@ -364,7 +337,6 @@ WITH CHECK (
     OR public.is_admin()
   )
 );
-
 -- ----------------------------------------------------------------------------
 -- E. Seed immutable CFA parity baselines
 -- ----------------------------------------------------------------------------

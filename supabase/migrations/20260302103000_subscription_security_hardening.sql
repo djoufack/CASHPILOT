@@ -3,11 +3,9 @@
 -- 2. authenticated users claim guest subscriptions through a controlled RPC.
 
 DROP POLICY IF EXISTS "pending_subscriptions_service_all" ON pending_subscriptions;
-
 REVOKE ALL ON TABLE pending_subscriptions FROM anon;
 REVOKE ALL ON TABLE pending_subscriptions FROM authenticated;
 GRANT ALL ON TABLE pending_subscriptions TO service_role;
-
 CREATE OR REPLACE FUNCTION public.claim_pending_subscription()
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -120,7 +118,6 @@ BEGIN
   );
 END;
 $$;
-
 REVOKE ALL ON FUNCTION public.claim_pending_subscription() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.claim_pending_subscription() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_pending_subscription() TO service_role;

@@ -12,12 +12,9 @@ CREATE TABLE IF NOT EXISTS public.api_rate_limit_counters (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (scope, rate_key, window_seconds, bucket_start)
 );
-
 CREATE INDEX IF NOT EXISTS idx_api_rate_limit_counters_updated_at
   ON public.api_rate_limit_counters (updated_at);
-
 ALTER TABLE public.api_rate_limit_counters ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -34,7 +31,6 @@ BEGIN
       WITH CHECK (FALSE);
   END IF;
 END $$;
-
 CREATE OR REPLACE FUNCTION public.enforce_rate_limit(
   p_scope TEXT,
   p_rate_key TEXT,
@@ -109,6 +105,5 @@ BEGIN
     v_bucket_start + make_interval(secs => p_window_seconds) AS reset_at;
 END;
 $$;
-
 REVOKE ALL ON FUNCTION public.enforce_rate_limit(TEXT, TEXT, INTEGER, INTEGER) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.enforce_rate_limit(TEXT, TEXT, INTEGER, INTEGER) TO service_role;

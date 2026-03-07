@@ -11,7 +11,6 @@ BEGIN
       ADD COLUMN free_credits_refreshed_at TIMESTAMPTZ DEFAULT timezone('utc', now());
   END IF;
 END $$;
-
 UPDATE public.user_credits
 SET
   free_credits = COALESCE(free_credits, 10),
@@ -20,7 +19,6 @@ SET
   total_used = COALESCE(total_used, 0),
   subscription_status = COALESCE(subscription_status, 'inactive'),
   free_credits_refreshed_at = COALESCE(free_credits_refreshed_at, timezone('utc', now()));
-
 INSERT INTO public.subscription_plans (
   name,
   slug,
@@ -47,7 +45,6 @@ ON CONFLICT (slug) DO UPDATE
 SET
   credits_per_month = EXCLUDED.credits_per_month,
   is_active = true;
-
 CREATE TABLE IF NOT EXISTS public.plan_entitlements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   plan_id UUID NOT NULL REFERENCES public.subscription_plans(id) ON DELETE CASCADE,
@@ -55,21 +52,16 @@ CREATE TABLE IF NOT EXISTS public.plan_entitlements (
   created_at TIMESTAMPTZ DEFAULT timezone('utc', now()),
   UNIQUE (plan_id, feature_key)
 );
-
 ALTER TABLE public.plan_entitlements ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "plan_entitlements_read_all" ON public.plan_entitlements;
 CREATE POLICY "plan_entitlements_read_all"
   ON public.plan_entitlements
   FOR SELECT
   USING (true);
-
 CREATE INDEX IF NOT EXISTS idx_plan_entitlements_plan_id
   ON public.plan_entitlements(plan_id);
-
 CREATE INDEX IF NOT EXISTS idx_plan_entitlements_feature_key
   ON public.plan_entitlements(feature_key);
-
 WITH required_entitlements AS (
   SELECT plans.id AS plan_id, seed.feature_key
   FROM (
@@ -98,7 +90,6 @@ INSERT INTO public.plan_entitlements (plan_id, feature_key)
 SELECT plan_id, feature_key
 FROM required_entitlements
 ON CONFLICT (plan_id, feature_key) DO NOTHING;
-
 CREATE OR REPLACE FUNCTION public.refresh_user_billing_state(target_user_id UUID DEFAULT auth.uid())
 RETURNS TABLE (
   user_id UUID,
@@ -220,7 +211,6 @@ BEGIN
     computed_trial_ends_at;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.get_current_user_entitlements(target_user_id UUID DEFAULT auth.uid())
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -315,7 +305,6 @@ BEGIN
   );
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.user_has_entitlement(p_feature_key TEXT, target_user_id UUID DEFAULT auth.uid())
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -375,7 +364,6 @@ BEGIN
   );
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.consume_user_credits(
   target_user_id UUID DEFAULT auth.uid(),
   amount INTEGER DEFAULT 1,
@@ -511,7 +499,6 @@ BEGIN
     paid_deduction;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.refund_user_credits(
   target_user_id UUID DEFAULT auth.uid(),
   refund_free_credits INTEGER DEFAULT 0,
@@ -580,25 +567,18 @@ BEGIN
       + COALESCE(billing_record.paid_credits, 0);
 END;
 $$;
-
 REVOKE ALL ON FUNCTION public.refresh_user_billing_state(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.refresh_user_billing_state(UUID) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.get_current_user_entitlements(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_current_user_entitlements(UUID) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.user_has_entitlement(TEXT, UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.user_has_entitlement(TEXT, UUID) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.consume_user_credits(UUID, INTEGER, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.consume_user_credits(UUID, INTEGER, TEXT) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.refund_user_credits(UUID, INTEGER, INTEGER, INTEGER, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.refund_user_credits(UUID, INTEGER, INTEGER, INTEGER, TEXT) TO authenticated, service_role;
-
 DROP POLICY IF EXISTS "Users manage their webhooks" ON public.webhook_endpoints;
 DROP POLICY IF EXISTS "Users manage entitled webhooks" ON public.webhook_endpoints;
-
 CREATE POLICY "Users manage entitled webhooks"
   ON public.webhook_endpoints
   FOR ALL
@@ -611,10 +591,8 @@ CREATE POLICY "Users manage entitled webhooks"
     auth.uid() = user_id
     AND public.user_has_entitlement('developer.webhooks', user_id)
   );
-
 DROP POLICY IF EXISTS "Users view their deliveries" ON public.webhook_deliveries;
 DROP POLICY IF EXISTS "Users view entitled webhook deliveries" ON public.webhook_deliveries;
-
 CREATE POLICY "Users view entitled webhook deliveries"
   ON public.webhook_deliveries
   FOR SELECT
@@ -627,7 +605,6 @@ CREATE POLICY "Users view entitled webhook deliveries"
       WHERE user_id = auth.uid()
     )
   );
-
 DO $$
 BEGIN
   IF EXISTS (

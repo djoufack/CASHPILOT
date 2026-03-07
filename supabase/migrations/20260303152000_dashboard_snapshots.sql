@@ -16,22 +16,17 @@ CREATE TABLE IF NOT EXISTS public.dashboard_snapshots (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_dashboard_snapshots_user_company
   ON public.dashboard_snapshots(user_id, company_id, snapshot_type, created_at DESC);
-
 CREATE INDEX IF NOT EXISTS idx_dashboard_snapshots_share_token
   ON public.dashboard_snapshots(share_token);
-
 ALTER TABLE public.dashboard_snapshots ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "Users manage own dashboard snapshots" ON public.dashboard_snapshots;
 CREATE POLICY "Users manage own dashboard snapshots"
 ON public.dashboard_snapshots
 FOR ALL
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
-
 DROP POLICY IF EXISTS "Public can read active dashboard snapshots" ON public.dashboard_snapshots;
 CREATE POLICY "Public can read active dashboard snapshots"
 ON public.dashboard_snapshots
@@ -40,7 +35,6 @@ USING (
   is_public = true
   AND (expires_at IS NULL OR expires_at > now())
 );
-
 CREATE OR REPLACE FUNCTION public.assign_dashboard_snapshot_company_id()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -54,7 +48,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_assign_dashboard_snapshot_company_id ON public.dashboard_snapshots;
 CREATE TRIGGER trg_assign_dashboard_snapshot_company_id
   BEFORE INSERT OR UPDATE ON public.dashboard_snapshots

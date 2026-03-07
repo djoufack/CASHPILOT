@@ -42,9 +42,7 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
-
 CREATE INDEX IF NOT EXISTS idx_accounting_entries_account_code
   ON public.accounting_entries (account_code);
-
 CREATE INDEX IF NOT EXISTS idx_accounting_entries_source
   ON public.accounting_entries (source_type, source_id);

@@ -11,7 +11,6 @@
 -- ============================================================================
 
 BEGIN;
-
 -- --------------------------------------------------------------------------
 -- 1. check_accounting_balance()  — trigger function
 --    Reads data AND writes to accounting_balance_checks → must stay VOLATILE.
@@ -19,7 +18,6 @@ BEGIN;
 -- --------------------------------------------------------------------------
 ALTER FUNCTION public.check_accounting_balance()
   SET search_path = public;
-
 -- --------------------------------------------------------------------------
 -- 2. update_updated_at_column()  — standard trigger function
 --    Modifies NEW.updated_at → must stay VOLATILE.
@@ -35,7 +33,6 @@ BEGIN
     EXECUTE 'ALTER FUNCTION public.update_updated_at_column() SET search_path = public';
   END IF;
 END $$;
-
 -- --------------------------------------------------------------------------
 -- 3. get_user_account_code(UUID, TEXT, TEXT)  — read-only lookup
 --    Already declared STABLE in the original migration.
@@ -44,7 +41,6 @@ END $$;
 ALTER FUNCTION public.get_user_account_code(UUID, TEXT, TEXT)
   STABLE
   SET search_path = public;
-
 -- --------------------------------------------------------------------------
 -- 4. sync_supplier_invoice_approval_metadata()  — trigger function
 --    Modifies NEW → must stay VOLATILE.
@@ -52,7 +48,6 @@ ALTER FUNCTION public.get_user_account_code(UUID, TEXT, TEXT)
 -- --------------------------------------------------------------------------
 ALTER FUNCTION public.sync_supplier_invoice_approval_metadata()
   SET search_path = public;
-
 -- --------------------------------------------------------------------------
 -- 5. enforce_supplier_invoice_approval_role_guard()  — trigger function
 --    Already SECURITY DEFINER + SET search_path = public.
@@ -60,7 +55,6 @@ ALTER FUNCTION public.sync_supplier_invoice_approval_metadata()
 -- --------------------------------------------------------------------------
 ALTER FUNCTION public.enforce_supplier_invoice_approval_role_guard()
   VOLATILE;
-
 -- --------------------------------------------------------------------------
 -- 6. normalize_currency_code(TEXT)  — pure function, no DB access
 --    Already declared IMMUTABLE. No changes needed.
@@ -68,7 +62,6 @@ ALTER FUNCTION public.enforce_supplier_invoice_approval_role_guard()
 -- --------------------------------------------------------------------------
 ALTER FUNCTION public.normalize_currency_code(TEXT)
   IMMUTABLE;
-
 -- --------------------------------------------------------------------------
 -- 7. get_exchange_rate(TEXT, TEXT, DATE, UUID)  — reads fx_rates table
 --    Already declared STABLE + SET search_path = public.
@@ -76,7 +69,6 @@ ALTER FUNCTION public.normalize_currency_code(TEXT)
 -- --------------------------------------------------------------------------
 ALTER FUNCTION public.get_exchange_rate(TEXT, TEXT, DATE, UUID)
   STABLE;
-
 -- --------------------------------------------------------------------------
 -- 8. verify_accounting_balance(UUID, DATE)  — read-only aggregate
 --    Already declared STABLE.
@@ -85,7 +77,6 @@ ALTER FUNCTION public.get_exchange_rate(TEXT, TEXT, DATE, UUID)
 ALTER FUNCTION public.verify_accounting_balance(UUID, DATE)
   STABLE
   SET search_path = public;
-
 -- --------------------------------------------------------------------------
 -- 9. convert_currency_amount(NUMERIC, TEXT, TEXT, DATE, UUID, INTEGER)
 --    Already declared STABLE + SET search_path = public.
@@ -93,7 +84,6 @@ ALTER FUNCTION public.verify_accounting_balance(UUID, DATE)
 -- --------------------------------------------------------------------------
 ALTER FUNCTION public.convert_currency_amount(NUMERIC, TEXT, TEXT, DATE, UUID, INTEGER)
   STABLE;
-
 -- --------------------------------------------------------------------------
 -- 10. current_user_has_finance_approval_role(UUID)  — read-only lookup
 --     Already declared STABLE + SECURITY DEFINER + SET search_path = public.
@@ -101,7 +91,6 @@ ALTER FUNCTION public.convert_currency_amount(NUMERIC, TEXT, TEXT, DATE, UUID, I
 -- --------------------------------------------------------------------------
 ALTER FUNCTION public.current_user_has_finance_approval_role(UUID)
   STABLE;
-
 -- --------------------------------------------------------------------------
 -- 11. touch_fx_rates_updated_at()  — trigger function
 --     Modifies NEW → must stay VOLATILE.
@@ -109,5 +98,4 @@ ALTER FUNCTION public.current_user_has_finance_approval_role(UUID)
 -- --------------------------------------------------------------------------
 ALTER FUNCTION public.touch_fx_rates_updated_at()
   SET search_path = public;
-
 COMMIT;

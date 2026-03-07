@@ -17,18 +17,13 @@ CREATE TABLE IF NOT EXISTS public.accounting_integrations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE UNIQUE INDEX IF NOT EXISTS idx_accounting_integrations_user_company_provider_unique
   ON public.accounting_integrations (user_id, company_id, provider);
-
 CREATE INDEX IF NOT EXISTS idx_accounting_integrations_company_provider
   ON public.accounting_integrations (company_id, provider);
-
 CREATE INDEX IF NOT EXISTS idx_accounting_integrations_status
   ON public.accounting_integrations (status);
-
 ALTER TABLE public.accounting_integrations ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -99,7 +94,6 @@ BEGIN
       );
   END IF;
 END $$;
-
 CREATE OR REPLACE FUNCTION public.assign_accounting_integration_company_id()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -112,13 +106,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_assign_accounting_integration_company_id ON public.accounting_integrations;
 CREATE TRIGGER trg_assign_accounting_integration_company_id
   BEFORE INSERT OR UPDATE ON public.accounting_integrations
   FOR EACH ROW
   EXECUTE FUNCTION public.assign_accounting_integration_company_id();
-
 CREATE OR REPLACE FUNCTION public.touch_accounting_integrations_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -128,7 +120,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_accounting_integrations_touch_updated_at ON public.accounting_integrations;
 CREATE TRIGGER trg_accounting_integrations_touch_updated_at
   BEFORE UPDATE ON public.accounting_integrations

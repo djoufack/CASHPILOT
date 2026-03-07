@@ -12,39 +12,28 @@ CREATE TABLE IF NOT EXISTS public.report_builder_templates (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 ALTER TABLE public.report_builder_templates
   ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
-
 ALTER TABLE public.report_builder_templates
   ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES public.company(id) ON DELETE CASCADE;
-
 ALTER TABLE public.report_builder_templates
   ADD COLUMN IF NOT EXISTS name TEXT;
-
 ALTER TABLE public.report_builder_templates
   ADD COLUMN IF NOT EXISTS preset TEXT DEFAULT 'custom';
-
 ALTER TABLE public.report_builder_templates
   ADD COLUMN IF NOT EXISTS period_start DATE;
-
 ALTER TABLE public.report_builder_templates
   ADD COLUMN IF NOT EXISTS period_end DATE;
-
 ALTER TABLE public.report_builder_templates
   ADD COLUMN IF NOT EXISTS sections JSONB DEFAULT '{}'::jsonb;
-
 ALTER TABLE public.report_builder_templates
   ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
-
 ALTER TABLE public.report_builder_templates
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
-
 UPDATE public.report_builder_templates
 SET
   preset = COALESCE(NULLIF(preset, ''), 'custom'),
   sections = COALESCE(sections, '{}'::jsonb);
-
 DO $$
 BEGIN
   BEGIN
@@ -62,15 +51,11 @@ BEGIN
       NULL;
   END;
 END $$;
-
 CREATE UNIQUE INDEX IF NOT EXISTS idx_report_builder_templates_user_company_name
   ON public.report_builder_templates(user_id, company_id, name);
-
 CREATE INDEX IF NOT EXISTS idx_report_builder_templates_company_updated_at
   ON public.report_builder_templates(company_id, updated_at DESC);
-
 ALTER TABLE public.report_builder_templates ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -141,7 +126,6 @@ BEGIN
       );
   END IF;
 END $$;
-
 CREATE OR REPLACE FUNCTION public.assign_report_builder_template_company_id()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -153,13 +137,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_assign_report_builder_template_company_id ON public.report_builder_templates;
 CREATE TRIGGER trg_assign_report_builder_template_company_id
   BEFORE INSERT OR UPDATE ON public.report_builder_templates
   FOR EACH ROW
   EXECUTE FUNCTION public.assign_report_builder_template_company_id();
-
 CREATE OR REPLACE FUNCTION public.touch_report_builder_templates_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -169,7 +151,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_report_builder_templates_touch_updated_at ON public.report_builder_templates;
 CREATE TRIGGER trg_report_builder_templates_touch_updated_at
   BEFORE UPDATE ON public.report_builder_templates

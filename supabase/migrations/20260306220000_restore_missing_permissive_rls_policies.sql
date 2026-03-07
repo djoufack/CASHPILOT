@@ -14,7 +14,6 @@
 -- =====================================================================
 
 BEGIN;
-
 -- ============================================================================
 -- 1. Make resolve_preferred_company_id() SECURITY DEFINER
 --    This function is called 80+ times from RESTRICTIVE RLS policies.
@@ -41,7 +40,6 @@ AS $$
      LIMIT 1)
   );
 $$;
-
 -- ============================================================================
 -- 2. Restore PERMISSIVE policies on all Type 2 tables from cleanup migration
 --    Uses CREATE POLICY IF NOT EXISTS pattern via DO block
@@ -120,7 +118,6 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
-
 -- ============================================================================
 -- 3. Ensure profiles table has proper policies
 --    The cleanup migration dropped some profile policies too
@@ -165,7 +162,6 @@ BEGIN
     END IF;
   END IF;
 END $$;
-
 -- ============================================================================
 -- 4. Also handle tables from Type 1 that might be missing their ALL policy
 --    These tables had CRUD-specific policies dropped assuming ALL existed
@@ -210,5 +206,4 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
-
 COMMIT;

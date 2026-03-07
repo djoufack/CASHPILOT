@@ -4,7 +4,6 @@
 -- =====================================================================
 
 BEGIN;
-
 -- ---------------------------------------------------------------------
 -- 1) Backfill demo invoice tax rates and TTC consistency
 -- ---------------------------------------------------------------------
@@ -20,7 +19,6 @@ SET tax_rate = CASE
 END
 WHERE (i.tax_rate IS NULL OR i.tax_rate = 0)
   AND i.invoice_number LIKE '%-DEMO-%';
-
 UPDATE public.invoices AS i
 SET total_ttc = ROUND(
   COALESCE(i.total_ht, 0) * (
@@ -51,7 +49,6 @@ WHERE i.invoice_number LIKE '%-DEMO-%'
       )
     ) > 0.01
   );
-
 DO $$
 BEGIN
   IF EXISTS (
@@ -108,7 +105,6 @@ BEGIN
     ';
   END IF;
 END $$;
-
 -- ---------------------------------------------------------------------
 -- 2) Backfill demo invoice -> supplier linkage when missing
 -- ---------------------------------------------------------------------
@@ -182,5 +178,4 @@ BEGIN
 
   EXECUTE sql_stmt;
 END $$;
-
 COMMIT;

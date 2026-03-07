@@ -1,5 +1,4 @@
 drop policy if exists "Users can delete results for their scenarios" on public.scenario_results;
-
 create policy "Users can delete results for their scenarios"
   on public.scenario_results
   for delete

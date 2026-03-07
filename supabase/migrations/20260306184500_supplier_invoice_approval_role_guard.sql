@@ -2,7 +2,6 @@
 -- only admin/accountant can set or mutate approval metadata.
 
 ALTER TABLE public.supplier_invoices ENABLE ROW LEVEL SECURITY;
-
 CREATE OR REPLACE FUNCTION public.current_user_has_finance_approval_role(
   p_user_id UUID DEFAULT auth.uid()
 )
@@ -19,10 +18,8 @@ AS $$
       AND ur.role IN ('admin', 'accountant')
   );
 $$;
-
 REVOKE ALL ON FUNCTION public.current_user_has_finance_approval_role(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.current_user_has_finance_approval_role(UUID) TO authenticated, service_role;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -74,7 +71,6 @@ BEGIN
       );
   END IF;
 END $$;
-
 CREATE OR REPLACE FUNCTION public.enforce_supplier_invoice_approval_role_guard()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -117,7 +113,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_enforce_supplier_invoice_approval_role_guard ON public.supplier_invoices;
 CREATE TRIGGER trg_enforce_supplier_invoice_approval_role_guard
   BEFORE INSERT OR UPDATE OF approval_status, approved_by, approved_at, rejected_reason

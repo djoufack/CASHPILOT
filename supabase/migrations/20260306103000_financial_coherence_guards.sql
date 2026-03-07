@@ -6,7 +6,6 @@
 -- =====================================================================
 
 BEGIN;
-
 -- ---------------------------------------------------------------------
 -- 1) Backfill supplier invoice VAT where amount can be derived safely
 -- ---------------------------------------------------------------------
@@ -28,7 +27,6 @@ BEGIN
       AND (total_ttc IS NOT NULL OR total_amount IS NOT NULL);
   END IF;
 END $$;
-
 -- ---------------------------------------------------------------------
 -- 2) Add invoice arithmetic constraints (NOT VALID to avoid breaking
 --    historic rows; still enforced for new/updated rows)
@@ -86,7 +84,6 @@ BEGIN
     END IF;
   END IF;
 END $$;
-
 -- ---------------------------------------------------------------------
 -- 3) Prevent supplier invoices without a supplier (NOT VALID so existing
 --    legacy rows can be remediated incrementally)
@@ -111,5 +108,4 @@ BEGIN
     END IF;
   END IF;
 END $$;
-
 COMMIT;

@@ -5,25 +5,18 @@
 
 ALTER TABLE public.clients
   ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES public.company(id) ON DELETE SET NULL;
-
 ALTER TABLE public.projects
   ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES public.company(id) ON DELETE SET NULL;
-
 ALTER TABLE public.invoices
   ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES public.company(id) ON DELETE SET NULL;
-
 ALTER TABLE public.quotes
   ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES public.company(id) ON DELETE SET NULL;
-
 ALTER TABLE public.expenses
   ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES public.company(id) ON DELETE SET NULL;
-
 ALTER TABLE public.timesheets
   ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES public.company(id) ON DELETE SET NULL;
-
 ALTER TABLE public.payments
   ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES public.company(id) ON DELETE SET NULL;
-
 CREATE INDEX IF NOT EXISTS idx_clients_company_id ON public.clients(company_id);
 CREATE INDEX IF NOT EXISTS idx_projects_company_id ON public.projects(company_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_company_id ON public.invoices(company_id);
@@ -31,7 +24,6 @@ CREATE INDEX IF NOT EXISTS idx_quotes_company_id ON public.quotes(company_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_company_id ON public.expenses(company_id);
 CREATE INDEX IF NOT EXISTS idx_timesheets_company_id ON public.timesheets(company_id);
 CREATE INDEX IF NOT EXISTS idx_payments_company_id ON public.payments(company_id);
-
 ALTER TABLE public.clients DISABLE TRIGGER USER;
 ALTER TABLE public.projects DISABLE TRIGGER USER;
 ALTER TABLE public.invoices DISABLE TRIGGER USER;
@@ -39,7 +31,6 @@ ALTER TABLE public.quotes DISABLE TRIGGER USER;
 ALTER TABLE public.expenses DISABLE TRIGGER USER;
 ALTER TABLE public.timesheets DISABLE TRIGGER USER;
 ALTER TABLE public.payments DISABLE TRIGGER USER;
-
 WITH preferred_company AS (
   SELECT
     c.user_id,
@@ -56,7 +47,6 @@ SET company_id = pc.company_id
 FROM preferred_company pc
 WHERE cl.user_id = pc.user_id
   AND cl.company_id IS NULL;
-
 WITH preferred_company AS (
   SELECT
     c.user_id,
@@ -80,7 +70,6 @@ SET company_id = COALESCE(
 FROM preferred_company pc
 WHERE p.user_id = pc.user_id
   AND p.company_id IS NULL;
-
 WITH preferred_company AS (
   SELECT
     c.user_id,
@@ -104,7 +93,6 @@ SET company_id = COALESCE(
 FROM preferred_company pc
 WHERE i.user_id = pc.user_id
   AND i.company_id IS NULL;
-
 WITH preferred_company AS (
   SELECT
     c.user_id,
@@ -128,7 +116,6 @@ SET company_id = COALESCE(
 FROM preferred_company pc
 WHERE q.user_id = pc.user_id
   AND q.company_id IS NULL;
-
 WITH preferred_company AS (
   SELECT
     c.user_id,
@@ -152,7 +139,6 @@ SET company_id = COALESCE(
 FROM preferred_company pc
 WHERE e.user_id = pc.user_id
   AND e.company_id IS NULL;
-
 WITH preferred_company AS (
   SELECT
     c.user_id,
@@ -181,7 +167,6 @@ SET company_id = COALESCE(
 FROM preferred_company pc
 WHERE t.user_id = pc.user_id
   AND t.company_id IS NULL;
-
 WITH preferred_company AS (
   SELECT
     c.user_id,
@@ -210,7 +195,6 @@ SET company_id = COALESCE(
 FROM preferred_company pc
 WHERE p.user_id = pc.user_id
   AND p.company_id IS NULL;
-
 ALTER TABLE public.clients ENABLE TRIGGER USER;
 ALTER TABLE public.projects ENABLE TRIGGER USER;
 ALTER TABLE public.invoices ENABLE TRIGGER USER;

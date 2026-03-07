@@ -5,14 +5,12 @@
 
 ALTER TABLE public.supplier_orders
   DROP CONSTRAINT IF EXISTS supplier_orders_order_status_check;
-
 ALTER TABLE public.supplier_orders
   ADD CONSTRAINT supplier_orders_order_status_check
   CHECK (
     order_status IS NULL
     OR order_status IN ('draft', 'pending', 'confirmed', 'delivered', 'received', 'cancelled')
   );
-
 CREATE OR REPLACE FUNCTION public.auto_stock_and_journal_on_received()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -227,6 +225,5 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 COMMENT ON FUNCTION public.auto_stock_and_journal_on_received() IS
 'When a supplier order becomes delivered or received, update linked stock quantities, write stock history, resolve low-stock alerts, and create the purchase journal entry when auto-journal is enabled.';
