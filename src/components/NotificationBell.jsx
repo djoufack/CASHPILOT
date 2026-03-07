@@ -13,7 +13,7 @@ const NotificationBell = () => {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative text-gray-400 hover:text-white">
+        <Button variant="ghost" size="icon" aria-label="Notifications" className="relative text-gray-400 hover:text-white">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-gray-900" />

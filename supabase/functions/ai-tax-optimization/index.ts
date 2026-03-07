@@ -1,9 +1,13 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 const CREDIT_COST = 5;
@@ -20,8 +24,12 @@ serve(async (req) => {
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
     const authUser = await requireAuthenticatedUser(req);
-    const { userId, fiscalYear, jurisdiction = 'FR' } = await req.json();
     resolvedUserId = authUser.id;
+
+    const rateLimit = checkRateLimit(resolvedUserId, { maxRequests: 5, windowMs: 60_000, keyPrefix: 'ai-tax' });
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit, corsHeaders);
+
+    const { userId, fiscalYear, jurisdiction = 'FR' } = await req.json();
 
     if ((userId && userId !== resolvedUserId) || !fiscalYear) {
       return new Response(JSON.stringify({ error: 'Missing userId or fiscalYear' }), {
@@ -36,10 +44,10 @@ serve(async (req) => {
     const [invoicesResult, expensesResult] = await Promise.all([
       supabase
         .from('invoices')
-        .select('total_ht, total_ttc, total_vat, status')
+        .select('total_ht, total_ttc, tax_rate, status')
         .eq('user_id', resolvedUserId)
-        .gte('invoice_date', startDate)
-        .lte('invoice_date', endDate),
+        .gte('date', startDate)
+        .lte('date', endDate),
       supabase
         .from('expenses')
         .select('amount, category, vat_amount')
@@ -64,7 +72,11 @@ serve(async (req) => {
     const financialData = {
       revenue: paidInvoices.reduce((sum, invoice) => sum + (invoice.total_ht || 0), 0),
       expenses: expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0),
-      vatCollected: invoicesResult.data?.reduce((sum, invoice) => sum + (invoice.total_vat || 0), 0) || 0,
+      vatCollected: invoicesResult.data?.reduce((sum, invoice) => {
+        const totalHt = Number(invoice.total_ht || 0);
+        const totalTtc = Number(invoice.total_ttc || 0);
+        return sum + Math.max(0, (totalTtc - totalHt));
+      }, 0) || 0,
       vatDeductible: expenses.reduce((sum, expense) => sum + (expense.vat_amount || 0), 0),
       expensesByCategory: expenses.reduce((acc: Record<string, number>, expense) => {
         const category = expense.category || 'other';

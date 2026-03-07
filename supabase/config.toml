@@ -57,7 +57,13 @@ verify_jwt = true
 [functions.quote-sign-submit]
 verify_jwt = false
 
+[functions.quote-sign-get]
+verify_jwt = false
+
 [functions.send-email]
+verify_jwt = true
+
+[functions.stripe-checkout]
 verify_jwt = true
 
 [functions.stripe-invoice-link]

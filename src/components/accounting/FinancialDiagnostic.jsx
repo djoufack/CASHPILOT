@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -52,17 +53,17 @@ const COMPARISON_OPTIONS = {
 };
 
 const SECTION_FILTERS = [
-  { value: 'all', label: 'Toutes categories' },
-  { value: 'margins', label: 'Marges' },
-  { value: 'financing', label: 'Financement' },
-  { value: 'ratios', label: 'Ratios' },
+  { value: 'all', labelKey: 'financial_diagnostic.filter_all' },
+  { value: 'margins', labelKey: 'financial_diagnostic.filter_margins' },
+  { value: 'financing', labelKey: 'financial_diagnostic.filter_financing' },
+  { value: 'ratios', labelKey: 'financial_diagnostic.filter_ratios' },
 ];
 
 const SORT_OPTIONS = [
-  { value: 'custom', label: 'Ordre personnalise' },
-  { value: 'priority', label: 'Priorite alertes' },
-  { value: 'value', label: 'Valeur decroissante' },
-  { value: 'alpha', label: 'Alphabetique' },
+  { value: 'custom', labelKey: 'financial_diagnostic.sort_custom' },
+  { value: 'priority', labelKey: 'financial_diagnostic.sort_priority' },
+  { value: 'value', labelKey: 'financial_diagnostic.sort_value' },
+  { value: 'alpha', labelKey: 'financial_diagnostic.sort_alpha' },
 ];
 
 const SECTOR_BENCHMARKS = {
@@ -186,7 +187,7 @@ const metricAccessors = {
 const CARD_DEFINITIONS = [
   {
     id: 'revenue',
-    title: "Chiffre d'affaires",
+    i18nKey: 'revenue',
     section: 'margins',
     metricKey: 'revenue',
     format: 'currency',
@@ -195,19 +196,11 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'revenue',
     icon: DollarSign,
     colorClass: 'text-blue-300',
-    info: {
-      title: "Chiffre d'affaires",
-      formula: 'Somme des ventes HT sur la periode',
-      definition: "Le chiffre d'affaires mesure le niveau d'activite commerciale.",
-      utility: 'Il sert de base a tous les ratios de performance.',
-      interpretation: 'Une hausse durable est positive. Une baisse impose une analyse client/prix/volume.',
-    },
-    why: "Ce KPI suit directement la traction commerciale de l'entreprise.",
-    how: 'Ameliorer conversion, panier moyen et retention client.',
+    hasInfo: true,
   },
   {
     id: 'gross-margin',
-    title: 'Marge brute',
+    i18nKey: 'gross_margin',
     section: 'margins',
     metricKey: 'grossMargin',
     format: 'currency',
@@ -216,19 +209,11 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'expense',
     icon: Target,
     colorClass: 'text-emerald-300',
-    info: {
-      title: 'Marge brute',
-      formula: 'Marge brute = CA - couts directs',
-      definition: 'La marge brute montre la valeur creee avant charges de structure.',
-      utility: 'Elle valide le couple prix/couts directs.',
-      interpretation: 'Une baisse traduit souvent une pression tarifaire ou une hausse des couts directs.',
-    },
-    why: 'La marge brute montre la capacite a transformer les ventes en valeur.',
-    how: 'Renegocier achats, ajuster pricing, prioriser les offres a meilleure contribution.',
+    hasInfo: true,
   },
   {
     id: 'gross-margin-rate',
-    title: 'Marge brute (%)',
+    i18nKey: 'gross_margin_rate',
     section: 'margins',
     metricKey: 'grossMarginPercent',
     format: 'percentage',
@@ -237,12 +222,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'expense',
     icon: TrendingUp,
     colorClass: 'text-emerald-300',
-    why: 'Le pourcentage rend la marge comparable entre periodes.',
-    how: 'Ameliorer mix produit et efficacite achat.',
   },
   {
     id: 'ebitda',
-    title: 'EBE / EBITDA',
+    i18nKey: 'ebitda',
     section: 'margins',
     metricKey: 'ebitda',
     format: 'currency',
@@ -251,12 +234,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'expense',
     icon: Activity,
     colorClass: 'text-violet-300',
-    why: "L'EBITDA mesure la performance operationnelle avant elements non cash.",
-    how: 'Optimiser charges recurrentes et productivite des equipes.',
   },
   {
     id: 'ebitda-margin',
-    title: 'Marge EBITDA',
+    i18nKey: 'ebitda_margin',
     section: 'margins',
     metricKey: 'ebitdaMargin',
     format: 'percentage',
@@ -265,12 +246,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'expense',
     icon: BarChart3,
     colorClass: 'text-violet-300',
-    why: "Ce ratio montre la part de CA convertie en performance d'exploitation.",
-    how: 'Automatiser process, revoir politique de remises, reduire frais fixes.',
   },
   {
     id: 'operating-result',
-    title: "Resultat d'exploitation",
+    i18nKey: 'operating_result',
     section: 'margins',
     metricKey: 'operatingResult',
     format: 'currency',
@@ -279,12 +258,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'expense',
     icon: TrendingUp,
     colorClass: 'text-green-300',
-    why: "Il indique si le coeur d'activite est rentable.",
-    how: 'Reallouer budget vers segments rentables et maitriser OPEX.',
   },
   {
     id: 'operating-margin',
-    title: 'Marge operationnelle',
+    i18nKey: 'operating_margin',
     section: 'margins',
     metricKey: 'operatingMargin',
     format: 'percentage',
@@ -293,12 +270,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'expense',
     icon: Sparkles,
     colorClass: 'text-green-300',
-    why: 'Elle donne une vision rapide de la solidite economique.',
-    how: 'Piloter prix, productivite et structure de couts.',
   },
   {
     id: 'caf',
-    title: "Capacite d'autofinancement (CAF)",
+    i18nKey: 'caf',
     section: 'financing',
     metricKey: 'caf',
     format: 'currency',
@@ -307,12 +282,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'cash',
     icon: Wallet,
     colorClass: 'text-emerald-300',
-    why: "La CAF indique les ressources internes generees par l'activite.",
-    how: 'Ameliorer rentabilite et limiter charges non productives.',
   },
   {
     id: 'working-capital',
-    title: 'Fonds de roulement',
+    i18nKey: 'working_capital',
     section: 'financing',
     metricKey: 'workingCapital',
     format: 'currency',
@@ -321,12 +294,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'liquidity',
     icon: CreditCard,
     colorClass: 'text-sky-300',
-    why: 'Le FDR represente la marge de securite financiere a long terme.',
-    how: 'Renforcer fonds propres ou allonger maturite de dette.',
   },
   {
     id: 'bfr',
-    title: 'Besoin en fonds de roulement (BFR)',
+    i18nKey: 'bfr',
     section: 'financing',
     metricKey: 'bfr',
     format: 'currency',
@@ -335,12 +306,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'liquidity',
     icon: ArrowRightLeft,
     colorClass: 'text-orange-300',
-    why: 'Le BFR mesure le cash immobilise dans le cycle exploitation.',
-    how: 'Accelerer encaissements, optimiser stocks, negocier fournisseurs.',
   },
   {
     id: 'bfr-variation',
-    title: 'Variation BFR',
+    i18nKey: 'bfr_variation',
     section: 'financing',
     metricKey: 'bfrVariation',
     format: 'currency',
@@ -349,12 +318,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'liquidity',
     icon: MoveUp,
     colorClass: 'text-orange-300',
-    why: 'Une variation positive peut absorber la tresorerie disponible.',
-    how: 'Mettre en place suivi DSO/DPO et seuils de stock.',
   },
   {
     id: 'operating-cashflow',
-    title: "Flux de tresorerie d'exploitation",
+    i18nKey: 'operating_cashflow',
     section: 'financing',
     metricKey: 'operatingCashFlow',
     format: 'currency',
@@ -363,12 +330,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'cash',
     icon: Activity,
     colorClass: 'text-emerald-300',
-    why: "Ce flux valide la capacite de l'activite a generer du cash reel.",
-    how: 'Augmenter CAF et reduire consommation BFR.',
   },
   {
     id: 'net-debt',
-    title: 'Endettement net',
+    i18nKey: 'net_debt',
     section: 'financing',
     metricKey: 'netDebt',
     format: 'currency',
@@ -377,12 +342,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'debt',
     icon: CreditCard,
     colorClass: 'text-amber-300',
-    why: 'Il mesure le poids reel de la dette apres tresorerie disponible.',
-    how: 'Desendetter, renegocier taux, renforcer cash.',
   },
   {
     id: 'debt-ratio',
-    title: "Ratio d'endettement",
+    i18nKey: 'debt_ratio',
     section: 'financing',
     metricKey: 'debtRatio',
     format: 'number',
@@ -391,12 +354,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'debt',
     icon: Scale,
     colorClass: 'text-amber-300',
-    why: 'Il mesure le poids dette / capitaux propres.',
-    how: 'Limiter dette courte et renforcer capitaux propres.',
   },
   {
     id: 'debt-share',
-    title: 'Part de dette',
+    i18nKey: 'debt_share',
     section: 'financing',
     metricKey: 'debtShare',
     format: 'percentage',
@@ -405,12 +366,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'debt',
     icon: MoveDown,
     colorClass: 'text-amber-300',
-    why: 'Cet indicateur visualise le niveau de dependance au levier dette.',
-    how: 'Diversifier financements et reduire besoins de cash circulant.',
   },
   {
     id: 'roe',
-    title: 'ROE',
+    i18nKey: 'roe',
     section: 'ratios',
     metricKey: 'roe',
     format: 'percentage',
@@ -419,12 +378,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'equity',
     icon: Target,
     colorClass: 'text-green-300',
-    why: 'Le ROE mesure le rendement des fonds propres.',
-    how: 'Ameliorer marge nette et rotation du capital.',
   },
   {
     id: 'roce',
-    title: 'ROCE',
+    i18nKey: 'roce',
     section: 'ratios',
     metricKey: 'roce',
     format: 'percentage',
@@ -433,12 +390,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'equity',
     icon: Target,
     colorClass: 'text-green-300',
-    why: 'Le ROCE mesure la performance du capital employe.',
-    how: 'Prioriser investissements au ROI eleve.',
   },
   {
     id: 'roa',
-    title: 'ROA',
+    i18nKey: 'roa',
     section: 'ratios',
     metricKey: 'roa',
     format: 'percentage',
@@ -447,12 +402,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'equity',
     icon: Activity,
     colorClass: 'text-green-300',
-    why: 'Le ROA relie profitabilite et efficacite des actifs.',
-    how: 'Augmenter resultat net et optimiser usage des actifs.',
   },
   {
     id: 'net-margin',
-    title: 'Marge nette',
+    i18nKey: 'net_margin',
     section: 'ratios',
     metricKey: 'netMargin',
     format: 'percentage',
@@ -461,12 +414,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'expense',
     icon: Sparkles,
     colorClass: 'text-cyan-300',
-    why: 'La marge nette donne la profitabilite finale apres toutes charges.',
-    how: 'Maitriser charges financieres/fiscales et couts indirects.',
   },
   {
     id: 'current-ratio',
-    title: 'Liquidite generale',
+    i18nKey: 'current_ratio',
     section: 'ratios',
     metricKey: 'currentRatio',
     format: 'number',
@@ -475,12 +426,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'liquidity',
     icon: Droplets,
     colorClass: 'text-sky-300',
-    why: 'Elle mesure la capacite a honorer les dettes CT.',
-    how: 'Renforcer cash et reduire dettes court terme.',
   },
   {
     id: 'quick-ratio',
-    title: 'Liquidite reduite',
+    i18nKey: 'quick_ratio',
     section: 'ratios',
     metricKey: 'quickRatio',
     format: 'number',
@@ -489,12 +438,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'liquidity',
     icon: Droplets,
     colorClass: 'text-sky-300',
-    why: 'Elle teste la solvabilite sans vendre les stocks.',
-    how: 'Mieux collecter creances et stabiliser echeances fournisseurs.',
   },
   {
     id: 'cash-ratio',
-    title: 'Liquidite immediate',
+    i18nKey: 'cash_ratio',
     section: 'ratios',
     metricKey: 'cashRatio',
     format: 'number',
@@ -503,12 +450,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'cash',
     icon: Droplets,
     colorClass: 'text-sky-300',
-    why: 'Elle mesure la couverture cash immediate des dettes CT.',
-    how: 'Conserver matelas de tresorerie et previsions de cash hebdo.',
   },
   {
     id: 'financial-leverage',
-    title: 'Levier financier',
+    i18nKey: 'financial_leverage',
     section: 'ratios',
     metricKey: 'financialLeverage',
     format: 'number',
@@ -517,12 +462,10 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'debt',
     icon: Scale,
     colorClass: 'text-orange-300',
-    why: 'Le levier eleve augmente sensibilite au risque de remboursement.',
-    how: 'Renforcer equity et reduire dette non productive.',
   },
   {
     id: 'autonomy-ratio',
-    title: 'Autonomie financiere',
+    i18nKey: 'autonomy_ratio',
     section: 'ratios',
     metricKey: 'autonomyRatio',
     format: 'percentage',
@@ -531,8 +474,6 @@ const CARD_DEFINITIONS = [
     sourceGroup: 'equity',
     icon: Scale,
     colorClass: 'text-emerald-300',
-    why: 'Elle mesure la part de financement interne.',
-    how: 'Consolider reserves et pilotage prudent du financement externe.',
   },
 ];
 
@@ -617,7 +558,7 @@ const getAccountsForSourceGroup = (trialBalance, sourceGroup) => {
     .sort((a, b) => b.balanceAbs - a.balanceAbs)
     .slice(0, 12);
 };
-const buildCriticalAlerts = (diagnostic, currency) => {
+const buildCriticalAlerts = (diagnostic, currency, t) => {
   const alerts = [];
   const ebitdaMargin = getMetricValue(diagnostic, 'ebitdaMargin');
   const operatingMargin = getMetricValue(diagnostic, 'operatingMargin');
@@ -630,9 +571,9 @@ const buildCriticalAlerts = (diagnostic, currency) => {
     alerts.push({
       id: 'alert-operating-margin',
       severity: 100,
-      title: 'Marge operationnelle faible',
-      description: `La marge operationnelle est a ${operatingMargin.toFixed(1)}%.`,
-      action: 'Revoir structure de couts et prix des offres a faible contribution.',
+      title: t('financial_diagnostic.alerts.operating_margin_title'),
+      description: t('financial_diagnostic.alerts.operating_margin_desc', { value: operatingMargin.toFixed(1) }),
+      action: t('financial_diagnostic.alerts.operating_margin_action'),
       cardId: 'operating-margin',
     });
   }
@@ -641,9 +582,9 @@ const buildCriticalAlerts = (diagnostic, currency) => {
     alerts.push({
       id: 'alert-current-ratio',
       severity: 95,
-      title: 'Risque de liquidite court terme',
-      description: `Le ratio de liquidite generale est a ${currentRatio.toFixed(2)}.`,
-      action: 'Securiser la tresorerie immediate et accelerer les encaissements.',
+      title: t('financial_diagnostic.alerts.current_ratio_title'),
+      description: t('financial_diagnostic.alerts.current_ratio_desc', { value: currentRatio.toFixed(2) }),
+      action: t('financial_diagnostic.alerts.current_ratio_action'),
       cardId: 'current-ratio',
     });
   }
@@ -652,9 +593,9 @@ const buildCriticalAlerts = (diagnostic, currency) => {
     alerts.push({
       id: 'alert-leverage',
       severity: 90,
-      title: 'Levier financier eleve',
-      description: `Le levier financier est a ${financialLeverage.toFixed(2)}.`,
-      action: 'Prioriser reduction de dette et recapitalisation ciblee.',
+      title: t('financial_diagnostic.alerts.leverage_title'),
+      description: t('financial_diagnostic.alerts.leverage_desc', { value: financialLeverage.toFixed(2) }),
+      action: t('financial_diagnostic.alerts.leverage_action'),
       cardId: 'financial-leverage',
     });
   }
@@ -663,9 +604,9 @@ const buildCriticalAlerts = (diagnostic, currency) => {
     alerts.push({
       id: 'alert-cashflow',
       severity: 88,
-      title: "Flux d'exploitation negatif",
-      description: `Le flux de tresorerie est de ${formatMoney(operatingCashFlow, currency)}.`,
-      action: 'Stopper les sorties non essentielles et corriger le BFR.',
+      title: t('financial_diagnostic.alerts.cashflow_title'),
+      description: t('financial_diagnostic.alerts.cashflow_desc', { value: formatMoney(operatingCashFlow, currency) }),
+      action: t('financial_diagnostic.alerts.cashflow_action'),
       cardId: 'operating-cashflow',
     });
   }
@@ -674,9 +615,9 @@ const buildCriticalAlerts = (diagnostic, currency) => {
     alerts.push({
       id: 'alert-bfr',
       severity: 80,
-      title: 'BFR en augmentation',
-      description: `Variation BFR: +${formatMoney(bfrVariation, currency)}.`,
-      action: 'Piloter DSO, DPO et rotation stock hebdomadairement.',
+      title: t('financial_diagnostic.alerts.bfr_title'),
+      description: t('financial_diagnostic.alerts.bfr_desc', { value: formatMoney(bfrVariation, currency) }),
+      action: t('financial_diagnostic.alerts.bfr_action'),
       cardId: 'bfr-variation',
     });
   }
@@ -685,9 +626,9 @@ const buildCriticalAlerts = (diagnostic, currency) => {
     alerts.push({
       id: 'alert-ebitda-margin',
       severity: 78,
-      title: 'Marge EBITDA sous benchmark',
-      description: `La marge EBITDA est a ${ebitdaMargin.toFixed(1)}%.`,
-      action: 'Revoir process operationnels et couts fixes.',
+      title: t('financial_diagnostic.alerts.ebitda_margin_title'),
+      description: t('financial_diagnostic.alerts.ebitda_margin_desc', { value: ebitdaMargin.toFixed(1) }),
+      action: t('financial_diagnostic.alerts.ebitda_margin_action'),
       cardId: 'ebitda-margin',
     });
   }
@@ -737,6 +678,22 @@ const FinancialDiagnostic = ({
   comparatives = null,
   onViewStateChange,
 }) => {
+  const { t } = useTranslation();
+
+  const resolveCard = (card) => ({
+    ...card,
+    title: t(`financial_diagnostic.cards.${card.i18nKey}.title`),
+    why: t(`financial_diagnostic.cards.${card.i18nKey}.why`),
+    how: t(`financial_diagnostic.cards.${card.i18nKey}.how`),
+    info: card.hasInfo ? {
+      title: t(`financial_diagnostic.cards.${card.i18nKey}.info_title`),
+      formula: t(`financial_diagnostic.cards.${card.i18nKey}.info_formula`),
+      definition: t(`financial_diagnostic.cards.${card.i18nKey}.info_definition`),
+      utility: t(`financial_diagnostic.cards.${card.i18nKey}.info_utility`),
+      interpretation: t(`financial_diagnostic.cards.${card.i18nKey}.info_interpretation`),
+    } : null,
+  });
+
   const [viewMode, setViewMode] = useState('gallery');
   const [sectionFilter, setSectionFilter] = useState('all');
   const [sortMode, setSortMode] = useState('custom');
@@ -782,9 +739,9 @@ const FinancialDiagnostic = ({
       <Card className="bg-gray-900/50 border border-gray-800">
         <CardContent className="p-8 text-center">
           <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-100 mb-2">Donnees insuffisantes pour le diagnostic</h3>
+          <h3 className="text-lg font-semibold text-gray-100 mb-2">{t('financial_diagnostic.insufficient_data_title')}</h3>
           <p className="text-sm text-gray-400 mb-4">
-            Pour generer un diagnostic financier complet, assurez-vous d'avoir importe le plan comptable et les ecritures.
+            {t('financial_diagnostic.insufficient_data_desc')}
           </p>
         </CardContent>
       </Card>
@@ -798,8 +755,8 @@ const FinancialDiagnostic = ({
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-6 h-6 text-red-400 mt-1" />
             <div>
-              <h3 className="text-lg font-semibold text-gray-100 mb-2">Impossible de generer le diagnostic</h3>
-              <p className="text-sm text-gray-400 mb-3">Les erreurs suivantes ont ete detectees:</p>
+              <h3 className="text-lg font-semibold text-gray-100 mb-2">{t('financial_diagnostic.cannot_generate')}</h3>
+              <p className="text-sm text-gray-400 mb-3">{t('financial_diagnostic.errors_detected')}</p>
               <ul className="space-y-1">
                 {(diagnostic.errors || []).map((error, idx) => (
                   <li key={idx} className="text-sm text-red-400 flex items-start gap-2">
@@ -845,7 +802,7 @@ const FinancialDiagnostic = ({
   }, [comparisonMode, period?.endDate, period?.startDate]);
 
   const trendSeriesMap = useMemo(() => getTrendSeriesMap(monthlyData), [monthlyData]);
-  const topAlerts = useMemo(() => buildCriticalAlerts(diagnostic, currency), [diagnostic, currency]);
+  const topAlerts = useMemo(() => buildCriticalAlerts(diagnostic, currency, t), [diagnostic, currency, t]);
   const alertSeverityByCardId = useMemo(
     () => topAlerts.reduce((acc, alert) => ({ ...acc, [alert.cardId]: alert.severity }), {}),
     [topAlerts]
@@ -859,8 +816,8 @@ const FinancialDiagnostic = ({
 
   const cards = useMemo(() => {
     const cardMap = CARD_DEFINITIONS.reduce((acc, card) => ({ ...acc, [card.id]: card }), {});
-    return orderedIds.map((id) => cardMap[id]).filter(Boolean);
-  }, [orderedIds]);
+    return orderedIds.map((id) => cardMap[id]).filter(Boolean).map(resolveCard);
+  }, [orderedIds, t]);
 
   const displayedCards = useMemo(() => {
     let list = cards.filter((card) => sectionFilter === 'all' || card.section === sectionFilter);
@@ -1008,7 +965,7 @@ const FinancialDiagnostic = ({
               openCardDrilldown(card.id);
             }
           }}
-          aria-label={`Ouvrir le detail de ${card.title}`}
+          aria-label={t('financial_diagnostic.open_detail_aria', { title: card.title })}
           className={cn('p-4 sm:p-5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-lg')}
         >
           <div className="flex items-start justify-between gap-3">
@@ -1048,7 +1005,7 @@ const FinancialDiagnostic = ({
           {comparative && (
             <div className="grid grid-cols-2 gap-2 mt-3">
               <div className="rounded border border-gray-800 bg-gray-900/60 p-2">
-                <p className="text-[11px] text-gray-400">Periode courante</p>
+                <p className="text-[11px] text-gray-400">{t('financial_diagnostic.current_period')}</p>
                 <p className="text-sm font-semibold text-gray-100">{formatMetric(currentValue, card.format, currency)}</p>
               </div>
               <div className="rounded border border-gray-800 bg-gray-900/60 p-2">
@@ -1061,26 +1018,26 @@ const FinancialDiagnostic = ({
           {Number.isFinite(benchmarkValue) && (
             <div className="mt-3 rounded-md border border-blue-500/30 bg-blue-500/10 p-2">
               <p className="text-[11px] text-blue-200">
-                Vous: <strong>{formatMetric(currentValue, card.format, currency)}</strong> | Mediane secteur: <strong>{formatMetric(benchmarkValue, card.format, currency)}</strong>
+                {t('financial_diagnostic.you_label')} <strong>{formatMetric(currentValue, card.format, currency)}</strong> | {t('financial_diagnostic.sector_median')} <strong>{formatMetric(benchmarkValue, card.format, currency)}</strong>
               </p>
               <p className={cn('text-[11px] mt-0.5', (card.betterWhen === 'lower' ? benchmarkGap <= 0 : benchmarkGap >= 0) ? 'text-emerald-300' : 'text-red-300')}>
-                Ecart: {formatDelta(benchmarkGap || 0, card.format, currency)}
+                {t('financial_diagnostic.gap_label')} {formatDelta(benchmarkGap || 0, card.format, currency)}
               </p>
             </div>
           )}
 
           <div className="mt-3">
             <Sparkline series={trendSeries} color={card.betterWhen === 'lower' ? '#38bdf8' : '#34d399'} />
-            <p className="text-[11px] text-gray-500">Mini-tendance 12 mois</p>
+            <p className="text-[11px] text-gray-500">{t('financial_diagnostic.mini_trend_12m')}</p>
           </div>
 
           <div className="mt-3 space-y-1">
             <p className="text-xs text-gray-300">
-              <span className="text-blue-300 font-medium">Pourquoi ce score ? </span>
+              <span className="text-blue-300 font-medium">{t('financial_diagnostic.why_score')} </span>
               {compact ? truncate(card.why, 100) : card.why}
             </p>
             <p className="text-xs text-gray-300">
-              <span className="text-emerald-300 font-medium">Comment l'ameliorer ? </span>
+              <span className="text-emerald-300 font-medium">{t('financial_diagnostic.how_improve')} </span>
               {compact ? truncate(card.how, 100) : card.how}
             </p>
           </div>
@@ -1093,7 +1050,7 @@ const FinancialDiagnostic = ({
                 <ArrowDown className={cn('w-3.5 h-3.5', comparisonInfo.better ? 'text-emerald-300' : 'text-red-300')} />
               )}
               <span className={comparisonInfo.better ? 'text-emerald-300' : 'text-red-300'}>
-                Variation {COMPARISON_OPTIONS[comparisonMode].label}: {formatDelta(comparisonInfo.delta, card.format, currency)}
+                {t('financial_diagnostic.variation_label')} {COMPARISON_OPTIONS[comparisonMode].label}: {formatDelta(comparisonInfo.delta, card.format, currency)}
               </span>
             </div>
           )}
@@ -1107,13 +1064,13 @@ const FinancialDiagnostic = ({
         <CardContent className="p-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-100">Diagnostic Financier</h1>
+              <h1 className="text-3xl font-bold text-gray-100">{t('financial_diagnostic.title')}</h1>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-300">
                 <Calendar className="w-4 h-4" />
-                <span>Periode: {formatPeriodLabel()}</span>
+                <span>{t('financial_diagnostic.period_label')} {formatPeriodLabel()}</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Comparatif {COMPARISON_OPTIONS[comparisonMode].label}: {comparisonPeriodLabel || 'N/A'}
+                {t('financial_diagnostic.comparative_label')} {COMPARISON_OPTIONS[comparisonMode].label}: {comparisonPeriodLabel || 'N/A'}
               </p>
             </div>
             <div className="hidden md:flex gap-2 flex-wrap">
@@ -1121,22 +1078,22 @@ const FinancialDiagnostic = ({
                 <Button
                   onClick={onExportPDF}
                   variant="outline"
-                  aria-label="Exporter la vue en PDF"
+                  aria-label={t('financial_diagnostic.export_pdf_aria')}
                   className="h-11 px-4 border-gray-700 text-gray-200 hover:bg-blue-500/10"
                 >
                   <FileDown className="w-4 h-4 mr-2" />
-                  Export premium PDF
+                  {t('financial_diagnostic.export_premium_pdf')}
                 </Button>
               )}
               {onExportHTML && (
                 <Button
                   onClick={onExportHTML}
                   variant="outline"
-                  aria-label="Exporter la vue en HTML"
+                  aria-label={t('financial_diagnostic.export_html_aria')}
                   className="h-11 px-4 border-gray-700 text-gray-200 hover:bg-blue-500/10"
                 >
                   <FileText className="w-4 h-4 mr-2" />
-                  Export premium HTML
+                  {t('financial_diagnostic.export_premium_html')}
                 </Button>
               )}
             </div>
@@ -1158,7 +1115,7 @@ const FinancialDiagnostic = ({
                 )}
               >
                 <LayoutGrid className="w-4 h-4" />
-                Galerie
+                {t('financial_diagnostic.view_gallery')}
               </button>
               <button
                 type="button"
@@ -1170,7 +1127,7 @@ const FinancialDiagnostic = ({
                 )}
               >
                 <List className="w-4 h-4" />
-                Detail
+                {t('financial_diagnostic.view_detail')}
               </button>
               <button
                 type="button"
@@ -1182,70 +1139,70 @@ const FinancialDiagnostic = ({
                 )}
               >
                 <ArrowRightLeft className="w-4 h-4" />
-                Comparatif N-1
+                {t('financial_diagnostic.view_comparative')}
               </button>
             </div>
 
-            <label className="sr-only" htmlFor="diag-filter">Filtrer les cartes</label>
+            <label className="sr-only" htmlFor="diag-filter">{t('financial_diagnostic.filter_cards_label')}</label>
             <select
               id="diag-filter"
               value={sectionFilter}
               onChange={(event) => setSectionFilter(event.target.value)}
               className="h-10 px-3 rounded-md border border-gray-700 bg-gray-900 text-sm text-gray-200 min-w-[170px]"
-              aria-label="Filtrer les cartes"
+              aria-label={t('financial_diagnostic.filter_cards_label')}
             >
               {SECTION_FILTERS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+                <option key={option.value} value={option.value}>{t(option.labelKey)}</option>
               ))}
             </select>
 
-            <label className="sr-only" htmlFor="diag-sort">Tri des cartes</label>
+            <label className="sr-only" htmlFor="diag-sort">{t('financial_diagnostic.sort_cards_label')}</label>
             <select
               id="diag-sort"
               value={sortMode}
               onChange={(event) => setSortMode(event.target.value)}
               className="h-10 px-3 rounded-md border border-gray-700 bg-gray-900 text-sm text-gray-200 min-w-[165px]"
-              aria-label="Trier les cartes"
+              aria-label={t('financial_diagnostic.sort_cards_label')}
             >
               {SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+                <option key={option.value} value={option.value}>{t(option.labelKey)}</option>
               ))}
             </select>
 
-            <label className="sr-only" htmlFor="diag-compare">Comparateur de periodes</label>
+            <label className="sr-only" htmlFor="diag-compare">{t('financial_diagnostic.period_comparator_label')}</label>
             <select
               id="diag-compare"
               value={comparisonMode}
               onChange={(event) => setComparisonMode(event.target.value)}
               className="h-10 px-3 rounded-md border border-gray-700 bg-gray-900 text-sm text-gray-200 min-w-[130px]"
-              aria-label="Comparateur de periodes"
+              aria-label={t('financial_diagnostic.period_comparator_label')}
             >
               {Object.entries(COMPARISON_OPTIONS).map(([value, option]) => (
                 <option key={value} value={value}>{option.label}</option>
               ))}
             </select>
 
-            <label className="sr-only" htmlFor="diag-sector">Benchmark secteur</label>
+            <label className="sr-only" htmlFor="diag-sector">{t('financial_diagnostic.benchmark_sector_label')}</label>
             <select
               id="diag-sector"
               value={benchmarkSector}
               onChange={(event) => setBenchmarkSector(event.target.value)}
               className="h-10 px-3 rounded-md border border-gray-700 bg-gray-900 text-sm text-gray-200 min-w-[160px]"
-              aria-label="Benchmark secteur"
+              aria-label={t('financial_diagnostic.benchmark_sector_label')}
             >
-              <option value="services">Secteur: Services</option>
-              <option value="commerce">Secteur: Commerce</option>
-              <option value="industrie">Secteur: Industrie</option>
+              <option value="services">{t('financial_diagnostic.sector_services')}</option>
+              <option value="commerce">{t('financial_diagnostic.sector_commerce')}</option>
+              <option value="industrie">{t('financial_diagnostic.sector_industry')}</option>
             </select>
 
             <Button
               variant="outline"
               onClick={() => setLayoutDialogOpen(true)}
-              aria-label="Personnaliser les cartes"
+              aria-label={t('financial_diagnostic.customize_cards_aria')}
               className="h-10 border-gray-700 text-gray-200"
             >
               <Settings2 className="w-4 h-4 mr-2" />
-              Personnaliser
+              {t('financial_diagnostic.customize')}
             </Button>
           </div>
         </CardContent>
@@ -1255,13 +1212,13 @@ const FinancialDiagnostic = ({
         <CardHeader className="pb-3">
           <CardTitle className="text-lg text-gray-100 flex items-center gap-2">
             <AlertTriangle className={cn('w-5 h-5', topAlerts.length > 0 ? 'text-orange-300' : 'text-emerald-300')} />
-            Top 3 actions critiques
+            {t('financial_diagnostic.top3_critical_actions')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {topAlerts.length === 0 ? (
             <div className="text-sm text-emerald-200">
-              Aucun signal critique detecte sur cette periode. Continuez le suivi avec la vue comparative.
+              {t('financial_diagnostic.no_critical_signal')}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1276,7 +1233,7 @@ const FinancialDiagnostic = ({
                     className="mt-3 h-9 w-full bg-orange-500 hover:bg-orange-400 text-black font-semibold"
                     onClick={() => openCardDrilldown(alert.cardId)}
                   >
-                    CTA direct: ouvrir et corriger
+                    {t('financial_diagnostic.cta_open_fix')}
                   </Button>
                 </div>
               ))}
@@ -1305,7 +1262,7 @@ const FinancialDiagnostic = ({
       <Card className="bg-gray-900/40 border-gray-800">
         <CardContent className="p-4">
           <p className="text-xs text-gray-300">
-            <strong>Note:</strong> Vue diagnostique pilotable par mode, filtres et comparatifs. Les exports premium reprennent la vue courante (tri, filtres, periode, benchmark secteur).
+            <strong>Note:</strong> {t('financial_diagnostic.note_text')}
           </p>
         </CardContent>
       </Card>
@@ -1313,38 +1270,39 @@ const FinancialDiagnostic = ({
       <Dialog open={layoutDialogOpen} onOpenChange={setLayoutDialogOpen}>
         <DialogContent className="max-w-2xl bg-gray-950 border border-gray-700 text-gray-100">
           <DialogHeader>
-            <DialogTitle>Personnaliser la galerie</DialogTitle>
+            <DialogTitle>{t('financial_diagnostic.customize_gallery')}</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Masquer/reordonner les cartes. La configuration est sauvegardee pour votre prochain acces.
+              {t('financial_diagnostic.customize_gallery_desc')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
             {orderedIds.map((cardId, index) => {
-              const card = CARD_DEFINITIONS.find((item) => item.id === cardId);
-              if (!card) return null;
-              const isVisible = !hiddenCardIds.includes(card.id);
+              const rawCard = CARD_DEFINITIONS.find((item) => item.id === cardId);
+              if (!rawCard) return null;
+              const cardTitle = t(`financial_diagnostic.cards.${rawCard.i18nKey}.title`);
+              const isVisible = !hiddenCardIds.includes(rawCard.id);
 
               return (
-                <div key={card.id} className="rounded-lg border border-gray-800 bg-gray-900/50 p-3 flex items-center gap-3">
+                <div key={rawCard.id} className="rounded-lg border border-gray-800 bg-gray-900/50 p-3 flex items-center gap-3">
                   <Checkbox
                     checked={isVisible}
-                    onCheckedChange={(checked) => toggleCardVisibility(card.id, Boolean(checked))}
-                    aria-label={`Afficher la carte ${card.title}`}
+                    onCheckedChange={(checked) => toggleCardVisibility(rawCard.id, Boolean(checked))}
+                    aria-label={t('financial_diagnostic.show_card_aria', { title: cardTitle })}
                     className="h-5 w-5 border-gray-500 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-100">{card.title}</p>
-                    <p className="text-xs text-gray-500">{card.section}</p>
+                    <p className="text-sm font-medium text-gray-100">{cardTitle}</p>
+                    <p className="text-xs text-gray-500">{rawCard.section}</p>
                   </div>
                   <div className="flex gap-1">
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
-                      aria-label={`Monter ${card.title}`}
+                      aria-label={t('financial_diagnostic.move_up_aria', { title: cardTitle })}
                       disabled={index === 0}
-                      onClick={() => moveCard(card.id, 'up')}
+                      onClick={() => moveCard(rawCard.id, 'up')}
                       className="h-8 w-8 border-gray-700 text-gray-200"
                     >
                       <MoveUp className="w-4 h-4" />
@@ -1353,9 +1311,9 @@ const FinancialDiagnostic = ({
                       type="button"
                       variant="outline"
                       size="icon"
-                      aria-label={`Descendre ${card.title}`}
+                      aria-label={t('financial_diagnostic.move_down_aria', { title: cardTitle })}
                       disabled={index === orderedIds.length - 1}
-                      onClick={() => moveCard(card.id, 'down')}
+                      onClick={() => moveCard(rawCard.id, 'down')}
                       className="h-8 w-8 border-gray-700 text-gray-200"
                     >
                       <MoveDown className="w-4 h-4" />
@@ -1376,10 +1334,10 @@ const FinancialDiagnostic = ({
               }}
               className="border-gray-700 text-gray-200"
             >
-              Reinitialiser
+              {t('financial_diagnostic.reset')}
             </Button>
             <Button type="button" onClick={() => setLayoutDialogOpen(false)}>
-              Fermer
+              {t('financial_diagnostic.close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1392,10 +1350,10 @@ const FinancialDiagnostic = ({
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <PanelRightOpen className="w-5 h-5 text-blue-300" />
-                  Drill-down: {selectedCard.title}
+                  {t('financial_diagnostic.drilldown_title', { title: selectedCard.title })}
                 </DialogTitle>
                 <DialogDescription className="text-gray-400">
-                  Details des comptes/sources relies a cet indicateur.
+                  {t('financial_diagnostic.drilldown_desc')}
                 </DialogDescription>
               </DialogHeader>
 
@@ -1403,7 +1361,7 @@ const FinancialDiagnostic = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <Card className="bg-gray-900/70 border-gray-800">
                     <CardContent className="p-3">
-                      <p className="text-xs text-gray-400">Valeur courante</p>
+                      <p className="text-xs text-gray-400">{t('financial_diagnostic.current_value')}</p>
                       <p className="text-lg font-bold text-gray-100 mt-1">
                         {formatMetric(getMetricValue(diagnostic, selectedCard.metricKey), selectedCard.format, currency)}
                       </p>
@@ -1421,7 +1379,7 @@ const FinancialDiagnostic = ({
                   </Card>
                   <Card className="bg-gray-900/70 border-gray-800">
                     <CardContent className="p-3">
-                      <p className="text-xs text-gray-400">Mediane secteur</p>
+                      <p className="text-xs text-gray-400">{t('financial_diagnostic.sector_median_short')}</p>
                       <p className="text-lg font-bold text-gray-100 mt-1">
                         {Number.isFinite(SECTOR_BENCHMARKS[benchmarkSector]?.[selectedCard.metricKey])
                           ? formatMetric(SECTOR_BENCHMARKS[benchmarkSector]?.[selectedCard.metricKey], selectedCard.format, currency)
@@ -1433,33 +1391,33 @@ const FinancialDiagnostic = ({
 
                 <Card className="bg-gray-900/70 border-gray-800">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-blue-200">Pourquoi ce score ?</CardTitle>
+                    <CardTitle className="text-sm text-blue-200">{t('financial_diagnostic.why_score')}</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0 text-sm text-gray-200">{selectedCard.why}</CardContent>
                 </Card>
 
                 <Card className="bg-gray-900/70 border-gray-800">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-emerald-200">Comment l'ameliorer ?</CardTitle>
+                    <CardTitle className="text-sm text-emerald-200">{t('financial_diagnostic.how_improve')}</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0 text-sm text-gray-200">{selectedCard.how}</CardContent>
                 </Card>
 
                 <Card className="bg-gray-900/70 border-gray-800">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-gray-100">Comptes sources (top 12)</CardTitle>
+                    <CardTitle className="text-sm text-gray-100">{t('financial_diagnostic.source_accounts_top12')}</CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     {selectedAccounts.length === 0 ? (
-                      <p className="text-sm text-gray-400">Aucune source comptable disponible pour ce KPI.</p>
+                      <p className="text-sm text-gray-400">{t('financial_diagnostic.no_source_accounts')}</p>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="text-gray-400 border-b border-gray-800">
-                              <th className="text-left py-2 pr-3">Code</th>
-                              <th className="text-left py-2 pr-3">Compte</th>
-                              <th className="text-right py-2">Solde</th>
+                              <th className="text-left py-2 pr-3">{t('financial_diagnostic.table_code')}</th>
+                              <th className="text-left py-2 pr-3">{t('financial_diagnostic.table_account')}</th>
+                              <th className="text-right py-2">{t('financial_diagnostic.table_balance')}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1489,7 +1447,7 @@ const FinancialDiagnostic = ({
           type="button"
           size="icon"
           className="h-12 w-12 rounded-full bg-blue-600 hover:bg-blue-500"
-          aria-label="Personnaliser les cartes"
+          aria-label={t('financial_diagnostic.customize_cards_aria')}
           onClick={() => setLayoutDialogOpen(true)}
         >
           <Settings2 className="w-5 h-5" />
@@ -1499,7 +1457,7 @@ const FinancialDiagnostic = ({
             type="button"
             size="icon"
             className="h-12 w-12 rounded-full bg-orange-500 hover:bg-orange-400 text-black"
-            aria-label="Ouvrir action critique"
+            aria-label={t('financial_diagnostic.open_critical_action_aria')}
             onClick={() => openCardDrilldown(topAlerts[0].cardId)}
           >
             <AlertTriangle className="w-5 h-5" />
@@ -1510,7 +1468,7 @@ const FinancialDiagnostic = ({
             type="button"
             size="icon"
             className="h-12 w-12 rounded-full bg-gray-800 hover:bg-gray-700"
-            aria-label="Exporter PDF"
+            aria-label={t('financial_diagnostic.export_pdf_mobile_aria')}
             onClick={onExportPDF}
           >
             <FileDown className="w-5 h-5" />

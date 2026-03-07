@@ -8,6 +8,7 @@ import {
   requireAuthenticatedUser,
 } from '../_shared/billing.ts';
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 import {
   buildCanonicalDashboardSnapshot,
   buildCanonicalRevenueCollectionSnapshot,
@@ -17,6 +18,7 @@ import { buildCanonicalOperationsSnapshot } from '../../../src/shared/canonicalO
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 const CREDIT_COST = 2;

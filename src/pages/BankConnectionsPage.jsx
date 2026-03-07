@@ -395,7 +395,7 @@ const BankConnectionsPage = () => {
                       {connection.institution_logo ? (
                         <img
                           src={connection.institution_logo}
-                          alt=""
+                          alt={connection.institution_name || t('bankConnectionsPage.institutionLogo')}
                           className="h-full w-full object-contain"
                         />
                       ) : (
@@ -543,7 +543,7 @@ const BankConnectionsPage = () => {
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-gray-800">
                         {institution.logo ? (
-                          <img src={institution.logo} alt="" className="h-full w-full object-contain" />
+                          <img src={institution.logo} alt={institution.name} className="h-full w-full object-contain" />
                         ) : (
                           <Building2 className="h-5 w-5 text-gray-400" />
                         )}

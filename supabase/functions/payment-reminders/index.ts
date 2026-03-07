@@ -3,9 +3,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { paymentReminderTemplate } from '../_shared/emailTemplates.ts';
 import { isAuthorizedInternalRequest, unauthorizedInternalRequestResponse } from '../_shared/internalAuth.ts';
 
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 serve(async (req) => {

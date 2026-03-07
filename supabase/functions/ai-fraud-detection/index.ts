@@ -1,9 +1,13 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
 
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 const CREDIT_COST = 4;
@@ -20,8 +24,12 @@ serve(async (req) => {
     if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
     const authUser = await requireAuthenticatedUser(req);
-    const { userId, analysisScope = 'last_90_days' } = await req.json();
     resolvedUserId = authUser.id;
+
+    const rateLimit = checkRateLimit(resolvedUserId, { maxRequests: 5, windowMs: 60_000, keyPrefix: 'ai-fraud' });
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit, corsHeaders);
+
+    const { userId, analysisScope = 'last_90_days' } = await req.json();
 
     if (userId && userId !== resolvedUserId) {
       return new Response(JSON.stringify({ error: 'User ID mismatch with authenticated user' }), {
@@ -38,9 +46,9 @@ serve(async (req) => {
     const [invoicesResult, expensesResult] = await Promise.all([
       supabase
         .from('invoices')
-        .select('id, invoice_number, client_id, total_ttc, invoice_date, status')
+        .select('id, invoice_number, client_id, total_ttc, date, status')
         .eq('user_id', resolvedUserId)
-        .gte('invoice_date', startDateIso),
+        .gte('date', startDateIso),
       supabase
         .from('expenses')
         .select('id, amount, category, date, description, supplier_id')

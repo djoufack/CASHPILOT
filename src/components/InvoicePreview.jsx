@@ -56,9 +56,9 @@ const InvoicePreview = ({ invoice, client, items }) => {
     try {
       const { blob, filename } = await exportUBL(invoice, company, client, items);
       downloadBlob(blob, filename);
-      toast({ title: 'Success', description: t('peppol.exportUBL') });
+      toast({ title: t('common.success'), description: t('peppol.exportUBL') });
     } catch (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: error.message, variant: 'destructive' });
     }
   };
 
@@ -74,12 +74,12 @@ const InvoicePreview = ({ invoice, client, items }) => {
         try {
           await exportInvoiceToPDF(invoiceRef.current, invoice.invoice_number || invoice.invoiceNumber);
           toast({
-            title: "Success",
+            title: t('common.success'),
             description: t('messages.success.pdfExported')
           });
         } catch (error) {
           toast({
-            title: "Error",
+            title: t('common.error'),
             description: t('messages.error.pdfExportFailed'),
             variant: "destructive"
           });
@@ -104,7 +104,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
           downloadBlob(blob, filename);
 
           toast({
-            title: 'Success',
+            title: t('common.success'),
             description: t(
               'invoices.facturxPdfExported',
               'Factur-X PDF exported.'
@@ -112,7 +112,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
           });
         } catch (error) {
           toast({
-            title: 'Error',
+            title: t('common.error'),
             description: error.message || t('messages.error.pdfExportFailed'),
             variant: 'destructive',
           });

@@ -5,9 +5,13 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno';
 import { createServiceClient, HttpError, requireAuthenticatedUser } from '../_shared/billing.ts';
 
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 serve(async (req) => {
@@ -17,6 +21,10 @@ serve(async (req) => {
 
   try {
     const user = await requireAuthenticatedUser(req);
+
+    const rateLimit = checkRateLimit(user.id, { maxRequests: 10, windowMs: 60_000, keyPrefix: 'stripe-link' });
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit, corsHeaders);
+
     const supabase = createServiceClient();
 
     const { invoiceId } = await req.json();

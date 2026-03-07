@@ -1,8 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import Gantt from 'frappe-gantt';
+import React, { useEffect, useRef, useState } from 'react';
 
 /**
- * Gantt chart component using frappe-gantt.
+ * Gantt chart component using frappe-gantt (lazy loaded).
  *
  * @param {Array} tasks - frappe-gantt task objects:
  *   [{ id, name, start, end, progress, dependencies }]
@@ -13,14 +12,23 @@ import Gantt from 'frappe-gantt';
 export default function GanttView({ tasks = [], viewMode = 'Week', onDateChange, onProgressChange }) {
   const containerRef = useRef(null);
   const ganttRef = useRef(null);
+  const [GanttClass, setGanttClass] = useState(null);
 
   useEffect(() => {
-    if (!containerRef.current || !tasks.length) return;
+    let cancelled = false;
+    import('frappe-gantt').then((mod) => {
+      if (!cancelled) setGanttClass(() => mod.default);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!containerRef.current || !tasks.length || !GanttClass) return;
 
     // Clear previous instance
     containerRef.current.innerHTML = '';
 
-    ganttRef.current = new Gantt(containerRef.current, tasks, {
+    ganttRef.current = new GanttClass(containerRef.current, tasks, {
       view_mode: viewMode,
       date_format: 'YYYY-MM-DD',
       on_date_change: onDateChange || (() => {}),
@@ -37,13 +45,21 @@ export default function GanttView({ tasks = [], viewMode = 'Week', onDateChange,
     return () => {
       ganttRef.current = null;
     };
-  }, [tasks, viewMode]);
+  }, [tasks, viewMode, GanttClass]);
 
   if (!tasks.length) {
     return (
       <div className="text-center text-gray-400 py-12">
         <p>Aucune tâche avec des dates définies.</p>
         <p className="text-sm mt-1">Ajoutez des dates de début et de fin aux tâches pour afficher le Gantt.</p>
+      </div>
+    );
+  }
+
+  if (!GanttClass) {
+    return (
+      <div className="text-center text-gray-400 py-12">
+        <p>Chargement du diagramme de Gantt…</p>
       </div>
     );
   }

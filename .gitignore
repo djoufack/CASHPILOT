@@ -34,6 +34,7 @@ pnpm-debug.log*
 
 # MCP server env
 mcp-server/.env
+.mcp.json
 
 # Temporary files
 *.tmp

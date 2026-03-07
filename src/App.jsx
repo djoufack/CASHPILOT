@@ -91,6 +91,7 @@ const IntegrationsHubPage = lazyRetry(() => import('./pages/IntegrationsHubPage'
 const SharedSnapshotPage = lazyRetry(() => import('./pages/SharedSnapshotPage'));
 const PrivacyPage = lazyRetry(() => import('./pages/PrivacyPage'));
 const LegalPage = lazyRetry(() => import('./pages/LegalPage'));
+const NotFoundPage = lazyRetry(() => import('./pages/NotFoundPage'));
 
 // Lazy-loaded feature components
 const SupplierMap = lazyRetry(() => import('@/components/SupplierMap'));
@@ -265,7 +266,7 @@ const AuthWrapper = () => {
             </Route>
 
             {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><NotFoundPage /></Suspense></PageErrorBoundary>} />
         </Routes>
     );
 };

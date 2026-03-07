@@ -1,9 +1,11 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { consumeCredits, createAuthClient, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 const PEPPOL_SEND_CREDITS = 4;
@@ -169,6 +171,11 @@ function fmt(amount: number | null | undefined): string {
 function generateUBLInvoice(invoice: any, seller: any, buyer: any, items: any[]): string {
   const currency = invoice.currency || 'EUR';
   const buyerRef = invoice.reference || invoice.invoice_number;
+  const issueDate = invoice.date || invoice.invoice_date || invoice.created_at || null;
+  const totalVat = Number(
+    invoice.total_vat ??
+    Math.max(0, Number(invoice.total_ttc || 0) - Number(invoice.total_ht || 0)),
+  );
 
   const groups: Record<number, { rate: number; taxableAmount: number }> = {};
   for (const item of items) {
@@ -218,7 +225,7 @@ function generateUBLInvoice(invoice: any, seller: any, buyer: any, items: any[])
   <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0</cbc:CustomizationID>
   <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>
   <cbc:ID>${escapeXml(invoice.invoice_number)}</cbc:ID>
-  <cbc:IssueDate>${formatDate(invoice.invoice_date)}</cbc:IssueDate>
+  <cbc:IssueDate>${formatDate(issueDate)}</cbc:IssueDate>
   ${invoice.due_date ? `<cbc:DueDate>${formatDate(invoice.due_date)}</cbc:DueDate>` : ''}
   <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
   <cbc:DocumentCurrencyCode>${escapeXml(currency)}</cbc:DocumentCurrencyCode>
@@ -226,7 +233,7 @@ function generateUBLInvoice(invoice: any, seller: any, buyer: any, items: any[])
   ${partyBlock(seller, 'AccountingSupplierParty')}
   ${partyBlock(buyer, 'AccountingCustomerParty')}
   ${seller.iban ? `<cac:PaymentMeans><cbc:PaymentMeansCode>30</cbc:PaymentMeansCode><cac:PayeeFinancialAccount><cbc:ID>${escapeXml(seller.iban)}</cbc:ID></cac:PayeeFinancialAccount></cac:PaymentMeans>` : ''}
-  <cac:TaxTotal><cbc:TaxAmount currencyID="${currency}">${fmt(invoice.total_vat || 0)}</cbc:TaxAmount>${subtotals}</cac:TaxTotal>
+  <cac:TaxTotal><cbc:TaxAmount currencyID="${currency}">${fmt(totalVat)}</cbc:TaxAmount>${subtotals}</cac:TaxTotal>
   <cac:LegalMonetaryTotal>
     <cbc:LineExtensionAmount currencyID="${currency}">${fmt(invoice.total_ht)}</cbc:LineExtensionAmount>
     <cbc:TaxExclusiveAmount currencyID="${currency}">${fmt(invoice.total_ht)}</cbc:TaxExclusiveAmount>

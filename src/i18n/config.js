@@ -8,6 +8,7 @@ import nl from './locales/nl.json';
 
 const SUPPORTED_LANGUAGES = ['en', 'fr', 'nl'];
 const LANGUAGE_STORAGE_KEY = 'cashpilot_language';
+const RTL_LANGUAGES = new Set(['ar', 'he', 'fa', 'ur']);
 
 const normalizeLanguageCode = (value) => {
   const normalized = String(value || '')
@@ -45,12 +46,16 @@ i18n
   });
 
 if (typeof document !== 'undefined') {
-  document.documentElement.lang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
+  const lang = normalizeLanguageCode(i18n.resolvedLanguage || i18n.language);
+  document.documentElement.lang = lang;
+  document.documentElement.dir = RTL_LANGUAGES.has(lang) ? 'rtl' : 'ltr';
 }
 
 i18n.on('languageChanged', (language) => {
   if (typeof document !== 'undefined') {
-    document.documentElement.lang = normalizeLanguageCode(language);
+    const lang = normalizeLanguageCode(language);
+    document.documentElement.lang = lang;
+    document.documentElement.dir = RTL_LANGUAGES.has(lang) ? 'rtl' : 'ltr';
   }
 });
 

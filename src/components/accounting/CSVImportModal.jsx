@@ -148,7 +148,7 @@ const CSVImportModal = ({ open, onOpenChange, onImport, existingAccounts = [] })
                   {preview.totalRows} comptes • séparateur "{preview.delimiter}"
                 </Badge>
               </div>
-              <Button variant="ghost" size="icon" onClick={reset}>
+              <Button variant="ghost" size="icon" aria-label="Close" onClick={reset}>
                 <X className="w-4 h-4" />
               </Button>
             </div>

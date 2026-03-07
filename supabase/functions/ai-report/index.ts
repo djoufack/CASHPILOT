@@ -2,9 +2,13 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { requireAuthenticatedUser } from '../_shared/billing.ts';
 
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 serve(async (req) => {
@@ -17,6 +21,9 @@ serve(async (req) => {
     const authUser = await requireAuthenticatedUser(req);
     const userId = authUser.id;
 
+    const rateLimit = checkRateLimit(userId, { maxRequests: 10, windowMs: 60_000, keyPrefix: 'ai-report' });
+    if (!rateLimit.allowed) return rateLimitResponse(rateLimit, corsHeaders);
+
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const { period = 'month', reportType = 'summary' } = await req.json();
 
@@ -26,11 +33,15 @@ serve(async (req) => {
     else if (period === 'year') startDate.setFullYear(startDate.getFullYear() - 1);
 
     const [invoices, expenses, payments, profile] = await Promise.all([
-      supabase.from('invoices').select('*').eq('user_id', userId).gte('invoice_date', startDate.toISOString().split('T')[0]),
+      supabase.from('invoices').select('*').eq('user_id', userId).gte('date', startDate.toISOString().split('T')[0]),
       supabase.from('expenses').select('*').eq('user_id', userId).gte('date', startDate.toISOString().split('T')[0]),
       supabase.from('payments').select('*').eq('user_id', userId).gte('payment_date', startDate.toISOString().split('T')[0]),
       supabase.from('profiles').select('company_name, full_name').eq('user_id', userId).single(),
     ]);
+    if (invoices.error) throw invoices.error;
+    if (expenses.error) throw expenses.error;
+    if (payments.error) throw payments.error;
+    if (profile.error) throw profile.error;
 
     const prompt = `Génère un rapport financier ${reportType === 'detailed' ? 'détaillé' : 'résumé'} pour ${profile.data?.company_name || 'l\'entreprise'} sur la période ${period}.
 

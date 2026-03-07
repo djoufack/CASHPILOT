@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import DOMPurify from 'dompurify';
+import { escapeHTML as escapeHtml } from '@/utils/sanitize';
 
 const REPORT_PRESETS = {
   executive: {
@@ -55,13 +56,6 @@ const toNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const escapeHtml = (value) =>
-  String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 
 const formatCurrency = (amount, currency = 'EUR', locale = 'fr-FR') =>
   new Intl.NumberFormat(locale, {
@@ -366,7 +360,7 @@ const ReportGenerator = () => {
 
     let invoicesQuery = supabase
       .from('invoices')
-      .select('id, invoice_number, date, due_date, status, payment_status, total_ttc, total_tva, total, balance_due, client:clients(company_name)')
+      .select('id, invoice_number, date, due_date, status, payment_status, total_ht, total_ttc, balance_due, client:clients(company_name)')
       .gte('date', period.startDate)
       .lte('date', period.endDate)
       .order('date', { ascending: false });
@@ -414,10 +408,14 @@ const ReportGenerator = () => {
     const payments = paymentsRes.data || [];
     const supplierInvoices = supplierInvoicesRes.data || [];
 
-    const revenue = invoices.reduce((sum, invoice) => sum + toNumber(invoice.total_ttc || invoice.total), 0);
+    const revenue = invoices.reduce((sum, invoice) => sum + toNumber(invoice.total_ttc), 0);
     const expensesTotal = expenses.reduce((sum, expense) => sum + toNumber(expense.amount), 0);
     const cashIn = payments.reduce((sum, payment) => sum + toNumber(payment.amount), 0);
-    const outputVat = invoices.reduce((sum, invoice) => sum + toNumber(invoice.total_tva), 0);
+    const outputVat = invoices.reduce((sum, invoice) => {
+      const totalHt = toNumber(invoice.total_ht);
+      const totalTtc = toNumber(invoice.total_ttc);
+      return sum + Math.max(0, totalTtc - totalHt);
+    }, 0);
     const inputVat =
       expenses.reduce((sum, expense) => sum + toNumber(expense.vat_amount), 0) +
       supplierInvoices.reduce((sum, invoice) => sum + toNumber(invoice.vat_amount), 0);

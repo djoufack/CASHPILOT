@@ -2,9 +2,12 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { requireAuthenticatedUser } from '../_shared/billing.ts';
 
+import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
 };
 
 serve(async (req) => {
@@ -21,10 +24,13 @@ serve(async (req) => {
 
     // Fetch recent financial data
     const [invoices, expenses, payments] = await Promise.all([
-      supabase.from('invoices').select('invoice_number, total_ttc, status, invoice_date, due_date').eq('user_id', userId).order('created_at', { ascending: false }).limit(50),
+      supabase.from('invoices').select('invoice_number, total_ttc, status, date, due_date').eq('user_id', userId).order('created_at', { ascending: false }).limit(50),
       supabase.from('expenses').select('description, amount, category, date').eq('user_id', userId).order('date', { ascending: false }).limit(50),
       supabase.from('payments').select('amount, payment_date, method').eq('user_id', userId).order('payment_date', { ascending: false }).limit(50),
     ]);
+    if (invoices.error) throw invoices.error;
+    if (expenses.error) throw expenses.error;
+    if (payments.error) throw payments.error;
 
     const prompt = `Analyse ces données comptables et détecte les anomalies:
 
