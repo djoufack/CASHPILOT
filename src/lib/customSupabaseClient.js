@@ -1,5 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
+// supabase-js v2.39 does NOT forward auth.lock to gotrue-js, so the only way
+// to prevent "Lock broken by another request with the 'steal' option" AbortErrors
+// is to remove navigator.locks before the client initialises.  GoTrue then falls
+// back to its built-in lockNoOp, which is safe for single-tab usage.
+if (typeof globalThis !== 'undefined' && globalThis.navigator) {
+  Object.defineProperty(globalThis.navigator, 'locks', { value: undefined, writable: true });
+}
+
 const normalizeEnv = (value) => {
   if (typeof value !== 'string') return '';
   return value.trim();
@@ -9,13 +17,7 @@ const supabaseUrl = normalizeEnv(import.meta.env.VITE_SUPABASE_URL);
 const supabaseAnonKey = normalizeEnv(import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 const customSupabaseClient = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        // Use a simple async lock to avoid Web Locks API "steal" AbortErrors
-        // that occur with concurrent tab/auth operations in Supabase v2
-        lock: async (name, acquireTimeout, fn) => fn(),
-      },
-    })
+  ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
 export default customSupabaseClient;
