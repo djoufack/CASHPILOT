@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { supabaseUrl } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   clearPendingBankConnection,
@@ -44,7 +43,7 @@ export const useBankConnections = () => {
     }
 
     const response = await fetch(
-      `${supabaseUrl}/functions/v1/gocardless-auth`,
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gocardless-auth`,
       {
         method: 'POST',
         headers: {

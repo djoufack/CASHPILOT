@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase';
-import { supabaseUrl } from '@/lib/customSupabaseClient';
 import { resolveInvoiceCurrency } from '@/utils/invoiceCurrency';
 
 /**
@@ -25,7 +24,7 @@ const callSendEmail = async (payload) => {
   }
 
   const response = await fetch(
-    `${supabaseUrl}/functions/v1/send-email`,
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`,
     {
       method: 'POST',
       headers: {
