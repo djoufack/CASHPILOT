@@ -2,7 +2,6 @@
 -- This closes any residual cross-company access path if app-level filters fail.
 
 ALTER TABLE public.supplier_invoices ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (

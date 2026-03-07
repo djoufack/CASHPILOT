@@ -29,20 +29,15 @@ CREATE TABLE IF NOT EXISTS public.accounting_fixed_assets (
   created_at               TIMESTAMPTZ DEFAULT now(),
   updated_at               TIMESTAMPTZ DEFAULT now()
 );
-
 ALTER TABLE public.accounting_fixed_assets ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "fixed_assets_user_policy"
   ON public.accounting_fixed_assets
   FOR ALL USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 CREATE INDEX IF NOT EXISTS idx_fixed_assets_user_id
   ON public.accounting_fixed_assets(user_id);
-
 CREATE INDEX IF NOT EXISTS idx_fixed_assets_status
   ON public.accounting_fixed_assets(user_id, status);
-
 -- Trigger updated_at
 CREATE OR REPLACE FUNCTION public.update_fixed_assets_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
@@ -51,12 +46,10 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_fixed_assets_updated_at ON public.accounting_fixed_assets;
 CREATE TRIGGER trg_fixed_assets_updated_at
   BEFORE UPDATE ON public.accounting_fixed_assets
   FOR EACH ROW EXECUTE FUNCTION public.update_fixed_assets_updated_at();
-
 -- Table du plan d'amortissement (lignes calculées)
 CREATE TABLE IF NOT EXISTS public.accounting_depreciation_schedule (
   id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -73,20 +66,15 @@ CREATE TABLE IF NOT EXISTS public.accounting_depreciation_schedule (
   created_at               TIMESTAMPTZ DEFAULT now(),
   UNIQUE (asset_id, period_year, period_month)
 );
-
 ALTER TABLE public.accounting_depreciation_schedule ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "depreciation_schedule_user_policy"
   ON public.accounting_depreciation_schedule
   FOR ALL USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 CREATE INDEX IF NOT EXISTS idx_depreciation_schedule_asset
   ON public.accounting_depreciation_schedule(asset_id);
-
 CREATE INDEX IF NOT EXISTS idx_depreciation_schedule_period
   ON public.accounting_depreciation_schedule(user_id, period_year, period_month);
-
 CREATE INDEX IF NOT EXISTS idx_depreciation_schedule_unposted
   ON public.accounting_depreciation_schedule(asset_id, is_posted)
   WHERE is_posted = false;

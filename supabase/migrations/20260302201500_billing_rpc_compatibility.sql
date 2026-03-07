@@ -17,7 +17,6 @@ BEGIN
   );
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.refresh_user_billing_state(target_user_id UUID DEFAULT auth.uid())
 RETURNS TABLE (
   user_id UUID,
@@ -144,7 +143,6 @@ BEGIN
     computed_trial_ends_at;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.get_account_access_override(target_user_id UUID DEFAULT auth.uid())
 RETURNS TABLE (
   is_override BOOLEAN,
@@ -191,7 +189,6 @@ BEGIN
     user_email;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.get_current_user_entitlements(target_user_id UUID DEFAULT auth.uid())
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -319,7 +316,6 @@ BEGIN
   );
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.user_has_entitlement(p_feature_key TEXT, target_user_id UUID DEFAULT auth.uid())
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -388,7 +384,6 @@ BEGIN
   );
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.consume_user_credits(
   target_user_id UUID DEFAULT auth.uid(),
   amount INTEGER DEFAULT 1,
@@ -544,7 +539,6 @@ BEGIN
     paid_deduction;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.refund_user_credits(
   target_user_id UUID DEFAULT auth.uid(),
   refund_free_credits INTEGER DEFAULT 0,
@@ -613,24 +607,17 @@ BEGIN
       + COALESCE(billing_record.paid_credits, 0);
 END;
 $$;
-
 REVOKE ALL ON FUNCTION public.current_request_role() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.current_request_role() TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.refresh_user_billing_state(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.refresh_user_billing_state(UUID) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.get_account_access_override(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_account_access_override(UUID) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.get_current_user_entitlements(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_current_user_entitlements(UUID) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.user_has_entitlement(TEXT, UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.user_has_entitlement(TEXT, UUID) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.consume_user_credits(UUID, INTEGER, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.consume_user_credits(UUID, INTEGER, TEXT) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.refund_user_credits(UUID, INTEGER, INTEGER, INTEGER, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.refund_user_credits(UUID, INTEGER, INTEGER, INTEGER, TEXT) TO authenticated, service_role;

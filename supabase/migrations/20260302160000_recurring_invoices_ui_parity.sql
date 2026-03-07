@@ -15,7 +15,6 @@ ALTER TABLE public.recurring_invoices
   ADD COLUMN IF NOT EXISTS invoices_generated INTEGER DEFAULT 0,
   ADD COLUMN IF NOT EXISTS last_generated_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT timezone('utc', now());
-
 UPDATE public.recurring_invoices
 SET
   title = COALESCE(NULLIF(title, ''), 'Facture recurrente'),
@@ -33,7 +32,6 @@ SET
   auto_send = COALESCE(auto_send, false),
   invoices_generated = COALESCE(invoices_generated, 0),
   updated_at = COALESCE(updated_at, timezone('utc', now()));
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -69,7 +67,6 @@ BEGIN
       CHECK (day_of_month IS NULL OR day_of_month BETWEEN 1 AND 31);
   END IF;
 END $$;
-
 CREATE TABLE IF NOT EXISTS public.recurring_invoice_line_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   recurring_invoice_id UUID NOT NULL REFERENCES public.recurring_invoices(id) ON DELETE CASCADE,
@@ -80,9 +77,7 @@ CREATE TABLE IF NOT EXISTS public.recurring_invoice_line_items (
   sort_order INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT timezone('utc', now())
 );
-
 ALTER TABLE public.recurring_invoice_line_items ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -106,14 +101,11 @@ BEGIN
       );
   END IF;
 END $$;
-
 CREATE INDEX IF NOT EXISTS idx_recurring_invoice_line_items_parent
   ON public.recurring_invoice_line_items(recurring_invoice_id);
-
 CREATE INDEX IF NOT EXISTS idx_recurring_invoices_next_generation_date
   ON public.recurring_invoices(next_generation_date)
   WHERE status = 'active';
-
 CREATE OR REPLACE FUNCTION public.sync_recurring_invoice_dates()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -125,7 +117,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_sync_recurring_invoice_dates ON public.recurring_invoices;
 CREATE TRIGGER trg_sync_recurring_invoice_dates
   BEFORE INSERT OR UPDATE ON public.recurring_invoices

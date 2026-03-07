@@ -14,9 +14,7 @@ CREATE TABLE IF NOT EXISTS pending_subscriptions (
   claimed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
-
 ALTER TABLE pending_subscriptions ENABLE ROW LEVEL SECURITY;
-
 -- Anyone can read unclaimed rows matching their email (checked server-side)
 -- Service role bypasses RLS for webhook writes
 CREATE POLICY "pending_subscriptions_service_all"

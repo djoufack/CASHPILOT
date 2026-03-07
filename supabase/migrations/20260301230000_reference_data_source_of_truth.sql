@@ -2,13 +2,11 @@
 -- Canonical reference data and authenticated UI preferences now live in Supabase.
 
 BEGIN;
-
 -- ---------------------------------------------------------------------------
 -- Profiles preferences
 -- ---------------------------------------------------------------------------
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS language_code TEXT DEFAULT 'en';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS theme_preference TEXT DEFAULT 'dark';
-
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_language_code_check') THEN
@@ -18,10 +16,8 @@ BEGIN
     ALTER TABLE public.profiles ADD CONSTRAINT profiles_theme_preference_check CHECK (theme_preference IN ('light', 'dark', 'system'));
   END IF;
 END $$;
-
 UPDATE public.profiles SET language_code = COALESCE(NULLIF(language_code, ''), 'en');
 UPDATE public.profiles SET theme_preference = COALESCE(NULLIF(theme_preference, ''), 'dark');
-
 -- ---------------------------------------------------------------------------
 -- Reference catalogs
 -- ---------------------------------------------------------------------------
@@ -31,7 +27,6 @@ CREATE TABLE IF NOT EXISTS public.reference_countries (
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.reference_currencies (
   code VARCHAR(3) PRIMARY KEY,
   symbol TEXT NOT NULL,
@@ -40,7 +35,6 @@ CREATE TABLE IF NOT EXISTS public.reference_currencies (
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.reference_tax_jurisdictions (
   code TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -57,7 +51,6 @@ CREATE TABLE IF NOT EXISTS public.reference_tax_jurisdictions (
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.reference_tax_jurisdiction_vat_rates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   jurisdiction_code TEXT NOT NULL REFERENCES public.reference_tax_jurisdictions(code) ON DELETE CASCADE,
@@ -68,7 +61,6 @@ CREATE TABLE IF NOT EXISTS public.reference_tax_jurisdiction_vat_rates (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (jurisdiction_code, rate)
 );
-
 CREATE TABLE IF NOT EXISTS public.reference_sector_benchmarks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sector TEXT NOT NULL,
@@ -79,7 +71,6 @@ CREATE TABLE IF NOT EXISTS public.reference_sector_benchmarks (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (sector, metric_key)
 );
-
 CREATE TABLE IF NOT EXISTS public.reference_sector_multiples (
   sector TEXT NOT NULL,
   region TEXT NOT NULL,
@@ -89,7 +80,6 @@ CREATE TABLE IF NOT EXISTS public.reference_sector_multiples (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (sector, region)
 );
-
 CREATE TABLE IF NOT EXISTS public.reference_region_wacc (
   region TEXT PRIMARY KEY,
   risk_free_rate NUMERIC(12,6) NOT NULL,
@@ -98,7 +88,6 @@ CREATE TABLE IF NOT EXISTS public.reference_region_wacc (
   wacc NUMERIC(12,6) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.accounting_mapping_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   country_code TEXT NOT NULL,
@@ -110,7 +99,6 @@ CREATE TABLE IF NOT EXISTS public.accounting_mapping_templates (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (country_code, source_type, source_category)
 );
-
 CREATE TABLE IF NOT EXISTS public.accounting_tax_rate_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   country_code TEXT NOT NULL,
@@ -122,12 +110,10 @@ CREATE TABLE IF NOT EXISTS public.accounting_tax_rate_templates (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (country_code, name)
 );
-
 CREATE INDEX IF NOT EXISTS idx_reference_tax_rate_jurisdiction ON public.reference_tax_jurisdiction_vat_rates(jurisdiction_code, sort_order);
 CREATE INDEX IF NOT EXISTS idx_reference_sector_benchmarks_sector ON public.reference_sector_benchmarks(sector);
 CREATE INDEX IF NOT EXISTS idx_accounting_mapping_templates_country ON public.accounting_mapping_templates(country_code);
 CREATE INDEX IF NOT EXISTS idx_accounting_tax_rate_templates_country ON public.accounting_tax_rate_templates(country_code);
-
 -- ---------------------------------------------------------------------------
 -- Public read access for client-side reference queries
 -- ---------------------------------------------------------------------------
@@ -140,7 +126,6 @@ ALTER TABLE public.reference_sector_multiples ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reference_region_wacc ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accounting_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accounting_plan_accounts ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'reference_countries' AND policyname = 'reference_countries_read_all') THEN
@@ -171,7 +156,6 @@ BEGIN
     CREATE POLICY accounting_plan_accounts_read_global_or_owner ON public.accounting_plan_accounts FOR SELECT USING (EXISTS (SELECT 1 FROM public.accounting_plans plan WHERE plan.id = accounting_plan_accounts.plan_id AND (plan.is_global = TRUE OR plan.uploaded_by = auth.uid())));
   END IF;
 END $$;
-
 -- ---------------------------------------------------------------------------
 -- Seed data
 -- ---------------------------------------------------------------------------
@@ -339,7 +323,6 @@ INSERT INTO public.reference_countries (code, label, sort_order) VALUES
 ON CONFLICT (code) DO UPDATE SET
       label = EXCLUDED.label,
       sort_order = EXCLUDED.sort_order;
-
 INSERT INTO public.reference_currencies (code, symbol, name, region, sort_order) VALUES
   ('EUR', '€', 'Euro', 'Europe', 1),
   ('GBP', '£', 'British Pound', 'Europe', 2),
@@ -414,7 +397,6 @@ ON CONFLICT (code) DO UPDATE SET
       name = EXCLUDED.name,
       region = EXCLUDED.region,
       sort_order = EXCLUDED.sort_order;
-
 INSERT INTO public.reference_tax_jurisdictions (code, name, currency, vat_label, default_vat_rate, vat_number_pattern, vat_number_prefix, fiscal_year_start, fiscal_year_end, export_formats, declaration_periods, invoice_requirements, is_active) VALUES
   ('FR', 'France', 'EUR', 'TVA', 20, '^FR[0-9A-Z]{2}[0-9]{9}$', 'FR', '01-01', '12-31', ARRAY['FEC', 'CA3']::TEXT[], ARRAY['monthly', 'quarterly', 'yearly']::TEXT[], '{"vatNumber":true,"siret":true,"legalMentions":true}'::JSONB, TRUE),
   ('BE', 'Belgique', 'EUR', 'BTW/TVA', 21, '^BE[0-9]{10}$', 'BE', '01-01', '12-31', ARRAY['SAF-T', 'Intervat']::TEXT[], ARRAY['monthly', 'quarterly']::TEXT[], '{"vatNumber":true,"enterpriseNumber":true}'::JSONB, TRUE),
@@ -439,7 +421,6 @@ ON CONFLICT (code) DO UPDATE SET
       declaration_periods = EXCLUDED.declaration_periods,
       invoice_requirements = EXCLUDED.invoice_requirements,
       is_active = EXCLUDED.is_active;
-
 INSERT INTO public.reference_tax_jurisdiction_vat_rates (jurisdiction_code, rate, label, is_default, sort_order) VALUES
   ('FR', 20, 'Taux normal', TRUE, 1),
   ('FR', 10, 'Taux intermediaire', FALSE, 2),
@@ -485,7 +466,6 @@ ON CONFLICT (jurisdiction_code, rate) DO UPDATE SET
       label = EXCLUDED.label,
       is_default = EXCLUDED.is_default,
       sort_order = EXCLUDED.sort_order;
-
 INSERT INTO public.reference_sector_benchmarks (sector, metric_key, low_value, target_value, high_value) VALUES
   ('saas', 'operatingMargin', 5, 20, 35),
   ('saas', 'netMargin', 3, 15, 28),
@@ -559,7 +539,6 @@ ON CONFLICT (sector, metric_key) DO UPDATE SET
       low_value = EXCLUDED.low_value,
       target_value = EXCLUDED.target_value,
       high_value = EXCLUDED.high_value;
-
 INSERT INTO public.reference_sector_multiples (sector, region, low_value, mid_value, high_value) VALUES
   ('saas', 'france', 8, 12, 18),
   ('saas', 'belgium', 7, 10, 15),
@@ -580,7 +559,6 @@ ON CONFLICT (sector, region) DO UPDATE SET
       low_value = EXCLUDED.low_value,
       mid_value = EXCLUDED.mid_value,
       high_value = EXCLUDED.high_value;
-
 INSERT INTO public.reference_region_wacc (region, risk_free_rate, equity_premium, beta, wacc) VALUES
   ('france', 0.03, 0.055, 1, 0.085),
   ('belgium', 0.03, 0.057999999999999996, 1, 0.08800000000000001),
@@ -590,7 +568,6 @@ ON CONFLICT (region) DO UPDATE SET
       equity_premium = EXCLUDED.equity_premium,
       beta = EXCLUDED.beta,
       wacc = EXCLUDED.wacc;
-
 INSERT INTO public.accounting_mapping_templates (country_code, source_type, source_category, debit_account_code, credit_account_code, description) VALUES
   ('FR', 'invoice', 'revenue', '411', '701', 'Ventes de marchandises'),
   ('FR', 'invoice', 'service', '411', '706', 'Prestations de services'),
@@ -698,7 +675,6 @@ ON CONFLICT (country_code, source_type, source_category) DO UPDATE SET
       debit_account_code = EXCLUDED.debit_account_code,
       credit_account_code = EXCLUDED.credit_account_code,
       description = EXCLUDED.description;
-
 INSERT INTO public.accounting_tax_rate_templates (country_code, name, rate, tax_type, account_code, is_default) VALUES
   ('FR', 'TVA 20%', 0.2, 'output', '44571', TRUE),
   ('FR', 'TVA 10%', 0.1, 'output', '44571', FALSE),
@@ -724,7 +700,6 @@ ON CONFLICT (country_code, name) DO UPDATE SET
       tax_type = EXCLUDED.tax_type,
       account_code = EXCLUDED.account_code,
       is_default = EXCLUDED.is_default;
-
 INSERT INTO public.accounting_plans (id, name, country_code, description, is_global, source, status, accounts_count) VALUES
   ('00000000-0000-4000-a000-000000000001', 'PCG Français', 'FR', 'Plan comptable global de reference pour la France', TRUE, 'system', 'active', 271),
   ('00000000-0000-4000-a000-000000000002', 'PCMN Belge', 'BE', 'Plan comptable global de reference pour la Belgique', TRUE, 'system', 'active', 993),
@@ -737,7 +712,6 @@ ON CONFLICT (id) DO UPDATE SET
       source = EXCLUDED.source,
       status = EXCLUDED.status,
       accounts_count = EXCLUDED.accounts_count;
-
 INSERT INTO public.accounting_plan_accounts (plan_id, account_code, account_name, account_type, parent_code, description, is_header, sort_order)
 SELECT
   CASE raw.plan_id
@@ -2518,5 +2492,4 @@ ON CONFLICT (plan_id, account_code) DO UPDATE SET
       description = EXCLUDED.description,
       is_header = EXCLUDED.is_header,
       sort_order = EXCLUDED.sort_order;
-
 COMMIT;

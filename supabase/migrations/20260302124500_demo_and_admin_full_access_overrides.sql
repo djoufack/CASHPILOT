@@ -8,11 +8,9 @@ CREATE TABLE IF NOT EXISTS public.account_access_overrides (
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now())
 );
-
 REVOKE ALL ON TABLE public.account_access_overrides FROM anon;
 REVOKE ALL ON TABLE public.account_access_overrides FROM authenticated;
 GRANT ALL ON TABLE public.account_access_overrides TO service_role;
-
 INSERT INTO public.account_access_overrides (normalized_email, access_mode, access_label, notes)
 VALUES
   ('pilotage.fr.demo@cashpilot.cloud', 'demo_full_access', 'Acces demo FR', 'Compte de demonstration permanent'),
@@ -26,7 +24,6 @@ SET
   notes = EXCLUDED.notes,
   is_active = true,
   updated_at = timezone('utc', now());
-
 CREATE OR REPLACE FUNCTION public.get_account_access_override(target_user_id UUID DEFAULT auth.uid())
 RETURNS TABLE (
   is_override BOOLEAN,
@@ -73,7 +70,6 @@ BEGIN
     user_email;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.get_current_user_entitlements(target_user_id UUID DEFAULT auth.uid())
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -201,7 +197,6 @@ BEGIN
   );
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.user_has_entitlement(p_feature_key TEXT, target_user_id UUID DEFAULT auth.uid())
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -270,7 +265,6 @@ BEGIN
   );
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.consume_user_credits(
   target_user_id UUID DEFAULT auth.uid(),
   amount INTEGER DEFAULT 1,
@@ -426,15 +420,11 @@ BEGIN
     paid_deduction;
 END;
 $$;
-
 REVOKE ALL ON FUNCTION public.get_account_access_override(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_account_access_override(UUID) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.get_current_user_entitlements(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_current_user_entitlements(UUID) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.user_has_entitlement(TEXT, UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.user_has_entitlement(TEXT, UUID) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.consume_user_credits(UUID, INTEGER, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.consume_user_credits(UUID, INTEGER, TEXT) TO authenticated, service_role;

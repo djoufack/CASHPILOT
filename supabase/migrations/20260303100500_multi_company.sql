@@ -9,14 +9,11 @@ CREATE TABLE IF NOT EXISTS public.user_company_preferences (
   active_company_id UUID REFERENCES public.company(id) ON DELETE SET NULL,
   updated_at        TIMESTAMPTZ DEFAULT now()
 );
-
 ALTER TABLE public.user_company_preferences ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "user_company_prefs_policy"
   ON public.user_company_preferences
   FOR ALL USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 -- Supprimer la contrainte UNIQUE sur company.user_id si elle existe
 -- (permet à un user d'avoir plusieurs sociétés)
 -- Note: en PostgreSQL, on ne peut pas DROP CONSTRAINT IF EXISTS directement,
@@ -33,11 +30,9 @@ BEGIN
     ALTER TABLE public.company DROP CONSTRAINT company_user_id_key;
   END IF;
 END $$;
-
 -- Index non-unique à la place
 CREATE INDEX IF NOT EXISTS idx_company_user_id
   ON public.company(user_id);
-
 -- Initialiser les préférences pour les users existants
 INSERT INTO public.user_company_preferences (user_id, active_company_id)
 SELECT user_id, id FROM public.company

@@ -2,7 +2,6 @@
 -- Existing restrictive guards (approval_role_guard) remain in place.
 
 ALTER TABLE public.supplier_invoices ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (

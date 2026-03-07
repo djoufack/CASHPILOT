@@ -4,7 +4,6 @@
 --          other helper functions called dozens of times per request via RLS policies.
 
 BEGIN;
-
 -- ============================================================================
 -- 1. Missing indexes that support RLS policy evaluation
 -- ============================================================================
@@ -13,16 +12,13 @@ BEGIN;
 -- which are called in many RLS policies
 CREATE INDEX IF NOT EXISTS idx_user_roles_user_role
   ON user_roles(user_id, role);
-
 -- user_company_preferences is queried by resolve_preferred_company_id()
 -- PK exists on user_id but an explicit index helps the planner
 CREATE INDEX IF NOT EXISTS idx_user_company_prefs_user
   ON user_company_preferences(user_id);
-
 -- company table queried by resolve_preferred_company_id() fallback path
 CREATE INDEX IF NOT EXISTS idx_company_user_created
   ON company(user_id, created_at ASC);
-
 -- ============================================================================
 -- 2. Optimize resolve_preferred_company_id()
 --    The function is called 80+ times across RLS policies.
@@ -48,7 +44,6 @@ AS $$
      LIMIT 1)
   );
 $$;
-
 -- ============================================================================
 -- 3. Optimize is_admin()
 --    Ensure it is marked STABLE with search_path set so the planner can
@@ -68,7 +63,6 @@ AS $$
       AND ur.role = 'admin'
   );
 $$;
-
 -- ============================================================================
 -- 4. Partial index for active clients
 --    Many RLS policies filter on deleted_at IS NULL; a partial index lets
@@ -77,5 +71,4 @@ $$;
 
 CREATE INDEX IF NOT EXISTS idx_clients_user_active
   ON clients(user_id) WHERE deleted_at IS NULL;
-
 COMMIT;

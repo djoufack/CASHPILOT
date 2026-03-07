@@ -6,10 +6,8 @@
 
 ALTER TABLE public.supplier_order_items
   ADD COLUMN IF NOT EXISTS user_product_id UUID REFERENCES public.products(id) ON DELETE SET NULL;
-
 CREATE INDEX IF NOT EXISTS idx_supplier_order_items_user_product_id
   ON public.supplier_order_items(user_product_id);
-
 CREATE OR REPLACE FUNCTION public.auto_stock_and_journal_on_received()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -224,12 +222,10 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_supplier_order_received ON public.supplier_orders;
 CREATE TRIGGER trg_supplier_order_received
   BEFORE UPDATE ON public.supplier_orders
   FOR EACH ROW
   EXECUTE FUNCTION public.auto_stock_and_journal_on_received();
-
 COMMENT ON FUNCTION public.auto_stock_and_journal_on_received() IS
 'When a supplier order becomes received, update linked stock quantities, write stock history, resolve low-stock alerts, and create the purchase journal entry when auto-journal is enabled.';

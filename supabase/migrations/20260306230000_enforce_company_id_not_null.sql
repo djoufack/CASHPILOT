@@ -89,12 +89,22 @@ ALTER TABLE public.suppliers
 -- =====================================================================
 -- 9. supplier_invoices
 -- =====================================================================
-UPDATE public.supplier_invoices
-SET company_id = public.resolve_preferred_company_id(user_id)
-WHERE company_id IS NULL;
+UPDATE public.supplier_invoices si
+SET company_id = public.resolve_preferred_company_id(s.user_id)
+FROM public.suppliers s
+WHERE si.supplier_id = s.id
+  AND si.company_id IS NULL;
 
-ALTER TABLE public.supplier_invoices
-  ALTER COLUMN company_id SET NOT NULL;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.supplier_invoices WHERE company_id IS NULL) THEN
+    RAISE NOTICE 'Skipping NOT NULL on public.supplier_invoices.company_id because unresolved NULL values remain.';
+  ELSE
+    ALTER TABLE public.supplier_invoices
+      ALTER COLUMN company_id SET NOT NULL;
+  END IF;
+END
+$$;
 
 -- =====================================================================
 -- 10. supplier_orders

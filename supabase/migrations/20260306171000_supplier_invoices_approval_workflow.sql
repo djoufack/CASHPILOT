@@ -5,7 +5,6 @@ ALTER TABLE public.supplier_invoices
   ADD COLUMN IF NOT EXISTS approved_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS rejected_reason TEXT;
-
 DO $$
 BEGIN
   IF EXISTS (
@@ -24,7 +23,6 @@ BEGIN
       ALTER COLUMN approval_status SET NOT NULL;
   END IF;
 END $$;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -38,7 +36,6 @@ BEGIN
       CHECK (approval_status IN ('pending', 'approved', 'rejected'));
   END IF;
 END $$;
-
 UPDATE public.supplier_invoices
 SET
   approval_status = 'approved',
@@ -46,13 +43,10 @@ SET
   rejected_reason = NULL
 WHERE approval_status = 'pending'
   AND payment_status = 'paid';
-
 CREATE INDEX IF NOT EXISTS idx_supplier_invoices_approval_status
   ON public.supplier_invoices (company_id, approval_status);
-
 CREATE INDEX IF NOT EXISTS idx_supplier_invoices_approved_by
   ON public.supplier_invoices (approved_by);
-
 CREATE OR REPLACE FUNCTION public.sync_supplier_invoice_approval_metadata()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -74,7 +68,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_sync_supplier_invoice_approval_metadata ON public.supplier_invoices;
 CREATE TRIGGER trg_sync_supplier_invoice_approval_metadata
   BEFORE INSERT OR UPDATE OF approval_status, approved_by, approved_at, rejected_reason
