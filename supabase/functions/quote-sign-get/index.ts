@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     const supabase = createServiceClient();
     const { data: quote, error } = await supabase
       .from('quotes')
-      .select('id, quote_number, total_ht, total_ttc, tax_rate, notes, currency, signature_status, signature_token_expires_at, clients(company_name, contact_name, email)')
+      .select('id, quote_number, total_ht, total_ttc, tax_rate, notes, signature_status, signature_token_expires_at, clients(company_name, contact_name, email)')
       .eq('signature_token', token)
       .eq('signature_status', 'pending')
       .gt('signature_token_expires_at', new Date().toISOString())
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
         tax_rate: quote.tax_rate,
         tax_amount: taxAmount,
         notes: quote.notes,
-        currency: quote.currency || 'EUR',
+        currency: 'EUR',
         clients: quote.clients,
       },
     });

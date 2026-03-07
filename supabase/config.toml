@@ -52,7 +52,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.quote-sign-request]
-verify_jwt = true
+verify_jwt = false
 
 [functions.quote-sign-submit]
 verify_jwt = false
@@ -64,7 +64,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.stripe-checkout]
-verify_jwt = true
+verify_jwt = false
 
 [functions.stripe-invoice-link]
 verify_jwt = true
