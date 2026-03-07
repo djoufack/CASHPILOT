@@ -31,7 +31,7 @@ export const useExpenses = () => {
       const usePagination = page != null && pageSize != null;
       let query = supabase
         .from('expenses')
-        .select('*', usePagination ? { count: 'exact' } : undefined)
+        .select('*, supplier:suppliers(id, company_name)', usePagination ? { count: 'exact' } : undefined)
         .order('expense_date', { ascending: false });
 
       query = applyCompanyScope(query);
