@@ -8,6 +8,7 @@
 
 import { resolveInvoiceCurrency } from '@/utils/invoiceCurrency';
 import { formatDateInput } from '@/utils/dateFormatting';
+import { uploadDocument } from '@/services/documentStorage';
 
 const PEPPOL_CUSTOMIZATION_ID = 'urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0';
 const PEPPOL_PROFILE_ID = 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0';
@@ -215,10 +216,22 @@ export const exportUBL = async (invoice, seller, buyer, items) => {
     : generateUBLInvoice(invoice, seller, buyer, items);
 
   const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
+  const filename = `peppol-${invoice.invoice_number}.xml`;
+
+  // Upload to storage in background (don't block user)
+  if (invoice.user_id) {
+    uploadDocument({
+      bucket: 'accounting-exports',
+      userId: invoice.user_id,
+      fileName: `ubl/${filename}`,
+      fileData: blob,
+      contentType: 'application/xml;charset=utf-8'
+    }).catch(err => console.warn('UBL upload failed:', err));
+  }
 
   return {
     blob,
-    filename: `peppol-${invoice.invoice_number}.xml`,
+    filename,
     xml,
   };
 };

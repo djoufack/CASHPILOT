@@ -156,8 +156,8 @@ export const useInvoices = () => {
     if (!supabase) throw new Error("Supabase not configured");
     setLoading(true);
     try {
-      // If invoice_number is not provided, generate one (basic)
-      const invoiceNumber = invoiceData.invoice_number || `INV-${Date.now()}`;
+      // If invoice_number is not provided, generate one from DB sequence
+      const invoiceNumber = invoiceData.invoice_number || await generateInvoiceNumber(supabase, user.id);
 
       // Sanitize user-facing text fields to prevent XSS
       const sanitizedData = { ...invoiceData };
@@ -203,7 +203,12 @@ export const useInvoices = () => {
 
         if (itemsError) {
           console.error('Error inserting invoice items:', itemsError);
-          // Don't throw - invoice was created, items failed
+          toast({
+            title: t('common.error'),
+            description: t('invoices.itemsInsertError', 'Failed to insert invoice items'),
+            variant: 'destructive'
+          });
+          throw itemsError;
         } else {
           // Calculate totals from the inserted items
           const itemTotals = invoiceItems.map(item => {

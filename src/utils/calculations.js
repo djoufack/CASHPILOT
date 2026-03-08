@@ -208,20 +208,35 @@ export const getPaymentStatus = (totalTTC, amountPaid) => {
   return 'overpaid';
 };
 
-export const generateInvoiceNumber = () => {
+export const generateInvoiceNumber = async (supabaseClient, userId) => {
   const now = new Date();
   const year = now.getFullYear();
   const month = (now.getMonth() + 1).toString().padStart(2, '0');
-  
-  // Get existing invoices to determine sequence number
+  const prefix = `INV-${year}-${month}`;
+
+  // If supabase client and userId provided, query the DB
+  if (supabaseClient && userId) {
+    const { count, error } = await supabaseClient
+      .from('invoices')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .like('invoice_number', `${prefix}%`);
+
+    if (!error && count !== null) {
+      const sequence = (count + 1).toString().padStart(3, '0');
+      return `${prefix}-${sequence}`;
+    }
+    // Fall through to localStorage fallback on error
+  }
+
+  // Fallback: localStorage (backward compatibility)
   const invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
-  const currentMonthInvoices = invoices.filter(inv => 
-    inv.invoiceNumber.startsWith(`INV-${year}-${month}`)
+  const currentMonthInvoices = invoices.filter(inv =>
+    inv.invoiceNumber?.startsWith(prefix)
   );
-  
+
   const sequence = (currentMonthInvoices.length + 1).toString().padStart(3, '0');
-  
-  return `INV-${year}-${month}-${sequence}`;
+  return `${prefix}-${sequence}`;
 };
 
 /**

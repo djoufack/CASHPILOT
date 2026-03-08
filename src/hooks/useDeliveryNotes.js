@@ -123,7 +123,7 @@ export const useDeliveryNotes = () => {
     if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
-      await supabase.from('delivery_note_items').delete().eq('delivery_note_id', id);
+      // Items are deleted automatically via DB CASCADE
       const { error } = await supabase
         .from('delivery_notes')
         .delete()

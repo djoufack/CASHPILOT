@@ -1,6 +1,7 @@
-import { saveElementAsPdf } from '@/services/pdfExportRuntime';
+import { saveElementAsPdf, saveElementAsPdfBytes } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
 import DOMPurify from 'dompurify';
+import { uploadDocument } from '@/services/documentStorage';
 
 const setSafeHtml = (element, html) => {
   element.innerHTML = DOMPurify.sanitize(String(html || ''));
@@ -590,17 +591,35 @@ export const exportInvoicePDF = async (invoice, companyInfo) => {
   setSafeHtml(tempDiv, htmlContent);
   document.body.appendChild(tempDiv);
 
+  const invoiceNum = invoice.invoice_number || invoice.invoiceNumber || 'draft';
   const options = {
     margin: 10,
-    filename: `Facture_${invoice.invoice_number || invoice.invoiceNumber || 'draft'}_${formatDateInput()}.pdf`,
+    filename: `Facture_${invoiceNum}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
   try {
+    // Capture PDF bytes for storage upload before triggering download
+    const pdfBytes = await saveElementAsPdfBytes(tempDiv, options);
     await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
+
+    // Upload to storage in background (don't block user)
+    if (invoice.user_id) {
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+      uploadDocument({
+        bucket: 'invoices',
+        userId: invoice.user_id,
+        fileName: `${invoiceNum}.pdf`,
+        fileData: pdfBlob,
+        contentType: 'application/pdf',
+        table: 'invoices',
+        recordId: invoice.id
+      }).catch(err => console.warn('Document upload failed:', err));
+    }
+
     return true;
   } catch (error) {
     document.body.removeChild(tempDiv);
@@ -618,17 +637,34 @@ export const exportQuotePDF = async (quote, companyInfo) => {
   setSafeHtml(tempDiv, htmlContent);
   document.body.appendChild(tempDiv);
 
+  const quoteNum = quote.quote_number || 'draft';
   const options = {
     margin: 10,
-    filename: `Devis_${quote.quote_number || 'draft'}_${formatDateInput()}.pdf`,
+    filename: `Devis_${quoteNum}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
   try {
+    const pdfBytes = await saveElementAsPdfBytes(tempDiv, options);
     await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
+
+    // Upload to storage in background (don't block user)
+    if (quote.user_id) {
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+      uploadDocument({
+        bucket: 'quotes',
+        userId: quote.user_id,
+        fileName: `${quoteNum}.pdf`,
+        fileData: pdfBlob,
+        contentType: 'application/pdf',
+        table: 'quotes',
+        recordId: quote.id
+      }).catch(err => console.warn('Document upload failed:', err));
+    }
+
     return true;
   } catch (error) {
     document.body.removeChild(tempDiv);
@@ -646,17 +682,34 @@ export const exportDeliveryNotePDF = async (deliveryNote, companyInfo) => {
   setSafeHtml(tempDiv, htmlContent);
   document.body.appendChild(tempDiv);
 
+  const noteNum = deliveryNote.delivery_note_number || 'draft';
   const options = {
     margin: 10,
-    filename: `BonLivraison_${deliveryNote.delivery_note_number || 'draft'}_${formatDateInput()}.pdf`,
+    filename: `BonLivraison_${noteNum}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
   try {
+    const pdfBytes = await saveElementAsPdfBytes(tempDiv, options);
     await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
+
+    // Upload to storage in background (don't block user)
+    if (deliveryNote.user_id) {
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+      uploadDocument({
+        bucket: 'delivery-notes',
+        userId: deliveryNote.user_id,
+        fileName: `${noteNum}.pdf`,
+        fileData: pdfBlob,
+        contentType: 'application/pdf',
+        table: 'delivery_notes',
+        recordId: deliveryNote.id
+      }).catch(err => console.warn('Document upload failed:', err));
+    }
+
     return true;
   } catch (error) {
     document.body.removeChild(tempDiv);
@@ -674,17 +727,34 @@ export const exportCreditNotePDF = async (creditNote, companyInfo) => {
   setSafeHtml(tempDiv, htmlContent);
   document.body.appendChild(tempDiv);
 
+  const noteNum = creditNote.credit_note_number || 'draft';
   const options = {
     margin: 10,
-    filename: `Avoir_${creditNote.credit_note_number || 'draft'}_${formatDateInput()}.pdf`,
+    filename: `Avoir_${noteNum}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
   try {
+    const pdfBytes = await saveElementAsPdfBytes(tempDiv, options);
     await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
+
+    // Upload to storage in background (don't block user)
+    if (creditNote.user_id) {
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+      uploadDocument({
+        bucket: 'credit-notes',
+        userId: creditNote.user_id,
+        fileName: `${noteNum}.pdf`,
+        fileData: pdfBlob,
+        contentType: 'application/pdf',
+        table: 'credit_notes',
+        recordId: creditNote.id
+      }).catch(err => console.warn('Document upload failed:', err));
+    }
+
     return true;
   } catch (error) {
     document.body.removeChild(tempDiv);
@@ -702,17 +772,34 @@ export const exportPurchaseOrderPDF = async (purchaseOrder, companyInfo) => {
   setSafeHtml(tempDiv, htmlContent);
   document.body.appendChild(tempDiv);
 
+  const orderNum = purchaseOrder.order_number || 'draft';
   const options = {
     margin: 10,
-    filename: `BonCommande_${purchaseOrder.order_number || 'draft'}_${formatDateInput()}.pdf`,
+    filename: `BonCommande_${orderNum}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
   try {
+    const pdfBytes = await saveElementAsPdfBytes(tempDiv, options);
     await saveElementAsPdf(tempDiv, options);
     document.body.removeChild(tempDiv);
+
+    // Upload to storage in background (don't block user)
+    if (purchaseOrder.user_id) {
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+      uploadDocument({
+        bucket: 'purchase-orders',
+        userId: purchaseOrder.user_id,
+        fileName: `${orderNum}.pdf`,
+        fileData: pdfBlob,
+        contentType: 'application/pdf',
+        table: 'purchase_orders',
+        recordId: purchaseOrder.id
+      }).catch(err => console.warn('Document upload failed:', err));
+    }
+
     return true;
   } catch (error) {
     document.body.removeChild(tempDiv);
