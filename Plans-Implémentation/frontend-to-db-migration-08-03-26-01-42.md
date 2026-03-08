@@ -321,7 +321,9 @@ Pour les periodes custom : appel direct a `f_financial_diagnostic()`.
 ## SPRINT 3 : PILOTAGE, VALORISATION, TAXES
 
 **Objectif** : Ratios avances, valorisation d'entreprise, synthese fiscale.
-**Statut** : [ ] Non commence
+**Statut** : [x] TERMINE (2026-03-08)
+**Migration** : `20260308160000_sprint3_pilotage_valuation_tax.sql`
+**Tests** : Parity verifie — DSO 314j, BFR/CA 56%, FCF 60722, IS 16964 (20% PME), Valuation consensus 415K-1.05M
 **Depend de** : Sprint 2
 
 ### 3.1 Tables de reference
