@@ -1,3 +1,6 @@
+import { useAccountingDataSQL } from '@/hooks/useAccountingDataSQL';
+
+const USE_SQL = import.meta.env.VITE_USE_SQL_CALCULATIONS === 'true';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -84,6 +87,9 @@ function unwrapOptionalResponse(response, resourceName, fallbackValue) {
 }
 
 export const useAccountingData = (startDate, endDate) => {
+  // SQL-based hook is always called (React hook rules: no conditional hooks)
+  const sqlResult = useAccountingDataSQL(startDate, endDate);
+
   const { user } = useAuth();
   const { applyCompanyScope } = useCompanyScope();
   const [loading, setLoading] = useState(true);
@@ -410,6 +416,11 @@ export const useAccountingData = (startDate, endDate) => {
       qualityGate,
     };
   }, [accounts, entries, period.endDate, period.startDate]);
+
+  // Feature flag: when SQL mode is ON, return SQL results (all hooks above still ran — React rules)
+  if (USE_SQL) {
+    return sqlResult;
+  }
 
   return {
     loading,
