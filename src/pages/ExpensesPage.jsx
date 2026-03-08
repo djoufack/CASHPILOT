@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useSuppliers } from '@/hooks/useSuppliers';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
