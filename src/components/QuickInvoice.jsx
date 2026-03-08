@@ -20,6 +20,8 @@ import {
 import { Plus, Trash2, Tag, Send, Truck, Settings2, ChevronDown, ChevronUp, Package, Wrench } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { addDaysToDateInput, formatDateInput } from '@/utils/dateFormatting';
+import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
+import { useDefaultPaymentDays } from '@/hooks/useDefaultPaymentDays';
 const QuickInvoice = ({ onSuccess }) => {
   const { t } = useTranslation();
   const { createInvoice } = useInvoices();
@@ -27,11 +29,13 @@ const QuickInvoice = ({ onSuccess }) => {
   const { products } = useProducts();
   const { services } = useServices();
   const { toast } = useToast();
+  const { defaultRate } = useDefaultTaxRate();
+  const { defaultDays } = useDefaultPaymentDays();
 
   const [clientId, setClientId] = useState('');
   const [issueDate, setIssueDate] = useState(formatDateInput());
-  const [dueDate, setDueDate] = useState(() => addDaysToDateInput(new Date(), 30));
-  const [taxRate, setTaxRate] = useState(21);
+  const [dueDate, setDueDate] = useState(() => addDaysToDateInput(new Date(), defaultDays));
+  const [taxRate, setTaxRate] = useState(defaultRate);
   const [notes, setNotes] = useState('');
   const [reference, setReference] = useState('');
   const [globalDiscountType, setGlobalDiscountType] = useState('none');
@@ -52,12 +56,17 @@ const QuickInvoice = ({ onSuccess }) => {
   const [customFields, setCustomFields] = useState([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Auto-update due date when issue date changes
+  // Sync tax rate when DB value loads
+  useEffect(() => {
+    setTaxRate(defaultRate);
+  }, [defaultRate]);
+
+  // Auto-update due date when issue date or default days change
   useEffect(() => {
     if (issueDate) {
-      setDueDate(addDaysToDateInput(issueDate, 30));
+      setDueDate(addDaysToDateInput(issueDate, defaultDays));
     }
-  }, [issueDate]);
+  }, [issueDate, defaultDays]);
 
   const addItem = () => {
     setItems([...items, {

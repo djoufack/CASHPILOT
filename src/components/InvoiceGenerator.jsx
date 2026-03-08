@@ -25,6 +25,8 @@ import { calculateInvoiceTotalWithDiscount, formatCurrency } from '@/utils/calcu
 import { Plus, Trash2, Tag, Truck, Settings2, ChevronDown, ChevronUp, Package, Wrench } from 'lucide-react';
 import { format } from 'date-fns';
 import { addDaysToDateInput, formatDateInput } from '@/utils/dateFormatting';
+import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
+import { useDefaultPaymentDays } from '@/hooks/useDefaultPaymentDays';
 
 const InvoiceGenerator = ({ onSuccess }) => {
   const { t } = useTranslation();
@@ -33,6 +35,8 @@ const InvoiceGenerator = ({ onSuccess }) => {
   const { clients } = useClients();
   const { products } = useProducts();
   const { services } = useServices();
+  const { defaultRate } = useDefaultTaxRate();
+  const { defaultDays } = useDefaultPaymentDays();
 
   const [selectedClientId, setSelectedClientId] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -41,10 +45,10 @@ const InvoiceGenerator = ({ onSuccess }) => {
   const [productItems, setProductItems] = useState([]);
   const [serviceItems, setServiceItems] = useState([]);
   const [manualItems, setManualItems] = useState([]);
-  const [taxRate, setTaxRate] = useState(20);
+  const [taxRate, setTaxRate] = useState(defaultRate);
   const [notes, setNotes] = useState('');
   const [issueDate, setIssueDate] = useState(formatDateInput());
-  const [dueDate, setDueDate] = useState(() => addDaysToDateInput(new Date(), 30));
+  const [dueDate, setDueDate] = useState(() => addDaysToDateInput(new Date(), defaultDays));
   const [reference, setReference] = useState('');
   const [globalDiscountType, setGlobalDiscountType] = useState('none');
   const [globalDiscountValue, setGlobalDiscountValue] = useState(0);
@@ -61,12 +65,17 @@ const InvoiceGenerator = ({ onSuccess }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [preSelectedIds, setPreSelectedIds] = useState([]);
 
-  // Auto-update due date when issue date changes
+  // Sync tax rate when DB value loads
+  useEffect(() => {
+    setTaxRate(defaultRate);
+  }, [defaultRate]);
+
+  // Auto-update due date when issue date or default days change
   useEffect(() => {
     if (issueDate) {
-      setDueDate(addDaysToDateInput(issueDate, 30));
+      setDueDate(addDaysToDateInput(issueDate, defaultDays));
     }
-  }, [issueDate]);
+  }, [issueDate, defaultDays]);
 
   // Read pre-selected timesheet IDs from sessionStorage (e.g. from TimesheetsPage)
   useEffect(() => {

@@ -13,6 +13,8 @@ import { formatCurrency } from '@/utils/calculations';
 import { addDaysToDateInput, formatDateInput } from '@/utils/dateFormatting';
 import { format } from 'date-fns';
 import { FileText, Clock, Package, Wrench, Loader2 } from 'lucide-react';
+import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
+import { useDefaultPaymentDays } from '@/hooks/useDefaultPaymentDays';
 
 const ProjectBillingDialog = ({ open, onOpenChange, projectId, project, onSuccess }) => {
   const { t } = useTranslation();
@@ -20,6 +22,8 @@ const ProjectBillingDialog = ({ open, onOpenChange, projectId, project, onSucces
   const { createInvoice } = useInvoices();
   const { products } = useProducts();
   const { services } = useServices();
+  const { defaultRate } = useDefaultTaxRate();
+  const { defaultDays } = useDefaultPaymentDays();
 
   const [billableTimesheets, setBillableTimesheets] = useState([]);
   const [selectedTimesheetIds, setSelectedTimesheetIds] = useState([]);
@@ -124,11 +128,11 @@ const ProjectBillingDialog = ({ open, onOpenChange, projectId, project, onSucces
       const invoiceData = {
         client_id: clientId,
         date: formatDateInput(),
-        due_date: addDaysToDateInput(new Date(), 30),
+        due_date: addDaysToDateInput(new Date(), defaultDays),
         total_ht: grandTotal,
-        tax_rate: 20,
-        total_ttc: grandTotal * 1.2,
-        balance_due: grandTotal * 1.2,
+        tax_rate: defaultRate,
+        total_ttc: grandTotal * (1 + defaultRate / 100),
+        balance_due: grandTotal * (1 + defaultRate / 100),
         payment_status: 'unpaid',
         invoice_type: invoiceType,
         notes: `Project: ${project?.name || ''}`

@@ -29,6 +29,7 @@ import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import GenericKanbanView from '@/components/GenericKanbanView';
 import { formatDateInput } from '@/utils/dateFormatting';
+import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
 
 const CreditNotesPage = () => {
   const { t } = useTranslation();
@@ -37,6 +38,7 @@ const CreditNotesPage = () => {
   const { clients } = useClients();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
+  const { defaultRate } = useDefaultTaxRate();
 
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState('');
@@ -45,7 +47,7 @@ const CreditNotesPage = () => {
     client_id: '',
     date: formatDateInput(),
     reason: '',
-    tax_rate: 20,
+    tax_rate: defaultRate,
     status: 'draft'
   });
   const [items, setItems] = useState([
@@ -84,7 +86,7 @@ const CreditNotesPage = () => {
   };
 
   const resetForm = () => {
-    setFormData({ invoice_id: '', client_id: '', date: formatDateInput(), reason: '', tax_rate: 20, status: 'draft' });
+    setFormData({ invoice_id: '', client_id: '', date: formatDateInput(), reason: '', tax_rate: defaultRate, status: 'draft' });
     setItems([{ id: '1', description: '', quantity: 1, unitPrice: 0 }]);
   };
 

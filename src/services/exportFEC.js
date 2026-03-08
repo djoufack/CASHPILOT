@@ -4,6 +4,8 @@
  * Norme Article A.47 A-1 du Livre des Procedures Fiscales
  */
 
+import { supabase } from '@/lib/supabase';
+
 const FEC_COLUMNS = [
   'JournalCode',    // Code journal
   'JournalLib',     // Libelle journal
@@ -25,7 +27,7 @@ const FEC_COLUMNS = [
   'Idevise'         // Identifiant devise
 ];
 
-const JOURNAL_CODES = {
+const JOURNAL_CODES_DEFAULT = {
   'sales': { code: 'VE', lib: 'Ventes' },
   'purchases': { code: 'AC', lib: 'Achats' },
   'bank': { code: 'BQ', lib: 'Banque' },
@@ -33,6 +35,30 @@ const JOURNAL_CODES = {
   'misc': { code: 'OD', lib: 'Operations Diverses' },
   'payroll': { code: 'PA', lib: 'Paie' },
 };
+
+/**
+ * Fetch journal codes from accounting_journals DB table.
+ * Falls back to JOURNAL_CODES_DEFAULT if fetch fails or returns empty.
+ */
+async function getJournalCodes(userId) {
+  try {
+    const { data } = await supabase
+      .from('accounting_journals')
+      .select('code, name, journal_type')
+      .eq('user_id', userId);
+    if (data && data.length > 0) {
+      const map = {};
+      data.forEach(j => { map[j.journal_type] = { code: j.code, lib: j.name }; });
+      return { ...JOURNAL_CODES_DEFAULT, ...map };
+    }
+  } catch (err) {
+    console.warn('Failed to fetch journal codes from DB, using defaults:', err);
+  }
+  return JOURNAL_CODES_DEFAULT;
+}
+
+// Keep backward-compatible reference
+const JOURNAL_CODES = JOURNAL_CODES_DEFAULT;
 
 /**
  * Format une date au format FEC (AAAAMMJJ)
@@ -76,8 +102,9 @@ export const generateFECFilename = (siren, endDate) => {
 /**
  * Transforme les ecritures en format FEC
  */
-const transformEntryToFEC = (entry, index) => {
-  const journal = JOURNAL_CODES[entry.journal_type] || JOURNAL_CODES.misc;
+const transformEntryToFEC = (entry, index, journalCodes) => {
+  const codes = journalCodes || JOURNAL_CODES_DEFAULT;
+  const journal = codes[entry.journal_type] || codes.misc || JOURNAL_CODES_DEFAULT.misc;
 
   return {
     JournalCode: journal.code,
@@ -107,9 +134,10 @@ const transformEntryToFEC = (entry, index) => {
  * @param {Object} companyInfo - Informations entreprise (siren, nom)
  * @param {Date} startDate - Date debut exercice
  * @param {Date} endDate - Date fin exercice
+ * @param {string} [userId] - User ID for fetching journal codes from DB
  * @returns {Object} { blob, filename, rowCount, period }
  */
-export const exportFEC = async (entries, companyInfo, startDate, endDate) => {
+export const exportFEC = async (entries, companyInfo, startDate, endDate, userId) => {
   if (!entries || entries.length === 0) {
     throw new Error('Aucune ecriture a exporter');
   }
@@ -118,13 +146,16 @@ export const exportFEC = async (entries, companyInfo, startDate, endDate) => {
     throw new Error('SIREN requis pour l\'export FEC');
   }
 
+  // Fetch journal codes from DB if userId is provided, otherwise use defaults
+  const journalCodes = userId ? await getJournalCodes(userId) : JOURNAL_CODES_DEFAULT;
+
   const sortedEntries = [...entries].sort((a, b) => {
     const dateCompare = new Date(a.transaction_date) - new Date(b.transaction_date);
     if (dateCompare !== 0) return dateCompare;
     return (a.entry_number || 0) - (b.entry_number || 0);
   });
 
-  const fecLines = sortedEntries.map((entry, index) => transformEntryToFEC(entry, index));
+  const fecLines = sortedEntries.map((entry, index) => transformEntryToFEC(entry, index, journalCodes));
 
   const header = FEC_COLUMNS.join('|');
   const rows = fecLines.map(line =>
