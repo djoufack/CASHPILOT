@@ -69,7 +69,7 @@ const OnboardingWizard = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden"
+      className="min-h-[100dvh] min-h-screen flex flex-col items-center justify-center p-4 relative overflow-x-hidden overflow-y-auto"
       style={{ background: '#0a0e1a' }}
       role="main"
       aria-label={t('onboarding.wizard.ariaLabel', 'Assistant de configuration comptable')}

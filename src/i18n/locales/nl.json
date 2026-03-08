@@ -2815,7 +2815,8 @@
       "financial": "Financiële analyse",
       "taxValuation": "Belasting & waardering",
       "simulator": "Simulator",
-      "aiAudit": "AI-audit"
+      "aiAudit": "AI-audit",
+      "dataAvailability": "Beschikbaarheid"
     },
     "selectors": {
       "region": "Geografische zone",

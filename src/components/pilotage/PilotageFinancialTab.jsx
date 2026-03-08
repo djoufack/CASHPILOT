@@ -20,7 +20,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import MarginAnalysisSection from '@/components/accounting/MarginAnalysisSection';
 import FinancingAnalysisSection from '@/components/accounting/FinancingAnalysisSection';
 import RatioGauge from '@/components/accounting/RatioGauge';
-import PilotageAvailabilitySummary from './PilotageAvailabilitySummary';
 import PilotageUnavailableState from './PilotageUnavailableState';
 
 const containerVariants = {
@@ -74,9 +73,7 @@ const CustomTooltipArea = ({ active, payload, label, t }) => {
 const PilotageFinancialTab = ({ data }) => {
   const { t } = useTranslation();
   const currency = resolveAccountingCurrency(data?.company);
-  const isBlocked = data?.dataQuality?.datasetStatus === 'blocked';
   const availability = data?.analysisAvailability?.financial;
-  const availabilityItems = availability ? Object.values(availability) : [];
 
   // Prepare capital structure pie data
   const pieData = useMemo(() => {
@@ -120,25 +117,6 @@ const PilotageFinancialTab = ({ data }) => {
     }));
   }, [data?.monthlyData]);
 
-  if (isBlocked) {
-    return (
-      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-10 text-center">
-        <p className="text-red-100 text-lg font-semibold">{t('pilotage.quality.blockedTitle')}</p>
-        <p className="text-red-200/80 text-sm mt-2">{t('pilotage.quality.blockedHint')}</p>
-      </div>
-    );
-  }
-
-  // No data state
-  if (!data?.financialDiagnostic?.valid && !data?.monthlyData?.length) {
-    return (
-      <div className="text-center py-16">
-        <p className="text-gray-400 text-lg">{t('pilotage.noData')}</p>
-        <p className="text-gray-500 text-sm mt-2">{t('pilotage.noDataHint')}</p>
-      </div>
-    );
-  }
-
   return (
     <motion.div
       variants={containerVariants}
@@ -146,14 +124,10 @@ const PilotageFinancialTab = ({ data }) => {
       animate="visible"
       className="space-y-6"
     >
-      <motion.div variants={itemVariants}>
-        <PilotageAvailabilitySummary items={availabilityItems} />
-      </motion.div>
-
       {/* Section 1: Margin Analysis */}
       <motion.div variants={itemVariants}>
         {availability?.margins?.status === 'unavailable' ? (
-          <PilotageUnavailableState item={availability.margins} />
+          null
         ) : (
         <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
           <CardHeader>
@@ -174,7 +148,7 @@ const PilotageFinancialTab = ({ data }) => {
       {/* Section 2: Financing Analysis */}
       <motion.div variants={itemVariants}>
         {availability?.financing?.status === 'unavailable' ? (
-          <PilotageUnavailableState item={availability.financing} />
+          null
         ) : (
         <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
           <CardHeader>
@@ -195,7 +169,7 @@ const PilotageFinancialTab = ({ data }) => {
       {/* Section 3: Profitability Ratios */}
       <motion.div variants={itemVariants}>
         {availability?.profitability?.status === 'unavailable' ? (
-          <PilotageUnavailableState item={availability.profitability} />
+          null
         ) : (
         <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
           <CardHeader>
@@ -232,7 +206,7 @@ const PilotageFinancialTab = ({ data }) => {
       {/* Section 4: Capital Structure PieChart */}
       {availability?.capitalStructure?.status === 'unavailable' ? (
         <motion.div variants={itemVariants}>
-          <PilotageUnavailableState item={availability.capitalStructure} />
+          null
         </motion.div>
       ) : pieData.length > 0 && (
         <motion.div variants={itemVariants}>
@@ -280,7 +254,7 @@ const PilotageFinancialTab = ({ data }) => {
       {/* Section 5: Profitability Trend AreaChart */}
       {availability?.profitabilityTrend?.status === 'unavailable' ? (
         <motion.div variants={itemVariants}>
-          <PilotageUnavailableState item={availability.profitabilityTrend} />
+          null
         </motion.div>
       ) : trendData.length > 1 ? (
         <motion.div variants={itemVariants}>
