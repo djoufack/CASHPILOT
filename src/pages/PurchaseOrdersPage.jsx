@@ -37,16 +37,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
 
-const emptyItem = { description: '', quantity: 1, unit_price: 0, tax_rate: 21 };
+const DEFAULT_TAX_RATE_FALLBACK = 20;
+const createEmptyItem = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({ description: '', quantity: 1, unit_price: 0, tax_rate: taxRate });
 
-const createInitialFormData = () => ({
+const createInitialFormData = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({
   client_id: '',
   date: formatDateInput(),
   due_date: '',
   notes: '',
   status: 'draft',
-  items: [{ ...emptyItem }],
+  items: [createEmptyItem(taxRate)],
 });
 
 const POCard = ({ po, onView, onEdit, onDelete, onExportPDF, onExportHTML }) => {
@@ -133,6 +135,7 @@ const PurchaseOrdersPage = () => {
   const { clients } = useClients();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
+  const { defaultRate } = useDefaultTaxRate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState(() => createInitialFormData());
   const [submitting, setSubmitting] = useState(false);
@@ -230,7 +233,7 @@ const PurchaseOrdersPage = () => {
   const paginatedPOs = filteredPOs.slice(pagination.from, pagination.to + 1);
 
   const handleOpenDialog = () => {
-    setFormData(createInitialFormData());
+    setFormData(createInitialFormData(defaultRate));
     setIsDialogOpen(true);
   };
 
@@ -241,7 +244,7 @@ const PurchaseOrdersPage = () => {
   };
 
   const addItem = () => {
-    setFormData({ ...formData, items: [...formData.items, { ...emptyItem }] });
+    setFormData({ ...formData, items: [...formData.items, createEmptyItem(defaultRate)] });
   };
 
   const removeItem = (index) => {
@@ -282,7 +285,7 @@ const PurchaseOrdersPage = () => {
         total: totalTTC,
       });
       setIsDialogOpen(false);
-      setFormData(createInitialFormData());
+      setFormData(createInitialFormData(defaultRate));
     } catch {
       // Error handled by hook toast
     } finally {
@@ -317,7 +320,7 @@ const PurchaseOrdersPage = () => {
             unit_price: item.unit_price || 0,
             tax_rate: item.tax_rate || 21,
           }))
-        : [{ ...emptyItem }],
+        : [createEmptyItem(defaultRate)],
     });
   };
 
@@ -363,7 +366,7 @@ const PurchaseOrdersPage = () => {
   };
 
   const addEditItem = () => {
-    setEditFormData({ ...editFormData, items: [...editFormData.items, { ...emptyItem }] });
+    setEditFormData({ ...editFormData, items: [...editFormData.items, createEmptyItem(defaultRate)] });
   };
 
   const removeEditItem = (index) => {

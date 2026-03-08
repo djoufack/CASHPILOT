@@ -1,13 +1,14 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useCredits } from '@/hooks/useCredits';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { captureError } from '@/services/errorTracking';
+import { supabase } from '@/lib/supabase';
 
 /**
- * Credit costs per action type
+ * Default credit costs per action type (fallback if DB fetch fails)
  */
-export const CREDIT_COSTS = {
+const DEFAULT_CREDIT_COSTS = {
   // ÉTATS COMPTABLES (5 crédits) - Génération + Export PDF
   GENERATE_BALANCE_SHEET: 5,
   GENERATE_INCOME_STATEMENT: 5,
@@ -50,6 +51,9 @@ export const CREDIT_COSTS = {
   AI_REMINDER_SUGGEST: 1,
   AI_REPORT: 5,
 };
+
+// Backward-compatible export (static fallback values)
+export const CREDIT_COSTS = DEFAULT_CREDIT_COSTS;
 
 /**
  * Labels i18n pour affichage dans l'interface
@@ -164,11 +168,31 @@ export const CREDIT_CATEGORIES = {
 export const useCreditsGuard = () => {
   const { availableCredits, consumeCredits } = useCredits();
   const { trialActive, fullAccessOverride } = useEntitlements();
+  const [costs, setCosts] = useState(DEFAULT_CREDIT_COSTS);
   const [modalState, setModalState] = useState({
     isOpen: false,
     requiredCredits: 0,
     actionLabel: '',
   });
+
+  // Fetch credit costs from DB on mount, fallback to defaults
+  useEffect(() => {
+    supabase
+      .from('credit_costs')
+      .select('operation_code, cost')
+      .eq('is_active', true)
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn('Failed to fetch credit costs from DB, using defaults:', error);
+          return;
+        }
+        if (data && data.length > 0) {
+          const map = {};
+          data.forEach(c => { map[c.operation_code] = c.cost; });
+          setCosts(prev => ({ ...prev, ...map }));
+        }
+      });
+  }, []);
 
   const closeModal = useCallback(() => {
     setModalState(prev => ({ ...prev, isOpen: false }));
@@ -225,6 +249,7 @@ export const useCreditsGuard = () => {
     ensureCredits,
     openCreditsModal,
     availableCredits,
+    costs,
     modalProps: {
       isOpen: modalState.isOpen,
       onClose: closeModal,

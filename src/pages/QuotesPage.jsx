@@ -39,16 +39,18 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
 
-const emptyItem = { description: '', quantity: 1, unit_price: 0, tax_rate: 21 };
+const DEFAULT_TAX_RATE_FALLBACK = 20;
+const createEmptyItem = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({ description: '', quantity: 1, unit_price: 0, tax_rate: taxRate });
 
-const createInitialFormData = () => ({
+const createInitialFormData = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({
   client_id: '',
   date: formatDateInput(),
   due_date: '',
   notes: '',
   status: 'draft',
-  items: [{ ...emptyItem }],
+  items: [createEmptyItem(taxRate)],
 });
 
 const QuotesPage = () => {
@@ -58,6 +60,7 @@ const QuotesPage = () => {
   const { clients } = useClients();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
+  const { defaultRate } = useDefaultTaxRate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState(() => createInitialFormData());
   const [submitting, setSubmitting] = useState(false);
@@ -145,7 +148,7 @@ const QuotesPage = () => {
   const paginatedQuotes = filteredQuotes.slice(pagination.from, pagination.to + 1);
 
   const handleOpenDialog = () => {
-    setFormData(createInitialFormData());
+    setFormData(createInitialFormData(defaultRate));
     setIsDialogOpen(true);
   };
 
@@ -156,7 +159,7 @@ const QuotesPage = () => {
   };
 
   const addItem = () => {
-    setFormData({ ...formData, items: [...formData.items, { ...emptyItem }] });
+    setFormData({ ...formData, items: [...formData.items, createEmptyItem(defaultRate)] });
   };
 
   const removeItem = (index) => {
@@ -199,7 +202,7 @@ const QuotesPage = () => {
         total_ttc: totalTTC,
       });
       setIsDialogOpen(false);
-      setFormData(createInitialFormData());
+      setFormData(createInitialFormData(defaultRate));
     } catch {
       // Error handled by hook toast
     } finally {

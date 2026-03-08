@@ -26,15 +26,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DollarSign, CreditCard, Banknote, Landmark, Globe, MoreHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDateInput } from '@/utils/dateFormatting';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 
-const PAYMENT_METHODS = [
-  { value: 'bank_transfer', icon: Landmark },
-  { value: 'cash', icon: Banknote },
-  { value: 'card', icon: CreditCard },
-  { value: 'check', icon: DollarSign },
-  { value: 'paypal', icon: Globe },
-  { value: 'other', icon: MoreHorizontal },
-];
+/** Map icon name strings (from DB) to Lucide components */
+const ICON_MAP = {
+  Landmark,
+  Banknote,
+  CreditCard,
+  DollarSign,
+  Globe,
+  MoreHorizontal,
+};
 
 const PaymentRecorder = ({
   open,
@@ -45,6 +47,7 @@ const PaymentRecorder = ({
   onSuccess
 }) => {
   const { t } = useTranslation();
+  const paymentMethods = usePaymentMethods();
   const { createPayment, createLumpSumPayment } = usePayments();
   const { invoices, getPendingInvoicesByClient, fetchInvoices } = useInvoices();
 
@@ -210,14 +213,18 @@ const PaymentRecorder = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-gray-700 border-gray-600 text-white">
-                {PAYMENT_METHODS.map(method => (
-                  <SelectItem key={method.value} value={method.value}>
-                    <div className="flex items-center gap-2">
-                      <method.icon className="w-4 h-4" />
-                      {t(`payments.${method.value}`)}
-                    </div>
-                  </SelectItem>
-                ))}
+                {paymentMethods.map(method => {
+                  const IconComp = ICON_MAP[method.icon] || MoreHorizontal;
+                  const value = method.code || method.name;
+                  return (
+                    <SelectItem key={value} value={value}>
+                      <div className="flex items-center gap-2">
+                        <IconComp className="w-4 h-4" />
+                        {t(`payments.${value}`)}
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { useCompany } from '@/hooks/useCompany';
+import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
 import invoiceTemplates, { DEFAULT_INVOICE_TEMPLATE_ID } from '@/config/invoiceTemplates';
 import { themeList, getTheme } from '@/config/invoiceThemes';
 import { Button } from '@/components/ui/button';
@@ -104,6 +105,13 @@ const InvoiceCustomization = () => {
   const { settings, loading, saveSettings } = useInvoiceSettings();
   const { company } = useCompany();
   const { toast } = useToast();
+  const { defaultRate } = useDefaultTaxRate();
+
+  // Build sample invoice with DB-driven tax rate
+  const dynamicSampleInvoice = useMemo(() => ({
+    ...sampleInvoice,
+    tax_rate: defaultRate,
+  }), [defaultRate]);
 
   const [localSettings, setLocalSettings] = useState(settings);
   const [showPreview, setShowPreview] = useState(false);
@@ -293,7 +301,7 @@ const InvoiceCustomization = () => {
             <h3 className="text-lg font-semibold">{t('invoiceSettings.preview')}</h3>
             <div className="rounded-lg overflow-hidden border border-gray-700 shadow-xl" style={{ transform: 'scale(0.85)', transformOrigin: 'top left', width: '117.6%' }}>
               <TemplateComponent
-                invoice={sampleInvoice}
+                invoice={dynamicSampleInvoice}
                 client={sampleClient}
                 items={sampleItems}
                 company={company || { company_name: 'Your Company', email: 'info@company.com', iban: 'BE00 0000 0000 0000', bank_name: 'ING Belgium', swift: 'BBRUBEBB' }}
