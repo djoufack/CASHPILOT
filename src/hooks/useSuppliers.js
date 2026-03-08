@@ -1,21 +1,44 @@
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 
 export const useSuppliers = () => {
-  const [suppliers, setSuppliers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [totalCount, setTotalCount] = useState(0);
+
+  const {
+    data: suppliers,
+    setData: setSuppliers,
+    loading,
+    setLoading,
+    error,
+    setError,
+    refetch,
+  } = useSupabaseQuery(
+    async () => {
+      if (!user) return [];
+      let query = supabase
+        .from('suppliers')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+  );
 
   const fetchSuppliers = useCallback(async ({ page, pageSize } = {}) => {
     if (!user) return;
@@ -52,7 +75,7 @@ export const useSuppliers = () => {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]);
+  }, [applyCompanyScope, toast, user, setLoading, setSuppliers, setError]);
 
   const getSupplierById = useCallback(async (id) => {
     if (!user) return null;
@@ -65,7 +88,7 @@ export const useSuppliers = () => {
       query = applyCompanyScope(query);
 
       const { data, error } = await query.single();
-      
+
       if (error) throw error;
       return data;
     } catch (err) {
@@ -170,10 +193,6 @@ export const useSuppliers = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchSuppliers();
-  }, [fetchSuppliers]);
 
   return {
     suppliers,

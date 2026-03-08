@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { supabase, getUserId } from '../supabase.js';
 import { escapeXml, formatDateFacturX, formatAmount } from '../utils/sanitize.js';
 import { generateUBLInvoice, generateUBLCreditNote } from '../utils/ublGenerator.js';
+import { validateDate } from '../utils/validation.js';
+import { safeError } from '../utils/errors.js';
 
 export function registerExportTools(server: McpServer) {
 
@@ -14,6 +16,9 @@ export function registerExportTools(server: McpServer) {
       end_date: z.string().describe('End date (YYYY-MM-DD)')
     },
     async ({ start_date, end_date }) => {
+      try { validateDate(start_date, 'start_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+      try { validateDate(end_date, 'end_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+
       const [entriesRes, accountsRes] = await Promise.all([
         supabase.from('accounting_entries').select('*')
           .eq('user_id', getUserId())
@@ -24,7 +29,7 @@ export function registerExportTools(server: McpServer) {
       ]);
 
       const { data: entries, error } = entriesRes;
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'export FEC') }] };
       if (!entries?.length) return { content: [{ type: 'text' as const, text: 'No entries found for the given period.' }] };
 
       const nameMap: Record<string, string> = {};
@@ -75,6 +80,9 @@ export function registerExportTools(server: McpServer) {
       end_date: z.string().describe('End date (YYYY-MM-DD)')
     },
     async ({ start_date, end_date }) => {
+      try { validateDate(start_date, 'start_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+      try { validateDate(end_date, 'end_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+
       const [companyRes, accountsRes, entriesRes, clientsRes] = await Promise.all([
         supabase.from('companies').select('*').eq('user_id', getUserId()).single(),
         supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', getUserId()),
@@ -152,7 +160,7 @@ ${entriesXml}
         supabase.from('companies').select('*').eq('user_id', getUserId()).single()
       ]);
 
-      if (invoiceRes.error) return { content: [{ type: 'text' as const, text: `Error: ${invoiceRes.error.message}` }] };
+      if (invoiceRes.error) return { content: [{ type: 'text' as const, text: safeError(invoiceRes.error, 'export Factur-X') }] };
 
       const inv = invoiceRes.data;
       const seller = companyRes.data || {};
@@ -241,7 +249,7 @@ ${entriesXml}
         supabase.from('company').select('*').eq('user_id', getUserId()).single()
       ]);
 
-      if (invoiceRes.error) return { content: [{ type: 'text' as const, text: `Error: ${invoiceRes.error.message}` }] };
+      if (invoiceRes.error) return { content: [{ type: 'text' as const, text: safeError(invoiceRes.error, 'export UBL') }] };
 
       const inv = invoiceRes.data;
       const seller = companyRes.data || {};

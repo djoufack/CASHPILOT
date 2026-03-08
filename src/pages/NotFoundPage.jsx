@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { FileQuestion } from 'lucide-react';
@@ -6,7 +7,11 @@ import { Button } from '../components/ui/button';
 export default function NotFoundPage() {
   const { t } = useTranslation();
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <>
+    <Helmet>
+      <title>404 - {t('errors.pageNotFound', 'Page not found')} - CashPilot</title>
+    </Helmet>
+    <div className="min-h-screen flex items-center justify-center bg-background" role="alert">
       <div className="text-center space-y-6 px-4">
         <FileQuestion className="mx-auto h-24 w-24 text-muted-foreground/50" />
         <div className="space-y-2">
@@ -19,5 +24,6 @@ export default function NotFoundPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

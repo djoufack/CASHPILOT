@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { supabase, getUserId, getAccessToken, getSupabaseUrl } from '../supabase.js';
 import { sanitizeText } from '../utils/sanitize.js';
+import { safeError } from '../utils/errors.js';
 
 export function registerSupplierInvoiceTools(server: McpServer) {
 
@@ -38,7 +39,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
 
       if (uploadError) {
         return {
-          content: [{ type: 'text' as const, text: `Upload failed: ${uploadError.message}` }]
+          content: [{ type: 'text' as const, text: safeError(uploadError, 'upload supplier invoice file') }]
         };
       }
 
@@ -72,7 +73,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
           }
 
           return {
-            content: [{ type: 'text' as const, text: `Extraction error: ${errBody.error || errBody.message || 'Unknown error'}` }]
+            content: [{ type: 'text' as const, text: safeError(errBody.error || errBody.message || 'Unknown error', 'extract supplier invoice') }]
           };
         }
 
@@ -80,7 +81,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
         extractedData = result.data;
       } catch (err: any) {
         return {
-          content: [{ type: 'text' as const, text: `Edge Function call failed: ${err.message}` }]
+          content: [{ type: 'text' as const, text: safeError(err, 'extract supplier invoice - edge function') }]
         };
       }
 
@@ -117,7 +118,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
 
           if (supplierError) {
             return {
-              content: [{ type: 'text' as const, text: `Supplier creation failed: ${supplierError.message}. Extracted data: ${JSON.stringify(extractedData, null, 2)}` }]
+              content: [{ type: 'text' as const, text: safeError(supplierError, 'extract supplier invoice - create supplier') }]
             };
           }
           resolvedSupplierId = newSupplier.id;
@@ -168,7 +169,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
 
       if (invoiceError) {
         return {
-          content: [{ type: 'text' as const, text: `Invoice creation failed: ${invoiceError.message}` }]
+          content: [{ type: 'text' as const, text: safeError(invoiceError, 'extract supplier invoice - create invoice') }]
         };
       }
 
@@ -193,7 +194,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
           return {
             content: [{
               type: 'text' as const,
-              text: `Invoice created (ID: ${invoice.id}) but line items failed: ${lineError.message}\n\nInvoice:\n${JSON.stringify(invoice, null, 2)}`
+              text: safeError(lineError, 'extract supplier invoice - insert line items')
             }]
           };
         }
@@ -234,7 +235,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
     'List supplier invoices with optional filters',
     {
       supplier_id: z.string().optional().describe('Filter by supplier UUID'),
-      payment_status: z.string().optional().describe('Filter by payment_status: pending, paid, partial, overdue'),
+      payment_status: z.enum(['pending', 'approved', 'rejected', 'paid', 'overdue']).optional().describe('Filter by payment_status'),
       limit: z.number().optional().describe('Max results (default 50)'),
     },
     async ({ supplier_id, payment_status, limit }) => {
@@ -257,7 +258,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
       if (payment_status) query = query.eq('payment_status', payment_status);
 
       const { data, error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list supplier invoices') }] };
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }]
@@ -282,7 +283,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
         .eq('supplier.user_id', userId)
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get supplier invoice') }] };
 
       // Generate a signed URL if file_url is a storage path (not already a full URL)
       let signedFileUrl: string | null = null;
@@ -339,7 +340,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
         .eq('id', invoice_id)
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'download supplier invoice') }] };
 
       if (!data.file_url) {
         return {
@@ -360,7 +361,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
 
       if (signError || !signedData?.signedUrl) {
         return {
-          content: [{ type: 'text' as const, text: `Could not generate download URL: ${signError?.message || 'unknown error'}. Storage path: ${data.file_url}` }]
+          content: [{ type: 'text' as const, text: safeError(signError || 'unknown error', 'download supplier invoice - generate URL') }]
         };
       }
 
@@ -403,7 +404,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
         .select('id, invoice_number, payment_status')
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update supplier invoice status') }] };
 
       return {
         content: [{ type: 'text' as const, text: `Updated invoice ${data.invoice_number} status to "${data.payment_status}"` }]

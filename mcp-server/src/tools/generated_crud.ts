@@ -2,6 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { supabase, getUserId } from '../supabase.js';
 import { sanitizeRecord } from '../utils/sanitize.js';
+import { validateDatesInRecord } from '../utils/validation.js';
+import { safeError } from '../utils/errors.js';
 
 export function registerGeneratedCrudTools(server: McpServer) {
 
@@ -14,7 +16,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       institution_logo: z.string().optional(),
       requisition_id: z.string().optional(),
       agreement_id: z.string().optional(),
-      status: z.string().optional(),
+      status: z.enum(['pending', 'active', 'expired', 'revoked', 'error']).optional(),
       last_sync_at: z.string().optional(),
       sync_error: z.string().optional(),
       account_id: z.string().optional(),
@@ -26,9 +28,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('bank_connections').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into bank_connections: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create bank connection') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created bank_connections record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -43,7 +47,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       institution_logo: z.string().optional(),
       requisition_id: z.string().optional(),
       agreement_id: z.string().optional(),
-      status: z.string().optional(),
+      status: z.enum(['pending', 'active', 'expired', 'revoked', 'error']).optional(),
       last_sync_at: z.string().optional(),
       sync_error: z.string().optional(),
       account_id: z.string().optional(),
@@ -55,10 +59,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('bank_connections').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating bank_connections: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update bank connection') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated bank_connections record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -73,7 +79,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('bank_connections').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from bank_connections: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete bank connection') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from bank_connections' }] };
     }
   );
@@ -88,7 +94,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('bank_connections').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from bank_connections: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get bank connection') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -103,8 +109,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('bank_connections').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing bank_connections: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list bank connections') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -122,15 +128,17 @@ export function registerGeneratedCrudTools(server: McpServer) {
       currency: z.string(),
       date_borrowed: z.string(),
       due_date: z.string().optional(),
-      status: z.string(),
+      status: z.enum(['pending', 'partial', 'paid', 'overdue', 'cancelled']),
       category: z.string().optional(),
       notes: z.string().optional()
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('payables').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into payables: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create payable') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created payables record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -149,16 +157,18 @@ export function registerGeneratedCrudTools(server: McpServer) {
       currency: z.string().optional(),
       date_borrowed: z.string().optional(),
       due_date: z.string().optional(),
-      status: z.string().optional(),
+      status: z.enum(['pending', 'partial', 'paid', 'overdue', 'cancelled']).optional(),
       category: z.string().optional(),
       notes: z.string().optional()
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('payables').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating payables: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update payable') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated payables record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -173,7 +183,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('payables').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from payables: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete payable') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from payables' }] };
     }
   );
@@ -188,7 +198,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('payables').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from payables: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get payable') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -203,8 +213,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('payables').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing payables: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list payables') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -229,8 +239,13 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      // Security: verify the parent invoice belongs to the current user
+      if (payload.invoice_id) {
+        const { data: inv, error: invErr } = await supabase.from('invoices').select('id').eq('id', payload.invoice_id).eq('user_id', getUserId()).single();
+        if (invErr || !inv) return { content: [{ type: 'text' as const, text: 'Error: invoice not found or access denied' }] };
+      }
       const { data, error } = await supabase.from('invoice_items').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into invoice_items: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create invoice item') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created invoice_items record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -256,9 +271,19 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      // Security: verify the invoice_item belongs to the current user via parent invoice
+      const { data: item, error: itemErr } = await supabase.from('invoice_items').select('invoice_id').eq('id', id).single();
+      if (itemErr || !item) return { content: [{ type: 'text' as const, text: 'Error: invoice_item not found' }] };
+      const { data: inv, error: invErr } = await supabase.from('invoices').select('id').eq('id', item.invoice_id).eq('user_id', getUserId()).single();
+      if (invErr || !inv) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent invoice does not belong to current user' }] };
+      // If invoice_id is being changed, verify ownership of the new parent too
+      if (updates.invoice_id && updates.invoice_id !== item.invoice_id) {
+        const { data: newInv, error: newInvErr } = await supabase.from('invoices').select('id').eq('id', updates.invoice_id).eq('user_id', getUserId()).single();
+        if (newInvErr || !newInv) return { content: [{ type: 'text' as const, text: 'Error: access denied — target invoice does not belong to current user' }] };
+      }
       let query = supabase.from('invoice_items').update(sanitizeRecord(updates)).eq('id', id);
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating invoice_items: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update invoice item') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated invoice_items record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -270,9 +295,14 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to delete')
     },
     async ({ id }) => {
+      // Security: verify the invoice_item belongs to the current user via parent invoice
+      const { data: item, error: itemErr } = await supabase.from('invoice_items').select('invoice_id').eq('id', id).single();
+      if (itemErr || !item) return { content: [{ type: 'text' as const, text: 'Error: invoice_item not found' }] };
+      const { data: inv, error: invErr } = await supabase.from('invoices').select('id').eq('id', item.invoice_id).eq('user_id', getUserId()).single();
+      if (invErr || !inv) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent invoice does not belong to current user' }] };
       let query = supabase.from('invoice_items').delete().eq('id', id);
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from invoice_items: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete invoice item') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from invoice_items' }] };
     }
   );
@@ -284,10 +314,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch')
     },
     async ({ id }) => {
-      let query = supabase.from('invoice_items').select('*').eq('id', id);
-      const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from invoice_items: ' + error.message }] };
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+      // Security: verify the invoice_item belongs to the current user via parent invoice
+      const { data: item, error: itemErr } = await supabase.from('invoice_items').select('*, invoice_id').eq('id', id).single();
+      if (itemErr || !item) return { content: [{ type: 'text' as const, text: safeError(itemErr || 'not found', 'get invoice item') }] };
+      const { data: inv, error: invErr } = await supabase.from('invoices').select('id').eq('id', item.invoice_id).eq('user_id', getUserId()).single();
+      if (invErr || !inv) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent invoice does not belong to current user' }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(item, null, 2) }] };
     }
   );
 
@@ -299,9 +331,14 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)')
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('invoice_items').select('*');
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing invoice_items: ' + error.message }] };
+      // Security: only return invoice_items whose parent invoice belongs to the current user
+      const { data: userInvoices, error: invErr } = await supabase.from('invoices').select('id').eq('user_id', getUserId());
+      if (invErr) return { content: [{ type: 'text' as const, text: safeError(invErr, 'list invoice items') }] };
+      const invoiceIds = (userInvoices || []).map((i: any) => i.id);
+      if (invoiceIds.length === 0) return { content: [{ type: 'text' as const, text: '[]' }] };
+      let query = supabase.from('invoice_items').select('*').in('invoice_id', invoiceIds);
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list invoice items') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -322,9 +359,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('services').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into services: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create service') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created services record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -346,10 +385,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('services').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating services: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update service') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated services record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -364,7 +405,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('services').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from services: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete service') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from services' }] };
     }
   );
@@ -379,7 +420,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('services').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from services: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get service') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -394,8 +435,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('services').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing services: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list services') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -415,7 +456,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       website: z.string().optional(),
       payment_terms: z.string().optional(),
       supplier_type: z.string().optional(),
-      status: z.string().optional(),
+      status: z.enum(['active', 'inactive']).optional(),
       notes: z.string().optional(),
       tax_id: z.string().optional(),
       currency: z.string().optional(),
@@ -425,9 +466,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('suppliers').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into suppliers: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create supplier') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created suppliers record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -448,7 +491,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       website: z.string().optional(),
       payment_terms: z.string().optional(),
       supplier_type: z.string().optional(),
-      status: z.string().optional(),
+      status: z.enum(['active', 'inactive']).optional(),
       notes: z.string().optional(),
       tax_id: z.string().optional(),
       currency: z.string().optional(),
@@ -458,10 +501,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('suppliers').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating suppliers: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update supplier') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated suppliers record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -476,7 +521,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('suppliers').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from suppliers: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete supplier') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from suppliers' }] };
     }
   );
@@ -491,7 +536,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('suppliers').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from suppliers: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get supplier') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -506,8 +551,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('suppliers').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing suppliers: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list suppliers') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -524,9 +569,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('payment_reminder_rules').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into payment_reminder_rules: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create payment reminder rule') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created payment_reminder_rules record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -544,10 +591,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('payment_reminder_rules').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating payment_reminder_rules: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update payment reminder rule') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated payment_reminder_rules record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -562,7 +611,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('payment_reminder_rules').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from payment_reminder_rules: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete payment reminder rule') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from payment_reminder_rules' }] };
     }
   );
@@ -577,7 +626,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('payment_reminder_rules').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from payment_reminder_rules: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get payment reminder rule') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -592,8 +641,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('payment_reminder_rules').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing payment_reminder_rules: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list payment reminder rules') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -605,16 +654,18 @@ export function registerGeneratedCrudTools(server: McpServer) {
       client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
       quote_number: z.string(),
       date: z.string().optional(),
-      status: z.string().optional(),
+      status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired', 'converted']).optional(),
       total_ht: z.number().optional(),
       tax_rate: z.number().optional(),
       total_ttc: z.number().optional()
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('quotes').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into quotes: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create quote') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created quotes record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -627,17 +678,19 @@ export function registerGeneratedCrudTools(server: McpServer) {
       client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
       quote_number: z.string().optional(),
       date: z.string().optional(),
-      status: z.string().optional(),
+      status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired', 'converted']).optional(),
       total_ht: z.number().optional(),
       tax_rate: z.number().optional(),
       total_ttc: z.number().optional()
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('quotes').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating quotes: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update quote') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated quotes record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -652,7 +705,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('quotes').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from quotes: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete quote') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from quotes' }] };
     }
   );
@@ -667,7 +720,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('quotes').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from quotes: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get quote') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -682,8 +735,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('quotes').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing quotes: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list quotes') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -703,16 +756,18 @@ export function registerGeneratedCrudTools(server: McpServer) {
       file_path: z.string(),
       file_type: z.string(),
       file_size: z.number().int().optional(),
-      parse_status: z.string(),
+      parse_status: z.enum(['pending', 'processing', 'completed', 'error']),
       parse_errors: z.any().optional(),
       line_count: z.number().int().optional(),
       notes: z.string().optional()
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('bank_statements').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into bank_statements: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create bank statement') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created bank_statements record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -733,17 +788,19 @@ export function registerGeneratedCrudTools(server: McpServer) {
       file_path: z.string().optional(),
       file_type: z.string().optional(),
       file_size: z.number().int().optional(),
-      parse_status: z.string().optional(),
+      parse_status: z.enum(['pending', 'processing', 'completed', 'error']).optional(),
       parse_errors: z.any().optional(),
       line_count: z.number().int().optional(),
       notes: z.string().optional()
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('bank_statements').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating bank_statements: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update bank statement') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated bank_statements record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -758,7 +815,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('bank_statements').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from bank_statements: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete bank statement') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from bank_statements' }] };
     }
   );
@@ -773,7 +830,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('bank_statements').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from bank_statements: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get bank statement') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -788,8 +845,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('bank_statements').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing bank_statements: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list bank statements') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -807,8 +864,13 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      // Security: verify the parent supplier_order belongs to the current user
+      if (payload.order_id) {
+        const { data: order, error: orderErr } = await supabase.from('supplier_orders').select('id').eq('id', payload.order_id).eq('user_id', getUserId()).single();
+        if (orderErr || !order) return { content: [{ type: 'text' as const, text: 'Error: supplier_order not found or access denied' }] };
+      }
       const { data, error } = await supabase.from('supplier_order_items').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into supplier_order_items: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create supplier order item') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created supplier_order_items record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -827,9 +889,19 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      // Security: verify the supplier_order_item belongs to the current user via parent order
+      const { data: item, error: itemErr } = await supabase.from('supplier_order_items').select('order_id').eq('id', id).single();
+      if (itemErr || !item) return { content: [{ type: 'text' as const, text: 'Error: supplier_order_item not found' }] };
+      const { data: order, error: orderErr } = await supabase.from('supplier_orders').select('id').eq('id', item.order_id).eq('user_id', getUserId()).single();
+      if (orderErr || !order) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent supplier_order does not belong to current user' }] };
+      // If order_id is being changed, verify ownership of the new parent too
+      if (updates.order_id && updates.order_id !== item.order_id) {
+        const { data: newOrder, error: newOrderErr } = await supabase.from('supplier_orders').select('id').eq('id', updates.order_id).eq('user_id', getUserId()).single();
+        if (newOrderErr || !newOrder) return { content: [{ type: 'text' as const, text: 'Error: access denied — target supplier_order does not belong to current user' }] };
+      }
       let query = supabase.from('supplier_order_items').update(sanitizeRecord(updates)).eq('id', id);
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating supplier_order_items: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update supplier order item') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated supplier_order_items record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -841,9 +913,14 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to delete')
     },
     async ({ id }) => {
+      // Security: verify the supplier_order_item belongs to the current user via parent order
+      const { data: item, error: itemErr } = await supabase.from('supplier_order_items').select('order_id').eq('id', id).single();
+      if (itemErr || !item) return { content: [{ type: 'text' as const, text: 'Error: supplier_order_item not found' }] };
+      const { data: order, error: orderErr } = await supabase.from('supplier_orders').select('id').eq('id', item.order_id).eq('user_id', getUserId()).single();
+      if (orderErr || !order) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent supplier_order does not belong to current user' }] };
       let query = supabase.from('supplier_order_items').delete().eq('id', id);
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from supplier_order_items: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete supplier order item') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from supplier_order_items' }] };
     }
   );
@@ -855,10 +932,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch')
     },
     async ({ id }) => {
-      let query = supabase.from('supplier_order_items').select('*').eq('id', id);
-      const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from supplier_order_items: ' + error.message }] };
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+      // Security: verify the supplier_order_item belongs to the current user via parent order
+      const { data: item, error: itemErr } = await supabase.from('supplier_order_items').select('*, order_id').eq('id', id).single();
+      if (itemErr || !item) return { content: [{ type: 'text' as const, text: safeError(itemErr || 'not found', 'get supplier order item') }] };
+      const { data: order, error: orderErr } = await supabase.from('supplier_orders').select('id').eq('id', item.order_id).eq('user_id', getUserId()).single();
+      if (orderErr || !order) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent supplier_order does not belong to current user' }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(item, null, 2) }] };
     }
   );
 
@@ -870,9 +949,14 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)')
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('supplier_order_items').select('*');
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing supplier_order_items: ' + error.message }] };
+      // Security: only return supplier_order_items whose parent order belongs to the current user
+      const { data: userOrders, error: orderErr } = await supabase.from('supplier_orders').select('id').eq('user_id', getUserId());
+      if (orderErr) return { content: [{ type: 'text' as const, text: safeError(orderErr, 'list supplier order items') }] };
+      const orderIds = (userOrders || []).map((o: any) => o.id);
+      if (orderIds.length === 0) return { content: [{ type: 'text' as const, text: '[]' }] };
+      let query = supabase.from('supplier_order_items').select('*').in('order_id', orderIds);
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list supplier order items') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -886,15 +970,17 @@ export function registerGeneratedCrudTools(server: McpServer) {
       order_date: z.string().optional(),
       expected_delivery_date: z.string().optional(),
       actual_delivery_date: z.string().optional(),
-      order_status: z.string().optional(),
+      order_status: z.enum(['draft', 'pending', 'confirmed', 'delivered', 'received', 'cancelled']).optional(),
       total_amount: z.number().optional(),
       notes: z.string().optional()
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('supplier_orders').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into supplier_orders: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create supplier order') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created supplier_orders record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -909,16 +995,18 @@ export function registerGeneratedCrudTools(server: McpServer) {
       order_date: z.string().optional(),
       expected_delivery_date: z.string().optional(),
       actual_delivery_date: z.string().optional(),
-      order_status: z.string().optional(),
+      order_status: z.enum(['draft', 'pending', 'confirmed', 'delivered', 'received', 'cancelled']).optional(),
       total_amount: z.number().optional(),
       notes: z.string().optional()
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('supplier_orders').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating supplier_orders: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update supplier order') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated supplier_orders record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -933,7 +1021,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('supplier_orders').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from supplier_orders: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete supplier order') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from supplier_orders' }] };
     }
   );
@@ -948,7 +1036,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('supplier_orders').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from supplier_orders: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get supplier order') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -963,8 +1051,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('supplier_orders').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing supplier_orders: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list supplier orders') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -978,9 +1066,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('service_categories').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into service_categories: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create service category') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created service_categories record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -995,10 +1085,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('service_categories').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating service_categories: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update service category') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated service_categories record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1013,7 +1105,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('service_categories').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from service_categories: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete service category') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from service_categories' }] };
     }
   );
@@ -1028,7 +1120,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('service_categories').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from service_categories: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get service category') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1043,8 +1135,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('service_categories').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing service_categories: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list service categories') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1073,9 +1165,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('company').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into company: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create company') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created company record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1105,10 +1199,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('company').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating company: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update company') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated company record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1123,7 +1219,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('company').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from company: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete company') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from company' }] };
     }
   );
@@ -1138,7 +1234,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('company').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from company: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get company') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1153,8 +1249,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('company').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing company: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list companies') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1176,16 +1272,18 @@ export function registerGeneratedCrudTools(server: McpServer) {
       debtor_name: z.string().optional(),
       remittance_info: z.string().optional(),
       invoice_id: z.string().optional().describe('Note: This is a Foreign Key to `invoices.id`.<fk table=\'invoices\' column=\'id\'/>'),
-      reconciliation_status: z.string().optional(),
+      reconciliation_status: z.enum(['unreconciled', 'matched', 'ignored']).optional(),
       match_confidence: z.number().optional(),
       matched_at: z.string().optional(),
       raw_data: z.any().optional()
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('bank_transactions').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into bank_transactions: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create bank transaction') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created bank_transactions record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1208,17 +1306,19 @@ export function registerGeneratedCrudTools(server: McpServer) {
       debtor_name: z.string().optional(),
       remittance_info: z.string().optional(),
       invoice_id: z.string().optional().describe('Note: This is a Foreign Key to `invoices.id`.<fk table=\'invoices\' column=\'id\'/>'),
-      reconciliation_status: z.string().optional(),
+      reconciliation_status: z.enum(['unreconciled', 'matched', 'ignored']).optional(),
       match_confidence: z.number().optional(),
       matched_at: z.string().optional(),
       raw_data: z.any().optional()
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('bank_transactions').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating bank_transactions: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update bank transaction') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated bank_transactions record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1233,7 +1333,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('bank_transactions').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from bank_transactions: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete bank transaction') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from bank_transactions' }] };
     }
   );
@@ -1248,7 +1348,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('bank_transactions').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from bank_transactions: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get bank transaction') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1263,8 +1363,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('bank_transactions').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing bank_transactions: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list bank transactions') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1279,9 +1379,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('payment_terms').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into payment_terms: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create payment term') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created payment_terms record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1297,10 +1399,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('payment_terms').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating payment_terms: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update payment term') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated payment_terms record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1315,7 +1419,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('payment_terms').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from payment_terms: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete payment term') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from payment_terms' }] };
     }
   );
@@ -1330,7 +1434,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('payment_terms').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from payment_terms: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get payment term') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1345,8 +1449,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('payment_terms').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing payment_terms: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list payment terms') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1364,14 +1468,16 @@ export function registerGeneratedCrudTools(server: McpServer) {
       tax_rate: z.number().optional(),
       tax_amount: z.number().optional(),
       total_ttc: z.number().optional(),
-      status: z.string().optional(),
+      status: z.enum(['draft', 'sent', 'applied', 'cancelled']).optional(),
       notes: z.string().optional()
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('credit_notes').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into credit_notes: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create credit note') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created credit_notes record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1390,15 +1496,17 @@ export function registerGeneratedCrudTools(server: McpServer) {
       tax_rate: z.number().optional(),
       tax_amount: z.number().optional(),
       total_ttc: z.number().optional(),
-      status: z.string().optional(),
+      status: z.enum(['draft', 'sent', 'applied', 'cancelled']).optional(),
       notes: z.string().optional()
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('credit_notes').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating credit_notes: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update credit note') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated credit_notes record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1413,7 +1521,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('credit_notes').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from credit_notes: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete credit note') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from credit_notes' }] };
     }
   );
@@ -1428,7 +1536,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('credit_notes').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from credit_notes: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get credit note') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1443,8 +1551,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('credit_notes').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing credit_notes: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list credit notes') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1455,7 +1563,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     {
       statement_id: z.string().describe('Note: This is a Foreign Key to `bank_statements.id`.<fk table=\'bank_statements\' column=\'id\'/>'),
       session_date: z.string().optional(),
-      status: z.string(),
+      status: z.enum(['in_progress', 'completed', 'abandoned']),
       total_lines: z.number().int().optional(),
       matched_lines: z.number().int().optional(),
       unmatched_lines: z.number().int().optional(),
@@ -1470,9 +1578,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('bank_reconciliation_sessions').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into bank_reconciliation_sessions: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create bank reconciliation session') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created bank_reconciliation_sessions record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1484,7 +1594,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to update'),
       statement_id: z.string().optional().describe('Note: This is a Foreign Key to `bank_statements.id`.<fk table=\'bank_statements\' column=\'id\'/>'),
       session_date: z.string().optional(),
-      status: z.string().optional(),
+      status: z.enum(['in_progress', 'completed', 'abandoned']).optional(),
       total_lines: z.number().int().optional(),
       matched_lines: z.number().int().optional(),
       unmatched_lines: z.number().int().optional(),
@@ -1499,10 +1609,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('bank_reconciliation_sessions').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating bank_reconciliation_sessions: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update bank reconciliation session') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated bank_reconciliation_sessions record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1517,7 +1629,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('bank_reconciliation_sessions').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from bank_reconciliation_sessions: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete bank reconciliation session') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from bank_reconciliation_sessions' }] };
     }
   );
@@ -1532,7 +1644,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('bank_reconciliation_sessions').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from bank_reconciliation_sessions: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get bank reconciliation session') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1547,8 +1659,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('bank_reconciliation_sessions').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing bank_reconciliation_sessions: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list bank reconciliation sessions') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1570,9 +1682,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('expenses').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into expenses: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create expense') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created expenses record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1595,10 +1709,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('expenses').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating expenses: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update expense') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated expenses record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1613,7 +1729,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('expenses').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from expenses: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete expense') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from expenses' }] };
     }
   );
@@ -1628,7 +1744,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('expenses').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from expenses: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get expense') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1643,8 +1759,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('expenses').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing expenses: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list expenses') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1662,15 +1778,17 @@ export function registerGeneratedCrudTools(server: McpServer) {
       currency: z.string(),
       date_lent: z.string(),
       due_date: z.string().optional(),
-      status: z.string(),
+      status: z.enum(['pending', 'partial', 'paid', 'overdue', 'cancelled']),
       category: z.string().optional(),
       notes: z.string().optional()
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('receivables').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into receivables: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create receivable') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created receivables record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1689,16 +1807,18 @@ export function registerGeneratedCrudTools(server: McpServer) {
       currency: z.string().optional(),
       date_lent: z.string().optional(),
       due_date: z.string().optional(),
-      status: z.string().optional(),
+      status: z.enum(['pending', 'partial', 'paid', 'overdue', 'cancelled']).optional(),
       category: z.string().optional(),
       notes: z.string().optional()
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('receivables').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating receivables: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update receivable') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated receivables record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1713,7 +1833,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('receivables').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from receivables: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete receivable') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from receivables' }] };
     }
   );
@@ -1728,7 +1848,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('receivables').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from receivables: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get receivable') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1743,8 +1863,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('receivables').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing receivables: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list receivables') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1762,7 +1882,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       amount: z.number(),
       balance_after: z.number().optional(),
       raw_data: z.any().optional(),
-      reconciliation_status: z.string(),
+      reconciliation_status: z.enum(['unmatched', 'matched', 'ignored']),
       matched_source_type: z.string().optional(),
       matched_source_id: z.string().optional(),
       matched_at: z.string().optional(),
@@ -1772,9 +1892,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('bank_statement_lines').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into bank_statement_lines: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create bank statement line') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created bank_statement_lines record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1793,7 +1915,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       amount: z.number().optional(),
       balance_after: z.number().optional(),
       raw_data: z.any().optional(),
-      reconciliation_status: z.string().optional(),
+      reconciliation_status: z.enum(['unmatched', 'matched', 'ignored']).optional(),
       matched_source_type: z.string().optional(),
       matched_source_id: z.string().optional(),
       matched_at: z.string().optional(),
@@ -1803,10 +1925,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('bank_statement_lines').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating bank_statement_lines: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update bank statement line') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated bank_statement_lines record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1821,7 +1945,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('bank_statement_lines').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from bank_statement_lines: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete bank statement line') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from bank_statement_lines' }] };
     }
   );
@@ -1836,7 +1960,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('bank_statement_lines').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from bank_statement_lines: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get bank statement line') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1851,8 +1975,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('bank_statement_lines').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing bank_statement_lines: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list bank statement lines') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1871,9 +1995,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('accounting_tax_rates').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into accounting_tax_rates: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create accounting tax rate') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created accounting_tax_rates record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1893,10 +2019,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('accounting_tax_rates').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating accounting_tax_rates: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update accounting tax rate') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated accounting_tax_rates record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1911,7 +2039,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('accounting_tax_rates').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from accounting_tax_rates: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete accounting tax rate') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from accounting_tax_rates' }] };
     }
   );
@@ -1926,7 +2054,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('accounting_tax_rates').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from accounting_tax_rates: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get accounting tax rate') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1941,8 +2069,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('accounting_tax_rates').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing accounting_tax_rates: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list accounting tax rates') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1954,13 +2082,15 @@ export function registerGeneratedCrudTools(server: McpServer) {
       client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
       frequency: z.string().optional(),
       next_date: z.string().optional(),
-      status: z.string().optional()
+      status: z.enum(['active', 'paused', 'completed', 'cancelled']).optional()
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('recurring_invoices').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into recurring_invoices: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create recurring invoice') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created recurring_invoices record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1973,14 +2103,16 @@ export function registerGeneratedCrudTools(server: McpServer) {
       client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
       frequency: z.string().optional(),
       next_date: z.string().optional(),
-      status: z.string().optional()
+      status: z.enum(['active', 'paused', 'completed', 'cancelled']).optional()
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('recurring_invoices').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating recurring_invoices: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update recurring invoice') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated recurring_invoices record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1995,7 +2127,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('recurring_invoices').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from recurring_invoices: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete recurring invoice') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from recurring_invoices' }] };
     }
   );
@@ -2010,7 +2142,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('recurring_invoices').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from recurring_invoices: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get recurring invoice') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -2025,8 +2157,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('recurring_invoices').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing recurring_invoices: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list recurring invoices') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -2041,15 +2173,17 @@ export function registerGeneratedCrudTools(server: McpServer) {
       due_date: z.string().optional(),
       items: z.any().optional(),
       total: z.number().optional(),
-      status: z.string().optional(),
+      status: z.enum(['draft', 'sent', 'confirmed', 'completed', 'cancelled']).optional(),
       payment_terms_id: z.string().optional().describe('Note: This is a Foreign Key to `payment_terms.id`.<fk table=\'payment_terms\' column=\'id\'/>'),
       notes: z.string().optional()
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('purchase_orders').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into purchase_orders: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create purchase order') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created purchase_orders record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -2065,16 +2199,18 @@ export function registerGeneratedCrudTools(server: McpServer) {
       due_date: z.string().optional(),
       items: z.any().optional(),
       total: z.number().optional(),
-      status: z.string().optional(),
+      status: z.enum(['draft', 'sent', 'confirmed', 'completed', 'cancelled']).optional(),
       payment_terms_id: z.string().optional().describe('Note: This is a Foreign Key to `payment_terms.id`.<fk table=\'payment_terms\' column=\'id\'/>'),
       notes: z.string().optional()
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('purchase_orders').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating purchase_orders: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update purchase order') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated purchase_orders record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -2089,7 +2225,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('purchase_orders').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from purchase_orders: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete purchase order') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from purchase_orders' }] };
     }
   );
@@ -2104,7 +2240,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('purchase_orders').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from purchase_orders: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get purchase order') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -2119,8 +2255,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('purchase_orders').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing purchase_orders: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list purchase orders') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -2140,9 +2276,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('invoice_settings').insert([sanitizeRecord(payload)]).select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error inserting into invoice_settings: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create invoice settings') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully created invoice_settings record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -2163,10 +2301,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
     },
     async (args) => {
       const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       let query = supabase.from('invoice_settings').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error updating invoice_settings: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update invoice settings') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully updated invoice_settings record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -2181,7 +2321,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('invoice_settings').delete().eq('id', id);
       query = query.eq('user_id', getUserId());
       const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: 'Error deleting from invoice_settings: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete invoice settings') }] };
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from invoice_settings' }] };
     }
   );
@@ -2196,7 +2336,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       let query = supabase.from('invoice_settings').select('*').eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: 'Error fetching from invoice_settings: ' + error.message }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get invoice settings') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -2211,8 +2351,334 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async ({ limit = 50, offset = 0 }) => {
       let query = supabase.from('invoice_settings').select('*');
       query = query.eq('user_id', getUserId());
-      const { data, error } = await query.range(offset, offset + limit - 1).limit(limit);
-      if (error) return { content: [{ type: 'text' as const, text: 'Error listing invoice_settings: ' + error.message }] };
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list invoice settings') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ============================================================
+  // PRODUCTS CRUD
+  // ============================================================
+
+  server.tool(
+    'create_products',
+    'Create a new record in products',
+    {
+      product_name: z.string(),
+      sku: z.string().optional(),
+      category_id: z.string().optional().describe('Note: This is a Foreign Key to `service_categories.id`.<fk table=\'service_categories\' column=\'id\'/>'),
+      unit_price: z.number().optional(),
+      purchase_price: z.number().optional(),
+      unit: z.string().optional(),
+      stock_quantity: z.number().optional(),
+      min_stock_level: z.number().optional(),
+      description: z.string().optional(),
+      is_active: z.boolean().optional(),
+      supplier_id: z.string().optional().describe('Note: This is a Foreign Key to `suppliers.id`.<fk table=\'suppliers\' column=\'id\'/>'),
+      company_id: z.string().optional().describe('Company UUID for multi-company scope')
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      const { data, error } = await supabase.from('products').insert([sanitizeRecord(payload)]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create product') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created products record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_products',
+    'Update an existing record in products',
+    {
+      id: z.string().describe('Record UUID to update'),
+      product_name: z.string().optional(),
+      sku: z.string().optional(),
+      category_id: z.string().optional().describe('Note: This is a Foreign Key to `service_categories.id`.<fk table=\'service_categories\' column=\'id\'/>'),
+      unit_price: z.number().optional(),
+      purchase_price: z.number().optional(),
+      unit: z.string().optional(),
+      stock_quantity: z.number().optional(),
+      min_stock_level: z.number().optional(),
+      description: z.string().optional(),
+      is_active: z.boolean().optional(),
+      supplier_id: z.string().optional().describe('Note: This is a Foreign Key to `suppliers.id`.<fk table=\'suppliers\' column=\'id\'/>'),
+      company_id: z.string().optional().describe('Company UUID for multi-company scope')
+    },
+    async (args) => {
+      const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      let query = supabase.from('products').update(sanitizeRecord(updates)).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update product') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated products record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_products',
+    'Delete a record from products',
+    {
+      id: z.string().describe('Record UUID to delete')
+    },
+    async ({ id }) => {
+      let query = supabase.from('products').delete().eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { error } = await query;
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete product') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from products' }] };
+    }
+  );
+
+  server.tool(
+    'get_products',
+    'Get a single record from products by ID',
+    {
+      id: z.string().describe('Record UUID to fetch')
+    },
+    async ({ id }) => {
+      let query = supabase.from('products').select('*').eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get product') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_products',
+    'List multiple records from products',
+    {
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ limit = 50, offset = 0 }) => {
+      let query = supabase.from('products').select('*');
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list products') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ============================================================
+  // TIMESHEETS CRUD
+  // ============================================================
+
+  server.tool(
+    'create_timesheets',
+    'Create a new record in timesheets',
+    {
+      task_id: z.string().optional().describe('Note: This is a Foreign Key to `tasks.id`.<fk table=\'tasks\' column=\'id\'/>'),
+      project_id: z.string().optional().describe('Note: This is a Foreign Key to `projects.id`.<fk table=\'projects\' column=\'id\'/>'),
+      client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
+      date: z.string().describe('Date of the timesheet entry (YYYY-MM-DD)'),
+      start_time: z.string().optional().describe('Start time (HH:MM:SS)'),
+      end_time: z.string().optional().describe('End time (HH:MM:SS)'),
+      duration_minutes: z.number().optional(),
+      description: z.string().optional(),
+      status: z.enum(['draft', 'approved', 'billed', 'rejected']).optional(),
+      notes: z.string().optional(),
+      billable: z.boolean().optional(),
+      hourly_rate: z.number().optional(),
+      invoice_id: z.string().optional().describe('Note: This is a Foreign Key to `invoices.id`.<fk table=\'invoices\' column=\'id\'/>'),
+      billed_at: z.string().optional(),
+      service_id: z.string().optional().describe('Note: This is a Foreign Key to `services.id`.<fk table=\'services\' column=\'id\'/>'),
+      company_id: z.string().describe('Company UUID for multi-company scope')
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      const { data, error } = await supabase.from('timesheets').insert([sanitizeRecord(payload)]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create timesheet') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created timesheets record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_timesheets',
+    'Update an existing record in timesheets',
+    {
+      id: z.string().describe('Record UUID to update'),
+      task_id: z.string().optional().describe('Note: This is a Foreign Key to `tasks.id`.<fk table=\'tasks\' column=\'id\'/>'),
+      project_id: z.string().optional().describe('Note: This is a Foreign Key to `projects.id`.<fk table=\'projects\' column=\'id\'/>'),
+      client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
+      date: z.string().optional().describe('Date of the timesheet entry (YYYY-MM-DD)'),
+      start_time: z.string().optional().describe('Start time (HH:MM:SS)'),
+      end_time: z.string().optional().describe('End time (HH:MM:SS)'),
+      duration_minutes: z.number().optional(),
+      description: z.string().optional(),
+      status: z.enum(['draft', 'approved', 'billed', 'rejected']).optional(),
+      notes: z.string().optional(),
+      billable: z.boolean().optional(),
+      hourly_rate: z.number().optional(),
+      invoice_id: z.string().optional().describe('Note: This is a Foreign Key to `invoices.id`.<fk table=\'invoices\' column=\'id\'/>'),
+      billed_at: z.string().optional(),
+      service_id: z.string().optional().describe('Note: This is a Foreign Key to `services.id`.<fk table=\'services\' column=\'id\'/>'),
+      company_id: z.string().optional().describe('Company UUID for multi-company scope')
+    },
+    async (args) => {
+      const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      let query = supabase.from('timesheets').update(sanitizeRecord(updates)).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update timesheet') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated timesheets record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_timesheets',
+    'Delete a record from timesheets',
+    {
+      id: z.string().describe('Record UUID to delete')
+    },
+    async ({ id }) => {
+      let query = supabase.from('timesheets').delete().eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { error } = await query;
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete timesheet') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from timesheets' }] };
+    }
+  );
+
+  server.tool(
+    'get_timesheets',
+    'Get a single record from timesheets by ID',
+    {
+      id: z.string().describe('Record UUID to fetch')
+    },
+    async ({ id }) => {
+      let query = supabase.from('timesheets').select('*').eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get timesheet') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_timesheets',
+    'List multiple records from timesheets',
+    {
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ limit = 50, offset = 0 }) => {
+      let query = supabase.from('timesheets').select('*');
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list timesheets') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ============================================================
+  // PROJECTS CRUD
+  // ============================================================
+
+  server.tool(
+    'create_projects',
+    'Create a new record in projects',
+    {
+      client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
+      name: z.string(),
+      description: z.string().optional(),
+      budget_hours: z.number().optional(),
+      hourly_rate: z.number().optional(),
+      status: z.enum(['planning', 'active', 'on_hold', 'completed', 'cancelled']).optional(),
+      start_date: z.string().optional().describe('Project start date (YYYY-MM-DD)'),
+      end_date: z.string().optional().describe('Project end date (YYYY-MM-DD)'),
+      company_id: z.string().describe('Company UUID for multi-company scope')
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      const { data, error } = await supabase.from('projects').insert([sanitizeRecord(payload)]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create project') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created projects record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_projects',
+    'Update an existing record in projects',
+    {
+      id: z.string().describe('Record UUID to update'),
+      client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      budget_hours: z.number().optional(),
+      hourly_rate: z.number().optional(),
+      status: z.enum(['planning', 'active', 'on_hold', 'completed', 'cancelled']).optional(),
+      start_date: z.string().optional().describe('Project start date (YYYY-MM-DD)'),
+      end_date: z.string().optional().describe('Project end date (YYYY-MM-DD)'),
+      company_id: z.string().optional().describe('Company UUID for multi-company scope')
+    },
+    async (args) => {
+      const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      let query = supabase.from('projects').update(sanitizeRecord(updates)).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update project') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated projects record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_projects',
+    'Delete a record from projects',
+    {
+      id: z.string().describe('Record UUID to delete')
+    },
+    async ({ id }) => {
+      let query = supabase.from('projects').delete().eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { error } = await query;
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete project') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from projects' }] };
+    }
+  );
+
+  server.tool(
+    'get_projects',
+    'Get a single record from projects by ID',
+    {
+      id: z.string().describe('Record UUID to fetch')
+    },
+    async ({ id }) => {
+      let query = supabase.from('projects').select('*').eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get project') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_projects',
+    'List multiple records from projects',
+    {
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ limit = 50, offset = 0 }) => {
+      let query = supabase.from('projects').select('*');
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list projects') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );

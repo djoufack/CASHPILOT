@@ -1,6 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { supabase, getUserId } from '../supabase.js';
+import { optionalDate } from '../utils/validation.js';
+import { safeError } from '../utils/errors.js';
 
 export function registerPaymentTools(server: McpServer) {
 
@@ -24,7 +26,7 @@ export function registerPaymentTools(server: McpServer) {
       if (client_id) query = query.eq('client_id', client_id);
 
       const { data, error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list payments') }] };
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }]
@@ -52,9 +54,13 @@ export function registerPaymentTools(server: McpServer) {
         .eq('user_id', getUserId())
         .single();
 
-      if (invErr) return { content: [{ type: 'text' as const, text: `Error finding invoice: ${invErr.message}` }] };
+      if (invErr) return { content: [{ type: 'text' as const, text: safeError(invErr, 'create payment - find invoice') }] };
 
-      const date = payment_date ?? new Date().toISOString().split('T')[0];
+      const validatedPaymentDate = optionalDate(payment_date);
+      if (payment_date && !validatedPaymentDate) {
+        return { content: [{ type: 'text' as const, text: "Parameter 'payment_date' must be a valid date (YYYY-MM-DD)" }] };
+      }
+      const date = validatedPaymentDate ?? new Date().toISOString().split('T')[0];
       const receiptNumber = `REC-${Date.now()}`;
 
       const { data, error } = await supabase
@@ -73,16 +79,17 @@ export function registerPaymentTools(server: McpServer) {
         .select()
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create payment') }] };
 
-      // Update invoice payment status
+      // Update invoice payment status — select only amount column, scoped to user
       const totalTtc = parseFloat(invoice.total_ttc || '0');
-      const { data: allPayments } = await supabase
+      const { data: sumData } = await supabase
         .from('payments')
         .select('amount')
-        .eq('invoice_id', invoice_id);
+        .eq('invoice_id', invoice_id)
+        .eq('user_id', getUserId());
 
-      const totalPaid = (allPayments ?? []).reduce((s, p) => s + parseFloat(p.amount || '0'), 0);
+      const totalPaid = (sumData ?? []).reduce((s, p) => s + parseFloat(p.amount || '0'), 0);
       let paymentStatus = 'unpaid';
       if (totalPaid >= totalTtc) paymentStatus = 'paid';
       else if (totalPaid > 0) paymentStatus = 'partial';
@@ -119,7 +126,7 @@ export function registerPaymentTools(server: McpServer) {
       }
 
       const { data, error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get unpaid invoices') }] };
 
       const total = (data ?? []).reduce((s, i) => s + parseFloat(i.total_ttc || '0'), 0);
       return {
@@ -138,7 +145,7 @@ export function registerPaymentTools(server: McpServer) {
         .select('*')
         .eq('user_id', getUserId());
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get receivables summary') }] };
 
       const stats = {
         total_receivable: 0,

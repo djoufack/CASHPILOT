@@ -21,7 +21,7 @@ const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: customStorage,
     persistSession: true,
-    autoRefreshToken: false,
+    autoRefreshToken: true,
   }
 });
 

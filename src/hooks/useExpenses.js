@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,17 +7,43 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { triggerWebhook } from '@/utils/webhookTrigger';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 
 export const useExpenses = () => {
-  const [expenses, setExpenses] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
   const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [totalCount, setTotalCount] = useState(0);
+
+  const {
+    data: expenses,
+    setData: setExpenses,
+    loading,
+    setLoading,
+    error,
+    setError,
+  } = useSupabaseQuery(
+    async () => {
+      if (!user) return [];
+      if (!supabase) {
+        console.warn("Supabase not configured");
+        return [];
+      }
+      let query = supabase
+        .from('expenses')
+        .select('*, supplier:suppliers(id, company_name)')
+        .order('expense_date', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+  );
 
   const fetchExpenses = useCallback(async ({ page, pageSize } = {}) => {
     if (!user) return;
@@ -27,7 +53,6 @@ export const useExpenses = () => {
     }
     setLoading(true);
     try {
-      // Fetch expenses ordered by date (newest first)
       const usePagination = page != null && pageSize != null;
       let query = supabase
         .from('expenses')
@@ -55,7 +80,7 @@ export const useExpenses = () => {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, user]);
+  }, [applyCompanyScope, user, setLoading, setExpenses, setError]);
 
   const createExpense = async (expenseData) => {
     if (!user) return;
@@ -66,8 +91,6 @@ export const useExpenses = () => {
     }
     setLoading(true);
     try {
-      // Ensure date is present, default to now if not provided
-      // Also set expense_date (DATE type) for accounting trigger
       const payload = {
         ...withCompanyScope(expenseData),
         user_id: user.id,
@@ -152,10 +175,6 @@ export const useExpenses = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchExpenses();
-  }, [fetchExpenses]);
 
   return {
     expenses,

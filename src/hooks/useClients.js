@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
@@ -8,11 +8,9 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { sanitizeText } from '@/utils/sanitize';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { triggerWebhook } from '@/utils/webhookTrigger';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 
 export const useClients = () => {
-  const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -20,6 +18,47 @@ export const useClients = () => {
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [totalCount, setTotalCount] = useState(0);
+
+  const {
+    data: clients,
+    setData: setClients,
+    loading,
+    setLoading,
+    error,
+    setError,
+  } = useSupabaseQuery(
+    async () => {
+      if (!user) return [];
+      if (!supabase) {
+        console.warn("Supabase not configured");
+        return [];
+      }
+      let query = supabase
+        .from('clients')
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
+
+      if (error) {
+        // Handle RLS recursion (42P17) or permission (42501) errors gracefully
+        if (error.code === '42P17' || error.code === '42501') {
+          console.warn('RLS policy error fetching clients:', error.message);
+          toast({
+            title: "Access restricted",
+            description: "Some data may not be visible due to permission settings.",
+          });
+          return [];
+        }
+        throw error;
+      }
+      return data || [];
+    },
+    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+  );
 
   const fetchClients = async ({ page, pageSize } = {}) => {
     if (!user) return;
@@ -267,11 +306,6 @@ export const useClients = () => {
       return [];
     }
   };
-
-  useEffect(() => {
-    if (user) fetchClients();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   return {
     clients,

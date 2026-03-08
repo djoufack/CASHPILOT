@@ -218,6 +218,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         "fixed inset-y-0 left-0 z-50 bg-gray-950 border-r border-gray-800/50 transition-all duration-300 ease-in-out flex flex-col h-screen",
         isCollapsed ? "w-[68px]" : "w-[260px]"
       )}
+      aria-label={t('common.sidebar', 'Barre latérale')}
     >
       {/* Header */}
       <div className={cn(
@@ -226,7 +227,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
       )}>
         {!isCollapsed && (
           <div className="flex items-center gap-3 flex-1">
-            <Menu className="w-5 h-5 text-gray-500" />
+            <Menu className="w-5 h-5 text-gray-500" aria-hidden="true" />
             <span className="text-lg font-bold">
               <span className="text-orange-400">Cash</span>
               <span className="text-white">Pilot</span>
@@ -239,6 +240,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           onClick={toggleSidebar}
           className="text-gray-500 hover:text-white hover:bg-gray-800/50 h-8 w-8"
           aria-label={isCollapsed ? t('common.expandSidebar', 'Étendre la barre latérale') : t('common.collapseSidebar', 'Réduire la barre latérale')}
+          aria-expanded={!isCollapsed}
         >
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </Button>
@@ -292,7 +294,7 @@ const DirectNavItem = ({ category, isCollapsed, isActive }) => {
   const Icon = category.icon;
 
   const linkContent = (
-    <Link to={category.path}>
+    <Link to={category.path} aria-current={isActive ? 'page' : undefined}>
       <div className={cn(
         "flex items-center gap-3 rounded-lg transition-all duration-200 cursor-pointer group",
         isCollapsed ? "h-10 w-10 mx-auto justify-center mb-1" : "px-3 py-2.5 mb-0.5",
@@ -414,7 +416,7 @@ const CategoryGroup = ({ category, isCollapsed, isExpanded, onToggle, currentPat
             const ItemIcon = item.icon;
 
             return (
-              <Link key={item.path} to={item.path}>
+              <Link key={item.path} to={item.path} aria-current={isActive ? 'page' : undefined}>
                 <div className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer group mb-0.5",
                   isActive
@@ -454,6 +456,7 @@ const FlatSidebar = ({ isCollapsed, toggleSidebar, navItems, location }) => {
         "fixed inset-y-0 left-0 z-50 bg-gray-950 border-r border-gray-800/50 transition-all duration-300 ease-in-out flex flex-col h-screen",
         isCollapsed ? "w-[68px]" : "w-[260px]"
       )}
+      aria-label={t('common.sidebar', 'Sidebar')}
     >
       <div className={cn(
         "h-16 flex items-center border-b border-gray-800/50 shrink-0",
@@ -461,7 +464,7 @@ const FlatSidebar = ({ isCollapsed, toggleSidebar, navItems, location }) => {
       )}>
         {!isCollapsed && (
           <div className="flex items-center gap-3 flex-1">
-            <Menu className="w-5 h-5 text-gray-500" />
+            <Menu className="w-5 h-5 text-gray-500" aria-hidden="true" />
             <span className="text-lg font-bold">
               <span className="text-orange-400">Cash</span>
               <span className="text-white">Pilot</span>
@@ -474,6 +477,7 @@ const FlatSidebar = ({ isCollapsed, toggleSidebar, navItems, location }) => {
           onClick={toggleSidebar}
           className="text-gray-500 hover:text-white hover:bg-gray-800/50 h-8 w-8"
           aria-label={isCollapsed ? t('common.expandSidebar', 'Expand sidebar') : t('common.collapseSidebar', 'Collapse sidebar')}
+          aria-expanded={!isCollapsed}
         >
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </Button>
@@ -495,7 +499,7 @@ const FlatSidebar = ({ isCollapsed, toggleSidebar, navItems, location }) => {
             }
             const isActive = location.pathname === item.path;
             const linkContent = (
-              <Link to={item.path} aria-label={item.label}>
+              <Link to={item.path} aria-label={item.label} aria-current={isActive ? 'page' : undefined}>
                 <div className={cn(
                   "flex items-center gap-3 rounded-lg transition-all duration-200 cursor-pointer group",
                   isCollapsed ? "h-10 w-10 mx-auto justify-center mb-1" : "px-3 py-2.5 mb-0.5",

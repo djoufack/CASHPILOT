@@ -2,6 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { supabase, getUserId } from '../supabase.js';
 import { sanitizeText } from '../utils/sanitize.js';
+import { validateDate } from '../utils/validation.js';
+import { safeError } from '../utils/errors.js';
 
 export function registerInvoiceTools(server: McpServer) {
 
@@ -9,7 +11,7 @@ export function registerInvoiceTools(server: McpServer) {
     'list_invoices',
     'List invoices with optional filters (status, client, limit)',
     {
-      status: z.string().optional().describe('Filter by status: draft, sent, paid, overdue, cancelled'),
+      status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial']).optional().describe('Filter by status'),
       client_id: z.string().optional().describe('Filter by client UUID'),
       limit: z.number().optional().describe('Max results (default 50)')
     },
@@ -25,7 +27,7 @@ export function registerInvoiceTools(server: McpServer) {
       if (client_id) query = query.eq('client_id', client_id);
 
       const { data, error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list invoices') }] };
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }]
@@ -47,7 +49,7 @@ export function registerInvoiceTools(server: McpServer) {
         .eq('user_id', getUserId())
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get invoice') }] };
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }]
@@ -66,10 +68,12 @@ export function registerInvoiceTools(server: McpServer) {
       total_ht: z.number().describe('Total excluding VAT'),
       tax_rate: z.number().optional().describe('VAT rate (default 20)'),
       total_ttc: z.number().describe('Total including VAT'),
-      status: z.string().optional().describe('Status: draft, sent (default draft)'),
+      status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial']).optional().describe('Status (default draft)'),
       notes: z.string().optional().describe('Invoice notes')
     },
     async ({ invoice_number, client_id, date, due_date, total_ht, tax_rate, total_ttc, status, notes }) => {
+      try { validateDate(date, 'date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+      try { validateDate(due_date, 'due_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
       const vatRate = tax_rate ?? 20;
 
       const { data, error } = await supabase
@@ -89,7 +93,7 @@ export function registerInvoiceTools(server: McpServer) {
         .select()
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create invoice') }] };
 
       return {
         content: [{ type: 'text' as const, text: `Invoice ${invoice_number} created.\n${JSON.stringify(data, null, 2)}` }]
@@ -110,7 +114,7 @@ export function registerInvoiceTools(server: McpServer) {
         .eq('id', invoice_id)
         .eq('user_id', getUserId());
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error deleting invoice: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete invoice') }] };
 
       return {
         content: [{ type: 'text' as const, text: `Successfully deleted invoice ${invoice_id}` }]
@@ -123,7 +127,7 @@ export function registerInvoiceTools(server: McpServer) {
     'Update the status of an invoice',
     {
       invoice_id: z.string().describe('Invoice UUID'),
-      status: z.string().describe('New status: draft, sent, paid, overdue, cancelled')
+      status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial']).describe('New status')
     },
     async ({ invoice_id, status }) => {
       const { data, error } = await supabase
@@ -134,7 +138,7 @@ export function registerInvoiceTools(server: McpServer) {
         .select()
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update invoice status') }] };
 
       return {
         content: [{ type: 'text' as const, text: `Invoice status updated to '${status}'.\n${JSON.stringify(data, null, 2)}` }]
@@ -158,7 +162,7 @@ export function registerInvoiceTools(server: McpServer) {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'search invoices') }] };
 
       return {
         content: [{ type: 'text' as const, text: `Found ${data?.length ?? 0} invoices.\n${JSON.stringify(data, null, 2)}` }]
@@ -183,7 +187,7 @@ export function registerInvoiceTools(server: McpServer) {
         .eq('user_id', getUserId())
         .gte('date', startDate.toISOString().split('T')[0]);
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get invoice stats') }] };
 
       const now = new Date().toISOString().split('T')[0];
       const stats = {

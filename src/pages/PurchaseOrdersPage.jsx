@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
@@ -140,6 +141,7 @@ const PurchaseOrdersPage = () => {
   const [formData, setFormData] = useState(() => createInitialFormData());
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [filterStatus, setFilterStatus] = useState('all');
   const [viewMode, setViewMode] = useState('list');
   const [viewPO, setViewPO] = useState(null);
@@ -215,8 +217,8 @@ const PurchaseOrdersPage = () => {
 
   const filteredPOs = purchaseOrders.filter(po => {
     const matchesSearch =
-      po.po_number?.toLowerCase().includes(search.toLowerCase()) ||
-      po.client?.company_name?.toLowerCase().includes(search.toLowerCase());
+      po.po_number?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      po.client?.company_name?.toLowerCase().includes(debouncedSearch.toLowerCase());
     const matchesFilter = filterStatus === 'all' || po.status === filterStatus;
     return matchesSearch && matchesFilter;
   });

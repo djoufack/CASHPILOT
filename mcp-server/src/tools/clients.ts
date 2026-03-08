@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { supabase, getUserId } from '../supabase.js';
 import { sanitizeText } from '../utils/sanitize.js';
+import { safeError } from '../utils/errors.js';
 
 export function registerClientTools(server: McpServer) {
 
@@ -26,7 +27,7 @@ export function registerClientTools(server: McpServer) {
       }
 
       const { data, error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list clients') }] };
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }]
@@ -48,7 +49,7 @@ export function registerClientTools(server: McpServer) {
           .order('date', { ascending: false }).limit(10)
       ]);
 
-      if (clientRes.error) return { content: [{ type: 'text' as const, text: `Error: ${clientRes.error.message}` }] };
+      if (clientRes.error) return { content: [{ type: 'text' as const, text: safeError(clientRes.error, 'get client') }] };
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify({ ...clientRes.data, recent_invoices: invoicesRes.data ?? [] }, null, 2) }]
@@ -92,7 +93,7 @@ export function registerClientTools(server: McpServer) {
         .select()
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create client') }] };
 
       return {
         content: [{ type: 'text' as const, text: `Client '${company_name}' created.\n${JSON.stringify(data, null, 2)}` }]
@@ -132,7 +133,7 @@ export function registerClientTools(server: McpServer) {
         .select()
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update client') }] };
 
       return {
         content: [{ type: 'text' as const, text: `Client updated.\n${JSON.stringify(data, null, 2)}` }]
@@ -153,7 +154,7 @@ export function registerClientTools(server: McpServer) {
         .eq('id', client_id)
         .eq('user_id', getUserId());
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error archiving client: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'archive client') }] };
 
       return {
         content: [{ type: 'text' as const, text: `Successfully archived client ${client_id}. Use restore_client to undo.` }]
@@ -176,7 +177,7 @@ export function registerClientTools(server: McpServer) {
         .select()
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error restoring client: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'restore client') }] };
 
       return {
         content: [{ type: 'text' as const, text: `Client restored.\n${JSON.stringify(data, null, 2)}` }]
@@ -199,7 +200,7 @@ export function registerClientTools(server: McpServer) {
         .order('deleted_at', { ascending: false })
         .limit(limit ?? 50);
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list archived clients') }] };
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }]
@@ -221,7 +222,7 @@ export function registerClientTools(server: McpServer) {
           .eq('client_id', client_id).eq('user_id', getUserId())
       ]);
 
-      if (invoicesRes.error) return { content: [{ type: 'text' as const, text: `Error: ${invoicesRes.error.message}` }] };
+      if (invoicesRes.error) return { content: [{ type: 'text' as const, text: safeError(invoicesRes.error, 'get client balance') }] };
 
       const totalInvoiced = (invoicesRes.data ?? []).reduce((s, i) => s + parseFloat(i.total_ttc || '0'), 0);
       const totalPaid = (paymentsRes.data ?? []).reduce((s, p) => s + parseFloat(p.amount || '0'), 0);

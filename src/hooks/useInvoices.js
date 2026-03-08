@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
@@ -9,11 +9,9 @@ import { generateInvoiceNumber } from '@/utils/calculations';
 import { sanitizeText } from '@/utils/sanitize';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { triggerWebhook } from '@/utils/webhookTrigger';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 
 export const useInvoices = () => {
-  const [invoices, setInvoices] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -98,6 +96,46 @@ export const useInvoices = () => {
     }
   };
 
+  const {
+    data: invoices,
+    setData: setInvoices,
+    loading,
+    setLoading,
+    error,
+    setError,
+  } = useSupabaseQuery(
+    async () => {
+      if (!user) return [];
+      if (!supabase) {
+        console.warn("Supabase not configured");
+        return [];
+      }
+      let query = supabase
+        .from('invoices')
+        .select(`
+          *,
+          client:clients(id, company_name, contact_name, email, preferred_currency),
+          items:invoice_items(*),
+          payments:payments(id, amount, payment_date, payment_method, receipt_number)
+        `)
+        .order('created_at', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
+      if (error) {
+        // Handle RLS recursion (42P17) or permission (42501) errors gracefully
+        if (error.code === '42P17' || error.code === '42501') {
+          console.warn('RLS policy error fetching invoices:', error.message);
+          return [];
+        }
+        throw error;
+      }
+      return data || [];
+    },
+    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+  );
+
   const fetchInvoices = useCallback(async (filters = {}, { page, pageSize } = {}) => {
     if (!user) return;
     if (!supabase) {
@@ -149,7 +187,7 @@ export const useInvoices = () => {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]);
+  }, [applyCompanyScope, toast, user, setLoading, setInvoices, setError]);
 
   const createInvoice = async (invoiceData, items = []) => {
     if (!user) return;
@@ -426,10 +464,6 @@ export const useInvoices = () => {
       Number(i.balance_due || i.total_ttc || 0) > 0
     );
   };
-
-  useEffect(() => {
-    fetchInvoices();
-  }, [fetchInvoices]);
 
   return {
     invoices,
