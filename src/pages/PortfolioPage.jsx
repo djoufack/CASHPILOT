@@ -151,28 +151,17 @@ const PortfolioPage = () => {
     setLoading(true);
 
     try {
+      // Use SECURITY DEFINER RPCs to bypass company_scope_guard restrictive RLS
       const [
         invoicesResponse,
         paymentsResponse,
         projectsResponse,
         quotesResponse,
       ] = await Promise.all([
-        supabase
-          .from('invoices')
-          .select('id, company_id, invoice_number, total_ttc, balance_due, status, payment_status, due_date, created_at, client:clients(company_name, contact_name)')
-          .in('company_id', companyIds),
-        supabase
-          .from('payments')
-          .select('id, company_id, amount, payment_date')
-          .in('company_id', companyIds),
-        supabase
-          .from('projects')
-          .select('id, company_id, name, status, created_at')
-          .in('company_id', companyIds),
-        supabase
-          .from('quotes')
-          .select('id, company_id, quote_number, total_ttc, status, created_at, client:clients(company_name, contact_name)')
-          .in('company_id', companyIds),
+        supabase.rpc('get_portfolio_invoices'),
+        supabase.rpc('get_portfolio_payments'),
+        supabase.rpc('get_portfolio_projects'),
+        supabase.rpc('get_portfolio_quotes'),
       ]);
 
       const responses = [invoicesResponse, paymentsResponse, projectsResponse, quotesResponse];
@@ -210,7 +199,7 @@ const PortfolioPage = () => {
             companyName: summary.company.company_name || t('portfolio.companyGeneric'),
             currency: summary.currency,
             invoiceNumber: invoice.invoice_number || t('portfolio.invoiceFallback'),
-            clientName: invoice.client?.company_name || invoice.client?.contact_name || t('portfolio.clientFallback'),
+            clientName: invoice.client_company_name || invoice.client_contact_name || t('portfolio.clientFallback'),
             amount: balanceDue,
             daysOverdue: getDaysOverdue(invoice.due_date),
           });
