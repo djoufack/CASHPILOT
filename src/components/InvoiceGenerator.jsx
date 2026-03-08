@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { motion } from 'framer-motion';
 import { calculateInvoiceTotalWithDiscount, formatCurrency } from '@/utils/calculations';
 import { Plus, Trash2, Tag, Truck, Settings2, ChevronDown, ChevronUp, Package, Wrench } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { addDaysToDateInput, formatDateInput } from '@/utils/dateFormatting';
 import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
@@ -35,6 +36,7 @@ const InvoiceGenerator = ({ onSuccess }) => {
   const { clients } = useClients();
   const { products } = useProducts();
   const { services } = useServices();
+  const { toast } = useToast();
   const { defaultRate } = useDefaultTaxRate();
   const { defaultDays } = useDefaultPaymentDays();
 
@@ -281,7 +283,12 @@ const InvoiceGenerator = ({ onSuccess }) => {
   const grandTotal = totals.totalTTC + Number(shippingFee || 0) + Number(adjustment || 0);
 
   const handleGenerateInvoice = async () => {
-    if (!selectedClientId || allItems.length === 0) {
+    if (!selectedClientId) {
+      toast({ title: t('common.error'), description: t('messages.error.clientRequired', 'Please select a client'), variant: 'destructive' });
+      return;
+    }
+    if (allItems.length === 0) {
+      toast({ title: t('common.error'), description: t('messages.error.noItems', 'Please add at least one item'), variant: 'destructive' });
       return;
     }
 

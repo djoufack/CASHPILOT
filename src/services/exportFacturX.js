@@ -5,6 +5,7 @@
  */
 
 import { resolveInvoiceCurrency } from '@/utils/invoiceCurrency';
+import { uploadDocument } from '@/services/documentStorage';
 
 const FACTURX_PROFILES = {
   MINIMUM: 'urn:factur-x.eu:1p0:minimum',
@@ -373,10 +374,22 @@ export const exportFacturX = async (invoice, seller, buyer, profile = 'BASIC', i
   }
 
   const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
+  const filename = `factur-x-${invoice.invoice_number}.xml`;
+
+  // Upload to storage in background (don't block user)
+  if (invoice.user_id) {
+    uploadDocument({
+      bucket: 'accounting-exports',
+      userId: invoice.user_id,
+      fileName: `facturx/${filename}`,
+      fileData: blob,
+      contentType: 'application/xml;charset=utf-8'
+    }).catch(err => console.warn('Factur-X upload failed:', err));
+  }
 
   return {
     blob,
-    filename: `factur-x-${invoice.invoice_number}.xml`,
+    filename,
     profile,
     xml
   };
@@ -436,9 +449,23 @@ export const exportFacturXPdf = async (pdfBytes, invoice, seller, buyer, profile
   pdfDoc.setProducer('CashPilot');
 
   const modifiedPdfBytes = await pdfDoc.save();
+  const pdfBlob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+  const pdfFilename = `factur-x-${invoice.invoice_number || 'invoice'}.pdf`;
+
+  // Upload to storage in background (don't block user)
+  if (invoice.user_id) {
+    uploadDocument({
+      bucket: 'accounting-exports',
+      userId: invoice.user_id,
+      fileName: `facturx/${pdfFilename}`,
+      fileData: pdfBlob,
+      contentType: 'application/pdf'
+    }).catch(err => console.warn('Factur-X PDF upload failed:', err));
+  }
+
   return {
-    blob: new Blob([modifiedPdfBytes], { type: 'application/pdf' }),
-    filename: `factur-x-${invoice.invoice_number || 'invoice'}.pdf`,
+    blob: pdfBlob,
+    filename: pdfFilename,
     profile,
     xml,
   };

@@ -125,8 +125,7 @@ export const useCreditNotes = () => {
     if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
-      // Delete items first
-      await supabase.from('credit_note_items').delete().eq('credit_note_id', id);
+      // Items are deleted automatically via DB CASCADE
       const { error } = await supabase
         .from('credit_notes')
         .delete()

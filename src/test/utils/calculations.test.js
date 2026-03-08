@@ -430,16 +430,16 @@ describe('generateInvoiceNumber', () => {
     });
   });
 
-  it('should generate invoice number with correct format', () => {
+  it('should generate invoice number with correct format', async () => {
     Storage.prototype.getItem.mockReturnValue('[]');
-    const result = generateInvoiceNumber();
+    const result = await generateInvoiceNumber();
     const now = new Date();
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
     expect(result).toBe(`INV-${year}-${month}-001`);
   });
 
-  it('should increment sequence when existing invoices exist', () => {
+  it('should increment sequence when existing invoices exist', async () => {
     const now = new Date();
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
@@ -449,7 +449,7 @@ describe('generateInvoiceNumber', () => {
         { invoiceNumber: `INV-${year}-${month}-002` },
       ])
     );
-    const result = generateInvoiceNumber();
+    const result = await generateInvoiceNumber();
     expect(result).toBe(`INV-${year}-${month}-003`);
   });
 });

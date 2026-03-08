@@ -120,14 +120,25 @@ export const useSupplierOrders = () => {
   const updateOrderStatus = async (id, status) => {
     setLoading(true);
     try {
+      const isCommitment = status === 'sent' || status === 'confirmed';
+      const updatePayload = { order_status: status };
+      if (isCommitment) {
+        updatePayload.is_financial_commitment = true;
+        updatePayload.commitment_date = new Date().toISOString();
+      }
+
       const { data, error } = await supabase
         .from('supplier_orders')
-        .update({ order_status: status })
+        .update(updatePayload)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
+
+      if (isCommitment) {
+        console.info(`Supplier order ${id} marked as financial commitment (status: ${status})`);
+      }
 
       setOrders(orders.map(o => o.id === id ? { ...o, order_status: status } : o));
       toast({

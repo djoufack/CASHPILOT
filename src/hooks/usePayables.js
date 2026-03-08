@@ -12,7 +12,7 @@ export const usePayables = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchPayables = useCallback(async () => {
     if (!user || !supabase) return;
@@ -43,6 +43,10 @@ export const usePayables = () => {
 
   const createPayable = async (data) => {
     if (!user || !supabase) throw new Error('Not authenticated');
+    if (!activeCompanyId) {
+      toast({ title: t('common.error'), description: 'No active company selected', variant: 'destructive' });
+      return null;
+    }
     setLoading(true);
     try {
       const { data: created, error } = await supabase

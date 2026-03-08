@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import { uploadDocument } from '@/services/documentStorage';
 
 const FEC_COLUMNS = [
   'JournalCode',    // Code journal
@@ -169,9 +170,22 @@ export const exportFEC = async (entries, companyInfo, startDate, endDate, userId
     type: 'text/plain;charset=utf-8'
   });
 
+  const filename = generateFECFilename(companyInfo.siren, endDate);
+
+  // Upload to storage in background (don't block user)
+  if (userId) {
+    uploadDocument({
+      bucket: 'accounting-exports',
+      userId,
+      fileName: `fec/${filename}`,
+      fileData: blob,
+      contentType: 'text/plain;charset=utf-8'
+    }).catch(err => console.warn('FEC upload failed:', err));
+  }
+
   return {
     blob,
-    filename: generateFECFilename(companyInfo.siren, endDate),
+    filename,
     rowCount: fecLines.length,
     period: { start: startDate, end: endDate }
   };

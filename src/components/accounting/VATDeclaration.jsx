@@ -6,15 +6,19 @@ import { Badge } from '@/components/ui/badge';
 import { Download, FileText, Receipt, ArrowDown, ArrowUp, Minus, PieChart as PieChartIcon } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import { formatCurrency } from '@/utils/calculations';
+import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
 
 const COLORS = ['#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
 const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthlyData, period, onExportPDF, onExportHTML, currency }) => {
 
+  const { defaultRate } = useDefaultTaxRate();
+  const vatFallbackRate = defaultRate / 100;
+
   // Build monthly VAT data - use real data when available
   const monthlyVATData = (monthlyData || []).map(m => {
-    const collectee = m.outputVAT || m.revenue * 0.1925;
-    const deductible = m.inputVAT || m.expense * 0.1925;
+    const collectee = m.outputVAT || m.revenue * vatFallbackRate;
+    const deductible = m.inputVAT || m.expense * vatFallbackRate;
     return {
       name: m.name,
       collectee: Math.round(collectee),

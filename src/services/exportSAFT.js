@@ -7,6 +7,7 @@
  */
 import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
 import { formatDateInput } from '@/utils/dateFormatting';
+import { uploadDocument } from '@/services/documentStorage';
 
 // ========== UTILITY FUNCTIONS ==========
 
@@ -558,7 +559,7 @@ export const generateSAFTFilename = (companyInfo = {}, period = {}) => {
  * @param {Object} companyInfo - Company information
  * @param {Object} period - Fiscal period
  */
-export const downloadSAFT = (data = {}, companyInfo = {}, period = {}) => {
+export const downloadSAFT = (data = {}, companyInfo = {}, period = {}, userId) => {
   const xmlContent = exportSAFT(data, companyInfo, period);
   const filename = generateSAFTFilename(companyInfo, period);
 
@@ -572,6 +573,17 @@ export const downloadSAFT = (data = {}, companyInfo = {}, period = {}) => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+
+  // Upload to storage in background (don't block user)
+  if (userId) {
+    uploadDocument({
+      bucket: 'accounting-exports',
+      userId,
+      fileName: `saft/${filename}`,
+      fileData: blob,
+      contentType: 'application/xml;charset=utf-8'
+    }).catch(err => console.warn('SAF-T upload failed:', err));
+  }
 
   return { filename, success: true };
 };

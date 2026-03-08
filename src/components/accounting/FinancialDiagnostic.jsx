@@ -43,6 +43,7 @@ import RatioInfoPopover from './RatioInfoPopover';
 import MarginAnalysisSection from './MarginAnalysisSection';
 import FinancingAnalysisSection from './FinancingAnalysisSection';
 import KeyRatiosSection from './KeyRatiosSection';
+import { supabase } from '@/lib/supabase';
 
 const STORAGE_KEY = 'cashpilot.financial-diagnostic-layout.v3';
 
@@ -66,7 +67,7 @@ const SORT_OPTIONS = [
   { value: 'alpha', labelKey: 'financial_diagnostic.sort_alpha' },
 ];
 
-const SECTOR_BENCHMARKS = {
+const DEFAULT_SECTOR_BENCHMARKS = {
   services: {
     grossMarginPercent: 42,
     ebitdaMargin: 14,
@@ -680,6 +681,20 @@ const FinancialDiagnostic = ({
 }) => {
   const { t } = useTranslation();
 
+  const [benchmarks, setBenchmarks] = useState(DEFAULT_SECTOR_BENCHMARKS);
+  useEffect(() => {
+    supabase
+      .from('sector_benchmarks')
+      .select('*')
+      .then(({ data }) => {
+        if (data?.length) {
+          const map = {};
+          data.forEach(b => { map[b.sector_code] = b; });
+          setBenchmarks(map);
+        }
+      });
+  }, []);
+
   const resolveCard = (card) => ({
     ...card,
     title: t(`financial_diagnostic.cards.${card.i18nKey}.title`),
@@ -899,7 +914,7 @@ const FinancialDiagnostic = ({
       visibleCards: displayedCards.map((card) => {
         const currentValue = getMetricValue(diagnostic, card.metricKey);
         const comparisonValue = getMetricValue(comparisonDiagnostic, card.metricKey);
-        const benchmarkValue = SECTOR_BENCHMARKS[benchmarkSector]?.[card.metricKey];
+        const benchmarkValue = benchmarks[benchmarkSector]?.[card.metricKey];
         return {
           id: card.id,
           title: card.title,
@@ -939,7 +954,7 @@ const FinancialDiagnostic = ({
     const currentValue = getMetricValue(diagnostic, card.metricKey);
     const comparisonValue = getMetricValue(comparisonDiagnostic, card.metricKey);
     const comparisonInfo = getComparisonInfo(currentValue, comparisonValue, card.betterWhen);
-    const benchmarkValue = SECTOR_BENCHMARKS[benchmarkSector]?.[card.metricKey];
+    const benchmarkValue = benchmarks[benchmarkSector]?.[card.metricKey];
     const benchmarkGap = Number.isFinite(benchmarkValue) ? currentValue - benchmarkValue : null;
     const trendSeries = trendSeriesMap[card.trendKey] || [];
     const Icon = card.icon || BarChart3;
@@ -1381,8 +1396,8 @@ const FinancialDiagnostic = ({
                     <CardContent className="p-3">
                       <p className="text-xs text-gray-400">{t('financial_diagnostic.sector_median_short')}</p>
                       <p className="text-lg font-bold text-gray-100 mt-1">
-                        {Number.isFinite(SECTOR_BENCHMARKS[benchmarkSector]?.[selectedCard.metricKey])
-                          ? formatMetric(SECTOR_BENCHMARKS[benchmarkSector]?.[selectedCard.metricKey], selectedCard.format, currency)
+                        {Number.isFinite(benchmarks[benchmarkSector]?.[selectedCard.metricKey])
+                          ? formatMetric(benchmarks[benchmarkSector]?.[selectedCard.metricKey], selectedCard.format, currency)
                           : '-'}
                       </p>
                     </CardContent>

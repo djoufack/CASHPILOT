@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAccounting } from '@/hooks/useAccounting';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Percent, Zap } from 'lucide-react';
 
-const PRESETS = {
+const DEFAULT_PRESETS = {
   france: [
     { name: 'TVA 20% (normal)', rate: 0.2, tax_type: 'output', account_code: '445710' },
     { name: 'TVA 10% (intermédiaire)', rate: 0.1, tax_type: 'output', account_code: '445710' },
@@ -34,11 +35,36 @@ const TaxRatesManager = () => {
   const { accounts, taxRates, fetchAccounts, fetchTaxRates, createTaxRate, deleteTaxRate } = useAccounting();
   const [showDialog, setShowDialog] = useState(false);
   const [form, setForm] = useState({ name: '', rate: '', tax_type: 'output', account_code: '', is_default: false });
+  const [presets, setPresets] = useState(DEFAULT_PRESETS);
 
   useEffect(() => {
     fetchAccounts();
     fetchTaxRates();
   }, [fetchAccounts, fetchTaxRates]);
+
+  useEffect(() => {
+    supabase
+      .from('tax_rate_presets')
+      .select('*')
+      .then(({ data }) => {
+        if (data?.length) {
+          const grouped = {};
+          data.forEach(p => {
+            const key = p.country_code?.toLowerCase();
+            if (key) {
+              if (!grouped[key]) grouped[key] = [];
+              grouped[key].push({
+                name: p.name,
+                rate: p.rate,
+                tax_type: p.tax_type,
+                account_code: p.account_code,
+              });
+            }
+          });
+          setPresets(grouped);
+        }
+      });
+  }, []);
 
   const handleCreate = async () => {
     if (!form.name || !form.rate) return;
@@ -48,7 +74,7 @@ const TaxRatesManager = () => {
   };
 
   const loadPreset = async (country) => {
-    const preset = PRESETS[country];
+    const preset = presets[country];
     if (!preset) return;
     for (const rate of preset) {
       await createTaxRate(rate);

@@ -15,7 +15,7 @@ export const useExpenses = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
-  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [totalCount, setTotalCount] = useState(0);
 
@@ -60,6 +60,10 @@ export const useExpenses = () => {
   const createExpense = async (expenseData) => {
     if (!user) return;
     if (!supabase) throw new Error("Supabase not configured");
+    if (!activeCompanyId) {
+      toast({ title: 'Error', description: 'No active company selected', variant: 'destructive' });
+      return null;
+    }
     setLoading(true);
     try {
       // Ensure date is present, default to now if not provided

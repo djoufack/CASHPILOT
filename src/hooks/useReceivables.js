@@ -12,7 +12,7 @@ export const useReceivables = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchReceivables = useCallback(async () => {
     if (!user || !supabase) return;
@@ -43,6 +43,10 @@ export const useReceivables = () => {
 
   const createReceivable = async (data) => {
     if (!user || !supabase) throw new Error('Not authenticated');
+    if (!activeCompanyId) {
+      toast({ title: t('common.error'), description: 'No active company selected', variant: 'destructive' });
+      return null;
+    }
     setLoading(true);
     try {
       const { data: created, error } = await supabase
