@@ -60,7 +60,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isLoaded, setIsLoaded] = useState(false);
   const [mobileMenuActive, setMobileMenuActive] = useState(false);
   const [navbarScrolled, setNavbarScrolled] = useState(false);
@@ -1124,6 +1124,7 @@ const LandingPage = () => {
                 <a href="/peppol-guide" onClick={(e) => { e.preventDefault(); handleNavigate('/peppol-guide'); }}>{copy.footer.links.support}</a>
                 <a href="/privacy" onClick={(e) => { e.preventDefault(); handleNavigate('/privacy'); }}>{legalLinkLabels.privacy}</a>
                 <a href="/legal" onClick={(e) => { e.preventDefault(); handleNavigate('/legal'); }}>{legalLinkLabels.legal}</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new Event('show-cookie-consent')); }}>{t('cookies.footerLink')}</a>
               </div>
             </div>
           </div>

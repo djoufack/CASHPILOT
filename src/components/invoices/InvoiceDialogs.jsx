@@ -26,43 +26,34 @@ import {
 import { formatCurrency } from '@/utils/calculations';
 
 const InvoiceDialogs = ({
-  // Preview
-  viewingInvoice,
-  setViewingInvoice,
+  dialog,
+  setDialog,
+  closeDialog,
   clients,
   getInvoiceItems,
-  // Payment
-  isPaymentOpen,
-  setIsPaymentOpen,
-  paymentInvoice,
   fetchInvoices,
-  // Lump Sum
-  isLumpSumOpen,
-  setIsLumpSumOpen,
-  lumpSumClientId,
-  // History
-  isHistoryOpen,
-  setIsHistoryOpen,
-  historyInvoice,
-  // Delete
-  isDeleteDialogOpen,
-  setIsDeleteDialogOpen,
   handleConfirmDelete,
-  // Email
-  emailModalInvoice,
-  setEmailModalInvoice,
-  emailModalAddress,
-  setEmailModalAddress,
   emailSending,
   handleConfirmSendEmail,
   company,
 }) => {
+  // Derive dialog visibility and data from consolidated state
+  const viewingInvoice = dialog.type === 'preview' ? dialog.invoice : null;
+  const isPaymentOpen = dialog.type === 'payment';
+  const paymentInvoice = dialog.type === 'payment' ? dialog.invoice : null;
+  const isLumpSumOpen = dialog.type === 'lumpSum';
+  const lumpSumClientId = dialog.lumpSumClientId;
+  const isHistoryOpen = dialog.type === 'history';
+  const historyInvoice = dialog.type === 'history' ? dialog.invoice : null;
+  const isDeleteDialogOpen = dialog.type === 'delete';
+  const emailModalInvoice = dialog.type === 'email' ? dialog.invoice : null;
+  const emailModalAddress = dialog.emailAddress || '';
   const { t } = useTranslation();
 
   return (
     <>
       {/* Invoice Preview Dialog */}
-      <Dialog open={!!viewingInvoice} onOpenChange={() => setViewingInvoice(null)}>
+      <Dialog open={!!viewingInvoice} onOpenChange={() => closeDialog()}>
         <DialogContent className="w-full sm:max-w-[95%] md:max-w-4xl bg-gray-800 border-gray-700 text-white p-4 md:p-6 overflow-y-auto max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="text-xl md:text-2xl font-bold text-gradient">
@@ -82,7 +73,7 @@ const InvoiceDialogs = ({
       {/* Payment Recorder Dialog (single invoice) */}
       <PaymentRecorder
         open={isPaymentOpen}
-        onOpenChange={setIsPaymentOpen}
+        onOpenChange={(open) => { if (!open) closeDialog(); }}
         invoice={paymentInvoice}
         isLumpSum={false}
         onSuccess={() => fetchInvoices()}
@@ -91,14 +82,14 @@ const InvoiceDialogs = ({
       {/* Lump Sum Payment Dialog */}
       <PaymentRecorder
         open={isLumpSumOpen}
-        onOpenChange={setIsLumpSumOpen}
+        onOpenChange={(open) => { if (!open) closeDialog(); }}
         clientId={lumpSumClientId}
         isLumpSum={true}
         onSuccess={() => fetchInvoices()}
       />
 
       {/* Payment History Dialog */}
-      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+      <Dialog open={isHistoryOpen} onOpenChange={(open) => { if (!open) closeDialog(); }}>
         <DialogContent className="w-full sm:max-w-[95%] md:max-w-2xl bg-gray-800 border-gray-700 text-white p-4 md:p-6 overflow-y-auto max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-gradient">
@@ -112,7 +103,7 @@ const InvoiceDialogs = ({
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => { if (!open) closeDialog(); }}>
         <AlertDialogContent className="w-full sm:max-w-[90%] md:max-w-lg bg-gray-800 border-gray-700 text-white">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Invoice</AlertDialogTitle>
@@ -135,7 +126,7 @@ const InvoiceDialogs = ({
       </AlertDialog>
 
       {/* Send Email Modal */}
-      <Dialog open={!!emailModalInvoice} onOpenChange={(open) => { if (!open) { setEmailModalInvoice(null); setEmailModalAddress(''); } }}>
+      <Dialog open={!!emailModalInvoice} onOpenChange={(open) => { if (!open) closeDialog(); }}>
         <DialogContent className="w-full sm:max-w-[90%] md:max-w-md bg-gray-800 border-gray-700 text-white p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-gradient flex items-center gap-2">
@@ -178,7 +169,7 @@ const InvoiceDialogs = ({
                     id="email-recipient"
                     type="email"
                     value={emailModalAddress}
-                    onChange={(e) => setEmailModalAddress(e.target.value)}
+                    onChange={(e) => setDialog(prev => ({ ...prev, emailAddress: e.target.value }))}
                     placeholder="client@example.com"
                     className="bg-gray-900 border-gray-600 text-white mt-1"
                   />
@@ -188,7 +179,7 @@ const InvoiceDialogs = ({
                 <div className="flex gap-2 pt-2">
                   <Button
                     variant="outline"
-                    onClick={() => { setEmailModalInvoice(null); setEmailModalAddress(''); }}
+                    onClick={() => closeDialog()}
                     className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
                   >
                     {t('buttons.cancel')}

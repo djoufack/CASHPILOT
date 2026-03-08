@@ -4,6 +4,8 @@ import { supabase, getUserId } from '../supabase.js';
 import { sanitizeText } from '../utils/sanitize.js';
 import { safeError } from '../utils/errors.js';
 
+const COLS_CLIENTS = 'id, company_name, contact_name, email, phone, address, city, postal_code, country, vat_number, preferred_currency, notes, payment_terms, bank_name, iban, bic_swift, tax_id, website, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled, deleted_at, created_at, updated_at';
+
 export function registerClientTools(server: McpServer) {
 
   server.tool(
@@ -16,13 +18,14 @@ export function registerClientTools(server: McpServer) {
     async ({ search, limit }) => {
       let query = supabase
         .from('clients')
-        .select('*')
+        .select(COLS_CLIENTS)
         .eq('user_id', getUserId())
         .order('company_name', { ascending: true })
         .limit(limit ?? 50);
 
       if (search) {
-        const pattern = `%${search}%`;
+        const safeSearch = search.replace(/[|,().]/g, '\\$&');
+        const pattern = `%${safeSearch}%`;
         query = query.or(`company_name.ilike.${pattern},contact_name.ilike.${pattern},email.ilike.${pattern}`);
       }
 
@@ -43,7 +46,7 @@ export function registerClientTools(server: McpServer) {
     },
     async ({ client_id }) => {
       const [clientRes, invoicesRes] = await Promise.all([
-        supabase.from('clients').select('*').eq('id', client_id).eq('user_id', getUserId()).single(),
+        supabase.from('clients').select(COLS_CLIENTS).eq('id', client_id).eq('user_id', getUserId()).single(),
         supabase.from('invoices').select('id, invoice_number, date, total_ttc, status, payment_status')
           .eq('client_id', client_id).eq('user_id', getUserId())
           .order('date', { ascending: false }).limit(10)
@@ -63,7 +66,7 @@ export function registerClientTools(server: McpServer) {
     {
       company_name: z.string().describe('Company name'),
       contact_name: z.string().optional().describe('Contact person name'),
-      email: z.string().optional().describe('Email address'),
+      email: z.string().email().optional().describe('Email address'),
       address: z.string().optional().describe('Street address'),
       city: z.string().optional().describe('City'),
       postal_code: z.string().optional().describe('Postal code'),
@@ -108,7 +111,7 @@ export function registerClientTools(server: McpServer) {
       client_id: z.string().describe('Client UUID to update'),
       company_name: z.string().optional().describe('Company name'),
       contact_name: z.string().optional().describe('Contact person name'),
-      email: z.string().optional().describe('Email address'),
+      email: z.string().email().optional().describe('Email address'),
       address: z.string().optional().describe('Street address'),
       city: z.string().optional().describe('City'),
       postal_code: z.string().optional().describe('Postal code'),
@@ -194,7 +197,7 @@ export function registerClientTools(server: McpServer) {
     async ({ limit }) => {
       const { data, error } = await supabase
         .from('clients')
-        .select('*')
+        .select(COLS_CLIENTS)
         .eq('user_id', getUserId())
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false })

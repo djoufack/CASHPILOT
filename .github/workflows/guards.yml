@@ -21,8 +21,51 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Validate that required environment variables are defined.
+      # These are needed at build time by Vite to connect to Supabase.
+      - name: Validate required env vars
+        run: |
+          missing=0
+          for var in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY; do
+            if [ -z "${!var}" ]; then
+              echo "::warning::Required env var $var is not set"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            echo "::warning::Some required env vars are missing. Build may fail at runtime."
+          fi
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
+
       - name: Run guards
         run: npm run guard
 
       - name: Run tests
         run: npm test
+
+  # Security audit job — checks dependencies for known vulnerabilities.
+  # Runs in parallel with the guards job. Set to continue-on-error so it
+  # does not block the pipeline while the team triages findings.
+  security:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Run npm audit at moderate level to catch moderate+ vulnerabilities.
+      # This step is allowed to fail (continue-on-error on the job) so that
+      # teams can review findings without blocking merges initially.
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate

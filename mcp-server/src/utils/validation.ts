@@ -34,6 +34,10 @@ export function validateDate(value: unknown, name: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) {
     throw new Error(`Parameter '${name}' must be a valid date (YYYY-MM-DD)`);
   }
+  const d = new Date(s + 'T00:00:00Z');
+  if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== s) {
+    throw new Error(`Parameter '${name}' is not a valid calendar date`);
+  }
   return s;
 }
 
@@ -44,6 +48,8 @@ export function optionalDate(value: unknown): string | undefined {
   if (value === null || value === undefined || value === '') return undefined;
   const s = String(value).trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return undefined;
+  const d = new Date(s + 'T00:00:00Z');
+  if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== s) return undefined;
   return s;
 }
 

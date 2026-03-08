@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Eye, Trash2, FileText, DollarSign, History, Download, FileArchive, Mail, Loader2, Link, Copy } from 'lucide-react';
@@ -14,28 +14,14 @@ import { format } from 'date-fns';
 import { formatCurrency } from '@/utils/calculations';
 import PaginationControls from '@/components/PaginationControls';
 
-const InvoiceGalleryView = ({
-  invoices,
-  paginatedInvoices,
-  clients,
-  pagination,
-  onViewInvoice,
-  onDeleteClick,
-  onExportPDF,
-  onExportHTML,
-  onExportFacturX,
-  onStatusChange,
-  onRecordPayment,
-  onOpenHistory,
-  onOpenEmailModal,
-  onGeneratePaymentLink,
-  onCopyPaymentLink,
-  emailSending,
-  paymentLinkLoading,
-  getStatusColor,
-  getPaymentStatusBadge,
-  INVOICE_STATUS_COLORS,
-}) => {
+const InvoiceGalleryView = ({ data, actions, ui }) => {
+  const { invoices, paginatedInvoices, clients, pagination } = data;
+  const {
+    onViewInvoice, onDeleteClick, onExportPDF, onExportHTML, onExportFacturX,
+    onStatusChange, onRecordPayment, onOpenHistory, onOpenEmailModal,
+    onGeneratePaymentLink, onCopyPaymentLink,
+  } = actions;
+  const { emailSending, paymentLinkLoading, getStatusColor, getPaymentStatusBadge, INVOICE_STATUS_COLORS } = ui;
   const { t } = useTranslation();
 
   if (invoices.length === 0) {
@@ -258,4 +244,4 @@ const InvoiceGalleryView = ({
   );
 };
 
-export default InvoiceGalleryView;
+export default memo(InvoiceGalleryView);

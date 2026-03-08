@@ -4,6 +4,14 @@ import { supabase, getUserId } from '../supabase.js';
 import { sanitizeRecord } from '../utils/sanitize.js';
 import { validateDatesInRecord } from '../utils/validation.js';
 import { safeError } from '../utils/errors.js';
+import { getCached, setCache, invalidateCache } from '../utils/cache.js';
+
+// ── Explicit column lists (no select('*') — defense against future data leaks) ──
+const COLS_BANK_CONNECTIONS = 'id, institution_id, institution_name, institution_logo, status, account_id, account_iban, account_name, account_currency, account_balance, last_sync_at, sync_error, expires_at, created_at, updated_at';
+const COLS_SUPPLIERS = 'id, company_name, contact_person, email, phone, address, city, postal_code, country, currency, status, supplier_type, payment_terms, bank_name, iban, bic_swift, tax_id, website, notes, created_at, updated_at';
+const COLS_QUOTES = 'id, quote_number, client_id, date, status, tax_rate, total_ht, total_ttc, created_at';
+const COLS_BANK_TRANSACTIONS = 'id, bank_connection_id, external_id, date, booking_date, value_date, amount, currency, description, reference, remittance_info, creditor_name, debtor_name, reconciliation_status, invoice_id, match_confidence, matched_at, created_at, updated_at';
+const COLS_EXPENSES = 'id, description, amount, amount_ht, tax_rate, tax_amount, category, expense_date, payment_method, receipt_url, client_id, refacturable, deleted_at, created_at';
 
 export function registerGeneratedCrudTools(server: McpServer) {
 
@@ -23,7 +31,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       account_iban: z.string().optional(),
       account_name: z.string().optional(),
       account_currency: z.string().optional(),
-      account_balance: z.number().optional(),
+      account_balance: z.number().max(999999999.99).multipleOf(0.01).optional(),
       expires_at: z.string().optional()
     },
     async (args) => {
@@ -54,7 +62,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       account_iban: z.string().optional(),
       account_name: z.string().optional(),
       account_currency: z.string().optional(),
-      account_balance: z.number().optional(),
+      account_balance: z.number().max(999999999.99).multipleOf(0.01).optional(),
       expires_at: z.string().optional()
     },
     async (args) => {
@@ -91,7 +99,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch')
     },
     async ({ id }) => {
-      let query = supabase.from('bank_connections').select('*').eq('id', id);
+      let query = supabase.from('bank_connections').select(COLS_BANK_CONNECTIONS).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get bank connection') }] };
@@ -107,7 +115,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)')
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('bank_connections').select('*');
+      let query = supabase.from('bank_connections').select(COLS_BANK_CONNECTIONS);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list bank connections') }] };
@@ -121,10 +129,10 @@ export function registerGeneratedCrudTools(server: McpServer) {
     {
       creditor_name: z.string(),
       creditor_phone: z.string().optional(),
-      creditor_email: z.string().optional(),
+      creditor_email: z.string().email().optional(),
       description: z.string().optional(),
-      amount: z.number(),
-      amount_paid: z.number(),
+      amount: z.number().min(0).max(999999999.99).multipleOf(0.01),
+      amount_paid: z.number().min(0).max(999999999.99).multipleOf(0.01),
       currency: z.string(),
       date_borrowed: z.string(),
       due_date: z.string().optional(),
@@ -150,10 +158,10 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to update'),
       creditor_name: z.string().optional(),
       creditor_phone: z.string().optional(),
-      creditor_email: z.string().optional(),
+      creditor_email: z.string().email().optional(),
       description: z.string().optional(),
-      amount: z.number().optional(),
-      amount_paid: z.number().optional(),
+      amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      amount_paid: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       currency: z.string().optional(),
       date_borrowed: z.string().optional(),
       due_date: z.string().optional(),
@@ -225,13 +233,13 @@ export function registerGeneratedCrudTools(server: McpServer) {
     {
       invoice_id: z.string().optional().describe('Note: This is a Foreign Key to `invoices.id`.<fk table=\'invoices\' column=\'id\'/>'),
       description: z.string().optional(),
-      quantity: z.number().optional(),
-      unit_price: z.number().optional(),
-      total: z.number().optional(),
+      quantity: z.number().min(0).optional(),
+      unit_price: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      total: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       product_id: z.string().optional().describe('Note: This is a Foreign Key to `products.id`.<fk table=\'products\' column=\'id\'/>'),
       discount_type: z.string().optional(),
-      discount_value: z.number().optional(),
-      discount_amount: z.number().optional(),
+      discount_value: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      discount_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       hsn_code: z.string().optional(),
       item_type: z.string().optional(),
       service_id: z.string().optional().describe('Note: This is a Foreign Key to `services.id`.<fk table=\'services\' column=\'id\'/>'),
@@ -257,13 +265,13 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to update'),
       invoice_id: z.string().optional().describe('Note: This is a Foreign Key to `invoices.id`.<fk table=\'invoices\' column=\'id\'/>'),
       description: z.string().optional(),
-      quantity: z.number().optional(),
-      unit_price: z.number().optional(),
-      total: z.number().optional(),
+      quantity: z.number().min(0).optional(),
+      unit_price: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      total: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       product_id: z.string().optional().describe('Note: This is a Foreign Key to `products.id`.<fk table=\'products\' column=\'id\'/>'),
       discount_type: z.string().optional(),
-      discount_value: z.number().optional(),
-      discount_amount: z.number().optional(),
+      discount_value: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      discount_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       hsn_code: z.string().optional(),
       item_type: z.string().optional(),
       service_id: z.string().optional().describe('Note: This is a Foreign Key to `services.id`.<fk table=\'services\' column=\'id\'/>'),
@@ -351,9 +359,9 @@ export function registerGeneratedCrudTools(server: McpServer) {
       description: z.string().optional(),
       category_id: z.string().optional().describe('Note: This is a Foreign Key to `service_categories.id`.<fk table=\'service_categories\' column=\'id\'/>'),
       pricing_type: z.string(),
-      hourly_rate: z.number().optional(),
-      fixed_price: z.number().optional(),
-      unit_price: z.number().optional(),
+      hourly_rate: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      fixed_price: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      unit_price: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       unit: z.string().optional(),
       is_active: z.boolean().optional()
     },
@@ -377,9 +385,9 @@ export function registerGeneratedCrudTools(server: McpServer) {
       description: z.string().optional(),
       category_id: z.string().optional().describe('Note: This is a Foreign Key to `service_categories.id`.<fk table=\'service_categories\' column=\'id\'/>'),
       pricing_type: z.string().optional(),
-      hourly_rate: z.number().optional(),
-      fixed_price: z.number().optional(),
-      unit_price: z.number().optional(),
+      hourly_rate: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      fixed_price: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      unit_price: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       unit: z.string().optional(),
       is_active: z.boolean().optional()
     },
@@ -447,7 +455,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     {
       company_name: z.string(),
       contact_person: z.string().optional(),
-      email: z.string().optional(),
+      email: z.string().email().optional(),
       phone: z.string().optional(),
       address: z.string().optional(),
       postal_code: z.string().optional(),
@@ -482,7 +490,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to update'),
       company_name: z.string().optional(),
       contact_person: z.string().optional(),
-      email: z.string().optional(),
+      email: z.string().email().optional(),
       phone: z.string().optional(),
       address: z.string().optional(),
       postal_code: z.string().optional(),
@@ -533,7 +541,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch')
     },
     async ({ id }) => {
-      let query = supabase.from('suppliers').select('*').eq('id', id);
+      let query = supabase.from('suppliers').select(COLS_SUPPLIERS).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get supplier') }] };
@@ -549,7 +557,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)')
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('suppliers').select('*');
+      let query = supabase.from('suppliers').select(COLS_SUPPLIERS);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list suppliers') }] };
@@ -655,9 +663,9 @@ export function registerGeneratedCrudTools(server: McpServer) {
       quote_number: z.string(),
       date: z.string().optional(),
       status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired', 'converted']).optional(),
-      total_ht: z.number().optional(),
-      tax_rate: z.number().optional(),
-      total_ttc: z.number().optional()
+      total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
+      total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).optional()
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
@@ -679,9 +687,9 @@ export function registerGeneratedCrudTools(server: McpServer) {
       quote_number: z.string().optional(),
       date: z.string().optional(),
       status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired', 'converted']).optional(),
-      total_ht: z.number().optional(),
-      tax_rate: z.number().optional(),
-      total_ttc: z.number().optional()
+      total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
+      total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).optional()
     },
     async (args) => {
       const { id, ...updates } = args;
@@ -717,7 +725,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch')
     },
     async ({ id }) => {
-      let query = supabase.from('quotes').select('*').eq('id', id);
+      let query = supabase.from('quotes').select(COLS_QUOTES).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get quote') }] };
@@ -733,7 +741,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)')
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('quotes').select('*');
+      let query = supabase.from('quotes').select(COLS_QUOTES);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list quotes') }] };
@@ -750,8 +758,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
       statement_date: z.string().optional(),
       period_start: z.string().optional(),
       period_end: z.string().optional(),
-      opening_balance: z.number().optional(),
-      closing_balance: z.number().optional(),
+      opening_balance: z.number().max(999999999.99).multipleOf(0.01).optional(),
+      closing_balance: z.number().max(999999999.99).multipleOf(0.01).optional(),
       file_name: z.string(),
       file_path: z.string(),
       file_type: z.string(),
@@ -782,8 +790,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
       statement_date: z.string().optional(),
       period_start: z.string().optional(),
       period_end: z.string().optional(),
-      opening_balance: z.number().optional(),
-      closing_balance: z.number().optional(),
+      opening_balance: z.number().max(999999999.99).multipleOf(0.01).optional(),
+      closing_balance: z.number().max(999999999.99).multipleOf(0.01).optional(),
       file_name: z.string().optional(),
       file_path: z.string().optional(),
       file_type: z.string().optional(),
@@ -858,9 +866,9 @@ export function registerGeneratedCrudTools(server: McpServer) {
       order_id: z.string().optional().describe('Note: This is a Foreign Key to `supplier_orders.id`.<fk table=\'supplier_orders\' column=\'id\'/>'),
       service_id: z.string().optional().describe('Note: This is a Foreign Key to `supplier_services.id`.<fk table=\'supplier_services\' column=\'id\'/>'),
       product_id: z.string().optional().describe('Note: This is a Foreign Key to `supplier_products.id`.<fk table=\'supplier_products\' column=\'id\'/>'),
-      quantity: z.number(),
-      unit_price: z.number(),
-      total_price: z.number()
+      quantity: z.number().min(0),
+      unit_price: z.number().min(0).max(999999999.99).multipleOf(0.01),
+      total_price: z.number().min(0).max(999999999.99).multipleOf(0.01)
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
@@ -883,9 +891,9 @@ export function registerGeneratedCrudTools(server: McpServer) {
       order_id: z.string().optional().describe('Note: This is a Foreign Key to `supplier_orders.id`.<fk table=\'supplier_orders\' column=\'id\'/>'),
       service_id: z.string().optional().describe('Note: This is a Foreign Key to `supplier_services.id`.<fk table=\'supplier_services\' column=\'id\'/>'),
       product_id: z.string().optional().describe('Note: This is a Foreign Key to `supplier_products.id`.<fk table=\'supplier_products\' column=\'id\'/>'),
-      quantity: z.number().optional(),
-      unit_price: z.number().optional(),
-      total_price: z.number().optional()
+      quantity: z.number().min(0).optional(),
+      unit_price: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      total_price: z.number().min(0).max(999999999.99).multipleOf(0.01).optional()
     },
     async (args) => {
       const { id, ...updates } = args;
@@ -971,7 +979,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       expected_delivery_date: z.string().optional(),
       actual_delivery_date: z.string().optional(),
       order_status: z.enum(['draft', 'pending', 'confirmed', 'delivered', 'received', 'cancelled']).optional(),
-      total_amount: z.number().optional(),
+      total_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       notes: z.string().optional()
     },
     async (args) => {
@@ -996,7 +1004,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       expected_delivery_date: z.string().optional(),
       actual_delivery_date: z.string().optional(),
       order_status: z.enum(['draft', 'pending', 'confirmed', 'delivered', 'received', 'cancelled']).optional(),
-      total_amount: z.number().optional(),
+      total_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       notes: z.string().optional()
     },
     async (args) => {
@@ -1071,6 +1079,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('service_categories').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create service category') }] };
+      invalidateCache('service_cats:');
       return { content: [{ type: 'text' as const, text: 'Successfully created service_categories record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1091,6 +1100,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update service category') }] };
+      invalidateCache('service_cats:');
       return { content: [{ type: 'text' as const, text: 'Successfully updated service_categories record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -1106,6 +1116,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       query = query.eq('user_id', getUserId());
       const { error } = await query;
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete service category') }] };
+      invalidateCache('service_cats:');
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from service_categories' }] };
     }
   );
@@ -1133,11 +1144,17 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)')
     },
     async ({ limit = 50, offset = 0 }) => {
+      const cacheKey = `service_cats:${getUserId()}:${limit}:${offset}`;
+      const cached = getCached<any>(cacheKey);
+      if (cached) return cached;
+
       let query = supabase.from('service_categories').select('*');
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list service categories') }] };
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+      const result = { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+      setCache(cacheKey, result, 300_000);
+      return result;
     }
   );
 
@@ -1154,7 +1171,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       postal_code: z.string().optional(),
       country: z.string().optional(),
       phone: z.string().optional(),
-      email: z.string().optional(),
+      email: z.string().email().optional(),
       website: z.string().optional(),
       logo_url: z.string().optional(),
       bank_account: z.string().optional(),
@@ -1188,7 +1205,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       postal_code: z.string().optional(),
       country: z.string().optional(),
       phone: z.string().optional(),
-      email: z.string().optional(),
+      email: z.string().email().optional(),
       website: z.string().optional(),
       logo_url: z.string().optional(),
       bank_account: z.string().optional(),
@@ -1264,7 +1281,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       date: z.string(),
       booking_date: z.string().optional(),
       value_date: z.string().optional(),
-      amount: z.number(),
+      amount: z.number().max(999999999.99).multipleOf(0.01),
       currency: z.string().optional(),
       description: z.string().optional(),
       reference: z.string().optional(),
@@ -1273,7 +1290,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       remittance_info: z.string().optional(),
       invoice_id: z.string().optional().describe('Note: This is a Foreign Key to `invoices.id`.<fk table=\'invoices\' column=\'id\'/>'),
       reconciliation_status: z.enum(['unreconciled', 'matched', 'ignored']).optional(),
-      match_confidence: z.number().optional(),
+      match_confidence: z.number().min(0).max(1).optional(),
       matched_at: z.string().optional(),
       raw_data: z.any().optional()
     },
@@ -1298,7 +1315,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       date: z.string().optional(),
       booking_date: z.string().optional(),
       value_date: z.string().optional(),
-      amount: z.number().optional(),
+      amount: z.number().max(999999999.99).multipleOf(0.01).optional(),
       currency: z.string().optional(),
       description: z.string().optional(),
       reference: z.string().optional(),
@@ -1307,7 +1324,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       remittance_info: z.string().optional(),
       invoice_id: z.string().optional().describe('Note: This is a Foreign Key to `invoices.id`.<fk table=\'invoices\' column=\'id\'/>'),
       reconciliation_status: z.enum(['unreconciled', 'matched', 'ignored']).optional(),
-      match_confidence: z.number().optional(),
+      match_confidence: z.number().min(0).max(1).optional(),
       matched_at: z.string().optional(),
       raw_data: z.any().optional()
     },
@@ -1345,7 +1362,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch')
     },
     async ({ id }) => {
-      let query = supabase.from('bank_transactions').select('*').eq('id', id);
+      let query = supabase.from('bank_transactions').select(COLS_BANK_TRANSACTIONS).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get bank transaction') }] };
@@ -1361,7 +1378,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)')
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('bank_transactions').select('*');
+      let query = supabase.from('bank_transactions').select(COLS_BANK_TRANSACTIONS);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list bank transactions') }] };
@@ -1464,10 +1481,10 @@ export function registerGeneratedCrudTools(server: McpServer) {
       client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
       date: z.string(),
       reason: z.string().optional(),
-      total_ht: z.number().optional(),
-      tax_rate: z.number().optional(),
-      tax_amount: z.number().optional(),
-      total_ttc: z.number().optional(),
+      total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
+      tax_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       status: z.enum(['draft', 'sent', 'applied', 'cancelled']).optional(),
       notes: z.string().optional()
     },
@@ -1492,10 +1509,10 @@ export function registerGeneratedCrudTools(server: McpServer) {
       client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
       date: z.string().optional(),
       reason: z.string().optional(),
-      total_ht: z.number().optional(),
-      tax_rate: z.number().optional(),
-      tax_amount: z.number().optional(),
-      total_ttc: z.number().optional(),
+      total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
+      tax_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       status: z.enum(['draft', 'sent', 'applied', 'cancelled']).optional(),
       notes: z.string().optional()
     },
@@ -1568,11 +1585,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
       matched_lines: z.number().int().optional(),
       unmatched_lines: z.number().int().optional(),
       ignored_lines: z.number().int().optional(),
-      total_credits: z.number().optional(),
-      total_debits: z.number().optional(),
-      matched_credits: z.number().optional(),
-      matched_debits: z.number().optional(),
-      difference: z.number().optional(),
+      total_credits: z.number().max(999999999.99).multipleOf(0.01).optional(),
+      total_debits: z.number().max(999999999.99).multipleOf(0.01).optional(),
+      matched_credits: z.number().max(999999999.99).multipleOf(0.01).optional(),
+      matched_debits: z.number().max(999999999.99).multipleOf(0.01).optional(),
+      difference: z.number().max(999999999.99).multipleOf(0.01).optional(),
       completed_at: z.string().optional(),
       notes: z.string().optional()
     },
@@ -1599,11 +1616,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
       matched_lines: z.number().int().optional(),
       unmatched_lines: z.number().int().optional(),
       ignored_lines: z.number().int().optional(),
-      total_credits: z.number().optional(),
-      total_debits: z.number().optional(),
-      matched_credits: z.number().optional(),
-      matched_debits: z.number().optional(),
-      difference: z.number().optional(),
+      total_credits: z.number().max(999999999.99).multipleOf(0.01).optional(),
+      total_debits: z.number().max(999999999.99).multipleOf(0.01).optional(),
+      matched_credits: z.number().max(999999999.99).multipleOf(0.01).optional(),
+      matched_debits: z.number().max(999999999.99).multipleOf(0.01).optional(),
+      difference: z.number().max(999999999.99).multipleOf(0.01).optional(),
       completed_at: z.string().optional(),
       notes: z.string().optional()
     },
@@ -1670,14 +1687,14 @@ export function registerGeneratedCrudTools(server: McpServer) {
     'Create a new record in expenses',
     {
       client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
-      amount: z.number(),
+      amount: z.number().min(0).max(999999999.99).multipleOf(0.01),
       category: z.string().optional(),
       description: z.string().optional(),
       receipt_url: z.string().optional(),
       refacturable: z.boolean().optional(),
-      tax_rate: z.number().optional(),
-      amount_ht: z.number().optional(),
-      tax_amount: z.number().optional(),
+      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
+      amount_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      tax_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       expense_date: z.string().optional()
     },
     async (args) => {
@@ -1697,14 +1714,14 @@ export function registerGeneratedCrudTools(server: McpServer) {
     {
       id: z.string().describe('Record UUID to update'),
       client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
-      amount: z.number().optional(),
+      amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       category: z.string().optional(),
       description: z.string().optional(),
       receipt_url: z.string().optional(),
       refacturable: z.boolean().optional(),
-      tax_rate: z.number().optional(),
-      amount_ht: z.number().optional(),
-      tax_amount: z.number().optional(),
+      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
+      amount_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      tax_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       expense_date: z.string().optional()
     },
     async (args) => {
@@ -1741,7 +1758,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to fetch')
     },
     async ({ id }) => {
-      let query = supabase.from('expenses').select('*').eq('id', id);
+      let query = supabase.from('expenses').select(COLS_EXPENSES).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get expense') }] };
@@ -1757,7 +1774,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)')
     },
     async ({ limit = 50, offset = 0 }) => {
-      let query = supabase.from('expenses').select('*');
+      let query = supabase.from('expenses').select(COLS_EXPENSES);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list expenses') }] };
@@ -1771,10 +1788,10 @@ export function registerGeneratedCrudTools(server: McpServer) {
     {
       debtor_name: z.string(),
       debtor_phone: z.string().optional(),
-      debtor_email: z.string().optional(),
+      debtor_email: z.string().email().optional(),
       description: z.string().optional(),
-      amount: z.number(),
-      amount_paid: z.number(),
+      amount: z.number().min(0).max(999999999.99).multipleOf(0.01),
+      amount_paid: z.number().min(0).max(999999999.99).multipleOf(0.01),
       currency: z.string(),
       date_lent: z.string(),
       due_date: z.string().optional(),
@@ -1800,10 +1817,10 @@ export function registerGeneratedCrudTools(server: McpServer) {
       id: z.string().describe('Record UUID to update'),
       debtor_name: z.string().optional(),
       debtor_phone: z.string().optional(),
-      debtor_email: z.string().optional(),
+      debtor_email: z.string().email().optional(),
       description: z.string().optional(),
-      amount: z.number().optional(),
-      amount_paid: z.number().optional(),
+      amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      amount_paid: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       currency: z.string().optional(),
       date_lent: z.string().optional(),
       due_date: z.string().optional(),
@@ -1879,15 +1896,15 @@ export function registerGeneratedCrudTools(server: McpServer) {
       value_date: z.string().optional(),
       description: z.string().optional(),
       reference: z.string().optional(),
-      amount: z.number(),
-      balance_after: z.number().optional(),
+      amount: z.number().max(999999999.99).multipleOf(0.01),
+      balance_after: z.number().max(999999999.99).multipleOf(0.01).optional(),
       raw_data: z.any().optional(),
       reconciliation_status: z.enum(['unmatched', 'matched', 'ignored']),
       matched_source_type: z.string().optional(),
       matched_source_id: z.string().optional(),
       matched_at: z.string().optional(),
       matched_by: z.string().optional(),
-      match_confidence: z.number().optional(),
+      match_confidence: z.number().min(0).max(1).optional(),
       notes: z.string().optional()
     },
     async (args) => {
@@ -1912,15 +1929,15 @@ export function registerGeneratedCrudTools(server: McpServer) {
       value_date: z.string().optional(),
       description: z.string().optional(),
       reference: z.string().optional(),
-      amount: z.number().optional(),
-      balance_after: z.number().optional(),
+      amount: z.number().max(999999999.99).multipleOf(0.01).optional(),
+      balance_after: z.number().max(999999999.99).multipleOf(0.01).optional(),
       raw_data: z.any().optional(),
       reconciliation_status: z.enum(['unmatched', 'matched', 'ignored']).optional(),
       matched_source_type: z.string().optional(),
       matched_source_id: z.string().optional(),
       matched_at: z.string().optional(),
       matched_by: z.string().optional(),
-      match_confidence: z.number().optional(),
+      match_confidence: z.number().min(0).max(1).optional(),
       notes: z.string().optional()
     },
     async (args) => {
@@ -1989,7 +2006,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       is_active: z.boolean().optional(),
       effective_date: z.string().optional(),
       name: z.string().optional(),
-      rate: z.number().optional(),
+      rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
       tax_type: z.string().optional(),
       is_default: z.boolean().optional()
     },
@@ -2000,6 +2017,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('accounting_tax_rates').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create accounting tax rate') }] };
+      invalidateCache('tax_rates:');
       return { content: [{ type: 'text' as const, text: 'Successfully created accounting_tax_rates record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -2013,7 +2031,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       is_active: z.boolean().optional(),
       effective_date: z.string().optional(),
       name: z.string().optional(),
-      rate: z.number().optional(),
+      rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
       tax_type: z.string().optional(),
       is_default: z.boolean().optional()
     },
@@ -2025,6 +2043,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update accounting tax rate') }] };
+      invalidateCache('tax_rates:');
       return { content: [{ type: 'text' as const, text: 'Successfully updated accounting_tax_rates record:\n' + JSON.stringify(data, null, 2) }] };
     }
   );
@@ -2040,6 +2059,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       query = query.eq('user_id', getUserId());
       const { error } = await query;
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete accounting tax rate') }] };
+      invalidateCache('tax_rates:');
       return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from accounting_tax_rates' }] };
     }
   );
@@ -2067,11 +2087,17 @@ export function registerGeneratedCrudTools(server: McpServer) {
       offset: z.number().optional().describe('Number of records to skip (default 0)')
     },
     async ({ limit = 50, offset = 0 }) => {
+      const cacheKey = `tax_rates:${getUserId()}:${limit}:${offset}`;
+      const cached = getCached<any>(cacheKey);
+      if (cached) return cached;
+
       let query = supabase.from('accounting_tax_rates').select('*');
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list accounting tax rates') }] };
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+      const result = { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+      setCache(cacheKey, result, 300_000);
+      return result;
     }
   );
 
@@ -2172,7 +2198,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       date: z.string().optional(),
       due_date: z.string().optional(),
       items: z.any().optional(),
-      total: z.number().optional(),
+      total: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       status: z.enum(['draft', 'sent', 'confirmed', 'completed', 'cancelled']).optional(),
       payment_terms_id: z.string().optional().describe('Note: This is a Foreign Key to `payment_terms.id`.<fk table=\'payment_terms\' column=\'id\'/>'),
       notes: z.string().optional()
@@ -2198,7 +2224,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       date: z.string().optional(),
       due_date: z.string().optional(),
       items: z.any().optional(),
-      total: z.number().optional(),
+      total: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       status: z.enum(['draft', 'sent', 'confirmed', 'completed', 'cancelled']).optional(),
       payment_terms_id: z.string().optional().describe('Note: This is a Foreign Key to `payment_terms.id`.<fk table=\'payment_terms\' column=\'id\'/>'),
       notes: z.string().optional()
@@ -2368,11 +2394,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
       product_name: z.string(),
       sku: z.string().optional(),
       category_id: z.string().optional().describe('Note: This is a Foreign Key to `service_categories.id`.<fk table=\'service_categories\' column=\'id\'/>'),
-      unit_price: z.number().optional(),
-      purchase_price: z.number().optional(),
+      unit_price: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      purchase_price: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       unit: z.string().optional(),
-      stock_quantity: z.number().optional(),
-      min_stock_level: z.number().optional(),
+      stock_quantity: z.number().min(0).optional(),
+      min_stock_level: z.number().min(0).optional(),
       description: z.string().optional(),
       is_active: z.boolean().optional(),
       supplier_id: z.string().optional().describe('Note: This is a Foreign Key to `suppliers.id`.<fk table=\'suppliers\' column=\'id\'/>'),
@@ -2382,6 +2408,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Security: if supplier_id is provided, verify the supplier belongs to the current user
+      if (payload.supplier_id) {
+        const { data: sup, error: supErr } = await supabase.from('suppliers').select('id').eq('id', payload.supplier_id).eq('user_id', getUserId()).single();
+        if (supErr || !sup) return { content: [{ type: 'text' as const, text: 'Error: supplier not found or access denied' }] };
+      }
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('products').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create product') }] };
@@ -2397,11 +2428,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
       product_name: z.string().optional(),
       sku: z.string().optional(),
       category_id: z.string().optional().describe('Note: This is a Foreign Key to `service_categories.id`.<fk table=\'service_categories\' column=\'id\'/>'),
-      unit_price: z.number().optional(),
-      purchase_price: z.number().optional(),
+      unit_price: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      purchase_price: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       unit: z.string().optional(),
-      stock_quantity: z.number().optional(),
-      min_stock_level: z.number().optional(),
+      stock_quantity: z.number().min(0).optional(),
+      min_stock_level: z.number().min(0).optional(),
       description: z.string().optional(),
       is_active: z.boolean().optional(),
       supplier_id: z.string().optional().describe('Note: This is a Foreign Key to `suppliers.id`.<fk table=\'suppliers\' column=\'id\'/>'),
@@ -2411,6 +2442,11 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const { id, ...updates } = args;
       const dateErr = validateDatesInRecord(updates);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Security: if supplier_id is being set/changed, verify the supplier belongs to the current user
+      if (updates.supplier_id) {
+        const { data: sup, error: supErr } = await supabase.from('suppliers').select('id').eq('id', updates.supplier_id).eq('user_id', getUserId()).single();
+        if (supErr || !sup) return { content: [{ type: 'text' as const, text: 'Error: supplier not found or access denied' }] };
+      }
       let query = supabase.from('products').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
@@ -2484,7 +2520,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       status: z.enum(['draft', 'approved', 'billed', 'rejected']).optional(),
       notes: z.string().optional(),
       billable: z.boolean().optional(),
-      hourly_rate: z.number().optional(),
+      hourly_rate: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       invoice_id: z.string().optional().describe('Note: This is a Foreign Key to `invoices.id`.<fk table=\'invoices\' column=\'id\'/>'),
       billed_at: z.string().optional(),
       service_id: z.string().optional().describe('Note: This is a Foreign Key to `services.id`.<fk table=\'services\' column=\'id\'/>'),
@@ -2494,6 +2530,16 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Security: if project_id is provided, verify the project belongs to the current user
+      if (payload.project_id) {
+        const { data: proj, error: projErr } = await supabase.from('projects').select('id').eq('id', payload.project_id).eq('user_id', getUserId()).single();
+        if (projErr || !proj) return { content: [{ type: 'text' as const, text: 'Error: project not found or access denied' }] };
+      }
+      // Security: if client_id is provided, verify the client belongs to the current user
+      if (payload.client_id) {
+        const { data: cli, error: cliErr } = await supabase.from('clients').select('id').eq('id', payload.client_id).eq('user_id', getUserId()).single();
+        if (cliErr || !cli) return { content: [{ type: 'text' as const, text: 'Error: client not found or access denied' }] };
+      }
       payload.user_id = getUserId();
       const { data, error } = await supabase.from('timesheets').insert([sanitizeRecord(payload)]).select().single();
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create timesheet') }] };
@@ -2517,7 +2563,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       status: z.enum(['draft', 'approved', 'billed', 'rejected']).optional(),
       notes: z.string().optional(),
       billable: z.boolean().optional(),
-      hourly_rate: z.number().optional(),
+      hourly_rate: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       invoice_id: z.string().optional().describe('Note: This is a Foreign Key to `invoices.id`.<fk table=\'invoices\' column=\'id\'/>'),
       billed_at: z.string().optional(),
       service_id: z.string().optional().describe('Note: This is a Foreign Key to `services.id`.<fk table=\'services\' column=\'id\'/>'),
@@ -2527,6 +2573,16 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const { id, ...updates } = args;
       const dateErr = validateDatesInRecord(updates);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Security: if project_id is being set/changed, verify the project belongs to the current user
+      if (updates.project_id) {
+        const { data: proj, error: projErr } = await supabase.from('projects').select('id').eq('id', updates.project_id).eq('user_id', getUserId()).single();
+        if (projErr || !proj) return { content: [{ type: 'text' as const, text: 'Error: project not found or access denied' }] };
+      }
+      // Security: if client_id is being set/changed, verify the client belongs to the current user
+      if (updates.client_id) {
+        const { data: cli, error: cliErr } = await supabase.from('clients').select('id').eq('id', updates.client_id).eq('user_id', getUserId()).single();
+        if (cliErr || !cli) return { content: [{ type: 'text' as const, text: 'Error: client not found or access denied' }] };
+      }
       let query = supabase.from('timesheets').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
@@ -2592,8 +2648,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
       client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
       name: z.string(),
       description: z.string().optional(),
-      budget_hours: z.number().optional(),
-      hourly_rate: z.number().optional(),
+      budget_hours: z.number().min(0).optional(),
+      hourly_rate: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       status: z.enum(['planning', 'active', 'on_hold', 'completed', 'cancelled']).optional(),
       start_date: z.string().optional().describe('Project start date (YYYY-MM-DD)'),
       end_date: z.string().optional().describe('Project end date (YYYY-MM-DD)'),
@@ -2618,8 +2674,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
       client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
       name: z.string().optional(),
       description: z.string().optional(),
-      budget_hours: z.number().optional(),
-      hourly_rate: z.number().optional(),
+      budget_hours: z.number().min(0).optional(),
+      hourly_rate: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       status: z.enum(['planning', 'active', 'on_hold', 'completed', 'cancelled']).optional(),
       start_date: z.string().optional().describe('Project start date (YYYY-MM-DD)'),
       end_date: z.string().optional().describe('Project end date (YYYY-MM-DD)'),
@@ -2679,6 +2735,197 @@ export function registerGeneratedCrudTools(server: McpServer) {
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list projects') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ── dunning_steps CRUD ──
+
+  server.tool(
+    'create_dunning_steps',
+    'Create a new dunning step (payment follow-up configuration)',
+    {
+      company_id: z.string().describe('Company UUID'),
+      name: z.string().describe('Step name (e.g. First reminder)'),
+      days_after_due: z.number().optional().describe('Days after due date to trigger (default 7)'),
+      email_subject: z.string().optional().describe('Email subject template'),
+      email_body: z.string().optional().describe('Email body template'),
+      is_active: z.boolean().optional().describe('Whether this step is active (default true)'),
+      step_order: z.number().optional().describe('Order of this step in the dunning sequence (default 1)')
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      const { data, error } = await supabase.from('dunning_steps').insert([sanitizeRecord(payload)]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create dunning step') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created dunning_steps record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_dunning_steps',
+    'Update an existing dunning step',
+    {
+      id: z.string().describe('Record UUID to update'),
+      name: z.string().optional(),
+      days_after_due: z.number().optional(),
+      email_subject: z.string().optional(),
+      email_body: z.string().optional(),
+      is_active: z.boolean().optional(),
+      step_order: z.number().optional()
+    },
+    async (args) => {
+      const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      let query = supabase.from('dunning_steps').update(sanitizeRecord(updates)).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update dunning step') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated dunning_steps record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_dunning_steps',
+    'Delete a dunning step',
+    {
+      id: z.string().describe('Record UUID to delete')
+    },
+    async ({ id }) => {
+      let query = supabase.from('dunning_steps').delete().eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { error } = await query;
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete dunning step') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from dunning_steps' }] };
+    }
+  );
+
+  server.tool(
+    'get_dunning_steps',
+    'Get a single dunning step by ID',
+    {
+      id: z.string().describe('Record UUID to fetch')
+    },
+    async ({ id }) => {
+      let query = supabase.from('dunning_steps').select('*').eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get dunning step') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_dunning_steps',
+    'List dunning steps with optional filters',
+    {
+      company_id: z.string().optional().describe('Filter by company UUID'),
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ company_id, limit = 50, offset = 0 }) => {
+      let query = supabase.from('dunning_steps').select('*');
+      query = query.eq('user_id', getUserId());
+      if (company_id) query = query.eq('company_id', company_id);
+      query = query.order('step_order', { ascending: true });
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list dunning steps') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ── dunning_history CRUD ──
+
+  server.tool(
+    'create_dunning_history',
+    'Record a dunning action (payment follow-up sent to a client)',
+    {
+      invoice_id: z.string().describe('Invoice UUID'),
+      dunning_step_id: z.string().optional().describe('Dunning step UUID used'),
+      sent_at: z.string().optional().describe('When the dunning was sent (ISO timestamp, default now)'),
+      method: z.enum(['email', 'sms', 'letter']).optional().describe('Communication method (default email)'),
+      status: z.enum(['sent', 'delivered', 'failed', 'responded']).optional().describe('Status (default sent)'),
+      notes: z.string().optional().describe('Additional notes')
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      const { data, error } = await supabase.from('dunning_history').insert([sanitizeRecord(payload)]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create dunning history') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created dunning_history record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_dunning_history',
+    'Update an existing dunning history record',
+    {
+      id: z.string().describe('Record UUID to update'),
+      status: z.enum(['sent', 'delivered', 'failed', 'responded']).optional(),
+      notes: z.string().optional()
+    },
+    async (args) => {
+      const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      let query = supabase.from('dunning_history').update(sanitizeRecord(updates)).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update dunning history') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated dunning_history record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_dunning_history',
+    'Delete a dunning history record',
+    {
+      id: z.string().describe('Record UUID to delete')
+    },
+    async ({ id }) => {
+      let query = supabase.from('dunning_history').delete().eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { error } = await query;
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete dunning history') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from dunning_history' }] };
+    }
+  );
+
+  server.tool(
+    'get_dunning_history',
+    'Get a single dunning history record by ID',
+    {
+      id: z.string().describe('Record UUID to fetch')
+    },
+    async ({ id }) => {
+      let query = supabase.from('dunning_history').select('*, dunning_step:dunning_steps(id, name, step_order)').eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get dunning history') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_dunning_history',
+    'List dunning history records with optional filters',
+    {
+      invoice_id: z.string().optional().describe('Filter by invoice UUID'),
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ invoice_id, limit = 50, offset = 0 }) => {
+      let query = supabase.from('dunning_history').select('*, dunning_step:dunning_steps(id, name, step_order)');
+      query = query.eq('user_id', getUserId());
+      if (invoice_id) query = query.eq('invoice_id', invoice_id);
+      query = query.order('sent_at', { ascending: false });
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list dunning history') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );

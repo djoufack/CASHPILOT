@@ -3,6 +3,9 @@ import { z } from 'zod';
 import { supabase, getUserId } from '../supabase.js';
 import { safeError } from '../utils/errors.js';
 import { validateDate, optionalDate } from '../utils/validation.js';
+import { getCached, setCache, invalidateCache } from '../utils/cache.js';
+
+const COLS_ACCOUNTING_ENTRIES = 'id, transaction_date, account_code, description, debit, credit, entry_ref, journal, source_type, source_id, reference_type, reference_id, is_auto, created_at';
 
 export function registerAccountingTools(server: McpServer) {
 
@@ -13,20 +16,29 @@ export function registerAccountingTools(server: McpServer) {
       category: z.string().optional().describe('Filter by category: asset, liability, equity, revenue, expense')
     },
     async ({ category }) => {
+      const cacheKey = `coa:${getUserId()}` + (category ? `:${category}` : '');
+      const cached = getCached<any>(cacheKey);
+      if (cached) return cached;
+
       let query = supabase
         .from('accounting_chart_of_accounts')
         .select('*')
         .eq('user_id', getUserId())
         .order('account_code', { ascending: true });
 
-      if (category) query = query.or(`account_category.eq.${category},account_type.eq.${category}`);
+      if (category) {
+        const safeCategory = category.replace(/[|,().]/g, '\\$&');
+        query = query.or(`account_category.eq.${safeCategory},account_type.eq.${safeCategory}`);
+      }
 
       const { data, error } = await query;
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get chart of accounts') }] };
 
-      return {
+      const result = {
         content: [{ type: 'text' as const, text: `${data?.length ?? 0} accounts.\n${JSON.stringify(data, null, 2)}` }]
       };
+      setCache(cacheKey, result, 300_000);
+      return result;
     }
   );
 
@@ -47,7 +59,7 @@ export function registerAccountingTools(server: McpServer) {
 
       let query = supabase
         .from('accounting_entries')
-        .select('*')
+        .select(COLS_ACCOUNTING_ENTRIES)
         .eq('user_id', getUserId())
         .order('transaction_date', { ascending: false })
         .limit(limit ?? 100);
@@ -183,6 +195,8 @@ export function registerAccountingTools(server: McpServer) {
       await supabase
         .from('user_accounting_settings')
         .upsert({ user_id: getUserId(), country: country.toUpperCase(), is_initialized: true }, { onConflict: 'user_id' });
+
+      invalidateCache('coa:');
 
       return {
         content: [{ type: 'text' as const, text: `Accounting initialized for ${country.toUpperCase()}. Note: Chart of accounts should be loaded via the CashPilot UI for full initialization with default accounts, mappings, and tax rates.` }]

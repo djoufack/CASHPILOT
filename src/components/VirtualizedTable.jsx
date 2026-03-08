@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { memo, useCallback, useRef } from 'react';
 import { FixedSizeList as List } from 'react-window';
 
 /**
@@ -178,4 +178,4 @@ const VirtualizedTable = ({
   );
 };
 
-export default VirtualizedTable;
+export default memo(VirtualizedTable);

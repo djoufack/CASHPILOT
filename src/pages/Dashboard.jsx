@@ -26,6 +26,7 @@ import { captureError } from '@/services/errorTracking';
 import AccountingHealthWidget from '@/components/AccountingHealthWidget';
 import ObligationsPanel from '@/components/dashboard/ObligationsPanel';
 import SnapshotShareDialog from '@/components/SnapshotShareDialog';
+import SectionErrorBoundary from '@/components/SectionErrorBoundary';
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -297,6 +298,7 @@ const Dashboard = () => {
         </motion.div>
 
         {/* Stats */}
+        <SectionErrorBoundary section="kpi-cards">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
           {stats.map((stat, index) => (
             <motion.div
@@ -326,6 +328,7 @@ const Dashboard = () => {
             </motion.div>
           ))}
         </div>
+        </SectionErrorBoundary>
 
         {/* Revenue Breakdown Cards - show product/service split only when item data exists */}
         {(revenueByType.product > 0 || revenueByType.service > 0) && (
@@ -408,6 +411,7 @@ const Dashboard = () => {
         <ObligationsPanel />
 
         {/* Revenue Breakdown Chart */}
+        <SectionErrorBoundary section="charts">
         {revenueBreakdownData.length > 0 && (
           <motion.div
             className="relative bg-gradient-to-br from-[#0c1222] via-[#111827] to-[#0c1222] rounded-2xl p-6 border border-gray-800/40 mb-8 overflow-hidden"
@@ -664,6 +668,8 @@ const Dashboard = () => {
             </div>
           </motion.div>
         )}
+
+        </SectionErrorBoundary>
 
         {/* Accounting Health Widget */}
         <div className="mb-8">

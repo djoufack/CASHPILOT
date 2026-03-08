@@ -1,0 +1,37 @@
+name: Weekly Security Audit
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'  # Every Monday at 8am UTC
+  workflow_dispatch:       # Allow manual trigger
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Run a full npm audit and report results.
+      # The audit output is saved as a step summary for easy review in the
+      # GitHub Actions UI.
+      - name: Run npm audit
+        run: |
+          echo "## npm audit results" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          npm audit --audit-level=moderate 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check for critical vulnerabilities
+        run: |
+          # Fail the workflow only if there are high or critical vulnerabilities
+          npm audit --audit-level=high

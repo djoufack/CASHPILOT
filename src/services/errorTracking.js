@@ -27,9 +27,14 @@ const buildContext = (context = {}) => ({
 
 export const initializeErrorTracking = () => {
   if (isInitialized) return;
-  isInitialized = true;
 
   if (!SENTRY_DSN) return;
+
+  // RGPD/GDPR: only initialize Sentry if the user has accepted cookies
+  const hasConsent = localStorage.getItem('cookie-consent') === 'accepted';
+  if (!hasConsent) return;
+
+  isInitialized = true;
 
   Sentry.init({
     dsn: SENTRY_DSN,

@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageErrorBoundary from './components/PageErrorBoundary';
 import GDPRConsentBanner from './components/GDPRConsentBanner';
+import CookieConsent from './components/CookieConsent';
 import { useAccountingGuard } from '@/hooks/useAccountingGuard';
 import UserPreferenceSync from '@/components/UserPreferenceSync';
 import { EntitlementsProvider } from '@/contexts/EntitlementsContext';
@@ -282,6 +283,7 @@ function App() {
                     <AccountingGuard />
                     <UserPreferenceSync />
                     <GDPRConsentBanner />
+                    <CookieConsent />
                     <Toaster />
                 </EntitlementsProvider>
             </ErrorBoundary>
