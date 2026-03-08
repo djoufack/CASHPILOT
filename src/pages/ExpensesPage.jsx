@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +28,7 @@ import PaginationControls from '@/components/PaginationControls';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { formatDateInput } from '@/utils/dateFormatting';
 import VirtualizedTable from '@/components/VirtualizedTable';
+import SectionErrorBoundary from '@/components/SectionErrorBoundary';
 
 const ExpenseActions = ({ expense, onView, onEdit, onDelete, onExportPDF, onExportHTML }) => {
   const [open, setOpen] = useState(false);
@@ -186,18 +187,18 @@ const ExpensesPage = () => {
   const pagination = usePagination({ pageSize: 25 });
   const { setTotalCount } = pagination;
 
-  const filteredExpenses = expenses.filter(exp =>
+  const filteredExpenses = useMemo(() => expenses.filter(exp =>
     (exp.description || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
     (exp.supplier?.company_name || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
     (exp.category || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-  );
+  ), [expenses, debouncedSearchTerm]);
 
   // Update pagination when filtered expenses change
   React.useEffect(() => {
     setTotalCount(filteredExpenses.length);
   }, [filteredExpenses.length, setTotalCount]);
 
-  const paginatedExpenses = filteredExpenses.slice(pagination.from, pagination.to + 1);
+  const paginatedExpenses = useMemo(() => filteredExpenses.slice(pagination.from, pagination.to + 1), [filteredExpenses, pagination.from, pagination.to]);
 
   const expenseExportColumns = [
     { key: 'description', header: 'Description', width: 30 },
@@ -208,7 +209,7 @@ const ExpensesPage = () => {
     { key: 'notes', header: 'Notes', width: 25 },
   ];
 
-  const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  const totalExpenses = useMemo(() => filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0), [filteredExpenses]);
 
   const expenseCategoryColors = {
     general: { bg: '#6b7280', border: '#4b5563', text: '#fff' },
@@ -231,15 +232,15 @@ const ExpensesPage = () => {
     { label: 'Marketing', color: '#ec4899' },
   ];
 
-  const expenseCalendarEvents = filteredExpenses.map(exp => ({
+  const expenseCalendarEvents = useMemo(() => filteredExpenses.map(exp => ({
     id: exp.id,
     title: exp.description || exp.category || 'Expense',
     date: exp.date,
     status: exp.category || 'general',
     resource: exp,
-  }));
+  })), [filteredExpenses]);
 
-  const expenseAgendaItems = filteredExpenses.map(exp => ({
+  const expenseAgendaItems = useMemo(() => filteredExpenses.map(exp => ({
     id: exp.id,
     title: exp.description || 'Expense',
     subtitle: exp.supplier?.company_name || exp.category || '',
@@ -248,7 +249,7 @@ const ExpensesPage = () => {
     statusLabel: (exp.category || 'general').charAt(0).toUpperCase() + (exp.category || 'general').slice(1),
     statusColor: 'bg-orange-500/20 text-orange-400',
     amount: formatCurrency(exp.amount || 0, companyCurrency),
-  }));
+  })), [filteredExpenses, companyCurrency]);
 
   if (loading && expenses.length === 0) {
     return (
@@ -332,6 +333,7 @@ const ExpensesPage = () => {
           />
         </div>
 
+        <SectionErrorBoundary section="expense-views">
         <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
           <TabsList className="bg-gray-800 border border-gray-700 mb-4">
             <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
@@ -444,6 +446,7 @@ const ExpensesPage = () => {
             />
           </TabsContent>
         </Tabs>
+        </SectionErrorBoundary>
       </div>
 
       {/* View Expense Dialog */}

@@ -409,16 +409,16 @@ export function registerBankReconciliationTools(server: McpServer) {
       bank_name: z.string().describe('Name of the bank'),
       account_number: z.string().optional().describe('Bank account number or IBAN'),
       statement_date: z.string().describe('Statement date (YYYY-MM-DD)'),
-      opening_balance: z.number().optional().describe('Opening balance'),
-      closing_balance: z.number().optional().describe('Closing balance'),
+      opening_balance: z.number().max(999999999.99).multipleOf(0.01).optional().describe('Opening balance'),
+      closing_balance: z.number().max(999999999.99).multipleOf(0.01).optional().describe('Closing balance'),
       currency: z.string().optional().describe('Currency code (default EUR)'),
       lines: z.array(z.object({
         date: z.string().describe('Transaction date YYYY-MM-DD'),
         description: z.string().describe('Transaction description'),
-        amount: z.number().describe('Amount (positive=credit, negative=debit)'),
+        amount: z.number().max(999999999.99).multipleOf(0.01).describe('Amount (positive=credit, negative=debit)'),
         reference: z.string().optional().describe('Transaction reference'),
         value_date: z.string().optional().describe('Value date YYYY-MM-DD'),
-        balance_after: z.number().optional().describe('Balance after this transaction')
+        balance_after: z.number().max(999999999.99).multipleOf(0.01).optional().describe('Balance after this transaction')
       })).describe('Array of statement lines to import')
     },
     async ({ bank_name, account_number, statement_date, opening_balance, closing_balance, currency, lines }) => {

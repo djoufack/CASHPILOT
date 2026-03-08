@@ -3654,6 +3654,38 @@
     "misc": {
       "savingFieldsNoCost": "Enregistrer les champs seuls ne consomme pas de credits.",
       "scannedPdfWarning": "Ce PDF semble être un scan (pas de texte extractible). Utilisez plutôt l'export Excel de votre banque."
+    },
+    "clientProfile": {
+      "pageTitle": "Profil client",
+      "notFound": "Client introuvable.",
+      "backToClients": "Retour aux clients",
+      "revenue": "Chiffre d'affaires",
+      "pending": "En attente",
+      "invoices": "Factures",
+      "contact": "Contact",
+      "address": "Adresse",
+      "businessDetails": "Détails commerciaux",
+      "vat": "TVA",
+      "siret": "SIRET",
+      "currency": "Devise",
+      "paymentTerms": "Conditions",
+      "bankDetails": "Coordonnées bancaires",
+      "bank": "Banque",
+      "iban": "IBAN",
+      "bic": "BIC",
+      "noBankData": "Aucune donnée bancaire",
+      "notes": "Notes",
+      "recentInvoices": "Factures récentes",
+      "noInvoices": "Aucune facture pour ce client."
     }
+  },
+  "cookies": {
+    "banner": {
+      "title": "Cookies et suivi d'erreurs",
+      "description": "CashPilot utilise des cookies a des fins d'analyse et de suivi d'erreurs (Sentry). Vous pouvez accepter ou refuser leur utilisation.",
+      "accept": "Accepter",
+      "refuse": "Refuser"
+    },
+    "footerLink": "Cookies"
   }
 }

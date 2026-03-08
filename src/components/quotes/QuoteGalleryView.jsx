@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Eye, Trash2, FileText, Download, FileSignature, Copy, Loader2 } from 'lucide-react';
@@ -210,4 +210,4 @@ const QuoteGalleryView = ({
   );
 };
 
-export default QuoteGalleryView;
+export default memo(QuoteGalleryView);

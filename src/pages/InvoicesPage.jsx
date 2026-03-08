@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import InvoiceGenerator from '@/components/InvoiceGenerator';
@@ -29,6 +29,7 @@ import { captureError } from '@/services/errorTracking';
 import InvoiceListTable from '@/components/invoices/InvoiceListTable';
 import InvoiceGalleryView from '@/components/invoices/InvoiceGalleryView';
 import InvoiceDialogs from '@/components/invoices/InvoiceDialogs';
+import SectionErrorBoundary from '@/components/SectionErrorBoundary';
 
 const InvoicesPage = () => {
   const { t } = useTranslation();
@@ -38,21 +39,23 @@ const InvoicesPage = () => {
   const { guardedAction, modalProps } = useCreditsGuard();
   const { sendInvoiceEmail, sending: emailSending } = useEmailService();
   const { toast } = useToast();
-  const [viewingInvoice, setViewingInvoice] = useState(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [invoiceToDelete, setInvoiceToDelete] = useState(null);
   const [showGenerator, setShowGenerator] = useState(false);
   const [quickMode, setQuickMode] = useState(() => localStorage.getItem('invoiceQuickMode') === 'true');
-  const [paymentInvoice, setPaymentInvoice] = useState(null);
-  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-  const [isLumpSumOpen, setIsLumpSumOpen] = useState(false);
-  const [lumpSumClientId, setLumpSumClientId] = useState(null);
-  const [historyInvoice, setHistoryInvoice] = useState(null);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
-  const [emailModalInvoice, setEmailModalInvoice] = useState(null);
-  const [emailModalAddress, setEmailModalAddress] = useState('');
   const [paymentLinkLoading, setPaymentLinkLoading] = useState({});
+
+  // Consolidated dialog state — replaces 11 separate useState calls
+  const [dialog, setDialog] = useState({
+    type: null,         // 'preview' | 'delete' | 'payment' | 'lumpSum' | 'history' | 'email' | null
+    invoice: null,      // the invoice relevant to the current dialog
+    emailAddress: '',   // email recipient for the email dialog
+    lumpSumClientId: null,
+  });
+
+  const openDialog = (type, invoice = null, extra = {}) =>
+    setDialog(prev => ({ ...prev, type, invoice, ...extra }));
+  const closeDialog = () =>
+    setDialog({ type: null, invoice: null, emailAddress: '', lumpSumClientId: null });
   const pagination = usePagination({ pageSize: 20 });
   const { setTotalCount } = pagination;
 
@@ -62,7 +65,7 @@ const InvoicesPage = () => {
     }
   }, [invoices, setTotalCount]);
 
-  const paginatedInvoices = invoices.slice(pagination.from, pagination.to + 1);
+  const paginatedInvoices = useMemo(() => invoices.slice(pagination.from, pagination.to + 1), [invoices, pagination.from, pagination.to]);
 
   // Calendar/Agenda/Kanban data
   const invoiceCalendarStatusColors = {
@@ -80,7 +83,7 @@ const InvoicesPage = () => {
     { label: t('status.overdue'), color: 'rgba(239, 68, 68, 0.7)' },
   ];
 
-  const invoiceCalendarEvents = invoices.map(inv => {
+  const invoiceCalendarEvents = useMemo(() => invoices.map(inv => {
     const client = clients.find(c => c.id === (inv.client_id || inv.clientId));
     return {
       id: inv.id,
@@ -89,7 +92,7 @@ const InvoicesPage = () => {
       status: inv.status || 'draft',
       resource: { ...inv, status: inv.status || 'draft' },
     };
-  });
+  }), [invoices, clients]);
 
   const INVOICE_AGENDA_COLORS = {
     draft: 'bg-gray-500/20 text-gray-400',
@@ -127,7 +130,7 @@ const InvoicesPage = () => {
     );
   };
 
-  const invoiceAgendaItems = invoices.map(inv => {
+  const invoiceAgendaItems = useMemo(() => invoices.map(inv => {
     const client = clients.find(c => c.id === (inv.client_id || inv.clientId));
     const currency = client?.preferred_currency || client?.preferredCurrency || 'EUR';
     const invoiceStatus = inv.status || 'draft';
@@ -143,7 +146,7 @@ const InvoicesPage = () => {
       amount: formatCurrency(Number(inv.total_ttc || inv.total || 0), currency),
       _original: inv,
     };
-  });
+  }), [invoices, clients, t]);
 
   const invoiceKanbanColumns = [
     { id: 'draft', title: t('status.draft'), color: 'bg-gray-500/20 text-gray-400' },
@@ -154,23 +157,19 @@ const InvoicesPage = () => {
   ];
 
   // Event handlers
-  const handleViewInvoice = (invoice) => setViewingInvoice(invoice);
+  const handleViewInvoice = (invoice) => openDialog('preview', invoice);
 
-  const handleDeleteClick = (invoice) => {
-    setInvoiceToDelete(invoice);
-    setIsDeleteDialogOpen(true);
-  };
+  const handleDeleteClick = (invoice) => openDialog('delete', invoice);
 
   const handleConfirmDelete = async () => {
-    if (invoiceToDelete) {
+    if (dialog.invoice) {
       try {
-        await deleteInvoice(invoiceToDelete.id);
-        setIsDeleteDialogOpen(false);
-        setInvoiceToDelete(null);
+        await deleteInvoice(dialog.invoice.id);
+        closeDialog();
       } catch (error) {
         captureError(error, {
           tags: { scope: 'invoices', action: 'delete_invoice' },
-          extra: { invoiceId: invoiceToDelete.id },
+          extra: { invoiceId: dialog.invoice.id },
         });
         toast({
           title: t('common.error'),
@@ -197,15 +196,9 @@ const InvoicesPage = () => {
     }
   };
 
-  const handleRecordPayment = (invoice) => {
-    setPaymentInvoice(invoice);
-    setIsPaymentOpen(true);
-  };
+  const handleRecordPayment = (invoice) => openDialog('payment', invoice);
 
-  const handleLumpSumPayment = () => {
-    setLumpSumClientId(null);
-    setIsLumpSumOpen(true);
-  };
+  const handleLumpSumPayment = () => openDialog('lumpSum', null, { lumpSumClientId: null });
 
   const handleExportInvoicePDF = (invoice) => {
     guardedAction(
@@ -276,15 +269,14 @@ const InvoicesPage = () => {
 
   const handleOpenEmailModal = (invoice) => {
     const client = invoice.client || clients.find(c => c.id === (invoice.client_id || invoice.clientId)) || {};
-    setEmailModalInvoice(invoice);
-    setEmailModalAddress(client.email || '');
+    openDialog('email', invoice, { emailAddress: client.email || '' });
   };
 
   const handleConfirmSendEmail = async () => {
-    if (!emailModalInvoice) return;
-    const invoice = emailModalInvoice;
+    if (!dialog.invoice || dialog.type !== 'email') return;
+    const invoice = dialog.invoice;
     const client = invoice.client || clients.find(c => c.id === (invoice.client_id || invoice.clientId)) || {};
-    const recipientEmail = emailModalAddress.trim();
+    const recipientEmail = dialog.emailAddress.trim();
     if (!recipientEmail) {
       toast({ title: t('common.error'), description: t('invoices.noClientEmail'), variant: "destructive" });
       return;
@@ -292,8 +284,7 @@ const InvoicesPage = () => {
     try {
       await sendInvoiceEmail(invoice, { ...client, email: recipientEmail });
       toast({ title: t('common.success'), description: t('invoices.emailSentTo', { email: recipientEmail }) });
-      setEmailModalInvoice(null);
-      setEmailModalAddress('');
+      closeDialog();
     } catch (err) {
       captureError(err, { tags: { scope: 'invoices', action: 'send_email' }, extra: { invoiceId: invoice.id, recipientEmail } });
       toast({ title: t('common.error'), description: err?.message || t('common.unexpectedError', 'An unexpected error occurred.'), variant: "destructive" });
@@ -364,28 +355,34 @@ const InvoicesPage = () => {
     }
   };
 
-  // Shared props for list/gallery sub-components
+  // Shared props for list/gallery sub-components — grouped to reduce prop drilling
   const viewProps = {
-    invoices,
-    paginatedInvoices,
-    clients,
-    pagination,
-    onViewInvoice: handleViewInvoice,
-    onDeleteClick: handleDeleteClick,
-    onExportPDF: handleExportInvoicePDF,
-    onExportHTML: handleExportInvoiceHTML,
-    onExportFacturX: handleExportInvoiceFacturX,
-    onStatusChange: handleStatusChange,
-    onRecordPayment: handleRecordPayment,
-    onOpenHistory: (invoice) => { setHistoryInvoice(invoice); setIsHistoryOpen(true); },
-    onOpenEmailModal: handleOpenEmailModal,
-    onGeneratePaymentLink: handleGeneratePaymentLink,
-    onCopyPaymentLink: handleCopyPaymentLink,
-    emailSending,
-    paymentLinkLoading,
-    getStatusColor,
-    getPaymentStatusBadge,
-    INVOICE_STATUS_COLORS,
+    data: {
+      invoices,
+      paginatedInvoices,
+      clients,
+      pagination,
+    },
+    actions: {
+      onViewInvoice: handleViewInvoice,
+      onDeleteClick: handleDeleteClick,
+      onExportPDF: handleExportInvoicePDF,
+      onExportHTML: handleExportInvoiceHTML,
+      onExportFacturX: handleExportInvoiceFacturX,
+      onStatusChange: handleStatusChange,
+      onRecordPayment: handleRecordPayment,
+      onOpenHistory: (invoice) => openDialog('history', invoice),
+      onOpenEmailModal: handleOpenEmailModal,
+      onGeneratePaymentLink: handleGeneratePaymentLink,
+      onCopyPaymentLink: handleCopyPaymentLink,
+    },
+    ui: {
+      emailSending,
+      paymentLinkLoading,
+      getStatusColor,
+      getPaymentStatusBadge,
+      INVOICE_STATUS_COLORS,
+    },
   };
 
   return (
@@ -460,6 +457,7 @@ const InvoicesPage = () => {
               )}
             </motion.div>
           ) : (
+            <SectionErrorBoundary section="invoice-views">
             <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
               <TabsList className="bg-gray-800 border border-gray-700 mb-4">
                 <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
@@ -517,31 +515,18 @@ const InvoicesPage = () => {
                 />
               </TabsContent>
             </Tabs>
+            </SectionErrorBoundary>
           )}
         </div>
 
       <InvoiceDialogs
-        viewingInvoice={viewingInvoice}
-        setViewingInvoice={setViewingInvoice}
+        dialog={dialog}
+        setDialog={setDialog}
+        closeDialog={closeDialog}
         clients={clients}
         getInvoiceItems={getInvoiceItems}
-        isPaymentOpen={isPaymentOpen}
-        setIsPaymentOpen={setIsPaymentOpen}
-        paymentInvoice={paymentInvoice}
         fetchInvoices={fetchInvoices}
-        isLumpSumOpen={isLumpSumOpen}
-        setIsLumpSumOpen={setIsLumpSumOpen}
-        lumpSumClientId={lumpSumClientId}
-        isHistoryOpen={isHistoryOpen}
-        setIsHistoryOpen={setIsHistoryOpen}
-        historyInvoice={historyInvoice}
-        isDeleteDialogOpen={isDeleteDialogOpen}
-        setIsDeleteDialogOpen={setIsDeleteDialogOpen}
         handleConfirmDelete={handleConfirmDelete}
-        emailModalInvoice={emailModalInvoice}
-        setEmailModalInvoice={setEmailModalInvoice}
-        emailModalAddress={emailModalAddress}
-        setEmailModalAddress={setEmailModalAddress}
         emailSending={emailSending}
         handleConfirmSendEmail={handleConfirmSendEmail}
         company={company}

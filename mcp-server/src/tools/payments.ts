@@ -4,6 +4,9 @@ import { supabase, getUserId } from '../supabase.js';
 import { optionalDate } from '../utils/validation.js';
 import { safeError } from '../utils/errors.js';
 
+const COLS_PAYMENTS = 'id, invoice_id, client_id, amount, payment_method, payment_date, reference, notes, receipt_number, receipt_generated_at, is_lump_sum, deleted_at, created_at, updated_at';
+const COLS_RECEIVABLES = 'id, debtor_name, debtor_phone, debtor_email, description, amount, amount_paid, currency, date_lent, due_date, status, category, notes, created_at, updated_at';
+
 export function registerPaymentTools(server: McpServer) {
 
   server.tool(
@@ -17,7 +20,7 @@ export function registerPaymentTools(server: McpServer) {
     async ({ invoice_id, client_id, limit }) => {
       let query = supabase
         .from('payments')
-        .select(`*, invoice:invoices(id, invoice_number, total_ttc), client:clients(id, company_name)`)
+        .select(`${COLS_PAYMENTS}, invoice:invoices(id, invoice_number, total_ttc), client:clients(id, company_name)`)
         .eq('user_id', getUserId())
         .order('payment_date', { ascending: false })
         .limit(limit ?? 50);
@@ -39,7 +42,7 @@ export function registerPaymentTools(server: McpServer) {
     'Record a payment for an invoice',
     {
       invoice_id: z.string().describe('Invoice UUID'),
-      amount: z.number().describe('Payment amount'),
+      amount: z.number().min(0).max(999999999.99).multipleOf(0.01).describe('Payment amount'),
       payment_method: z.string().optional().describe('Method: bank_transfer, cash, check, card, other (default bank_transfer)'),
       payment_date: z.string().optional().describe('Payment date YYYY-MM-DD (default today)'),
       reference: z.string().optional().describe('Payment reference'),
@@ -97,7 +100,8 @@ export function registerPaymentTools(server: McpServer) {
       await supabase
         .from('invoices')
         .update({ payment_status: paymentStatus, status: paymentStatus === 'paid' ? 'paid' : undefined })
-        .eq('id', invoice_id);
+        .eq('id', invoice_id)
+        .eq('user_id', getUserId());
 
       return {
         content: [{ type: 'text' as const, text: `Payment of ${amount} recorded (${receiptNumber}). Invoice status: ${paymentStatus}.\n${JSON.stringify(data, null, 2)}` }]
@@ -142,7 +146,7 @@ export function registerPaymentTools(server: McpServer) {
     async () => {
       const { data, error } = await supabase
         .from('receivables')
-        .select('*')
+        .select(COLS_RECEIVABLES)
         .eq('user_id', getUserId());
 
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get receivables summary') }] };

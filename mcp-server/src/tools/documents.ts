@@ -15,11 +15,11 @@ export function registerDocumentTools(server: McpServer) {
       quote_number: z.string().optional().describe('Quote number (auto-generated if omitted)'),
       valid_until: z.string().optional().describe('Validity date (YYYY-MM-DD)'),
       notes: z.string().optional().describe('Notes or terms'),
-      tax_rate: z.number().optional().describe('Tax rate in % (default 20)'),
+      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional().describe('Tax rate in % (default 20)'),
       items: z.array(z.object({
         description: z.string().describe('Item description'),
-        quantity: z.number().describe('Quantity'),
-        unit_price: z.number().describe('Unit price HT')
+        quantity: z.number().min(0).describe('Quantity'),
+        unit_price: z.number().min(0).max(999999999.99).multipleOf(0.01).describe('Unit price HT')
       })).describe('Quote line items')
     },
     async ({ client_id, quote_number, valid_until, notes, tax_rate, items }) => {
@@ -120,7 +120,7 @@ export function registerDocumentTools(server: McpServer) {
     'Create a credit note (avoir) linked to an invoice. Partial or full refund.',
     {
       invoice_id: z.string().describe('Original invoice UUID'),
-      amount: z.number().optional().describe('Credit amount TTC (defaults to full invoice amount)'),
+      amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional().describe('Credit amount TTC (defaults to full invoice amount)'),
       reason: z.string().optional().describe('Reason for credit note')
     },
     async ({ invoice_id, amount, reason }) => {
@@ -163,8 +163,8 @@ export function registerDocumentTools(server: McpServer) {
     'create_expense',
     'Record an expense with automatic HT/TVA calculation from TTC amount',
     {
-      amount_ttc: z.number().describe('Total amount TTC (tax included)'),
-      tax_rate: z.number().optional().describe('Tax rate % (default 20)'),
+      amount_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).describe('Total amount TTC (tax included)'),
+      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional().describe('Tax rate % (default 20)'),
       category: z.string().optional().describe('Expense category'),
       description: z.string().optional().describe('Description'),
       expense_date: z.string().optional().describe('Date (YYYY-MM-DD), default today'),

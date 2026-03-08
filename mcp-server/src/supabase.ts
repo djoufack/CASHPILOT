@@ -82,6 +82,11 @@ export async function ensureSessionValid(): Promise<void> {
 /**
  * Get the current authenticated user ID. Throws if not logged in or session expired.
  */
+export async function ensureAndGetUserId(): Promise<string> {
+  await ensureSessionValid();
+  return getUserId();
+}
+
 export function getUserId(): string {
   if (!currentUserId) throw new Error('Not authenticated. Use the "login" tool first.');
   // Hard check: reject already-expired tokens

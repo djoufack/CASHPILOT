@@ -3266,5 +3266,14 @@
     "title": "Er is iets misgegaan",
     "description": "Er is een fout opgetreden bij het laden van deze pagina. De rest van de applicatie is nog beschikbaar.",
     "retry": "Opnieuw proberen"
+  },
+  "cookies": {
+    "banner": {
+      "title": "Cookies en foutopsporing",
+      "description": "CashPilot gebruikt cookies voor analyse en foutopsporing (Sentry). U kunt het gebruik ervan accepteren of weigeren.",
+      "accept": "Accepteren",
+      "refuse": "Weigeren"
+    },
+    "footerLink": "Cookies"
   }
 }

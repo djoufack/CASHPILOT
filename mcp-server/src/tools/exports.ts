@@ -6,6 +6,8 @@ import { generateUBLInvoice, generateUBLCreditNote } from '../utils/ublGenerator
 import { validateDate } from '../utils/validation.js';
 import { safeError } from '../utils/errors.js';
 
+const COLS_ACCOUNTING_ENTRIES = 'id, transaction_date, account_code, description, debit, credit, entry_ref, journal, source_type, source_id, reference_type, reference_id, is_auto, created_at';
+
 export function registerExportTools(server: McpServer) {
 
   server.tool(
@@ -20,7 +22,7 @@ export function registerExportTools(server: McpServer) {
       try { validateDate(end_date, 'end_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
 
       const [entriesRes, accountsRes] = await Promise.all([
-        supabase.from('accounting_entries').select('*')
+        supabase.from('accounting_entries').select(COLS_ACCOUNTING_ENTRIES)
           .eq('user_id', getUserId())
           .gte('transaction_date', start_date).lte('transaction_date', end_date)
           .order('transaction_date', { ascending: true }),
@@ -86,10 +88,10 @@ export function registerExportTools(server: McpServer) {
       const [companyRes, accountsRes, entriesRes, clientsRes] = await Promise.all([
         supabase.from('companies').select('*').eq('user_id', getUserId()).single(),
         supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', getUserId()),
-        supabase.from('accounting_entries').select('*').eq('user_id', getUserId())
+        supabase.from('accounting_entries').select(COLS_ACCOUNTING_ENTRIES).eq('user_id', getUserId())
           .gte('transaction_date', start_date).lte('transaction_date', end_date)
           .order('transaction_date', { ascending: true }),
-        supabase.from('clients').select('*').eq('user_id', getUserId())
+        supabase.from('clients').select('id, company_name, contact_name, email, phone, address, city, postal_code, country, vat_number, tax_id').eq('user_id', getUserId())
       ]);
 
       const company = companyRes.data || { company_name: 'Unknown', tax_id: '' };

@@ -5,6 +5,8 @@ import { sanitizeText } from '../utils/sanitize.js';
 import { validateDate } from '../utils/validation.js';
 import { safeError } from '../utils/errors.js';
 
+const COLS_INVOICES = 'id, invoice_number, client_id, date, due_date, total_ht, tax_rate, total_ttc, status, payment_status, amount_paid, balance_due, notes, reference, invoice_type, discount_type, discount_value, discount_amount, shipping_fee, adjustment, adjustment_label, header_note, footer_note, conditions, terms_and_conditions, internal_remark, custom_fields, attached_image_url, payment_terms_id, peppol_status, peppol_document_id, peppol_sent_at, peppol_error_message, created_at';
+
 export function registerInvoiceTools(server: McpServer) {
 
   server.tool(
@@ -18,7 +20,7 @@ export function registerInvoiceTools(server: McpServer) {
     async ({ status, client_id, limit }) => {
       let query = supabase
         .from('invoices')
-        .select(`*, client:clients(id, company_name, contact_name, email), items:invoice_items(*)`)
+        .select(`${COLS_INVOICES}, client:clients(id, company_name, contact_name, email), items:invoice_items(id, invoice_id, description, quantity, unit_price, total, tax_rate, discount, sort_order)`)
         .eq('user_id', getUserId())
         .order('created_at', { ascending: false })
         .limit(limit ?? 50);
@@ -44,7 +46,7 @@ export function registerInvoiceTools(server: McpServer) {
     async ({ invoice_id }) => {
       const { data, error } = await supabase
         .from('invoices')
-        .select(`*, client:clients(*), items:invoice_items(*), payments:payments(id, amount, payment_date, payment_method, receipt_number)`)
+        .select(`${COLS_INVOICES}, client:clients(id, company_name, contact_name, email, phone, address, city, postal_code, country, vat_number, preferred_currency), items:invoice_items(id, invoice_id, description, quantity, unit_price, total, tax_rate, discount, sort_order), payments:payments(id, amount, payment_date, payment_method, receipt_number)`)
         .eq('id', invoice_id)
         .eq('user_id', getUserId())
         .single();
@@ -65,9 +67,9 @@ export function registerInvoiceTools(server: McpServer) {
       client_id: z.string().describe('Client UUID'),
       date: z.string().describe('Issue date (YYYY-MM-DD)'),
       due_date: z.string().describe('Due date (YYYY-MM-DD)'),
-      total_ht: z.number().describe('Total excluding VAT'),
-      tax_rate: z.number().optional().describe('VAT rate (default 20)'),
-      total_ttc: z.number().describe('Total including VAT'),
+      total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).describe('Total excluding VAT'),
+      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional().describe('VAT rate (default 20)'),
+      total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).describe('Total including VAT'),
       status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial']).optional().describe('Status (default draft)'),
       notes: z.string().optional().describe('Invoice notes')
     },
@@ -153,10 +155,11 @@ export function registerInvoiceTools(server: McpServer) {
       query: z.string().describe('Search text')
     },
     async ({ query: q }) => {
-      const pattern = `%${q}%`;
+      const safeQ = q.replace(/[|,().]/g, '\\$&');
+      const pattern = `%${safeQ}%`;
       const { data, error } = await supabase
         .from('invoices')
-        .select(`*, client:clients(id, company_name)`)
+        .select(`${COLS_INVOICES}, client:clients(id, company_name)`)
         .eq('user_id', getUserId())
         .or(`invoice_number.ilike.${pattern},notes.ilike.${pattern},reference.ilike.${pattern}`)
         .order('created_at', { ascending: false })
@@ -226,6 +229,20 @@ export function registerInvoiceTools(server: McpServer) {
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(stats, null, 2) }]
+      };
+    }
+  );
+
+  server.tool(
+    'get_dunning_candidates',
+    'Get overdue invoices that are candidates for dunning (payment follow-up). Returns invoice details with days overdue and previous dunning history.',
+    {},
+    async () => {
+      const userId = getUserId();
+      const { data, error } = await supabase.rpc('get_dunning_candidates', { p_user_id: userId });
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get dunning candidates') }] };
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }]
       };
     }
   );

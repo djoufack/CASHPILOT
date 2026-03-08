@@ -4,6 +4,8 @@ import { supabase, getUserId, getAccessToken, getSupabaseUrl } from '../supabase
 import { sanitizeText } from '../utils/sanitize.js';
 import { safeError } from '../utils/errors.js';
 
+const COLS_SUPPLIER_INVOICES = 'id, supplier_id, invoice_number, invoice_date, due_date, total_ht, vat_amount, vat_rate, total_ttc, total_amount, currency, payment_status, payment_terms, supplier_name_extracted, supplier_address_extracted, supplier_vat_number, iban, bic, file_url, notes, ai_extracted, ai_confidence, ai_extracted_at, created_at, updated_at';
+
 export function registerSupplierInvoiceTools(server: McpServer) {
 
   // ── Extract & create a supplier invoice from an image/PDF ──────────
@@ -94,7 +96,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
           .from('suppliers')
           .select('id, company_name')
           .eq('user_id', userId)
-          .ilike('company_name', extractedData.supplier_name.trim())
+          .ilike('company_name', extractedData.supplier_name.trim().replace(/[|,().]/g, '\\$&'))
           .limit(1);
 
         if (existingSuppliers && existingSuppliers.length > 0) {
@@ -164,7 +166,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
           ai_raw_response: extractedData,
           ai_extracted_at: new Date().toISOString(),
         }])
-        .select('*')
+        .select(COLS_SUPPLIER_INVOICES)
         .single();
 
       if (invoiceError) {
@@ -249,7 +251,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
 
       let query = supabase
         .from('supplier_invoices')
-        .select('*, supplier:suppliers(id, company_name, contact_person)')
+        .select(`${COLS_SUPPLIER_INVOICES}, supplier:suppliers(id, company_name, contact_person)`)
         .in('supplier_id', supplierIds.length > 0 ? supplierIds : ['00000000-0000-0000-0000-000000000000'])
         .order('created_at', { ascending: false })
         .limit(limit ?? 50);
@@ -278,7 +280,7 @@ export function registerSupplierInvoiceTools(server: McpServer) {
       const userId = getUserId();
       const { data, error } = await supabase
         .from('supplier_invoices')
-        .select('*, supplier:suppliers!inner(*), line_items:supplier_invoice_line_items(*)')
+        .select(`${COLS_SUPPLIER_INVOICES}, supplier:suppliers!inner(id, company_name, contact_person, email, phone, address, city, postal_code, country, currency, status, tax_id), line_items:supplier_invoice_line_items(id, invoice_id, description, quantity, unit_price, total, sort_order)`)
         .eq('id', invoice_id)
         .eq('supplier.user_id', userId)
         .single();

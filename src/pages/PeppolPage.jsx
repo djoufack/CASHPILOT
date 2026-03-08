@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useCompany } from '@/hooks/useCompany';
-import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { usePeppol } from '@/hooks/usePeppol';
 import { usePeppolSend } from '@/hooks/usePeppolSend';
 import { usePeppolCheck } from '@/hooks/usePeppolCheck';
 import PeppolStatusBadge from '@/components/peppol/PeppolStatusBadge';
@@ -23,26 +22,27 @@ import { exportUBL } from '@/services/exportUBL';
 import PeppolSettings from '@/components/settings/PeppolSettings';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
-import { readFunctionErrorData } from '@/utils/supabaseFunctionErrors';
 
 const PeppolPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const { company, loading: companyLoading } = useCompany();
-  const { applyCompanyScope } = useCompanyScope();
+  const {
+    invoices, loadingInvoices, fetchOutboundInvoices,
+    inboundLogs, loadingInbound,
+    allLogs, loadingLogs, fetchAllLogs,
+    apInfo, loadingApInfo, fetchApInfo,
+    fetchInvoiceItems,
+    syncingInbound, syncInbound,
+    refreshAll,
+  } = usePeppol();
   const { sendViaPeppol, sending, polling, peppolStatus, creditsModalProps } = usePeppolSend();
   const { checkRegistration, checking, result: checkResult, reset: resetCheck } = usePeppolCheck();
   const { openCreditsModal, modalProps: inboundCreditsModalProps } = useCreditsGuard();
 
   // --- State ---
   const [activeTab, setActiveTab] = useState('outbound');
-  const [invoices, setInvoices] = useState([]);
-  const [inboundLogs, setInboundLogs] = useState([]);
-  const [allLogs, setAllLogs] = useState([]);
-  const [loadingInvoices, setLoadingInvoices] = useState(true);
-  const [loadingInbound, setLoadingInbound] = useState(true);
-  const [loadingLogs, setLoadingLogs] = useState(true);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [selectedInvoiceItems, setSelectedInvoiceItems] = useState([]);
@@ -51,9 +51,6 @@ const PeppolPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewingInvoice, setViewingInvoice] = useState(null);
-  const [apInfo, setApInfo] = useState(null);
-  const [loadingApInfo, setLoadingApInfo] = useState(false);
-  const [syncingInbound, setSyncingInbound] = useState(false);
 
   const isPeppolConfigured = !!(company?.peppol_endpoint_id);
   const creditUnit = t('credits.creditsLabel');
@@ -96,109 +93,7 @@ const PeppolPage = () => {
     },
   ];
 
-  // --- Fetch AP account info from Scrada ---
-  const fetchApInfo = useCallback(async () => {
-    if (!user) return;
-    setLoadingApInfo(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('peppol-account-info');
-      if (error) throw error;
-      setApInfo(data);
-    } catch (err) {
-      console.error('Error fetching AP info:', err);
-      setApInfo(null);
-    } finally {
-      setLoadingApInfo(false);
-    }
-  }, [user]);
-
-  // --- Data fetching ---
-  const fetchOutboundInvoices = useCallback(async () => {
-    if (!user) return;
-    setLoadingInvoices(true);
-    try {
-      let query = supabase
-        .from('invoices')
-        .select(`
-          id, invoice_number, total_ht, total_ttc, tax_rate, status,
-          peppol_status, peppol_sent_at, peppol_document_id, peppol_error_message,
-          client:clients(id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled)
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'sent')
-        .order('created_at', { ascending: false });
-      query = applyCompanyScope(query, { includeUnassigned: false });
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setInvoices(data || []);
-    } catch (err) {
-      console.error('Error fetching outbound invoices:', err);
-      toast({
-        title: t('common.error'),
-        description: err.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoadingInvoices(false);
-    }
-  }, [applyCompanyScope, toast, t, user]);
-
-  const fetchInboundLogs = useCallback(async () => {
-    if (!user) return;
-    setLoadingInbound(true);
-    try {
-      let query = supabase
-        .from('peppol_transmission_log')
-        .select(`*, invoice:invoices(id, invoice_number)`)
-        .eq('user_id', user.id)
-        .eq('direction', 'inbound')
-        .order('created_at', { ascending: false });
-      query = applyCompanyScope(query, { includeUnassigned: false });
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setInboundLogs(data || []);
-    } catch (err) {
-      console.error('Error fetching inbound logs:', err);
-    } finally {
-      setLoadingInbound(false);
-    }
-  }, [applyCompanyScope, user]);
-
-  const fetchAllLogs = useCallback(async () => {
-    if (!user) return;
-    setLoadingLogs(true);
-    try {
-      let query = supabase
-        .from('peppol_transmission_log')
-        .select(`*, invoice:invoices(id, invoice_number)`)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(100);
-      query = applyCompanyScope(query, { includeUnassigned: false });
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setAllLogs(data || []);
-    } catch (err) {
-      console.error('Error fetching all logs:', err);
-    } finally {
-      setLoadingLogs(false);
-    }
-  }, [applyCompanyScope, user]);
-
-  useEffect(() => {
-    if (user) {
-      fetchOutboundInvoices();
-      fetchInboundLogs();
-      fetchAllLogs();
-      fetchApInfo();
-    }
-  }, [fetchAllLogs, fetchApInfo, fetchInboundLogs, fetchOutboundInvoices, user]);
+  // Note: Data fetching for invoices, logs, and AP info is handled by usePeppol hook.
 
   // --- KPI calculations ---
   const kpis = useMemo(() => {
@@ -240,13 +135,8 @@ const PeppolPage = () => {
     setSendDialogOpen(true);
 
     try {
-      const { data: items, error } = await supabase
-        .from('invoice_items')
-        .select('*')
-        .eq('invoice_id', invoice.id);
-
-      if (error) throw error;
-      setSelectedInvoiceItems(items || []);
+      const items = await fetchInvoiceItems(invoice.id);
+      setSelectedInvoiceItems(items);
     } catch (err) {
       console.error('Error fetching invoice items:', err);
       setSelectedInvoiceItems([]);
@@ -284,11 +174,8 @@ const PeppolPage = () => {
   const handleViewInvoice = async (invoice) => {
     setViewingInvoice(invoice);
     try {
-      const { data: items } = await supabase
-        .from('invoice_items')
-        .select('*')
-        .eq('invoice_id', invoice.id);
-      setViewingInvoiceItems(items || []);
+      const items = await fetchInvoiceItems(invoice.id);
+      setViewingInvoiceItems(items);
     } catch {
       setViewingInvoiceItems([]);
     }
@@ -302,16 +189,13 @@ const PeppolPage = () => {
 
   const handleExportUBL = async (invoice) => {
     try {
-      const { data: items } = await supabase
-        .from('invoice_items')
-        .select('*')
-        .eq('invoice_id', invoice.id);
+      const items = await fetchInvoiceItems(invoice.id);
 
       await exportUBL(
         invoice,
         { name: company?.name, peppol_endpoint_id: company?.peppol_endpoint_id },
         invoice.client,
-        items || []
+        items
       );
 
       toast({
@@ -340,22 +224,13 @@ const PeppolPage = () => {
   };
 
   // --- Refresh all data ---
-  const handleRefreshAll = useCallback(() => {
-    fetchOutboundInvoices();
-    fetchInboundLogs();
-    fetchAllLogs();
-  }, [fetchAllLogs, fetchInboundLogs, fetchOutboundInvoices]);
+  const handleRefreshAll = refreshAll;
 
   const handleSyncInbound = useCallback(async () => {
     if (!user) return;
 
-    setSyncingInbound(true);
     try {
-      const { data, error } = await supabase.functions.invoke('peppol-inbound', {
-        body: { action: 'sync' },
-      });
-
-      if (error) throw error;
+      const data = await syncInbound();
 
       if (data?.insufficientCredits) {
         openCreditsModal(
@@ -372,26 +247,23 @@ const PeppolPage = () => {
           : 'Aucune nouvelle facture entrante.',
       });
 
-      handleRefreshAll();
+      refreshAll();
     } catch (err) {
-      const details = await readFunctionErrorData(err);
-      if (details?.insufficientCredits) {
+      if (err?.insufficientCredits) {
         openCreditsModal(
-          details.requiredCredits,
-          `${details.newDocuments || 0} factures Peppol entrantes`,
+          err.requiredCredits,
+          `${err.newDocuments || 0} factures Peppol entrantes`,
         );
         return;
       }
 
       toast({
         title: t('common.error'),
-        description: details?.error || err.message,
+        description: err?.error || err?.message || String(err),
         variant: 'destructive',
       });
-    } finally {
-      setSyncingInbound(false);
     }
-  }, [handleRefreshAll, openCreditsModal, t, toast, user]);
+  }, [openCreditsModal, refreshAll, syncInbound, t, toast, user]);
 
   // --- Formatting helpers ---
   const formatDate = (dateStr) => {
