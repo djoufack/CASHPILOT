@@ -194,7 +194,10 @@ export const allocateLumpSumPayment = (amount, pendingInvoices) => {
 };
 
 /**
- * Determine payment status based on amounts
+ * Determine payment status based on amounts.
+ * Mirrors DB function `determine_payment_status(p_amount_paid, p_total)`.
+ * Kept in JS for immediate UI feedback before DB round-trip.
+ * Source of truth: DB function `determine_payment_status`.
  * @param {number} totalTTC - Invoice total
  * @param {number} amountPaid - Amount paid
  * @returns {string} Payment status

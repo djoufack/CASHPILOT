@@ -1,7 +1,11 @@
-const BILLABLE_INVOICE_STATUSES = new Set(['sent', 'paid']);
-const NON_BOOKED_INVOICE_STATUSES = new Set(['draft', 'cancelled']);
-const COLLECTED_PAYMENT_STATUSES = new Set(['paid', 'overpaid']);
-const COLLECTED_INVOICE_STATUSES = new Set(['paid']);
+// TODO: These sets are now defined in DB table `invoice_status_config`.
+// They are kept here as JS fallbacks for offline/loading states.
+// Once the frontend fetches from DB on init, these become the default values only.
+// Source of truth: DB `invoice_status_config` (is_billable, is_booked, is_collected columns)
+const BILLABLE_INVOICE_STATUSES = new Set(['sent', 'paid']);           // mirrors DB: is_billable = true
+const NON_BOOKED_INVOICE_STATUSES = new Set(['draft', 'cancelled']);   // mirrors DB: is_booked = false
+const COLLECTED_PAYMENT_STATUSES = new Set(['paid', 'overpaid']);      // mirrors DB: is_collected = true (payment-level)
+const COLLECTED_INVOICE_STATUSES = new Set(['paid']);                   // mirrors DB: is_collected = true (invoice-level)
 
 const toNumber = (value) => {
   const n = Number(value);
