@@ -231,7 +231,7 @@ export const fetchObligationSnapshot = async (supabase, userId, options = {}) =>
             total_ttc,
             supplier_id,
             company_id,
-            supplier:suppliers(id, company_name)
+            supplier:suppliers!supplier_invoices_supplier_id_fkey(id, company_name)
           `)
           .in('supplier_id', supplierIds)
           .order('due_date', { ascending: true, nullsFirst: false });
