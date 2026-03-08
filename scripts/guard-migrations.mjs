@@ -13,6 +13,12 @@ const BASELINE_ALLOWLIST = new Set([
   'supabase/migrations/20260226232114_accounting_guard.sql:Mutation policy with always-true predicate',
   'supabase/migrations/20260302010000_pending_subscriptions.sql:Mutation policy with always-true predicate',
   'supabase/migrations/20260302120000_subscription_entitlements_and_credit_engine.sql:Mutation policy with always-true predicate',
+  // Sprint 1-3 accounting SQL migrations (already deployed, remediated by 20260308175000)
+  'supabase/migrations/20260308130000_accounting_sql_foundation.sql:SECURITY DEFINER function without SET search_path',
+  'supabase/migrations/20260308130000_accounting_sql_foundation.sql:Mutation policy with always-true predicate',
+  'supabase/migrations/20260308140000_fix_classify_account_security_definer.sql:SECURITY DEFINER function without SET search_path',
+  'supabase/migrations/20260308150000_sprint2_financial_analysis.sql:SECURITY DEFINER function without SET search_path',
+  'supabase/migrations/20260308160000_sprint3_pilotage_valuation_tax.sql:SECURITY DEFINER function without SET search_path',
 ]);
 
 function lineFromIndex(text, index) {
