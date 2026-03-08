@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -86,6 +87,7 @@ const SupplierInvoicesPage = () => {
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState('all');
   const [supplierFilter, setSupplierFilter] = useState('all');
   const [approvalFilter, setApprovalFilter] = useState('all');
@@ -167,7 +169,7 @@ const SupplierInvoicesPage = () => {
   // ---------- FILTERING ----------
 
   const filteredInvoices = invoices.filter((inv) => {
-    const term = searchTerm.toLowerCase();
+    const term = debouncedSearchTerm.toLowerCase();
     const matchesSearch =
       !term ||
       (inv.invoice_number || '').toLowerCase().includes(term) ||

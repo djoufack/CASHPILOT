@@ -1,6 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { supabase, getUserId } from '../supabase.js';
+import { optionalDate } from '../utils/validation.js';
+import { safeError } from '../utils/errors.js';
 
 export function registerDocumentTools(server: McpServer) {
 
@@ -21,6 +23,9 @@ export function registerDocumentTools(server: McpServer) {
       })).describe('Quote line items')
     },
     async ({ client_id, quote_number, valid_until, notes, tax_rate, items }) => {
+      const validUntilDate = optionalDate(valid_until);
+      if (valid_until && !validUntilDate) return { content: [{ type: 'text' as const, text: "Parameter 'valid_until' must be a valid date (YYYY-MM-DD)" }] };
+
       const userId = getUserId();
       const rate = tax_rate ?? 20;
 
@@ -37,7 +42,7 @@ export function registerDocumentTools(server: McpServer) {
           client_id,
           quote_number: quoteNum,
           date: new Date().toISOString().split('T')[0],
-          valid_until: valid_until || null,
+          valid_until: validUntilDate || null,
           total_ht: Math.round(totalHt * 100) / 100,
           total_ttc: Math.round(totalTtc * 100) / 100,
           tax_rate: rate,
@@ -49,7 +54,7 @@ export function registerDocumentTools(server: McpServer) {
         .select()
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create quote') }] };
       return { content: [{ type: 'text' as const, text: `Quote created: ${quoteNum}\n${JSON.stringify(quote, null, 2)}` }] };
     }
   );
@@ -71,7 +76,7 @@ export function registerDocumentTools(server: McpServer) {
         .eq('user_id', userId)
         .single();
 
-      if (qErr || !quote) return { content: [{ type: 'text' as const, text: `Error: ${qErr?.message || 'Quote not found'}` }] };
+      if (qErr || !quote) return { content: [{ type: 'text' as const, text: safeError(qErr || 'Quote not found', 'convert quote to invoice') }] };
 
       const invoiceNumber = `FAC-${Date.now().toString(36).toUpperCase()}`;
       const dueDate = new Date();
@@ -96,7 +101,7 @@ export function registerDocumentTools(server: McpServer) {
         .select()
         .single();
 
-      if (invErr) return { content: [{ type: 'text' as const, text: `Error creating invoice: ${invErr.message}` }] };
+      if (invErr) return { content: [{ type: 'text' as const, text: safeError(invErr, 'convert quote to invoice') }] };
 
       await supabase
         .from('quotes')
@@ -128,7 +133,7 @@ export function registerDocumentTools(server: McpServer) {
         .eq('user_id', userId)
         .single();
 
-      if (invErr || !invoice) return { content: [{ type: 'text' as const, text: `Error: ${invErr?.message || 'Invoice not found'}` }] };
+      if (invErr || !invoice) return { content: [{ type: 'text' as const, text: safeError(invErr || 'Invoice not found', 'create credit note') }] };
 
       const creditAmount = amount ?? parseFloat(invoice.total_ttc) ?? 0;
       const creditNumber = `AV-${Date.now().toString(36).toUpperCase()}`;
@@ -148,7 +153,7 @@ export function registerDocumentTools(server: McpServer) {
         .select()
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create credit note') }] };
       return { content: [{ type: 'text' as const, text: `Credit note created: ${creditNumber} for ${creditAmount} EUR\n${JSON.stringify(creditNote, null, 2)}` }] };
     }
   );
@@ -168,6 +173,9 @@ export function registerDocumentTools(server: McpServer) {
       refacturable: z.boolean().optional().describe('Whether expense can be billed to client')
     },
     async ({ amount_ttc, tax_rate, category, description, expense_date, client_id, receipt_url, refacturable }) => {
+      const validExpenseDate = optionalDate(expense_date);
+      if (expense_date && !validExpenseDate) return { content: [{ type: 'text' as const, text: "Parameter 'expense_date' must be a valid date (YYYY-MM-DD)" }] };
+
       const userId = getUserId();
       const rate = tax_rate ?? 20;
       const amountHt = amount_ttc / (1 + rate / 100);
@@ -183,7 +191,7 @@ export function registerDocumentTools(server: McpServer) {
           tax_rate: rate,
           category: category || null,
           description: description || null,
-          expense_date: expense_date || new Date().toISOString().split('T')[0],
+          expense_date: validExpenseDate || new Date().toISOString().split('T')[0],
           client_id: client_id || null,
           receipt_url: receipt_url || null,
           refacturable: refacturable ?? false
@@ -191,7 +199,7 @@ export function registerDocumentTools(server: McpServer) {
         .select()
         .single();
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create expense') }] };
       return {
         content: [{ type: 'text' as const, text: `Expense recorded: ${Math.round(amount_ttc * 100) / 100} EUR TTC (${Math.round(amountHt * 100) / 100} HT + ${Math.round(taxAmount * 100) / 100} TVA)\n${JSON.stringify(data, null, 2)}` }]
       };
@@ -214,7 +222,7 @@ export function registerDocumentTools(server: McpServer) {
           .eq('user_id', userId).eq('supplier_id', supplier_id)
       ]);
 
-      if (supplierRes.error) return { content: [{ type: 'text' as const, text: `Error: ${supplierRes.error.message}` }] };
+      if (supplierRes.error) return { content: [{ type: 'text' as const, text: safeError(supplierRes.error, 'get supplier balance') }] };
 
       const invoices = invoicesRes.data ?? [];
       const totalInvoiced = invoices.reduce((s, i) => s + (parseFloat(i.total_amount) || 0), 0);

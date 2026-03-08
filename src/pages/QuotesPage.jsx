@@ -11,35 +11,21 @@ import { exportQuotePDF, exportQuoteHTML, generateQuoteHTML } from '@/services/e
 import { exportToCSV, exportToExcel } from '@/utils/exportService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Plus, FileSignature, Trash2, Loader2, Search, List, CalendarDays, CalendarClock, Download, FileText, Kanban, Copy, Eye, LayoutGrid } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Plus, FileSignature, Loader2, Search, List, CalendarDays, CalendarClock, Download, Kanban, LayoutGrid } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 import { usePagination } from '@/hooks/usePagination';
-import PaginationControls from '@/components/PaginationControls';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import GenericKanbanView from '@/components/GenericKanbanView';
 import { formatDateInput } from '@/utils/dateFormatting';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
+
+import QuoteListTable from '@/components/quotes/QuoteListTable';
+import QuoteGalleryView from '@/components/quotes/QuoteGalleryView';
+import QuoteDialogs from '@/components/quotes/QuoteDialogs';
 
 const DEFAULT_TAX_RATE_FALLBACK = 20;
 const createEmptyItem = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({ description: '', quantity: 1, unit_price: 0, tax_rate: taxRate });
@@ -76,6 +62,7 @@ const QuotesPage = () => {
   const [signatureLink, setSignatureLink] = useState('');
   const [signatureSubmitting, setSignatureSubmitting] = useState(false);
 
+  // Calendar/Agenda/Kanban data
   const quoteCalendarStatusColors = {
     draft: { bg: '#6b7280', border: '#4b5563', text: '#fff' },
     sent: { bg: '#3b82f6', border: '#2563eb', text: '#fff' },
@@ -139,14 +126,13 @@ const QuotesPage = () => {
   const pagination = usePagination({ pageSize: 20 });
   const { setTotalCount } = pagination;
 
-  // Update pagination total count when filtered quotes change
   useEffect(() => {
     setTotalCount(filteredQuotes.length);
   }, [filteredQuotes.length, setTotalCount]);
 
-  // Client-side paginated data for the list view
   const paginatedQuotes = filteredQuotes.slice(pagination.from, pagination.to + 1);
 
+  // Handlers
   const handleOpenDialog = () => {
     setFormData(createInitialFormData(defaultRate));
     setIsDialogOpen(true);
@@ -219,34 +205,21 @@ const QuotesPage = () => {
   };
 
   const getQuoteClient = (quote) => clients.find(c => c.id === quote.client_id) || quote.client || null;
-  const getEnrichedQuote = (quote) => ({
-    ...quote,
-    client: getQuoteClient(quote),
-  });
+  const getEnrichedQuote = (quote) => ({ ...quote, client: getQuoteClient(quote) });
 
   const handleExportQuotePDF = (quote) => {
-    guardedAction(
-      CREDIT_COSTS.PDF_QUOTE,
-      t('credits.costs.pdfQuote'),
-      async () => {
-        await exportQuotePDF(getEnrichedQuote(quote), company);
-      }
-    );
+    guardedAction(CREDIT_COSTS.PDF_QUOTE, t('credits.costs.pdfQuote'), async () => {
+      await exportQuotePDF(getEnrichedQuote(quote), company);
+    });
   };
 
   const handleExportQuoteHTML = (quote) => {
-    guardedAction(
-      CREDIT_COSTS.EXPORT_HTML,
-      t('credits.costs.exportHtml'),
-      () => {
-        exportQuoteHTML(getEnrichedQuote(quote), company);
-      }
-    );
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, t('credits.costs.exportHtml'), () => {
+      exportQuoteHTML(getEnrichedQuote(quote), company);
+    });
   };
 
-  const handleViewQuote = (quote) => {
-    setViewingQuote(getEnrichedQuote(quote));
-  };
+  const handleViewQuote = (quote) => setViewingQuote(getEnrichedQuote(quote));
 
   const handleRequestSignature = (quote) => {
     setSignatureQuote(quote);
@@ -324,7 +297,23 @@ const QuotesPage = () => {
     }
   };
 
-  const { totalHT, totalTax, totalTTC} = calculateTotals();
+  const { totalHT, totalTax, totalTTC } = calculateTotals();
+
+  // Shared props for list/gallery sub-components
+  const viewProps = {
+    filteredQuotes,
+    paginatedQuotes,
+    loading,
+    pagination,
+    getQuoteClient,
+    onViewQuote: handleViewQuote,
+    onExportPDF: handleExportQuotePDF,
+    onExportHTML: handleExportQuoteHTML,
+    onDelete: handleDelete,
+    onRequestSignature: handleRequestSignature,
+    onCopySignatureLink: handleCopySignatureLink,
+    onOpenDialog: handleOpenDialog,
+  };
 
   return (
     <>
@@ -424,387 +413,11 @@ const QuotesPage = () => {
           </TabsList>
 
           <TabsContent value="list">
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
-              </div>
-            ) : filteredQuotes.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="col-span-full bg-gray-900 border border-gray-800 rounded-xl p-8 md:p-12 text-center"
-              >
-                <div className="flex justify-center mb-4">
-                  <div className="p-4 bg-gray-800 rounded-full">
-                    <FileSignature className="w-12 h-12 text-orange-400" />
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-gradient mb-2">{t('quotesPage.emptyTitle')}</h3>
-                <p className="text-gray-400 mb-6">{t('quotesPage.emptyDescription')}</p>
-                <Button onClick={handleOpenDialog} variant="outline" className="border-gray-700 text-gray-300 w-full md:w-auto">
-                  {t('quotesPage.create')}
-                </Button>
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-gray-800 rounded-lg border border-gray-700 shadow-xl overflow-hidden"
-              >
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-800/50">
-                      <tr>
-                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                          {t('quotesPage.documents') || 'Documents'}
-                        </th>
-                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                          {t('quotesPage.quoteNumber')}
-                        </th>
-                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">
-                          {t('quotesPage.client')}
-                        </th>
-                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden md:table-cell">
-                          {t('quotesPage.date')}
-                        </th>
-                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                          {t('invoices.total')}
-                        </th>
-                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                          {t('quotesPage.status')}
-                        </th>
-                        <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hidden lg:table-cell">
-                          {t('quotesPage.signatureStatus') || 'Signature'}
-                        </th>
-                        <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
-                          {t('common.actions')}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-700">
-                      {paginatedQuotes.map((quote) => {
-                        const client = getQuoteClient(quote);
-                        const statusColors = {
-                          draft: 'bg-gray-500/20 text-gray-300 border border-gray-700',
-                          sent: 'bg-blue-500/20 text-blue-300 border border-blue-700',
-                          accepted: 'bg-green-500/20 text-green-300 border border-green-700',
-                          rejected: 'bg-red-500/20 text-red-300 border border-red-700',
-                          expired: 'bg-yellow-500/20 text-yellow-300 border border-yellow-700',
-                        };
-                        const statusLabels = {
-                          draft: t('quotesPage.statusDraft'),
-                          sent: t('quotesPage.statusSent'),
-                          accepted: t('quotesPage.statusAccepted'),
-                          rejected: t('quotesPage.statusRejected'),
-                          expired: t('quotesPage.statusExpired'),
-                        };
-                        const signatureColors = {
-                          signed: 'bg-green-900/30 text-green-300 border border-green-800',
-                          pending: 'bg-orange-900/30 text-orange-300 border border-orange-800',
-                          rejected: 'bg-red-900/30 text-red-300 border border-red-800',
-                          unsigned: 'bg-gray-900/40 text-gray-300 border border-gray-700',
-                        };
-                        const signatureLabels = {
-                          signed: t('quotesPage.signatureSigned'),
-                          pending: t('quotesPage.signaturePending'),
-                          rejected: t('quotesPage.signatureRejected'),
-                          unsigned: t('quotesPage.signatureUnsigned') || 'Non sign\u00e9',
-                        };
-                        const signatureStatus = quote.signature_status || 'unsigned';
-
-                        return (
-                          <tr key={quote.id} className="hover:bg-gray-700/50 transition-colors">
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm">
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleViewQuote(quote)}
-                                  className="border-blue-500/40 text-blue-300 hover:bg-blue-900/20 h-8 px-2"
-                                  title={t('common.view') || 'Visualiser'}
-                                >
-                                  <Eye className="w-4 h-4" />
-                                  <span className="hidden xl:inline ml-1">{t('common.view') || 'Visualiser'}</span>
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleExportQuotePDF(quote)}
-                                  className="border-purple-500/40 text-purple-300 hover:bg-purple-900/20 h-8 px-2"
-                                  title={t('quotesPage.exportPdfTitle', { credits: CREDIT_COSTS.PDF_QUOTE })}
-                                >
-                                  <Download className="w-4 h-4" />
-                                  <span className="hidden xl:inline ml-1">PDF</span>
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleExportQuoteHTML(quote)}
-                                  className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/20 h-8 px-2"
-                                  title={t('quotesPage.exportHtmlTitle', { credits: CREDIT_COSTS.EXPORT_HTML })}
-                                >
-                                  <FileText className="w-4 h-4" />
-                                  <span className="hidden xl:inline ml-1">HTML</span>
-                                </Button>
-                              </div>
-                            </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
-                              {quote.quote_number}
-                            </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
-                              {client?.company_name || t('timesheets.noClient')}
-                            </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
-                              {quote.date ? new Date(quote.date).toLocaleDateString('fr-FR') : '-'}
-                            </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-100 font-medium">
-                              {formatCurrency(quote.total_ttc || 0)}
-                            </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm">
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[quote.status] || statusColors.draft}`}>
-                                {statusLabels[quote.status] || quote.status || '-'}
-                              </span>
-                            </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm hidden lg:table-cell">
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${signatureColors[signatureStatus] || signatureColors.unsigned}`}>
-                                {signatureLabels[signatureStatus] || signatureLabels.unsigned}
-                              </span>
-                            </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <div className="flex items-center justify-end gap-1">
-                                {(!quote.signature_status || quote.signature_status === 'unsigned') && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleRequestSignature(quote)}
-                                    className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 h-8 px-2"
-                                    title={t('quotesPage.requestSignature')}
-                                  >
-                                    <FileSignature className="w-4 h-4" />
-                                  </Button>
-                                )}
-                                {quote.signature_status === 'pending' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleCopySignatureLink(quote)}
-                                    className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20 h-8 px-2"
-                                    title={t('quotesPage.copySignatureLink')}
-                                  >
-                                    <Copy className="w-4 h-4" />
-                                  </Button>
-                                )}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDelete(quote.id)}
-                                  className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 px-2"
-                                  title={t('common.delete') || 'Supprimer'}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <PaginationControls
-                  currentPage={pagination.currentPage}
-                  totalPages={pagination.totalPages}
-                  totalCount={pagination.totalCount}
-                  pageSize={pagination.pageSize}
-                  pageSizeOptions={pagination.pageSizeOptions}
-                  hasNextPage={pagination.hasNextPage}
-                  hasPrevPage={pagination.hasPrevPage}
-                  onNextPage={pagination.nextPage}
-                  onPrevPage={pagination.prevPage}
-                  onGoToPage={pagination.goToPage}
-                  onChangePageSize={pagination.changePageSize}
-                />
-              </motion.div>
-            )}
+            <QuoteListTable {...viewProps} />
           </TabsContent>
 
           <TabsContent value="gallery">
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
-              </div>
-            ) : filteredQuotes.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="col-span-full bg-gray-900 border border-gray-800 rounded-xl p-8 md:p-12 text-center"
-              >
-                <div className="flex justify-center mb-4">
-                  <div className="p-4 bg-gray-800 rounded-full">
-                    <FileSignature className="w-12 h-12 text-orange-400" />
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-gradient mb-2">{t('quotesPage.emptyTitle')}</h3>
-                <p className="text-gray-400 mb-6">{t('quotesPage.emptyDescription')}</p>
-                <Button onClick={handleOpenDialog} variant="outline" className="border-gray-700 text-gray-300 w-full md:w-auto">
-                  {t('quotesPage.create')}
-                </Button>
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-4"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {paginatedQuotes.map((quote) => {
-                    const client = getQuoteClient(quote);
-                    const statusColors = {
-                      draft: 'bg-gray-500/20 text-gray-300 border border-gray-700',
-                      sent: 'bg-blue-500/20 text-blue-300 border border-blue-700',
-                      accepted: 'bg-green-500/20 text-green-300 border border-green-700',
-                      rejected: 'bg-red-500/20 text-red-300 border border-red-700',
-                      expired: 'bg-yellow-500/20 text-yellow-300 border border-yellow-700',
-                    };
-                    const statusLabels = {
-                      draft: t('quotesPage.statusDraft'),
-                      sent: t('quotesPage.statusSent'),
-                      accepted: t('quotesPage.statusAccepted'),
-                      rejected: t('quotesPage.statusRejected'),
-                      expired: t('quotesPage.statusExpired'),
-                    };
-                    const signatureColors = {
-                      signed: 'bg-green-900/30 text-green-300 border border-green-800',
-                      pending: 'bg-orange-900/30 text-orange-300 border border-orange-800',
-                      rejected: 'bg-red-900/30 text-red-300 border border-red-800',
-                      unsigned: 'bg-gray-900/40 text-gray-300 border border-gray-700',
-                    };
-                    const signatureLabels = {
-                      signed: t('quotesPage.signatureSigned'),
-                      pending: t('quotesPage.signaturePending'),
-                      rejected: t('quotesPage.signatureRejected'),
-                      unsigned: t('quotesPage.signatureUnsigned') || 'Non signé',
-                    };
-                    const signatureStatus = quote.signature_status || 'unsigned';
-
-                    return (
-                      <div
-                        key={quote.id}
-                        className="bg-gray-800 rounded-xl border border-gray-700 shadow-xl p-4 flex flex-col gap-4"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-gradient">{quote.quote_number}</p>
-                            <p className="text-xs text-gray-400 mt-1">{client?.company_name || t('timesheets.noClient')}</p>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[quote.status] || statusColors.draft}`}>
-                              {statusLabels[quote.status] || quote.status || '-'}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${signatureColors[signatureStatus] || signatureColors.unsigned}`}>
-                              {signatureLabels[signatureStatus] || signatureLabels.unsigned}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 text-xs">
-                          <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
-                            <p className="text-gray-400">{t('quotesPage.date')}</p>
-                            <p className="text-gray-200 mt-1">{quote.date ? new Date(quote.date).toLocaleDateString('fr-FR') : '-'}</p>
-                          </div>
-                          <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
-                            <p className="text-gray-400">{t('invoices.dueDate')}</p>
-                            <p className="text-gray-200 mt-1">{quote.due_date ? new Date(quote.due_date).toLocaleDateString('fr-FR') : '-'}</p>
-                          </div>
-                        </div>
-
-                        <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
-                          <p className="text-gray-400 text-xs">{t('invoices.total')}</p>
-                          <p className="text-gray-100 font-semibold mt-1">{formatCurrency(quote.total_ttc || 0)}</p>
-                        </div>
-
-                        <div className="flex items-center gap-2 pt-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewQuote(quote)}
-                            className="border-blue-500/40 text-blue-300 hover:bg-blue-900/20 h-8 px-2"
-                            title={t('common.view') || 'Visualiser'}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleExportQuotePDF(quote)}
-                            className="border-purple-500/40 text-purple-300 hover:bg-purple-900/20 h-8 px-2"
-                            title={t('quotesPage.exportPdfTitle', { credits: CREDIT_COSTS.PDF_QUOTE })}
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleExportQuoteHTML(quote)}
-                            className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/20 h-8 px-2"
-                            title={t('quotesPage.exportHtmlTitle', { credits: CREDIT_COSTS.EXPORT_HTML })}
-                          >
-                            <FileText className="w-4 h-4" />
-                          </Button>
-                        </div>
-
-                        <div className="flex items-center justify-end gap-1 pt-2 border-t border-gray-700">
-                          {(!quote.signature_status || quote.signature_status === 'unsigned') && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRequestSignature(quote)}
-                              className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 h-8 w-8 p-0"
-                              title={t('quotesPage.requestSignature')}
-                            >
-                              <FileSignature className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {quote.signature_status === 'pending' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopySignatureLink(quote)}
-                              className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20 h-8 w-8 p-0"
-                              title={t('quotesPage.copySignatureLink')}
-                            >
-                              <Copy className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(quote.id)}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 p-0"
-                            title={t('common.delete') || 'Supprimer'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <PaginationControls
-                  currentPage={pagination.currentPage}
-                  totalPages={pagination.totalPages}
-                  totalCount={pagination.totalCount}
-                  pageSize={pagination.pageSize}
-                  pageSizeOptions={pagination.pageSizeOptions}
-                  hasNextPage={pagination.hasNextPage}
-                  hasPrevPage={pagination.hasPrevPage}
-                  onNextPage={pagination.nextPage}
-                  onPrevPage={pagination.prevPage}
-                  onGoToPage={pagination.goToPage}
-                  onChangePageSize={pagination.changePageSize}
-                />
-              </motion.div>
-            )}
+            <QuoteGalleryView {...viewProps} />
           </TabsContent>
 
           <TabsContent value="calendar">
@@ -838,255 +451,35 @@ const QuotesPage = () => {
         </Tabs>
       </div>
 
-      {/* Quote Preview Dialog */}
-      <Dialog open={!!viewingQuote} onOpenChange={() => setViewingQuote(null)}>
-        <DialogContent className="w-full sm:max-w-[95%] md:max-w-5xl bg-gray-800 border-gray-700 text-white p-4 md:p-6 overflow-y-auto max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="text-xl md:text-2xl font-bold text-gradient">
-              {t('quotesPage.quoteDetails') || 'Détails du devis'}
-            </DialogTitle>
-          </DialogHeader>
-          {viewingQuote && (
-            <div className="space-y-4">
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleExportQuotePDF(viewingQuote)}
-                  className="border-purple-500/40 text-purple-300 hover:bg-purple-900/20"
-                  title={t('quotesPage.exportPdfTitle', { credits: CREDIT_COSTS.PDF_QUOTE })}
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  PDF
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleExportQuoteHTML(viewingQuote)}
-                  className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/20"
-                  title={t('quotesPage.exportHtmlTitle', { credits: CREDIT_COSTS.EXPORT_HTML })}
-                >
-                  <FileText className="w-4 h-4 mr-1" />
-                  HTML
-                </Button>
-              </div>
-              <iframe
-                title={viewingQuote.quote_number || 'Quote preview'}
-                srcDoc={quotePreviewDocument(viewingQuote)}
-                className="w-full h-[70vh] bg-white rounded-md border border-gray-700"
-              />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Quote Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-gradient text-xl">{t('quotesPage.create')}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Client & Dates */}
-            <div className="space-y-2">
-              <Label className="text-gray-300">{t('quotesPage.client')} *</Label>
-              <Select
-                value={formData.client_id}
-                onValueChange={(value) => setFormData({ ...formData, client_id: value })}
-              >
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                  <SelectValue placeholder={t('invoices.selectClient')} />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
-                  {clients.map(client => (
-                    <SelectItem key={client.id} value={client.id} className="text-white hover:bg-gray-700">
-                      {client.company_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-gray-300">{t('quotesPage.date')}</Label>
-                <Input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-gray-300">{t('invoices.dueDate')}</Label>
-                <Input
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                  className="bg-gray-800 border-gray-700 text-white"
-                />
-              </div>
-            </div>
-
-            {/* Line Items */}
-            <div className="space-y-2">
-              <Label className="text-gray-300">{t('quotesPage.lineItems')}</Label>
-              <div className="space-y-3">
-                {formData.items.map((item, index) => (
-                  <div key={index} className="bg-gray-800/50 rounded-lg p-3 space-y-2">
-                    <Input
-                      placeholder={t('invoices.description')}
-                      value={item.description}
-                      onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white"
-                    />
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
-                      <div>
-                        <Label className="text-gray-500 text-xs">{t('invoices.quantity')}</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.quantity}
-                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                          className="bg-gray-800 border-gray-700 text-white"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-xs">{t('invoices.unitPrice')}</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.unit_price}
-                          onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
-                          className="bg-gray-800 border-gray-700 text-white"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-gray-500 text-xs">{t('invoices.taxRate')}</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.tax_rate}
-                          onChange={(e) => handleItemChange(index, 'tax_rate', e.target.value)}
-                          className="bg-gray-800 border-gray-700 text-white"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeItem(index)}
-                        disabled={formData.items.length <= 1}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={addItem} className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full">
-                <Plus className="w-4 h-4 mr-2" /> {t('quotesPage.addLine')}
-              </Button>
-            </div>
-
-            {/* Totals */}
-            <div className="bg-gray-800/50 rounded-lg p-4 space-y-2 text-sm">
-              <div className="flex justify-between text-gray-400">
-                <span>{t('quotesPage.subtotal')}</span>
-                <span>{formatCurrency(totalHT)}</span>
-              </div>
-              <div className="flex justify-between text-gray-400">
-                <span>{t('quotesPage.vat')}</span>
-                <span>{formatCurrency(totalTax)}</span>
-              </div>
-              <div className="flex justify-between text-gradient font-bold text-base border-t border-gray-700 pt-2">
-                <span>{t('quotesPage.totalInclVat')}</span>
-                <span>{formatCurrency(totalTTC)}</span>
-              </div>
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label className="text-gray-300">{t('timesheets.notes')}</Label>
-              <Textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder={t('quotesPage.notesPlaceholder')}
-                className="bg-gray-800 border-gray-700 text-white min-h-[60px]"
-              />
-            </div>
-
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
-                {t('common.cancel')}
-              </Button>
-              <Button type="submit" disabled={submitting || !formData.client_id} className="bg-orange-500 hover:bg-orange-600 text-white">
-                {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                {t('quotesPage.create')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Request Signature Dialog */}
-      <Dialog open={signatureDialogOpen} onOpenChange={(open) => { setSignatureDialogOpen(open); if (!open) { setSignatureLink(''); setSignerEmail(''); } }}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle className="text-gradient text-xl">{t('quotesPage.requestSignature')}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-gray-300">{t('quotesPage.signerEmail')}</Label>
-              <Input
-                type="email"
-                value={signerEmail}
-                onChange={(e) => setSignerEmail(e.target.value)}
-                placeholder="client@example.com"
-                className="bg-gray-800 border-gray-700 text-white"
-              />
-            </div>
-            {signatureLink && (
-              <div className="space-y-2">
-                <Label className="text-gray-300">{t('quotesPage.signatureLink')}</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={signatureLink}
-                    readOnly
-                    className="bg-gray-800 border-gray-700 text-gray-300 text-xs"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyGeneratedLink}
-                    className="border-gray-700 text-gray-300 hover:bg-gray-800 shrink-0"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={() => setSignatureDialogOpen(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
-              {t('common.cancel')}
-            </Button>
-            <Button
-              type="button"
-              disabled={signatureSubmitting}
-              onClick={handleSendSignatureRequest}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {signatureSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileSignature className="w-4 h-4 mr-2" />}
-              {t('quotesPage.sendSignatureRequest')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <QuoteDialogs
+        viewingQuote={viewingQuote}
+        setViewingQuote={setViewingQuote}
+        quotePreviewDocument={quotePreviewDocument}
+        onExportPDF={handleExportQuotePDF}
+        onExportHTML={handleExportQuoteHTML}
+        isDialogOpen={isDialogOpen}
+        setIsDialogOpen={setIsDialogOpen}
+        formData={formData}
+        setFormData={setFormData}
+        submitting={submitting}
+        handleSubmit={handleSubmit}
+        handleItemChange={handleItemChange}
+        addItem={addItem}
+        removeItem={removeItem}
+        clients={clients}
+        totalHT={totalHT}
+        totalTax={totalTax}
+        totalTTC={totalTTC}
+        signatureDialogOpen={signatureDialogOpen}
+        setSignatureDialogOpen={setSignatureDialogOpen}
+        signerEmail={signerEmail}
+        setSignerEmail={setSignerEmail}
+        signatureLink={signatureLink}
+        setSignatureLink={setSignatureLink}
+        signatureSubmitting={signatureSubmitting}
+        handleSendSignatureRequest={handleSendSignatureRequest}
+        handleCopyGeneratedLink={handleCopyGeneratedLink}
+      />
     </>
   );
 };

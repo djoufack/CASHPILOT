@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { supabase, getUserId } from '../supabase.js';
+import { safeError } from '../utils/errors.js';
 
 export function registerAnalyticsTools(server: McpServer) {
 
@@ -108,11 +109,12 @@ export function registerAnalyticsTools(server: McpServer) {
     async ({ limit }) => {
       const { data, error } = await supabase
         .from('invoices')
-        .select('total_ttc, client:clients(id, company_name, email)')
+        .select('total_ttc, client_id, client:clients(id, company_name, email)')
         .eq('user_id', getUserId())
-        .in('status', ['paid', 'sent']);
+        .in('status', ['paid', 'sent'])
+        .not('client_id', 'is', null);
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get top clients') }] };
 
       const clientTotals: Record<string, { client_id: string; company_name: string; email: string; total_revenue: number; invoice_count: number }> = {};
 

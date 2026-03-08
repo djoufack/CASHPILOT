@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
@@ -8,16 +9,58 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { triggerWebhook } from '@/utils/webhookTrigger';
+import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 
 export const usePayments = () => {
-  const [payments, setPayments] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+
+  const {
+    data: payments,
+    setData: setPayments,
+    loading,
+    setLoading,
+    error,
+    setError,
+  } = useSupabaseQuery(
+    async () => {
+      if (!user) return [];
+      if (!supabase) {
+        console.warn("Supabase not configured");
+        return [];
+      }
+      let query = supabase
+        .from('payments')
+        .select(`
+          *,
+          invoice:invoices(id, invoice_number, total_ttc, client_id),
+          client:clients(id, company_name),
+          allocations:payment_allocations(
+            id,
+            amount,
+            invoice:invoices(id, invoice_number, total_ttc)
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('payment_date', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
+      if (error) {
+        if (error.code === '42P17' || error.code === '42501') {
+          console.warn('RLS policy error fetching payments:', error.message);
+          return [];
+        }
+        throw error;
+      }
+      return data || [];
+    },
+    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+  );
 
   const fetchPayments = useCallback(async (filters = {}) => {
     if (!user) return;
@@ -66,7 +109,7 @@ export const usePayments = () => {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, t, toast, user]);
+  }, [applyCompanyScope, t, toast, user, setLoading, setPayments, setError]);
 
   const fetchPaymentsByInvoice = useCallback(async (invoiceId) => {
     if (!user || !supabase) return [];
@@ -386,10 +429,6 @@ export const usePayments = () => {
       console.error('Error updating receipt info:', err);
     }
   };
-
-  useEffect(() => {
-    fetchPayments();
-  }, [fetchPayments]);
 
   return {
     payments,

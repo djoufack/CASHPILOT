@@ -27,6 +27,7 @@ import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { formatDateInput } from '@/utils/dateFormatting';
+import VirtualizedTable from '@/components/VirtualizedTable';
 
 const ExpenseActions = ({ expense, onView, onEdit, onDelete, onExportPDF, onExportHTML }) => {
   const [open, setOpen] = useState(false);
@@ -69,6 +70,7 @@ const ExpensesPage = () => {
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
   const [viewExpense, setViewExpense] = useState(null);
@@ -185,9 +187,9 @@ const ExpensesPage = () => {
   const { setTotalCount } = pagination;
 
   const filteredExpenses = expenses.filter(exp =>
-    (exp.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (exp.supplier?.company_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (exp.category || '').toLowerCase().includes(searchTerm.toLowerCase())
+    (exp.description || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+    (exp.supplier?.company_name || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+    (exp.category || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase())
   );
 
   // Update pagination when filtered expenses change
@@ -354,43 +356,47 @@ const ExpensesPage = () => {
               </div>
             ) : (
               <div className="bg-gray-900 rounded-xl border border-gray-800/50 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-800">
-                        <th className="text-left p-4 text-gray-400 font-medium">Date</th>
-                        <th className="text-left p-4 text-gray-400 font-medium">Description</th>
-                        <th className="text-left p-4 text-gray-400 font-medium hidden md:table-cell">Catégorie</th>
-                        <th className="text-left p-4 text-gray-400 font-medium hidden lg:table-cell">Fournisseur</th>
-                        <th className="text-right p-4 text-gray-400 font-medium">Montant</th>
-                        <th className="text-right p-4 text-gray-400 font-medium w-12">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedExpenses.map((exp) => (
-                        <tr key={exp.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                          <td className="p-4 text-gray-400 text-sm">
-                            {(exp.expense_date || exp.date) ? new Date(exp.expense_date || exp.date).toLocaleDateString('fr-FR') : '—'}
-                          </td>
-                          <td className="p-4 text-gradient font-medium">{exp.description || '—'}</td>
-                          <td className="p-4 text-gray-400 hidden md:table-cell capitalize">{exp.category || '—'}</td>
-                          <td className="p-4 text-gray-400 hidden lg:table-cell">{exp.supplier?.company_name || '—'}</td>
-                          <td className="p-4 text-right text-gradient font-semibold">{formatCurrency(exp.amount || 0, companyCurrency)}</td>
-                          <td className="p-4 text-right">
-                            <ExpenseActions
-                              expense={exp}
-                              onView={handleView}
-                              onEdit={handleEdit}
-                              onDelete={setDeleteTarget}
-                              onExportPDF={handleSingleExportPDF}
-                              onExportHTML={handleSingleExportHTML}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <VirtualizedTable
+                  data={paginatedExpenses}
+                  rowHeight={56}
+                  maxHeight={700}
+                  threshold={30}
+                  header={
+                    <div className="flex items-center border-b border-gray-800 text-sm">
+                      <div className="p-4 text-gray-400 font-medium" style={{ flex: 1 }}>Date</div>
+                      <div className="p-4 text-gray-400 font-medium" style={{ flex: 2 }}>Description</div>
+                      <div className="p-4 text-gray-400 font-medium hidden md:block" style={{ flex: 1 }}>Catégorie</div>
+                      <div className="p-4 text-gray-400 font-medium hidden lg:block" style={{ flex: 1.5 }}>Fournisseur</div>
+                      <div className="p-4 text-gray-400 font-medium text-right" style={{ flex: 1 }}>Montant</div>
+                      <div className="p-4 text-gray-400 font-medium text-right" style={{ width: 64 }}>Actions</div>
+                    </div>
+                  }
+                  renderRow={(exp, index, style) => (
+                    <div
+                      key={exp.id}
+                      style={style}
+                      className="flex items-center border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors text-sm"
+                    >
+                      <div className="p-4 text-gray-400 truncate" style={{ flex: 1 }}>
+                        {(exp.expense_date || exp.date) ? new Date(exp.expense_date || exp.date).toLocaleDateString('fr-FR') : '—'}
+                      </div>
+                      <div className="p-4 text-gradient font-medium truncate" style={{ flex: 2 }}>{exp.description || '—'}</div>
+                      <div className="p-4 text-gray-400 capitalize truncate hidden md:block" style={{ flex: 1 }}>{exp.category || '—'}</div>
+                      <div className="p-4 text-gray-400 truncate hidden lg:block" style={{ flex: 1.5 }}>{exp.supplier?.company_name || '—'}</div>
+                      <div className="p-4 text-right text-gradient font-semibold truncate" style={{ flex: 1 }}>{formatCurrency(exp.amount || 0, companyCurrency)}</div>
+                      <div className="p-4 text-right" style={{ width: 64 }}>
+                        <ExpenseActions
+                          expense={exp}
+                          onView={handleView}
+                          onEdit={handleEdit}
+                          onDelete={setDeleteTarget}
+                          onExportPDF={handleSingleExportPDF}
+                          onExportHTML={handleSingleExportHTML}
+                        />
+                      </div>
+                    </div>
+                  )}
+                />
                 <PaginationControls
                   currentPage={pagination.currentPage}
                   totalPages={pagination.totalPages}

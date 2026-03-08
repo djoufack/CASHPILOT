@@ -1,6 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { supabase, getUserId } from '../supabase.js';
+import { validateDate, optionalDate } from '../utils/validation.js';
+import { safeError } from '../utils/errors.js';
 
 export function registerReportingTools(server: McpServer) {
 
@@ -13,64 +15,46 @@ export function registerReportingTools(server: McpServer) {
       end_date: z.string().describe('End date (YYYY-MM-DD)')
     },
     async ({ start_date, end_date }) => {
+      try { validateDate(start_date, 'start_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+      try { validateDate(end_date, 'end_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+
       const userId = getUserId();
 
-      const { data: entries, error } = await supabase
-        .from('accounting_entries')
-        .select('account_code, debit, credit')
-        .eq('user_id', userId)
-        .gte('transaction_date', start_date)
-        .lte('transaction_date', end_date);
+      // Call the DB RPC instead of manual aggregation
+      const { data, error } = await supabase.rpc('f_income_statement', {
+        p_user_id: userId,
+        p_start_date: start_date,
+        p_end_date: end_date
+      });
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get profit and loss') }] };
 
-      const { data: accounts } = await supabase
-        .from('accounting_chart_of_accounts')
-        .select('account_code, account_name, account_type, account_category')
-        .eq('user_id', userId);
-
-      const categoryMap: Record<string, string> = {};
-      const nameMap: Record<string, string> = {};
-      for (const acc of accounts ?? []) {
-        categoryMap[acc.account_code] = acc.account_category || acc.account_type || 'other';
-        nameMap[acc.account_code] = acc.account_name || '';
-      }
-
-      const accountTotals: Record<string, { code: string; name: string; category: string; debit: number; credit: number }> = {};
-      for (const e of entries ?? []) {
-        const code = e.account_code;
-        if (!accountTotals[code]) {
-          accountTotals[code] = {
-            code,
-            name: nameMap[code] || '',
-            category: categoryMap[code] || (code.startsWith('7') ? 'revenue' : code.startsWith('6') ? 'expense' : 'other'),
-            debit: 0,
-            credit: 0
-          };
-        }
-        accountTotals[code].debit += parseFloat(e.debit || '0');
-        accountTotals[code].credit += parseFloat(e.credit || '0');
-      }
-
-      const allAccounts = Object.values(accountTotals);
-      const revenueAccounts = allAccounts.filter(a => a.category === 'revenue');
-      const expenseAccounts = allAccounts.filter(a => a.category === 'expense');
-
-      const totalRevenue = revenueAccounts.reduce((s, a) => s + (a.credit - a.debit), 0);
-      const totalExpenses = expenseAccounts.reduce((s, a) => s + (a.debit - a.credit), 0);
-      const netResult = totalRevenue - totalExpenses;
+      const result = data as {
+        revenueItems: { account_code: string; account_name: string; amount: number }[];
+        expenseItems: { account_code: string; account_name: string; amount: number }[];
+        totalRevenue: number;
+        totalExpenses: number;
+        netIncome: number;
+      };
 
       const round = (n: number) => Math.round(n * 100) / 100;
-      const formatAccounts = (accs: typeof allAccounts) =>
-        accs.map(a => ({ code: a.code, name: a.name, amount: round(a.category === 'revenue' ? a.credit - a.debit : a.debit - a.credit) }))
+
+      // Transform RPC response to match existing MCP response format
+      const formatItems = (items: { account_code: string; account_name: string; amount: number }[]) =>
+        (items ?? [])
+          .map(i => ({ code: i.account_code, name: i.account_name, amount: round(i.amount) }))
           .sort((a, b) => a.code.localeCompare(b.code));
+
+      const totalRevenue = round(result.totalRevenue ?? 0);
+      const totalExpenses = round(result.totalExpenses ?? 0);
+      const netResult = round(result.netIncome ?? 0);
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify({
           period: { start: start_date, end: end_date },
-          revenue: { accounts: formatAccounts(revenueAccounts), total: round(totalRevenue) },
-          expenses: { accounts: formatAccounts(expenseAccounts), total: round(totalExpenses) },
-          net_result: round(netResult),
+          revenue: { accounts: formatItems(result.revenueItems), total: totalRevenue },
+          expenses: { accounts: formatItems(result.expenseItems), total: totalExpenses },
+          net_result: netResult,
           profitable: netResult > 0
         }, null, 2) }]
       };
@@ -85,82 +69,53 @@ export function registerReportingTools(server: McpServer) {
       date: z.string().optional().describe('Cut-off date (YYYY-MM-DD), default today')
     },
     async ({ date }) => {
-      const cutoff = date ?? new Date().toISOString().split('T')[0];
+      const validDate = optionalDate(date);
+      if (date && !validDate) return { content: [{ type: 'text' as const, text: "Parameter 'date' must be a valid date (YYYY-MM-DD)" }] };
+      const cutoff = validDate ?? new Date().toISOString().split('T')[0];
       const userId = getUserId();
 
-      const { data: entries, error } = await supabase
-        .from('accounting_entries')
-        .select('account_code, debit, credit')
-        .eq('user_id', userId)
-        .lte('transaction_date', cutoff);
+      // Call the DB RPC instead of manual aggregation
+      const { data, error } = await supabase.rpc('f_balance_sheet', {
+        p_user_id: userId,
+        p_end_date: cutoff
+      });
 
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get balance sheet') }] };
 
-      const { data: accounts } = await supabase
-        .from('accounting_chart_of_accounts')
-        .select('account_code, account_name, account_type, account_category')
-        .eq('user_id', userId);
+      const result = data as {
+        assets: { account_code: string; account_name: string; balance: number }[];
+        liabilities: { account_code: string; account_name: string; balance: number }[];
+        equity: { account_code: string; account_name: string; balance: number }[];
+        totalAssets: number;
+        totalLiabilities: number;
+        totalEquity: number;
+        netIncome: number;
+        balanced: boolean;
+        syscohadaActif?: any;
+        syscohadaPassif?: any;
+      };
 
-      const categoryMap: Record<string, string> = {};
-      const nameMap: Record<string, string> = {};
-      for (const acc of accounts ?? []) {
-        categoryMap[acc.account_code] = acc.account_category || acc.account_type || 'other';
-        nameMap[acc.account_code] = acc.account_name || '';
-      }
-
-      const accountTotals: Record<string, { code: string; name: string; category: string; balance: number }> = {};
-      for (const e of entries ?? []) {
-        const code = e.account_code;
-        if (!accountTotals[code]) {
-          const fallback = code.startsWith('1') ? 'equity'
-            : (code.startsWith('2') || code.startsWith('3') || code.startsWith('5')) ? 'asset'
-            : code.startsWith('4') ? 'liability' : 'other';
-          accountTotals[code] = {
-            code,
-            name: nameMap[code] || '',
-            category: categoryMap[code] || fallback,
-            balance: 0
-          };
-        }
-        accountTotals[code].balance += parseFloat(e.debit || '0') - parseFloat(e.credit || '0');
-      }
-
-      const allAccounts = Object.values(accountTotals);
       const round = (n: number) => Math.round(n * 100) / 100;
-      const format = (accs: typeof allAccounts) =>
-        accs.map(a => ({ code: a.code, name: a.name, balance: round(Math.abs(a.balance)) }))
+
+      // Transform RPC response to match existing MCP response format
+      const formatItems = (items: { account_code: string; account_name: string; balance: number }[]) =>
+        (items ?? [])
+          .map(i => ({ code: i.account_code, name: i.account_name, balance: round(Math.abs(i.balance)) }))
           .sort((a, b) => a.code.localeCompare(b.code));
 
-      const assets = allAccounts.filter(a => a.category === 'asset');
-      const liabilities = allAccounts.filter(a => a.category === 'liability');
-      const equity = allAccounts.filter(a => a.category === 'equity');
-
-      // Compute net result from revenue (class 7) and expense (class 6) accounts
-      const revenueAccounts = allAccounts.filter(a => a.category === 'revenue');
-      const expenseAccounts = allAccounts.filter(a => a.category === 'expense');
-      const totalRevenue = revenueAccounts.reduce((s, a) => s + Math.abs(a.balance), 0);
-      const totalExpenses = expenseAccounts.reduce((s, a) => s + Math.abs(a.balance), 0);
-      const netResult = totalRevenue - totalExpenses;
-
-      const totalAssets = assets.reduce((s, a) => s + a.balance, 0);
-      const totalLiabilities = liabilities.reduce((s, a) => s + Math.abs(a.balance), 0);
-      const totalEquity = equity.reduce((s, a) => s + Math.abs(a.balance), 0);
-      const totalEquityWithResult = totalEquity + netResult;
-
-      // Include net result as a synthetic equity line
-      const equityAccounts = format(equity);
-      if (Math.abs(netResult) > 0.01) {
-        equityAccounts.push({ code: '120', name: 'Résultat de l\'exercice', balance: round(Math.abs(netResult)) });
-      }
+      const totalAssets = round(result.totalAssets ?? 0);
+      const totalLiabilities = round(result.totalLiabilities ?? 0);
+      const totalEquity = round(result.totalEquity ?? 0);
+      const netResult = round(result.netIncome ?? 0);
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify({
           date: cutoff,
-          assets: { accounts: format(assets), total: round(totalAssets) },
-          liabilities: { accounts: format(liabilities), total: round(totalLiabilities) },
-          equity: { accounts: equityAccounts, total: round(totalEquityWithResult) },
-          net_result: round(netResult),
-          balanced: Math.abs(totalAssets - (totalLiabilities + totalEquityWithResult)) < 0.01
+          assets: { accounts: formatItems(result.assets), total: totalAssets },
+          liabilities: { accounts: formatItems(result.liabilities), total: totalLiabilities },
+          equity: { accounts: formatItems(result.equity), total: totalEquity },
+          net_result: netResult,
+          balanced: Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01
         }, null, 2) }]
       };
     }
@@ -175,7 +130,9 @@ export function registerReportingTools(server: McpServer) {
       as_of_date: z.string().optional().describe('Reference date (YYYY-MM-DD), default today')
     },
     async ({ type, as_of_date }) => {
-      const asOf = as_of_date ?? new Date().toISOString().split('T')[0];
+      const validAsOf = optionalDate(as_of_date);
+      if (as_of_date && !validAsOf) return { content: [{ type: 'text' as const, text: "Parameter 'as_of_date' must be a valid date (YYYY-MM-DD)" }] };
+      const asOf = validAsOf ?? new Date().toISOString().split('T')[0];
       const asOfMs = new Date(asOf).getTime();
       const userId = getUserId();
 
@@ -187,7 +144,7 @@ export function registerReportingTools(server: McpServer) {
           .in('status', ['sent', 'overdue'])
           .in('payment_status', ['unpaid', 'partial']);
 
-        if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+        if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get aging report - receivables') }] };
 
         const buckets = { current: [] as any[], days_30: [] as any[], days_60: [] as any[], days_90: [] as any[], days_120_plus: [] as any[] };
 
@@ -233,7 +190,7 @@ export function registerReportingTools(server: McpServer) {
           .eq('user_id', userId)
           .in('status', ['pending', 'partial', 'overdue']);
 
-        if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+        if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get aging report - payables') }] };
 
         const buckets = { current: [] as any[], days_30: [] as any[], days_60: [] as any[], days_90: [] as any[], days_120_plus: [] as any[] };
 

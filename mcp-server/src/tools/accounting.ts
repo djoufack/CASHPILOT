@@ -1,6 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { supabase, getUserId } from '../supabase.js';
+import { safeError } from '../utils/errors.js';
+import { validateDate, optionalDate } from '../utils/validation.js';
 
 export function registerAccountingTools(server: McpServer) {
 
@@ -20,7 +22,7 @@ export function registerAccountingTools(server: McpServer) {
       if (category) query = query.or(`account_category.eq.${category},account_type.eq.${category}`);
 
       const { data, error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get chart of accounts') }] };
 
       return {
         content: [{ type: 'text' as const, text: `${data?.length ?? 0} accounts.\n${JSON.stringify(data, null, 2)}` }]
@@ -38,6 +40,11 @@ export function registerAccountingTools(server: McpServer) {
       limit: z.number().optional().describe('Max results (default 100)')
     },
     async ({ start_date, end_date, account_code, limit }) => {
+      const validStart = optionalDate(start_date);
+      const validEnd = optionalDate(end_date);
+      if (start_date && !validStart) return { content: [{ type: 'text' as const, text: "Parameter 'start_date' must be a valid date (YYYY-MM-DD)" }] };
+      if (end_date && !validEnd) return { content: [{ type: 'text' as const, text: "Parameter 'end_date' must be a valid date (YYYY-MM-DD)" }] };
+
       let query = supabase
         .from('accounting_entries')
         .select('*')
@@ -45,12 +52,12 @@ export function registerAccountingTools(server: McpServer) {
         .order('transaction_date', { ascending: false })
         .limit(limit ?? 100);
 
-      if (start_date) query = query.gte('transaction_date', start_date);
-      if (end_date) query = query.lte('transaction_date', end_date);
+      if (validStart) query = query.gte('transaction_date', validStart);
+      if (validEnd) query = query.lte('transaction_date', validEnd);
       if (account_code) query = query.eq('account_code', account_code);
 
       const { data, error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get accounting entries') }] };
 
       return {
         content: [{ type: 'text' as const, text: `${data?.length ?? 0} entries.\n${JSON.stringify(data, null, 2)}` }]
@@ -65,7 +72,9 @@ export function registerAccountingTools(server: McpServer) {
       date: z.string().optional().describe('Cut-off date (YYYY-MM-DD), default today')
     },
     async ({ date }) => {
-      const cutoff = date ?? new Date().toISOString().split('T')[0];
+      const validDate = optionalDate(date);
+      if (date && !validDate) return { content: [{ type: 'text' as const, text: "Parameter 'date' must be a valid date (YYYY-MM-DD)" }] };
+      const cutoff = validDate ?? new Date().toISOString().split('T')[0];
 
       const [entriesRes, accountsRes] = await Promise.all([
         supabase.from('accounting_entries').select('account_code, debit, credit')
@@ -75,7 +84,7 @@ export function registerAccountingTools(server: McpServer) {
       ]);
 
       const { data, error } = entriesRes;
-      if (error) return { content: [{ type: 'text' as const, text: `Error: ${error.message}` }] };
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get trial balance') }] };
 
       const nameMap: Record<string, string> = {};
       for (const acc of accountsRes.data ?? []) {
@@ -114,6 +123,9 @@ export function registerAccountingTools(server: McpServer) {
       end_date: z.string().describe('End date (YYYY-MM-DD)')
     },
     async ({ start_date, end_date }) => {
+      try { validateDate(start_date, 'start_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+      try { validateDate(end_date, 'end_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+
       const [invoicesRes, expensesRes, taxRatesRes] = await Promise.all([
         supabase.from('invoices').select('total_ht, total_ttc, tax_rate, date')
           .eq('user_id', getUserId()).gte('date', start_date).lte('date', end_date),
@@ -187,6 +199,9 @@ export function registerAccountingTools(server: McpServer) {
       categories: z.array(z.string()).optional().describe('Categories to audit: balance, fiscal, anomalies (default: all)')
     },
     async ({ period_start, period_end, categories }) => {
+      try { validateDate(period_start, 'period_start'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+      try { validateDate(period_end, 'period_end'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+
       try {
         const { getAccessToken, getSupabaseUrl } = await import('../supabase.js');
         const token = getAccessToken();
@@ -203,7 +218,7 @@ export function registerAccountingTools(server: McpServer) {
 
         if (!response.ok) {
           const err = await response.json().catch(() => ({}));
-          return { content: [{ type: 'text' as const, text: `Error: ${err.error || response.statusText}` }] };
+          return { content: [{ type: 'text' as const, text: safeError(err.error || response.statusText, 'run accounting audit') }] };
         }
 
         const result = await response.json();
@@ -211,7 +226,7 @@ export function registerAccountingTools(server: McpServer) {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
         };
       } catch (err: any) {
-        return { content: [{ type: 'text' as const, text: `Error calling audit: ${err.message}` }] };
+        return { content: [{ type: 'text' as const, text: safeError(err, 'run accounting audit') }] };
       }
     }
   );

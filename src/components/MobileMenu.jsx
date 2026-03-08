@@ -118,10 +118,11 @@ const MobileMenu = ({ isOpen, onClose, menuItems }) => {
                  const isActive = location.pathname === item.path;
                  
                  return (
-                   <Link 
-                     key={item.path} 
-                     to={item.path} 
+                   <Link
+                     key={item.path}
+                     to={item.path}
                      onClick={onClose}
+                     aria-current={isActive ? 'page' : undefined}
                      className={`flex items-center justify-between px-3 py-3 rounded-lg transition-colors ${
                        isActive ? 'bg-blue-600/10 text-blue-400 border border-blue-600/20' : 'text-gray-300 hover:bg-gray-800'
                      }`}

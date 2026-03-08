@@ -91,6 +91,8 @@ const TopNavBar = ({ isCollapsed }) => {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
+        role="banner"
+        aria-label={t('common.topBar', 'Top bar')}
         className={cn(
           "hidden md:flex fixed top-0 right-0 h-14 bg-gray-950/95 backdrop-blur-md border-b border-gray-800/50 z-40 items-center justify-end px-4 gap-2 transition-all duration-300",
           isCollapsed ? "left-[68px]" : "left-[260px]"
