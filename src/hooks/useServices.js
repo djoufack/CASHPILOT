@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useServices = () => {
   const [services, setServices] = useState([]);
@@ -11,16 +12,21 @@ export const useServices = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { logAction } = useAuditLog();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchServices = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('services')
         .select('*, category:service_categories(id, name)')
         .order('service_name', { ascending: true });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setServices(data || []);
@@ -35,7 +41,7 @@ export const useServices = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applyCompanyScope, toast, user]);
 
   const createService = async (serviceData) => {
     if (!user || !supabase) return;
@@ -43,7 +49,7 @@ export const useServices = () => {
     try {
       const { data, error } = await supabase
         .from('services')
-        .insert([{ ...serviceData, user_id: user.id }])
+        .insert([{ ...withCompanyScope(serviceData), user_id: user.id }])
         .select('*, category:service_categories(id, name)')
         .single();
 
@@ -136,15 +142,20 @@ export const useServiceCategories = () => {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchCategories = useCallback(async () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('service_categories')
         .select('*')
         .order('name', { ascending: true });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setCategories(data || []);
@@ -153,14 +164,14 @@ export const useServiceCategories = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   const createCategory = async (name, description = '') => {
     if (!user || !supabase) return;
     try {
       const { data, error } = await supabase
         .from('service_categories')
-        .insert([{ user_id: user.id, name, description }])
+        .insert([withCompanyScope({ user_id: user.id, name, description })])
         .select()
         .single();
 
