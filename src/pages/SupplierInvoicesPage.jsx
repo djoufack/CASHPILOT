@@ -117,7 +117,7 @@ const SupplierInvoicesPage = () => {
         .from('supplier_invoices')
         .select(`
           *,
-          supplier:suppliers(id, company_name)
+          supplier:suppliers!supplier_invoices_supplier_id_fkey(id, company_name)
         `)
         .order('created_at', { ascending: false });
 
@@ -527,7 +527,7 @@ const SupplierInvoicesPage = () => {
         .insert([withCompanyScope(invoiceData)])
         .select(`
           *,
-          supplier:suppliers(id, company_name)
+          supplier:suppliers!supplier_invoices_supplier_id_fkey(id, company_name)
         `)
         .single();
 

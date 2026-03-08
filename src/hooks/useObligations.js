@@ -28,12 +28,7 @@ export const useObligations = () => {
       const nextSnapshot = await fetchObligationSnapshot(supabase, user.id, { companyId: activeCompanyId });
       setSnapshot(nextSnapshot);
     } catch (error) {
-      console.error('Failed to load obligations:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to load obligations',
-        variant: 'destructive',
-      });
+      console.warn('Failed to load obligations:', error?.message || error);
     } finally {
       setLoading(false);
     }

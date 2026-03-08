@@ -381,7 +381,7 @@ const ReportGenerator = () => {
 
     let supplierInvoicesQuery = supabase
       .from('supplier_invoices')
-      .select('id, invoice_number, invoice_date, due_date, payment_status, approval_status, total_amount, total_ttc, vat_amount, supplier_name_extracted, supplier:suppliers(company_name)')
+      .select('id, invoice_number, invoice_date, due_date, payment_status, approval_status, total_amount, total_ttc, vat_amount, supplier_name_extracted, supplier:suppliers!supplier_invoices_supplier_id_fkey(company_name)')
       .gte('invoice_date', period.startDate)
       .lte('invoice_date', period.endDate)
       .order('invoice_date', { ascending: false });
