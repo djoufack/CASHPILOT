@@ -211,7 +211,9 @@ La table `accounting_account_taxonomy` est en lecture seule pour tous (donnees d
 ## SPRINT 2 : ANALYSE FINANCIERE
 
 **Objectif** : EBITDA, marges, ratios, position financiere.
-**Statut** : [ ] Non commence
+**Statut** : [x] TERMINE (2026-03-08)
+**Migration** : `20260308150000_sprint2_financial_analysis.sql`
+**Tests** : Parity verifie — Revenue 105615, EBITDA 92175, CAF 84822, BFR 59461, ROE 58.57%, Current Ratio 4.73
 **Depend de** : Sprint 1
 
 ### 2.1 Fonction auxiliaire `f_sum_by_semantic_role`
