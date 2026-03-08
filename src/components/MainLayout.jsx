@@ -88,7 +88,7 @@ const MainLayout = () => {
   const visibleNavItems = filterFlatNavigation(navItems, hasEntitlement);
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col md:flex-row">
+    <div className="min-h-[100dvh] min-h-screen bg-gray-950 flex flex-col md:flex-row">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-orange-500 focus:text-white focus:px-4 focus:py-2 focus:rounded-md"
@@ -133,10 +133,10 @@ const MainLayout = () => {
 
       <main
         id="main-content"
-        className={`flex-1 transition-all duration-300 ease-in-out
+        className={`flex-1 transition-all duration-300 ease-in-out overflow-y-auto
           ${isCollapsed ? 'md:ml-[68px]' : 'md:ml-[260px]'}
           md:pt-14
-          min-h-[calc(100vh-65px)] md:min-h-screen`}
+          min-h-[calc(100dvh-65px)] min-h-[calc(100vh-65px)] md:min-h-[100dvh] md:min-h-screen`}
       >
         <OnboardingBanner />
         <div className="w-full h-full">

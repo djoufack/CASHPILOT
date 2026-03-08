@@ -118,30 +118,31 @@ const ScenarioDetail = () => {
   const handleRunSimulation = async () => {
     if (!scenario) return;
 
-    // Validate that we have financial data
-    if (!financialDiagnostic || financialDiagnostic.valid === false || !balanceSheet) {
+    // Validate that we have financial data — warn but allow running with defaults
+    const hasFinancialData = financialDiagnostic && financialDiagnostic.valid !== false && balanceSheet;
+    if (!hasFinancialData) {
       toast({
-        title: 'Données manquantes',
-        description: 'Assurez-vous d\'avoir des données comptables avant de lancer une simulation',
-        variant: 'destructive',
+        title: t('scenarioDetail.partialData', 'Données comptables limitées'),
+        description: t('scenarioDetail.partialDataDesc', 'La simulation utilisera des valeurs par défaut pour les données manquantes. Pour des résultats plus précis, ajoutez vos données comptables.'),
       });
-      return;
     }
 
     const annualizationFactor = getAnnualizationFactor(period?.startDate, period?.endDate);
-    const annualRevenue = (financialDiagnostic.margins?.revenue || 0) * annualizationFactor;
-    const annualExpenses = financialDiagnostic.margins
+    const margins = financialDiagnostic?.margins;
+    const annualRevenue = (margins?.revenue || 0) * annualizationFactor;
+    const annualExpenses = margins
       ? Math.max(
           0,
-          ((financialDiagnostic.margins.revenue || 0) - (financialDiagnostic.margins.ebitda || 0)) *
-            annualizationFactor
+          ((margins.revenue || 0) - (margins.ebitda || 0)) * annualizationFactor
         )
       : (totalExpenses || 0) * annualizationFactor;
     const scenarioRegion = resolvePilotageRegion({
       accountingCountry: accountingSettings?.country,
       companyCountry: company?.country,
     }).region;
-    const financialPosition = extractFinancialPosition(balanceSheet, scenarioRegion);
+    const financialPosition = balanceSheet
+      ? extractFinancialPosition(balanceSheet, scenarioRegion)
+      : {};
 
     // Build current financial state from diagnostic
     const currentFinancialState = {
@@ -166,7 +167,7 @@ const ScenarioDetail = () => {
       debt: financialPosition.totalDebt || 0,
 
       // Working capital
-      bfr: financialDiagnostic.financing?.bfr || 0,
+      bfr: financialDiagnostic?.financing?.bfr || 0,
     };
 
     try {

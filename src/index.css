@@ -60,9 +60,26 @@
   }
 }
 
+html {
+    /* Smooth momentum scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent scroll chaining to parent/body */
+    overscroll-behavior-y: contain;
+}
+
+html, body, #root {
+    /* Use dynamic viewport height so mobile browser chrome is accounted for */
+    min-height: 100vh; /* fallback for older browsers */
+    min-height: 100dvh;
+}
+
 body {
     @apply bg-background text-foreground;
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* Remove 300ms tap delay on mobile */
+    touch-action: manipulation;
+    /* Prevent pull-to-refresh interfering with scroll */
+    overscroll-behavior-y: contain;
 }
 
 /* Custom scrollbar */

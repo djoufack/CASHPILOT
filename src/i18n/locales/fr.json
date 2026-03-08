@@ -2537,7 +2537,8 @@
       "financial": "Analyse Financière",
       "taxValuation": "Fiscalité & Valorisation",
       "simulator": "Simulateur",
-      "aiAudit": "Audit IA"
+      "aiAudit": "Audit IA",
+      "dataAvailability": "Disponibilité"
     },
     "selectors": {
       "region": "Zone géographique",

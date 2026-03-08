@@ -2550,7 +2550,8 @@
       "financial": "Financial Analysis",
       "taxValuation": "Tax & Valuation",
       "simulator": "Simulator",
-      "aiAudit": "AI Audit"
+      "aiAudit": "AI Audit",
+      "dataAvailability": "Availability"
     },
     "selectors": {
       "region": "Geographic zone",

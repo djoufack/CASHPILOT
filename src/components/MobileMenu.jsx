@@ -76,7 +76,8 @@ const MobileMenu = ({ isOpen, onClose, menuItems }) => {
             </div>
 
             <nav
-              className="flex-1 overflow-y-auto py-4 px-3 space-y-1"
+              className="flex-1 overflow-y-auto py-4 px-3 space-y-1 overscroll-contain"
+              style={{ WebkitOverflowScrolling: 'touch' }}
               role="navigation"
               aria-label={t('common.primaryNavigation', 'Primary navigation')}
             >

@@ -62,6 +62,7 @@ function averageBalance(currentValue, previousValue) {
  */
 export function validateFinancialData(entries, accounts, balanceSheet) {
   const errors = [];
+  const warnings = [];
 
   if (!entries || entries.length === 0) {
     errors.push('Aucune écriture comptable trouvée');
@@ -71,13 +72,14 @@ export function validateFinancialData(entries, accounts, balanceSheet) {
     errors.push('Plan comptable non importé');
   }
 
-  if (!balanceSheet || !balanceSheet.balanced) {
-    errors.push('Bilan non équilibré');
+  if (balanceSheet && !balanceSheet.balanced) {
+    warnings.push('Bilan non équilibré');
   }
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
+    warnings,
   };
 }
 
@@ -481,6 +483,7 @@ export function buildFinancialDiagnostic(
   return {
     valid: true,
     errors: [],
+    warnings: validation.warnings || [],
     margins: {
       revenue,
       grossMargin,

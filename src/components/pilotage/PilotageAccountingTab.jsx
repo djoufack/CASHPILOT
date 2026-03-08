@@ -6,7 +6,6 @@ import { Landmark, Activity, BookOpen } from 'lucide-react';
 import KeyRatiosSection from '@/components/accounting/KeyRatiosSection';
 import StructureRatiosSection from './StructureRatiosSection';
 import ActivityRatiosSection from './ActivityRatiosSection';
-import PilotageAvailabilitySummary from './PilotageAvailabilitySummary';
 import PilotageUnavailableState from './PilotageUnavailableState';
 
 const containerVariants = {
@@ -25,7 +24,6 @@ const itemVariants = {
 const PilotageAccountingTab = ({ data, sector }) => {
   const { t } = useTranslation();
   const availability = data?.analysisAvailability?.accounting;
-  const availabilityItems = availability ? Object.values(availability) : [];
 
   const trialBalance = data?.trialBalance ?? [];
   const displayedRows = trialBalance.slice(0, 20);
@@ -45,10 +43,6 @@ const PilotageAccountingTab = ({ data, sector }) => {
       initial="hidden"
       animate="visible"
     >
-      <motion.div variants={itemVariants}>
-        <PilotageAvailabilitySummary items={availabilityItems} />
-      </motion.div>
-
       {/* Section 1 — Structure Ratios */}
       <motion.div variants={itemVariants}>
         <div className="flex items-center gap-2 mb-4">
@@ -58,7 +52,7 @@ const PilotageAccountingTab = ({ data, sector }) => {
           </h2>
         </div>
         {availability?.structure?.status === 'unavailable' ? (
-          <PilotageUnavailableState item={availability.structure} />
+          null
         ) : (
           <StructureRatiosSection data={data} sector={sector} />
         )}
@@ -67,7 +61,7 @@ const PilotageAccountingTab = ({ data, sector }) => {
       {/* Section 2 — Liquidity Ratios (reused KeyRatiosSection) */}
       <motion.div variants={itemVariants}>
         {availability?.liquidity?.status === 'unavailable' ? (
-          <PilotageUnavailableState item={availability.liquidity} />
+          null
         ) : (
           <KeyRatiosSection data={data?.financialDiagnostic?.ratios} />
         )}
@@ -82,7 +76,7 @@ const PilotageAccountingTab = ({ data, sector }) => {
           </h2>
         </div>
         {availability?.activity?.status === 'unavailable' ? (
-          <PilotageUnavailableState item={availability.activity} />
+          null
         ) : (
           <ActivityRatiosSection data={data} sector={sector} />
         )}
@@ -91,7 +85,7 @@ const PilotageAccountingTab = ({ data, sector }) => {
       {/* Section 4 — Trial Balance Summary */}
       <motion.div variants={itemVariants}>
         {availability?.trialBalance?.status === 'unavailable' ? (
-          <PilotageUnavailableState item={availability.trialBalance} />
+          null
         ) : (
         <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
           <CardHeader>
