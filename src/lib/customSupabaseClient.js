@@ -1,5 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Prevent "Lock broken by another request with the 'steal' option" AbortErrors.
+// Removing navigator.locks forces GoTrue to use its built-in lockNoOp fallback.
+try {
+  if (typeof globalThis !== 'undefined' && globalThis.navigator && globalThis.navigator.locks) {
+    Object.defineProperty(globalThis.navigator, 'locks', { value: undefined, configurable: true, writable: true });
+  }
+} catch (_e) {
+  // navigator.locks may be non-configurable in some browsers (Edge/Opera) — ignore
+}
+
 const normalizeEnv = (value) => {
   if (typeof value !== 'string') return '';
   return value.trim();
