@@ -1,15 +1,44 @@
 import { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
-import { Globe, Terminal, Server, Cable, Key, Webhook } from 'lucide-react';
+import { Globe, Terminal, Server, Cable, Key, Webhook, RefreshCw, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/use-toast';
 import ConnectionSettings from '@/components/settings/ConnectionSettings';
 import McpServicesCatalog from '@/components/settings/McpServicesCatalog';
 
 const ApiMcpPage = () => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('api');
+  const [pinging, setPinging] = useState(false);
+  const [serverStatus, setServerStatus] = useState(null); // null | 'online' | 'offline'
+
+  const handleMcpPing = async () => {
+    setPinging(true);
+    setServerStatus(null);
+    try {
+      const res = await fetch('https://cashpilot.tech/mcp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', method: 'ping', id: 'restart-check' }),
+      });
+      if (res.ok) {
+        setServerStatus('online');
+        toast({ title: 'Serveur MCP en ligne', description: 'Le serveur répond correctement.' });
+      } else {
+        setServerStatus('offline');
+        toast({ title: 'Serveur MCP indisponible', description: `Erreur HTTP ${res.status}`, variant: 'destructive' });
+      }
+    } catch (err) {
+      setServerStatus('offline');
+      toast({ title: 'Serveur MCP injoignable', description: err.message, variant: 'destructive' });
+    } finally {
+      setPinging(false);
+    }
+  };
 
   return (
     <>
@@ -72,6 +101,44 @@ const ApiMcpPage = () => {
           {/* ============ TAB 2: Générer Client MCP ============ */}
           <TabsContent value="mcp" className="space-y-6">
             <ConnectionSettings section="mcp" />
+
+            {/* MCP Server Status & Restart */}
+            <div className="rounded-xl border border-white/10 bg-slate-900/80 p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500/10 rounded-lg">
+                    <Server className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-white">Serveur MCP</h3>
+                    <p className="text-xs text-slate-400">https://cashpilot.tech/mcp</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {serverStatus === 'online' && (
+                    <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      En ligne
+                    </span>
+                  )}
+                  {serverStatus === 'offline' && (
+                    <span className="flex items-center gap-1.5 text-xs text-red-400">
+                      <span className="w-2 h-2 rounded-full bg-red-400" />
+                      Hors ligne
+                    </span>
+                  )}
+                  <Button
+                    onClick={handleMcpPing}
+                    disabled={pinging}
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                  >
+                    {pinging ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    Tester la connexion
+                  </Button>
+                </div>
+              </div>
+            </div>
           </TabsContent>
 
           {/* ============ TAB 3: Liste des outils Clients MCP ============ */}
