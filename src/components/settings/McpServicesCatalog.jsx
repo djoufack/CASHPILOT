@@ -199,16 +199,31 @@ const TOOL_CATEGORIES = [
     ]
   },
   {
+    id: 'company_finance',
+    icon: BarChart3,
+    color: 'text-indigo-400',
+    bg: 'bg-indigo-500/10',
+    tools: [
+      { name: 'list_user_companies', desc: 'Lister toutes les sociétés du user (company_id, nom, pays, devise)', type: 'read' },
+      { name: 'get_company_kpis', desc: "KPIs d'UNE société : CA, dépenses, marge, impayés (≠ get_dashboard_kpis qui agrège tout)", type: 'read' },
+      { name: 'get_company_cash_flow', desc: "Flux de trésorerie mensuel d'UNE société", type: 'read' },
+      { name: 'get_company_financial_summary', desc: "Snapshot financier complet d'UNE société : factures, dépenses par catégorie, créances, dettes", type: 'read' },
+      { name: 'get_company_profit_and_loss', desc: "Compte de résultat d'UNE société (écritures comptables classe 6/7)", type: 'read' },
+      { name: 'get_company_balance_sheet', desc: "Bilan comptable d'UNE société à une date donnée", type: 'read' },
+      { name: 'compare_companies_kpis', desc: 'Comparer les KPIs de TOUTES les sociétés du user — analyse portefeuille', type: 'read' },
+    ]
+  },
+  {
     id: 'reporting',
     icon: PieChart,
     color: 'text-pink-400',
     bg: 'bg-pink-500/10',
     tools: [
-      { name: 'get_profit_and_loss', desc: 'Compte de résultat par période avec sous-totaux', type: 'read' },
-      { name: 'get_balance_sheet', desc: 'Bilan comptable : actifs, passifs, capitaux propres', type: 'read' },
+      { name: 'get_profit_and_loss', desc: 'Compte de résultat global par période avec sous-totaux', type: 'read' },
+      { name: 'get_balance_sheet', desc: 'Bilan comptable global : actifs, passifs, capitaux propres', type: 'read' },
       { name: 'get_aging_report', desc: 'Balance âgée créances/dettes (30/60/90/120+ jours)', type: 'read' },
-      { name: 'get_cash_flow', desc: 'Flux de trésorerie mensuel : revenus, dépenses, solde net', type: 'read' },
-      { name: 'get_dashboard_kpis', desc: 'KPIs : CA mensuel, factures en attente, dépenses, marge', type: 'read' },
+      { name: 'get_cash_flow', desc: 'Flux de trésorerie global mensuel : revenus, dépenses, solde net', type: 'read' },
+      { name: 'get_dashboard_kpis', desc: 'KPIs globaux : CA mensuel, factures en attente, dépenses, marge', type: 'read' },
       { name: 'get_top_clients', desc: 'Top clients classés par CA total', type: 'read' },
     ]
   },
@@ -268,7 +283,8 @@ const CATEGORY_LABELS = {
   accounting: 'Comptabilité',
   banking: 'Banque & Rapprochement',
   documents: 'Documents commerciaux',
-  reporting: 'Reporting & KPIs',
+  company_finance: 'Finance par société',
+  reporting: 'Reporting global & KPIs',
   exports: 'Exports & Conformité',
   config: 'Configuration & Données',
 };

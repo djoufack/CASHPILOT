@@ -12,6 +12,7 @@ import { registerSupplierInvoiceTools } from './tools/supplier-invoices.js';
 import { registerBankReconciliationTools } from './tools/bank-reconciliation.js';
 import { registerReportingTools } from './tools/reporting.js';
 import { registerDocumentTools } from './tools/documents.js';
+import { registerCompanyFinanceTools } from './tools/company-finance.js';
 
 /**
  * Creates and configures a fully-equipped CashPilot MCP server instance
@@ -85,6 +86,7 @@ export function createServer(): McpServer {
   registerBankReconciliationTools(server);
   registerReportingTools(server);
   registerDocumentTools(server);
+  registerCompanyFinanceTools(server);
 
   return server;
 }
