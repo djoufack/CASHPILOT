@@ -8,7 +8,7 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useAccounting = () => {
   const { user } = useAuth();
-  const { applyCompanyScope } = useCompanyScope();
+  const { applyCompanyScope, withCompanyScope, activeCompanyId } = useCompanyScope();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -18,16 +18,18 @@ export const useAccounting = () => {
   const fetchAccounts = useCallback(async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('accounting_chart_of_accounts')
         .select('*')
         .order('account_code', { ascending: true });
+      query = applyCompanyScope(query, { includeUnassigned: false });
+      const { data, error } = await query;
       if (error) throw error;
       setAccounts(data || []);
     } catch (err) {
       console.error('Error fetching accounts:', err);
     }
-  }, [user]);
+  }, [user, applyCompanyScope]);
 
   const createAccount = async (accountData) => {
     setLoading(true);
@@ -41,7 +43,7 @@ export const useAccounting = () => {
 
       const { data, error } = await supabase
         .from('accounting_chart_of_accounts')
-        .insert([{ ...accountData, user_id: user.id }])
+        .insert([withCompanyScope({ ...accountData, user_id: user.id })])
         .select()
         .single();
 
@@ -121,14 +123,14 @@ export const useAccounting = () => {
         throw error;
       }
 
-      const payload = accountsArray.map(a => ({
+      const payload = accountsArray.map(a => withCompanyScope({
         ...a,
         user_id: user.id
       }));
 
       const { data, error } = await supabase
         .from('accounting_chart_of_accounts')
-        .upsert(payload, { onConflict: 'user_id,account_code', ignoreDuplicates: false })
+        .upsert(payload, { onConflict: 'company_id,account_code', ignoreDuplicates: false })
         .select();
 
       if (error) throw error;

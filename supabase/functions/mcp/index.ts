@@ -789,6 +789,7 @@ const hGetReceivablesSummary: Handler = async (sb, uid) => {
 
 const hGetChartOfAccounts: Handler = async (sb, uid, a) => {
   let q = sb.from('accounting_chart_of_accounts').select('*').eq('user_id', uid).order('account_code', { ascending: true });
+  if (a.company_id) q = q.eq('company_id', a.company_id);
   if (a.category) q = q.eq('account_category', a.category);
   const { data, error } = await q;
   if (error) throw new Error(error.message);
@@ -810,7 +811,7 @@ const hGetTrialBalance: Handler = async (sb, uid, a) => {
   const cutoff = (a.date as string) ?? new Date().toISOString().split('T')[0];
   const [eRes, cRes] = await Promise.all([
     sb.from('accounting_entries').select('account_code, debit, credit').eq('user_id', uid).lte('transaction_date', cutoff),
-    sb.from('accounting_chart_of_accounts').select('account_code, account_name').eq('user_id', uid),
+    (() => { let q = sb.from('accounting_chart_of_accounts').select('account_code, account_name').eq('user_id', uid); if (a.company_id) q = q.eq('company_id', a.company_id); return q; })(),
   ]);
   if (eRes.error) throw new Error(eRes.error.message);
   const chartMap: Record<string, string> = {};
@@ -958,7 +959,7 @@ const hExportFec: Handler = async (sb, uid, a) => {
 const hExportSaft: Handler = async (sb, uid, a) => {
   const [coRes, acRes, enRes, clRes] = await Promise.all([
     sb.from('companies').select('*').eq('user_id', uid).single(),
-    sb.from('accounting_chart_of_accounts').select('*').eq('user_id', uid),
+    (() => { let q = sb.from('accounting_chart_of_accounts').select('*').eq('user_id', uid); if (a.company_id) q = q.eq('company_id', a.company_id); return q; })(),
     sb.from('accounting_entries').select('*').eq('user_id', uid).gte('transaction_date', a.start_date).lte('transaction_date', a.end_date).order('transaction_date', { ascending: true }),
     sb.from('clients').select('*').eq('user_id', uid),
   ]);

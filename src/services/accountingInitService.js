@@ -85,7 +85,7 @@ export async function checkAccountingInitialized(userId) {
  * @param {string} country
  * @returns {Promise<{ success: boolean, accountsCount: number, mappingsCount: number, taxRatesCount: number, error?: string }>}
  */
-export async function initializeAccounting(userId, country) {
+export async function initializeAccounting(userId, country, companyId = null) {
   try {
     const { error: settingsError } = await supabase
       .from('user_accounting_settings')
@@ -129,7 +129,7 @@ export async function initializeAccounting(userId, country) {
       };
     }
 
-    const accountsCount = await bulkInsertAccounts(userId, accounts);
+    const accountsCount = await bulkInsertAccounts(userId, accounts, companyId);
     const mappingsCount = await insertDefaultMappings(userId, country);
     const taxRatesCount = await insertDefaultTaxRates(userId, country);
 
@@ -163,12 +163,13 @@ export async function initializeAccounting(userId, country) {
 // Bulk insert accounts
 // ---------------------------------------------------------------------------
 
-async function bulkInsertAccounts(userId, accounts) {
+async function bulkInsertAccounts(userId, accounts, companyId = null) {
   const BATCH_SIZE = 200;
   let totalInserted = 0;
 
   const rows = accounts.map((account) => ({
     user_id: userId,
+    ...(companyId ? { company_id: companyId } : {}),
     account_code: account.account_code,
     account_name: account.account_name,
     account_type: account.account_type,
@@ -182,7 +183,7 @@ async function bulkInsertAccounts(userId, accounts) {
     try {
       const { error } = await supabase
         .from('accounting_chart_of_accounts')
-        .upsert(batch, { onConflict: 'user_id,account_code' });
+        .upsert(batch, { onConflict: companyId ? 'company_id,account_code' : 'user_id,account_code' });
 
       if (error) {
         console.error(`[AccountingInit] Error inserting accounts batch ${index / BATCH_SIZE + 1}:`, error.message);
@@ -426,7 +427,7 @@ export async function copyPlanAccounts(fromPlanId, userId) {
  * @param {string} countryCode
  * @returns {Promise<{ success: boolean, accountsCount: number, mappingsCount: number, taxRatesCount: number, error?: string }>}
  */
-export async function initializeAccountingFromPlan(userId, planId, countryCode) {
+export async function initializeAccountingFromPlan(userId, planId, countryCode, companyId = null) {
   try {
     const country = countryCode || 'FR';
 
@@ -458,7 +459,7 @@ export async function initializeAccountingFromPlan(userId, planId, countryCode) 
         .order('account_code', { ascending: true });
 
       if (!fetchError && planAccounts && planAccounts.length > 0) {
-        accountsCount = await bulkInsertAccounts(userId, planAccounts);
+        accountsCount = await bulkInsertAccounts(userId, planAccounts, companyId);
       }
     }
 
@@ -470,10 +471,10 @@ export async function initializeAccountingFromPlan(userId, planId, countryCode) 
           accountsCount: 0,
           mappingsCount: 0,
           taxRatesCount: 0,
-          error: 'Aucun plan comptable de référence n’est disponible dans Supabase pour ce pays',
+          error: ‘Aucun plan comptable de référence n’est disponible dans Supabase pour ce pays’,
         };
       }
-      accountsCount = await bulkInsertAccounts(userId, referenceAccounts);
+      accountsCount = await bulkInsertAccounts(userId, referenceAccounts, companyId);
     }
 
     const mappingsCount = await insertDefaultMappings(userId, country);

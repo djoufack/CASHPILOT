@@ -1463,6 +1463,7 @@ function buildDataset(config) {
   const chartRows = config.chart.map(([accountCode, accountName, accountType]) => ({
     id: uuidFromSeed(`${userSeed}:account:${accountCode}`),
     user_id: userId,
+    company_id: companyId,
     account_code: accountCode,
     account_name: accountName,
     account_type: accountType,
@@ -3540,7 +3541,7 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'user_accounting_settings', [dataset.settingsRow], 'user_id');
   await upsertRows(client, 'dashboard_snapshots', dataset.dashboardSnapshotRows || [], 'id');
   await upsertRows(client, 'payment_terms', dataset.paymentTermRows, 'id');
-  await upsertRows(client, 'accounting_chart_of_accounts', dataset.chartRows, 'user_id,account_code');
+  await upsertRows(client, 'accounting_chart_of_accounts', dataset.chartRows, 'company_id,account_code');
   await upsertRows(client, 'accounting_mappings', dataset.mappingRows, 'user_id,source_type,source_category');
   await upsertRows(client, 'accounting_tax_rates', dataset.taxRateRows, 'id');
   await upsertRows(client, 'accounting_analytical_axes', dataset.analyticalAxisRows || [], 'id');
