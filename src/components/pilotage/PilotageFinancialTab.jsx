@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import MarginAnalysisSection from '@/components/accounting/MarginAnalysisSection';
 import FinancingAnalysisSection from '@/components/accounting/FinancingAnalysisSection';
 import RatioGauge from '@/components/accounting/RatioGauge';
+import RatioInfoPopover from '@/components/accounting/RatioInfoPopover';
 import PilotageUnavailableState from './PilotageUnavailableState';
 
 const containerVariants = {
@@ -184,18 +185,39 @@ const PilotageFinancialTab = ({ data }) => {
                 value={data.financialDiagnostic?.ratios?.profitability?.roe}
                 thresholds={{ excellent: 20, good: 12, warning: 5, poor: 0 }}
                 format="percentage"
+                info={{
+                  title: 'ROE (Rentabilite des capitaux propres)',
+                  formula: 'ROE = resultat net / capitaux propres',
+                  definition: 'Le ROE mesure le rendement genere pour les actionnaires.',
+                  utility: "Il permet d'evaluer l'efficacite de l'utilisation des fonds propres.",
+                  interpretation: 'Plus le ROE est eleve, plus les capitaux investis sont rentables. Un ROE faible durable peut signaler une rentabilite insuffisante.',
+                }}
               />
               <RatioGauge
                 label={t('pilotage.ratios.roa')}
                 value={data.pilotageRatios?.profitability?.roa}
                 thresholds={{ excellent: 10, good: 6, warning: 3, poor: 0 }}
                 format="percentage"
+                info={{
+                  title: 'ROA (Rentabilite des actifs)',
+                  formula: 'ROA = resultat net / total actifs',
+                  definition: "Le ROA mesure la capacite de l'entreprise a generer du profit a partir de l'ensemble de ses actifs.",
+                  utility: "Il permet de comparer l'efficacite d'utilisation des ressources entre entreprises de tailles differentes.",
+                  interpretation: "ROA eleve: bonne productivite des actifs. ROA faible: actifs sous-utilises ou rentabilite insuffisante.",
+                }}
               />
               <RatioGauge
                 label={t('pilotage.ratios.roce')}
                 value={data.financialDiagnostic?.ratios?.profitability?.roce}
                 thresholds={{ excellent: 15, good: 10, warning: 5, poor: 0 }}
                 format="percentage"
+                info={{
+                  title: 'ROCE (Rentabilite du capital employe)',
+                  formula: "ROCE = resultat d'exploitation / capital employe",
+                  definition: 'Le ROCE mesure la performance des ressources durables mobilisees.',
+                  utility: 'Il aide a juger si les investissements creent suffisamment de valeur.',
+                  interpretation: 'ROCE eleve: bonne efficacite du capital. ROCE faible: capital sous-performant ou charges trop elevees.',
+                }}
               />
             </div>
           </CardContent>
@@ -212,8 +234,14 @@ const PilotageFinancialTab = ({ data }) => {
         <motion.div variants={itemVariants}>
           <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
             <CardHeader>
-              <CardTitle className="text-orange-400">
+              <CardTitle className="text-orange-400 flex items-center gap-2">
                 {t('pilotage.financial.capitalStructure')}
+                <RatioInfoPopover
+                  title="Structure du Capital"
+                  definition="Ce graphique montre la repartition entre capitaux propres, dettes financieres et dettes d'exploitation."
+                  utility="Il permet de visualiser d'un coup d'oeil l'equilibre entre fonds propres et endettement."
+                  interpretation="Une part elevee de capitaux propres indique une bonne autonomie financiere. Une predominance de dettes signale un risque de dependance aux creanciers."
+                />
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -260,8 +288,14 @@ const PilotageFinancialTab = ({ data }) => {
         <motion.div variants={itemVariants}>
           <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
             <CardHeader>
-              <CardTitle className="text-orange-400">
+              <CardTitle className="text-orange-400 flex items-center gap-2">
                 {t('pilotage.financial.profitabilityTrend')}
+                <RatioInfoPopover
+                  title="Tendance de la Marge Nette"
+                  definition="Ce graphique montre l'evolution de la marge nette mois par mois sur la periode selectionnee."
+                  utility="Il permet de detecter les tendances haussiere ou baissiere de la rentabilite dans le temps."
+                  interpretation="Une courbe ascendante traduit une amelioration de la rentabilite. Une courbe descendante appelle une analyse des causes (prix, couts, volumes)."
+                />
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -330,8 +364,14 @@ const PilotageFinancialTab = ({ data }) => {
           <motion.div variants={itemVariants}>
             <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
               <CardHeader>
-                <CardTitle className="text-orange-400">
+                <CardTitle className="text-orange-400 flex items-center gap-2">
                   {t('pilotage.financial.profitabilityTrend')}
+                  <RatioInfoPopover
+                    title="Tendance de la Marge Nette"
+                    definition="Ce graphique montre l'evolution de la marge nette mois par mois sur la periode selectionnee."
+                    utility="Il permet de detecter les tendances haussiere ou baissiere de la rentabilite dans le temps."
+                    interpretation="Une courbe ascendante traduit une amelioration de la rentabilite. Une courbe descendante appelle une analyse des causes (prix, couts, volumes)."
+                  />
                 </CardTitle>
               </CardHeader>
               <CardContent>
