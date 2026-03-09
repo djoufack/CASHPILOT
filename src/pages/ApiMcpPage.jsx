@@ -20,11 +20,13 @@ const ApiMcpPage = () => {
     setPinging(true);
     setServerStatus(null);
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
       const res = await fetch('https://cashpilot.tech/mcp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', method: 'ping', id: 'restart-check' }),
+        method: 'GET',
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       if (res.ok) {
         setServerStatus('online');
         toast({ title: 'Serveur MCP en ligne', description: 'Le serveur répond correctement.' });
