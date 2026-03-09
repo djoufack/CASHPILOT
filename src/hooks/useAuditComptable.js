@@ -64,6 +64,32 @@ function resolveOptions(options) {
   };
 }
 
+async function getFreshAccessToken() {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error) throw error;
+
+  if (session?.access_token) {
+    return session.access_token;
+  }
+
+  const { data, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) throw refreshError;
+
+  return data?.session?.access_token || null;
+}
+
+async function callAuditComptable(body, accessToken) {
+  return fetch(`${supabaseUrl}/functions/v1/audit-comptable`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      apikey: supabaseAnonKey,
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 export const useAuditComptable = (options = false) => {
   const { user } = useAuth();
   const { autoLoad, defaultPeriodStart, defaultPeriodEnd, cacheKey } = resolveOptions(options);
@@ -79,27 +105,29 @@ export const useAuditComptable = (options = false) => {
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error('Not authenticated');
+      let accessToken = await getFreshAccessToken();
+      if (!accessToken) throw new Error('Session expiree. Veuillez vous reconnecter.');
 
       const body = { period_start: periodStart, period_end: periodEnd };
       if (categories) body.categories = categories;
 
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/audit-comptable`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: supabaseAnonKey,
-          },
-          body: JSON.stringify(body),
+      let response = await callAuditComptable(body, accessToken);
+
+      // Edge Functions can reject an expired JWT before our function code runs.
+      // Refresh once and retry so long-lived demo sessions recover automatically.
+      if (response.status === 401) {
+        accessToken = await getFreshAccessToken();
+        if (!accessToken) {
+          throw new Error('Session expiree. Veuillez vous reconnecter.');
         }
-      );
+        response = await callAuditComptable(body, accessToken);
+      }
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          throw new Error('Session expiree. Veuillez vous reconnecter.');
+        }
         throw new Error(err.error || `HTTP ${response.status}`);
       }
 
@@ -320,3 +348,4 @@ export const useAuditComptable = (options = false) => {
 
   return { auditResult, loading, error, runAudit, clearCache, applyAutoFixes, fixing, fixReport };
 };
+
