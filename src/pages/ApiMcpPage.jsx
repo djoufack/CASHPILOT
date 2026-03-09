@@ -100,45 +100,43 @@ const ApiMcpPage = () => {
 
           {/* ============ TAB 2: Générer Client MCP ============ */}
           <TabsContent value="mcp" className="space-y-6">
-            <ConnectionSettings section="mcp" />
-
-            {/* MCP Server Status & Restart */}
-            <div className="rounded-xl border border-white/10 bg-slate-900/80 p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-500/10 rounded-lg">
-                    <Server className="w-5 h-5 text-emerald-400" />
+            {/* MCP Server Status — prominent banner */}
+            <div className="rounded-2xl border-2 border-emerald-500/30 bg-gradient-to-r from-emerald-900/30 via-slate-900/80 to-cyan-900/30 p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-emerald-500/15 rounded-xl ring-1 ring-emerald-400/30">
+                    <Server className="w-7 h-7 text-emerald-400" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-white">Serveur MCP</h3>
-                    <p className="text-xs text-slate-400">https://cashpilot.tech/mcp</p>
+                    <h3 className="text-lg font-semibold text-white">Serveur MCP Production</h3>
+                    <p className="text-sm text-slate-400 font-mono">https://cashpilot.tech/mcp</p>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
                   {serverStatus === 'online' && (
-                    <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-sm px-3 py-1">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse mr-2 inline-block" />
                       En ligne
-                    </span>
+                    </Badge>
                   )}
                   {serverStatus === 'offline' && (
-                    <span className="flex items-center gap-1.5 text-xs text-red-400">
-                      <span className="w-2 h-2 rounded-full bg-red-400" />
+                    <Badge className="bg-red-500/20 text-red-300 border-red-500/30 text-sm px-3 py-1">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-400 mr-2 inline-block" />
                       Hors ligne
-                    </span>
+                    </Badge>
                   )}
-                  <Button
-                    onClick={handleMcpPing}
-                    disabled={pinging}
-                    size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-                  >
-                    {pinging ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                    Tester la connexion
-                  </Button>
                 </div>
+                <Button
+                  onClick={handleMcpPing}
+                  disabled={pinging}
+                  size="lg"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 text-base px-6 py-3 shadow-lg shadow-emerald-900/40"
+                >
+                  {pinging ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+                  Tester la connexion
+                </Button>
               </div>
             </div>
+
+            <ConnectionSettings section="mcp" />
           </TabsContent>
 
           {/* ============ TAB 3: Liste des outils Clients MCP ============ */}
