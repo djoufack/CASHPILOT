@@ -1324,7 +1324,7 @@
     </div>
   </section>
 
-  <!-- ==================== CRUD GENERES ====================
+  <!-- ==================== CRUD GENERES ==================== -->
   <section class="category" data-cat="crud" id="cat-crud">
     <div class="category-header">
       <div class="category-icon" style="background: rgba(148, 163, 184, 0.15);">&#9881;</div>
@@ -1536,95 +1536,7 @@
   <p style="margin-top: 0.5rem;">Documentation a destination des utilisateurs du serveur MCP CashPilot. Les outils CRUD sont generes automatiquement a partir du schema de base de donnees Supabase.</p>
 </footer>
 
-<script>
-  // Search functionality
-  const searchInput = document.getElementById('searchInput');
-  const searchCount = document.getElementById('searchCount');
-  const mainContent = document.getElementById('mainContent');
-
-  searchInput.addEventListener('input', function() {
-    const query = this.value.toLowerCase().trim();
-    const allCards = document.querySelectorAll('.tool-card');
-    const allCrudRows = document.querySelectorAll('.crud-table tbody tr');
-    const categories = document.querySelectorAll('.category');
-    let visibleCount = 0;
-
-    if (!query) {
-      allCards.forEach(c => c.style.display = '');
-      allCrudRows.forEach(r => r.style.display = '');
-      categories.forEach(c => c.style.display = '');
-      searchCount.textContent = '';
-      return;
-    }
-
-    // Filter tool cards
-    allCards.forEach(card => {
-      const searchData = (card.getAttribute('data-search') || '') + ' ' +
-        (card.querySelector('.tool-name')?.textContent || '') + ' ' +
-        (card.querySelector('.tool-desc')?.textContent || '');
-      const match = searchData.toLowerCase().includes(query);
-      card.style.display = match ? '' : 'none';
-      if (match) visibleCount++;
-    });
-
-    // Filter CRUD rows
-    allCrudRows.forEach(row => {
-      const searchData = (row.getAttribute('data-search') || '') + ' ' +
-        (row.querySelector('.entity-name')?.textContent || '') + ' ' + row.textContent;
-      const match = searchData.toLowerCase().includes(query);
-      row.style.display = match ? '' : 'none';
-      if (match) visibleCount++;
-    });
-
-    // Hide empty categories
-    categories.forEach(cat => {
-      const catName = cat.getAttribute('data-cat');
-      if (catName === 'crud') {
-        const visibleRows = cat.querySelectorAll('.crud-table tbody tr:not([style*="display: none"])');
-        cat.style.display = visibleRows.length > 0 ? '' : 'none';
-      } else {
-        const visibleCards = cat.querySelectorAll('.tool-card:not([style*="display: none"])');
-        cat.style.display = visibleCards.length > 0 ? '' : 'none';
-      }
-    });
-
-    searchCount.textContent = `${visibleCount} resultat${visibleCount > 1 ? 's' : ''} pour "${query}"`;
-  });
-
-  // Category filter (via addEventListener — CSP blocks inline onclick)
-  document.querySelectorAll('.nav-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var cat = this.getAttribute('data-target');
-      var categories = document.querySelectorAll('.category');
-      var allCards = document.querySelectorAll('.tool-card');
-      var allCrudRows = document.querySelectorAll('.crud-table tbody tr');
-
-      // Reset search
-      searchInput.value = '';
-      searchCount.textContent = '';
-      allCards.forEach(function(c) { c.style.display = ''; });
-      allCrudRows.forEach(function(r) { r.style.display = ''; });
-
-      // Update nav buttons
-      document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-
-      if (cat === 'all') {
-        categories.forEach(function(c) { c.style.display = ''; });
-      } else {
-        categories.forEach(function(c) {
-          c.style.display = c.getAttribute('data-cat') === cat ? '' : 'none';
-        });
-      }
-
-      // Scroll to top of content
-      if (cat !== 'all') {
-        var target = document.getElementById('cat-' + cat);
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    });
-  });
-</script>
+<script src="/mcp-tools.js"></script>
 
 </body>
 </html>
