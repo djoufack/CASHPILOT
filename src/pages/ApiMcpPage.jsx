@@ -21,12 +21,13 @@ const ApiMcpPage = () => {
     setServerStatus(null);
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
+      // GET returns an SSE stream — we only need the status code (headers), not the body
       const res = await fetch('https://cashpilot.tech/mcp', {
         method: 'GET',
         signal: controller.signal,
       });
-      clearTimeout(timeout);
+      // Got headers → server is reachable. Abort immediately to close the SSE stream.
+      controller.abort();
       if (res.ok) {
         setServerStatus('online');
         toast({ title: 'Serveur MCP en ligne', description: 'Le serveur répond correctement.' });
@@ -35,8 +36,14 @@ const ApiMcpPage = () => {
         toast({ title: 'Serveur MCP indisponible', description: `Erreur HTTP ${res.status}`, variant: 'destructive' });
       }
     } catch (err) {
-      setServerStatus('offline');
-      toast({ title: 'Serveur MCP injoignable', description: err.message, variant: 'destructive' });
+      // AbortError from our own abort is expected — ignore it
+      if (err.name === 'AbortError') {
+        setServerStatus('online');
+        toast({ title: 'Serveur MCP en ligne', description: 'Le serveur répond correctement.' });
+      } else {
+        setServerStatus('offline');
+        toast({ title: 'Serveur MCP injoignable', description: err.message, variant: 'destructive' });
+      }
     } finally {
       setPinging(false);
     }
