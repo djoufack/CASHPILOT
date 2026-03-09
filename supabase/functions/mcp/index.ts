@@ -467,6 +467,71 @@ const TOOLS = [
       }, required: ['invoice_id']
     },
   },
+  // ── Company Finance ──
+  {
+    name: 'list_user_companies',
+    description: 'List all companies (sociétés) owned by the current user. Returns company_id, name, country, currency.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'get_company_kpis',
+    description: 'Get KPIs for a specific company: revenue, expenses, margin, pending invoices.',
+    inputSchema: {
+      type: 'object', properties: {
+        company_id: { type: 'string', description: 'Company UUID' },
+      }, required: ['company_id']
+    },
+  },
+  {
+    name: 'get_company_cash_flow',
+    description: 'Get monthly cash flow for a specific company: income, expenses, net per month.',
+    inputSchema: {
+      type: 'object', properties: {
+        company_id: { type: 'string', description: 'Company UUID' },
+        months: { type: 'number', description: 'Number of months (default 6)' },
+      }, required: ['company_id']
+    },
+  },
+  {
+    name: 'get_company_financial_summary',
+    description: 'Full financial snapshot for a company: invoices breakdown, expenses by category, receivables, payables.',
+    inputSchema: {
+      type: 'object', properties: {
+        company_id: { type: 'string', description: 'Company UUID' },
+      }, required: ['company_id']
+    },
+  },
+  {
+    name: 'get_company_profit_and_loss',
+    description: 'Profit & Loss for a specific company based on accounting entries.',
+    inputSchema: {
+      type: 'object', properties: {
+        company_id: { type: 'string', description: 'Company UUID' },
+        start_date: { type: 'string', description: 'YYYY-MM-DD' },
+        end_date: { type: 'string', description: 'YYYY-MM-DD' },
+      }, required: ['company_id', 'start_date', 'end_date']
+    },
+  },
+  {
+    name: 'get_company_balance_sheet',
+    description: 'Balance sheet for a specific company at a given date.',
+    inputSchema: {
+      type: 'object', properties: {
+        company_id: { type: 'string', description: 'Company UUID' },
+        date: { type: 'string', description: 'Cut-off date YYYY-MM-DD, default today' },
+      }, required: ['company_id']
+    },
+  },
+  {
+    name: 'compare_companies_kpis',
+    description: 'Compare KPIs across all user companies: revenue, expenses, margin side by side.',
+    inputSchema: {
+      type: 'object', properties: {
+        start_date: { type: 'string', description: 'YYYY-MM-DD, default first day of month' },
+        end_date: { type: 'string', description: 'YYYY-MM-DD, default today' },
+      }
+    },
+  },
   {
     name: 'backup_all_data',
     description: 'Export all user data as a JSON backup.',
@@ -979,6 +1044,273 @@ const hExportFacturx: Handler = async (sb, uid, a) => {
 </rsm:CrossIndustryInvoice>`;
 };
 
+// -- Company Finance --
+
+const hListUserCompanies: Handler = async (sb, uid) => {
+  const { data, error } = await sb
+    .from('company')
+    .select('id, company_name, company_type, country, currency, created_at')
+    .eq('user_id', uid)
+    .order('created_at');
+  if (error) throw new Error(error.message);
+  return JSON.stringify({
+    count: data?.length ?? 0,
+    companies: (data ?? []).map((c: any) => ({
+      company_id: c.id, name: c.company_name, type: c.company_type,
+      country: c.country, currency: c.currency,
+    }))
+  }, null, 2);
+};
+
+const hGetCompanyKpis: Handler = async (sb, uid, a) => {
+  const cid = a.company_id as string;
+  const now = new Date();
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const today = now.toISOString().split('T')[0];
+
+  const [invoicesRes, paidRes, expensesRes, pendingRes] = await Promise.all([
+    sb.from('invoices').select('total_ttc').eq('user_id', uid).eq('company_id', cid).gte('date', monthStart).lte('date', today),
+    sb.from('invoices').select('total_ttc').eq('user_id', uid).eq('company_id', cid).gte('date', monthStart).in('status', ['paid']),
+    sb.from('expenses').select('amount').eq('user_id', uid).eq('company_id', cid).gte('created_at', monthStart).lte('created_at', today),
+    sb.from('invoices').select('total_ttc').eq('user_id', uid).eq('company_id', cid).in('payment_status', ['unpaid', 'partial']),
+  ]);
+
+  const sum = (rows: any[], field: string) => (rows ?? []).reduce((s: number, r: any) => s + parseFloat(r[field] || '0'), 0);
+  const r = (n: number) => Math.round(n * 100) / 100;
+  const totalBilled = sum(invoicesRes.data ?? [], 'total_ttc');
+  const totalPaid = sum(paidRes.data ?? [], 'total_ttc');
+  const totalExpenses = sum(expensesRes.data ?? [], 'amount');
+  const totalPending = sum(pendingRes.data ?? [], 'total_ttc');
+
+  return JSON.stringify({
+    company_id: cid, month: monthStart.substring(0, 7),
+    revenue_billed: r(totalBilled), revenue_collected: r(totalPaid),
+    expenses: r(totalExpenses), margin: r(totalPaid - totalExpenses),
+    total_pending_all_time: r(totalPending), invoices_this_month: invoicesRes.data?.length ?? 0,
+  }, null, 2);
+};
+
+const hGetCompanyCashFlow: Handler = async (sb, uid, a) => {
+  const cid = a.company_id as string;
+  const periodMonths = Number(a.months) || 6;
+  const startDate = new Date();
+  startDate.setMonth(startDate.getMonth() - periodMonths);
+  const startStr = startDate.toISOString().split('T')[0];
+
+  const [invoicesRes, expensesRes] = await Promise.all([
+    sb.from('invoices').select('total_ttc, date, status').eq('user_id', uid).eq('company_id', cid).in('status', ['paid', 'sent']).gte('date', startStr),
+    sb.from('expenses').select('amount, created_at').eq('user_id', uid).eq('company_id', cid).gte('created_at', startStr),
+  ]);
+
+  const monthlyData: Record<string, { month: string; income: number; expenses: number; net: number }> = {};
+  const now = new Date();
+  for (let i = periodMonths; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    monthlyData[key] = { month: key, income: 0, expenses: 0, net: 0 };
+  }
+
+  for (const inv of invoicesRes.data ?? []) {
+    const key = inv.date?.substring(0, 7);
+    if (key && monthlyData[key]) monthlyData[key].income += parseFloat(inv.total_ttc || '0');
+  }
+  for (const exp of expensesRes.data ?? []) {
+    const key = exp.created_at?.substring(0, 7);
+    if (key && monthlyData[key]) monthlyData[key].expenses += parseFloat(exp.amount || '0');
+  }
+
+  const data = Object.values(monthlyData).map(m => ({
+    ...m, income: Math.round(m.income * 100) / 100,
+    expenses: Math.round(m.expenses * 100) / 100, net: Math.round((m.income - m.expenses) * 100) / 100,
+  }));
+
+  const totalIn = data.reduce((s, m) => s + m.income, 0);
+  const totalOut = data.reduce((s, m) => s + m.expenses, 0);
+
+  return JSON.stringify({
+    company_id: cid, monthly: data,
+    summary: { total_income: Math.round(totalIn * 100) / 100, total_expenses: Math.round(totalOut * 100) / 100, net: Math.round((totalIn - totalOut) * 100) / 100 },
+  }, null, 2);
+};
+
+const hGetCompanyFinancialSummary: Handler = async (sb, uid, a) => {
+  const cid = a.company_id as string;
+  const [invRes, expRes, sinvRes, recRes, payRes, suppRes, clientRes] = await Promise.all([
+    sb.from('invoices').select('id, total_ttc, status, payment_status').eq('user_id', uid).eq('company_id', cid),
+    sb.from('expenses').select('id, amount, category').eq('user_id', uid).eq('company_id', cid),
+    sb.from('supplier_invoices').select('id, total_ttc, payment_status').eq('user_id', uid).eq('company_id', cid),
+    sb.from('receivables').select('id, amount, amount_paid, status').eq('user_id', uid).eq('company_id', cid),
+    sb.from('payables').select('id, amount, amount_paid, status').eq('user_id', uid).eq('company_id', cid),
+    sb.from('suppliers').select('id').eq('user_id', uid).eq('company_id', cid),
+    sb.from('clients').select('id').eq('user_id', uid).eq('company_id', cid),
+  ]);
+
+  const r = (n: number) => Math.round(n * 100) / 100;
+  const sumField = (rows: any[], field: string) => r((rows ?? []).reduce((s: number, row: any) => s + parseFloat(row[field] || '0'), 0));
+
+  const invoices = invRes.data ?? [];
+  const invByStatus: Record<string, { count: number; total: number }> = {};
+  for (const inv of invoices) {
+    const st = inv.payment_status || inv.status || 'unknown';
+    if (!invByStatus[st]) invByStatus[st] = { count: 0, total: 0 };
+    invByStatus[st].count++;
+    invByStatus[st].total += parseFloat(inv.total_ttc || '0');
+  }
+  for (const k of Object.keys(invByStatus)) invByStatus[k].total = r(invByStatus[k].total);
+
+  const expenses = expRes.data ?? [];
+  const expByCat: Record<string, { count: number; total: number }> = {};
+  for (const exp of expenses) {
+    const cat = exp.category || 'other';
+    if (!expByCat[cat]) expByCat[cat] = { count: 0, total: 0 };
+    expByCat[cat].count++;
+    expByCat[cat].total += parseFloat(exp.amount || '0');
+  }
+  for (const k of Object.keys(expByCat)) expByCat[k].total = r(expByCat[k].total);
+
+  const receivables = recRes.data ?? [];
+  const recTotal = sumField(receivables, 'amount');
+  const recPaid = sumField(receivables, 'amount_paid');
+  const payables = payRes.data ?? [];
+  const payTotal = sumField(payables, 'amount');
+  const payPaid = sumField(payables, 'amount_paid');
+
+  return JSON.stringify({
+    company_id: cid,
+    counts: {
+      clients: clientRes.data?.length ?? 0, suppliers: suppRes.data?.length ?? 0,
+      invoices: invoices.length, expenses: expenses.length,
+      supplier_invoices: sinvRes.data?.length ?? 0, receivables: receivables.length, payables: payables.length,
+    },
+    invoices_breakdown: invByStatus, total_invoiced: sumField(invoices, 'total_ttc'),
+    expenses_by_category: expByCat, total_expenses: sumField(expenses, 'amount'),
+    supplier_invoices_total: sumField(sinvRes.data ?? [], 'total_ttc'),
+    receivables: { total: recTotal, collected: recPaid, outstanding: r(recTotal - recPaid) },
+    payables: { total: payTotal, paid: payPaid, outstanding: r(payTotal - payPaid) },
+  }, null, 2);
+};
+
+const hGetCompanyProfitAndLoss: Handler = async (sb, uid, a) => {
+  const cid = a.company_id as string;
+  const { data, error } = await sb
+    .from('accounting_entries')
+    .select('account_code, account_name, debit, credit, entry_date')
+    .eq('user_id', uid).eq('company_id', cid)
+    .gte('entry_date', a.start_date as string).lte('entry_date', a.end_date as string);
+
+  if (error) throw new Error(error.message);
+
+  const r = (n: number) => Math.round(n * 100) / 100;
+  const accounts: Record<string, { code: string; name: string; debit: number; credit: number }> = {};
+  for (const e of data ?? []) {
+    const code = e.account_code || '';
+    if (!accounts[code]) accounts[code] = { code, name: e.account_name || code, debit: 0, credit: 0 };
+    accounts[code].debit += parseFloat(e.debit || '0');
+    accounts[code].credit += parseFloat(e.credit || '0');
+  }
+
+  const revenueAccounts = Object.values(accounts)
+    .filter(acc => acc.code.startsWith('7'))
+    .map(acc => ({ code: acc.code, name: acc.name, amount: r(acc.credit - acc.debit) }))
+    .sort((x, y) => x.code.localeCompare(y.code));
+
+  const expenseAccounts = Object.values(accounts)
+    .filter(acc => acc.code.startsWith('6'))
+    .map(acc => ({ code: acc.code, name: acc.name, amount: r(acc.debit - acc.credit) }))
+    .sort((x, y) => x.code.localeCompare(y.code));
+
+  const totalRevenue = r(revenueAccounts.reduce((s, acc) => s + acc.amount, 0));
+  const totalExpenses = r(expenseAccounts.reduce((s, acc) => s + acc.amount, 0));
+
+  return JSON.stringify({
+    company_id: cid,
+    period: { start: a.start_date, end: a.end_date },
+    revenue: { accounts: revenueAccounts, total: totalRevenue },
+    expenses: { accounts: expenseAccounts, total: totalExpenses },
+    net_result: r(totalRevenue - totalExpenses),
+    profitable: totalRevenue > totalExpenses,
+  }, null, 2);
+};
+
+const hGetCompanyBalanceSheet: Handler = async (sb, uid, a) => {
+  const cid = a.company_id as string;
+  const cutoff = (a.date as string) || new Date().toISOString().split('T')[0];
+
+  const { data, error } = await sb
+    .from('accounting_entries')
+    .select('account_code, account_name, debit, credit')
+    .eq('user_id', uid).eq('company_id', cid)
+    .lte('entry_date', cutoff);
+
+  if (error) throw new Error(error.message);
+
+  const r = (n: number) => Math.round(n * 100) / 100;
+  const accounts: Record<string, { code: string; name: string; balance: number }> = {};
+  for (const e of data ?? []) {
+    const code = e.account_code || '';
+    if (!accounts[code]) accounts[code] = { code, name: e.account_name || code, balance: 0 };
+    accounts[code].balance += parseFloat(e.debit || '0') - parseFloat(e.credit || '0');
+  }
+
+  const all = Object.values(accounts);
+  const assets = all.filter(acc => /^[1-5]/.test(acc.code) && acc.balance > 0)
+    .map(acc => ({ code: acc.code, name: acc.name, balance: r(acc.balance) }))
+    .sort((x, y) => x.code.localeCompare(y.code));
+  const liabilities = all.filter(acc => /^[1-5]/.test(acc.code) && acc.balance < 0)
+    .map(acc => ({ code: acc.code, name: acc.name, balance: r(Math.abs(acc.balance)) }))
+    .sort((x, y) => x.code.localeCompare(y.code));
+
+  const totalAssets = r(assets.reduce((s, acc) => s + acc.balance, 0));
+  const totalLiabilities = r(liabilities.reduce((s, acc) => s + acc.balance, 0));
+
+  return JSON.stringify({
+    company_id: cid, date: cutoff,
+    assets: { accounts: assets, total: totalAssets },
+    liabilities: { accounts: liabilities, total: totalLiabilities },
+    balanced: Math.abs(totalAssets - totalLiabilities) < 0.01,
+  }, null, 2);
+};
+
+const hCompareCompaniesKpis: Handler = async (sb, uid, a) => {
+  const now = new Date();
+  const sDate = (a.start_date as string) || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const eDate = (a.end_date as string) || now.toISOString().split('T')[0];
+
+  const { data: companies, error: compError } = await sb
+    .from('company').select('id, company_name, country, currency').eq('user_id', uid).order('created_at');
+  if (compError) throw new Error(compError.message);
+
+  const [invRes, expRes] = await Promise.all([
+    sb.from('invoices').select('company_id, total_ttc, status, payment_status').eq('user_id', uid).gte('date', sDate).lte('date', eDate),
+    sb.from('expenses').select('company_id, amount').eq('user_id', uid).gte('created_at', sDate).lte('created_at', eDate),
+  ]);
+
+  const r = (n: number) => Math.round(n * 100) / 100;
+  const results = (companies ?? []).map((c: any) => {
+    const compInvoices = (invRes.data ?? []).filter((i: any) => i.company_id === c.id);
+    const compExpenses = (expRes.data ?? []).filter((e: any) => e.company_id === c.id);
+    const revenue = compInvoices.reduce((s: number, i: any) => s + parseFloat(i.total_ttc || '0'), 0);
+    const paidRevenue = compInvoices.filter((i: any) => i.payment_status === 'paid' || i.status === 'paid')
+      .reduce((s: number, i: any) => s + parseFloat(i.total_ttc || '0'), 0);
+    const expenses = compExpenses.reduce((s: number, e: any) => s + parseFloat(e.amount || '0'), 0);
+    return {
+      company_id: c.id, name: c.company_name, country: c.country, currency: c.currency,
+      revenue_billed: r(revenue), revenue_collected: r(paidRevenue),
+      expenses: r(expenses), margin: r(paidRevenue - expenses),
+      invoices_count: compInvoices.length, expenses_count: compExpenses.length,
+    };
+  });
+
+  const totals = {
+    revenue_billed: r(results.reduce((s: number, c: any) => s + c.revenue_billed, 0)),
+    revenue_collected: r(results.reduce((s: number, c: any) => s + c.revenue_collected, 0)),
+    expenses: r(results.reduce((s: number, c: any) => s + c.expenses, 0)),
+    margin: r(results.reduce((s: number, c: any) => s + c.margin, 0)),
+  };
+
+  return JSON.stringify({ period: { start: sDate, end: eDate }, companies: results, totals, company_count: results.length }, null, 2);
+};
+
 const hBackupAllData: Handler = async (sb, uid) => {
   const tables = [
     'clients', 'invoices', 'invoice_items', 'payments', 'expenses', 'suppliers',
@@ -1012,6 +1344,11 @@ const HANDLERS: Record<string, Handler> = {
   get_cash_flow: hGetCashFlow, get_dashboard_kpis: hGetDashboardKpis, get_top_clients: hGetTopClients,
   // Exports
   export_fec: hExportFec, export_saft: hExportSaft, export_facturx: hExportFacturx, backup_all_data: hBackupAllData,
+  // Company Finance
+  list_user_companies: hListUserCompanies, get_company_kpis: hGetCompanyKpis,
+  get_company_cash_flow: hGetCompanyCashFlow, get_company_financial_summary: hGetCompanyFinancialSummary,
+  get_company_profit_and_loss: hGetCompanyProfitAndLoss, get_company_balance_sheet: hGetCompanyBalanceSheet,
+  compare_companies_kpis: hCompareCompaniesKpis,
   ...generatedHandlers,
 };
 
