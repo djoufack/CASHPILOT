@@ -133,6 +133,7 @@ serve(async (req) => {
     const periodStart = body.period_start || `${now.getFullYear()}-01-01`;
     const periodEnd = body.period_end || now.toISOString().split('T')[0];
     const requestedCategories: string[] | undefined = body.categories;
+    const companyId: string | undefined = body.company_id;
     let country: string = (body.country || '').toUpperCase();
 
     const supabase = createServiceClient();
@@ -156,10 +157,14 @@ serve(async (req) => {
         .gte('transaction_date', periodStart)
         .lte('transaction_date', periodEnd)
         .order('transaction_date', { ascending: true }),
-      supabase
-        .from('accounting_chart_of_accounts')
-        .select('*')
-        .eq('user_id', userId),
+      (() => {
+        let q = supabase
+          .from('accounting_chart_of_accounts')
+          .select('*')
+          .eq('user_id', userId);
+        if (companyId) q = q.eq('company_id', companyId);
+        return q;
+      })(),
       supabase
         .from('invoices')
         .select('*')

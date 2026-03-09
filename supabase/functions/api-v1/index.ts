@@ -526,6 +526,7 @@ async function handlePaymentsReceivables(supabase: ReturnType<typeof createClien
 
 async function handleAccountingChart(supabase: ReturnType<typeof createClient>, userId: string, url: URL) {
   const category = url.searchParams.get('category');
+  const companyId = url.searchParams.get('company_id');
 
   let query = supabase
     .from('accounting_chart_of_accounts')
@@ -533,6 +534,7 @@ async function handleAccountingChart(supabase: ReturnType<typeof createClient>, 
     .eq('user_id', userId)
     .order('account_code', { ascending: true });
 
+  if (companyId) query = query.eq('company_id', companyId);
   if (category) query = query.eq('account_category', category);
 
   const { data, error } = await query;
@@ -570,20 +572,29 @@ async function handleAccountingEntries(supabase: ReturnType<typeof createClient>
 
 async function handleTrialBalance(supabase: ReturnType<typeof createClient>, userId: string, url: URL) {
   const dateParam = url.searchParams.get('date');
+  const companyId = url.searchParams.get('company_id');
   const dateCheck = validateDate(dateParam);
   if (!dateCheck.valid) return jsonResponse({ error: dateCheck.error }, 400);
   const cutoff = dateCheck.value ?? new Date().toISOString().split('T')[0];
 
+  let entriesQuery = supabase.from('accounting_entries')
+    .select('account_code, debit, credit')
+    .eq('user_id', userId)
+    .lte('transaction_date', cutoff)
+    .limit(10000);
+  let chartQuery = supabase.from('accounting_chart_of_accounts')
+    .select('account_code, account_name')
+    .eq('user_id', userId)
+    .limit(5000);
+
+  if (companyId) {
+    entriesQuery = entriesQuery.eq('company_id', companyId);
+    chartQuery = chartQuery.eq('company_id', companyId);
+  }
+
   const [entriesRes, chartRes] = await Promise.all([
-    supabase.from('accounting_entries')
-      .select('account_code, debit, credit')
-      .eq('user_id', userId)
-      .lte('transaction_date', cutoff)
-      .limit(10000),
-    supabase.from('accounting_chart_of_accounts')
-      .select('account_code, account_name')
-      .eq('user_id', userId)
-      .limit(5000),
+    entriesQuery,
+    chartQuery,
   ]);
 
   if (entriesRes.error) return jsonResponse({ error: 'Internal server error' }, 500);
@@ -912,18 +923,31 @@ async function handleExportFec(supabase: ReturnType<typeof createClient>, userId
 async function handleExportSaft(supabase: ReturnType<typeof createClient>, userId: string, url: URL) {
   const startDate = url.searchParams.get('start_date');
   const endDate = url.searchParams.get('end_date');
+  const companyId = url.searchParams.get('company_id');
 
   if (!startDate || !endDate) {
     return jsonResponse({ error: 'start_date and end_date query parameters are required' }, 400);
   }
 
+  let companyQuery = supabase.from('companies').select('*').eq('user_id', userId);
+  let accountsQuery = supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', userId);
+  let entriesQuery = supabase.from('accounting_entries').select('*').eq('user_id', userId)
+    .gte('transaction_date', startDate).lte('transaction_date', endDate)
+    .order('transaction_date', { ascending: true });
+  let clientsQuery = supabase.from('clients').select('*').eq('user_id', userId);
+
+  if (companyId) {
+    companyQuery = companyQuery.eq('id', companyId);
+    accountsQuery = accountsQuery.eq('company_id', companyId);
+    entriesQuery = entriesQuery.eq('company_id', companyId);
+    clientsQuery = clientsQuery.eq('company_id', companyId);
+  }
+
   const [companyRes, accountsRes, entriesRes, clientsRes] = await Promise.all([
-    supabase.from('companies').select('*').eq('user_id', userId).single(),
-    supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', userId),
-    supabase.from('accounting_entries').select('*').eq('user_id', userId)
-      .gte('transaction_date', startDate).lte('transaction_date', endDate)
-      .order('transaction_date', { ascending: true }),
-    supabase.from('clients').select('*').eq('user_id', userId),
+    companyQuery.single(),
+    accountsQuery,
+    entriesQuery,
+    clientsQuery,
   ]);
 
   const company = companyRes.data || { company_name: 'Unknown', tax_id: '' };

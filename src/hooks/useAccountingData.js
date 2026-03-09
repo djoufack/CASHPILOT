@@ -119,7 +119,7 @@ export const useAccountingData = (startDate, endDate) => {
             return await q;
           } catch { return { data: [], error: null }; }
         })(),
-        supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', user.id).order('account_code', { ascending: true }),
+        applyCompanyScope(supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', user.id).order('account_code', { ascending: true }), { includeUnassigned: false }),
         supabase.from('accounting_mappings').select('*').eq('user_id', user.id),
         supabase.from('accounting_tax_rates').select('*').eq('user_id', user.id),
         entriesQuery,
