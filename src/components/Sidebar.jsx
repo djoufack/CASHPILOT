@@ -10,7 +10,7 @@ import {
   Home, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, BarChart3, Calculator, PieChart, Settings,
   Map, QrCode, FileBarChart, Database, Menu, Package,
-  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck, Tag, ShoppingCart, FileInput, Globe, Webhook, Cable
+  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck, Tag, ShoppingCart, FileInput, Globe, Webhook, Cable, CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -88,6 +88,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         items: [
           { path: '/app/cash-flow', label: t('nav.cashFlow') || 'Cash Flow', icon: TrendingUp },
           { path: '/app/bank-connections', label: t('nav.bankConnections') || 'Connexions bancaires', icon: Building2 },
+          { path: '/app/financial-instruments', label: t('nav.financialInstruments') || 'Instruments financiers', icon: CreditCard },
           { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
           { path: '/app/audit-comptable', label: t('nav.auditComptable'), icon: ShieldCheck },
           { path: '/app/scenarios', label: t('nav.scenarios') || 'Scénarios', icon: BarChart3, featureKey: ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL },
