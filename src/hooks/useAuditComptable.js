@@ -79,9 +79,8 @@ export const useAuditComptable = (options = false) => {
     setError(null);
 
     try {
-      // Force token refresh to avoid sending an expired cached JWT
-      const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError || !session?.access_token) throw new Error(refreshError?.message || 'Not authenticated');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Not authenticated');
 
       const body = { period_start: periodStart, period_end: periodEnd };
       if (categories) body.categories = categories;

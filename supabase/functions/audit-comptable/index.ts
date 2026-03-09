@@ -3,9 +3,8 @@
 // Produces a scored report with grade, recommendations, and per-check details.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+import { requireAuthenticatedUser, createServiceClient } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
@@ -106,29 +105,7 @@ serve(async (req) => {
 
   try {
     // ── Auth ──────────────────────────────────────────────────
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing Authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-    const token = authHeader.replace('Bearer ', '');
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: { user }, error: authError } = await authClient.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token', details: authError?.message }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
+    const user = await requireAuthenticatedUser(req);
     const userId = user.id;
 
     // ── Parse input ──────────────────────────────────────────
@@ -139,7 +116,7 @@ serve(async (req) => {
     const requestedCategories: string[] | undefined = body.categories;
     let country: string = (body.country || '').toUpperCase();
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createServiceClient();
 
     // ── Auto-detect country from user_accounting_settings ────
     if (!country) {
@@ -801,9 +778,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    const status = (error as any).status ?? 500;
     return new Response(
       JSON.stringify({ error: (error as Error).message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
