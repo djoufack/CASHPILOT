@@ -55,7 +55,7 @@ export function InstrumentsList({ instruments = [], type, onEdit, onDelete }) {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
     >
       {filtered.map((instrument) => {
         const Icon = typeIcons[instrument.instrument_type] || Wallet;
@@ -119,7 +119,7 @@ export function InstrumentsList({ instruments = [], type, onEdit, onDelete }) {
                   )}
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-2 pt-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     <Button
                       size="sm"
                       variant="outline"

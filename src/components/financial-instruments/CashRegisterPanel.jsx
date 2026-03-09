@@ -70,7 +70,7 @@ export function CashRegisterPanel({ instruments = [], onEdit, onAdd }) {
           <p className="text-lg">{t('financialInstruments.noCash', 'Aucune caisse enregistree')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {instruments.map((instrument) => {
             const cashDetail = instrument.payment_instrument_cash_accounts?.[0] || {};
 
@@ -145,7 +145,7 @@ export function CashRegisterPanel({ instruments = [], onEdit, onAdd }) {
                     )}
 
                     {/* Actions */}
-                    <div className="flex gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-2 pt-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <Button
                         size="sm"
                         variant="outline"

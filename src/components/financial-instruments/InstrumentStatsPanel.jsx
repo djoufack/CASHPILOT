@@ -86,7 +86,7 @@ export function InstrumentStatsPanel({ instruments = [] }) {
       className="space-y-6"
     >
       {/* KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiCards.map((kpi, idx) => (
           <motion.div key={idx} variants={itemVariants}>
             <Card className="bg-[#141c33] border-gray-800/50">

@@ -74,7 +74,7 @@ export function CashForm({ open, onOpenChange, instrument, onSubmit }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#0f1528] border-gray-800 text-white sm:max-w-md">
+      <DialogContent className="bg-[#0f1528] border-gray-800 text-white sm:max-w-md w-[95vw]">
         <DialogHeader>
           <DialogTitle className="text-white">
             {isEdit
@@ -105,7 +105,7 @@ export function CashForm({ open, onOpenChange, instrument, onSubmit }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-gray-400">{t('financialInstruments.location', 'Emplacement')}</Label>
               <Input
@@ -132,7 +132,7 @@ export function CashForm({ open, onOpenChange, instrument, onSubmit }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-gray-400">{t('financialInstruments.openingBalance', 'Solde d\'ouverture')}</Label>
               <Input

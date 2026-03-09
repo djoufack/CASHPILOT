@@ -90,7 +90,7 @@ export function CardForm({ open, onOpenChange, instrument, onSubmit }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#141c33] border-gray-800/50 text-white max-w-lg">
+      <DialogContent className="bg-[#141c33] border-gray-800/50 text-white sm:max-w-lg w-[95vw]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
             <CreditCard className="h-5 w-5 text-amber-500" />
@@ -114,7 +114,7 @@ export function CardForm({ open, onOpenChange, instrument, onSubmit }) {
           </div>
 
           {/* Brand + Type */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-gray-400">{t('financialInstruments.fields.cardBrand', 'Reseau')}</Label>
               <Select value={form.card_brand} onValueChange={(v) => handleChange('card_brand', v)}>
@@ -159,7 +159,7 @@ export function CardForm({ open, onOpenChange, instrument, onSubmit }) {
           </div>
 
           {/* Last4 + Expiry */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label className="text-gray-400">{t('financialInstruments.fields.last4', '4 derniers chiffres')}</Label>
               <Input
@@ -197,7 +197,7 @@ export function CardForm({ open, onOpenChange, instrument, onSubmit }) {
           </div>
 
           {/* Issuer + Credit limit */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-gray-400">{t('financialInstruments.fields.issuer', 'Emetteur')}</Label>
               <Input
