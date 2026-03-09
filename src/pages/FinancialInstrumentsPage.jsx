@@ -11,6 +11,7 @@ import { BankAccountForm } from '@/components/financial-instruments/BankAccountF
 import { CardGrid } from '@/components/financial-instruments/CardGrid';
 import { CardForm } from '@/components/financial-instruments/CardForm';
 import { CashRegisterPanel } from '@/components/financial-instruments/CashRegisterPanel';
+import { CashForm } from '@/components/financial-instruments/CashForm';
 import { TransferDialog } from '@/components/financial-instruments/TransferDialog';
 import { InstrumentStatsPanel } from '@/components/financial-instruments/InstrumentStatsPanel';
 
@@ -232,6 +233,13 @@ const FinancialInstrumentsPage = () => {
           onOpenChange={setCardFormOpen}
           instrument={editingInstrument}
           onSubmit={handleCardSubmit}
+        />
+
+        <CashForm
+          open={cashFormOpen}
+          onOpenChange={setCashFormOpen}
+          instrument={editingInstrument}
+          onSubmit={handleCashSubmit}
         />
 
         <TransferDialog
