@@ -205,12 +205,6 @@
       grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
       gap: 1rem;
     }
-    @media (max-width: 480px) {
-      .tools-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
     .tool-card {
       background: var(--surface);
       border: 1px solid var(--surface2);
@@ -375,6 +369,89 @@
       .hero { padding: 1.5rem; }
       .tool-card:hover { transform: none; box-shadow: none; }
       body { font-size: 11pt; }
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      .hero {
+        padding: 2rem 1rem;
+      }
+      .hero-logo {
+        font-size: 2rem;
+      }
+      .hero-sub {
+        font-size: 0.95rem;
+      }
+      .hero-stats {
+        gap: 1.5rem;
+      }
+      .stat-number {
+        font-size: 1.5rem;
+      }
+      .nav {
+        padding: 0.5rem 0.75rem;
+      }
+      .nav-inner {
+        justify-content: flex-start;
+      }
+      .nav-btn {
+        font-size: 0.7rem;
+        padding: 0.35rem 0.7rem;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+      }
+      .main {
+        padding: 1rem;
+      }
+      .category-header {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .category-desc {
+        width: 100%;
+        margin-left: 0;
+      }
+      .tools-grid {
+        grid-template-columns: 1fr;
+      }
+      .tool-card {
+        padding: 1rem;
+      }
+      .tool-name {
+        font-size: 0.8rem;
+      }
+      .tool-params {
+        flex-wrap: wrap;
+      }
+      .crud-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .crud-table {
+        min-width: 500px;
+        font-size: 0.8rem;
+      }
+      .footer {
+        padding: 1.5rem 1rem;
+        font-size: 0.8rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero-stats {
+        gap: 1rem;
+      }
+      .stat-number {
+        font-size: 1.2rem;
+      }
+      .stat-label {
+        font-size: 0.65rem;
+      }
+      .search-input {
+        font-size: 0.9rem;
+        padding: 0.6rem 0.8rem 0.6rem 2.5rem;
+      }
     }
   </style>
 </head>

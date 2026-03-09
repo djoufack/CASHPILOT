@@ -68,7 +68,7 @@ export function TransferDialog({ open, onOpenChange, instruments = [], onSubmit 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#141c33] border-gray-800/50 text-white max-w-md">
+      <DialogContent className="bg-[#141c33] border-gray-800/50 text-white sm:max-w-md w-[95vw]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
             <ArrowLeftRight className="h-5 w-5 text-amber-500" />
@@ -139,7 +139,7 @@ export function TransferDialog({ open, onOpenChange, instruments = [], onSubmit 
           </div>
 
           {/* Amount + Fee */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="col-span-2 space-y-1.5">
               <Label className="text-gray-400">{t('financialInstruments.amount', 'Montant')} *</Label>
               <Input
