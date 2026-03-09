@@ -1,8 +1,18 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+
+const ACTIVE_SERVICE_WORKER_PATH = '/sw.js';
+
+async function getPushServiceWorkerRegistration() {
+  const existingRegistration = await navigator.serviceWorker.getRegistration('/');
+  if (existingRegistration) {
+    return existingRegistration;
+  }
+
+  return navigator.serviceWorker.register(ACTIVE_SERVICE_WORKER_PATH);
+}
 
 export const usePushNotifications = () => {
   const { user } = useAuth();
@@ -23,7 +33,7 @@ export const usePushNotifications = () => {
 
   const registerServiceWorker = async () => {
     try {
-      const registration = await navigator.serviceWorker.register('/service-worker.js');
+      const registration = await getPushServiceWorkerRegistration();
       const sub = await registration.pushManager.getSubscription();
       if (sub) {
         setIsSubscribed(true);
@@ -40,10 +50,10 @@ export const usePushNotifications = () => {
     if (!isSupported) return;
     setLoading(true);
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getPushServiceWorkerRegistration();
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY
+        applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY,
       });
 
       setSubscription(sub);
@@ -57,7 +67,7 @@ export const usePushNotifications = () => {
           endpoint: sub.endpoint,
           auth_key: keys.auth,
           p256dh_key: keys.p256dh,
-          device_type: navigator.userAgent
+          device_type: navigator.userAgent,
         });
         toast({ title: 'Subscribed', description: 'Push notifications enabled.' });
       }
@@ -76,7 +86,7 @@ export const usePushNotifications = () => {
       await subscription.unsubscribe();
       setIsSubscribed(false);
       setSubscription(null);
-      
+
       if (user) {
         await supabase.from('push_subscriptions')
           .update({ is_active: false })
