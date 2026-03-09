@@ -78,6 +78,7 @@ const BankCallbackPage = lazyRetry(() => import('@/pages/BankCallbackPage'));
 const CashFlowPage = lazyRetry(() => import('@/pages/CashFlowPage'));
 const OnboardingWizard = lazyRetry(() => import('@/components/onboarding/OnboardingWizard'));
 const WebhooksPage = lazyRetry(() => import('@/pages/WebhooksPage'));
+const ApiMcpPage = lazyRetry(() => import('./pages/ApiMcpPage'));
 const AuditComptable = lazyRetry(() => import('@/pages/AuditComptable'));
 const PricingPage = lazyRetry(() => import('@/pages/PricingPage'));
 const PeppolGuidePage = lazyRetry(() => import('@/pages/PeppolGuidePage'));
@@ -259,6 +260,18 @@ const AuthWrapper = () => {
                         title="API & Webhooks"
                       >
                         <WebhooksPage />
+                      </EntitlementGate>
+                    </Suspense>
+                  </PageErrorBoundary>
+                } />
+                <Route path="api-mcp" element={
+                  <PageErrorBoundary>
+                    <Suspense fallback={<PageLoader />}>
+                      <EntitlementGate
+                        featureKey={ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS}
+                        title="API-Webhook-MCP"
+                      >
+                        <ApiMcpPage />
                       </EntitlementGate>
                     </Suspense>
                   </PageErrorBoundary>

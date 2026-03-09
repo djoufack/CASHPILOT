@@ -137,7 +137,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         type: 'category',
         items: [
           { path: '/app/integrations', label: t('nav.integrations') || 'Intégrations', icon: Cable },
-          { path: '/app/webhooks', label: t('nav.apiWebhooks') || 'API & Webhooks', icon: Webhook, featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS },
+          { path: '/app/api-mcp', label: 'API-Webhook-MCP', icon: Cable, featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS },
           { path: '/app/security', label: t('nav.security') || 'Sécurité', icon: Shield },
           { path: '/app/settings', label: t('common.settings'), icon: Settings },
         ],

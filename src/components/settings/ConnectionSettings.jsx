@@ -700,7 +700,7 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
 // ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
-const ConnectionSettings = () => {
+const ConnectionSettings = ({ section }) => {
   const { user } = useAuth();
   const [apiKeys, setApiKeys] = useState([]);
   const [keysLoading, setKeysLoading] = useState(true);
@@ -724,11 +724,14 @@ const ConnectionSettings = () => {
 
   useEffect(() => { fetchKeys(); }, [fetchKeys]);
 
+  const showApi = !section || section === 'api';
+  const showMcp = !section || section === 'mcp';
+
   return (
     <div className="space-y-6">
-      <McpConfigSection onKeysChanged={fetchKeys} />
-      <McpConnectorSection />
-      <RestApiSection keys={apiKeys} keysLoading={keysLoading} onKeysChanged={fetchKeys} />
+      {showMcp && <McpConfigSection onKeysChanged={fetchKeys} />}
+      {showMcp && <McpConnectorSection />}
+      {showApi && <RestApiSection keys={apiKeys} keysLoading={keysLoading} onKeysChanged={fetchKeys} />}
     </div>
   );
 };
