@@ -15,6 +15,33 @@ function roundAmount(value) {
   return Math.round(Number(value) * 100) / 100;
 }
 
+function inferSeedAccountCategory(accountCode, accountType, accountName = '') {
+  const code = String(accountCode || '').trim();
+  const name = String(accountName || '').toLowerCase();
+
+  if (!code && !name) return null;
+  if (/^5/.test(code) || /(banque|bank|cash|caisse|tresorerie)/.test(name)) return 'cash';
+  if (/^41/.test(code) || /(client|receivable|creance)/.test(name)) return 'creances_clients';
+  if (/^(40|440)/.test(code) || /(fournisseur|supplier|vendor)/.test(name)) return 'dettes_fournisseurs';
+  if (/^(445|451|443|44)/.test(code) || /(tva|vat|tax|impot|fiscal)/.test(name)) return 'dettes_fiscales';
+  if (/^(16|17|18|42|43)/.test(code) || /(emprunt|loan|borrow|financement)/.test(name)) return 'dettes_financieres';
+  if (/^1/.test(code) || /(capital|reserve)/.test(name)) return 'capital';
+  if (/^[23]/.test(code) || /(immobil|materiel|logiciel|software|equipment)/.test(name)) return 'immobilisations';
+  if (/^70/.test(code)) return 'ventes';
+  if (/^(71|72|73|74|75)/.test(code)) return 'produits';
+  if (/^76/.test(code)) return 'produits_financiers';
+  if (/^66/.test(code) || /(interet|interest|financ)/.test(name)) return 'charges_financieres';
+  if (/^(68|69)/.test(code) || /(amort|dotation|depreci)/.test(name)) return 'dotations';
+  if (/^64/.test(code) || /(personnel|salary|salaire|payroll)/.test(name)) return 'charges_personnel';
+  if (/^(63|635|646)/.test(code) || /(impot|taxe)/.test(name)) return 'impots_taxes';
+  if (/^60/.test(code)) return 'achats';
+  if (/^(61|62)/.test(code) || /(loyer|honoraire|telecom|assurance|entretien|service)/.test(name)) return 'services_exterieurs';
+  if (/^65/.test(code)) return 'autres_charges';
+  if (accountType === 'revenue') return 'produits';
+  if (accountType === 'expense') return 'autres_charges';
+  return null;
+}
+
 function isoDate(year, month, day) {
   return new Date(Date.UTC(year, month - 1, day)).toISOString().slice(0, 10);
 }
@@ -1439,6 +1466,7 @@ function buildDataset(config) {
     account_code: accountCode,
     account_name: accountName,
     account_type: accountType,
+    account_category: inferSeedAccountCategory(accountCode, accountType, accountName),
     is_active: true,
   }));
 
