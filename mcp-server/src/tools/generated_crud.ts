@@ -664,7 +664,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
 
   server.tool(
     'create_quotes',
-    'Create a new record in quotes',
+    'Raw CRUD insert into quotes table. WARNING: does NOT auto-calculate totals/tax. Prefer create_quote (hand-written) for business logic.',
     {
       client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
       quote_number: z.string(),
@@ -1481,7 +1481,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
 
   server.tool(
     'create_credit_notes',
-    'Create a new record in credit_notes',
+    'Raw CRUD insert into credit_notes table. WARNING: does NOT validate invoice or calculate refund. Prefer create_credit_note (hand-written) for business logic.',
     {
       credit_note_number: z.string(),
       invoice_id: z.string().optional().describe('Note: This is a Foreign Key to `invoices.id`.<fk table=\'invoices\' column=\'id\'/>'),
@@ -1691,7 +1691,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
 
   server.tool(
     'create_expenses',
-    'Create a new record in expenses',
+    'Raw CRUD insert into expenses table. WARNING: does NOT auto-calculate HT/TVA from TTC. Prefer create_expense (hand-written) for business logic.',
     {
       client_id: z.string().optional().describe('Note: This is a Foreign Key to `clients.id`.<fk table=\'clients\' column=\'id\'/>'),
       amount: z.number().min(0).max(999999999.99).multipleOf(0.01),

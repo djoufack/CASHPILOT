@@ -8,7 +8,7 @@ Ne pas utiliser de serveur MCP tiers (comptabilite, facturation) pour eviter les
 - Configuration : `.mcp.json` a la racine du projet (auto-demarre dans Claude Code)
 - Code source : `mcp-server/`
 - Documentation : `mcp-server/README.md`
-- **169 outils** : 54 hand-written + 115 CRUD generes
+- **249 outils** : 74 hand-written + 175 CRUD generes (35 tables)
 - Authentification : tool `login` avec email/mot de passe CashPilot
 
 ## Structure Peppol
@@ -21,7 +21,7 @@ Ne pas utiliser de serveur MCP tiers (comptabilite, facturation) pour eviter les
 
 - Frontend : React 18 + Vite + Tailwind CSS
 - Backend : Supabase (Auth, DB, Edge Functions, Storage)
-- MCP : Serveur MCP unifie (mcp-server/) avec 169 outils
+- MCP : Serveur MCP unifie (mcp-server/) avec 249 outils
 - Deploiement : Vercel
 - Tests : Vitest
 - i18n : i18next (fr, en)
