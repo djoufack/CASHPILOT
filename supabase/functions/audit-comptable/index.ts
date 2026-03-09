@@ -3,8 +3,9 @@
 // Produces a scored report with grade, recommendations, and per-check details.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
-import { requireAuthenticatedUser, createServiceClient } from '../_shared/billing.ts';
+import { createServiceClient } from '../_shared/billing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
@@ -104,8 +105,26 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    // ── Auth ──────────────────────────────────────────────────
-    const user = await requireAuthenticatedUser(req);
+    // ── Auth (use service-role client to validate JWT) ─────────
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing Authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token', details: authError?.message }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
     const userId = user.id;
 
     // ── Parse input ──────────────────────────────────────────
@@ -778,10 +797,9 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    const status = (error as any).status ?? 500;
     return new Response(
       JSON.stringify({ error: (error as Error).message }),
-      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
