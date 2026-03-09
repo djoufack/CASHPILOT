@@ -33,6 +33,9 @@ verify_jwt = false
 [functions.ai-voice-expense]
 verify_jwt = false
 
+[functions.api-v1]
+verify_jwt = false
+
 [functions.auto-reconcile]
 verify_jwt = false
 
@@ -42,13 +45,25 @@ verify_jwt = false
 [functions.delete-account]
 verify_jwt = false
 
+[functions.exchange-rates]
+verify_jwt = false
+
 [functions.export-user-data]
 verify_jwt = false
 
 [functions.extract-invoice]
 verify_jwt = false
 
+[functions.generate-recurring]
+verify_jwt = false
+
 [functions.gocardless-auth]
+verify_jwt = false
+
+[functions.mcp]
+verify_jwt = false
+
+[functions.payment-reminders]
 verify_jwt = false
 
 [functions.peppol-account-info]
@@ -69,13 +84,16 @@ verify_jwt = false
 [functions.peppol-send]
 verify_jwt = false
 
+[functions.peppol-webhook]
+verify_jwt = false
+
+[functions.quote-sign-get]
+verify_jwt = false
+
 [functions.quote-sign-request]
 verify_jwt = false
 
 [functions.quote-sign-submit]
-verify_jwt = false
-
-[functions.quote-sign-get]
 verify_jwt = false
 
 [functions.send-email]
@@ -93,17 +111,8 @@ verify_jwt = false
 [functions.stripe-webhook]
 verify_jwt = false
 
-[functions.webhooks]
-verify_jwt = false
-
 [functions.supplier-approval-notifications]
 verify_jwt = false
 
-[functions.generate-recurring]
-verify_jwt = false
-
-[functions.payment-reminders]
-verify_jwt = false
-
-[functions.peppol-webhook]
+[functions.webhooks]
 verify_jwt = false
