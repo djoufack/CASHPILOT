@@ -1,53 +1,15 @@
 import { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
-import { Globe, Terminal, Server, Cable, Key, Webhook, RefreshCw, Loader2 } from 'lucide-react';
+import { Terminal, Server, Cable, Key } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/components/ui/use-toast';
 import ConnectionSettings from '@/components/settings/ConnectionSettings';
 import McpServicesCatalog from '@/components/settings/McpServicesCatalog';
 
 const ApiMcpPage = () => {
   const { t } = useTranslation();
-  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('api');
-  const [pinging, setPinging] = useState(false);
-  const [serverStatus, setServerStatus] = useState(null); // null | 'online' | 'offline'
-
-  const handleMcpPing = async () => {
-    setPinging(true);
-    setServerStatus(null);
-    try {
-      const controller = new AbortController();
-      // GET returns an SSE stream — we only need the status code (headers), not the body
-      const res = await fetch('https://cashpilot.tech/mcp', {
-        method: 'GET',
-        signal: controller.signal,
-      });
-      // Got headers → server is reachable. Abort immediately to close the SSE stream.
-      controller.abort();
-      if (res.ok) {
-        setServerStatus('online');
-        toast({ title: 'Serveur MCP en ligne', description: 'Le serveur répond correctement.' });
-      } else {
-        setServerStatus('offline');
-        toast({ title: 'Serveur MCP indisponible', description: `Erreur HTTP ${res.status}`, variant: 'destructive' });
-      }
-    } catch (err) {
-      // AbortError from our own abort is expected — ignore it
-      if (err.name === 'AbortError') {
-        setServerStatus('online');
-        toast({ title: 'Serveur MCP en ligne', description: 'Le serveur répond correctement.' });
-      } else {
-        setServerStatus('offline');
-        toast({ title: 'Serveur MCP injoignable', description: err.message, variant: 'destructive' });
-      }
-    } finally {
-      setPinging(false);
-    }
-  };
 
   return (
     <>
@@ -109,42 +71,6 @@ const ApiMcpPage = () => {
 
           {/* ============ TAB 2: Générer Client MCP ============ */}
           <TabsContent value="mcp" className="space-y-6">
-            {/* MCP Server Status — prominent banner */}
-            <div className="rounded-2xl border-2 border-emerald-500/30 bg-gradient-to-r from-emerald-900/30 via-slate-900/80 to-cyan-900/30 p-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-emerald-500/15 rounded-xl ring-1 ring-emerald-400/30">
-                    <Server className="w-7 h-7 text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">Serveur MCP Production</h3>
-                    <p className="text-sm text-slate-400 font-mono">https://cashpilot.tech/mcp</p>
-                  </div>
-                  {serverStatus === 'online' && (
-                    <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-sm px-3 py-1">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse mr-2 inline-block" />
-                      En ligne
-                    </Badge>
-                  )}
-                  {serverStatus === 'offline' && (
-                    <Badge className="bg-red-500/20 text-red-300 border-red-500/30 text-sm px-3 py-1">
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-400 mr-2 inline-block" />
-                      Hors ligne
-                    </Badge>
-                  )}
-                </div>
-                <Button
-                  onClick={handleMcpPing}
-                  disabled={pinging}
-                  size="lg"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 text-base px-6 py-3 shadow-lg shadow-emerald-900/40"
-                >
-                  {pinging ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
-                  Tester la connexion
-                </Button>
-              </div>
-            </div>
-
             <ConnectionSettings section="mcp" />
           </TabsContent>
 
