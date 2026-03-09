@@ -4,6 +4,11 @@ const STATIC_ASSETS = [
   '/manifest.json',
 ];
 
+function isCacheableJavaScriptResponse(response) {
+  const contentType = response.headers.get('content-type') || '';
+  return contentType.includes('javascript') || contentType.includes('ecmascript');
+}
+
 // Install: cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -69,7 +74,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response.ok) {
+          if (response.ok && isCacheableJavaScriptResponse(response)) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }
