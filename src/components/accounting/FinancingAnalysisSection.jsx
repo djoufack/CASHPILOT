@@ -178,6 +178,13 @@ const FinancingAnalysisSection = ({ data, currency = 'EUR' }) => {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2 text-gray-100">
               <CreditCard className="w-4 h-4" />
+              <RatioInfoPopover
+                title="Endettement Net"
+                formula="Endettement net = dettes financieres - tresorerie disponible"
+                definition="L'endettement net mesure la dette reelle de l'entreprise apres deduction de la tresorerie."
+                utility="Il donne une vision plus realiste du poids de la dette qu'en regardant l'endettement brut seul."
+                interpretation="Un endettement net faible ou negatif indique une situation saine. Un endettement net eleve par rapport aux capitaux propres signale une fragilite financiere."
+              />
               Endettement Net
             </CardTitle>
           </CardHeader>
@@ -229,7 +236,15 @@ const FinancingAnalysisSection = ({ data, currency = 'EUR' }) => {
 
         <Card className="h-full bg-gray-900/50 border border-gray-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base text-gray-100">Analyse de la Tresorerie</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2 text-gray-100">
+              <RatioInfoPopover
+                title="Analyse de la Tresorerie"
+                definition="Ce panneau synthetise les composantes de la tresorerie: fonds de roulement, BFR et tresorerie nette theorique."
+                utility="Il permet d'identifier rapidement si l'entreprise dispose d'un matelas de liquidite suffisant."
+                interpretation="Tresorerie nette positive (FDR > BFR): l'entreprise couvre ses besoins. Negative: risque de tension de tresorerie."
+              />
+              Analyse de la Tresorerie
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between items-center">

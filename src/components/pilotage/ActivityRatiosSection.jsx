@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
+import RatioInfoPopover from '@/components/accounting/RatioInfoPopover';
 
 const getStatusColor = (evaluation) => {
   if (!evaluation) return 'bg-gray-500';
@@ -19,7 +20,7 @@ const getStatusColor = (evaluation) => {
   }
 };
 
-const ActivityRatioCard = ({ label, value, suffix, benchmark, evaluation }) => {
+const ActivityRatioCard = ({ label, value, suffix, benchmark, evaluation, info }) => {
   const displayValue =
     value === null || value === undefined
       ? '-'
@@ -31,8 +32,9 @@ const ActivityRatioCard = ({ label, value, suffix, benchmark, evaluation }) => {
     <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
       <CardContent className="p-4 flex flex-col gap-2">
         {/* Label */}
-        <p className="text-xs font-medium text-gray-400 leading-tight">
-          {label}
+        <p className="text-xs font-medium text-gray-400 leading-tight flex items-start gap-1">
+          {info && <RatioInfoPopover {...info} />}
+          <span>{label}</span>
         </p>
 
         {/* Value + status dot */}
@@ -70,6 +72,13 @@ const ActivityRatiosSection = ({ data, sector }) => {
         suffix={daysSuffix}
         benchmark={benchmarks.dso}
         evaluation={evaluations.dso}
+        info={{
+          title: 'DSO (Delai moyen de recouvrement clients)',
+          formula: 'DSO = (creances clients / CA TTC) x 365',
+          definition: "Le DSO mesure le nombre moyen de jours pour encaisser les paiements clients.",
+          utility: "Il permet de piloter l'efficacite du recouvrement et d'anticiper les tensions de tresorerie.",
+          interpretation: "Un DSO faible indique des encaissements rapides. Un DSO eleve signale des retards de paiement ou des conditions trop souples.",
+        }}
       />
 
       {/* 2. DPO */}
@@ -79,6 +88,13 @@ const ActivityRatiosSection = ({ data, sector }) => {
         suffix={daysSuffix}
         benchmark={benchmarks.dpo}
         evaluation={evaluations.dpo}
+        info={{
+          title: 'DPO (Delai moyen de paiement fournisseurs)',
+          formula: 'DPO = (dettes fournisseurs / achats TTC) x 365',
+          definition: "Le DPO mesure le nombre moyen de jours pour payer les fournisseurs.",
+          utility: "Il aide a evaluer la politique de paiement et son impact sur la tresorerie.",
+          interpretation: "Un DPO eleve preserve la tresorerie mais peut deteriorer les relations fournisseurs. Un DPO trop court peut peser sur le cash.",
+        }}
       />
 
       {/* 3. Stock Rotation */}
@@ -88,6 +104,13 @@ const ActivityRatiosSection = ({ data, sector }) => {
         suffix={daysSuffix}
         benchmark={benchmarks.stockRotationDays}
         evaluation={evaluations.stockRotationDays}
+        info={{
+          title: 'Rotation des stocks',
+          formula: 'Rotation = (stocks moyens / cout des ventes) x 365',
+          definition: "Ce ratio mesure le nombre de jours pendant lesquels les stocks restent en entrepot avant d'etre vendus.",
+          utility: "Il permet d'optimiser la gestion des stocks et de limiter le capital immobilise.",
+          interpretation: "Une rotation rapide (peu de jours) est positive. Une rotation lente peut signaler des surstocks ou des invendus.",
+        }}
       />
 
       {/* 4. Cash Conversion Cycle */}
@@ -97,6 +120,13 @@ const ActivityRatiosSection = ({ data, sector }) => {
         suffix={daysSuffix}
         benchmark={benchmarks.ccc}
         evaluation={evaluations.ccc}
+        info={{
+          title: 'Cycle de Conversion de Tresorerie (CCC)',
+          formula: 'CCC = DSO + rotation stocks - DPO',
+          definition: "Le CCC mesure le temps entre le paiement des fournisseurs et l'encaissement des clients.",
+          utility: "Il synthetise l'efficacite globale du cycle d'exploitation en termes de cash.",
+          interpretation: "Un CCC court ou negatif est excellent: l'entreprise encaisse avant de payer. Un CCC long signale un besoin de financement du cycle.",
+        }}
       />
 
       {/* 5. BFR / Revenue */}
@@ -106,6 +136,13 @@ const ActivityRatiosSection = ({ data, sector }) => {
         suffix="%"
         benchmark={benchmarks.bfrToRevenue}
         evaluation={evaluations.bfrToRevenue}
+        info={{
+          title: "BFR / Chiffre d'affaires",
+          formula: "BFR / CA = (BFR / chiffre d'affaires) x 100",
+          definition: "Ce ratio exprime le BFR en proportion du chiffre d'affaires.",
+          utility: "Il permet de comparer le poids du BFR entre periodes et entre entreprises, independamment de la taille.",
+          interpretation: "Un ratio faible est favorable. Un ratio en hausse indique que le BFR croit plus vite que l'activite.",
+        }}
       />
     </div>
   );
