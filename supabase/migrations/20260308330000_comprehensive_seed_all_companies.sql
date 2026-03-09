@@ -154,7 +154,8 @@ CREATE OR REPLACE FUNCTION _seed_demo_company(
   p_cid    UUID,
   p_country TEXT,
   p_currency TEXT,
-  p_cname  TEXT
+  p_cname  TEXT,
+  p_seq    INT DEFAULT 1  -- company sequence (1..7) within user, for unique names
 ) RETURNS void
 LANGUAGE plpgsql
 AS $fn$
@@ -172,6 +173,7 @@ DECLARE
   v_bank_conn_id  UUID;
   v_id            UUID;
   v_i             INT;
+  v_idx           INT;  -- offset index into name pools
   v_rate          NUMERIC;
   v_mul           NUMERIC;
   v_pfx           TEXT;
@@ -179,6 +181,196 @@ DECLARE
   v_base          NUMERIC;
   v_tax           NUMERIC;
   v_ttc           NUMERIC;
+  -- Client name pools (49 per country = 7 companies × 7 clients)
+  v_client_names_fr  TEXT[] := ARRAY[
+    'Agence Digitale Lumiere','Cabinet Conseil Horizon','Start-up Innovation Lab',
+    'Industrie Automobile Prestige','Banque Regionale du Sud','Hopital Central Metropole',
+    'Universite Tech Avenir','Groupe Immobilier Riviera','Assurances Mutuelle Alliance',
+    'Transport Maritime Atlantique','Epicerie Fine Gastronomie','Laboratoire Biomed Sante',
+    'Studio Creatif Aurore','Reseau Energie Verte','Clinique Veterinaire Pasteur',
+    'Maison Edition Plume','Cooperative Agricole Soleil','Centre Formation Pro Avenir',
+    'Garage Automobile Elite','Brasserie Artisanale Terroir','Architectes Associes Dupont',
+    'Vignoble Chateau Bellevue','Societe Generale Informatique','Cabinet Expertise Comptable',
+    'Menuiserie Tradition Bois','Hotel Boutique Parisien','Patisserie Gourmande Ciel',
+    'Librairie Internationale Globe','Agence Immobiliere Prestige','Pharmacie Centrale Plus',
+    'Imprimerie Moderne Express','Bureau Etudes Techniques','Societe Nettoyage Propre',
+    'Fleuriste Jardin Royal','Cabinet Avocats Justice','Restaurant Etoile Michelin',
+    'Opticien Vision Parfaite','Salon Beaute Harmonie','Garage Pneus Champion',
+    'Electricite Generale Martin','Plomberie Services Pro','Taxi Rapide Metropole',
+    'Bijouterie Or et Diamant','Fromagerie Terroir France','Cordonnerie Artisan Luxe',
+    'Pressing Express Clean','Boulangerie Pain Dore','Serrurerie Securite Max',
+    'Agence Voyage Horizons'
+  ];
+  v_client_names_be  TEXT[] := ARRAY[
+    'Digital Agency Brussels','Consulting Partners NV','Tech Venture Capital',
+    'Pharma Research Institute','Financial Services Group','Healthcare Group Europe',
+    'Education Institute Pro','Chocolaterie Bruxelloise','Brasserie Abbaye Trappiste',
+    'Port Logistics Antwerp','Diamond Trading House','Biotech Innovations Leuven',
+    'Design Studio Ghent','Renewable Energy Flanders','Veterinary Clinic Ardennes',
+    'Publishing House Wallonia','Agricultural Coop Brabant','Training Academy Brussels',
+    'Auto Repair Expertise','Artisan Brewery Liege','Architecture Bureau Namur',
+    'Wine Import Benelux','IT Solutions Bruxelles','Accounting Firm Partners',
+    'Woodcraft Traditions','Hotel Amigo Premium','Patisserie Belge Royale',
+    'International Bookshop','Real Estate Investments','Pharmacy Central Benelux',
+    'Print Express Belgium','Engineering Consultants','Cleaning Services Pro',
+    'Floral Design Studio','Law Firm Advocates','Restaurant Gastronomique',
+    'Optical Center Vision','Beauty Spa Wellness','Tire Center Champion',
+    'Electrical Works Euro','Plumbing Solutions Plus','Taxi Service Brussels',
+    'Jewelry Diamond Expert','Cheese Import Europe','Leather Craft Atelier',
+    'Dry Cleaning Express','Bakery Pain Quotidien','Locksmith Security Plus',
+    'Travel Agency Horizons'
+  ];
+  v_client_names_oh TEXT[] := ARRAY[
+    'Groupe Industriel Sahel','Commerce Import-Export','Services Telecom Plus',
+    'Agro Business International','Microfinance Plus SARL','Clinique Moderne Centrale',
+    'Institut Formation Elite','Transport Urbain Express','Assurances Vie Afrique',
+    'Societe Miniere Cameroun','Epicerie Marche Central','Labo Analyses Medicales',
+    'Studio Photo Professionnel','Energie Solaire Sahel','Clinique Animale Tropicale',
+    'Editions Africaines Plume','Cooperative Cacao Premium','Centre Langues Bilingue',
+    'Garage Auto Prestige','Brasserie Locale Tradition','Architectes Modernes Afrique',
+    'Plantation Cafe Export','Informatique Solutions Pro','Cabinet Comptable Expert',
+    'Menuiserie Bois Tropical','Hotel Residence Palace','Patisserie Douala Sucree',
+    'Librairie Savoir Plus','Agence Immobiliere Soleil','Pharmacie Populaire Sante',
+    'Imprimerie Rapide Plus','Bureau Ingenierie Civil','Societe Nettoyage Urbain',
+    'Fleuriste Jardin Tropical','Cabinet Juridique Conseil','Restaurant Maquis Etoile',
+    'Optique Vue Claire','Salon Coiffure Elegance','Garage Pneus Africa',
+    'Electricite Batiment Pro','Plomberie Sanitaire Plus','Moto Taxi Rapide',
+    'Bijouterie Or Artisanal','Fromagerie Locale Frais','Cordonnerie Artisanale',
+    'Pressing Moderne Clean','Boulangerie Pain Chaud','Serrurerie Depannage Express',
+    'Agence Voyages Decouverte'
+  ];
+  -- Supplier name pools (49 per country)
+  v_supplier_names_fr  TEXT[] := ARRAY[
+    'TechParts France','CloudServ Europe','Imprimerie Nationale',
+    'LogiTrans Express','Conseil RH Partners','SecurIT Systems',
+    'GreenEnergy Solutions','Fournitures Bureau Pro','Materiel Informatique Plus',
+    'Logiciel Gestion Cloud','Papeterie Centrale','Nettoyage Industriel Net',
+    'Securite Gardiennage Pro','Telecom Solutions SAS','Mobilier Design Office',
+    'Restauration Collective Chef','Maintenance Technique Pro','Publicite Media Connect',
+    'Formation Digitale Expert','Emballage Packaging Plus','Climatisation Confort Air',
+    'Peinture Batiment Pro','Dechets Recyclage Vert','Textile Uniformes Pro',
+    'Signalisation Routiere','Amenagement Paysager','Audit Qualite Conseil',
+    'Location Vehicules Fleet','Assurance Pro Entreprise','Nettoyage Vitrerie Crystal',
+    'Plomberie Batiment SAS','Electricite Tertiaire','Menuiserie Agencement',
+    'Serrurerie Pro Securite','Jardinage Espaces Verts','Demenagement Express France',
+    'Catering Evenementiel','Traduction Services Pro','Courrier Express Rapide',
+    'Fournitures Medicales','Equipement Industriel','Outillage Professionnel',
+    'Materiaux Construction','Produits Chimiques Lab','Consommables Impression',
+    'Services Juridiques Pro','Comptabilite Externalisee','Recrutement Talent Plus',
+    'Veille Technologique SAS'
+  ];
+  v_supplier_names_be  TEXT[] := ARRAY[
+    'CompuParts Belgium','DataCenter BeLux','Print & Pack BVBA',
+    'TransEuro Logistics','HR Consult Group','CyberGuard Europe',
+    'EcoPower Belgium','Office Supplies NV','IT Hardware Benelux',
+    'Cloud Software Partners','Paper Wholesale BVBA','Industrial Cleaning Pro',
+    'Security Guard Services','Telecom Belgium NV','Office Furniture Design',
+    'Catering Services Group','Technical Maintenance','Advertising Media Group',
+    'Digital Training Academy','Packaging Solutions EU','HVAC Climate Control',
+    'Building Paint Services','Recycling Green Europe','Textile Workwear Pro',
+    'Road Signage Belgium','Landscape Architecture','Quality Audit Consult',
+    'Fleet Vehicle Rental','Business Insurance NV','Window Cleaning Crystal',
+    'Plumbing Commercial','Electrical Contractors','Joinery Fit-Out NV',
+    'Locksmith Pro Security','Garden Maintenance','Moving Services Express',
+    'Event Catering Premium','Translation Bureau EU','Express Courier Benelux',
+    'Medical Supplies NV','Industrial Equipment','Professional Tools BVBA',
+    'Construction Materials','Chemical Lab Products','Printing Consumables',
+    'Legal Services Partners','Outsourced Accounting','Recruitment Talent EU',
+    'Tech Watch Consulting'
+  ];
+  v_supplier_names_oh TEXT[] := ARRAY[
+    'AfriTech Solutions','InfoParts Cameroun','Bureau Plus SARL',
+    'AfriLog Transport','RH Afrique Conseil','SecurAfrique SARL',
+    'SolairePlus Cameroun','Fournitures Bureau Sahel','Materiel Info Tropiques',
+    'Logiciel Cloud Afrique','Papeterie Centrale SARL','Nettoyage Industriel Afrique',
+    'Gardiennage Securite Plus','Telecom Afrique Connect','Mobilier Bureau Import',
+    'Restauration Collective Tropicale','Maintenance Technique Afrique','Media Publicite Sahel',
+    'Formation Continue Afrique','Emballage Export SARL','Climatisation Tropicale',
+    'Peinture Batiment Afrique','Recyclage Dechets Vert','Uniformes Textiles Pro',
+    'Signalisation Urbaine','Espaces Verts Jardinage','Audit Conseil Afrique',
+    'Location Vehicules Afrique','Assurance Entreprise SARL','Vitrerie Nettoyage Pro',
+    'Plomberie Batiment SARL','Electricite Generale Plus','Menuiserie Bois Afrique',
+    'Serrurerie Depannage Pro','Jardinage Tropical','Demenagement Rapide Afrique',
+    'Traiteur Evenements','Traduction Bilingue Pro','Courrier Express Afrique',
+    'Fournitures Medicales SARL','Equipement Industriel Pro','Outillage Professionnel Plus',
+    'Materiaux BTP Afrique','Produits Chimiques SARL','Consommables Bureau Plus',
+    'Services Juridiques SARL','Comptabilite Gestion Pro','Recrutement Talents Afrique',
+    'Veille Technologique SARL'
+  ];
+  -- Contact name pools (49 per country — for clients)
+  v_client_contacts_fr TEXT[] := ARRAY[
+    'Marie Dupont','Pierre Lefebvre','Sophie Garnier','Antoine Mercier','Claire Bonnet',
+    'Julien Perrin','Aurelie Martin','Thomas Blanc','Nathalie Rousseau','Francois Morel',
+    'Helene Girard','David Lefevre','Christine Lambert','Maxime Fournier','Sandrine Duval',
+    'Laurent Petit','Veronique Simon','Sebastien Michel','Brigitte Leroy','Guillaume Roux',
+    'Monique Andre','Stephane Bertrand','Valerie Moreau','Philippe Garcia','Caroline Thomas',
+    'Herve Robert','Sylvie Richard','Olivier Durand','Patricia Dubois','Emmanuel Henry',
+    'Celine Masson','Yves Fontaine','Mireille Chevalier','Damien Legrand','Nadia Lemoine',
+    'Romain Gautier','Laetitia Marchand','Xavier Renaud','Florence Picard','Mathieu Arnaud',
+    'Isabelle Faure','Hugo Pelletier','Dominique Clement','Vincent Leclerc','Agnes Dumas',
+    'Benoit Carpentier','Elise Noel','Patrick Guerin','Delphine Moulin'
+  ];
+  v_client_contacts_be TEXT[] := ARRAY[
+    'Luc Janssens','Emma Claes','Marc Willems','Laura Verhoeven','Thomas Hendricks',
+    'Nathalie Lemaire','Wim Jacobs','Sofie Vandenberge','Pieter Wouters','Annelies Maes',
+    'Karel De Smet','Julie Peeters','Bart Mertens','Inge Dupont','Tom Claessens',
+    'Charlotte Goossens','Jan Hermans','Katrien Michiels','Dirk Pauwels','Lies Martens',
+    'Geert Cools','An Devos','Koen Stevens','Hilde Bogaerts','Joris Lenaerts',
+    'Griet Janssen','Stef Nijs','Elke Smet','Raf Willems','Tine Aerts',
+    'Bram Vermeersch','Sarah Declercq','Wout Leemans','Femke Van Damme','Yves Dumont',
+    'Nele Hendriks','Filip Baert','Mieke Verbeke','Dieter Schepers','Leen De Wolf',
+    'Ruben Vanderstraeten','Joke Smeets','Bert Claeys','Hanne Geerts','Nico Thijs',
+    'Eva Lambrechts','Sven Desmet','Ilse Van Hoeck','Tim Moons'
+  ];
+  v_client_contacts_oh TEXT[] := ARRAY[
+    'Paul Atangana','Fatou Diallo','Ibrahim Toure','Aminata Coulibaly','Oumar Bah',
+    'Aissata Diarra','Mamadou Sylla','Jean-Pierre Nguema','Mariama Sow','Abdoulaye Keita',
+    'Hadja Barry','Seydou Traore','Fatoumata Camara','Moussa Diop','Binta Conde',
+    'Ousmane Ndiaye','Aissatou Balde','Amadou Sangare','Fanta Konate','Ibrahima Diallo',
+    'Kadiatou Toure','Souleymane Cisse','Mariam Sidibe','Lamine Dembele','Rokia Keita',
+    'Boubacar Haidara','Oumou Traore','Modibo Coulibaly','Awa Diarra','Cheick Sylla',
+    'Fatoumata Bah','Mamoudou Sow','Nene Barry','Thierno Diallo','Aminata Sangare',
+    'Sekou Konate','Djeinaba Camara','Oumar Cisse','Hawa Sidibe','Abdou Dembele',
+    'Mariame Traore','Saidou Keita','Fatimatou Balde','Hamidou Ndiaye','Oumou Diop',
+    'Youssouf Conde','Kadija Haidara','Issa Coulibaly','Salimata Toure'
+  ];
+  -- Contact name pools for suppliers
+  v_supplier_contacts_fr TEXT[] := ARRAY[
+    'Jean Moreau','Camille Roux','Alain Bernard','Lucie Marchand','Nicolas Fabre',
+    'Isabelle Laurent','Thierry Dubois','Anne-Marie Collet','Rene Perret','Martine Bonhomme',
+    'Frederic Vasseur','Colette Prevost','Gilles Boucher','Michele Poirier','Raymond Giraud',
+    'Jocelyne Maillard','Bernard Delorme','Agnes Tessier','Henri Leconte','Francoise Vidal',
+    'Marc Chauvin','Denise Barbier','Claude Ferreira','Suzanne Thibault','Roland Besson',
+    'Jacqueline Marechal','Didier Jacquet','Odette Brunet','Serge Guillot','Catherine Pons',
+    'Pascal Navarro','Yvette Collin','Roger Blanchard','Paulette Mercier','Michel Lecomte',
+    'Genevieve Riou','Andre Bousquet','Simone Leclercq','Georges Sanchez','Lucienne Gaudin',
+    'Jacques Cordier','Josiane Dufour','Robert Meunier','Jeannine Picard','Louis Martinez',
+    'Marguerite Roy','Yves Dumont','Danielle Caron','Pierre-Louis Fabre'
+  ];
+  v_supplier_contacts_be TEXT[] := ARRAY[
+    'Pieter De Smet','Anne Maes','Tom Peeters','Sofie Vandenberge','Karel Wouters',
+    'Joris Mertens','Elise Dumont','Hans Claessens','Maria Goossens','Dirk Hermans',
+    'Katrien Stevens','Bart Bogaerts','Griet Lenaerts','Jan Cools','Charlotte Devos',
+    'Wim Pauwels','Lies Nijs','Koen Smet','Hilde Aerts','Stef Vermeersch',
+    'An Declercq','Geert Leemans','Tine Van Damme','Raf Hendriks','Femke Baert',
+    'Bram Verbeke','Nele Schepers','Filip De Wolf','Sarah Vanderstraeten','Dieter Smeets',
+    'Leen Claeys','Ruben Geerts','Joke Thijs','Wout Lambrechts','Hanne Desmet',
+    'Bert Van Hoeck','Mieke Moons','Sven Vos','Ilse Peters','Nico Janssens',
+    'Eva Willems','Tim Jacobs','Julie Martens','Tom Michiels','Annelies Dupont',
+    'Karel Lemaire','Inge Hendricks','Marc Wouters','Laura Peeters'
+  ];
+  v_supplier_contacts_oh TEXT[] := ARRAY[
+    'Amadou Ndiaye','Binta Camara','Moussa Keita','Ousmane Diop','Aissatou Sow',
+    'Seydou Traore','Mariama Barry','Jean-Claude Ondo','Fatou Sangare','Abdoulaye Cisse',
+    'Hadja Sidibe','Lamine Dembele','Fatoumata Keita','Boubacar Haidara','Oumou Traore',
+    'Modibo Coulibaly','Awa Diarra','Cheick Sylla','Fatoumata Bah','Mamoudou Sow',
+    'Nene Barry','Thierno Diallo','Aminata Sangare','Sekou Konate','Djeinaba Camara',
+    'Oumar Cisse','Hawa Sidibe','Abdou Dembele','Mariame Traore','Saidou Keita',
+    'Fatimatou Balde','Hamidou Ndiaye','Oumou Diop','Youssouf Conde','Kadija Haidara',
+    'Issa Coulibaly','Salimata Toure','Mamadou Diallo','Rokia Kone','Ibrahima Balde',
+    'Kadiatou Sow','Souleymane Camara','Mariam Traore','Fanta Sidibe','Moussa Dembele',
+    'Binta Keita','Oumar Haidara','Aminata Cisse','Seydou Diarra'
+  ];
   v_paid          NUMERIC;
   v_status        TEXT;
   v_pay_status    TEXT;
@@ -197,11 +389,12 @@ BEGIN
   v_cid4 := substring(p_cid::text, 1, 4);
 
   -- =================================================================
-  -- E. SUPPLIERS (7 per company)
+  -- E. SUPPLIERS (7 per company — unique names via p_seq offset)
   -- =================================================================
   FOR v_i IN 1..7 LOOP
     v_id := gen_random_uuid();
     v_supplier_ids := v_supplier_ids || v_id;
+    v_idx := (p_seq - 1) * 7 + v_i;  -- unique index 1..49
 
     INSERT INTO suppliers (
       id, user_id, company_name, contact_person, email, phone,
@@ -209,49 +402,27 @@ BEGIN
       payment_terms, company_id
     ) VALUES (
       v_id, p_uid,
-      -- company_name: region-specific, appended with company short name
-      (ARRAY[
-        CASE p_country WHEN 'FR' THEN 'TechParts France'
-                       WHEN 'BE' THEN 'CompuParts Belgium'
-                       ELSE 'AfriTech Solutions' END,
-        CASE p_country WHEN 'FR' THEN 'CloudServ Europe'
-                       WHEN 'BE' THEN 'DataCenter BeLux'
-                       ELSE 'InfoParts Cameroun' END,
-        CASE p_country WHEN 'FR' THEN 'Imprimerie Nationale'
-                       WHEN 'BE' THEN 'Print & Pack BVBA'
-                       ELSE 'Bureau Plus SARL' END,
-        CASE p_country WHEN 'FR' THEN 'LogiTrans Express'
-                       WHEN 'BE' THEN 'TransEuro Logistics'
-                       ELSE 'AfriLog Transport' END,
-        CASE p_country WHEN 'FR' THEN 'Conseil RH Partners'
-                       WHEN 'BE' THEN 'HR Consult Group'
-                       ELSE 'RH Afrique Conseil' END,
-        CASE p_country WHEN 'FR' THEN 'SecurIT Systems'
-                       WHEN 'BE' THEN 'CyberGuard Europe'
-                       ELSE 'SecurAfrique SARL' END,
-        CASE p_country WHEN 'FR' THEN 'GreenEnergy Solutions'
-                       WHEN 'BE' THEN 'EcoPower Belgium'
-                       ELSE 'SolairePlus Cameroun' END
-      ])[v_i] || ' [' || v_cid4 || ']',
-      -- contact_person
-      (ARRAY[
-        CASE p_country WHEN 'FR' THEN 'Jean Moreau'      WHEN 'BE' THEN 'Pieter De Smet'   ELSE 'Amadou Ndiaye' END,
-        CASE p_country WHEN 'FR' THEN 'Camille Roux'     WHEN 'BE' THEN 'Anne Maes'        ELSE 'Binta Camara' END,
-        CASE p_country WHEN 'FR' THEN 'Alain Bernard'    WHEN 'BE' THEN 'Tom Peeters'      ELSE 'Moussa Keita' END,
-        CASE p_country WHEN 'FR' THEN 'Lucie Marchand'   WHEN 'BE' THEN 'Sofie Vandenberge' ELSE 'Ousmane Diop' END,
-        CASE p_country WHEN 'FR' THEN 'Nicolas Fabre'    WHEN 'BE' THEN 'Karel Wouters'    ELSE 'Aissatou Sow' END,
-        CASE p_country WHEN 'FR' THEN 'Isabelle Laurent'  WHEN 'BE' THEN 'Joris Mertens'   ELSE 'Seydou Traore' END,
-        CASE p_country WHEN 'FR' THEN 'Thierry Dubois'   WHEN 'BE' THEN 'Elise Dumont'     ELSE 'Mariama Barry' END
-      ])[v_i],
-      -- email
-      'supplier-' || v_cid4 || '-s' || v_i || '@demo.cashpilot.cloud',
-      -- phone
+      -- company_name: unique per company via v_idx into 49-name pool
       CASE p_country
-        WHEN 'FR' THEN '+33 1 ' || (40 + v_i)::text || ' ' || LPAD((v_i * 11)::text, 2, '0') || ' ' || LPAD((v_i * 13)::text, 2, '0') || ' ' || LPAD((v_i * 17)::text, 2, '0')
-        WHEN 'BE' THEN '+32 2 ' || (50 + v_i)::text || ' ' || LPAD((v_i * 12)::text, 2, '0') || ' ' || LPAD((v_i * 14)::text, 2, '0')
-        ELSE '+237 6 ' || (70 + v_i)::text || ' ' || LPAD((v_i * 15)::text, 2, '0') || ' ' || LPAD((v_i * 19)::text, 2, '0')
+        WHEN 'FR' THEN v_supplier_names_fr[v_idx]
+        WHEN 'BE' THEN v_supplier_names_be[v_idx]
+        ELSE v_supplier_names_oh[v_idx]
       END,
-      -- address
+      -- contact_person: unique per company via v_idx
+      CASE p_country
+        WHEN 'FR' THEN v_supplier_contacts_fr[v_idx]
+        WHEN 'BE' THEN v_supplier_contacts_be[v_idx]
+        ELSE v_supplier_contacts_oh[v_idx]
+      END,
+      -- email (unique via v_idx)
+      'supplier-' || v_idx || '@demo.cashpilot.cloud',
+      -- phone (unique via v_idx)
+      CASE p_country
+        WHEN 'FR' THEN '+33 1 ' || (40 + v_idx)::text || ' ' || LPAD(((v_idx * 11) % 100)::text, 2, '0') || ' ' || LPAD(((v_idx * 13) % 100)::text, 2, '0') || ' ' || LPAD(((v_idx * 17) % 100)::text, 2, '0')
+        WHEN 'BE' THEN '+32 2 ' || (50 + v_idx)::text || ' ' || LPAD(((v_idx * 12) % 100)::text, 2, '0') || ' ' || LPAD(((v_idx * 14) % 100)::text, 2, '0')
+        ELSE '+237 6 ' || (70 + v_idx)::text || ' ' || LPAD(((v_idx * 15) % 100)::text, 2, '0') || ' ' || LPAD(((v_idx * 19) % 100)::text, 2, '0')
+      END,
+      -- address (cycle through 7 addresses)
       (ARRAY[
         CASE p_country WHEN 'FR' THEN '12 Avenue des Champs-Elysees' WHEN 'BE' THEN '45 Avenue Louise'         ELSE '8 Rue de la Republique' END,
         CASE p_country WHEN 'FR' THEN '7 Rue du Faubourg Saint-Honore' WHEN 'BE' THEN '23 Rue de la Loi'      ELSE '15 Boulevard de la Liberte' END,
@@ -260,8 +431,8 @@ BEGIN
         CASE p_country WHEN 'FR' THEN '15 Rue de Rivoli'      WHEN 'BE' THEN '34 Rue du Marche aux Herbes'     ELSE '31 Avenue Kennedy' END,
         CASE p_country WHEN 'FR' THEN '56 Avenue Montaigne'   WHEN 'BE' THEN '78 Boulevard Anspach'            ELSE '44 Rue Nachtigal' END,
         CASE p_country WHEN 'FR' THEN '21 Rue de la Paix'     WHEN 'BE' THEN '9 Rue Neuve'                     ELSE '17 Boulevard du 20 Mai' END
-      ])[v_i],
-      -- city
+      ])[((v_idx - 1) % 7) + 1] || ' ' || v_idx::text,
+      -- city (cycle through 7 cities)
       (ARRAY[
         CASE p_country WHEN 'FR' THEN 'Paris'      WHEN 'BE' THEN 'Bruxelles'  ELSE 'Douala' END,
         CASE p_country WHEN 'FR' THEN 'Lyon'       WHEN 'BE' THEN 'Anvers'     ELSE 'Yaounde' END,
@@ -270,13 +441,13 @@ BEGIN
         CASE p_country WHEN 'FR' THEN 'Toulouse'   WHEN 'BE' THEN 'Namur'      ELSE 'Abidjan' END,
         CASE p_country WHEN 'FR' THEN 'Nantes'     WHEN 'BE' THEN 'Charleroi'  ELSE 'Dakar' END,
         CASE p_country WHEN 'FR' THEN 'Strasbourg' WHEN 'BE' THEN 'Louvain'    ELSE 'Lome' END
-      ])[v_i],
+      ])[((v_idx - 1) % 7) + 1],
       -- country, currency, status
       p_country, p_currency, 'active',
-      -- supplier_type (varied)
-      (ARRAY['product', 'service', 'both', 'product', 'service', 'both', 'product'])[v_i],
-      -- payment_terms (varied)
-      (ARRAY['Net 30', 'Net 45', 'Net 60', 'Net 30', 'Net 15', 'Net 45', 'Net 60'])[v_i],
+      -- supplier_type (cycle)
+      (ARRAY['product', 'service', 'both', 'product', 'service', 'both', 'product'])[((v_idx - 1) % 7) + 1],
+      -- payment_terms (cycle)
+      (ARRAY['Net 30', 'Net 45', 'Net 60', 'Net 30', 'Net 15', 'Net 45', 'Net 60'])[((v_idx - 1) % 7) + 1],
       -- company_id
       p_cid
     );
@@ -400,60 +571,39 @@ BEGIN
   END IF;
 
   -- =================================================================
-  -- H. CLIENTS (7 per company)
+  -- H. CLIENTS (7 per company — unique names via p_seq offset)
   -- =================================================================
   FOR v_i IN 1..7 LOOP
     v_id := gen_random_uuid();
     v_client_ids := v_client_ids || v_id;
+    v_idx := (p_seq - 1) * 7 + v_i;  -- unique index 1..49
 
     INSERT INTO clients (
       id, user_id, company_name, contact_name, email, phone,
       address, city, postal_code, country, preferred_currency, company_id
     ) VALUES (
       v_id, p_uid,
-      -- company_name: region-specific, unique per company via v_cid4
-      (ARRAY[
-        CASE p_country WHEN 'FR' THEN 'Agence Digitale Lumiere'
-                       WHEN 'BE' THEN 'Digital Agency Brussels'
-                       ELSE 'Groupe Industriel Sahel' END,
-        CASE p_country WHEN 'FR' THEN 'Cabinet Conseil Horizon'
-                       WHEN 'BE' THEN 'Consulting Partners NV'
-                       ELSE 'Commerce Import-Export' END,
-        CASE p_country WHEN 'FR' THEN 'Start-up Innovation Lab'
-                       WHEN 'BE' THEN 'Tech Venture Capital'
-                       ELSE 'Services Telecom Plus' END,
-        CASE p_country WHEN 'FR' THEN 'Industrie Automobile Prestige'
-                       WHEN 'BE' THEN 'Pharma Research Institute'
-                       ELSE 'Agro Business International' END,
-        CASE p_country WHEN 'FR' THEN 'Banque Regionale du Sud'
-                       WHEN 'BE' THEN 'Financial Services Group'
-                       ELSE 'Microfinance Plus SARL' END,
-        CASE p_country WHEN 'FR' THEN 'Hopital Central Metropole'
-                       WHEN 'BE' THEN 'Healthcare Group Europe'
-                       ELSE 'Clinique Moderne Centrale' END,
-        CASE p_country WHEN 'FR' THEN 'Universite Tech Avenir'
-                       WHEN 'BE' THEN 'Education Institute Pro'
-                       ELSE 'Institut Formation Elite' END
-      ])[v_i] || ' [' || v_cid4 || ']',
-      -- contact_name
-      (ARRAY[
-        CASE p_country WHEN 'FR' THEN 'Marie Dupont'       WHEN 'BE' THEN 'Luc Janssens'      ELSE 'Paul Atangana' END,
-        CASE p_country WHEN 'FR' THEN 'Pierre Lefebvre'    WHEN 'BE' THEN 'Emma Claes'         ELSE 'Fatou Diallo' END,
-        CASE p_country WHEN 'FR' THEN 'Sophie Garnier'     WHEN 'BE' THEN 'Marc Willems'       ELSE 'Ibrahim Toure' END,
-        CASE p_country WHEN 'FR' THEN 'Antoine Mercier'    WHEN 'BE' THEN 'Laura Verhoeven'    ELSE 'Aminata Coulibaly' END,
-        CASE p_country WHEN 'FR' THEN 'Claire Bonnet'      WHEN 'BE' THEN 'Thomas Hendricks'   ELSE 'Oumar Bah' END,
-        CASE p_country WHEN 'FR' THEN 'Julien Perrin'      WHEN 'BE' THEN 'Nathalie Lemaire'   ELSE 'Aissata Diarra' END,
-        CASE p_country WHEN 'FR' THEN 'Aurelie Martin'     WHEN 'BE' THEN 'Wim Jacobs'         ELSE 'Mamadou Sylla' END
-      ])[v_i],
-      -- email
-      'client-' || v_cid4 || '-c' || v_i || '@demo.cashpilot.cloud',
-      -- phone
+      -- company_name: unique per company via v_idx into 49-name pool
       CASE p_country
-        WHEN 'FR' THEN '+33 1 ' || (40 + v_i)::text || ' ' || LPAD((v_i * 7 + 10)::text, 2, '0') || ' ' || LPAD((v_i * 3 + 20)::text, 2, '0') || ' ' || LPAD((v_i * 9)::text, 2, '0')
-        WHEN 'BE' THEN '+32 2 ' || (50 + v_i)::text || ' ' || LPAD((v_i * 8 + 11)::text, 2, '0') || ' ' || LPAD((v_i * 5 + 15)::text, 2, '0')
-        ELSE '+237 6 ' || (90 + v_i)::text || ' ' || LPAD((v_i * 6 + 12)::text, 2, '0') || ' ' || LPAD((v_i * 4 + 18)::text, 2, '0')
+        WHEN 'FR' THEN v_client_names_fr[v_idx]
+        WHEN 'BE' THEN v_client_names_be[v_idx]
+        ELSE v_client_names_oh[v_idx]
       END,
-      -- address
+      -- contact_name: unique per company via v_idx
+      CASE p_country
+        WHEN 'FR' THEN v_client_contacts_fr[v_idx]
+        WHEN 'BE' THEN v_client_contacts_be[v_idx]
+        ELSE v_client_contacts_oh[v_idx]
+      END,
+      -- email (unique via v_idx)
+      'client-' || v_idx || '@demo.cashpilot.cloud',
+      -- phone (unique via v_idx)
+      CASE p_country
+        WHEN 'FR' THEN '+33 1 ' || (40 + v_idx)::text || ' ' || LPAD(((v_idx * 7 + 10) % 100)::text, 2, '0') || ' ' || LPAD(((v_idx * 3 + 20) % 100)::text, 2, '0') || ' ' || LPAD(((v_idx * 9) % 100)::text, 2, '0')
+        WHEN 'BE' THEN '+32 2 ' || (50 + v_idx)::text || ' ' || LPAD(((v_idx * 8 + 11) % 100)::text, 2, '0') || ' ' || LPAD(((v_idx * 5 + 15) % 100)::text, 2, '0')
+        ELSE '+237 6 ' || (90 + v_idx)::text || ' ' || LPAD(((v_idx * 6 + 12) % 100)::text, 2, '0') || ' ' || LPAD(((v_idx * 4 + 18) % 100)::text, 2, '0')
+      END,
+      -- address (cycle through 7 addresses)
       (ARRAY[
         CASE p_country WHEN 'FR' THEN '3 Place de la Concorde'    WHEN 'BE' THEN '10 Rue de la Loi'           ELSE '5 Avenue Ahmadou Ahidjo' END,
         CASE p_country WHEN 'FR' THEN '17 Rue Saint-Honore'       WHEN 'BE' THEN '25 Boulevard du Regent'     ELSE '12 Rue Douala Manga Bell' END,
@@ -462,8 +612,8 @@ BEGIN
         CASE p_country WHEN 'FR' THEN '25 Boulevard des Italiens'  WHEN 'BE' THEN '14 Rue Haute'              ELSE '33 Rue Ivy' END,
         CASE p_country WHEN 'FR' THEN '61 Rue du Commerce'         WHEN 'BE' THEN '71 Avenue de Tervueren'    ELSE '18 Avenue Monseigneur Vogt' END,
         CASE p_country WHEN 'FR' THEN '9 Place Vendome'            WHEN 'BE' THEN '5 Rue des Sablons'         ELSE '41 Rue de Nachtigal' END
-      ])[v_i],
-      -- city
+      ])[((v_idx - 1) % 7) + 1],
+      -- city (cycle through 7 cities)
       (ARRAY[
         CASE p_country WHEN 'FR' THEN 'Paris'       WHEN 'BE' THEN 'Bruxelles'  ELSE 'Douala' END,
         CASE p_country WHEN 'FR' THEN 'Lyon'        WHEN 'BE' THEN 'Anvers'     ELSE 'Yaounde' END,
@@ -472,8 +622,8 @@ BEGIN
         CASE p_country WHEN 'FR' THEN 'Toulouse'    WHEN 'BE' THEN 'Namur'      ELSE 'Bamako' END,
         CASE p_country WHEN 'FR' THEN 'Nantes'      WHEN 'BE' THEN 'Charleroi'  ELSE 'Dakar' END,
         CASE p_country WHEN 'FR' THEN 'Strasbourg'  WHEN 'BE' THEN 'Louvain'    ELSE 'Lome' END
-      ])[v_i],
-      -- postal_code
+      ])[((v_idx - 1) % 7) + 1],
+      -- postal_code (cycle through 7)
       (ARRAY[
         CASE p_country WHEN 'FR' THEN '75001' WHEN 'BE' THEN '1000' ELSE 'BP 1000' END,
         CASE p_country WHEN 'FR' THEN '69001' WHEN 'BE' THEN '2000' ELSE 'BP 2000' END,
@@ -482,7 +632,7 @@ BEGIN
         CASE p_country WHEN 'FR' THEN '31000' WHEN 'BE' THEN '5000' ELSE 'BP 5000' END,
         CASE p_country WHEN 'FR' THEN '44000' WHEN 'BE' THEN '6000' ELSE 'BP 6000' END,
         CASE p_country WHEN 'FR' THEN '67000' WHEN 'BE' THEN '3000' ELSE 'BP 7000' END
-      ])[v_i],
+      ])[((v_idx - 1) % 7) + 1],
       -- country, preferred_currency, company_id
       p_country, p_currency, p_cid
     );
@@ -1183,7 +1333,15 @@ BEGIN
     BEGIN
     FOR v_i IN 1..7 LOOP
       v_sinv_id := gen_random_uuid();
-      v_base := (ARRAY[4200, 8700, 3500, 6100, 2800, 5400, 9200])[v_i]::numeric * v_mul;
+      v_base := (ARRAY[
+        CASE p_country WHEN 'FR' THEN 4200 WHEN 'BE' THEN 4680 ELSE 2750 END,
+        CASE p_country WHEN 'FR' THEN 8700 WHEN 'BE' THEN 9350 ELSE 5700 END,
+        CASE p_country WHEN 'FR' THEN 3500 WHEN 'BE' THEN 3900 ELSE 2300 END,
+        CASE p_country WHEN 'FR' THEN 6100 WHEN 'BE' THEN 6800 ELSE 4000 END,
+        CASE p_country WHEN 'FR' THEN 2800 WHEN 'BE' THEN 3150 ELSE 1850 END,
+        CASE p_country WHEN 'FR' THEN 5400 WHEN 'BE' THEN 6000 ELSE 3500 END,
+        CASE p_country WHEN 'FR' THEN 9200 WHEN 'BE' THEN 10200 ELSE 6000 END
+      ])[v_i]::numeric * v_mul;
       v_tax  := ROUND(v_base * v_rate / 100, 2);
       v_ttc  := v_base + v_tax;
 
@@ -1826,14 +1984,16 @@ DECLARE
   ];
 BEGIN
   -- Call for ALL companies of all 3 demo users
+  -- row_number() per user gives each company a unique seq (1..7)
   FOR rec IN
-    SELECT c.id, c.user_id, c.country, c.currency, c.company_name
+    SELECT c.id, c.user_id, c.country, c.currency, c.company_name,
+           ROW_NUMBER() OVER (PARTITION BY c.user_id ORDER BY c.created_at)::int AS seq
     FROM company c
     WHERE c.user_id = ANY(v_user_ids)
     ORDER BY c.user_id, c.created_at
   LOOP
-    RAISE NOTICE 'Seeding company: % (user: %)', rec.company_name, rec.user_id;
-    PERFORM _seed_demo_company(rec.user_id, rec.id, rec.country, rec.currency, rec.company_name);
+    RAISE NOTICE 'Seeding company #% : % (user: %)', rec.seq, rec.company_name, rec.user_id;
+    PERFORM _seed_demo_company(rec.user_id, rec.id, rec.country, rec.currency, rec.company_name, rec.seq);
   END LOOP;
 
   RAISE NOTICE 'All 21 companies seeded successfully!';
@@ -1843,7 +2003,7 @@ END $$;
 -- ============================================================================
 -- PHASE 5: CLEANUP — DROP TEMPORARY FUNCTION
 -- ============================================================================
-DROP FUNCTION IF EXISTS _seed_demo_company(UUID, UUID, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS _seed_demo_company(UUID, UUID, TEXT, TEXT, TEXT, INT);
 
 -- Force PostgREST schema reload
 NOTIFY pgrst, 'reload schema';
