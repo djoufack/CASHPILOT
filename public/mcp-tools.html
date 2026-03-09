@@ -400,21 +400,21 @@
 <!-- Navigation -->
 <nav class="nav" id="nav">
   <div class="nav-inner">
-    <button class="nav-btn active" data-target="all" onclick="filterCategory('all', this)">Tous</button>
-    <button class="nav-btn" data-target="auth" onclick="filterCategory('auth', this)">Authentification</button>
-    <button class="nav-btn" data-target="clients" onclick="filterCategory('clients', this)">Clients</button>
-    <button class="nav-btn" data-target="invoices" onclick="filterCategory('invoices', this)">Factures</button>
-    <button class="nav-btn" data-target="payments" onclick="filterCategory('payments', this)">Paiements</button>
-    <button class="nav-btn" data-target="documents" onclick="filterCategory('documents', this)">Documents</button>
-    <button class="nav-btn" data-target="suppliers" onclick="filterCategory('suppliers', this)">Fournisseurs</button>
-    <button class="nav-btn" data-target="accounting" onclick="filterCategory('accounting', this)">Comptabilite</button>
-    <button class="nav-btn" data-target="bank" onclick="filterCategory('bank', this)">Banque</button>
-    <button class="nav-btn" data-target="analytics" onclick="filterCategory('analytics', this)">Analytics</button>
-    <button class="nav-btn" data-target="reporting" onclick="filterCategory('reporting', this)">Reporting</button>
-    <button class="nav-btn" data-target="exports" onclick="filterCategory('exports', this)">Exports</button>
-    <button class="nav-btn" data-target="crud" onclick="filterCategory('crud', this)">CRUD</button>
-    <button class="nav-btn" data-target="instruments" onclick="filterCategory('instruments', this)">Instruments</button>
-    <button class="nav-btn" data-target="company_finance" onclick="filterCategory('company_finance', this)">Finance societe</button>
+    <button class="nav-btn active" data-target="all">Tous</button>
+    <button class="nav-btn" data-target="auth">Authentification</button>
+    <button class="nav-btn" data-target="clients">Clients</button>
+    <button class="nav-btn" data-target="invoices">Factures</button>
+    <button class="nav-btn" data-target="payments">Paiements</button>
+    <button class="nav-btn" data-target="documents">Documents</button>
+    <button class="nav-btn" data-target="suppliers">Fournisseurs</button>
+    <button class="nav-btn" data-target="accounting">Comptabilite</button>
+    <button class="nav-btn" data-target="bank">Banque</button>
+    <button class="nav-btn" data-target="analytics">Analytics</button>
+    <button class="nav-btn" data-target="reporting">Reporting</button>
+    <button class="nav-btn" data-target="exports">Exports</button>
+    <button class="nav-btn" data-target="crud">CRUD</button>
+    <button class="nav-btn" data-target="instruments">Instruments</button>
+    <button class="nav-btn" data-target="company_finance">Finance societe</button>
   </div>
 </nav>
 
@@ -1514,36 +1514,39 @@
     searchCount.textContent = `${visibleCount} resultat${visibleCount > 1 ? 's' : ''} pour "${query}"`;
   });
 
-  // Category filter
-  function filterCategory(cat, btn) {
-    const categories = document.querySelectorAll('.category');
-    const allCards = document.querySelectorAll('.tool-card');
-    const allCrudRows = document.querySelectorAll('.crud-table tbody tr');
+  // Category filter (via addEventListener — CSP blocks inline onclick)
+  document.querySelectorAll('.nav-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var cat = this.getAttribute('data-target');
+      var categories = document.querySelectorAll('.category');
+      var allCards = document.querySelectorAll('.tool-card');
+      var allCrudRows = document.querySelectorAll('.crud-table tbody tr');
 
-    // Reset search
-    searchInput.value = '';
-    searchCount.textContent = '';
-    allCards.forEach(c => c.style.display = '');
-    allCrudRows.forEach(r => r.style.display = '');
+      // Reset search
+      searchInput.value = '';
+      searchCount.textContent = '';
+      allCards.forEach(function(c) { c.style.display = ''; });
+      allCrudRows.forEach(function(r) { r.style.display = ''; });
 
-    // Update nav buttons
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+      // Update nav buttons
+      document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
 
-    if (cat === 'all') {
-      categories.forEach(c => c.style.display = '');
-    } else {
-      categories.forEach(c => {
-        c.style.display = c.getAttribute('data-cat') === cat ? '' : 'none';
-      });
-    }
+      if (cat === 'all') {
+        categories.forEach(function(c) { c.style.display = ''; });
+      } else {
+        categories.forEach(function(c) {
+          c.style.display = c.getAttribute('data-cat') === cat ? '' : 'none';
+        });
+      }
 
-    // Scroll to top of content
-    if (cat !== 'all') {
-      const target = document.getElementById('cat-' + cat);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }
+      // Scroll to top of content
+      if (cat !== 'all') {
+        var target = document.getElementById('cat-' + cat);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
 </script>
 
 </body>
