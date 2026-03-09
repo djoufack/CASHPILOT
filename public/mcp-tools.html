@@ -385,10 +385,10 @@
   <div class="hero-logo">CashPilot MCP</div>
   <p class="hero-sub">Catalogue complet des outils MCP disponibles pour piloter votre comptabilite, facturation, tresorerie et plus encore via l'IA.</p>
   <div class="hero-stats">
-    <div class="stat"><div class="stat-number">169</div><div class="stat-label">Outils au total</div></div>
-    <div class="stat"><div class="stat-number">54</div><div class="stat-label">Outils metier</div></div>
-    <div class="stat"><div class="stat-number">115</div><div class="stat-label">Operations CRUD</div></div>
-    <div class="stat"><div class="stat-number">12</div><div class="stat-label">Categories</div></div>
+    <div class="stat"><div class="stat-number">249</div><div class="stat-label">Outils au total</div></div>
+    <div class="stat"><div class="stat-number">74</div><div class="stat-label">Outils metier</div></div>
+    <div class="stat"><div class="stat-number">175</div><div class="stat-label">Operations CRUD</div></div>
+    <div class="stat"><div class="stat-number">14</div><div class="stat-label">Categories</div></div>
   </div>
   <div class="search-container">
     <span class="search-icon">&#128269;</span>
@@ -413,6 +413,8 @@
     <button class="nav-btn" data-target="reporting" onclick="filterCategory('reporting', this)">Reporting</button>
     <button class="nav-btn" data-target="exports" onclick="filterCategory('exports', this)">Exports</button>
     <button class="nav-btn" data-target="crud" onclick="filterCategory('crud', this)">CRUD</button>
+    <button class="nav-btn" data-target="instruments" onclick="filterCategory('instruments', this)">Instruments</button>
+    <button class="nav-btn" data-target="company_finance" onclick="filterCategory('company_finance', this)">Finance societe</button>
   </div>
 </nav>
 
@@ -1089,13 +1091,169 @@
     </div>
   </section>
 
-  <!-- ==================== CRUD GENERES ==================== -->
+  <!-- ==================== INSTRUMENTS FINANCIERS ==================== -->
+  <section class="category" data-cat="instruments" id="cat-instruments">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(251, 191, 36, 0.15);">&#128179;</div>
+      <h2 class="category-title">Instruments Financiers</h2>
+      <span class="category-count">10 outils</span>
+      <span class="category-desc">Comptes bancaires, cartes, caisses, transferts et statistiques</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="list_payment_instruments comptes bancaires cartes caisses lister">
+        <div class="tool-name">list_payment_instruments</div>
+        <div class="tool-desc">Lister les instruments financiers (comptes bancaires, cartes, caisses) avec filtres par type, statut et societe.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">company_id</span>
+          <span class="param-tag optional">instrument_type</span>
+          <span class="param-tag optional">status</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="create_payment_instrument creer compte bancaire carte caisse">
+        <div class="tool-name">create_payment_instrument</div>
+        <div class="tool-desc">Creer un instrument financier avec details et auto-generation du code comptable (512xxx, 530xxx).</div>
+        <div class="tool-params">
+          <span class="param-tag">instrument_type</span>
+          <span class="param-tag">label</span>
+          <span class="param-tag optional">currency</span>
+          <span class="param-tag optional">bank_details</span>
+          <span class="param-tag optional">card_details</span>
+          <span class="param-tag optional">cash_details</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="update_payment_instrument modifier instrument financier">
+        <div class="tool-name">update_payment_instrument</div>
+        <div class="tool-desc">Modifier un instrument financier existant.</div>
+        <div class="tool-params">
+          <span class="param-tag">instrument_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="delete_payment_instrument supprimer instrument financier">
+        <div class="tool-name">delete_payment_instrument</div>
+        <div class="tool-desc">Supprimer un instrument financier. Refuse si des transactions sont liees.</div>
+        <div class="tool-params">
+          <span class="param-tag">instrument_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="create_payment_transaction enregistrer transaction instrument">
+        <div class="tool-name">create_payment_transaction</div>
+        <div class="tool-desc">Enregistrer une transaction sur un instrument (encaissement, decaissement, frais, ajustement).</div>
+        <div class="tool-params">
+          <span class="param-tag">payment_instrument_id</span>
+          <span class="param-tag">transaction_kind</span>
+          <span class="param-tag">amount</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="list_payment_transactions lister transactions instrument">
+        <div class="tool-name">list_payment_transactions</div>
+        <div class="tool-desc">Lister les transactions d'un instrument ou d'une periode avec filtres.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">payment_instrument_id</span>
+          <span class="param-tag optional">start_date</span>
+          <span class="param-tag optional">end_date</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="create_payment_transfer virement transfert entre instruments">
+        <div class="tool-name">create_payment_transfer</div>
+        <div class="tool-desc">Effectuer un virement entre deux instruments. Cree automatiquement 2 transactions liees.</div>
+        <div class="tool-params">
+          <span class="param-tag">from_instrument_id</span>
+          <span class="param-tag">to_instrument_id</span>
+          <span class="param-tag">amount</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_instrument_balance_history historique solde evolution">
+        <div class="tool-name">get_instrument_balance_history</div>
+        <div class="tool-desc">Historique de l'evolution du solde d'un instrument financier.</div>
+        <div class="tool-params">
+          <span class="param-tag">instrument_id</span>
+          <span class="param-tag optional">months</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_payment_volume_stats statistiques volume paiements">
+        <div class="tool-name">get_payment_volume_stats</div>
+        <div class="tool-desc">Statistiques de volume de paiements par type d'instrument.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">company_id</span>
+          <span class="param-tag optional">months</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_portfolio_consolidated_summary vue consolidee multi instruments">
+        <div class="tool-name">get_portfolio_consolidated_summary</div>
+        <div class="tool-desc">Vue consolidee de tous les instruments : soldes, flux, repartition par type.</div>
+        <div class="tool-params">
+          <span class="param-tag optional">company_id</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FINANCE PAR SOCIETE ==================== -->
+  <section class="category" data-cat="company_finance" id="cat-company_finance">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(129, 140, 248, 0.15);">&#127970;</div>
+      <h2 class="category-title">Finance par societe</h2>
+      <span class="category-count">7 outils</span>
+      <span class="category-desc">Analyse financiere par societe et comparaison portefeuille</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="list_user_companies societes entreprises user">
+        <div class="tool-name">list_user_companies</div>
+        <div class="tool-desc">Lister toutes les societes de l'utilisateur (company_id, nom, pays, devise).</div>
+      </div>
+      <div class="tool-card" data-search="get_company_kpis kpi societe indicateurs performance">
+        <div class="tool-name">get_company_kpis</div>
+        <div class="tool-desc">KPIs d'UNE societe : chiffre d'affaires, depenses, marge, impayes.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_company_cash_flow tresorerie societe flux">
+        <div class="tool-name">get_company_cash_flow</div>
+        <div class="tool-desc">Flux de tresorerie mensuel d'UNE societe specifique.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">months</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_company_financial_summary resume financier societe">
+        <div class="tool-name">get_company_financial_summary</div>
+        <div class="tool-desc">Snapshot financier complet d'UNE societe : factures, depenses, creances, dettes.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_company_profit_and_loss resultat societe compte">
+        <div class="tool-name">get_company_profit_and_loss</div>
+        <div class="tool-desc">Compte de resultat d'UNE societe (ecritures comptables classe 6/7).</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">start_date</span>
+          <span class="param-tag optional">end_date</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_company_balance_sheet bilan societe">
+        <div class="tool-name">get_company_balance_sheet</div>
+        <div class="tool-desc">Bilan comptable d'UNE societe a une date donnee.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">as_of_date</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="compare_companies_kpis comparaison societes portefeuille">
+        <div class="tool-name">compare_companies_kpis</div>
+        <div class="tool-desc">Comparer les KPIs de TOUTES les societes — analyse portefeuille multi-entreprises.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== CRUD GENERES ====================
   <section class="category" data-cat="crud" id="cat-crud">
     <div class="category-header">
       <div class="category-icon" style="background: rgba(148, 163, 184, 0.15);">&#9881;</div>
       <h2 class="category-title">Operations CRUD generees</h2>
-      <span class="category-count">115 outils</span>
-      <span class="category-desc">Create, Read, Update, Delete, List sur 23 tables</span>
+      <span class="category-count">175 outils</span>
+      <span class="category-desc">Create, Read, Update, Delete, List sur 35 tables</span>
     </div>
 
     <div class="crud-section">
@@ -1227,6 +1385,66 @@
               <td>Bons de commande client (devis confirmes)</td>
               <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
             </tr>
+            <tr data-search="dunning_steps etapes relance impayes configuration">
+              <td class="entity-name">dunning_steps</td>
+              <td>Etapes de relance des impayes (configuration)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="dunning_history historique relance suivi">
+              <td class="entity-name">dunning_history</td>
+              <td>Historique des relances effectuees</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="products produits articles catalogue">
+              <td class="entity-name">products</td>
+              <td>Catalogue de produits</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="projects projets suivi gestion">
+              <td class="entity-name">projects</td>
+              <td>Projets et suivi de gestion</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="timesheets feuilles temps heures saisie">
+              <td class="entity-name">timesheets</td>
+              <td>Feuilles de temps et saisie des heures</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="company_portfolios portefeuilles societes groupes">
+              <td class="entity-name">company_portfolios</td>
+              <td>Portefeuilles de societes (groupement multi-entreprises)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="company_portfolio_members membres portefeuille societes">
+              <td class="entity-name">company_portfolio_members</td>
+              <td>Membres d'un portefeuille (lien societe-portefeuille)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="payment_instrument_bank_accounts comptes bancaires details iban">
+              <td class="entity-name">payment_instrument_bank_accounts</td>
+              <td>Details des comptes bancaires (IBAN, BIC, banque)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="payment_instrument_cards cartes bancaires details visa mastercard">
+              <td class="entity-name">payment_instrument_cards</td>
+              <td>Details des cartes bancaires (type, dernier4, expiration)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="payment_instrument_cash_accounts caisses especes details">
+              <td class="entity-name">payment_instrument_cash_accounts</td>
+              <td>Details des caisses (point de caisse, localisation)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="payment_transaction_allocations ventilations transactions paiements">
+              <td class="entity-name">payment_transaction_allocations</td>
+              <td>Ventilations de transactions (imputation multi-pieces)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="payment_alerts alertes paiements seuils solde">
+              <td class="entity-name">payment_alerts</td>
+              <td>Alertes automatiques (solde bas, limite credit, ecart rapprochement)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -1237,7 +1455,7 @@
 
 <!-- Footer -->
 <footer class="footer">
-  <p><strong>CashPilot MCP</strong> &mdash; 169 outils | 12 categories | Genere le 25 fevrier 2026</p>
+  <p><strong>CashPilot MCP</strong> &mdash; 249 outils | 14 categories | Mis a jour le 9 mars 2026</p>
   <p style="margin-top: 0.5rem;">Documentation a destination des utilisateurs du serveur MCP CashPilot. Les outils CRUD sont generes automatiquement a partir du schema de base de donnees Supabase.</p>
 </footer>
 
