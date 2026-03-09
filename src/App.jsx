@@ -89,6 +89,7 @@ const PilotagePage = lazyRetry(() => import('./pages/PilotagePage'));
 const QuoteSignPage = lazyRetry(() => import('./pages/QuoteSignPage'));
 const PaymentSuccessPage = lazyRetry(() => import('./pages/PaymentSuccessPage'));
 const PortfolioPage = lazyRetry(() => import('./pages/PortfolioPage'));
+const FinancialInstrumentsPage = lazyRetry(() => import('./pages/FinancialInstrumentsPage'));
 const IntegrationsHubPage = lazyRetry(() => import('./pages/IntegrationsHubPage'));
 const SharedSnapshotPage = lazyRetry(() => import('./pages/SharedSnapshotPage'));
 const PrivacyPage = lazyRetry(() => import('./pages/PrivacyPage'));
@@ -236,6 +237,7 @@ const AuthWrapper = () => {
                 <Route path="audit-comptable" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><AuditComptable /></Suspense></PageErrorBoundary>} />
                 <Route path="pilotage" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><PilotagePage /></Suspense></PageErrorBoundary>} />
                 <Route path="bank-connections" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><BankConnectionsPage /></Suspense></PageErrorBoundary>} />
+                <Route path="financial-instruments" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><FinancialInstrumentsPage /></Suspense></PageErrorBoundary>} />
                 <Route path="portfolio" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><PortfolioPage /></Suspense></PageErrorBoundary>} />
                 <Route path="integrations" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><IntegrationsHubPage /></Suspense></PageErrorBoundary>} />
                 <Route path="bank-callback" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><BankCallbackPage /></Suspense></PageErrorBoundary>} />
