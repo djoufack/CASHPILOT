@@ -1,17 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-// supabase-js v2.39 does NOT forward auth.lock to gotrue-js, so the only way
-// to prevent "Lock broken by another request with the 'steal' option" AbortErrors
-// is to remove navigator.locks before the client initialises.  GoTrue then falls
-// back to its built-in lockNoOp, which is safe for single-tab usage.
-try {
-  if (typeof globalThis !== 'undefined' && globalThis.navigator && globalThis.navigator.locks) {
-    Object.defineProperty(globalThis.navigator, 'locks', { value: undefined, configurable: true, writable: true });
-  }
-} catch (_e) {
-  // navigator.locks may be non-configurable in some browsers — ignore
-}
-
 const normalizeEnv = (value) => {
   if (typeof value !== 'string') return '';
   return value.trim();
@@ -20,8 +8,12 @@ const normalizeEnv = (value) => {
 const supabaseUrl = normalizeEnv(import.meta.env.VITE_SUPABASE_URL);
 const supabaseAnonKey = normalizeEnv(import.meta.env.VITE_SUPABASE_ANON_KEY);
 
+// Bypass navigator.locks which causes hangs on Edge/Opera where the property
+// is non-configurable.  GoTrue's lock option lets us skip it on all browsers.
 const customSupabaseClient = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { lock: async (_name, _acquireTimeout, fn) => fn() },
+    })
   : null;
 
 export default customSupabaseClient;
