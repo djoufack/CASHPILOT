@@ -12,6 +12,13 @@ const COLS_SUPPLIERS = 'id, company_name, contact_person, email, phone, address,
 const COLS_QUOTES = 'id, quote_number, client_id, date, status, tax_rate, total_ht, total_ttc, created_at';
 const COLS_BANK_TRANSACTIONS = 'id, bank_connection_id, external_id, date, booking_date, value_date, amount, currency, description, reference, remittance_info, creditor_name, debtor_name, reconciliation_status, invoice_id, match_confidence, matched_at, created_at, updated_at';
 const COLS_EXPENSES = 'id, description, amount, amount_ht, tax_rate, tax_amount, category, expense_date, payment_method, receipt_url, client_id, refacturable, deleted_at, created_at';
+const COLS_COMPANY_PORTFOLIOS = 'id, user_id, portfolio_name, description, base_currency, is_default, is_active, created_at, updated_at';
+const COLS_COMPANY_PORTFOLIO_MEMBERS = 'id, portfolio_id, company_id, user_id, created_at';
+const COLS_PAYMENT_INSTRUMENT_BANK_ACCOUNTS = 'instrument_id, bank_connection_id, bank_name, account_holder, iban_masked, bic_swift, account_number_masked, institution_country, account_kind, statement_import_enabled, api_sync_enabled, last_sync_at, created_at, updated_at';
+const COLS_PAYMENT_INSTRUMENT_CARDS = 'instrument_id, card_brand, card_type, holder_name, last4, expiry_month, expiry_year, issuer_name, billing_cycle_day, statement_due_day, credit_limit, available_credit, network_token, is_virtual, created_at, updated_at';
+const COLS_PAYMENT_INSTRUMENT_CASH_ACCOUNTS = 'instrument_id, cash_point_name, custodian_user_id, location, max_authorized_balance, reconciliation_frequency, created_at, updated_at';
+const COLS_PAYMENT_TRANSACTION_ALLOCATIONS = 'id, payment_transaction_id, allocation_type, target_id, allocated_amount, notes, created_at';
+const COLS_PAYMENT_ALERTS = 'id, user_id, company_id, payment_instrument_id, alert_type, severity, title, message, is_resolved, resolved_at, created_at';
 
 export function registerGeneratedCrudTools(server: McpServer) {
 
@@ -2926,6 +2933,738 @@ export function registerGeneratedCrudTools(server: McpServer) {
       query = query.order('sent_at', { ascending: false });
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list dunning history') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ── company_portfolios CRUD ──
+
+  server.tool(
+    'create_company_portfolios',
+    'Create a new record in company_portfolios',
+    {
+      portfolio_name: z.string(),
+      description: z.string().optional(),
+      base_currency: z.string().optional(),
+      is_default: z.boolean().optional(),
+      is_active: z.boolean().optional()
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      const { data, error } = await supabase.from('company_portfolios').insert([sanitizeRecord(payload)]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create company portfolio') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created company_portfolios record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_company_portfolios',
+    'Update an existing record in company_portfolios',
+    {
+      id: z.string().describe('Record UUID to update'),
+      portfolio_name: z.string().optional(),
+      description: z.string().optional(),
+      base_currency: z.string().optional(),
+      is_default: z.boolean().optional(),
+      is_active: z.boolean().optional()
+    },
+    async (args) => {
+      const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      let query = supabase.from('company_portfolios').update(sanitizeRecord(updates)).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update company portfolio') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated company_portfolios record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_company_portfolios',
+    'Delete a record from company_portfolios',
+    {
+      id: z.string().describe('Record UUID to delete')
+    },
+    async ({ id }) => {
+      let query = supabase.from('company_portfolios').delete().eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { error } = await query;
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete company portfolio') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from company_portfolios' }] };
+    }
+  );
+
+  server.tool(
+    'get_company_portfolios',
+    'Get a single record from company_portfolios by ID',
+    {
+      id: z.string().describe('Record UUID to fetch')
+    },
+    async ({ id }) => {
+      let query = supabase.from('company_portfolios').select(COLS_COMPANY_PORTFOLIOS).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get company portfolio') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_company_portfolios',
+    'List multiple records from company_portfolios',
+    {
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ limit = 50, offset = 0 }) => {
+      let query = supabase.from('company_portfolios').select(COLS_COMPANY_PORTFOLIOS);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list company portfolios') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ── company_portfolio_members CRUD ──
+
+  server.tool(
+    'create_company_portfolio_members',
+    'Create a new record in company_portfolio_members',
+    {
+      portfolio_id: z.string().describe('Note: This is a Foreign Key to `company_portfolios.id`.<fk table=\'company_portfolios\' column=\'id\'/>'),
+      company_id: z.string().describe('Note: This is a Foreign Key to `companies.id`.<fk table=\'companies\' column=\'id\'/>')
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      payload.user_id = getUserId();
+      const { data, error } = await supabase.from('company_portfolio_members').insert([sanitizeRecord(payload)]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create company portfolio member') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created company_portfolio_members record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_company_portfolio_members',
+    'Update an existing record in company_portfolio_members',
+    {
+      id: z.string().describe('Record UUID to update'),
+      portfolio_id: z.string().optional().describe('Note: This is a Foreign Key to `company_portfolios.id`.<fk table=\'company_portfolios\' column=\'id\'/>'),
+      company_id: z.string().optional().describe('Note: This is a Foreign Key to `companies.id`.<fk table=\'companies\' column=\'id\'/>')
+    },
+    async (args) => {
+      const { id, ...updates } = args;
+      let query = supabase.from('company_portfolio_members').update(sanitizeRecord(updates)).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update company portfolio member') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated company_portfolio_members record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_company_portfolio_members',
+    'Delete a record from company_portfolio_members',
+    {
+      id: z.string().describe('Record UUID to delete')
+    },
+    async ({ id }) => {
+      let query = supabase.from('company_portfolio_members').delete().eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { error } = await query;
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete company portfolio member') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from company_portfolio_members' }] };
+    }
+  );
+
+  server.tool(
+    'get_company_portfolio_members',
+    'Get a single record from company_portfolio_members by ID',
+    {
+      id: z.string().describe('Record UUID to fetch')
+    },
+    async ({ id }) => {
+      let query = supabase.from('company_portfolio_members').select(COLS_COMPANY_PORTFOLIO_MEMBERS).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get company portfolio member') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_company_portfolio_members',
+    'List multiple records from company_portfolio_members',
+    {
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ limit = 50, offset = 0 }) => {
+      let query = supabase.from('company_portfolio_members').select(COLS_COMPANY_PORTFOLIO_MEMBERS);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list company portfolio members') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ── payment_instrument_bank_accounts CRUD (PK = instrument_id, no direct user_id) ──
+
+  server.tool(
+    'create_payment_instrument_bank_accounts',
+    'Create a new record in payment_instrument_bank_accounts',
+    {
+      instrument_id: z.string().describe('Note: This is a Foreign Key to `company_payment_instruments.id`.<fk table=\'company_payment_instruments\' column=\'id\'/>'),
+      bank_connection_id: z.string().optional().describe('Note: This is a Foreign Key to `bank_connections.id`.<fk table=\'bank_connections\' column=\'id\'/>'),
+      bank_name: z.string().optional(),
+      account_holder: z.string().optional(),
+      iban_masked: z.string().optional(),
+      bic_swift: z.string().optional(),
+      account_number_masked: z.string().optional(),
+      institution_country: z.string().optional(),
+      account_kind: z.string().optional(),
+      statement_import_enabled: z.boolean().optional(),
+      api_sync_enabled: z.boolean().optional(),
+      last_sync_at: z.string().optional()
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Security: verify the parent instrument belongs to the current user
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', payload.instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: company_payment_instrument not found or access denied' }] };
+      const { data, error } = await supabase.from('payment_instrument_bank_accounts').insert([sanitizeRecord(payload)]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create payment instrument bank account') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created payment_instrument_bank_accounts record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_payment_instrument_bank_accounts',
+    'Update an existing record in payment_instrument_bank_accounts',
+    {
+      instrument_id: z.string().describe('Instrument UUID to update (PK)'),
+      bank_connection_id: z.string().optional().describe('Note: This is a Foreign Key to `bank_connections.id`.<fk table=\'bank_connections\' column=\'id\'/>'),
+      bank_name: z.string().optional(),
+      account_holder: z.string().optional(),
+      iban_masked: z.string().optional(),
+      bic_swift: z.string().optional(),
+      account_number_masked: z.string().optional(),
+      institution_country: z.string().optional(),
+      account_kind: z.string().optional(),
+      statement_import_enabled: z.boolean().optional(),
+      api_sync_enabled: z.boolean().optional(),
+      last_sync_at: z.string().optional()
+    },
+    async (args) => {
+      const { instrument_id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Security: verify the parent instrument belongs to the current user
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      const { data, error } = await supabase.from('payment_instrument_bank_accounts').update(sanitizeRecord(updates)).eq('instrument_id', instrument_id).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update payment instrument bank account') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated payment_instrument_bank_accounts record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_payment_instrument_bank_accounts',
+    'Delete a record from payment_instrument_bank_accounts',
+    {
+      instrument_id: z.string().describe('Instrument UUID to delete (PK)')
+    },
+    async ({ instrument_id }) => {
+      // Security: verify the parent instrument belongs to the current user
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      const { error } = await supabase.from('payment_instrument_bank_accounts').delete().eq('instrument_id', instrument_id);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete payment instrument bank account') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + instrument_id + ' from payment_instrument_bank_accounts' }] };
+    }
+  );
+
+  server.tool(
+    'get_payment_instrument_bank_accounts',
+    'Get a single record from payment_instrument_bank_accounts by instrument_id',
+    {
+      instrument_id: z.string().describe('Instrument UUID to fetch (PK)')
+    },
+    async ({ instrument_id }) => {
+      // Security: verify the parent instrument belongs to the current user
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      const { data, error } = await supabase.from('payment_instrument_bank_accounts').select(COLS_PAYMENT_INSTRUMENT_BANK_ACCOUNTS).eq('instrument_id', instrument_id).single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get payment instrument bank account') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_payment_instrument_bank_accounts',
+    'List multiple records from payment_instrument_bank_accounts',
+    {
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ limit = 50, offset = 0 }) => {
+      // Security: only return records whose parent instrument belongs to the current user
+      const { data: userInstruments, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('user_id', getUserId());
+      if (instErr) return { content: [{ type: 'text' as const, text: safeError(instErr, 'list payment instrument bank accounts') }] };
+      const instrumentIds = (userInstruments || []).map((i: any) => i.id);
+      if (instrumentIds.length === 0) return { content: [{ type: 'text' as const, text: '[]' }] };
+      let query = supabase.from('payment_instrument_bank_accounts').select(COLS_PAYMENT_INSTRUMENT_BANK_ACCOUNTS).in('instrument_id', instrumentIds);
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list payment instrument bank accounts') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ── payment_instrument_cards CRUD (PK = instrument_id, no direct user_id) ──
+
+  server.tool(
+    'create_payment_instrument_cards',
+    'Create a new record in payment_instrument_cards',
+    {
+      instrument_id: z.string().describe('Note: This is a Foreign Key to `company_payment_instruments.id`.<fk table=\'company_payment_instruments\' column=\'id\'/>'),
+      card_brand: z.string().optional(),
+      card_type: z.string().optional(),
+      holder_name: z.string().optional(),
+      last4: z.string().optional(),
+      expiry_month: z.number().min(1).max(12).optional(),
+      expiry_year: z.number().optional(),
+      issuer_name: z.string().optional(),
+      billing_cycle_day: z.number().min(1).max(31).optional(),
+      statement_due_day: z.number().min(1).max(31).optional(),
+      credit_limit: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      available_credit: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      network_token: z.string().optional(),
+      is_virtual: z.boolean().optional()
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Security: verify the parent instrument belongs to the current user
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', payload.instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: company_payment_instrument not found or access denied' }] };
+      const { data, error } = await supabase.from('payment_instrument_cards').insert([sanitizeRecord(payload)]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create payment instrument card') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created payment_instrument_cards record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_payment_instrument_cards',
+    'Update an existing record in payment_instrument_cards',
+    {
+      instrument_id: z.string().describe('Instrument UUID to update (PK)'),
+      card_brand: z.string().optional(),
+      card_type: z.string().optional(),
+      holder_name: z.string().optional(),
+      last4: z.string().optional(),
+      expiry_month: z.number().min(1).max(12).optional(),
+      expiry_year: z.number().optional(),
+      issuer_name: z.string().optional(),
+      billing_cycle_day: z.number().min(1).max(31).optional(),
+      statement_due_day: z.number().min(1).max(31).optional(),
+      credit_limit: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      available_credit: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      network_token: z.string().optional(),
+      is_virtual: z.boolean().optional()
+    },
+    async (args) => {
+      const { instrument_id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Security: verify the parent instrument belongs to the current user
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      const { data, error } = await supabase.from('payment_instrument_cards').update(sanitizeRecord(updates)).eq('instrument_id', instrument_id).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update payment instrument card') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated payment_instrument_cards record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_payment_instrument_cards',
+    'Delete a record from payment_instrument_cards',
+    {
+      instrument_id: z.string().describe('Instrument UUID to delete (PK)')
+    },
+    async ({ instrument_id }) => {
+      // Security: verify the parent instrument belongs to the current user
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      const { error } = await supabase.from('payment_instrument_cards').delete().eq('instrument_id', instrument_id);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete payment instrument card') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + instrument_id + ' from payment_instrument_cards' }] };
+    }
+  );
+
+  server.tool(
+    'get_payment_instrument_cards',
+    'Get a single record from payment_instrument_cards by instrument_id',
+    {
+      instrument_id: z.string().describe('Instrument UUID to fetch (PK)')
+    },
+    async ({ instrument_id }) => {
+      // Security: verify the parent instrument belongs to the current user
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      const { data, error } = await supabase.from('payment_instrument_cards').select(COLS_PAYMENT_INSTRUMENT_CARDS).eq('instrument_id', instrument_id).single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get payment instrument card') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_payment_instrument_cards',
+    'List multiple records from payment_instrument_cards',
+    {
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ limit = 50, offset = 0 }) => {
+      // Security: only return records whose parent instrument belongs to the current user
+      const { data: userInstruments, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('user_id', getUserId());
+      if (instErr) return { content: [{ type: 'text' as const, text: safeError(instErr, 'list payment instrument cards') }] };
+      const instrumentIds = (userInstruments || []).map((i: any) => i.id);
+      if (instrumentIds.length === 0) return { content: [{ type: 'text' as const, text: '[]' }] };
+      let query = supabase.from('payment_instrument_cards').select(COLS_PAYMENT_INSTRUMENT_CARDS).in('instrument_id', instrumentIds);
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list payment instrument cards') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ── payment_instrument_cash_accounts CRUD (PK = instrument_id, no direct user_id) ──
+
+  server.tool(
+    'create_payment_instrument_cash_accounts',
+    'Create a new record in payment_instrument_cash_accounts',
+    {
+      instrument_id: z.string().describe('Note: This is a Foreign Key to `company_payment_instruments.id`.<fk table=\'company_payment_instruments\' column=\'id\'/>'),
+      cash_point_name: z.string().optional(),
+      custodian_user_id: z.string().optional(),
+      location: z.string().optional(),
+      max_authorized_balance: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      reconciliation_frequency: z.string().optional()
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Security: verify the parent instrument belongs to the current user
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', payload.instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: company_payment_instrument not found or access denied' }] };
+      const { data, error } = await supabase.from('payment_instrument_cash_accounts').insert([sanitizeRecord(payload)]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create payment instrument cash account') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created payment_instrument_cash_accounts record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_payment_instrument_cash_accounts',
+    'Update an existing record in payment_instrument_cash_accounts',
+    {
+      instrument_id: z.string().describe('Instrument UUID to update (PK)'),
+      cash_point_name: z.string().optional(),
+      custodian_user_id: z.string().optional(),
+      location: z.string().optional(),
+      max_authorized_balance: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      reconciliation_frequency: z.string().optional()
+    },
+    async (args) => {
+      const { instrument_id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Security: verify the parent instrument belongs to the current user
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      const { data, error } = await supabase.from('payment_instrument_cash_accounts').update(sanitizeRecord(updates)).eq('instrument_id', instrument_id).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update payment instrument cash account') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated payment_instrument_cash_accounts record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_payment_instrument_cash_accounts',
+    'Delete a record from payment_instrument_cash_accounts',
+    {
+      instrument_id: z.string().describe('Instrument UUID to delete (PK)')
+    },
+    async ({ instrument_id }) => {
+      // Security: verify the parent instrument belongs to the current user
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      const { error } = await supabase.from('payment_instrument_cash_accounts').delete().eq('instrument_id', instrument_id);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete payment instrument cash account') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + instrument_id + ' from payment_instrument_cash_accounts' }] };
+    }
+  );
+
+  server.tool(
+    'get_payment_instrument_cash_accounts',
+    'Get a single record from payment_instrument_cash_accounts by instrument_id',
+    {
+      instrument_id: z.string().describe('Instrument UUID to fetch (PK)')
+    },
+    async ({ instrument_id }) => {
+      // Security: verify the parent instrument belongs to the current user
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      const { data, error } = await supabase.from('payment_instrument_cash_accounts').select(COLS_PAYMENT_INSTRUMENT_CASH_ACCOUNTS).eq('instrument_id', instrument_id).single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get payment instrument cash account') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_payment_instrument_cash_accounts',
+    'List multiple records from payment_instrument_cash_accounts',
+    {
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ limit = 50, offset = 0 }) => {
+      // Security: only return records whose parent instrument belongs to the current user
+      const { data: userInstruments, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('user_id', getUserId());
+      if (instErr) return { content: [{ type: 'text' as const, text: safeError(instErr, 'list payment instrument cash accounts') }] };
+      const instrumentIds = (userInstruments || []).map((i: any) => i.id);
+      if (instrumentIds.length === 0) return { content: [{ type: 'text' as const, text: '[]' }] };
+      let query = supabase.from('payment_instrument_cash_accounts').select(COLS_PAYMENT_INSTRUMENT_CASH_ACCOUNTS).in('instrument_id', instrumentIds);
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list payment instrument cash accounts') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ── payment_transaction_allocations CRUD ──
+
+  server.tool(
+    'create_payment_transaction_allocations',
+    'Create a new record in payment_transaction_allocations',
+    {
+      payment_transaction_id: z.string().describe('Note: This is a Foreign Key to `payment_transactions.id`.<fk table=\'payment_transactions\' column=\'id\'/>'),
+      allocation_type: z.string(),
+      target_id: z.string().optional(),
+      allocated_amount: z.number().min(0).max(999999999.99).multipleOf(0.01),
+      notes: z.string().optional()
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Security: verify the parent transaction belongs to the current user via instrument
+      const { data: txn, error: txnErr } = await supabase.from('payment_transactions').select('instrument_id').eq('id', payload.payment_transaction_id).single();
+      if (txnErr || !txn) return { content: [{ type: 'text' as const, text: 'Error: payment_transaction not found' }] };
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', txn.instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      const { data, error } = await supabase.from('payment_transaction_allocations').insert([sanitizeRecord(payload)]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create payment transaction allocation') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created payment_transaction_allocations record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_payment_transaction_allocations',
+    'Update an existing record in payment_transaction_allocations',
+    {
+      id: z.string().describe('Record UUID to update'),
+      payment_transaction_id: z.string().optional().describe('Note: This is a Foreign Key to `payment_transactions.id`.<fk table=\'payment_transactions\' column=\'id\'/>'),
+      allocation_type: z.string().optional(),
+      target_id: z.string().optional(),
+      allocated_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      notes: z.string().optional()
+    },
+    async (args) => {
+      const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Security: verify the allocation belongs to the current user via transaction → instrument
+      const { data: alloc, error: allocErr } = await supabase.from('payment_transaction_allocations').select('payment_transaction_id').eq('id', id).single();
+      if (allocErr || !alloc) return { content: [{ type: 'text' as const, text: 'Error: payment_transaction_allocation not found' }] };
+      const { data: txn, error: txnErr } = await supabase.from('payment_transactions').select('instrument_id').eq('id', alloc.payment_transaction_id).single();
+      if (txnErr || !txn) return { content: [{ type: 'text' as const, text: 'Error: parent payment_transaction not found' }] };
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', txn.instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      const { data, error } = await supabase.from('payment_transaction_allocations').update(sanitizeRecord(updates)).eq('id', id).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update payment transaction allocation') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated payment_transaction_allocations record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_payment_transaction_allocations',
+    'Delete a record from payment_transaction_allocations',
+    {
+      id: z.string().describe('Record UUID to delete')
+    },
+    async ({ id }) => {
+      // Security: verify the allocation belongs to the current user via transaction → instrument
+      const { data: alloc, error: allocErr } = await supabase.from('payment_transaction_allocations').select('payment_transaction_id').eq('id', id).single();
+      if (allocErr || !alloc) return { content: [{ type: 'text' as const, text: 'Error: payment_transaction_allocation not found' }] };
+      const { data: txn, error: txnErr } = await supabase.from('payment_transactions').select('instrument_id').eq('id', alloc.payment_transaction_id).single();
+      if (txnErr || !txn) return { content: [{ type: 'text' as const, text: 'Error: parent payment_transaction not found' }] };
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', txn.instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      const { error } = await supabase.from('payment_transaction_allocations').delete().eq('id', id);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete payment transaction allocation') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from payment_transaction_allocations' }] };
+    }
+  );
+
+  server.tool(
+    'get_payment_transaction_allocations',
+    'Get a single record from payment_transaction_allocations by ID',
+    {
+      id: z.string().describe('Record UUID to fetch')
+    },
+    async ({ id }) => {
+      // Security: verify the allocation belongs to the current user via transaction → instrument
+      const { data: alloc, error: allocErr } = await supabase.from('payment_transaction_allocations').select(COLS_PAYMENT_TRANSACTION_ALLOCATIONS).eq('id', id).single();
+      if (allocErr || !alloc) return { content: [{ type: 'text' as const, text: safeError(allocErr || 'not found', 'get payment transaction allocation') }] };
+      const { data: txn, error: txnErr } = await supabase.from('payment_transactions').select('instrument_id').eq('id', alloc.payment_transaction_id).single();
+      if (txnErr || !txn) return { content: [{ type: 'text' as const, text: 'Error: parent payment_transaction not found' }] };
+      const { data: inst, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('id', txn.instrument_id).eq('user_id', getUserId()).single();
+      if (instErr || !inst) return { content: [{ type: 'text' as const, text: 'Error: access denied — parent instrument does not belong to current user' }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(alloc, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_payment_transaction_allocations',
+    'List multiple records from payment_transaction_allocations',
+    {
+      payment_transaction_id: z.string().optional().describe('Filter by payment transaction UUID'),
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ payment_transaction_id, limit = 50, offset = 0 }) => {
+      // Security: only return allocations whose parent instrument belongs to the current user
+      const { data: userInstruments, error: instErr } = await supabase.from('company_payment_instruments').select('id').eq('user_id', getUserId());
+      if (instErr) return { content: [{ type: 'text' as const, text: safeError(instErr, 'list payment transaction allocations') }] };
+      const instrumentIds = (userInstruments || []).map((i: any) => i.id);
+      if (instrumentIds.length === 0) return { content: [{ type: 'text' as const, text: '[]' }] };
+      const { data: userTxns, error: txnErr } = await supabase.from('payment_transactions').select('id').in('instrument_id', instrumentIds);
+      if (txnErr) return { content: [{ type: 'text' as const, text: safeError(txnErr, 'list payment transaction allocations') }] };
+      const txnIds = (userTxns || []).map((t: any) => t.id);
+      if (txnIds.length === 0) return { content: [{ type: 'text' as const, text: '[]' }] };
+      let query = supabase.from('payment_transaction_allocations').select(COLS_PAYMENT_TRANSACTION_ALLOCATIONS).in('payment_transaction_id', txnIds);
+      if (payment_transaction_id) query = query.eq('payment_transaction_id', payment_transaction_id);
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list payment transaction allocations') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ── payment_alerts CRUD ──
+
+  server.tool(
+    'create_payment_alerts',
+    'Create a new record in payment_alerts',
+    {
+      company_id: z.string().optional().describe('Note: This is a Foreign Key to `companies.id`.<fk table=\'companies\' column=\'id\'/>'),
+      payment_instrument_id: z.string().optional().describe('Note: This is a Foreign Key to `company_payment_instruments.id`.<fk table=\'company_payment_instruments\' column=\'id\'/>'),
+      alert_type: z.string(),
+      severity: z.string().optional(),
+      title: z.string(),
+      message: z.string().optional(),
+      is_resolved: z.boolean().optional(),
+      resolved_at: z.string().optional()
+    },
+    async (args) => {
+      const payload = { ...args } as Record<string, any>;
+      const dateErr = validateDatesInRecord(payload);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      const { data, error } = await supabase.from('payment_alerts').insert([sanitizeRecord(payload)]).select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create payment alert') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully created payment_alerts record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'update_payment_alerts',
+    'Update an existing record in payment_alerts',
+    {
+      id: z.string().describe('Record UUID to update'),
+      company_id: z.string().optional().describe('Note: This is a Foreign Key to `companies.id`.<fk table=\'companies\' column=\'id\'/>'),
+      payment_instrument_id: z.string().optional().describe('Note: This is a Foreign Key to `company_payment_instruments.id`.<fk table=\'company_payment_instruments\' column=\'id\'/>'),
+      alert_type: z.string().optional(),
+      severity: z.string().optional(),
+      title: z.string().optional(),
+      message: z.string().optional(),
+      is_resolved: z.boolean().optional(),
+      resolved_at: z.string().optional()
+    },
+    async (args) => {
+      const { id, ...updates } = args;
+      const dateErr = validateDatesInRecord(updates);
+      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      let query = supabase.from('payment_alerts').update(sanitizeRecord(updates)).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.select().single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update payment alert') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully updated payment_alerts record:\n' + JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'delete_payment_alerts',
+    'Delete a record from payment_alerts',
+    {
+      id: z.string().describe('Record UUID to delete')
+    },
+    async ({ id }) => {
+      let query = supabase.from('payment_alerts').delete().eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { error } = await query;
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete payment alert') }] };
+      return { content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from payment_alerts' }] };
+    }
+  );
+
+  server.tool(
+    'get_payment_alerts',
+    'Get a single record from payment_alerts by ID',
+    {
+      id: z.string().describe('Record UUID to fetch')
+    },
+    async ({ id }) => {
+      let query = supabase.from('payment_alerts').select(COLS_PAYMENT_ALERTS).eq('id', id);
+      query = query.eq('user_id', getUserId());
+      const { data, error } = await query.single();
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get payment alert') }] };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'list_payment_alerts',
+    'List multiple records from payment_alerts',
+    {
+      company_id: z.string().optional().describe('Filter by company UUID'),
+      payment_instrument_id: z.string().optional().describe('Filter by payment instrument UUID'),
+      is_resolved: z.boolean().optional().describe('Filter by resolved status'),
+      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+      offset: z.number().optional().describe('Number of records to skip (default 0)')
+    },
+    async ({ company_id, payment_instrument_id, is_resolved, limit = 50, offset = 0 }) => {
+      let query = supabase.from('payment_alerts').select(COLS_PAYMENT_ALERTS);
+      query = query.eq('user_id', getUserId());
+      if (company_id) query = query.eq('company_id', company_id);
+      if (payment_instrument_id) query = query.eq('payment_instrument_id', payment_instrument_id);
+      if (is_resolved !== undefined) query = query.eq('is_resolved', is_resolved);
+      query = query.order('created_at', { ascending: false });
+      const { data, error } = await query.range(offset, offset + limit - 1);
+      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list payment alerts') }] };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
   );

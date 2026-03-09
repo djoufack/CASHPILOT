@@ -14,7 +14,8 @@ import {
   LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, Package, BarChart3, Calculator, PieChart, Settings,
   FileMinus, PackageCheck, Wallet, TrendingUp, Building2, RefreshCw, Shield,
-  Receipt, ClipboardList, Wrench, Map, QrCode, FileBarChart, Database, Tag, Globe, Webhook, Cable
+  Receipt, ClipboardList, Wrench, Map, QrCode, FileBarChart, Database, Tag, Globe, Webhook, Cable,
+  CreditCard
 } from 'lucide-react';
 
 const MainLayout = () => {
@@ -75,6 +76,7 @@ const MainLayout = () => {
     { path: '/app/scenarios', label: t('nav.scenarios'), icon: TrendingUp, featureKey: ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL },
     { type: 'separator', label: t('nav.financeSection') },
     { path: '/app/bank-connections', label: t('nav.bankConnections'), icon: Building2 },
+    { path: '/app/financial-instruments', label: t('nav.financialInstruments'), icon: CreditCard },
     { path: '/app/cash-flow', label: t('nav.cashFlow'), icon: TrendingUp },
     { type: 'separator', label: t('nav.systemSection') },
     { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
