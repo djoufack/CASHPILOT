@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { supabaseUrl } from '@/lib/customSupabaseClient';
+import { supabaseUrl, supabaseAnonKey } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatDateInput, formatStartOfYearInput } from '@/utils/dateFormatting';
 
@@ -92,6 +92,7 @@ export const useAuditComptable = (options = false) => {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${session.access_token}`,
+            apikey: supabaseAnonKey,
           },
           body: JSON.stringify(body),
         }
