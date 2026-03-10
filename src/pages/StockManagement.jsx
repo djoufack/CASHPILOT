@@ -22,10 +22,24 @@ import { AlertTriangle, Package, Search, Plus, Trash2, Download, FileText, Walle
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { exportStockListPDF, exportStockListHTML } from '@/services/exportListsPDF';
 import ExportButton from '@/components/ExportButton';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
+
+const DEFAULT_NEW_PRODUCT = {
+  product_name: '',
+  sku: '',
+  category_id: '',
+  unit_price: '',
+  purchase_price: '',
+  unit: 'pièce',
+  stock_quantity: '0',
+  min_stock_level: '5',
+  description: '',
+  inventory_tracking_enabled: true,
+};
 
 const StockManagement = () => {
   const { t } = useTranslation();
@@ -56,10 +70,7 @@ const StockManagement = () => {
 
   // Add product dialog state
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newProduct, setNewProduct] = useState({
-    product_name: '', sku: '', category_id: '', unit_price: '', purchase_price: '',
-    unit: 'pièce', stock_quantity: '0', min_stock_level: '5', description: ''
-  });
+  const [newProduct, setNewProduct] = useState(DEFAULT_NEW_PRODUCT);
 
   useEffect(() => {
     fetchAlerts();
@@ -82,15 +93,27 @@ const StockManagement = () => {
   }, [filteredProducts.length, setTotalCount]);
 
   const paginatedProducts = filteredProducts.slice(pagination.from, pagination.to + 1);
+  const trackedProducts = useMemo(
+    () => products.filter(product => product.inventory_tracking_enabled !== false),
+    [products]
+  );
+  const trackedFilteredProducts = useMemo(
+    () => filteredProducts.filter(product => product.inventory_tracking_enabled !== false),
+    [filteredProducts]
+  );
+  const visibleAlerts = useMemo(
+    () => alerts.filter(alert => alert.product?.inventory_tracking_enabled !== false),
+    [alerts]
+  );
 
   // Stats
   const totalProducts = products.length;
-  const lowStockCount = products.filter(p => p.stock_quantity > 0 && p.stock_quantity <= p.min_stock_level).length;
-  const outOfStockCount = products.filter(p => p.stock_quantity <= 0).length;
-  const totalValue = products.reduce((sum, p) => sum + (p.stock_quantity * p.unit_price), 0);
+  const lowStockCount = trackedProducts.filter(p => p.stock_quantity > 0 && p.stock_quantity <= p.min_stock_level).length;
+  const outOfStockCount = trackedProducts.filter(p => p.stock_quantity <= 0).length;
+  const totalValue = trackedProducts.reduce((sum, p) => sum + (p.stock_quantity * p.unit_price), 0);
 
   const stockInsights = useMemo(() => {
-    return filteredProducts.map(product => {
+    return trackedFilteredProducts.map(product => {
       const stockQuantity = Number(product.stock_quantity || 0);
       const minStockLevel = Number(product.min_stock_level || 0);
       const purchasePrice = Number(product.purchase_price || 0);
@@ -116,7 +139,7 @@ const StockManagement = () => {
         grossMarginPct,
       };
     });
-  }, [filteredProducts]);
+  }, [trackedFilteredProducts]);
 
   const strategicStock = useMemo(() => {
     const totalCostPool = stockInsights.reduce((sum, product) => sum + product.costValue, 0);
@@ -200,7 +223,7 @@ const StockManagement = () => {
   const handleAdjustment = async () => {
     if (!adjProductId || adjNewQty === '') return;
     const product = products.find(p => p.id === adjProductId);
-    if (!product) return;
+    if (!product || product.inventory_tracking_enabled === false) return;
 
     const success = await addHistoryEntry({
       productId: adjProductId,
@@ -221,6 +244,8 @@ const StockManagement = () => {
 
   // Handle add product
   const handleAddProduct = async () => {
+    const inventoryTrackingEnabled = newProduct.inventory_tracking_enabled !== false;
+
     try {
       await createProduct({
         product_name: newProduct.product_name,
@@ -229,22 +254,23 @@ const StockManagement = () => {
         unit_price: parseFloat(newProduct.unit_price) || 0,
         purchase_price: parseFloat(newProduct.purchase_price) || 0,
         unit: newProduct.unit,
-        stock_quantity: parseFloat(newProduct.stock_quantity) || 0,
-        min_stock_level: parseFloat(newProduct.min_stock_level) || 5,
+        stock_quantity: inventoryTrackingEnabled ? (parseFloat(newProduct.stock_quantity) || 0) : 0,
+        min_stock_level: inventoryTrackingEnabled ? (parseFloat(newProduct.min_stock_level) || 5) : 0,
         description: newProduct.description || null,
+        inventory_tracking_enabled: inventoryTrackingEnabled,
         is_active: true
       });
       setShowAddDialog(false);
-      setNewProduct({
-        product_name: '', sku: '', category_id: '', unit_price: '', purchase_price: '',
-        unit: 'pièce', stock_quantity: '0', min_stock_level: '5', description: ''
-      });
+      setNewProduct(DEFAULT_NEW_PRODUCT);
     } catch (err) {
       // Error handled by hook toast
     }
   };
 
   const getStockBadge = (product) => {
+    if (product.inventory_tracking_enabled === false) {
+      return <Badge className="bg-slate-500/20 text-slate-300 border-slate-500/30">Non stocké</Badge>;
+    }
     if (product.stock_quantity <= 0) return <Badge variant="destructive">Rupture</Badge>;
     if (product.stock_quantity <= product.min_stock_level) return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Stock bas</Badge>;
     return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">OK</Badge>;
@@ -371,7 +397,7 @@ const StockManagement = () => {
                     <SelectValue placeholder="Sélectionnez un produit..." />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                    {products.map(p => (
+                    {trackedProducts.map(p => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.product_name} (actuel : {p.stock_quantity})
                       </SelectItem>
@@ -423,6 +449,7 @@ const StockManagement = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-gradient">{totalProducts}</div>
+                <p className="text-xs text-gray-500 mt-2">{trackedProducts.length} avec suivi de stock</p>
               </CardContent>
             </Card>
             <Card className="bg-gray-900 border-gray-800">
@@ -451,11 +478,11 @@ const StockManagement = () => {
             </Card>
           </div>
 
-          {alerts.length > 0 && (
+          {visibleAlerts.length > 0 && (
             <div className="space-y-2">
               <h3 className="font-semibold text-lg">{t('stockManagement.activeAlerts', 'Active Alerts')}</h3>
               <div className="grid gap-2">
-                {alerts.map(alert => (
+                {visibleAlerts.map(alert => (
                   <Alert key={alert.id} className="bg-gray-900 border border-gray-800 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <AlertTriangle className={`h-5 w-5 ${alert.alert_type === 'out_of_stock' ? 'text-red-500' : 'text-yellow-500'}`} />
@@ -724,6 +751,7 @@ const StockManagement = () => {
                         <TableHead className="text-gray-400 text-right">Prix achat</TableHead>
                         <TableHead className="text-gray-400 text-right">Stock</TableHead>
                         <TableHead className="text-gray-400 text-right">Min</TableHead>
+                        <TableHead className="text-gray-400">Mode</TableHead>
                         <TableHead className="text-gray-400">Statut</TableHead>
                         <TableHead className="text-gray-400">Actions</TableHead>
                       </TableRow>
@@ -736,8 +764,9 @@ const StockManagement = () => {
                           <TableCell className="text-gray-400">{product.category?.name || '—'}</TableCell>
                           <TableCell className="text-right">{formatNumber(product.unit_price || 0)} {currencySymbol}</TableCell>
                           <TableCell className="text-right text-gray-400">{formatNumber(product.purchase_price || 0)} {currencySymbol}</TableCell>
-                          <TableCell className="text-right font-medium">{product.stock_quantity}</TableCell>
-                          <TableCell className="text-right text-gray-400">{product.min_stock_level}</TableCell>
+                          <TableCell className="text-right font-medium">{product.inventory_tracking_enabled === false ? '—' : product.stock_quantity}</TableCell>
+                          <TableCell className="text-right text-gray-400">{product.inventory_tracking_enabled === false ? '—' : product.min_stock_level}</TableCell>
+                          <TableCell className="text-gray-400">{product.inventory_tracking_enabled === false ? 'Prestation / non stocké' : 'Article stocké'}</TableCell>
                           <TableCell>{getStockBadge(product)}</TableCell>
                           <TableCell>
                             <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300"
@@ -776,7 +805,7 @@ const StockManagement = () => {
                 <SelectValue placeholder="Sélectionnez un produit..." />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                {products.map(p => <SelectItem key={p.id} value={p.id}>{p.product_name}</SelectItem>)}
+                {trackedProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.product_name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -855,6 +884,26 @@ const StockManagement = () => {
                   onChange={e => setNewProduct(p => ({ ...p, purchase_price: e.target.value }))} />
               </div>
             </div>
+            <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <Label className="text-white">Suivi de stock comptable</Label>
+                  <p className="text-sm text-gray-400">
+                    Laissez activé pour un article réellement stocké. Désactivez pour une prestation,
+                    une licence, un abonnement ou toute offre non stockable afin d'éviter une variation de stock 603.
+                  </p>
+                </div>
+                <Switch
+                  checked={newProduct.inventory_tracking_enabled !== false}
+                  onCheckedChange={(checked) => setNewProduct(p => ({
+                    ...p,
+                    inventory_tracking_enabled: checked,
+                    stock_quantity: checked ? p.stock_quantity : '0',
+                    min_stock_level: checked ? (p.min_stock_level === '0' ? '5' : p.min_stock_level) : '0',
+                  }))}
+                />
+              </div>
+            </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Unité</Label>
@@ -863,12 +912,14 @@ const StockManagement = () => {
               </div>
               <div className="space-y-2">
                 <Label>Stock initial</Label>
-                <Input type="number" className="bg-gray-800 border-gray-700" value={newProduct.stock_quantity}
+                <Input type="number" className="bg-gray-800 border-gray-700 disabled:opacity-50" value={newProduct.stock_quantity}
+                  disabled={newProduct.inventory_tracking_enabled === false}
                   onChange={e => setNewProduct(p => ({ ...p, stock_quantity: e.target.value }))} />
               </div>
               <div className="space-y-2">
                 <Label>Stock min.</Label>
-                <Input type="number" className="bg-gray-800 border-gray-700" value={newProduct.min_stock_level}
+                <Input type="number" className="bg-gray-800 border-gray-700 disabled:opacity-50" value={newProduct.min_stock_level}
+                  disabled={newProduct.inventory_tracking_enabled === false}
                   onChange={e => setNewProduct(p => ({ ...p, min_stock_level: e.target.value }))} />
               </div>
             </div>
