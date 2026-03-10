@@ -150,13 +150,17 @@ serve(async (req) => {
 
     // ── Fetch data in parallel ───────────────────────────────
     const [entriesRes, accountsRes, invoicesRes, expensesRes, bankTxRes] = await Promise.all([
-      supabase
-        .from('accounting_entries')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('transaction_date', periodStart)
-        .lte('transaction_date', periodEnd)
-        .order('transaction_date', { ascending: true }),
+      (() => {
+        let q = supabase
+          .from('accounting_entries')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('transaction_date', periodStart)
+          .lte('transaction_date', periodEnd)
+          .order('transaction_date', { ascending: true });
+        if (companyId) q = q.eq('company_id', companyId);
+        return q;
+      })(),
       (() => {
         let q = supabase
           .from('accounting_chart_of_accounts')
@@ -165,24 +169,36 @@ serve(async (req) => {
         if (companyId) q = q.eq('company_id', companyId);
         return q;
       })(),
-      supabase
-        .from('invoices')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('date', periodStart)
-        .lte('date', periodEnd),
-      supabase
-        .from('expenses')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('date', periodStart)
-        .lte('date', periodEnd),
-      supabase
-        .from('bank_transactions')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('date', periodStart)
-        .lte('date', periodEnd),
+      (() => {
+        let q = supabase
+          .from('invoices')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('date', periodStart)
+          .lte('date', periodEnd);
+        if (companyId) q = q.eq('company_id', companyId);
+        return q;
+      })(),
+      (() => {
+        let q = supabase
+          .from('expenses')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('date', periodStart)
+          .lte('date', periodEnd);
+        if (companyId) q = q.eq('company_id', companyId);
+        return q;
+      })(),
+      (() => {
+        let q = supabase
+          .from('bank_transactions')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('date', periodStart)
+          .lte('date', periodEnd);
+        if (companyId) q = q.eq('company_id', companyId);
+        return q;
+      })(),
     ]);
 
     const entries = entriesRes.data ?? [];

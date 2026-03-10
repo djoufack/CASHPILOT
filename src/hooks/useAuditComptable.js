@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { supabaseUrl, supabaseAnonKey } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
 import { formatDateInput, formatStartOfYearInput } from '@/utils/dateFormatting';
 
 const CACHE_KEY = 'cashpilot_audit_cache';
@@ -92,7 +93,9 @@ async function callAuditComptable(body, accessToken) {
 
 export const useAuditComptable = (options = false) => {
   const { user } = useAuth();
+  const activeCompanyId = useActiveCompanyId();
   const { autoLoad, defaultPeriodStart, defaultPeriodEnd, cacheKey } = resolveOptions(options);
+  const scopedCacheKey = activeCompanyId ? `${cacheKey}:${activeCompanyId}` : cacheKey;
   const [auditResult, setAuditResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -109,6 +112,7 @@ export const useAuditComptable = (options = false) => {
       if (!accessToken) throw new Error('Session expiree. Veuillez vous reconnecter.');
 
       const body = { period_start: periodStart, period_end: periodEnd };
+      if (activeCompanyId) body.company_id = activeCompanyId;
       if (categories) body.categories = categories;
 
       let response = await callAuditComptable(body, accessToken);
@@ -135,7 +139,7 @@ export const useAuditComptable = (options = false) => {
       setAuditResult(result);
 
       // Cache the result
-      localStorage.setItem(cacheKey, JSON.stringify({ data: result, timestamp: Date.now() }));
+      localStorage.setItem(scopedCacheKey, JSON.stringify({ data: result, timestamp: Date.now() }));
 
       return result;
     } catch (err) {
@@ -144,7 +148,7 @@ export const useAuditComptable = (options = false) => {
     } finally {
       setLoading(false);
     }
-  }, [cacheKey, user]);
+  }, [activeCompanyId, scopedCacheKey, user]);
 
   const applyAutoFixes = useCallback(async (params = {}) => {
     if (!user) return null;
@@ -175,12 +179,22 @@ export const useAuditComptable = (options = false) => {
         .gte('transaction_date', periodStart)
         .lte('transaction_date', periodEnd);
 
+      if (activeCompanyId) {
+        entriesQuery = entriesQuery.eq('company_id', activeCompanyId);
+      }
+
       const [entriesRes, accountsRes] = await Promise.all([
         entriesQuery,
-        supabase
-          .from('accounting_chart_of_accounts')
-          .select('id, account_code, account_name, account_type, account_category, is_active')
-          .eq('user_id', user.id),
+        (() => {
+          let accountsQuery = supabase
+            .from('accounting_chart_of_accounts')
+            .select('id, account_code, account_name, account_type, account_category, is_active')
+            .eq('user_id', user.id);
+          if (activeCompanyId) {
+            accountsQuery = accountsQuery.eq('company_id', activeCompanyId);
+          }
+          return accountsQuery;
+        })(),
       ]);
 
       if (entriesRes.error) throw entriesRes.error;
@@ -197,11 +211,15 @@ export const useAuditComptable = (options = false) => {
 
       if (zeroEntryIds.length > 0) {
         for (const idsChunk of chunkArray(zeroEntryIds)) {
-          const { error: deleteError } = await supabase
+          let deleteQuery = supabase
             .from('accounting_entries')
             .delete()
             .eq('user_id', user.id)
             .in('id', idsChunk);
+          if (activeCompanyId) {
+            deleteQuery = deleteQuery.eq('company_id', activeCompanyId);
+          }
+          const { error: deleteError } = await deleteQuery;
           if (deleteError) throw deleteError;
         }
         report.steps.push({
@@ -233,6 +251,7 @@ export const useAuditComptable = (options = false) => {
           const accountType = inferAccountType(accountCode);
           return {
             user_id: user.id,
+            company_id: activeCompanyId,
             account_code: accountCode,
             account_name: `Compte ${accountCode} (auto)`,
             account_type: accountType,
@@ -243,7 +262,7 @@ export const useAuditComptable = (options = false) => {
 
         const { error: upsertError } = await supabase
           .from('accounting_chart_of_accounts')
-          .upsert(accountsToCreate, { onConflict: 'user_id,account_code', ignoreDuplicates: true });
+          .upsert(accountsToCreate, { onConflict: 'company_id,account_code', ignoreDuplicates: true });
 
         if (upsertError) throw upsertError;
 
@@ -271,11 +290,15 @@ export const useAuditComptable = (options = false) => {
 
       if (missingDescriptionIds.length > 0) {
         for (const idsChunk of chunkArray(missingDescriptionIds)) {
-          const { error: updateError } = await supabase
+          let updateQuery = supabase
             .from('accounting_entries')
             .update({ description: 'Ecriture auto completee via audit comptable' })
             .eq('user_id', user.id)
             .in('id', idsChunk);
+          if (activeCompanyId) {
+            updateQuery = updateQuery.eq('company_id', activeCompanyId);
+          }
+          const { error: updateError } = await updateQuery;
           if (updateError) throw updateError;
         }
 
@@ -301,7 +324,7 @@ export const useAuditComptable = (options = false) => {
       report.totals.failed_steps = report.steps.filter((step) => step.status === 'failed').length;
 
       setFixReport(report);
-      localStorage.removeItem(cacheKey);
+      localStorage.removeItem(scopedCacheKey);
       const refreshedAudit = await runAudit(periodStart, periodEnd);
       return { report, refreshedAudit };
     } catch (err) {
@@ -319,13 +342,13 @@ export const useAuditComptable = (options = false) => {
     } finally {
       setFixing(false);
     }
-  }, [auditResult, cacheKey, runAudit, user]);
+  }, [activeCompanyId, auditResult, runAudit, scopedCacheKey, user]);
 
   const clearCache = useCallback(() => {
-    localStorage.removeItem(cacheKey);
+    localStorage.removeItem(scopedCacheKey);
     setAuditResult(null);
     setFixReport(null);
-  }, [cacheKey]);
+  }, [scopedCacheKey]);
 
   // Load from cache on mount (if autoLoad)
   useEffect(() => {
@@ -333,7 +356,7 @@ export const useAuditComptable = (options = false) => {
     const today = formatDateInput();
     const periodStart = defaultPeriodStart || formatStartOfYearInput();
     const periodEnd = defaultPeriodEnd || today;
-    const cached = localStorage.getItem(cacheKey);
+    const cached = localStorage.getItem(scopedCacheKey);
     if (cached) {
       try {
         const { data, timestamp } = JSON.parse(cached);
@@ -344,7 +367,7 @@ export const useAuditComptable = (options = false) => {
       } catch { /* ignore invalid cache */ }
     }
     runAudit(periodStart, periodEnd);
-  }, [autoLoad, cacheKey, defaultPeriodEnd, defaultPeriodStart, runAudit, user]);
+  }, [autoLoad, defaultPeriodEnd, defaultPeriodStart, runAudit, scopedCacheKey, user]);
 
   return { auditResult, loading, error, runAudit, clearCache, applyAutoFixes, fixing, fixReport };
 };

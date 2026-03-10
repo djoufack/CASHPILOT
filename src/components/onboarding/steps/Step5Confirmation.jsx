@@ -3,18 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
 import { initializeAccounting } from '@/services/accountingInitService';
+import { generateOpeningEntries } from '@/services/openingBalanceService';
 import { ArrowLeft, CheckCircle2, Loader2, Rocket, Building2, FileText, PiggyBank, PartyPopper } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatDateInput } from '@/utils/dateFormatting';
-
-const OPENING_BALANCE_ACCOUNTS = {
-  FR: { bank_balance: '512', receivables: '411', payables: '401', equity_capital: '101', loan_balance: '164', fixed_assets: '218' },
-  BE: { bank_balance: '550', receivables: '400', payables: '440', equity_capital: '100', loan_balance: '174', fixed_assets: '230' },
-  OHADA: { bank_balance: '521', receivables: '411', payables: '401', equity_capital: '101', loan_balance: '162', fixed_assets: '215' },
-};
-
-const DEBIT_FIELDS = ['bank_balance', 'receivables', 'fixed_assets'];
 
 // Simple confetti particle component
 const ConfettiParticle = ({ index }) => {
@@ -52,6 +45,7 @@ const ConfettiParticle = ({ index }) => {
 const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const activeCompanyId = useActiveCompanyId();
   const [planName, setPlanName] = useState('');
   const [initializing, setInitializing] = useState(false);
   const [progress, setProgress] = useState('');
@@ -82,11 +76,15 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
     setProgressPercent(10);
 
     try {
+      if (!activeCompanyId) {
+        throw new Error('Aucune societe active selectionnee.');
+      }
+
       const country = wizardData.selectedPlanCountry || 'FR';
 
       setProgress(t('onboarding.confirm.progressAccounts', 'Chargement du plan comptable...'));
       setProgressPercent(30);
-      const result = await initializeAccounting(user.id, country);
+      const result = await initializeAccounting(user.id, country, activeCompanyId);
 
       if (!result.success) {
         throw new Error(result.error || 'Initialization failed');
@@ -97,7 +95,13 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
       if (balanceEntries.length > 0) {
         setProgress(t('onboarding.confirm.progressBalances', "Creation des ecritures d'ouverture..."));
         setProgressPercent(80);
-        await insertOpeningBalances(user.id, country, wizardData.openingBalances);
+        await generateOpeningEntries(
+          wizardData.openingBalances,
+          wizardData.selectedPlanId,
+          user.id,
+          country,
+          activeCompanyId,
+        );
       }
 
       setProgress(t('onboarding.confirm.progressDone', 'Configuration terminee !'));
@@ -113,7 +117,7 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
       setInitializing(false);
       setProgressPercent(0);
     }
-  }, [user, wizardData, balanceEntries.length, t, onComplete]);
+  }, [activeCompanyId, user, wizardData, balanceEntries.length, t, onComplete]);
 
   const selectedCurrency = wizardData.companyInfo?.currency || 'EUR';
 
@@ -320,42 +324,5 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
     </div>
   );
 };
-
-async function insertOpeningBalances(userId, country, balances) {
-  if (!supabase) return;
-
-  const accounts = OPENING_BALANCE_ACCOUNTS[country] || OPENING_BALANCE_ACCOUNTS.FR;
-  const entries = [];
-  const today = formatDateInput();
-
-  for (const [key, value] of Object.entries(balances)) {
-    const amount = parseFloat(value);
-    if (!amount || amount <= 0) continue;
-
-    const accountCode = accounts[key];
-    if (!accountCode) continue;
-
-    const isDebit = DEBIT_FIELDS.includes(key);
-
-    entries.push({
-      user_id: userId,
-      date: today,
-      description: `A Nouveau - ${key.replace(/_/g, ' ')}`,
-      debit_account: isDebit ? accountCode : '890',
-      credit_account: isDebit ? '890' : accountCode,
-      amount,
-      reference_type: 'opening_balance',
-      reference_id: null,
-    });
-  }
-
-  if (entries.length === 0) return;
-
-  const { error } = await supabase.from('accounting_entries').insert(entries);
-  if (error) {
-    console.error('Error inserting opening balances:', error.message);
-    throw new Error(`Opening balances error: ${error.message}`);
-  }
-}
 
 export default Step5Confirmation;

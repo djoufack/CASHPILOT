@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
 import { checkAccountingInitialized, initializeAccounting } from '@/services/accountingInitService';
 
 /**
@@ -13,6 +14,7 @@ import { checkAccountingInitialized, initializeAccounting } from '@/services/acc
  */
 export const useAccountingInit = () => {
   const { user } = useAuth();
+  const activeCompanyId = useActiveCompanyId();
   const { toast } = useToast();
   const [isInitialized, setIsInitialized] = useState(null); // null = loading
   const [isInitializing, setIsInitializing] = useState(false);
@@ -40,7 +42,11 @@ export const useAccountingInit = () => {
     if (!user || isInitializing) return;
     setIsInitializing(true);
     try {
-      const result = await initializeAccounting(user.id, selectedCountry);
+      if (!activeCompanyId) {
+        throw new Error('Aucune societe active selectionnee.');
+      }
+
+      const result = await initializeAccounting(user.id, selectedCountry, activeCompanyId);
       if (result.success) {
         setIsInitialized(true);
         setCountry(selectedCountry);
