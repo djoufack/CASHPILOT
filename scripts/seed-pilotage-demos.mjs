@@ -15,6 +15,25 @@ function roundAmount(value) {
   return Math.round(Number(value) * 100) / 100;
 }
 
+function isNonStockDemoOffer(productName) {
+  return new Set([
+    'Licence CRM Pro',
+    'Pack Formation 10h',
+    'Module Analytics',
+    'Support Premium 6 mois',
+    'Passerelle API',
+    'Suite Securite',
+    'Backup Cloud Annuel',
+    'CRM Pro License',
+    'Training Pack 10h',
+    'Analytics Module',
+    'Premium Support 6M',
+    'API Gateway',
+    'Security Suite',
+    'Annual Cloud Backup',
+  ]).has(String(productName || '').trim());
+}
+
 function inferSeedAccountCategory(accountCode, accountType, accountName = '') {
   const code = String(accountCode || '').trim();
   const name = String(accountName || '').toLowerCase();
@@ -1772,12 +1791,28 @@ function buildEnhancedDataset(config) {
   const primarySupplierProductCategoryRows = base.supplierProductCategoryRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
   const primarySupplierProductRows = base.supplierProductRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
   const primarySupplierServiceRows = base.supplierServiceRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
-  const primaryProductRows = base.productRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
+  const primaryProductRows = base.productRows.map((row) => {
+    const inventoryTrackingEnabled = !isNonStockDemoOffer(row.product_name);
+    return {
+      ...row,
+      company_id: primaryCompanyId,
+      inventory_tracking_enabled: inventoryTrackingEnabled,
+      stock_quantity: inventoryTrackingEnabled ? row.stock_quantity : 0,
+      min_stock_level: inventoryTrackingEnabled ? row.min_stock_level : 0,
+    };
+  });
+  const primaryTrackedProductIds = new Set(
+    primaryProductRows.filter((row) => row.inventory_tracking_enabled !== false).map((row) => row.id)
+  );
   const primaryServiceRows = base.serviceRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
   const primarySupplierOrderRows = base.supplierOrderRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
   const primarySupplierInvoiceRows = base.supplierInvoiceRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
-  const primaryStockHistoryRows = base.productStockHistoryRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
-  const primaryStockAlertRows = base.stockAlertRows.map((row) => ({ ...row, company_id: primaryCompanyId }));
+  const primaryStockHistoryRows = base.productStockHistoryRows
+    .filter((row) => primaryTrackedProductIds.has(row.product_id || row.user_product_id))
+    .map((row) => ({ ...row, company_id: primaryCompanyId }));
+  const primaryStockAlertRows = base.stockAlertRows
+    .filter((row) => primaryTrackedProductIds.has(row.product_id || row.user_product_id))
+    .map((row) => ({ ...row, company_id: primaryCompanyId }));
 
   const secondaryClientRow = {
     id: uuidFromSeed(`${userSeed}:secondary:client:001`),
@@ -2018,6 +2053,7 @@ function buildEnhancedDataset(config) {
     stock_quantity: 14,
     min_stock_level: 4,
     unit: 'piece',
+    inventory_tracking_enabled: true,
     is_active: true,
     created_at: isoTimestamp(isoDate(CURRENT_YEAR, 2, 5), 13),
     updated_at: isoTimestamp(isoDate(CURRENT_YEAR, 2, 5), 13, 5),
@@ -2571,6 +2607,7 @@ function buildEnhancedDataset(config) {
       stock_quantity: 10 + index * 2,
       min_stock_level: 3 + index,
       unit: 'piece',
+      inventory_tracking_enabled: true,
       is_active: true,
       created_at: isoTimestamp(addDays(expenseDate, -1), 13),
       updated_at: isoTimestamp(addDays(expenseDate, -1), 13, 5),
@@ -3743,3 +3780,4 @@ main().catch((error) => {
   console.error(error?.stack || error?.message || String(error));
   process.exitCode = 1;
 });
+

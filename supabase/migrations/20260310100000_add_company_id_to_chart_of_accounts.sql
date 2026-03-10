@@ -20,13 +20,16 @@
 ALTER TABLE accounting_chart_of_accounts
   ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES company(id) ON DELETE CASCADE;
 
+ALTER TABLE accounting_chart_of_accounts
+  DROP CONSTRAINT IF EXISTS uq_accounting_chart_user_code;
+
 -- ============================================================================
 -- 2. Backfill mono-company users
 -- ============================================================================
 UPDATE accounting_chart_of_accounts coa
 SET company_id = c.id
 FROM (
-  SELECT user_id, MIN(id) AS id
+  SELECT user_id, MIN(id::text)::uuid AS id
   FROM company
   GROUP BY user_id
   HAVING COUNT(*) = 1
@@ -67,9 +70,6 @@ DELETE FROM accounting_chart_of_accounts WHERE company_id IS NULL;
 -- ============================================================================
 ALTER TABLE accounting_chart_of_accounts
   ALTER COLUMN company_id SET NOT NULL;
-
-ALTER TABLE accounting_chart_of_accounts
-  DROP CONSTRAINT IF EXISTS uq_accounting_chart_user_code;
 
 ALTER TABLE accounting_chart_of_accounts
   ADD CONSTRAINT uq_accounting_chart_company_code UNIQUE (company_id, account_code);
@@ -537,3 +537,4 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
