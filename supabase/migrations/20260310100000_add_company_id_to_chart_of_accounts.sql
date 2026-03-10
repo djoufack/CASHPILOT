@@ -125,7 +125,8 @@ BEGIN
   GROUP BY coa.account_code, ae.account_code, coa.account_name, coa.account_type, coa.account_category
   ORDER BY COALESCE(coa.account_code, ae.account_code);
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public;
 
 -- ============================================================================
 -- 6. Update f_sum_by_semantic_role — JOIN on company_id
@@ -166,7 +167,8 @@ BEGIN
 
   RETURN v_total;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public;
 
 -- ============================================================================
 -- 7. Update f_financial_diagnostic — chart count scoped by company + capex JOIN
@@ -373,7 +375,8 @@ BEGIN
     )
   );
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public;
 
 -- ============================================================================
 -- 8. Update ensure_account_exists() — scope by company_id

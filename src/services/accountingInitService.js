@@ -87,6 +87,15 @@ export async function checkAccountingInitialized(userId) {
  */
 export async function initializeAccounting(userId, country, companyId = null) {
   try {
+    if (!companyId) {
+      return {
+        success: false,
+        accountsCount: 0,
+        mappingsCount: 0,
+        taxRatesCount: 0,
+        error: 'Aucune societe active selectionnee pour initialiser le plan comptable.',
+      };
+    }
     const { error: settingsError } = await supabase
       .from('user_accounting_settings')
       .upsert(
@@ -112,7 +121,7 @@ export async function initializeAccounting(userId, country, companyId = null) {
         accountsCount: 0,
         mappingsCount: 0,
         taxRatesCount: 0,
-        error: 'Aucun plan comptable de référence n’est disponible dans Supabase pour ce pays',
+        error: "Aucun plan comptable de reference n'est disponible dans Supabase pour ce pays",
       };
     }
 
@@ -164,12 +173,16 @@ export async function initializeAccounting(userId, country, companyId = null) {
 // ---------------------------------------------------------------------------
 
 async function bulkInsertAccounts(userId, accounts, companyId = null) {
+  if (!companyId) {
+    throw new Error('companyId is required to initialize the chart of accounts');
+  }
+
   const BATCH_SIZE = 200;
   let totalInserted = 0;
 
   const rows = accounts.map((account) => ({
     user_id: userId,
-    ...(companyId ? { company_id: companyId } : {}),
+    company_id: companyId,
     account_code: account.account_code,
     account_name: account.account_name,
     account_type: account.account_type,
@@ -183,7 +196,7 @@ async function bulkInsertAccounts(userId, accounts, companyId = null) {
     try {
       const { error } = await supabase
         .from('accounting_chart_of_accounts')
-        .upsert(batch, { onConflict: companyId ? 'company_id,account_code' : 'user_id,account_code' });
+        .upsert(batch, { onConflict: 'company_id,account_code' });
 
       if (error) {
         console.error(`[AccountingInit] Error inserting accounts batch ${index / BATCH_SIZE + 1}:`, error.message);
@@ -429,6 +442,16 @@ export async function copyPlanAccounts(fromPlanId, userId) {
  */
 export async function initializeAccountingFromPlan(userId, planId, countryCode, companyId = null) {
   try {
+    if (!companyId) {
+      return {
+        success: false,
+        accountsCount: 0,
+        mappingsCount: 0,
+        taxRatesCount: 0,
+        error: 'Aucune societe active selectionnee pour initialiser le plan comptable.',
+      };
+    }
+
     const country = countryCode || 'FR';
 
     const { error: settingsError } = await supabase
@@ -471,7 +494,7 @@ export async function initializeAccountingFromPlan(userId, planId, countryCode, 
           accountsCount: 0,
           mappingsCount: 0,
           taxRatesCount: 0,
-          error: ‘Aucun plan comptable de référence n’est disponible dans Supabase pour ce pays’,
+          error: "Aucun plan comptable de reference n'est disponible dans Supabase pour ce pays",
         };
       }
       accountsCount = await bulkInsertAccounts(userId, referenceAccounts, companyId);
