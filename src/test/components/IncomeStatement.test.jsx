@@ -12,10 +12,11 @@ describe('IncomeStatement', () => {
           ],
           expenseItems: [
             { account_code: '601', account_name: 'Achats', category: '60', amount: 300 },
+            { account_code: '603', account_name: 'Variation de stock', category: '60', amount: -75 },
           ],
           totalRevenue: 1200,
-          totalExpenses: 300,
-          netIncome: 900,
+          totalExpenses: 225,
+          netIncome: 975,
         }}
         period={{ startDate: '2026-01-01', endDate: '2026-12-31' }}
         currency="EUR"
@@ -29,3 +30,4 @@ describe('IncomeStatement', () => {
     expect(screen.getByText('Total Charges')).toBeTruthy();
   });
 });
+

@@ -55,7 +55,7 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
 
   const renderSection = (groups) => (
     groups.map((group) => {
-      const accounts = (Array.isArray(group?.accounts) ? group.accounts : []).filter((account) => account.amount > 0);
+      const accounts = (Array.isArray(group?.accounts) ? group.accounts : []).filter((account) => Math.abs(account.amount) > 0.001);
       if (accounts.length === 0) return null;
 
       return (
@@ -67,7 +67,9 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
                 <span className="mr-2 font-mono text-xs text-gray-500">{account.account_code}</span>
                 {account.account_name}
               </span>
-              <span className="font-mono text-sm text-white">{formatCurrency(account.amount, currency)}</span>
+              <span className={`font-mono text-sm ${account.amount < 0 ? 'text-amber-300' : 'text-white'}`}>
+                {formatCurrency(account.amount, currency)}
+              </span>
             </div>
           ))}
         </div>
@@ -150,4 +152,5 @@ const IncomeStatement = ({ incomeStatement, period, onExportPDF, onExportHTML, c
 };
 
 export default IncomeStatement;
+
 
