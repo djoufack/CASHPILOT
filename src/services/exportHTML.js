@@ -330,6 +330,12 @@ export const exportBalanceSheetHTML = (balanceSheet, companyInfo, period) => {
  * @param {string} period - Période
  */
 export const exportIncomeStatementHTML = (incomeStatement, companyInfo, period) => {
+  const revenueRows = Array.isArray(incomeStatement?.revenueItems) ? incomeStatement.revenueItems : Array.isArray(incomeStatement?.revenues) ? incomeStatement.revenues : [];
+  const expenseRows = Array.isArray(incomeStatement?.expenseItems) ? incomeStatement.expenseItems : Array.isArray(incomeStatement?.expenses) ? incomeStatement.expenses : [];
+  const totalRevenue = Number(incomeStatement?.totalRevenue ?? incomeStatement?.totalRevenues ?? 0);
+  const totalExpenses = Number(incomeStatement?.totalExpenses ?? 0);
+  const netIncome = Number(incomeStatement?.netIncome ?? 0);
+
   const content = `
     <div class="header">
       <h1>${companyInfo.name || 'Société'}</h1>
@@ -347,16 +353,16 @@ export const exportIncomeStatementHTML = (incomeStatement, companyInfo, period) 
           </tr>
         </thead>
         <tbody>
-          ${incomeStatement.revenues?.map(revenue => `
+          ${revenueRows.map(revenue => `
             <tr>
-              <td>${revenue.code}</td>
-              <td>${revenue.label}</td>
-              <td style="text-align: right">${revenue.amount?.toFixed(2) || '0.00'}</td>
+              <td>${revenue.account_code || revenue.code || ''}</td>
+              <td>${revenue.account_name || revenue.label || ''}</td>
+              <td style="text-align: right">${Number(revenue.amount || revenue.balance || 0).toFixed(2)}</td>
             </tr>
           `).join('') || '<tr><td colspan="3">Aucune donnée</td></tr>'}
           <tr class="total-row">
             <td colspan="2">TOTAL PRODUITS</td>
-            <td style="text-align: right">${incomeStatement.totalRevenues?.toFixed(2) || '0.00'}</td>
+            <td style="text-align: right">${totalRevenue.toFixed(2)}</td>
           </tr>
         </tbody>
       </table>
@@ -373,16 +379,16 @@ export const exportIncomeStatementHTML = (incomeStatement, companyInfo, period) 
           </tr>
         </thead>
         <tbody>
-          ${incomeStatement.expenses?.map(expense => `
+          ${expenseRows.map(expense => `
             <tr>
-              <td>${expense.code}</td>
-              <td>${expense.label}</td>
-              <td style="text-align: right">${expense.amount?.toFixed(2) || '0.00'}</td>
+              <td>${expense.account_code || expense.code || ''}</td>
+              <td>${expense.account_name || expense.label || ''}</td>
+              <td style="text-align: right">${Number(expense.amount || expense.balance || 0).toFixed(2)}</td>
             </tr>
           `).join('') || '<tr><td colspan="3">Aucune donnée</td></tr>'}
           <tr class="total-row">
             <td colspan="2">TOTAL CHARGES</td>
-            <td style="text-align: right">${incomeStatement.totalExpenses?.toFixed(2) || '0.00'}</td>
+            <td style="text-align: right">${totalExpenses.toFixed(2)}</td>
           </tr>
         </tbody>
       </table>
@@ -390,11 +396,11 @@ export const exportIncomeStatementHTML = (incomeStatement, companyInfo, period) 
 
     <div class="summary">
       <h3>Résultat</h3>
-      <p><strong>Total Produits:</strong> ${incomeStatement.totalRevenues?.toFixed(2) || '0.00'} €</p>
-      <p><strong>Total Charges:</strong> ${incomeStatement.totalExpenses?.toFixed(2) || '0.00'} €</p>
-      <p><strong>Résultat Net:</strong> ${incomeStatement.netIncome?.toFixed(2) || '0.00'} €</p>
-      <p style="margin-top: 8px; ${incomeStatement.netIncome >= 0 ? 'color: #10b981' : 'color: #ef4444'}">
-        ${incomeStatement.netIncome >= 0 ? '✓ Bénéfice' : '✗ Perte'}
+      <p><strong>Total Produits:</strong> ${totalRevenue.toFixed(2)} €</p>
+      <p><strong>Total Charges:</strong> ${totalExpenses.toFixed(2)} €</p>
+      <p><strong>Résultat Net:</strong> ${netIncome.toFixed(2)} €</p>
+      <p style="margin-top: 8px; ${netIncome >= 0 ? 'color: #10b981' : 'color: #ef4444'}">
+        ${netIncome >= 0 ? '✓ Bénéfice' : '✗ Perte'}
       </p>
     </div>
   `;
@@ -740,3 +746,4 @@ export const exportFinancialDiagnosticHTML = (diagnostic, companyInfo, period, v
   const html = generateHTMLDocument(`Diagnostic Financier - ${period}`, content);
   downloadHTML(html, `diagnostic-${String(period).replace(/\s+/g, '-')}`);
 };
+
