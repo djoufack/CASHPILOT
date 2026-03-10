@@ -328,13 +328,13 @@ const LoginPage = () => {
             {t('auth.demoSubtitle')}
           </p>
 
-          <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin] [scrollbar-color:#4b5563_transparent] snap-x snap-mandatory">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {demoAccounts.map((account) => (
               <button
                 key={account.region}
                 type="button"
                 onClick={() => handleDemoLogin(account)}
-                className="group relative min-w-[176px] flex-1 snap-start rounded-2xl p-[1px] bg-gradient-to-br from-amber-400/70 via-orange-300/40 to-sky-500/70 hover:from-amber-300 hover:via-orange-300 hover:to-sky-400 transition-all duration-300"
+                className="group relative w-full rounded-2xl p-[1px] bg-gradient-to-br from-amber-400/70 via-orange-300/40 to-sky-500/70 hover:from-amber-300 hover:via-orange-300 hover:to-sky-400 transition-all duration-300"
               >
                 <div className="relative rounded-[15px] bg-[#060a12] hover:bg-[#0a111d] px-3 py-3.5 h-full transition-colors duration-300 text-left">
                   <div className="flex items-start justify-between gap-2">
@@ -395,3 +395,4 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
+
