@@ -56,7 +56,7 @@ export const exportExpensesListPDF = async (expenses, companyInfo, filters = {})
         <tbody>
           ${expenses.map(exp => `
             <tr style="border-bottom: 1px solid #e5e7eb;">
-              <td style="padding: 10px; color: #374151;">${exp.date ? new Date(exp.date).toLocaleDateString('fr-FR') : 'N/A'}</td>
+              <td style="padding: 10px; color: #374151;">${exp.expense_date ? new Date(exp.expense_date).toLocaleDateString('fr-FR') : 'N/A'}</td>
               <td style="padding: 10px; color: #374151;">${exp.category || 'N/A'}</td>
               <td style="padding: 10px; color: #374151;">${exp.description || exp.label || 'N/A'}</td>
               <td style="padding: 10px; text-align: right; color: #dc2626; font-weight: 600;">${Number(exp.amount || 0).toFixed(2)} €</td>
@@ -520,7 +520,7 @@ export const exportExpensesListHTML = (expenses, companyInfo, filters = {}) => {
         <tbody>
           ${expenses.map(exp => `
             <tr style="border-bottom: 1px solid #374151;">
-              <td style="padding: 10px;">${exp.date ? new Date(exp.date).toLocaleDateString('fr-FR') : 'N/A'}</td>
+              <td style="padding: 10px;">${exp.expense_date ? new Date(exp.expense_date).toLocaleDateString('fr-FR') : 'N/A'}</td>
               <td style="padding: 10px;">${exp.category || 'N/A'}</td>
               <td style="padding: 10px;">${exp.description || exp.label || 'N/A'}</td>
               <td style="padding: 10px; text-align: right; color: #ef4444; font-weight: bold;">${Number(exp.amount || 0).toFixed(2)} €</td>

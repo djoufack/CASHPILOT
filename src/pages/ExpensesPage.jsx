@@ -87,7 +87,6 @@ const ExpensesPage = () => {
     description: '',
     amount: '',
     category: 'general',
-    date: formatDateInput(),
     expense_date: formatDateInput(),
     notes: '',
     supplier_id: ''
@@ -100,7 +99,7 @@ const ExpensesPage = () => {
       await createExpense({
         ...formData,
         amount: parseFloat(formData.amount),
-        expense_date: formData.expense_date || formData.date,
+        expense_date: formData.expense_date,
         supplier_id: formData.supplier_id || null,
       });
       setIsDialogOpen(false);
@@ -138,8 +137,7 @@ const ExpensesPage = () => {
       description: exp.description || '',
       amount: exp.amount || '',
       category: exp.category || 'general',
-      date: exp.expense_date || exp.date || formatDateInput(),
-      expense_date: exp.expense_date || exp.date || formatDateInput(),
+      expense_date: exp.expense_date || formatDateInput(),
       notes: exp.notes || '',
       supplier_id: exp.supplier_id || '',
     });
@@ -152,7 +150,7 @@ const ExpensesPage = () => {
         description: formData.description,
         amount: parseFloat(formData.amount),
         category: formData.category,
-        expense_date: formData.expense_date || formData.date,
+        expense_date: formData.expense_date,
         notes: formData.notes,
         supplier_id: formData.supplier_id || null,
       });
@@ -205,7 +203,7 @@ const ExpensesPage = () => {
     { key: 'description', header: 'Description', width: 30 },
     { key: 'category', header: t('debtManager.category', 'Category'), width: 15 },
     { key: 'amount', header: t('payments.amount', 'Amount'), type: 'currency', width: 14 },
-    { key: 'date', header: 'Date', type: 'date', width: 12 },
+    { key: 'expense_date', header: 'Date', type: 'date', width: 12 },
     { key: 'supplier', header: 'Fournisseur', width: 20, accessor: (exp) => exp.supplier?.company_name || '' },
     { key: 'notes', header: 'Notes', width: 25 },
   ];
@@ -236,7 +234,7 @@ const ExpensesPage = () => {
   const expenseCalendarEvents = useMemo(() => filteredExpenses.map(exp => ({
     id: exp.id,
     title: exp.description || exp.category || 'Expense',
-    date: exp.date,
+    date: exp.expense_date,
     status: exp.category || 'general',
     resource: exp,
   })), [filteredExpenses]);
@@ -245,7 +243,7 @@ const ExpensesPage = () => {
     id: exp.id,
     title: exp.description || 'Expense',
     subtitle: exp.supplier?.company_name || exp.category || '',
-    date: exp.date,
+    date: exp.expense_date,
     status: exp.category || 'general',
     statusLabel: (exp.category || 'general').charAt(0).toUpperCase() + (exp.category || 'general').slice(1),
     statusColor: 'bg-orange-500/20 text-orange-400',
@@ -381,7 +379,7 @@ const ExpensesPage = () => {
                       className="flex items-center border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors text-sm"
                     >
                       <div className="p-4 text-gray-400 truncate" style={{ flex: 1 }}>
-                        {(exp.expense_date || exp.date) ? new Date(exp.expense_date || exp.date).toLocaleDateString('fr-FR') : '—'}
+                        {exp.expense_date ? new Date(exp.expense_date).toLocaleDateString('fr-FR') : '—'}
                       </div>
                       <div className="p-4 text-gradient font-medium truncate" style={{ flex: 2 }}>{exp.description || '—'}</div>
                       <div className="p-4 text-gray-400 capitalize truncate hidden md:block" style={{ flex: 1 }}>{exp.category || '—'}</div>
@@ -469,7 +467,7 @@ const ExpensesPage = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Date</p>
-                  <p className="text-white">{(viewExpense.expense_date || viewExpense.date) ? new Date(viewExpense.expense_date || viewExpense.date).toLocaleDateString('fr-FR') : '—'}</p>
+                  <p className="text-white">{viewExpense.expense_date ? new Date(viewExpense.expense_date).toLocaleDateString('fr-FR') : '—'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Catégorie</p>
@@ -536,7 +534,7 @@ const ExpensesPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Date *</Label>
-                <Input type="date" value={formData.expense_date || formData.date} onChange={(e) => setFormData({ ...formData, expense_date: e.target.value, date: e.target.value })} required className="bg-gray-700 border-gray-600" />
+                <Input type="date" value={formData.expense_date} onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })} required className="bg-gray-700 border-gray-600" />
               </div>
               <div className="space-y-2">
                 <Label>Catégorie</Label>
@@ -634,8 +632,8 @@ const ExpensesPage = () => {
                 <Label>Date *</Label>
                 <Input
                   type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  value={formData.expense_date}
+                  onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
                   required
                   className="bg-gray-700 border-gray-600"
                 />

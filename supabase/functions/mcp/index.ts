@@ -835,7 +835,7 @@ const hGetTrialBalance: Handler = async (sb, uid, a) => {
 const hGetTaxSummary: Handler = async (sb, uid, a) => {
   const [invRes, expRes, trRes] = await Promise.all([
     sb.from('invoices').select('total_ht, total_ttc, tax_rate, date').eq('user_id', uid).gte('date', a.start_date).lte('date', a.end_date),
-    sb.from('expenses').select('amount, created_at, category').eq('user_id', uid).gte('created_at', a.start_date).lte('created_at', a.end_date),
+    sb.from('expenses').select('amount, expense_date, category').eq('user_id', uid).gte('expense_date', a.start_date).lte('expense_date', a.end_date),
     sb.from('accounting_tax_rates').select('*').eq('user_id', uid),
   ]);
   const outputVat = (invRes.data ?? []).reduce((s: number, i: { total_ttc: unknown; total_ht: unknown }) => s + (pf(i.total_ttc) - pf(i.total_ht)), 0);
@@ -873,7 +873,7 @@ const hGetCashFlow: Handler = async (sb, uid, a) => {
 
   const [invRes, expRes] = await Promise.all([
     sb.from('invoices').select('total_ttc, date, status').eq('user_id', uid).in('status', ['paid', 'sent']).gte('date', startStr),
-    sb.from('expenses').select('amount, created_at').eq('user_id', uid).gte('created_at', startStr),
+    sb.from('expenses').select('amount, expense_date').eq('user_id', uid).gte('expense_date', startStr),
   ]);
 
   const monthly: Record<string, { month: string; income: number; expenses: number }> = {};
@@ -884,7 +884,7 @@ const hGetCashFlow: Handler = async (sb, uid, a) => {
     monthly[k] = { month: k, income: 0, expenses: 0 };
   }
   for (const inv of invRes.data ?? []) { const k = inv.date?.substring(0, 7); if (k && monthly[k]) monthly[k].income += pf(inv.total_ttc); }
-  for (const exp of expRes.data ?? []) { const k = exp.created_at?.substring(0, 7); if (k && monthly[k]) monthly[k].expenses += pf(exp.amount); }
+  for (const exp of expRes.data ?? []) { const k = exp.expense_date?.substring(0, 7); if (k && monthly[k]) monthly[k].expenses += pf(exp.amount); }
 
   const result = Object.values(monthly).map(m => ({ ...m, income: round2(m.income), expenses: round2(m.expenses), net: round2(m.income - m.expenses) }));
   const tIn = result.reduce((s, m) => s + m.income, 0);
@@ -900,7 +900,7 @@ const hGetDashboardKpis: Handler = async (sb, uid) => {
   const [invRes, paidRes, expRes, pendRes] = await Promise.all([
     sb.from('invoices').select('total_ttc').eq('user_id', uid).gte('date', monthStart).lte('date', today),
     sb.from('invoices').select('total_ttc').eq('user_id', uid).gte('date', monthStart).in('status', ['paid']),
-    sb.from('expenses').select('amount').eq('user_id', uid).gte('created_at', monthStart).lte('created_at', today),
+    sb.from('expenses').select('amount').eq('user_id', uid).gte('expense_date', monthStart).lte('expense_date', today),
     sb.from('invoices').select('total_ttc').eq('user_id', uid).in('payment_status', ['unpaid', 'partial']),
   ]);
 
@@ -1072,7 +1072,7 @@ const hGetCompanyKpis: Handler = async (sb, uid, a) => {
   const [invoicesRes, paidRes, expensesRes, pendingRes] = await Promise.all([
     sb.from('invoices').select('total_ttc').eq('user_id', uid).eq('company_id', cid).gte('date', monthStart).lte('date', today),
     sb.from('invoices').select('total_ttc').eq('user_id', uid).eq('company_id', cid).gte('date', monthStart).in('status', ['paid']),
-    sb.from('expenses').select('amount').eq('user_id', uid).eq('company_id', cid).gte('created_at', monthStart).lte('created_at', today),
+    sb.from('expenses').select('amount').eq('user_id', uid).eq('company_id', cid).gte('expense_date', monthStart).lte('expense_date', today),
     sb.from('invoices').select('total_ttc').eq('user_id', uid).eq('company_id', cid).in('payment_status', ['unpaid', 'partial']),
   ]);
 
@@ -1100,7 +1100,7 @@ const hGetCompanyCashFlow: Handler = async (sb, uid, a) => {
 
   const [invoicesRes, expensesRes] = await Promise.all([
     sb.from('invoices').select('total_ttc, date, status').eq('user_id', uid).eq('company_id', cid).in('status', ['paid', 'sent']).gte('date', startStr),
-    sb.from('expenses').select('amount, created_at').eq('user_id', uid).eq('company_id', cid).gte('created_at', startStr),
+    sb.from('expenses').select('amount, expense_date').eq('user_id', uid).eq('company_id', cid).gte('expense_date', startStr),
   ]);
 
   const monthlyData: Record<string, { month: string; income: number; expenses: number; net: number }> = {};
@@ -1116,7 +1116,7 @@ const hGetCompanyCashFlow: Handler = async (sb, uid, a) => {
     if (key && monthlyData[key]) monthlyData[key].income += parseFloat(inv.total_ttc || '0');
   }
   for (const exp of expensesRes.data ?? []) {
-    const key = exp.created_at?.substring(0, 7);
+    const key = exp.expense_date?.substring(0, 7);
     if (key && monthlyData[key]) monthlyData[key].expenses += parseFloat(exp.amount || '0');
   }
 
@@ -1283,7 +1283,7 @@ const hCompareCompaniesKpis: Handler = async (sb, uid, a) => {
 
   const [invRes, expRes] = await Promise.all([
     sb.from('invoices').select('company_id, total_ttc, status, payment_status').eq('user_id', uid).gte('date', sDate).lte('date', eDate),
-    sb.from('expenses').select('company_id, amount').eq('user_id', uid).gte('created_at', sDate).lte('created_at', eDate),
+    sb.from('expenses').select('company_id, amount').eq('user_id', uid).gte('expense_date', sDate).lte('expense_date', eDate),
   ]);
 
   const r = (n: number) => Math.round(n * 100) / 100;

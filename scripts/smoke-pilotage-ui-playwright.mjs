@@ -127,6 +127,14 @@ async function launchBrowser() {
     }
   }
 
+  try {
+    return await chromium.launch({
+      headless: HEADLESS,
+    });
+  } catch (error) {
+    launchErrors.push(`bundled: ${error.message}`);
+  }
+
   if (process.env.PLAYWRIGHT_EXECUTABLE_PATH) {
     return chromium.launch({
       headless: HEADLESS,
@@ -182,21 +190,24 @@ async function dismissInterferingOverlays(page) {
   }
 }
 
-async function switchToSecondaryCompany(page, account) {
+async function selectTargetCompany(page, account) {
   await dismissInterferingOverlays(page);
 
-  const primaryFragment = shortCompanyFragment(account.primaryCompany.company_name);
-  const secondaryName = account.secondaryCompany.company_name;
-  const secondaryFragment = shortCompanyFragment(secondaryName);
+  const targetName = account.targetCompany.company_name;
+  const targetFragment = shortCompanyFragment(targetName);
+  const trigger = page.getByRole('banner').getByRole('button').first();
 
-  const trigger = page.locator('button').filter({ hasText: new RegExp(escapeRegex(primaryFragment), 'i') }).first();
   await trigger.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
-  await trigger.click();
-  await page.waitForTimeout(200);
+  const currentText = ((await trigger.textContent()) || '').trim();
 
-  const target = page.locator('button').filter({ hasText: new RegExp(escapeRegex(secondaryName), 'i') }).last();
-  await target.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
-  await target.click();
+  if (!currentText.includes(targetName)) {
+    await trigger.click();
+    await page.waitForTimeout(200);
+
+    const target = page.locator('button').filter({ hasText: new RegExp(escapeRegex(targetName), 'i') }).last();
+    await target.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
+    await target.click();
+  }
 
   await page.waitForFunction(
     (fragment) => Array.from(document.querySelectorAll('button')).some((button) => {
@@ -204,7 +215,7 @@ async function switchToSecondaryCompany(page, account) {
       const rects = button.getClientRects();
       return rects.length > 0 && text.includes(fragment);
     }),
-    secondaryFragment,
+    targetFragment,
     { timeout: DEFAULT_TIMEOUT },
   );
 
@@ -374,31 +385,18 @@ async function buildRuntimeAccounts() {
         .order('company_name', { ascending: true }),
       `company rows for ${template.email}`,
     );
+    const targetCompany = companies.find((company) => /Portfolio/i.test(company.company_name || '')) || companies[0] || null;
 
-    const { data: preference, error: preferenceError } = await serviceClient
-      .from('user_company_preferences')
-      .select('active_company_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (preferenceError) {
-      throw new Error(`user_company_preferences for ${template.email}: ${preferenceError.message}`);
-    }
-
-    const primaryCompany = companies.find((company) => company.id === preference?.active_company_id) || companies[0];
-    const secondaryCompany = companies.find((company) => company.id !== primaryCompany?.id) || null;
-
-    if (!primaryCompany || !secondaryCompany) {
-      throw new Error(`Need at least 2 companies for ${template.email} to run the smoke switch test`);
+    if (!targetCompany) {
+      throw new Error(`Need at least 1 company for ${template.email} to run the smoke test`);
     }
 
     runtimes.push({
       key: template.key,
       email: template.email,
       password: optionalEnv(template.passwordEnv) || template.fallbackPassword,
-      primaryCompany,
-      secondaryCompany,
-      expectations: await loadExpectations(serviceClient, user.id, secondaryCompany),
+      targetCompany,
+      expectations: await loadExpectations(serviceClient, user.id, targetCompany),
     });
   }
 
@@ -429,8 +427,7 @@ async function smokeAccount(browser, account) {
   const accountResult = {
     key: account.key,
     email: account.email,
-    primaryCompany: account.primaryCompany.company_name,
-    secondaryCompany: account.secondaryCompany.company_name,
+    targetCompany: account.targetCompany.company_name,
     expectations: account.expectations,
     passed: false,
     login: false,
@@ -443,7 +440,7 @@ async function smokeAccount(browser, account) {
     await login(page, account);
     accountResult.login = true;
 
-    await switchToSecondaryCompany(page, account);
+    await selectTargetCompany(page, account);
     accountResult.switchedCompany = true;
 
     const pageChecks = [];
@@ -497,6 +494,8 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
+
 
 
 

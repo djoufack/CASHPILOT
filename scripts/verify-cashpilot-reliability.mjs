@@ -226,8 +226,8 @@ async function run() {
       () => withoutCompany('invoices', 'id, invoice_number, status, payment_status, total_ht, total_ttc, tax_rate, date, due_date'),
     );
     const expenses = await queryWithCompanyFallback(
-      () => withCompany('expenses', 'id, amount, created_at'),
-      () => withoutCompany('expenses', 'id, amount, created_at'),
+      () => withCompany('expenses', 'id, amount, expense_date'),
+      () => withoutCompany('expenses', 'id, amount, expense_date'),
     );
     const payments = await queryWithCompanyFallback(
       () => withCompany('payments', 'id, amount'),

@@ -34,7 +34,7 @@ serve(async (req) => {
 
     const [invoices, expenses, payments, profile] = await Promise.all([
       supabase.from('invoices').select('*').eq('user_id', userId).gte('date', startDate.toISOString().split('T')[0]),
-      supabase.from('expenses').select('*').eq('user_id', userId).gte('date', startDate.toISOString().split('T')[0]),
+      supabase.from('expenses').select('*').eq('user_id', userId).gte('expense_date', startDate.toISOString().split('T')[0]),
       supabase.from('payments').select('*').eq('user_id', userId).gte('payment_date', startDate.toISOString().split('T')[0]),
       supabase.from('profiles').select('company_name, full_name').eq('user_id', userId).single(),
     ]);
