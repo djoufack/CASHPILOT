@@ -1,71 +1,73 @@
 project_id = "rfzvrezrcigzmldgvntz"
 
 [functions.ai-anomaly-detect]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-categorize]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-chatbot]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-forecast]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-fraud-detection]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-ml-forecast]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-reminder-suggest]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-report]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-sentiment]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-tax-optimization]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-voice-expense]
-verify_jwt = false
+verify_jwt = true
 
 [functions.api-v1]
 verify_jwt = false
 
 [functions.auto-reconcile]
-verify_jwt = false
+verify_jwt = true
 
 [functions.audit-comptable]
-verify_jwt = false
+verify_jwt = true
 
 [functions.delete-account]
-verify_jwt = false
+verify_jwt = true
 
 [functions.exchange-rates]
 verify_jwt = false
 
 [functions.export-user-data]
-verify_jwt = false
+verify_jwt = true
 
 [functions.extract-invoice]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-recurring]
 verify_jwt = false
 
 [functions.gocardless-auth]
-verify_jwt = false
+verify_jwt = true
 
 [functions.mcp]
-verify_jwt = false
+verify_jwt = true
 
 [functions.payment-reminders]
 verify_jwt = false
 
+# PEPPOL functions validate user sessions internally via requireAuthenticatedUser;
+# verify_jwt remains disabled here due gateway/session-token incompatibility observed in smoke tests.
 [functions.peppol-account-info]
 verify_jwt = false
 
@@ -91,28 +93,33 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.quote-sign-request]
-verify_jwt = false
+verify_jwt = true
 
 [functions.quote-sign-submit]
 verify_jwt = false
 
 [functions.send-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.stripe-checkout]
-verify_jwt = false
+verify_jwt = true
 
 [functions.stripe-invoice-link]
-verify_jwt = false
+verify_jwt = true
 
 [functions.stripe-subscription-checkout]
-verify_jwt = false
+verify_jwt = true
 
 [functions.stripe-webhook]
 verify_jwt = false
 
 [functions.supplier-approval-notifications]
-verify_jwt = false
+verify_jwt = true
 
 [functions.webhooks]
+verify_jwt = true
+
+[functions.peppol-save-credentials]
 verify_jwt = false
+
+

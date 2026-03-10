@@ -95,7 +95,7 @@ function McpConfigSection({ onKeysChanged }) {
 
       if (error) throw error;
 
-      setMcpUrl({ full: `${MCP_SERVER_URL}?api_key=${rawKey}`, core: `${MCP_SERVER_URL}?api_key=${rawKey}&tools=core` });
+      setMcpUrl({ full: MCP_SERVER_URL, core: `${MCP_SERVER_URL}?tools=core`, apiKey: rawKey });
       if (onKeysChanged) onKeysChanged();
       toast({ title: t('connectionSettings.mcp.urlGeneratedTitle'), description: t('connectionSettings.mcp.urlGeneratedDescription') });
     } catch (err) {
@@ -152,6 +152,13 @@ function McpConfigSection({ onKeysChanged }) {
                 <div className="flex items-center gap-2 bg-gray-950 rounded border border-green-500/40 p-2">
                   <code className="text-sm text-green-300 font-mono break-all flex-1 select-all">{mcpUrl.core}</code>
                   <CopyButton text={mcpUrl.core} label={t('connectionSettings.labels.chatgptUrl')} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">{t('connectionSettings.labels.apiKey')}</Label>
+                <div className="flex items-center gap-2 bg-gray-950 rounded border border-yellow-500/40 p-2">
+                  <code className="text-sm text-yellow-300 font-mono break-all flex-1 select-all">{mcpUrl.apiKey}</code>
+                  <CopyButton text={mcpUrl.apiKey} label={t('connectionSettings.labels.apiKey')} />
                 </div>
               </div>
             </div>
@@ -399,12 +406,15 @@ function CreateApiKeyForm({ onCreated }) {
 
   // If key just created — show ready-to-use URLs
   if (newKey) {
-    const mcpUrl = `${MCP_SERVER_URL}?api_key=${newKey}`;
-    const mcpUrlCore = `${MCP_SERVER_URL}?api_key=${newKey}&tools=core`;
+    const mcpUrl = MCP_SERVER_URL;
+    const mcpUrlCore = `${MCP_SERVER_URL}?tools=core`;
     const jsonConfig = JSON.stringify({
       mcpServers: {
         cashpilot: {
-          url: mcpUrl
+          url: mcpUrl,
+          headers: {
+            'x-api-key': newKey
+          }
         }
       }
     }, null, 2);
@@ -737,3 +747,8 @@ const ConnectionSettings = ({ section }) => {
 };
 
 export default ConnectionSettings;
+
+
+
+
+

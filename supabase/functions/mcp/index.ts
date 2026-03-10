@@ -31,6 +31,14 @@ function pf(v: unknown): number { return parseFloat(String(v || '0')); }
 
 type SB = ReturnType<typeof createClient>;
 
+async function resolveDefaultTaxRate(sb: SB, uid: string): Promise<number> {
+  const { data, error } = await sb.rpc('get_default_tax_rate', { target_user_id: uid });
+  if (error) throw new Error(error.message);
+  const raw = Array.isArray(data) ? data[0] : data;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
 function jsonRes(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 }
@@ -285,7 +293,7 @@ const TOOLS = [
       type: 'object', properties: {
         invoice_number: { type: 'string' }, client_id: { type: 'string' },
         date: { type: 'string', description: 'YYYY-MM-DD' }, due_date: { type: 'string', description: 'YYYY-MM-DD' },
-        total_ht: { type: 'number' }, tax_rate: { type: 'number', description: 'Default 20' }, total_ttc: { type: 'number' },
+        total_ht: { type: 'number' }, tax_rate: { type: 'number', description: 'Defaults to DB accounting settings if omitted' }, total_ttc: { type: 'number' },
         status: { type: 'string', enum: ['draft', 'sent'], description: 'Default draft' }, notes: { type: 'string' },
       }, required: ['invoice_number', 'client_id', 'date', 'due_date', 'total_ht', 'total_ttc']
     },
@@ -593,10 +601,12 @@ const hGetInvoice: Handler = async (sb, uid, a) => {
 };
 
 const hCreateInvoice: Handler = async (sb, uid, a) => {
+  const defaultTaxRate = await resolveDefaultTaxRate(sb, uid);
+
   const { data, error } = await sb.from('invoices').insert({
     user_id: uid, invoice_number: a.invoice_number, client_id: a.client_id,
     date: a.date, due_date: a.due_date, total_ht: a.total_ht,
-    tax_rate: a.tax_rate ?? 20, total_ttc: a.total_ttc,
+    tax_rate: a.tax_rate ?? defaultTaxRate, total_ttc: a.total_ttc,
     status: a.status ?? 'draft', notes: a.notes ?? null,
   }).select().single();
   if (error) throw new Error(error.message);
@@ -726,14 +736,14 @@ const hListPayments: Handler = async (sb, uid, a) => {
 
 const hCreatePayment: Handler = async (sb, uid, a) => {
   const { data: inv, error: invErr } = await sb.from('invoices')
-    .select('client_id, total_ttc').eq('id', a.invoice_id).eq('user_id', uid).single();
+    .select('client_id, company_id, total_ttc').eq('id', a.invoice_id).eq('user_id', uid).single();
   if (invErr || !inv) throw new Error(`Invoice not found: ${invErr?.message || 'unknown'}`);
 
   const date = (a.payment_date as string) ?? new Date().toISOString().split('T')[0];
   const receipt = `REC-${Date.now()}`;
 
   const { data: payment, error } = await sb.from('payments').insert([{
-    user_id: uid, invoice_id: a.invoice_id, client_id: inv.client_id,
+    user_id: uid, company_id: inv.company_id, invoice_id: a.invoice_id, client_id: inv.client_id,
     amount: a.amount, payment_method: a.payment_method ?? 'bank_transfer',
     payment_date: date, reference: a.reference ?? null, notes: a.notes ?? null,
     receipt_number: receipt,
@@ -841,7 +851,7 @@ const hGetTaxSummary: Handler = async (sb, uid, a) => {
   const outputVat = (invRes.data ?? []).reduce((s: number, i: { total_ttc: unknown; total_ht: unknown }) => s + (pf(i.total_ttc) - pf(i.total_ht)), 0);
   const totalRev = (invRes.data ?? []).reduce((s: number, i: { total_ht: unknown }) => s + pf(i.total_ht), 0);
   const totalExp = (expRes.data ?? []).reduce((s: number, e: { amount: unknown }) => s + pf(e.amount), 0);
-  const defRate = trRes.data?.find((t: { is_default: boolean }) => t.is_default)?.rate ?? 20;
+  const defRate = trRes.data?.find((t: { is_default: boolean }) => t.is_default)?.rate ?? await resolveDefaultTaxRate(sb, uid);
   const inputVat = totalExp * (defRate / (100 + defRate));
   return JSON.stringify({
     period: { start: a.start_date, end: a.end_date },
@@ -1000,6 +1010,7 @@ const hExportFacturx: Handler = async (sb, uid, a) => {
   const seller = coRes.data || {};
   const buyer = inv.client || {};
   const vatAmt = fmtAmt(pf(inv.total_ttc) - pf(inv.total_ht));
+  const facturxTaxRate = inv.tax_rate ?? await resolveDefaultTaxRate(sb, uid);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rsm:CrossIndustryInvoice
@@ -1028,7 +1039,7 @@ const hExportFacturx: Handler = async (sb, uid, a) => {
         <ram:TypeCode>VAT</ram:TypeCode>
         <ram:BasisAmount>${fmtAmt(inv.total_ht)}</ram:BasisAmount>
         <ram:CategoryCode>S</ram:CategoryCode>
-        <ram:RateApplicablePercent>${inv.tax_rate || 20}</ram:RateApplicablePercent>
+        <ram:RateApplicablePercent>${facturxTaxRate}</ram:RateApplicablePercent>
       </ram:ApplicableTradeTax>
       <ram:SpecifiedTradePaymentTerms>
         <ram:DueDateDateTime><udt:DateTimeString format="102">${fmtDate(inv.due_date)}</udt:DateTimeString></ram:DueDateDateTime>
@@ -1467,11 +1478,15 @@ serve(async (req: Request) => {
   }
 
   try {
-    // ── Authenticate via API key (header OR query param) ────────
+    // ── Authenticate via API key (header only) ──────────────────
     const url = new URL(req.url);
-    const apiKey = req.headers.get('x-api-key') || url.searchParams.get('api_key');
+    if (url.searchParams.has('api_key')) {
+      return jsonRes({ error: 'Query parameter api_key is forbidden. Use X-API-Key header only.' }, 400);
+    }
+
+    const apiKey = req.headers.get('x-api-key');
     if (!apiKey) {
-      return jsonRes({ error: 'Missing API key. Use header X-API-Key or query param ?api_key=' }, 401);
+      return jsonRes({ error: 'Missing API key. Use header X-API-Key.' }, 401);
     }
 
     const sb = createClient(
@@ -1562,3 +1577,5 @@ serve(async (req: Request) => {
     return jsonRes({ jsonrpc: '2.0', error: { code: -32603, message: `Internal error: ${msg}` } }, 500);
   }
 });
+
+

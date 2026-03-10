@@ -21,7 +21,7 @@ serve(async (req) => {
     const { threshold = 0.8 } = await req.json();
 
     // Fetch unreconciled transactions
-    const { data: transactions } = await supabase
+    const { data: transactions, error: transactionsError } = await supabase
       .from('bank_transactions')
       .select('*')
       .eq('user_id', userId)
@@ -30,11 +30,14 @@ serve(async (req) => {
       .limit(100);
 
     // Fetch unpaid invoices
-    const { data: invoices } = await supabase
+    const { data: invoices, error: invoicesError } = await supabase
       .from('invoices')
-      .select('*, client:clients(name)')
+      .select('*, client:clients(company_name)')
       .eq('user_id', userId)
       .in('status', ['sent', 'overdue']);
+
+    if (transactionsError) throw transactionsError;
+    if (invoicesError) throw invoicesError;
 
     if (!transactions?.length || !invoices?.length) {
       return new Response(JSON.stringify({ success: true, matched: 0 }),
@@ -68,7 +71,7 @@ serve(async (req) => {
         if (invNum && ref.includes(invNum)) score += 30;
 
         // Client name
-        const clientName = (inv.client?.name || '').toLowerCase();
+        const clientName = (inv.client?.company_name || '').toLowerCase();
         if (clientName && ref.includes(clientName)) score += 20;
 
         if (score > bestScore) {
@@ -92,7 +95,7 @@ serve(async (req) => {
 
     // Batch update all matches in parallel
     if (matched.length > 0) {
-      await Promise.all(matched.flatMap(m => [
+      const updateResults = await Promise.all(matched.flatMap((m) => [
         supabase.from('bank_transactions').update({
           invoice_id: m.invoice_id,
           reconciliation_status: 'matched',
@@ -101,9 +104,13 @@ serve(async (req) => {
         }).eq('id', m.transaction_id),
         supabase.from('invoices').update({
           status: 'paid',
-          paid_date: m.date,
+          payment_status: 'paid',
+          balance_due: 0,
         }).eq('id', m.invoice_id),
       ]));
+
+      const firstError = updateResults.find((result) => result.error)?.error;
+      if (firstError) throw firstError;
     }
 
     return new Response(JSON.stringify({ success: true, matched: matched.length, details: matched }),

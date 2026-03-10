@@ -2,11 +2,36 @@ import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { formatDateInput } from '../src/utils/dateFormatting.js';
 
-const CREDIT_COSTS = {
-  configuration: 2,
-  send: 4,
-  receive: 3,
+const CREDIT_OPERATION_CODES = {
+  configuration: 'PEPPOL_CONFIGURATION_OK',
+  send: 'PEPPOL_SEND_INVOICE',
+  receive: 'PEPPOL_RECEIVE_INVOICE',
 };
+
+async function loadCreditCostsConfig(serviceClient) {
+  const { data, error } = await serviceClient
+    .from('credit_costs')
+    .select('operation_code, cost')
+    .in('operation_code', Object.values(CREDIT_OPERATION_CODES))
+    .eq('is_active', true);
+
+  if (error) {
+    throw error;
+  }
+
+  const rows = Array.isArray(data) ? data : [];
+  const byCode = new Map(rows.map((row) => [row.operation_code, Number(row.cost)]));
+
+  const configuration = byCode.get(CREDIT_OPERATION_CODES.configuration);
+  const send = byCode.get(CREDIT_OPERATION_CODES.send);
+  const receive = byCode.get(CREDIT_OPERATION_CODES.receive);
+
+  if (!Number.isFinite(configuration) || configuration <= 0 || !Number.isFinite(send) || send <= 0 || !Number.isFinite(receive) || receive <= 0) {
+    throw new Error('Missing active PEPPOL credit configuration in credit_costs table.');
+  }
+
+  return { configuration, send, receive };
+}
 
 const REAL_SCRADA_ENV_VARS = [
   'PEPPOL_TEST_SCRADA_COMPANY_ID',
@@ -144,15 +169,28 @@ async function ensureCreditsBuffer(serviceClient, userId, minimumAvailable) {
   return loadCredits(serviceClient, userId);
 }
 
-async function loadCompany(serviceClient, userId) {
-  const { data, error } = await serviceClient
+async function loadCompany(serviceClient, userId, companyId = null) {
+  let query = serviceClient
     .from('company')
     .select('*')
-    .eq('user_id', userId)
-    .single();
+    .eq('user_id', userId);
+
+  if (companyId) {
+    query = query.eq('id', companyId);
+  } else {
+    query = query.order('created_at', { ascending: true }).limit(1);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     throw error;
+  }
+
+  if (!data) {
+    throw new Error(companyId
+      ? `Company not found for user (company_id=${companyId})`
+      : 'No company found for user');
   }
 
   return data;
@@ -260,7 +298,7 @@ async function invokeFunction(supabaseUrl, authKey, functionName, options = {}) 
   };
 }
 
-async function createInvoiceArtifacts(serviceClient, userId, runId, registry) {
+async function createInvoiceArtifacts(serviceClient, userId, companyId, runId, registry) {
   const buyerEndpoint = buildEndpointDigits(`${runId}11`);
   const invoiceNumber = `SMOKE-${runId.toUpperCase()}`;
 
@@ -268,6 +306,7 @@ async function createInvoiceArtifacts(serviceClient, userId, runId, registry) {
     .from('clients')
     .insert({
       user_id: userId,
+      company_id: companyId,
       company_name: `Smoke Peppol Buyer ${runId}`,
       email: `smoke+${runId}@cashpilot.test`,
       country: 'BE',
@@ -288,6 +327,7 @@ async function createInvoiceArtifacts(serviceClient, userId, runId, registry) {
     .from('invoices')
     .insert({
       user_id: userId,
+      company_id: companyId,
       client_id: client.id,
       invoice_number: invoiceNumber,
       date: formatDateInput(),
@@ -421,6 +461,12 @@ async function applyFakePeppolCompanyConfig(serviceClient, company, runId) {
   return fakeCompanyId;
 }
 
+
+function buildWebhookSignature(body) {
+  const secret = optionalEnv('PEPPOL_TEST_WEBHOOK_SECRET');
+  if (!secret) return null;
+  return crypto.createHmac('sha256', secret).update(String(body || '')).digest('hex');
+}
 function resolveRealConfig(company, runId) {
   const endpointId = optionalEnv('PEPPOL_TEST_PEPPOL_ENDPOINT_ID')
     || company.peppol_endpoint_id
@@ -506,7 +552,7 @@ async function runConfigurationValidationStep(context) {
   }
 
   const delta = snapshotCredits(beforeCredits).availableCredits - snapshotCredits(afterCredits).availableCredits;
-  const expectedDelta = context.metered ? CREDIT_COSTS.configuration : 0;
+  const expectedDelta = context.metered ? context.creditCosts.configuration : 0;
 
   if (delta !== expectedDelta) {
     return buildStep('failed', {
@@ -600,6 +646,7 @@ async function runSendFailureRefundStep(context) {
   const artifacts = await createInvoiceArtifacts(
     context.serviceClient,
     context.userId,
+    context.originalCompany.id,
     `${context.runId}-send`,
     context.registry,
   );
@@ -658,18 +705,25 @@ async function runReceiveWebhookStep(context) {
   context.registry.webhookDocumentIds.push(documentId);
 
   const beforeCredits = await loadCredits(context.serviceClient, context.userId);
+  const webhookBody = `<?xml version="1.0" encoding="UTF-8"?><Invoice><cbc:ID>${documentId}</cbc:ID></Invoice>`;
+  const webhookHeaders = {
+    'Content-Type': 'application/xml',
+    'x-scrada-topic': 'peppolInboundDocument/new',
+    'x-scrada-company-id': scradaCompanyId,
+    'x-scrada-event-id': `event-${context.runId}`,
+    'x-scrada-document-id': documentId,
+    'x-scrada-peppol-sender-id': '0208:0123456789',
+  };
+  const webhookSignature = buildWebhookSignature(webhookBody);
+  if (webhookSignature) {
+    webhookHeaders['x-scrada-hmac-sha256'] = webhookSignature;
+  }
+
   const response = await invokeFunction(context.supabaseUrl, context.authKey, 'peppol-webhook', {
     method: 'POST',
     session: context.session,
-    headers: {
-      'Content-Type': 'application/xml',
-      'x-scrada-topic': 'peppolInboundDocument/new',
-      'x-scrada-company-id': scradaCompanyId,
-      'x-scrada-event-id': `event-${context.runId}`,
-      'x-scrada-document-id': documentId,
-      'x-scrada-peppol-sender-id': '0208:0123456789',
-    },
-    rawBody: `<?xml version="1.0" encoding="UTF-8"?><Invoice><cbc:ID>${documentId}</cbc:ID></Invoice>`,
+    headers: webhookHeaders,
+    rawBody: webhookBody,
   });
   const afterCredits = await loadCredits(context.serviceClient, context.userId);
   const inboundDocument = await loadInboundDocument(context.serviceClient, context.userId, documentId);
@@ -683,7 +737,7 @@ async function runReceiveWebhookStep(context) {
   }
 
   const delta = snapshotCredits(beforeCredits).availableCredits - snapshotCredits(afterCredits).availableCredits;
-  const expectedDelta = context.metered ? CREDIT_COSTS.receive : 0;
+  const expectedDelta = context.metered ? context.creditCosts.receive : 0;
   if (delta !== expectedDelta) {
     return buildStep('failed', {
       message: `Unexpected receive credit delta: expected ${expectedDelta}, received ${delta}.`,
@@ -722,6 +776,7 @@ async function runSendInsufficientCreditsStep(context, baselineCredits) {
   const artifacts = await createInvoiceArtifacts(
     context.serviceClient,
     context.userId,
+    context.originalCompany.id,
     `${context.runId}-send-zero`,
     context.registry,
   );
@@ -791,18 +846,25 @@ async function runReceiveInsufficientCreditsStep(context, baselineCredits) {
     paid_credits: 0,
   });
 
+  const webhookBody = `<?xml version="1.0" encoding="UTF-8"?><Invoice><cbc:ID>${documentId}</cbc:ID></Invoice>`;
+  const webhookHeaders = {
+    'Content-Type': 'application/xml',
+    'x-scrada-topic': 'peppolInboundDocument/new',
+    'x-scrada-company-id': scradaCompanyId,
+    'x-scrada-event-id': `event-zero-${context.runId}`,
+    'x-scrada-document-id': documentId,
+    'x-scrada-peppol-sender-id': '0208:0123456789',
+  };
+  const webhookSignature = buildWebhookSignature(webhookBody);
+  if (webhookSignature) {
+    webhookHeaders['x-scrada-hmac-sha256'] = webhookSignature;
+  }
+
   const response = await invokeFunction(context.supabaseUrl, context.authKey, 'peppol-webhook', {
     method: 'POST',
     session: context.session,
-    headers: {
-      'Content-Type': 'application/xml',
-      'x-scrada-topic': 'peppolInboundDocument/new',
-      'x-scrada-company-id': scradaCompanyId,
-      'x-scrada-event-id': `event-zero-${context.runId}`,
-      'x-scrada-document-id': documentId,
-      'x-scrada-peppol-sender-id': '0208:0123456789',
-    },
-    rawBody: `<?xml version="1.0" encoding="UTF-8"?><Invoice><cbc:ID>${documentId}</cbc:ID></Invoice>`,
+    headers: webhookHeaders,
+    rawBody: webhookBody,
   });
   const inboundDocument = await loadInboundDocument(context.serviceClient, context.userId, documentId);
   const afterCredits = await loadCredits(context.serviceClient, context.userId);
@@ -843,6 +905,7 @@ async function main() {
   const email = requireEnv('PEPPOL_TEST_EMAIL');
   const password = requireEnv('PEPPOL_TEST_PASSWORD');
   const allowSkips = parseBool(optionalEnv('PEPPOL_TEST_ALLOW_SKIPS'), true);
+  const targetCompanyId = optionalEnv('PEPPOL_TEST_COMPANY_ID');
   const realScradaEnabled = hasRealScradaEnv();
   const runId = crypto.randomBytes(6).toString('hex');
   const registry = {
@@ -869,8 +932,9 @@ async function main() {
 
     const session = authData.session;
     const userId = authData.user.id;
-    originalCompany = await loadCompany(serviceClient, userId);
+    originalCompany = await loadCompany(serviceClient, userId, targetCompanyId);
     originalCredits = await loadCredits(serviceClient, userId);
+    const creditCosts = await loadCreditCostsConfig(serviceClient);
     const overrideRecord = await loadAccessOverride(
       serviceClient,
       String(authData.user.email || '').trim().toLowerCase(),
@@ -889,7 +953,7 @@ async function main() {
       await ensureCreditsBuffer(
         serviceClient,
         userId,
-        CREDIT_COSTS.configuration + CREDIT_COSTS.send + CREDIT_COSTS.receive + 3,
+        creditCosts.configuration + creditCosts.send + creditCosts.receive + 3,
       );
     }
 
@@ -906,6 +970,7 @@ async function main() {
       runId,
       metered,
       realScradaEnabled,
+      creditCosts,
     };
 
     report = {
@@ -915,6 +980,7 @@ async function main() {
       runId,
       allowSkips,
       realScradaEnabled,
+      creditCosts,
       billingMode: metered ? 'metered' : 'override_or_trial',
       entitlements: {
         planSlug: null,
@@ -1019,3 +1085,8 @@ main().catch((error) => {
   }, null, 2));
   process.exit(1);
 });
+
+
+
+
+

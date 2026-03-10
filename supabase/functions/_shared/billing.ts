@@ -11,14 +11,23 @@ export class HttpError extends Error {
 
 const parseRpcResult = <T>(payload: T | T[] | null) => Array.isArray(payload) ? payload[0] : payload;
 
+const requireEnv = (name: string): string => {
+  const value = Deno.env.get(name)?.trim();
+  if (!value) {
+    throw new HttpError(500, `Server misconfigured: missing ${name}`);
+  }
+
+  return value;
+};
+
 export const createServiceClient = () => createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  requireEnv('SUPABASE_URL'),
+  requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
 );
 
 export const createAuthClient = (authHeader: string) => createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+  requireEnv('SUPABASE_URL'),
+  requireEnv('SUPABASE_ANON_KEY'),
   { global: { headers: { Authorization: authHeader } } },
 );
 
@@ -37,15 +46,38 @@ export const requireAuthenticatedUser = async (req: Request) => {
     throw new HttpError(401, 'Missing authorization');
   }
 
-  const supabase = createAuthClient(authHeader);
   const token = extractBearerToken(authHeader);
-  const { data: { user }, error } = await supabase.auth.getUser(token);
+  const supabaseAdmin = createServiceClient();
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
 
   if (error || !user) {
-    throw new HttpError(401, 'Unauthorized');
+    throw new HttpError(401, error?.message || 'Unauthorized');
   }
 
   return user;
+};
+
+export const resolveCreditCost = async (
+  supabase: ReturnType<typeof createClient>,
+  operationCode: string,
+): Promise<number> => {
+  const { data, error } = await supabase
+    .from('credit_costs')
+    .select('cost')
+    .eq('operation_code', operationCode)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  const cost = Number(data?.cost);
+  if (!Number.isFinite(cost) || cost <= 0) {
+    throw new HttpError(500, `Missing active credit configuration for ${operationCode}`);
+  }
+
+  return cost;
 };
 
 export const requireEntitlement = async (supabase: ReturnType<typeof createClient>, userId: string, featureKey: string) => {

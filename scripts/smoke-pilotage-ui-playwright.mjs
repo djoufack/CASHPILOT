@@ -18,19 +18,16 @@ const DEMO_ACCOUNT_TEMPLATES = [
     key: 'FR',
     email: process.env.PILOTAGE_FR_EMAIL || 'pilotage.fr.demo@cashpilot.cloud',
     passwordEnv: 'PILOTAGE_FR_PASSWORD',
-    fallbackPassword: 'PilotageFR#2026!',
   },
   {
     key: 'BE',
     email: process.env.PILOTAGE_BE_EMAIL || 'pilotage.be.demo@cashpilot.cloud',
     passwordEnv: 'PILOTAGE_BE_PASSWORD',
-    fallbackPassword: 'PilotageBE#2026!',
   },
   {
     key: 'OHADA',
     email: process.env.PILOTAGE_OHADA_EMAIL || 'pilotage.ohada.demo@cashpilot.cloud',
     passwordEnv: 'PILOTAGE_OHADA_PASSWORD',
-    fallbackPassword: 'PilotageOHADA#2026!',
   },
 ];
 
@@ -394,7 +391,7 @@ async function buildRuntimeAccounts() {
     runtimes.push({
       key: template.key,
       email: template.email,
-      password: optionalEnv(template.passwordEnv) || template.fallbackPassword,
+      password: requireEnv(template.passwordEnv),
       targetCompany,
       expectations: await loadExpectations(serviceClient, user.id, targetCompany),
     });
@@ -494,6 +491,7 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
 
 
 

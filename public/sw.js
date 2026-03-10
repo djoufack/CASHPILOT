@@ -1,5 +1,5 @@
 // CashPilot Service Worker
-const CACHE_NAME = 'cashpilot-v5';
+const CACHE_NAME = 'cashpilot-v6';
 const STATIC_ASSETS = [
   '/manifest.json',
 ];
@@ -7,6 +7,13 @@ const STATIC_ASSETS = [
 function isCacheableJavaScriptResponse(response) {
   const contentType = response.headers.get('content-type') || '';
   return contentType.includes('javascript') || contentType.includes('ecmascript');
+}
+
+function isSensitiveRequest(url) {
+  const isSupabaseHost = url.hostname.includes('supabase');
+  const isInternalApi = url.origin === self.location.origin
+    && (url.pathname.startsWith('/api/') || url.pathname.startsWith('/mcp'));
+  return isSupabaseHost || isInternalApi;
 }
 
 // Install: cache static assets
@@ -31,7 +38,15 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: Network-first for API, Cache-first for static
+self.addEventListener('message', (event) => {
+  if (event?.data?.type !== 'CLEAR_RUNTIME_CACHES') return;
+
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+  );
+});
+
+// Fetch: never cache sensitive API/database traffic.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -39,17 +54,8 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // API requests: network-first
-  if (url.hostname.includes('supabase')) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          return response;
-        })
-        .catch(() => caches.match(request))
-    );
+  if (isSensitiveRequest(url)) {
+    event.respondWith(fetch(request));
     return;
   }
 
