@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate, Link } from 'react-router-dom';
@@ -8,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Sparkles, Copy } from 'lucide-react';
 import { validateEmail } from '@/utils/validation';
 import { useToast } from '@/components/ui/use-toast';
 import MFAVerifyStep from '@/components/MFAVerifyStep';
@@ -31,10 +30,64 @@ const LoginPage = () => {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaFactorId, setMfaFactorId] = useState(null);
 
+  const demoAccounts = [
+    {
+      region: 'FR',
+      flag: '\u{1F1EB}\u{1F1F7}',
+      email: 'pilotage.fr.demo@cashpilot.cloud',
+      password: 'PilotageFR#2026!',
+      labelKey: 'auth.demoRegionFR',
+      tagKey: 'auth.demoTagFR',
+    },
+    {
+      region: 'BE',
+      flag: '\u{1F1E7}\u{1F1EA}',
+      email: 'pilotage.be.demo@cashpilot.cloud',
+      password: 'PilotageBE#2026!',
+      labelKey: 'auth.demoRegionBE',
+      tagKey: 'auth.demoTagBE',
+    },
+    {
+      region: 'OHADA',
+      flag: '\u{1F30D}',
+      email: 'pilotage.ohada.demo@cashpilot.cloud',
+      password: 'PilotageOHADA#2026!',
+      labelKey: 'auth.demoRegionOHADA',
+      tagKey: 'auth.demoTagOHADA',
+    },
+  ];
+
+  const handleDemoLogin = (account) => {
+    setEmail(account.email);
+    setPassword(account.password);
+    setErrors({});
+  };
+
+  const copyDemoCredentials = async (account) => {
+    const payload = `${account.email} / ${account.password}`;
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(payload);
+      }
+      toast({
+        title: t('auth.demoCredentialsCopied', 'Identifiants démo copiés'),
+        description: account.email,
+        className: 'bg-green-500 border-none text-white'
+      });
+    } catch (_error) {
+      toast({
+        title: t('auth.copyFailed', 'Copie impossible'),
+        description: t('auth.copyManualHint', 'Copiez manuellement les identifiants affichés.'),
+        variant: 'destructive',
+      });
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
     const normalizedEmail = sanitizeText(email).trim().toLowerCase();
-    if (!validateEmail(normalizedEmail)) newErrors.email = t('validation.invalidEmail') || "Invalid email address";
+    if (!validateEmail(normalizedEmail)) newErrors.email = t('validation.invalidEmail') || 'Invalid email address';
     if (!password) newErrors.password = t('auth.passwordRequired');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -42,7 +95,7 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -54,7 +107,7 @@ const LoginPage = () => {
 
       // Check if user has MFA enabled
       const { data: factorsData } = await supabase.auth.mfa.listFactors();
-      const totpFactors = (factorsData?.totp || []).filter(f => f.status === 'verified');
+      const totpFactors = (factorsData?.totp || []).filter((f) => f.status === 'verified');
 
       if (totpFactors.length > 0) {
         // MFA required - show verification step
@@ -69,7 +122,7 @@ const LoginPage = () => {
       toast({
         title: t('mfa.loginSuccess', 'Login successful'),
         description: t('mfa.redirecting', 'Redirecting to dashboard...'),
-        className: "bg-green-500 border-none text-white"
+        className: 'bg-green-500 border-none text-white'
       });
 
       setTimeout(() => {
@@ -90,7 +143,7 @@ const LoginPage = () => {
       } else {
         errorMessage = t('mfa.unexpectedError', 'An unexpected error occurred. Please try again.');
       }
-      
+
       setErrors({ form: errorMessage });
       setLoading(false);
     }
@@ -105,7 +158,7 @@ const LoginPage = () => {
       toast({
         title: t('mfa.loginSuccess', 'Login successful'),
         description: t('mfa.redirecting', 'Redirecting to dashboard...'),
-        className: "bg-green-500 border-none text-white"
+        className: 'bg-green-500 border-none text-white'
       });
 
       setTimeout(() => {
@@ -130,7 +183,7 @@ const LoginPage = () => {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-900/20 rounded-full blur-[100px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-900/20 rounded-full blur-[100px]" />
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="relative w-full max-w-md space-y-6"
@@ -141,7 +194,7 @@ const LoginPage = () => {
 
         <div className="bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-2xl p-1">
           <div className="absolute inset-0 rounded-2xl p-[1px] bg-gradient-to-br from-yellow-500 via-amber-400 to-lime-500 opacity-50 pointer-events-none" />
-          
+
           <div className="bg-gray-950/90 rounded-xl p-8 relative z-10 h-full">
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold text-gradient mb-2 tracking-tight">
@@ -164,15 +217,15 @@ const LoginPage = () => {
             </div>
 
             {success ? (
-               <motion.div
-                 initial={{ opacity: 0, y: 10 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 className="flex flex-col items-center justify-center py-8 space-y-4"
-               >
-                 <CheckCircle2 className="w-16 h-16 text-green-500 animate-pulse" />
-                 <h3 className="text-xl font-bold text-white">{t('mfa.loginSuccess', 'Login successful')}</h3>
-                 <p className="text-gray-400 text-sm">{t('mfa.redirecting')}</p>
-               </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center py-8 space-y-4"
+              >
+                <CheckCircle2 className="w-16 h-16 text-green-500 animate-pulse" />
+                <h3 className="text-xl font-bold text-white">{t('mfa.loginSuccess', 'Login successful')}</h3>
+                <p className="text-gray-400 text-sm">{t('mfa.redirecting')}</p>
+              </motion.div>
             ) : mfaRequired ? (
               <MFAVerifyStep
                 onVerify={handleMFAVerify}
@@ -183,9 +236,9 @@ const LoginPage = () => {
               <form onSubmit={handleSubmit} className="space-y-5">
                 <AnimatePresence>
                   {errors.form && (
-                    <motion.div 
+                    <motion.div
                       initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
+                      animate={{ height: 'auto', opacity: 1 }}
                       className="bg-red-500/10 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg text-sm flex items-start gap-2 overflow-hidden"
                     >
                       <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
@@ -196,9 +249,9 @@ const LoginPage = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-gray-300">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
+                  <Input
+                    id="email"
+                    type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="bg-gray-900/50 border-gray-700 text-white focus:border-orange-500"
@@ -207,7 +260,7 @@ const LoginPage = () => {
                   />
                   {errors.email && <p className="text-xs text-red-400">{errors.email}</p>}
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="password" className="text-gray-300">{t('auth.password')}</Label>
@@ -216,9 +269,9 @@ const LoginPage = () => {
                     </Link>
                   </div>
                   <div className="relative">
-                    <Input 
-                      id="password" 
-                      type={showPassword ? "text" : "password"}
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="bg-gray-900/50 border-gray-700 text-white pr-10 focus:border-orange-500"
@@ -237,8 +290,8 @@ const LoginPage = () => {
                   {errors.password && <p className="text-xs text-red-400">{errors.password}</p>}
                 </div>
 
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={loading}
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 mt-6"
                 >
@@ -255,10 +308,73 @@ const LoginPage = () => {
             )}
           </div>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="rounded-2xl border border-gray-800/80 bg-gray-900/50 backdrop-blur-sm p-4"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <h2 className="text-sm font-semibold text-gray-100">
+              {t('auth.demoTitle')}
+            </h2>
+          </div>
+          <p className="text-xs text-gray-400 mb-4">
+            {t('auth.demoSubtitle')}
+          </p>
+
+          <div className="space-y-3">
+            {demoAccounts.map((account) => (
+              <div
+                key={account.region}
+                className="rounded-xl border border-gray-800/80 bg-gray-950/70 p-3"
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg leading-none">{account.flag}</span>
+                    <span className="text-sm font-semibold text-white">
+                      {t(account.labelKey)}
+                    </span>
+                    <span className="text-[10px] tracking-wider font-mono uppercase text-amber-300/90">
+                      {t(account.tagKey)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => copyDemoCredentials(account)}
+                      className="inline-flex items-center justify-center rounded-md border border-gray-700 px-2 py-1 text-xs text-gray-300 hover:bg-gray-800/80 hover:text-white transition-colors"
+                      aria-label={`Copier les identifiants ${account.region}`}
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDemoLogin(account)}
+                      className="rounded-md bg-orange-500/90 px-2.5 py-1 text-xs font-semibold text-white hover:bg-orange-500 transition-colors"
+                    >
+                      Utiliser
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-[11px] leading-relaxed text-gray-300 font-mono break-all">
+                  <div>{account.email}</div>
+                  <div>{account.password}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-3 text-[11px] text-gray-400">
+            Après connexion: <span className="font-mono text-gray-300">/app/pilotage</span>
+          </p>
+        </motion.div>
       </motion.div>
     </div>
   );
 };
 
 export default LoginPage;
-
