@@ -455,9 +455,6 @@ serve(async (req) => {
   let creditConsumption = null;
 
   try {
-    const geminiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
-
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing authorization' }),
@@ -537,6 +534,9 @@ serve(async (req) => {
             total_ttc,
             total_ht,
             status,
+            payment_status,
+            balance_due,
+            date,
             due_date,
             created_at,
             client:clients(company_name),
@@ -677,8 +677,6 @@ serve(async (req) => {
       { name: 'projects', error: projectsRes.error },
       { name: 'clients', error: clientsRes.error },
     ]);
-
-    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Chatbot');
 
     // Calculate financial summary (bilan)
     const invoices = invoicesRes.data || [];
@@ -951,6 +949,11 @@ Maintenant, en tant qu'expert-comptable de cette entreprise, réponds à la ques
         source: 'gemini-cache',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+
+    creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Chatbot');
+
+    const geminiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiKey) throw new Error('GEMINI_API_KEY not configured');
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
     const geminiRes = await fetch(geminiUrl, {
