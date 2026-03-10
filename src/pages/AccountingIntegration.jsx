@@ -367,25 +367,36 @@ const AccountingIntegration = () => {
       {/* Tabs */}
       {!loading && (
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="w-full bg-gray-900 border border-gray-800 overflow-x-auto flex-nowrap justify-start h-auto p-1 gap-0.5">
-            {visibleTabs.map(tab => (
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-gray-950 to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-gray-950 to-transparent" />
+            <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-[#10192d]/95 p-2">
+              {visibleTabs.map(tab => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="min-w-max shrink-0 rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white data-[state=active]:border-orange-400/30 data-[state=active]:bg-orange-500/12 data-[state=active]:text-orange-300 data-[state=active]:shadow-[inset_0_0_0_1px_rgba(251,146,60,0.12)]"
+                >
+                  <tab.icon className="mr-2 h-4 w-4 shrink-0" />
+                  <span className="whitespace-nowrap">{tab.label}</span>
+                </TabsTrigger>
+              ))}
               <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className="min-w-[90px] text-xs sm:text-sm px-2 sm:px-3 py-1.5 data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 whitespace-nowrap"
+                value="generalLedger"
+                className="min-w-max shrink-0 rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white data-[state=active]:border-orange-400/30 data-[state=active]:bg-orange-500/12 data-[state=active]:text-orange-300 data-[state=active]:shadow-[inset_0_0_0_1px_rgba(251,146,60,0.12)]"
               >
-                <tab.icon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                <Book className="mr-2 h-4 w-4 shrink-0" />
+                <span className="whitespace-nowrap">{t('accounting.generalLedger')}</span>
               </TabsTrigger>
-            ))}
-            <TabsTrigger value="generalLedger" className="flex items-center gap-1.5 text-xs sm:text-sm">
-              <Book className="w-4 h-4" />{t('accounting.generalLedger')}
-            </TabsTrigger>
-            <TabsTrigger value="journal" className="flex items-center gap-1.5 text-xs sm:text-sm">
-              <BookOpen className="w-4 h-4" />{t('accounting.journalBook')}
-            </TabsTrigger>
-          </TabsList>
+              <TabsTrigger
+                value="journal"
+                className="min-w-max shrink-0 rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white data-[state=active]:border-orange-400/30 data-[state=active]:bg-orange-500/12 data-[state=active]:text-orange-300 data-[state=active]:shadow-[inset_0_0_0_1px_rgba(251,146,60,0.12)]"
+              >
+                <BookOpen className="mr-2 h-4 w-4 shrink-0" />
+                <span className="whitespace-nowrap">{t('accounting.journalBook')}</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Dashboard */}
           <TabsContent value="dashboard" className="mt-6">
@@ -644,3 +655,4 @@ const AccountingIntegration = () => {
 };
 
 export default AccountingIntegration;
+
