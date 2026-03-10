@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Sparkles, Copy } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Sparkles, Copy, ArrowUpRight } from 'lucide-react';
 import { validateEmail } from '@/utils/validation';
 import { useToast } from '@/components/ui/use-toast';
 import MFAVerifyStep from '@/components/MFAVerifyStep';
@@ -313,63 +313,80 @@ const LoginPage = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="rounded-2xl border border-gray-800/80 bg-gray-900/50 backdrop-blur-sm p-4"
+          className="mt-1"
         >
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <h2 className="text-sm font-semibold text-gray-100">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+            <span className="text-xs text-gray-300 uppercase tracking-widest flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-amber-400" />
               {t('auth.demoTitle')}
-            </h2>
+            </span>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
           </div>
-          <p className="text-xs text-gray-400 mb-4">
+
+          <p className="text-center text-[11px] text-gray-400 mb-4">
             {t('auth.demoSubtitle')}
           </p>
 
-          <div className="space-y-3">
+          <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin] [scrollbar-color:#4b5563_transparent] snap-x snap-mandatory">
             {demoAccounts.map((account) => (
-              <div
+              <button
                 key={account.region}
-                className="rounded-xl border border-gray-800/80 bg-gray-950/70 p-3"
+                type="button"
+                onClick={() => handleDemoLogin(account)}
+                className="group relative min-w-[176px] flex-1 snap-start rounded-2xl p-[1px] bg-gradient-to-br from-amber-400/70 via-orange-300/40 to-sky-500/70 hover:from-amber-300 hover:via-orange-300 hover:to-sky-400 transition-all duration-300"
               >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg leading-none">{account.flag}</span>
-                    <span className="text-sm font-semibold text-white">
-                      {t(account.labelKey)}
-                    </span>
-                    <span className="text-[10px] tracking-wider font-mono uppercase text-amber-300/90">
+                <div className="relative rounded-[15px] bg-[#060a12] hover:bg-[#0a111d] px-3 py-3.5 h-full transition-colors duration-300 text-left">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 w-9 h-9 text-lg leading-none shadow-inner">
+                      {account.flag}
+                    </div>
+                    <span className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-300/10 px-2 py-0.5 text-[9px] font-mono uppercase tracking-widest text-amber-200/90">
                       {t(account.tagKey)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => copyDemoCredentials(account)}
-                      className="inline-flex items-center justify-center rounded-md border border-gray-700 px-2 py-1 text-xs text-gray-300 hover:bg-gray-800/80 hover:text-white transition-colors"
-                      aria-label={`Copier les identifiants ${account.region}`}
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDemoLogin(account)}
-                      className="rounded-md bg-orange-500/90 px-2.5 py-1 text-xs font-semibold text-white hover:bg-orange-500 transition-colors"
-                    >
-                      Utiliser
-                    </button>
+
+                  <div className="mt-2.5">
+                    <p className="text-xs font-semibold text-white group-hover:text-amber-100 transition-colors">
+                      {t(account.labelKey)}
+                    </p>
+                    <p className="mt-1 text-[10px] text-gray-400 truncate">{account.email}</p>
+                  </div>
+
+                  <div className="mt-3 inline-flex items-center gap-1 rounded-md border border-slate-600/60 bg-slate-800/40 px-2 py-1 text-[10px] font-medium text-slate-200 group-hover:border-amber-300/40 group-hover:bg-amber-300/10 group-hover:text-amber-100 transition-colors">
+                    {t('auth.demoQuickFill', 'Pré-remplir')}
+                    <ArrowUpRight className="w-3 h-3" />
                   </div>
                 </div>
+              </button>
+            ))}
+          </div>
 
-                <div className="text-[11px] leading-relaxed text-gray-300 font-mono break-all">
-                  <div>{account.email}</div>
-                  <div>{account.password}</div>
+          <div className="mt-4 space-y-2">
+            {demoAccounts.map((account) => (
+              <div key={`credentials-${account.region}`} className="flex items-center justify-between gap-2 rounded-lg border border-gray-800/70 bg-gray-950/70 px-2.5 py-2">
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-wide text-amber-300/80">
+                    {t(account.labelKey)} · {t(account.tagKey)}
+                  </div>
+                  <div className="text-[11px] font-mono text-gray-300 truncate">
+                    {account.email} / {account.password}
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => copyDemoCredentials(account)}
+                  className="inline-flex items-center justify-center rounded-md border border-gray-700 bg-gray-900/70 px-2 py-1 text-xs text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                  aria-label={`Copier les identifiants ${account.region}`}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
               </div>
             ))}
           </div>
 
-          <p className="mt-3 text-[11px] text-gray-400">
-            Après connexion: <span className="font-mono text-gray-300">/app/pilotage</span>
+          <p className="mt-3 text-[11px] text-gray-400 text-center">
+            Connectez-vous puis ouvrez <span className="font-mono text-gray-300">/app/pilotage</span>
           </p>
         </motion.div>
       </motion.div>
