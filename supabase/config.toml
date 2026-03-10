@@ -7,7 +7,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.ai-chatbot]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ai-forecast]
 verify_jwt = true
@@ -37,10 +37,10 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.auto-reconcile]
-verify_jwt = true
+verify_jwt = false
 
 [functions.audit-comptable]
-verify_jwt = true
+verify_jwt = false
 
 [functions.delete-account]
 verify_jwt = true
