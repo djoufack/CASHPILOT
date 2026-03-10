@@ -28,7 +28,7 @@ serve(async (req) => {
 
     const [invoices, expenses, recurring] = await Promise.all([
       supabase.from('invoices').select('total_ttc, date, status').eq('user_id', userId).gte('date', sixMonthsAgo.toISOString().split('T')[0]),
-      supabase.from('expenses').select('amount, date, category').eq('user_id', userId).gte('date', sixMonthsAgo.toISOString().split('T')[0]),
+      supabase.from('expenses').select('amount, expense_date, category').eq('user_id', userId).gte('expense_date', sixMonthsAgo.toISOString().split('T')[0]),
       supabase.from('recurring_invoices').select('total_ttc, frequency, next_generation_date').eq('user_id', userId).eq('status', 'active'),
     ]);
     if (invoices.error) throw invoices.error;

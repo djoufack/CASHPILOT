@@ -4,6 +4,7 @@ on:
   push:
     branches: ['**']
   pull_request:
+  workflow_dispatch:
 
 jobs:
   guards:
@@ -21,8 +22,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Validate that required environment variables are defined.
-      # These are needed at build time by Vite to connect to Supabase.
       - name: Validate required env vars
         run: |
           missing=0
@@ -42,12 +41,99 @@ jobs:
       - name: Run guards
         run: npm run guard
 
+      - name: Run build
+        run: npm run build
+
       - name: Run tests
         run: npm test
 
-  # Security audit job — checks dependencies for known vulnerabilities.
-  # Runs in parallel with the guards job. Set to continue-on-error so it
-  # does not block the pipeline while the team triages findings.
+  remote-reliability:
+    needs: guards
+    if: ${{ github.ref == 'refs/heads/main' && secrets.SUPABASE_URL != '' && secrets.SUPABASE_SERVICE_ROLE_KEY != '' && secrets.VITE_SUPABASE_ANON_KEY != '' && secrets.PILOTAGE_FR_PASSWORD != '' && secrets.PILOTAGE_BE_PASSWORD != '' && secrets.PILOTAGE_OHADA_PASSWORD != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run remote reliability checks
+        run: npm run verify:reliability
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          PILOTAGE_FR_PASSWORD: ${{ secrets.PILOTAGE_FR_PASSWORD }}
+          PILOTAGE_BE_PASSWORD: ${{ secrets.PILOTAGE_BE_PASSWORD }}
+          PILOTAGE_OHADA_PASSWORD: ${{ secrets.PILOTAGE_OHADA_PASSWORD }}
+
+  remote-accounting-compliance:
+    needs: guards
+    if: ${{ github.ref == 'refs/heads/main' && secrets.SUPABASE_URL != '' && secrets.SUPABASE_SERVICE_ROLE_KEY != '' && secrets.VITE_SUPABASE_ANON_KEY != '' && secrets.PILOTAGE_FR_PASSWORD != '' && secrets.PILOTAGE_BE_PASSWORD != '' && secrets.PILOTAGE_OHADA_PASSWORD != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run accounting company-scope checks
+        run: npm run verify:accounting-company-scope
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          PILOTAGE_FR_PASSWORD: ${{ secrets.PILOTAGE_FR_PASSWORD }}
+          PILOTAGE_BE_PASSWORD: ${{ secrets.PILOTAGE_BE_PASSWORD }}
+          PILOTAGE_OHADA_PASSWORD: ${{ secrets.PILOTAGE_OHADA_PASSWORD }}
+
+  remote-smoke-ui:
+    needs:
+      - guards
+      - remote-reliability
+      - remote-accounting-compliance
+    if: ${{ github.ref == 'refs/heads/main' && secrets.SUPABASE_URL != '' && secrets.SUPABASE_SERVICE_ROLE_KEY != '' && secrets.PILOTAGE_FR_PASSWORD != '' && secrets.PILOTAGE_BE_PASSWORD != '' && secrets.PILOTAGE_OHADA_PASSWORD != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run production smoke UI
+        run: npm run verify:smoke-ui
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PILOTAGE_FR_PASSWORD: ${{ secrets.PILOTAGE_FR_PASSWORD }}
+          PILOTAGE_BE_PASSWORD: ${{ secrets.PILOTAGE_BE_PASSWORD }}
+          PILOTAGE_OHADA_PASSWORD: ${{ secrets.PILOTAGE_OHADA_PASSWORD }}
+          PLAYWRIGHT_HEADLESS: true
+
   security:
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -64,8 +150,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Run npm audit at moderate level to catch moderate+ vulnerabilities.
-      # This step is allowed to fail (continue-on-error on the job) so that
-      # teams can review findings without blocking merges initially.
       - name: Run npm audit
         run: npm audit --audit-level=moderate

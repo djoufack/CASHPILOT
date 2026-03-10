@@ -40,8 +40,8 @@ export function normalizeTransactions(invoices = [], expenses = [], supplierInvo
     all.push({
       id: exp.id,
       source_type: 'expense',
-      date: exp.date
-        ? (typeof exp.date === 'string' ? exp.date.split('T')[0] : formatDateInput(exp.date))
+      date: exp.expense_date
+        ? (typeof exp.expense_date === 'string' ? exp.expense_date.split('T')[0] : formatDateInput(exp.expense_date))
         : null,
       amount: -Math.abs(amount),
       description: exp.description || exp.category || 'Dépense',

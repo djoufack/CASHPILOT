@@ -51,9 +51,9 @@ export const useBankAlerts = () => {
       const weekAgo = formatDateInput(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
       let recentExpensesQuery = supabase
         .from('expenses')
-        .select('description, amount, date')
+        .select('description, amount, expense_date')
         .eq('user_id', user.id)
-        .gte('date', weekAgo)
+        .gte('expense_date', weekAgo)
         .gt('amount', thresholds.large_expense);
       recentExpensesQuery = applyCompanyScope(recentExpensesQuery);
       const { data: recentExpenses } = await recentExpensesQuery;
@@ -63,7 +63,7 @@ export const useBankAlerts = () => {
           type: 'large_expense',
           severity: 'info',
           title: `D\u00E9pense importante: ${exp.amount?.toFixed(2)}\u20AC`,
-          description: `${exp.description} le ${exp.date}`,
+          description: `${exp.description} le ${exp.expense_date}`,
           amount: exp.amount,
         });
       });

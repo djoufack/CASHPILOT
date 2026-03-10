@@ -327,6 +327,8 @@ serve(async (req) => {
           const invoiceId = url.searchParams.get('invoice_id');
           if (invoiceId) query = query.eq('invoice_id', invoiceId);
           query = query.order('payment_date', { ascending: false });
+        } else if (resource === 'expenses') {
+          query = query.order('expense_date', { ascending: false });
         } else {
           query = query.order('created_at', { ascending: false });
         }
@@ -653,8 +655,8 @@ async function handleTaxSummary(supabase: ReturnType<typeof createClient>, userI
   const [invoicesRes, expensesRes, taxRatesRes] = await Promise.all([
     supabase.from('invoices').select('total_ht, total_ttc, tax_rate, date')
       .eq('user_id', userId).gte('date', startDate).lte('date', endDate),
-    supabase.from('expenses').select('amount, created_at, category')
-      .eq('user_id', userId).gte('created_at', startDate).lte('created_at', endDate),
+    supabase.from('expenses').select('amount, expense_date, category')
+      .eq('user_id', userId).gte('expense_date', startDate).lte('expense_date', endDate),
     supabase.from('accounting_tax_rates').select('*').eq('user_id', userId),
   ]);
 
@@ -736,8 +738,8 @@ async function handleCashFlow(supabase: ReturnType<typeof createClient>, userId:
   const [invoicesRes, expensesRes] = await Promise.all([
     supabase.from('invoices').select('total_ttc, date, status')
       .eq('user_id', userId).in('status', ['paid', 'sent']).gte('date', startStr),
-    supabase.from('expenses').select('amount, created_at, category')
-      .eq('user_id', userId).gte('created_at', startStr),
+    supabase.from('expenses').select('amount, expense_date, category')
+      .eq('user_id', userId).gte('expense_date', startStr),
   ]);
 
   // Group by month
@@ -755,7 +757,7 @@ async function handleCashFlow(supabase: ReturnType<typeof createClient>, userId:
   }
 
   for (const exp of expensesRes.data ?? []) {
-    const key = exp.created_at?.substring(0, 7);
+    const key = exp.expense_date?.substring(0, 7);
     if (key && monthlyData[key]) monthlyData[key].expenses += parseFloat(exp.amount || '0');
   }
 
@@ -792,7 +794,7 @@ async function handleKpis(supabase: ReturnType<typeof createClient>, userId: str
     supabase.from('invoices').select('total_ttc')
       .eq('user_id', userId).gte('date', monthStart).in('status', ['paid']),
     supabase.from('expenses').select('amount')
-      .eq('user_id', userId).gte('created_at', monthStart).lte('created_at', today),
+      .eq('user_id', userId).gte('expense_date', monthStart).lte('expense_date', today),
     supabase.from('invoices').select('total_ttc')
       .eq('user_id', userId).in('payment_status', ['unpaid', 'partial']),
   ]);

@@ -24,8 +24,8 @@ export const calculateVATBreakdown = async (userId, startDate, endDate) => {
     .from('expenses')
     .select('amount, vat_amount, vat_rate, category')
     .eq('user_id', userId)
-    .gte('date', startDate)
-    .lte('date', endDate);
+    .gte('expense_date', startDate)
+    .lte('expense_date', endDate);
   if (expensesError) throw expensesError;
 
   // Calculate output VAT (TVA collectee)

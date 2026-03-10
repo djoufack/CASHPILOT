@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
@@ -28,7 +27,7 @@ export const useExpenses = () => {
     async () => {
       if (!user) return [];
       if (!supabase) {
-        console.warn("Supabase not configured");
+        console.warn('Supabase not configured');
         return [];
       }
       let query = supabase
@@ -48,7 +47,7 @@ export const useExpenses = () => {
   const fetchExpenses = useCallback(async ({ page, pageSize } = {}) => {
     if (!user) return;
     if (!supabase) {
-      console.warn("Supabase not configured");
+      console.warn('Supabase not configured');
       return;
     }
     setLoading(true);
@@ -84,19 +83,20 @@ export const useExpenses = () => {
 
   const createExpense = async (expenseData) => {
     if (!user) return;
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     if (!activeCompanyId) {
       toast({ title: 'Error', description: 'No active company selected', variant: 'destructive' });
       return null;
     }
     setLoading(true);
     try {
-      const payload = {
-        ...withCompanyScope(expenseData),
+      const normalizedExpenseDate = expenseData.expense_date || expenseData.date || formatDateInput();
+      const payload = withCompanyScope({
+        ...expenseData,
         user_id: user.id,
-        date: expenseData.date || new Date().toISOString(),
-        expense_date: expenseData.expense_date || expenseData.date || formatDateInput()
-      };
+        expense_date: normalizedExpenseDate,
+      });
+      delete payload.date;
 
       const { data, error } = await supabase
         .from('expenses')
@@ -120,9 +120,9 @@ export const useExpenses = () => {
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Error creating expense",
+        title: 'Error creating expense',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive'
       });
       throw err;
     } finally {
@@ -132,24 +132,35 @@ export const useExpenses = () => {
 
   const updateExpense = async (id, updates) => {
     if (!user) return;
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
+      const normalizedUpdates = { ...updates };
+      if (updates.expense_date || updates.date) {
+        normalizedUpdates.expense_date = updates.expense_date || updates.date;
+      }
+      delete normalizedUpdates.date;
+
       const { data, error } = await supabase
         .from('expenses')
-        .update(updates)
+        .update(normalizedUpdates)
         .eq('id', id)
         .select()
         .single();
       if (error) throw error;
       logAction('update', 'expense', null, data);
       setExpenses(prev => prev.map(e => e.id === id ? data : e));
-      void triggerWebhook('expense.updated', { id: data.id, company_id: data.company_id, amount: data.amount });
-      toast({ title: "Dépense mise à jour" });
+      void triggerWebhook('expense.updated', {
+        id: data.id,
+        company_id: data.company_id,
+        amount: data.amount,
+        expense_date: data.expense_date,
+      });
+      toast({ title: 'Dépense mise à jour' });
       return data;
     } catch (err) {
       setError(err.message);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -158,7 +169,7 @@ export const useExpenses = () => {
 
   const deleteExpense = async (id) => {
     if (!user) return;
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       const { error } = await supabase.from('expenses').delete().eq('id', id);
@@ -166,10 +177,10 @@ export const useExpenses = () => {
       logAction('delete', 'expense', { id }, null);
       setExpenses(prev => prev.filter(e => e.id !== id));
       void triggerWebhook('expense.deleted', { id });
-      toast({ title: "Dépense supprimée" });
+      toast({ title: 'Dépense supprimée' });
     } catch (err) {
       setError(err.message);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);

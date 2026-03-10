@@ -65,8 +65,8 @@ export const aggregateExpensesByMonth = (expenses) => {
   const expenseMap = {};
 
   expenses.forEach(exp => {
-    if (exp.date || exp.created_at) {
-      const dateStr = exp.date || exp.created_at;
+    if (exp.expense_date || exp.created_at) {
+      const dateStr = exp.expense_date || exp.created_at;
       const date = parseISO(dateStr);
       if (isValid(date)) {
         const monthKey = format(date, 'yyyy-MM');

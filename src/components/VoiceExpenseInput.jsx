@@ -55,7 +55,7 @@ const extractExpenseLocally = (text) => {
   return {
     amount,
     category,
-    date,
+    expense_date: date,
     description: text,
     confidence: amount ? 0.7 : 0.3
   };
@@ -244,7 +244,7 @@ const VoiceExpenseInput = ({ onExpenseDetected, onCancel }) => {
               </div>
               <div>
                 <span className="text-gray-500">Date:</span>
-                <span className="ml-2 text-white">{detectedExpense.date}</span>
+                <span className="ml-2 text-white">{detectedExpense.expense_date}</span>
               </div>
               <div>
                 <span className="text-gray-500">Confiance:</span>

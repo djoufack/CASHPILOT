@@ -41,7 +41,7 @@ serve(async (req) => {
     const days = analysisScope === 'last_30_days' ? 30 : analysisScope === 'last_90_days' ? 90 : 365;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-    const startDateIso = startDate.toISOString();
+    const startDateIso = startDate.toISOString().split('T')[0];
 
     const [invoicesResult, expensesResult] = await Promise.all([
       supabase
@@ -51,9 +51,9 @@ serve(async (req) => {
         .gte('date', startDateIso),
       supabase
         .from('expenses')
-        .select('id, amount, category, date, description, supplier_id')
+        .select('id, amount, category, expense_date, description, supplier_id')
         .eq('user_id', resolvedUserId)
-        .gte('date', startDateIso)
+        .gte('expense_date', startDateIso)
     ]);
 
     if (invoicesResult.error) {

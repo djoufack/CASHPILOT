@@ -42,7 +42,7 @@ const resolveInvoiceDate = (invoice = {}) => (
 );
 
 const resolveExpenseDate = (expense = {}) => (
-  expense.expense_date || expense.date || expense.created_at || null
+  expense.expense_date || expense.created_at || null
 );
 
 const resolveTimesheetDate = (timesheet = {}) => (

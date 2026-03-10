@@ -52,8 +52,8 @@ serve(async (req) => {
         .from('expenses')
         .select('amount, category, vat_amount')
         .eq('user_id', resolvedUserId)
-        .gte('date', startDate)
-        .lte('date', endDate)
+        .gte('expense_date', startDate)
+        .lte('expense_date', endDate)
     ]);
 
     if (invoicesResult.error) {

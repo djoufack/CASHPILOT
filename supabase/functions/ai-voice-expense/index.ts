@@ -70,7 +70,7 @@ Reponds UNIQUEMENT avec un objet JSON valide (sans texte supplementaire):
 {
   "amount": number ou null si non detecte,
   "category": une des categories ci-dessus ou "other" si incertain,
-  "date": "YYYY-MM-DD" (utilise la date d'aujourd'hui si non specifiee: ${new Date().toISOString().split('T')[0]}),
+  "expense_date": "YYYY-MM-DD" (utilise la date d'aujourd'hui si non specifiee: ${new Date().toISOString().split('T')[0]}),
   "description": "description courte de la depense",
   "confidence": number entre 0 et 1 indiquant ta confiance dans l'extraction
 }
@@ -127,7 +127,7 @@ Regles:
       expense = {
         amount: typeof expense.amount === 'number' ? expense.amount : null,
         category: EXPENSE_CATEGORIES.includes(expense.category) ? expense.category : 'other',
-        date: expense.date || new Date().toISOString().split('T')[0],
+        expense_date: expense.expense_date || expense.date || new Date().toISOString().split('T')[0],
         description: String(expense.description || '').slice(0, 255),
         confidence: Math.min(1, Math.max(0, Number(expense.confidence) || 0.5))
       };

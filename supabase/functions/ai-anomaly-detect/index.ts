@@ -25,7 +25,7 @@ serve(async (req) => {
     // Fetch recent financial data
     const [invoices, expenses, payments] = await Promise.all([
       supabase.from('invoices').select('invoice_number, total_ttc, status, date, due_date').eq('user_id', userId).order('created_at', { ascending: false }).limit(50),
-      supabase.from('expenses').select('description, amount, category, date').eq('user_id', userId).order('date', { ascending: false }).limit(50),
+      supabase.from('expenses').select('description, amount, category, expense_date').eq('user_id', userId).order('expense_date', { ascending: false }).limit(50),
       supabase.from('payments').select('amount, payment_date, method').eq('user_id', userId).order('payment_date', { ascending: false }).limit(50),
     ]);
     if (invoices.error) throw invoices.error;
