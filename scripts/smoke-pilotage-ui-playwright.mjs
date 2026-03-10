@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { chromium } from 'playwright';
+import { createClient } from '@supabase/supabase-js';
 
 const BASE_URL = (process.env.SMOKE_UI_BASE_URL || 'https://cashpilot.tech').trim().replace(/\/+$/, '');
 const OUTPUT_DIR = path.resolve('artifacts', 'playwright-smoke');
@@ -12,48 +13,24 @@ const BROWSER_CHANNELS = [
   'chrome',
 ].filter(Boolean);
 
-const DEMO_ACCOUNTS = [
+const DEMO_ACCOUNT_TEMPLATES = [
   {
     key: 'FR',
     email: process.env.PILOTAGE_FR_EMAIL || 'pilotage.fr.demo@cashpilot.cloud',
-    password: process.env.PILOTAGE_FR_PASSWORD || 'PilotageFR#2026!',
-    primaryCompany: 'CashPilot Demo France SAS',
-    secondaryCompany: 'CashPilot Demo France Portfolio SARL',
-    checks: {
-      purchases: 'SO-FR-2026-901',
-      supplierInvoices: 'SUP-FR-2026-901',
-      stock: 'FR-PORT-001',
-      bank: 'Banque Demo France',
-      peppol: 'FR-PORT-2026-001',
-    },
+    passwordEnv: 'PILOTAGE_FR_PASSWORD',
+    fallbackPassword: 'PilotageFR#2026!',
   },
   {
     key: 'BE',
     email: process.env.PILOTAGE_BE_EMAIL || 'pilotage.be.demo@cashpilot.cloud',
-    password: process.env.PILOTAGE_BE_PASSWORD || 'PilotageBE#2026!',
-    primaryCompany: 'CashPilot Demo Belgium SRL',
-    secondaryCompany: 'CashPilot Demo Belgium Portfolio BV',
-    checks: {
-      purchases: 'SO-BE-2026-901',
-      supplierInvoices: 'SUP-BE-2026-901',
-      stock: 'BE-PORT-001',
-      bank: 'Banque Demo Belgique',
-      peppol: 'BE-PORT-2026-001',
-    },
+    passwordEnv: 'PILOTAGE_BE_PASSWORD',
+    fallbackPassword: 'PilotageBE#2026!',
   },
   {
     key: 'OHADA',
     email: process.env.PILOTAGE_OHADA_EMAIL || 'pilotage.ohada.demo@cashpilot.cloud',
-    password: process.env.PILOTAGE_OHADA_PASSWORD || 'PilotageOHADA#2026!',
-    primaryCompany: 'CashPilot Demo Afrique SARL',
-    secondaryCompany: 'CashPilot Demo Afrique Portfolio SARL',
-    checks: {
-      purchases: 'SO-OHADA-2026-901',
-      supplierInvoices: 'SUP-OHADA-2026-901',
-      stock: 'OHADA-PORT-001',
-      bank: 'Banque Demo Afrique',
-      peppol: 'OHADA-PORT-2026-001',
-    },
+    passwordEnv: 'PILOTAGE_OHADA_PASSWORD',
+    fallbackPassword: 'PilotageOHADA#2026!',
   },
 ];
 
@@ -61,32 +38,70 @@ const PAGE_CHECKS = [
   {
     key: 'purchases',
     path: '/app/purchases',
-    expectedText: (account) => account.checks.purchases,
+    expectedText: (account) => account.expectations.purchases,
   },
   {
     key: 'supplierInvoices',
     path: '/app/supplier-invoices',
-    expectedText: (account) => account.checks.supplierInvoices,
+    expectedText: (account) => account.expectations.supplierInvoices,
   },
   {
     key: 'stock',
     path: '/app/stock',
-    expectedText: (account) => account.checks.stock,
+    expectedText: (account) => account.expectations.stock,
+    beforeCheck: async (page) => {
+      const inventoryTab = page.getByRole('tab', { name: /Inventory|Inventaire/i }).first();
+      if (await inventoryTab.isVisible().catch(() => false)) {
+        await inventoryTab.click();
+      }
+    },
   },
   {
     key: 'bankConnections',
     path: '/app/bank-connections',
-    expectedText: (account) => account.checks.bank,
+    expectedText: (account) => account.expectations.bankConnections,
   },
   {
     key: 'peppol',
     path: '/app/peppol',
-    expectedText: (account) => account.checks.peppol,
+    expectedText: (account) => account.expectations.peppol,
   },
 ];
 
+function requireEnv(name) {
+  const value = process.env[name];
+  if (!value || !String(value).trim()) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
+
+  return String(value).trim();
+}
+
+function optionalEnv(...names) {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value && String(value).trim()) {
+      return String(value).trim();
+    }
+  }
+  return null;
+}
+
 function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    if (value != null && String(value).trim()) {
+      return String(value).trim();
+    }
+  }
+  return null;
+}
+
+function shortCompanyFragment(companyName) {
+  return String(companyName || '').trim().slice(0, 18);
 }
 
 async function ensureDir(dirPath) {
@@ -122,15 +137,19 @@ async function launchBrowser() {
   throw new Error(`Unable to launch Playwright browser. Tried ${launchErrors.join(' | ')}`);
 }
 
-async function waitForText(page, text, timeout = DEFAULT_TIMEOUT) {
-  await page.locator(`text=${text}`).first().waitFor({ state: 'visible', timeout });
-}
-
 async function captureFailure(page, accountKey, label) {
   const screenshotPath = path.join(OUTPUT_DIR, `${accountKey}-${label}.png`);
   await ensureDir(OUTPUT_DIR);
   await page.screenshot({ path: screenshotPath, fullPage: true });
   return screenshotPath;
+}
+
+async function waitForExpectedText(page, expectedText, timeout = DEFAULT_TIMEOUT) {
+  if (!expectedText) {
+    throw new Error('Missing expected text for page check');
+  }
+
+  await page.getByText(expectedText, { exact: false }).first().waitFor({ state: 'visible', timeout });
 }
 
 async function login(page, account) {
@@ -140,7 +159,15 @@ async function login(page, account) {
   await page.locator('form button[type="submit"]').click();
   await page.waitForFunction(() => window.location.pathname.startsWith('/app'), { timeout: DEFAULT_TIMEOUT });
   await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {});
-  await page.locator('main').waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
+
+  if (!page.url().includes('/app')) {
+    await page.goto(`${BASE_URL}/app`, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => window.location.pathname.startsWith('/app'), { timeout: DEFAULT_TIMEOUT });
+    await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {});
+  }
+
+  await page.locator('body').waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
+  await dismissInterferingOverlays(page);
 }
 
 async function dismissInterferingOverlays(page) {
@@ -158,16 +185,30 @@ async function dismissInterferingOverlays(page) {
 async function switchToSecondaryCompany(page, account) {
   await dismissInterferingOverlays(page);
 
-  const trigger = page.getByRole('button', { name: new RegExp(escapeRegex(account.primaryCompany)) }).first();
+  const primaryFragment = shortCompanyFragment(account.primaryCompany.company_name);
+  const secondaryName = account.secondaryCompany.company_name;
+  const secondaryFragment = shortCompanyFragment(secondaryName);
+
+  const trigger = page.locator('button').filter({ hasText: new RegExp(escapeRegex(primaryFragment), 'i') }).first();
   await trigger.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
   await trigger.click();
+  await page.waitForTimeout(200);
 
-  const target = page.getByRole('button', { name: new RegExp(escapeRegex(account.secondaryCompany)) }).first();
+  const target = page.locator('button').filter({ hasText: new RegExp(escapeRegex(secondaryName), 'i') }).last();
   await target.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
   await target.click();
 
-  const activeButton = page.getByRole('button', { name: new RegExp(escapeRegex(account.secondaryCompany)) }).first();
-  await activeButton.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
+  await page.waitForFunction(
+    (fragment) => Array.from(document.querySelectorAll('button')).some((button) => {
+      const text = button.textContent || '';
+      const rects = button.getClientRects();
+      return rects.length > 0 && text.includes(fragment);
+    }),
+    secondaryFragment,
+    { timeout: DEFAULT_TIMEOUT },
+  );
+
+  await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {});
 }
 
 async function runPageCheck(page, account, check) {
@@ -183,7 +224,14 @@ async function runPageCheck(page, account, check) {
   try {
     await page.goto(`${BASE_URL}${check.path}`, { waitUntil: 'domcontentloaded' });
     await page.waitForURL(new RegExp(`${escapeRegex(check.path)}(?:[?#].*)?$`), { timeout: DEFAULT_TIMEOUT });
-    await waitForText(page, result.expectedText);
+    await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {});
+    await dismissInterferingOverlays(page);
+
+    if (typeof check.beforeCheck === 'function') {
+      await check.beforeCheck(page, account);
+    }
+
+    await waitForExpectedText(page, result.expectedText);
     result.passed = true;
   } catch (error) {
     result.error = error.message;
@@ -191,6 +239,170 @@ async function runPageCheck(page, account, check) {
   }
 
   return result;
+}
+
+async function getUserByEmail(serviceClient, email) {
+  let page = 1;
+  while (page <= 20) {
+    const { data, error } = await serviceClient.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw error;
+    const user = (data?.users || []).find((entry) => String(entry.email || '').toLowerCase() === email.toLowerCase());
+    if (user) return user;
+    if (!data?.users?.length) break;
+    page += 1;
+  }
+  return null;
+}
+
+async function fetchRows(query, label) {
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`${label}: ${error.message}`);
+  }
+  return data || [];
+}
+
+function pickFirstText(rows, pickers) {
+  for (const row of rows) {
+    for (const picker of pickers) {
+      const value = picker(row);
+      if (value != null && String(value).trim()) {
+        return String(value).trim();
+      }
+    }
+  }
+  return null;
+}
+
+async function loadExpectations(serviceClient, userId, company) {
+  const purchasesRows = await fetchRows(
+    serviceClient
+      .from('supplier_orders')
+      .select('order_number')
+      .eq('user_id', userId)
+      .eq('company_id', company.id)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    `supplier_orders for ${company.company_name}`,
+  );
+
+  const supplierInvoiceRows = await fetchRows(
+    serviceClient
+      .from('supplier_invoices')
+      .select('invoice_number')
+      .eq('user_id', userId)
+      .eq('company_id', company.id)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    `supplier_invoices for ${company.company_name}`,
+  );
+
+  const productRows = await fetchRows(
+    serviceClient
+      .from('products')
+      .select('product_name, sku')
+      .eq('user_id', userId)
+      .eq('company_id', company.id)
+      .eq('is_active', true)
+      .order('product_name', { ascending: true })
+      .limit(20),
+    `products for ${company.company_name}`,
+  );
+
+  const bankConnectionRows = await fetchRows(
+    serviceClient
+      .from('bank_connections')
+      .select('account_name, institution_name')
+      .eq('user_id', userId)
+      .eq('company_id', company.id)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    `bank_connections for ${company.company_name}`,
+  );
+
+  const peppolInvoiceRows = await fetchRows(
+    serviceClient
+      .from('invoices')
+      .select('invoice_number, peppol_status')
+      .eq('user_id', userId)
+      .eq('company_id', company.id)
+      .in('peppol_status', ['pending', 'sent', 'delivered', 'accepted', 'error', 'rejected'])
+      .order('created_at', { ascending: false })
+      .limit(10),
+    `peppol invoices for ${company.company_name}`,
+  );
+
+  const expectations = {
+    purchases: pickFirstText(purchasesRows, [(row) => row.order_number]),
+    supplierInvoices: pickFirstText(supplierInvoiceRows, [(row) => row.invoice_number]),
+    stock: pickFirstText(productRows, [(row) => row.product_name, (row) => row.sku]),
+    bankConnections: pickFirstText(bankConnectionRows, [(row) => row.account_name, (row) => row.institution_name]),
+    peppol: firstNonEmpty(
+      company.peppol_endpoint_id,
+      pickFirstText(peppolInvoiceRows, [(row) => row.invoice_number]),
+    ),
+  };
+
+  const missing = Object.entries(expectations)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+
+  if (missing.length > 0) {
+    throw new Error(`Missing live expectations for ${company.company_name}: ${missing.join(', ')}`);
+  }
+
+  return expectations;
+}
+
+async function buildRuntimeAccounts() {
+  const supabaseUrl = requireEnv('SUPABASE_URL');
+  const serviceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+  const serviceClient = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+
+  const runtimes = [];
+  for (const template of DEMO_ACCOUNT_TEMPLATES) {
+    const user = await getUserByEmail(serviceClient, template.email);
+    if (!user) {
+      throw new Error(`Demo user not found: ${template.email}`);
+    }
+
+    const companies = await fetchRows(
+      serviceClient
+        .from('company')
+        .select('id, company_name, peppol_endpoint_id')
+        .eq('user_id', user.id)
+        .order('company_name', { ascending: true }),
+      `company rows for ${template.email}`,
+    );
+
+    const { data: preference, error: preferenceError } = await serviceClient
+      .from('user_company_preferences')
+      .select('active_company_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (preferenceError) {
+      throw new Error(`user_company_preferences for ${template.email}: ${preferenceError.message}`);
+    }
+
+    const primaryCompany = companies.find((company) => company.id === preference?.active_company_id) || companies[0];
+    const secondaryCompany = companies.find((company) => company.id !== primaryCompany?.id) || null;
+
+    if (!primaryCompany || !secondaryCompany) {
+      throw new Error(`Need at least 2 companies for ${template.email} to run the smoke switch test`);
+    }
+
+    runtimes.push({
+      key: template.key,
+      email: template.email,
+      password: optionalEnv(template.passwordEnv) || template.fallbackPassword,
+      primaryCompany,
+      secondaryCompany,
+      expectations: await loadExpectations(serviceClient, user.id, secondaryCompany),
+    });
+  }
+
+  return runtimes;
 }
 
 async function smokeAccount(browser, account) {
@@ -217,6 +429,9 @@ async function smokeAccount(browser, account) {
   const accountResult = {
     key: account.key,
     email: account.email,
+    primaryCompany: account.primaryCompany.company_name,
+    secondaryCompany: account.secondaryCompany.company_name,
+    expectations: account.expectations,
     passed: false,
     login: false,
     switchedCompany: false,
@@ -231,15 +446,15 @@ async function smokeAccount(browser, account) {
     await switchToSecondaryCompany(page, account);
     accountResult.switchedCompany = true;
 
+    const pageChecks = [];
     for (const check of PAGE_CHECKS) {
-      const pageResult = await runPageCheck(page, account, check);
-      accountResult.pageChecks.push(pageResult);
-      if (!pageResult.passed) {
-        accountResult.failures.push(`${check.key}: ${pageResult.error}`);
-      }
+      pageChecks.push(await runPageCheck(page, account, check));
     }
-
-    accountResult.passed = accountResult.pageChecks.every((check) => check.passed);
+    accountResult.pageChecks = pageChecks;
+    accountResult.failures = pageChecks
+      .filter((check) => !check.passed)
+      .map((check) => `${check.key}: ${check.error}`);
+    accountResult.passed = pageChecks.every((check) => check.passed);
   } catch (error) {
     accountResult.failures.push(error.message);
     accountResult.screenshot = await captureFailure(page, account.key, 'fatal');
@@ -256,10 +471,8 @@ async function main() {
   const browser = await launchBrowser();
 
   try {
-    const accounts = [];
-    for (const account of DEMO_ACCOUNTS) {
-      accounts.push(await smokeAccount(browser, account));
-    }
+    const runtimeAccounts = await buildRuntimeAccounts();
+    const accounts = await Promise.all(runtimeAccounts.map((account) => smokeAccount(browser, account)));
 
     const summary = {
       baseUrl: BASE_URL,
@@ -284,3 +497,8 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
+
+
+
+

@@ -184,8 +184,8 @@ serve(async (req) => {
           .from('expenses')
           .select('*')
           .eq('user_id', userId)
-          .gte('date', periodStart)
-          .lte('date', periodEnd);
+          .gte('expense_date', periodStart)
+          .lte('expense_date', periodEnd);
         if (companyId) q = q.eq('company_id', companyId);
         return q;
       })(),
@@ -824,3 +824,4 @@ serve(async (req) => {
     );
   }
 });
+
