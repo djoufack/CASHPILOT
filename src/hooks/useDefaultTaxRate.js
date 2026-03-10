@@ -2,11 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
-const DEFAULT_TAX_RATE = 20;
-
 export const useDefaultTaxRate = () => {
   const { user } = useAuth();
-  const [defaultRate, setDefaultRate] = useState(DEFAULT_TAX_RATE);
+  const [defaultRate, setDefaultRate] = useState(0);
   const [taxRates, setTaxRates] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,29 +16,25 @@ export const useDefaultTaxRate = () => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('accounting_tax_rates')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('is_default', { ascending: false });
 
-      if (error) throw error;
+      const [{ data: ratesData, error: ratesError }, { data: resolvedRate, error: defaultRateError }] = await Promise.all([
+        supabase
+          .from('accounting_tax_rates')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('is_default', { ascending: false }),
+        supabase.rpc('get_default_tax_rate', { target_user_id: user.id }),
+      ]);
 
-      const rates = data || [];
-      setTaxRates(rates);
+      if (ratesError) throw ratesError;
+      if (defaultRateError) throw defaultRateError;
 
-      // Find the default rate: first is_default=true, otherwise fallback
-      const defaultEntry = rates.find(r => r.is_default === true);
-      if (defaultEntry && typeof defaultEntry.rate === 'number') {
-        setDefaultRate(defaultEntry.rate);
-      } else if (rates.length > 0 && typeof rates[0].rate === 'number') {
-        setDefaultRate(rates[0].rate);
-      } else {
-        setDefaultRate(DEFAULT_TAX_RATE);
-      }
+      setTaxRates(ratesData || []);
+      setDefaultRate(typeof resolvedRate === 'number' ? resolvedRate : 0);
     } catch (err) {
       console.error('Error fetching default tax rate:', err);
-      setDefaultRate(DEFAULT_TAX_RATE);
+      setTaxRates([]);
+      setDefaultRate(0);
     } finally {
       setLoading(false);
     }
@@ -51,8 +45,13 @@ export const useDefaultTaxRate = () => {
       fetchTaxRates();
     } else {
       setLoading(false);
+      setTaxRates([]);
+      setDefaultRate(0);
     }
   }, [fetchTaxRates, user]);
 
   return { defaultRate, taxRates, loading };
 };
+
+
+

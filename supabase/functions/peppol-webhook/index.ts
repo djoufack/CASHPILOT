@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { consumeCredits, HttpError, refundCredits } from '../_shared/billing.ts';
+import { consumeCredits, HttpError, refundCredits, resolveCreditCost } from '../_shared/billing.ts';
 
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
@@ -10,7 +10,6 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const PEPPOL_RECEIVE_CREDITS = 3;
 
 async function verifyHmacSignature(body: string, signature: string, secret: string): Promise<boolean> {
   const encoder = new TextEncoder();
@@ -136,14 +135,34 @@ serve(async (req) => {
 
       if (!existing) {
         let creditDeduction = null;
+        let billingSkippedReason: string | null = null;
 
         try {
-          creditDeduction = await consumeCredits(
-            supabaseAdmin,
-            userId,
-            PEPPOL_RECEIVE_CREDITS,
-            `Peppol inbound webhook ${documentId}`,
-          );
+          const peppolReceiveCredits = await resolveCreditCost(supabaseAdmin, 'PEPPOL_RECEIVE_INVOICE');
+
+          try {
+            creditDeduction = await consumeCredits(
+              supabaseAdmin,
+              userId,
+              peppolReceiveCredits,
+              `Peppol inbound webhook ${documentId}`,
+            );
+          } catch (billingError) {
+            if (billingError instanceof HttpError && billingError.status === 402) {
+              return new Response(JSON.stringify({ error: 'insufficient_credits', documentId }), {
+                status: 402,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              });
+            }
+
+            const billingMessage = String((billingError as Error)?.message || '').toLowerCase();
+            if (billingMessage.includes('forbidden')) {
+              // Compatibility fallback for service-key contexts where billing RPC role checks reject webhook calls.
+              billingSkippedReason = 'billing_forbidden';
+            } else {
+              throw billingError;
+            }
+          }
 
           const metadata = {
             eventId,
@@ -151,6 +170,7 @@ serve(async (req) => {
             senderPeppolId,
             c2MessageId: req.headers.get('x-scrada-peppol-c2-message-id'),
             c3Timestamp: req.headers.get('x-scrada-peppol-c3-timestamp'),
+            billingSkippedReason,
           };
 
           const { error: insertDocError } = await supabaseAdmin.from('peppol_inbound_documents').insert({
@@ -177,17 +197,9 @@ serve(async (req) => {
             );
           }
 
-          if (error instanceof HttpError && error.status === 402) {
-            return new Response(JSON.stringify({ error: 'insufficient_credits', documentId }), {
-              status: 402,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-
           throw error;
         }
       }
-
       return new Response(JSON.stringify({ received: true, topic, documentId }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -203,3 +215,5 @@ serve(async (req) => {
     });
   }
 });
+
+

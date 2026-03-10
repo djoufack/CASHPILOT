@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { consumeCredits, createAuthClient, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
+import { consumeCredits, createAuthClient, HttpError, refundCredits, requireAuthenticatedUser, resolveCreditCost } from '../_shared/billing.ts';
+import { resolveScradaCredentials } from '../_shared/scradaCredentials.ts';
 
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
@@ -9,7 +10,6 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const PEPPOL_RECEIVE_CREDITS = 3;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,24 +24,24 @@ serve(async (req) => {
 
     const user = await requireAuthenticatedUser(req);
     const supabase = createAuthClient(authHeader);
-    const serviceSupabase = createServiceClient();
     const body = await req.json();
     const action = body.action || 'list';
 
     const { data: company } = await supabase
       .from('company')
-      .select('peppol_endpoint_id, peppol_scheme_id, scrada_company_id, scrada_api_key, scrada_password')
+      .select('peppol_endpoint_id, peppol_scheme_id, scrada_company_id, scrada_api_key, scrada_password, scrada_api_key_encrypted, scrada_password_encrypted')
       .eq('user_id', user.id)
       .single();
 
-    if (!company?.scrada_company_id || !company?.scrada_api_key || !company?.scrada_password) {
+    const { apiKey, password } = await resolveScradaCredentials(company);
+    if (!company?.scrada_company_id || !apiKey || !password) {
       throw new HttpError(400, 'Scrada credentials not configured');
     }
 
     const scradaBaseUrl = Deno.env.get('SCRADA_API_URL') || 'https://api.scrada.be/v1';
     const scradaHeaders = {
-      'X-API-KEY': company.scrada_api_key,
-      'X-PASSWORD': company.scrada_password,
+      'X-API-KEY': apiKey,
+      'X-PASSWORD': password,
       'Language': 'FR',
     };
 
@@ -103,12 +103,13 @@ serve(async (req) => {
         });
       }
 
-      const requiredCredits = newDocuments.length * PEPPOL_RECEIVE_CREDITS;
+      const peppolReceiveCredits = await resolveCreditCost(supabase, 'PEPPOL_RECEIVE_INVOICE');
+      const requiredCredits = newDocuments.length * peppolReceiveCredits;
       let creditDeduction = null;
 
       try {
         creditDeduction = await consumeCredits(
-          serviceSupabase,
+          supabase,
           user.id,
           requiredCredits,
           `Peppol inbound sync (${newDocuments.length} invoices)`,
@@ -152,7 +153,7 @@ serve(async (req) => {
         if (insertDocsError) throw insertDocsError;
       } catch (error) {
         await refundCredits(
-          serviceSupabase,
+          supabase,
           user.id,
           creditDeduction,
           `Refund Peppol inbound sync (${newDocuments.length} invoices)`,
@@ -194,8 +195,8 @@ serve(async (req) => {
       const scradaResponse = await fetch(scradaUrl, {
         method: 'GET',
         headers: {
-          'X-API-KEY': company.scrada_api_key,
-          'X-PASSWORD': company.scrada_password,
+          'X-API-KEY': apiKey,
+          'X-PASSWORD': password,
         },
       });
 
@@ -218,3 +219,7 @@ serve(async (req) => {
     });
   }
 });
+
+
+
+

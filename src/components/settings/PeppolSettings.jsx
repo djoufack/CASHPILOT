@@ -31,26 +31,79 @@ const PeppolSettings = () => {
         peppol_endpoint_id: company.peppol_endpoint_id || '',
         peppol_scheme_id: company.peppol_scheme_id || '0208',
         scrada_company_id: company.scrada_company_id || '',
-        scrada_api_key: company.scrada_api_key || '',
-        scrada_password: company.scrada_password || '',
+        scrada_api_key: '',
+        scrada_password: '',
       });
     }
   }, [company]);
 
-  const handleSave = async () => {
-    const success = await saveCompany({
+  const saveCompanyPeppolProfile = async (options = {}) => {
+    return await saveCompany({
       ...company,
-      ...form,
+      peppol_endpoint_id: form.peppol_endpoint_id,
+      peppol_scheme_id: form.peppol_scheme_id || '0208',
       peppol_ap_provider: 'scrada',
+      scrada_company_id: form.scrada_company_id || null,
+    }, options);
+  };
+
+  const saveScradaCredentials = async () => {
+    if (!company?.id) {
+      throw new Error('Company profile is required before saving Scrada credentials.');
+    }
+
+    const payload = {
+      company_id: company.id,
+      scrada_company_id: String(form.scrada_company_id || '').trim(),
+      scrada_api_key: String(form.scrada_api_key || ''),
+      scrada_password: String(form.scrada_password || ''),
+    };
+
+    const { error } = await supabase.functions.invoke('peppol-save-credentials', {
+      body: payload,
     });
-    if (success) {
+
+    if (error) throw error;
+  };
+
+  const handleSave = async () => {
+    const hasSecretInput = Boolean(form.scrada_api_key || form.scrada_password);
+
+    if (hasSecretInput && (!form.scrada_company_id || !form.scrada_api_key || !form.scrada_password)) {
+      toast({ title: t('peppol.scradaConnectionFailed'), description: 'Remplissez les 3 champs Scrada.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      const success = await saveCompanyPeppolProfile();
+      if (!success) return;
+
+      if (hasSecretInput) {
+        await saveScradaCredentials();
+        setForm(prev => ({ ...prev, scrada_api_key: '', scrada_password: '' }));
+      }
+
       toast({ title: t('peppol.scradaConnectionOk'), description: t('messages.success.settingsSaved') });
+    } catch (err) {
+      const details = await readFunctionErrorData(err);
+      toast({
+        title: t('peppol.scradaConnectionFailed'),
+        description: details?.error || err.message,
+        variant: 'destructive',
+      });
     }
   };
 
   const handleTestConnection = async () => {
-    if (!form.scrada_company_id || !form.scrada_api_key || !form.scrada_password) {
+    const hasSecretInput = Boolean(form.scrada_api_key || form.scrada_password);
+
+    if (hasSecretInput && (!form.scrada_company_id || !form.scrada_api_key || !form.scrada_password)) {
       toast({ title: t('peppol.scradaConnectionFailed'), description: 'Remplissez les 3 champs Scrada.', variant: 'destructive' });
+      return;
+    }
+
+    if (!hasSecretInput && !company?.has_scrada_credentials) {
+      toast({ title: t('peppol.scradaConnectionFailed'), description: 'Ajoutez d abord vos identifiants Scrada.', variant: 'destructive' });
       return;
     }
 
@@ -58,14 +111,15 @@ const PeppolSettings = () => {
     setTestResult(null);
 
     try {
-      const saved = await saveCompany({
-        ...company,
-        ...form,
-        peppol_ap_provider: 'scrada',
-      }, { silent: true });
+      const saved = await saveCompanyPeppolProfile({ silent: true });
       if (!saved) {
         setTestResult({ success: false });
         return;
+      }
+
+      if (hasSecretInput) {
+        await saveScradaCredentials();
+        setForm(prev => ({ ...prev, scrada_api_key: '', scrada_password: '' }));
       }
 
       const { data, error } = await supabase.functions.invoke('peppol-configure');
@@ -240,3 +294,4 @@ const PeppolSettings = () => {
 };
 
 export default PeppolSettings;
+

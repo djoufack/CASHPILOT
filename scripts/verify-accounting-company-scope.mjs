@@ -6,20 +6,17 @@ const DEMO_ACCOUNTS = [
   {
     key: 'FR',
     email: process.env.PILOTAGE_FR_EMAIL || 'pilotage.fr.demo@cashpilot.cloud',
-    passwordEnv: 'PILOTAGE_FR_PASSWORD',
-    fallbackPassword: 'PilotageFR#2026!',
+    passwordEnv: 'PILOTAGE_FR_PASSWORD'
   },
   {
     key: 'BE',
     email: process.env.PILOTAGE_BE_EMAIL || 'pilotage.be.demo@cashpilot.cloud',
-    passwordEnv: 'PILOTAGE_BE_PASSWORD',
-    fallbackPassword: 'PilotageBE#2026!',
+    passwordEnv: 'PILOTAGE_BE_PASSWORD'
   },
   {
     key: 'OHADA',
     email: process.env.PILOTAGE_OHADA_EMAIL || 'pilotage.ohada.demo@cashpilot.cloud',
-    passwordEnv: 'PILOTAGE_OHADA_PASSWORD',
-    fallbackPassword: 'PilotageOHADA#2026!',
+    passwordEnv: 'PILOTAGE_OHADA_PASSWORD'
   },
 ];
 
@@ -109,7 +106,7 @@ async function run() {
   const accountResults = [];
 
   for (const account of DEMO_ACCOUNTS) {
-    const password = optionalEnv(account.passwordEnv) || account.fallbackPassword;
+    const password = requireEnv(account.passwordEnv);
     const user = await getUserByEmail(serviceClient, account.email);
     if (!user) {
       accountResults.push({
@@ -365,3 +362,4 @@ run().catch((error) => {
   console.error('[verify-accounting-company-scope] fatal:', error?.message || error);
   process.exitCode = 1;
 });
+

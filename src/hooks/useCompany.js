@@ -15,6 +15,23 @@ const resolveCompanyAccountingCurrency = (companyData = {}, currentCompany = nul
   return String(rawValue).trim().toUpperCase() || 'EUR';
 };
 
+const sanitizeCompanyRecord = (companyRecord = {}) => {
+  const {
+    scrada_api_key,
+    scrada_password,
+    scrada_api_key_encrypted,
+    scrada_password_encrypted,
+    ...rest
+  } = companyRecord;
+
+  return {
+    ...rest,
+    has_scrada_credentials: Boolean(rest.scrada_company_id && (scrada_api_key_encrypted || scrada_api_key)),
+    scrada_api_key: '',
+    scrada_password: '',
+  };
+};
+
 export const useCompany = () => {
   const { user } = useAuth();
   // Multi-company state
@@ -53,7 +70,7 @@ export const useCompany = () => {
         throw companiesError;
       }
 
-      const allCompanies = companiesData || [];
+      const allCompanies = (companiesData || []).map(sanitizeCompanyRecord);
       setCompanies(allCompanies);
 
       if (allCompanies.length === 0) {
@@ -160,8 +177,6 @@ export const useCompany = () => {
         peppol_scheme_id: companyData.peppol_scheme_id || '0208',
         peppol_ap_provider: companyData.peppol_ap_provider || 'scrada',
         scrada_company_id: companyData.scrada_company_id || null,
-        scrada_api_key: companyData.scrada_api_key || null,
-        scrada_password: companyData.scrada_password || null,
         updated_at: new Date().toISOString()
       };
       const companyFieldsWithAccountingCurrency = {
@@ -211,16 +226,18 @@ export const useCompany = () => {
         console.log('✅ Accounting currency in result:', result?.accounting_currency);
       }
 
+      const sanitizedResult = sanitizeCompanyRecord(result);
+
       // Update companies list and active company
       setCompanies(prev => {
-        const exists = prev.find(c => c.id === result.id);
+        const exists = prev.find(c => c.id === sanitizedResult.id);
         if (exists) {
-          return prev.map(c => c.id === result.id ? result : c);
+          return prev.map(c => c.id === sanitizedResult.id ? sanitizedResult : c);
         }
-        return [...prev, result];
+        return [...prev, sanitizedResult];
       });
-      setActiveCompany(result);
-      setStoredActiveCompanyId(result.id);
+      setActiveCompany(sanitizedResult);
+      setStoredActiveCompanyId(sanitizedResult.id);
 
       if (!silent) {
         toast({
@@ -349,3 +366,6 @@ export const useCompany = () => {
     deleteLogo
   };
 };
+
+
+

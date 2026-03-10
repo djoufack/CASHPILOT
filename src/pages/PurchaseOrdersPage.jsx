@@ -40,7 +40,7 @@ import {
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
 
-const DEFAULT_TAX_RATE_FALLBACK = 20;
+const DEFAULT_TAX_RATE_FALLBACK = 0;
 const createEmptyItem = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({ description: '', quantity: 1, unit_price: 0, tax_rate: taxRate });
 
 const createInitialFormData = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({
@@ -320,7 +320,7 @@ const PurchaseOrdersPage = () => {
             description: item.description || '',
             quantity: item.quantity || 1,
             unit_price: item.unit_price || 0,
-            tax_rate: item.tax_rate || 21,
+            tax_rate: item.tax_rate ?? defaultRate ?? 0,
           }))
         : [createEmptyItem(defaultRate)],
     });
@@ -918,3 +918,4 @@ const PurchaseOrdersPage = () => {
 };
 
 export default PurchaseOrdersPage;
+

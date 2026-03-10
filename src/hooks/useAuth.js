@@ -51,6 +51,23 @@ export const useAuthSource = () => {
           localStorage.removeItem(key);
         }
       });
+
+      if (typeof window !== 'undefined') {
+        try {
+          if ('serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.getRegistration('/');
+            registration?.active?.postMessage({ type: 'CLEAR_RUNTIME_CACHES' });
+          }
+
+          if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+          }
+        } catch (cacheError) {
+          console.warn('Cache cleanup on logout failed:', cacheError);
+        }
+      }
+
       setUser(null);
       setSession(null);
       setError(null);
@@ -481,3 +498,4 @@ export const useAuthSource = () => {
     unenrollMFA
   };
 };
+

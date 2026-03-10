@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { consumeCredits, createAuthClient, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
+import { consumeCredits, createAuthClient, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser, resolveCreditCost } from '../_shared/billing.ts';
+import { resolveScradaCredentials } from '../_shared/scradaCredentials.ts';
 
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
@@ -9,7 +10,6 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const PEPPOL_CONFIGURATION_CREDITS = 2;
 
 const toHex = (buffer: ArrayBuffer) =>
   Array.from(new Uint8Array(buffer))
@@ -44,6 +44,8 @@ serve(async (req) => {
         scrada_company_id,
         scrada_api_key,
         scrada_password,
+        scrada_api_key_encrypted,
+        scrada_password_encrypted,
         peppol_config_signature,
         peppol_config_validated_at
       `)
@@ -58,7 +60,8 @@ serve(async (req) => {
       throw new HttpError(400, 'Peppol endpoint ID is required');
     }
 
-    if (!company.scrada_company_id || !company.scrada_api_key || !company.scrada_password) {
+    const { apiKey, password } = await resolveScradaCredentials(company);
+    if (!company.scrada_company_id || !apiKey || !password) {
       throw new HttpError(400, 'Scrada credentials not configured');
     }
 
@@ -66,14 +69,14 @@ serve(async (req) => {
       company.peppol_endpoint_id,
       company.peppol_scheme_id || '0208',
       company.scrada_company_id,
-      company.scrada_api_key,
-      company.scrada_password,
+      apiKey,
+      password,
     ].join('|'));
 
     const scradaBaseUrl = Deno.env.get('SCRADA_API_URL') || 'https://api.scrada.be/v1';
     const headers = {
-      'X-API-KEY': company.scrada_api_key,
-      'X-PASSWORD': company.scrada_password,
+      'X-API-KEY': apiKey,
+      'X-PASSWORD': password,
       'Content-Type': 'application/json',
       'Language': 'FR',
     };
@@ -94,10 +97,11 @@ serve(async (req) => {
     let creditDeduction = null;
 
     if (!alreadyValidated) {
+      const configurationCredits = await resolveCreditCost(supabase, 'PEPPOL_CONFIGURATION_OK');
       creditDeduction = await consumeCredits(
-        serviceSupabase,
+        supabase,
         user.id,
-        PEPPOL_CONFIGURATION_CREDITS,
+        configurationCredits,
         `Peppol configuration validated for ${company.company_name || user.id}`,
       );
     }
@@ -117,7 +121,7 @@ serve(async (req) => {
     } catch (error) {
       if (creditDeduction) {
         await refundCredits(
-          serviceSupabase,
+          supabase,
           user.id,
           creditDeduction,
           `Refund Peppol configuration for ${company.company_name || user.id}`,
@@ -143,3 +147,7 @@ serve(async (req) => {
     });
   }
 });
+
+
+
+

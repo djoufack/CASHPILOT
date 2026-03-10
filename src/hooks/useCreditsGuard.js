@@ -1,65 +1,101 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useCredits } from '@/hooks/useCredits';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { captureError } from '@/services/errorTracking';
 import { supabase } from '@/lib/supabase';
 
-/**
- * Default credit costs per action type (fallback if DB fetch fails)
- */
-const DEFAULT_CREDIT_COSTS = {
-  // ÉTATS COMPTABLES (5 crédits) - Génération + Export PDF
-  GENERATE_BALANCE_SHEET: 5,
-  GENERATE_INCOME_STATEMENT: 5,
-  GENERATE_VAT_DECLARATION: 5,
-  GENERATE_TAX_ESTIMATION: 5,
-  GENERATE_FINANCIAL_DIAGNOSTIC: 5,
+const CREDIT_OPERATION_CODES = [
+  'GENERATE_BALANCE_SHEET',
+  'GENERATE_INCOME_STATEMENT',
+  'GENERATE_VAT_DECLARATION',
+  'GENERATE_TAX_ESTIMATION',
+  'GENERATE_FINANCIAL_DIAGNOSTIC',
+  'PDF_INVOICE',
+  'PDF_QUOTE',
+  'PDF_DELIVERY_NOTE',
+  'PDF_CREDIT_NOTE',
+  'PDF_PURCHASE_ORDER',
+  'PDF_REPORT',
+  'PDF_ANALYTICS',
+  'PDF_SUPPLIER_REPORT',
+  'PDF_RECONCILIATION',
+  'PDF_SCENARIO',
+  'EXPORT_HTML',
+  'PDF_RECEIPT',
+  'CLOUD_BACKUP',
+  'PEPPOL_CONFIGURATION_OK',
+  'PEPPOL_SEND_INVOICE',
+  'PEPPOL_RECEIVE_INVOICE',
+  'AI_INVOICE_EXTRACTION',
+  'AI_CHATBOT',
+  'AI_CATEGORIZE',
+  'AI_ANOMALY_DETECT',
+  'AI_FORECAST',
+  'AI_REMINDER_SUGGEST',
+  'AI_REPORT',
+];
 
-  // DOCUMENTS COMMERCIAUX (2 crédits)
-  PDF_INVOICE: 2,
-  PDF_QUOTE: 2,
-  PDF_DELIVERY_NOTE: 2,
-  PDF_CREDIT_NOTE: 2,
-  PDF_PURCHASE_ORDER: 2,
+const DEFAULT_CREDIT_COSTS = Object.freeze(
+  Object.fromEntries(CREDIT_OPERATION_CODES.map((code) => [code, 0])),
+);
 
-  // RAPPORTS ANALYTIQUES (3 crédits)
-  PDF_REPORT: 3,
-  PDF_ANALYTICS: 3,
-  PDF_SUPPLIER_REPORT: 3,
-  PDF_RECONCILIATION: 3,
-  PDF_SCENARIO: 3,
+// Backward-compatible export for existing imports across pages/components.
+// Values are hydrated from the `credit_costs` DB table and mutated in-place.
+export const CREDIT_COSTS = { ...DEFAULT_CREDIT_COSTS };
 
-  // EXPORTS COMPLÉMENTAIRES (2 crédits)
-  EXPORT_HTML: 2,  // Téléchargement fichier HTML standalone
+let creditCostsHydrationPromise = null;
 
-  // AUTRES (1 crédit)
-  PDF_RECEIPT: 1,
-  CLOUD_BACKUP: 1,
-
-  // PEPPOL
-  PEPPOL_CONFIGURATION_OK: 2,
-  PEPPOL_SEND_INVOICE: 4,
-  PEPPOL_RECEIVE_INVOICE: 3,
-
-  // IA
-  AI_INVOICE_EXTRACTION: 3,
-  AI_CHATBOT: 2,
-  AI_CATEGORIZE: 1,
-  AI_ANOMALY_DETECT: 3,
-  AI_FORECAST: 3,
-  AI_REMINDER_SUGGEST: 1,
-  AI_REPORT: 5,
+const normalizeCreditCosts = (rows) => {
+  const normalized = { ...DEFAULT_CREDIT_COSTS };
+  for (const row of rows || []) {
+    const code = row?.operation_code;
+    const cost = Number(row?.cost);
+    if (CREDIT_OPERATION_CODES.includes(code) && Number.isFinite(cost) && cost > 0) {
+      normalized[code] = cost;
+    }
+  }
+  return normalized;
 };
 
-// Backward-compatible export (static fallback values)
-export const CREDIT_COSTS = DEFAULT_CREDIT_COSTS;
+const hydrateCreditCostsCatalog = async ({ force = false } = {}) => {
+  if (!supabase) {
+    return { ...CREDIT_COSTS };
+  }
+
+  if (!force && creditCostsHydrationPromise) {
+    return creditCostsHydrationPromise;
+  }
+
+  creditCostsHydrationPromise = supabase
+    .from('credit_costs')
+    .select('operation_code, cost')
+    .eq('is_active', true)
+    .then(({ data, error }) => {
+      if (error) {
+        throw error;
+      }
+
+      const hydrated = normalizeCreditCosts(data || []);
+      Object.assign(CREDIT_COSTS, hydrated);
+      return { ...CREDIT_COSTS };
+    })
+    .catch((error) => {
+      // Keep the last known in-memory values if DB is temporarily unreachable.
+      console.warn('Failed to hydrate credit costs from DB:', error);
+      return { ...CREDIT_COSTS };
+    });
+
+  return creditCostsHydrationPromise;
+};
+
+// Warm cache as soon as the module is loaded so UI handlers can consume DB values.
+void hydrateCreditCostsCatalog();
 
 /**
  * Labels i18n pour affichage dans l'interface
  */
 export const CREDIT_COST_LABELS = {
-  // États Comptables
+  // Etats Comptables
   GENERATE_BALANCE_SHEET: 'credits.costs.balanceSheet',
   GENERATE_INCOME_STATEMENT: 'credits.costs.incomeStatement',
   GENERATE_VAT_DECLARATION: 'credits.costs.vatDeclaration',
@@ -80,7 +116,7 @@ export const CREDIT_COST_LABELS = {
   PDF_RECONCILIATION: 'credits.costs.pdfReconciliation',
   PDF_SCENARIO: 'credits.costs.pdfScenario',
 
-  // Exports Complémentaires
+  // Exports Complementaires
   EXPORT_HTML: 'credits.costs.exportHtml',
 
   // Autres
@@ -103,7 +139,7 @@ export const CREDIT_COST_LABELS = {
 };
 
 /**
- * Catégories pour affichage groupé dans "What Costs Credits?"
+ * Categories pour affichage groupe dans "What Costs Credits?"
  */
 export const CREDIT_CATEGORIES = {
   FINANCIAL_STATEMENTS: [
@@ -153,49 +189,32 @@ export const CREDIT_CATEGORIES = {
 /**
  * Hook that wraps an action with credit consumption.
  * Returns a guard function and modal state.
- *
- * Usage:
- *   const { guardedAction, modalProps } = useCreditsGuard();
- *
- *   const handleExportPDF = () => guardedAction(
- *     CREDIT_COSTS.PDF_INVOICE,
- *     'PDF Export',
- *     async () => { await exportInvoiceToPDF(...) }
- *   );
- *
- *   return <><CreditsGuardModal {...modalProps} />...</>
  */
 export const useCreditsGuard = () => {
   const { availableCredits, consumeCredits } = useCredits();
   const { trialActive, fullAccessOverride } = useEntitlements();
-  const [costs, setCosts] = useState(DEFAULT_CREDIT_COSTS);
+  const [costs, setCosts] = useState(() => ({ ...CREDIT_COSTS }));
   const [modalState, setModalState] = useState({
     isOpen: false,
     requiredCredits: 0,
     actionLabel: '',
   });
 
-  // Fetch credit costs from DB on mount, fallback to defaults
   useEffect(() => {
-    supabase
-      .from('credit_costs')
-      .select('operation_code, cost')
-      .eq('is_active', true)
-      .then(({ data, error }) => {
-        if (error) {
-          console.warn('Failed to fetch credit costs from DB, using defaults:', error);
-          return;
-        }
-        if (data && data.length > 0) {
-          const map = {};
-          data.forEach(c => { map[c.operation_code] = c.cost; });
-          setCosts(prev => ({ ...prev, ...map }));
-        }
-      });
+    let active = true;
+
+    hydrateCreditCostsCatalog({ force: true }).then((hydrated) => {
+      if (!active) return;
+      setCosts(hydrated);
+    });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const closeModal = useCallback(() => {
-    setModalState(prev => ({ ...prev, isOpen: false }));
+    setModalState((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
   const openCreditsModal = useCallback((requiredCredits, actionLabel) => {
@@ -207,6 +226,11 @@ export const useCreditsGuard = () => {
   }, []);
 
   const ensureCredits = useCallback(async (cost, label) => {
+    if (!Number.isFinite(cost) || cost <= 0) {
+      console.warn('Blocked credit operation due to missing DB credit configuration', { cost, label });
+      return false;
+    }
+
     if (!trialActive && !fullAccessOverride && availableCredits < cost) {
       openCreditsModal(cost, label);
       return false;
@@ -215,20 +239,44 @@ export const useCreditsGuard = () => {
     return true;
   }, [availableCredits, fullAccessOverride, openCreditsModal, trialActive]);
 
+  const resolveCost = useCallback(async (costOrCode) => {
+    if (typeof costOrCode === 'number') {
+      if (Number.isFinite(costOrCode) && costOrCode > 0) {
+        return costOrCode;
+      }
+      await hydrateCreditCostsCatalog({ force: true });
+      return Number(costOrCode);
+    }
+
+    if (typeof costOrCode === 'string' && costOrCode) {
+      const current = Number(CREDIT_COSTS[costOrCode] ?? costs[costOrCode]);
+      if (Number.isFinite(current) && current > 0) {
+        return current;
+      }
+
+      const hydrated = await hydrateCreditCostsCatalog({ force: true });
+      setCosts(hydrated);
+      return Number(hydrated[costOrCode]);
+    }
+
+    return Number.NaN;
+  }, [costs]);
+
   /**
    * Execute an action only if the user has enough credits.
-   * If not, shows the modal. If yes, deducts credits then runs the action.
    *
-   * @param {number} cost - Credits required
+   * @param {number|string} costOrCode - Credits required, or operation code in `credit_costs`
    * @param {string} label - Human-readable action label
-  * @param {Function} action - Async function to execute if credits are available
-  * @returns {Promise<boolean>} true if action was executed
+   * @param {Function} action - Async function to execute if credits are available
+   * @returns {Promise<boolean>} true if action was executed
    */
-  const guardedAction = useCallback(async (cost, label, action) => {
-    const hasCredits = await ensureCredits(cost, label);
+  const guardedAction = useCallback(async (costOrCode, label, action) => {
+    const resolvedCost = await resolveCost(costOrCode);
+
+    const hasCredits = await ensureCredits(resolvedCost, label);
     if (!hasCredits) return false;
 
-    const consumed = await consumeCredits(cost, label);
+    const consumed = await consumeCredits(resolvedCost, label);
     if (!consumed) return false;
 
     try {
@@ -237,12 +285,12 @@ export const useCreditsGuard = () => {
     } catch (err) {
       captureError(err, {
         tags: { scope: 'credits_guard', action: 'guarded_action' },
-        extra: { label, cost },
+        extra: { label, costOrCode, resolvedCost },
       });
       console.error('Guarded action failed:', err);
       return false;
     }
-  }, [consumeCredits, ensureCredits]);
+  }, [consumeCredits, ensureCredits, resolveCost]);
 
   return {
     guardedAction,

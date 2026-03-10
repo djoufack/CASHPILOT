@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { consumeCredits, createAuthClient, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
+import { consumeCredits, createAuthClient, HttpError, refundCredits, requireAuthenticatedUser, resolveCreditCost } from '../_shared/billing.ts';
+import { resolveScradaCredentials } from '../_shared/scradaCredentials.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
 const corsHeaders = {
@@ -8,7 +9,6 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
-const PEPPOL_SEND_CREDITS = 4;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -21,7 +21,6 @@ serve(async (req) => {
 
     const user = await requireAuthenticatedUser(req);
     const supabase = createAuthClient(authHeader);
-    const serviceSupabase = createServiceClient();
 
     const { invoice_id } = await req.json();
     if (!invoice_id) throw new HttpError(400, 'invoice_id is required');
@@ -61,7 +60,8 @@ serve(async (req) => {
     const { data: seller } = await sellerQuery.single();
     if (!seller) throw new HttpError(404, 'Company profile not found');
     if (!seller.peppol_endpoint_id) throw new HttpError(400, 'Company has no Peppol endpoint ID');
-    if (!seller.scrada_api_key || !seller.scrada_password || !seller.scrada_company_id) {
+    const { apiKey, password } = await resolveScradaCredentials(seller);
+    if (!apiKey || !password || !seller.scrada_company_id) {
       throw new HttpError(400, 'Scrada credentials not configured. Go to Settings > Peppol.');
     }
 
@@ -70,12 +70,13 @@ serve(async (req) => {
 
     const senderEndpoint = `${seller.peppol_scheme_id || '0208'}:${seller.peppol_endpoint_id}`;
     const receiverEndpoint = `${buyer.peppol_scheme_id || '0208'}:${buyer.peppol_endpoint_id}`;
+    const peppolSendCredits = await resolveCreditCost(supabase, 'PEPPOL_SEND_INVOICE');
     const creditDescription = `Peppol send invoice ${invoice.invoice_number || invoice_id}`;
     const refundDescription = `Refund ${creditDescription}`;
     const creditDeduction = await consumeCredits(
-      serviceSupabase,
+      supabase,
       user.id,
-      PEPPOL_SEND_CREDITS,
+      peppolSendCredits,
       creditDescription,
     );
     let refunded = false;
@@ -91,8 +92,8 @@ serve(async (req) => {
       const scradaResponse = await fetch(scradaUrl, {
         method: 'POST',
         headers: {
-          'X-API-KEY': seller.scrada_api_key,
-          'X-PASSWORD': seller.scrada_password,
+          'X-API-KEY': apiKey,
+          'X-PASSWORD': password,
           'Content-Type': 'application/xml',
           'Language': 'FR',
         },
@@ -101,7 +102,7 @@ serve(async (req) => {
 
       if (!scradaResponse.ok) {
         const errText = await scradaResponse.text();
-        await refundCredits(serviceSupabase, user.id, creditDeduction, refundDescription);
+        await refundCredits(supabase, user.id, creditDeduction, refundDescription);
         refunded = true;
         await supabase.from('peppol_transmission_log').insert({
           user_id: user.id, company_id: invoice.company_id || seller.id, invoice_id, direction: 'outbound', status: 'error',
@@ -138,7 +139,7 @@ serve(async (req) => {
       });
     } catch (error) {
       if (!refunded) {
-        await refundCredits(serviceSupabase, user.id, creditDeduction, refundDescription);
+        await refundCredits(supabase, user.id, creditDeduction, refundDescription);
       }
       throw error;
     }
@@ -243,3 +244,9 @@ function generateUBLInvoice(invoice: any, seller: any, buyer: any, items: any[])
   ${lines}
 </Invoice>`;
 }
+
+
+
+
+
+
