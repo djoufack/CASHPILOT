@@ -12,7 +12,7 @@ import { ENTITLEMENT_KEYS, filterFlatNavigation } from '@/utils/subscriptionEnti
 import {
   Menu,
   LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
-  Truck, Package, BarChart3, Calculator, PieChart, Settings,
+  Truck, Package, BarChart3, Calculator, Settings,
   FileMinus, PackageCheck, Wallet, TrendingUp, Building2, RefreshCw, Shield,
   Receipt, ClipboardList, Wrench, Map, QrCode, FileBarChart, Database, Tag, Globe, Webhook, Cable,
   CreditCard
@@ -80,7 +80,6 @@ const MainLayout = () => {
     { path: '/app/cash-flow', label: t('nav.cashFlow'), icon: TrendingUp },
     { type: 'separator', label: t('nav.systemSection') },
     { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
-    { path: '/app/analytics', label: t('nav.analytics'), icon: PieChart, featureKey: ENTITLEMENT_KEYS.ANALYTICS_REPORTS },
     { path: '/app/integrations', label: t('nav.integrations'), icon: Cable },
     { path: '/app/webhooks', label: t('nav.apiWebhooks'), icon: Webhook, featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS },
     { path: '/app/security', label: t('nav.security'), icon: Shield },

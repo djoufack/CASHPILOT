@@ -8,7 +8,7 @@ import {
   ChevronDown,
   Shield,
   Home, Users, Briefcase, Clock, FileText, FileSignature,
-  Truck, BarChart3, Calculator, PieChart, Settings,
+  Truck, BarChart3, Calculator, Settings,
   Map, QrCode, FileBarChart, Database, Menu, Package,
   Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck, Tag, ShoppingCart, FileInput, Globe, Webhook, Cable, CreditCard
 } from 'lucide-react';
@@ -128,7 +128,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           { path: '/app/projects', label: t('common.projects'), icon: Briefcase },
           { path: '/app/timesheets', label: t('common.timesheets'), icon: Clock },
           { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
-          { path: '/app/analytics', label: t('nav.analytics'), icon: PieChart, featureKey: ENTITLEMENT_KEYS.ANALYTICS_REPORTS },
         ],
       },
       {
