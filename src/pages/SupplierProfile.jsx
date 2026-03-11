@@ -144,7 +144,7 @@ const SupplierProfile = () => {
         <TabsList className="bg-gray-900 border-gray-800">
           <TabsTrigger value="overview">{t('supplierProfile.overview', 'Overview')}</TabsTrigger>
           {(supplier.supplier_type === 'service' || supplier.supplier_type === 'both') && (
-            <TabsTrigger value="services">{t('supplierProfile.services', 'Services')}</TabsTrigger>
+            <TabsTrigger value="services">{t('supplierProfile.vendorServices', 'Services fournisseur')}</TabsTrigger>
           )}
           {(supplier.supplier_type === 'product' || supplier.supplier_type === 'both') && (
             <TabsTrigger value="products">{t('supplierProfile.products', 'Products')}</TabsTrigger>

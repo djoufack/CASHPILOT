@@ -107,6 +107,7 @@
     "scenarios": "Financial Simulations",
     "catalog": "Catalog",
     "products": "Products",
+    "clientServices": "Client Services",
     "categories": "Categories",
     "auditComptable": "Accounting Audit",
     "supplierInvoices": "Supplier Invoices",
@@ -422,6 +423,8 @@
   },
   "services": {
     "title": "Services",
+    "clientServicesTitle": "Client Services",
+    "clientServicesSubtitle": "Catalog of services sold to clients. Supplier services are managed on each supplier profile.",
     "addService": "Add Service",
     "editService": "Edit Service",
     "deleteService": "Delete Service",
@@ -565,6 +568,8 @@
     "notesPlaceholder": "Additional notes about this supplier...",
     "services": {
       "catalog": "Services Catalog",
+      "vendorCatalog": "Supplier Services Catalog",
+      "vendorCatalogSubtitle": "Services purchased from this supplier (procurement side).",
       "addService": "Add Service",
       "serviceName": "Service Name",
       "pricingType": "Pricing Type",
@@ -3464,6 +3469,7 @@
     "noBankDetails": "No bank details provided",
     "overview": "Overview",
     "services": "Services",
+    "vendorServices": "Supplier Services",
     "products": "Products",
     "overviewComingSoon": "Supplier dashboard overview coming soon...",
     "supplierInvoices": "Supplier Invoices"

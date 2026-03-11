@@ -107,6 +107,7 @@
     "scenarios": "Simulations Financières",
     "catalog": "Catalogue",
     "products": "Produits",
+    "clientServices": "Prestations clients",
     "categories": "Catégories",
     "auditComptable": "Audit Comptable",
     "supplierInvoices": "Factures fournisseurs",
@@ -409,6 +410,8 @@
   },
   "services": {
     "title": "Services",
+    "clientServicesTitle": "Prestations clients",
+    "clientServicesSubtitle": "Catalogue des prestations vendues aux clients. Les services fournisseurs se gèrent dans chaque fiche fournisseur.",
     "addService": "Ajouter un service",
     "editService": "Modifier le service",
     "deleteService": "Supprimer le service",
@@ -552,6 +555,8 @@
     "notesPlaceholder": "Notes additionnelles sur ce fournisseur...",
     "services": {
       "catalog": "Catalogue de services",
+      "vendorCatalog": "Catalogue des services fournisseur",
+      "vendorCatalogSubtitle": "Services achetés auprès de ce fournisseur (côté achats).",
       "addService": "Ajouter un service",
       "serviceName": "Nom du service",
       "pricingType": "Type de tarification",
@@ -3451,6 +3456,7 @@
     "noBankDetails": "Aucune coordonnée bancaire fournie",
     "overview": "Vue d'ensemble",
     "services": "Services",
+    "vendorServices": "Services fournisseur",
     "products": "Produits",
     "overviewComingSoon": "Tableau de bord fournisseur bientôt disponible...",
     "supplierInvoices": "Factures fournisseur"

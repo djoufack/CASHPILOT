@@ -27,6 +27,11 @@ const ServicesPage = () => {
   const { categories, createCategory, deleteCategory } = useServiceCategories();
   const { company } = useCompany();
   const companyCurrency = resolveAccountingCurrency(company);
+  const clientServicesTitle = t('services.clientServicesTitle', 'Prestations clients');
+  const clientServicesSubtitle = t(
+    'services.clientServicesSubtitle',
+    'Catalogue des prestations vendues aux clients. Les services fournisseurs se gèrent dans chaque fiche fournisseur.'
+  );
 
   const currencySymbol = getCurrencySymbol(companyCurrency);
 
@@ -176,12 +181,13 @@ const ServicesPage = () => {
 
   return (
     <div className="p-8 min-h-screen bg-gray-950 text-white space-y-6">
-      <Helmet><title>{t('pages.services', 'Services')} | CashPilot</title></Helmet>
+      <Helmet><title>{clientServicesTitle} | CashPilot</title></Helmet>
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gradient">{t('services.title')}</h1>
-          <p className="text-gray-400">{t('services.title')} - {t('services.totalServices')}: {totalServices}</p>
+          <h1 className="text-3xl font-bold text-gradient">{clientServicesTitle}</h1>
+          <p className="text-gray-400">{clientServicesSubtitle}</p>
+          <p className="text-gray-500 text-sm mt-1">{t('services.totalServices')}: {totalServices}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {filteredServices.length > 0 && (
@@ -249,7 +255,7 @@ const ServicesPage = () => {
       {/* Tabs */}
       <Tabs defaultValue="services" className="w-full">
         <TabsList className="bg-gray-900 border-gray-800">
-          <TabsTrigger value="services">{t('services.title')}</TabsTrigger>
+          <TabsTrigger value="services">{clientServicesTitle}</TabsTrigger>
           <TabsTrigger value="categories">{t('services.categories')}</TabsTrigger>
         </TabsList>
 
