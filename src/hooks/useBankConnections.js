@@ -33,12 +33,20 @@ export const useBankConnections = () => {
   const [loading, setLoading] = useState(true);
   const institutionsCacheRef = useRef(new Map());
 
-  const getFreshAccessToken = useCallback(async () => {
+  const getFreshAccessToken = useCallback(async (forceRefresh = false) => {
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) {
       throw error;
     }
-    if (session?.access_token) {
+
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    const expiresAt = Number(session?.expires_at || 0);
+    const isSessionStillValid = Boolean(
+      session?.access_token &&
+      expiresAt > nowInSeconds + 60 // refresh token if expiring in the next minute
+    );
+
+    if (!forceRefresh && isSessionStillValid) {
       return session.access_token;
     }
 
@@ -74,7 +82,7 @@ export const useBankConnections = () => {
 
     let response = await executeRequest(accessToken);
     if (response.status === 401) {
-      accessToken = await getFreshAccessToken();
+      accessToken = await getFreshAccessToken(true);
       if (!accessToken) {
         throw new Error('Authentication required');
       }
