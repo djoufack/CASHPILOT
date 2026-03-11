@@ -3,11 +3,20 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { Shield, ShieldCheck, ShieldOff, Loader2, Copy, CheckCircle2 } from 'lucide-react';
+import { Shield, ShieldCheck, ShieldOff, Loader2, Copy, CheckCircle2, Lock, Globe2, PenSquare } from 'lucide-react';
+import { useCompanySecuritySettings } from '@/hooks/useCompanySecuritySettings';
 
 const SecuritySettings = () => {
   const { getMFAStatus, enrollMFA, verifyMFA, unenrollMFA } = useAuth();
   const { t } = useTranslation();
+  const {
+    loading: governanceLoading,
+    saving: governanceSaving,
+    securitySettings,
+    esignSettings,
+    saveSecuritySettings,
+    saveESignSettings,
+  } = useCompanySecuritySettings();
 
   const [mfaStatus, setMfaStatus] = useState({ enabled: false, factors: [] });
   const [enrollData, setEnrollData] = useState(null);
@@ -16,6 +25,56 @@ const SecuritySettings = () => {
   const [step, setStep] = useState('idle'); // 'idle' | 'enrolling' | 'verifying' | 'success'
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [governanceForm, setGovernanceForm] = useState({
+    sso_enforced: false,
+    sso_provider: 'none',
+    saml_entry_point: '',
+    saml_issuer: '',
+    saml_certificate: '',
+    oidc_issuer: '',
+    oidc_client_id: '',
+    allowed_email_domains: '',
+    session_timeout_minutes: 480,
+    mfa_required: false,
+    ip_allowlist: '',
+    audit_webhook_url: '',
+  });
+  const [esignForm, setESignForm] = useState({
+    provider: 'native',
+    mode: 'redirect',
+    provider_account_id: '',
+    webhook_secret: '',
+  });
+
+  useEffect(() => {
+    setGovernanceForm({
+      sso_enforced: !!securitySettings.sso_enforced,
+      sso_provider: securitySettings.sso_provider || 'none',
+      saml_entry_point: securitySettings.saml_entry_point || '',
+      saml_issuer: securitySettings.saml_issuer || '',
+      saml_certificate: securitySettings.saml_certificate || '',
+      oidc_issuer: securitySettings.oidc_issuer || '',
+      oidc_client_id: securitySettings.oidc_client_id || '',
+      allowed_email_domains: Array.isArray(securitySettings.allowed_email_domains)
+        ? securitySettings.allowed_email_domains.join(', ')
+        : '',
+      session_timeout_minutes: Number(securitySettings.session_timeout_minutes || 480),
+      mfa_required: !!securitySettings.mfa_required,
+      ip_allowlist: Array.isArray(securitySettings.ip_allowlist)
+        ? securitySettings.ip_allowlist.join(', ')
+        : '',
+      audit_webhook_url: securitySettings.audit_webhook_url || '',
+    });
+  }, [securitySettings]);
+
+  useEffect(() => {
+    setESignForm({
+      provider: esignSettings.provider || 'native',
+      mode: esignSettings.mode || 'redirect',
+      provider_account_id: esignSettings.provider_account_id || '',
+      webhook_secret: esignSettings.webhook_secret || '',
+    });
+  }, [esignSettings]);
 
   const loadMFAStatus = useCallback(async () => {
     setIsLoading(true);
@@ -105,6 +164,36 @@ const SecuritySettings = () => {
     setEnrollData(null);
     setVerifyCode('');
     setError(null);
+  };
+
+  const parseCsv = (value) => String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const handleSaveGovernance = async () => {
+    setError(null);
+    try {
+      await saveSecuritySettings({
+        ...governanceForm,
+        allowed_email_domains: parseCsv(governanceForm.allowed_email_domains),
+        ip_allowlist: parseCsv(governanceForm.ip_allowlist),
+        session_timeout_minutes: Number(governanceForm.session_timeout_minutes || 480),
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleSaveESign = async () => {
+    setError(null);
+    try {
+      await saveESignSettings({
+        ...esignForm,
+      });
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -311,6 +400,234 @@ const SecuritySettings = () => {
             </p>
           </div>
         )}
+      </div>
+
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <Lock className="w-6 h-6 text-cyan-400" />
+          <div>
+            <h2 className="text-lg font-semibold text-white">
+              {t('security.enterprise.title', 'Enterprise access governance')}
+            </h2>
+            <p className="text-sm text-gray-400">
+              {t('security.enterprise.subtitle', 'Configure SSO/SAML policy, domain restrictions and session controls.')}
+            </p>
+          </div>
+        </div>
+
+        {governanceLoading ? (
+          <div className="flex items-center gap-2 text-gray-400 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            {t('common.loading', 'Chargement...')}
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="text-sm text-gray-300 space-y-2">
+                <span className="block">SSO enforced</span>
+                <input
+                  type="checkbox"
+                  checked={governanceForm.sso_enforced}
+                  onChange={(event) => setGovernanceForm((prev) => ({ ...prev, sso_enforced: event.target.checked }))}
+                  className="h-4 w-4"
+                />
+              </label>
+
+              <label className="text-sm text-gray-300 space-y-2">
+                <span className="block">SSO provider</span>
+                <select
+                  value={governanceForm.sso_provider}
+                  onChange={(event) => setGovernanceForm((prev) => ({ ...prev, sso_provider: event.target.value }))}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                >
+                  <option value="none">None</option>
+                  <option value="saml">SAML</option>
+                  <option value="oidc">OIDC</option>
+                </select>
+              </label>
+
+              <label className="text-sm text-gray-300 space-y-2">
+                <span className="block">Allowed email domains (CSV)</span>
+                <input
+                  value={governanceForm.allowed_email_domains}
+                  onChange={(event) => setGovernanceForm((prev) => ({ ...prev, allowed_email_domains: event.target.value }))}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                  placeholder="example.com, subsidiary.eu"
+                />
+              </label>
+
+              <label className="text-sm text-gray-300 space-y-2">
+                <span className="block">Session timeout (minutes)</span>
+                <input
+                  type="number"
+                  min={15}
+                  max={1440}
+                  value={governanceForm.session_timeout_minutes}
+                  onChange={(event) => setGovernanceForm((prev) => ({ ...prev, session_timeout_minutes: event.target.value }))}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                />
+              </label>
+
+              <label className="text-sm text-gray-300 space-y-2">
+                <span className="block">MFA required</span>
+                <input
+                  type="checkbox"
+                  checked={governanceForm.mfa_required}
+                  onChange={(event) => setGovernanceForm((prev) => ({ ...prev, mfa_required: event.target.checked }))}
+                  className="h-4 w-4"
+                />
+              </label>
+
+              <label className="text-sm text-gray-300 space-y-2">
+                <span className="block">IP allowlist (CIDR, CSV)</span>
+                <input
+                  value={governanceForm.ip_allowlist}
+                  onChange={(event) => setGovernanceForm((prev) => ({ ...prev, ip_allowlist: event.target.value }))}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                  placeholder="203.0.113.0/24, 198.51.100.0/24"
+                />
+              </label>
+            </div>
+
+            {governanceForm.sso_provider === 'saml' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="text-sm text-gray-300 space-y-2">
+                  <span className="block">SAML entry point</span>
+                  <input
+                    value={governanceForm.saml_entry_point}
+                    onChange={(event) => setGovernanceForm((prev) => ({ ...prev, saml_entry_point: event.target.value }))}
+                    className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                  />
+                </label>
+                <label className="text-sm text-gray-300 space-y-2">
+                  <span className="block">SAML issuer</span>
+                  <input
+                    value={governanceForm.saml_issuer}
+                    onChange={(event) => setGovernanceForm((prev) => ({ ...prev, saml_issuer: event.target.value }))}
+                    className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                  />
+                </label>
+                <label className="text-sm text-gray-300 space-y-2 md:col-span-2">
+                  <span className="block">SAML certificate (PEM)</span>
+                  <textarea
+                    rows={4}
+                    value={governanceForm.saml_certificate}
+                    onChange={(event) => setGovernanceForm((prev) => ({ ...prev, saml_certificate: event.target.value }))}
+                    className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                  />
+                </label>
+              </div>
+            )}
+
+            {governanceForm.sso_provider === 'oidc' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="text-sm text-gray-300 space-y-2">
+                  <span className="block">OIDC issuer</span>
+                  <input
+                    value={governanceForm.oidc_issuer}
+                    onChange={(event) => setGovernanceForm((prev) => ({ ...prev, oidc_issuer: event.target.value }))}
+                    className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                  />
+                </label>
+                <label className="text-sm text-gray-300 space-y-2">
+                  <span className="block">OIDC client id</span>
+                  <input
+                    value={governanceForm.oidc_client_id}
+                    onChange={(event) => setGovernanceForm((prev) => ({ ...prev, oidc_client_id: event.target.value }))}
+                    className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                  />
+                </label>
+              </div>
+            )}
+
+            <label className="text-sm text-gray-300 space-y-2 block">
+              <span className="block">Audit webhook URL</span>
+              <input
+                value={governanceForm.audit_webhook_url}
+                onChange={(event) => setGovernanceForm((prev) => ({ ...prev, audit_webhook_url: event.target.value }))}
+                className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+              />
+            </label>
+
+            <button
+              onClick={handleSaveGovernance}
+              disabled={governanceSaving}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg disabled:opacity-60"
+            >
+              {governanceSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe2 className="w-4 h-4" />}
+              Save enterprise governance
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <PenSquare className="w-6 h-6 text-emerald-400" />
+          <div>
+            <h2 className="text-lg font-semibold text-white">
+              {t('security.esign.title', 'E-signature provider policy')}
+            </h2>
+            <p className="text-sm text-gray-400">
+              {t('security.esign.subtitle', 'Select native signature mode or route quotes through Yousign/DocuSign.')}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label className="text-sm text-gray-300 space-y-2">
+            <span className="block">Provider</span>
+            <select
+              value={esignForm.provider}
+              onChange={(event) => setESignForm((prev) => ({ ...prev, provider: event.target.value }))}
+              className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+            >
+              <option value="native">Native</option>
+              <option value="yousign">Yousign</option>
+              <option value="docusign">DocuSign</option>
+            </select>
+          </label>
+
+          <label className="text-sm text-gray-300 space-y-2">
+            <span className="block">Mode</span>
+            <select
+              value={esignForm.mode}
+              onChange={(event) => setESignForm((prev) => ({ ...prev, mode: event.target.value }))}
+              className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+            >
+              <option value="redirect">Redirect</option>
+              <option value="embedded">Embedded</option>
+            </select>
+          </label>
+
+          <label className="text-sm text-gray-300 space-y-2">
+            <span className="block">Provider account id</span>
+            <input
+              value={esignForm.provider_account_id}
+              onChange={(event) => setESignForm((prev) => ({ ...prev, provider_account_id: event.target.value }))}
+              className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+            />
+          </label>
+
+          <label className="text-sm text-gray-300 space-y-2">
+            <span className="block">Webhook secret</span>
+            <input
+              type="password"
+              value={esignForm.webhook_secret}
+              onChange={(event) => setESignForm((prev) => ({ ...prev, webhook_secret: event.target.value }))}
+              className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-white"
+            />
+          </label>
+        </div>
+
+        <button
+          onClick={handleSaveESign}
+          disabled={governanceSaving}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-60"
+        >
+          {governanceSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <PenSquare className="w-4 h-4" />}
+          Save e-signature policy
+        </button>
       </div>
     </div>
   );

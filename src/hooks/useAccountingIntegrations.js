@@ -16,6 +16,12 @@ export const useAccountingIntegrations = () => {
   const [integrations, setIntegrations] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const invokeConnectorFunction = useCallback(async (functionName, body) => {
+    const { data, error } = await supabase.functions.invoke(functionName, { body });
+    if (error) throw error;
+    return data;
+  }, []);
+
   const fetchIntegrations = useCallback(async () => {
     if (!user || !activeCompanyId) {
       setIntegrations([]);
@@ -50,99 +56,42 @@ export const useAccountingIntegrations = () => {
 
   const connectProvider = useCallback(async (provider, payload = {}) => {
     if (!user || !activeCompanyId) return null;
-
-    const record = {
-      user_id: user.id,
-      company_id: activeCompanyId,
+    const data = await invokeConnectorFunction('accounting-oauth-start', {
       provider,
-      status: 'connected',
-      connected_at: new Date().toISOString(),
-      disconnected_at: null,
-      sync_enabled: payload.sync_enabled ?? true,
+      companyId: activeCompanyId,
       external_tenant_id: payload.external_tenant_id || null,
       external_company_name: payload.external_company_name || null,
-      last_error: null,
-      metadata: payload.metadata || {},
-    };
-
-    const { data, error } = await supabase
-      .from('accounting_integrations')
-      .upsert(record, { onConflict: 'user_id,company_id,provider' })
-      .select()
-      .single();
-
-    if (error) throw error;
+      syncEnabled: payload.sync_enabled ?? true,
+    });
     await fetchIntegrations();
     return data;
-  }, [activeCompanyId, fetchIntegrations, user]);
+  }, [activeCompanyId, fetchIntegrations, invokeConnectorFunction, user]);
 
   const markProviderPending = useCallback(async (provider, payload = {}) => {
-    if (!user || !activeCompanyId) return null;
-
-    const record = {
-      user_id: user.id,
-      company_id: activeCompanyId,
-      provider,
-      status: 'pending',
-      disconnected_at: null,
-      external_tenant_id: payload.external_tenant_id || null,
-      external_company_name: payload.external_company_name || null,
-      metadata: payload.metadata || {},
-      last_error: null,
-    };
-
-    const { data, error } = await supabase
-      .from('accounting_integrations')
-      .upsert(record, { onConflict: 'user_id,company_id,provider' })
-      .select()
-      .single();
-
-    if (error) throw error;
-    await fetchIntegrations();
-    return data;
-  }, [activeCompanyId, fetchIntegrations, user]);
+    return connectProvider(provider, payload);
+  }, [connectProvider]);
 
   const disconnectProvider = useCallback(async (provider) => {
     if (!user || !activeCompanyId) return null;
 
-    const { data, error } = await supabase
-      .from('accounting_integrations')
-      .upsert({
-        user_id: user.id,
-        company_id: activeCompanyId,
-        provider,
-        status: 'disconnected',
-        disconnected_at: new Date().toISOString(),
-        sync_enabled: false,
-        external_tenant_id: null,
-        external_company_name: null,
-        last_error: null,
-        metadata: {},
-      }, { onConflict: 'user_id,company_id,provider' })
-      .select()
-      .single();
-
-    if (error) throw error;
+    const data = await invokeConnectorFunction('accounting-connector-disconnect', {
+      provider,
+      companyId: activeCompanyId,
+    });
     await fetchIntegrations();
     return data;
-  }, [activeCompanyId, fetchIntegrations, user]);
+  }, [activeCompanyId, fetchIntegrations, invokeConnectorFunction, user]);
 
   const requestSync = useCallback(async (provider) => {
     if (!user || !activeCompanyId) return null;
 
-    const { data, error } = await supabase
-      .from('accounting_integrations')
-      .update({ last_sync_at: new Date().toISOString(), last_error: null })
-      .eq('user_id', user.id)
-      .eq('company_id', activeCompanyId)
-      .eq('provider', provider)
-      .select()
-      .maybeSingle();
-
-    if (error) throw error;
+    const data = await invokeConnectorFunction('accounting-sync-trigger', {
+      provider,
+      companyId: activeCompanyId,
+    });
     await fetchIntegrations();
     return data;
-  }, [activeCompanyId, fetchIntegrations, user]);
+  }, [activeCompanyId, fetchIntegrations, invokeConnectorFunction, user]);
 
   const providerState = useMemo(() => {
     const byProvider = { ...DEFAULT_PROVIDER_STATE };

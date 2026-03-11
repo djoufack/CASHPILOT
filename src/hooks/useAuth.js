@@ -15,6 +15,10 @@ const AUTH_SCOPE_SIGN_UP = 'sign-up';
 const AUTH_SCOPE_MFA_VERIFY = 'mfa-verify';
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+const extractEmailDomain = (email) => {
+  const [, domain = ''] = String(email || '').split('@');
+  return domain.trim().toLowerCase();
+};
 const sanitizeOptionalText = (value) => {
   if (typeof value !== 'string') return null;
   const sanitized = sanitizeText(value).trim();
@@ -24,11 +28,113 @@ const sanitizeOptionalScalar = (value) => (
   typeof value === 'string' ? sanitizeText(value).trim() : value
 );
 
+const buildServerRateLimitError = (payload, fallbackMessage) => {
+  const retryAfterSeconds = Number(payload?.retryAfterSeconds || 0);
+  const baseMessage = payload?.error || fallbackMessage || 'Security policy blocked this authentication attempt.';
+  if (retryAfterSeconds > 0) {
+    return new Error(`${baseMessage} Try again in ${retryAfterSeconds} seconds.`);
+  }
+  return new Error(baseMessage);
+};
+
+const extractFunctionErrorPayload = async (error) => {
+  if (!error || !error.context) return null;
+  try {
+    return await error.context.json();
+  } catch {
+    return null;
+  }
+};
+
 export const useAuthSource = () => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const enforceServerRateLimit = useCallback(async (scope, identifier) => {
+    if (!supabase) return;
+
+    const { data, error: invokeError } = await supabase.functions.invoke('auth-rate-limit', {
+      body: {
+        scope,
+        identifier,
+        outcome: 'attempt',
+      },
+    });
+
+    if (invokeError) {
+      const payload = await extractFunctionErrorPayload(invokeError);
+      throw buildServerRateLimitError(payload, invokeError.message);
+    }
+
+    if (data?.allowed === false) {
+      throw buildServerRateLimitError(data, 'Too many attempts.');
+    }
+  }, []);
+
+  const reportServerRateLimitOutcome = useCallback(async (scope, identifier, outcome) => {
+    if (!supabase) return;
+
+    try {
+      await supabase.functions.invoke('auth-rate-limit', {
+        body: {
+          scope,
+          identifier,
+          outcome,
+        },
+      });
+    } catch (reportError) {
+      console.warn('Unable to persist server-side auth rate-limit outcome:', reportError);
+    }
+  }, []);
+
+  const enforcePostLoginSecurityPolicy = useCallback(async (authUser, normalizedEmail) => {
+    if (!supabase || !authUser?.id) return;
+
+    const { data: companies, error: companiesError } = await supabase
+      .from('company')
+      .select('id')
+      .eq('user_id', authUser.id)
+      .limit(10);
+
+    if (companiesError || !Array.isArray(companies) || companies.length === 0) {
+      return;
+    }
+
+    const companyIds = companies.map((company) => company.id);
+    const { data: settingsRows, error: settingsError } = await supabase
+      .from('company_security_settings')
+      .select('company_id, sso_enforced, sso_provider, allowed_email_domains')
+      .in('company_id', companyIds)
+      .eq('sso_enforced', true);
+
+    if (settingsError || !Array.isArray(settingsRows) || settingsRows.length === 0) {
+      return;
+    }
+
+    const emailDomain = extractEmailDomain(normalizedEmail);
+    const blockedBySso = settingsRows.find((row) => row.sso_provider && row.sso_provider !== 'none');
+    if (blockedBySso) {
+      await supabase.auth.signOut();
+      const policyError = new Error('This workspace enforces SSO. Use your SSO identity provider to sign in.');
+      policyError.code = 'AUTH_POLICY_ENFORCED';
+      throw policyError;
+    }
+
+    const blockedByDomain = settingsRows.find((row) => (
+      Array.isArray(row.allowed_email_domains)
+      && row.allowed_email_domains.length > 0
+      && !row.allowed_email_domains.map((domain) => String(domain || '').toLowerCase()).includes(emailDomain)
+    ));
+
+    if (blockedByDomain) {
+      await supabase.auth.signOut();
+      const policyError = new Error('This workspace restricts sign-in to approved email domains.');
+      policyError.code = 'AUTH_POLICY_ENFORCED';
+      throw policyError;
+    }
+  }, []);
 
   // Define logout first so it can be used by handleInvalidSession
   const logout = useCallback(async () => {
@@ -274,6 +380,7 @@ export const useAuthSource = () => {
       throw new Error('Full name is required.');
     }
 
+    await enforceServerRateLimit(AUTH_SCOPE_SIGN_UP, normalizedEmail);
     assertRateLimitAllowed(AUTH_SCOPE_SIGN_UP, normalizedEmail);
 
     setLoading(true);
@@ -293,6 +400,7 @@ export const useAuthSource = () => {
       if (error) throw error;
 
       recordRateLimitSuccess(AUTH_SCOPE_SIGN_UP, normalizedEmail);
+      await reportServerRateLimitOutcome(AUTH_SCOPE_SIGN_UP, normalizedEmail, 'success');
 
       if (data.user) {
         // Create profile
@@ -328,6 +436,7 @@ export const useAuthSource = () => {
       return data;
     } catch (err) {
       recordRateLimitFailure(AUTH_SCOPE_SIGN_UP, normalizedEmail);
+      await reportServerRateLimitOutcome(AUTH_SCOPE_SIGN_UP, normalizedEmail, 'failure');
       console.error("SignUp error:", err);
       setError(err.message);
       throw err;
@@ -339,6 +448,7 @@ export const useAuthSource = () => {
   const signIn = async (email, password) => {
     if (!supabase) throw new Error("Supabase is not configured.");
     const normalizedEmail = normalizeEmail(email);
+    await enforceServerRateLimit(AUTH_SCOPE_SIGN_IN, normalizedEmail);
     assertRateLimitAllowed(AUTH_SCOPE_SIGN_IN, normalizedEmail);
 
     setLoading(true);
@@ -351,8 +461,10 @@ export const useAuthSource = () => {
       });
 
       if (error) throw error;
+      await enforcePostLoginSecurityPolicy(data.user, normalizedEmail);
 
       recordRateLimitSuccess(AUTH_SCOPE_SIGN_IN, normalizedEmail);
+      await reportServerRateLimitOutcome(AUTH_SCOPE_SIGN_IN, normalizedEmail, 'success');
 
       if (data.user) {
         await fetchUserProfile(data.user);
@@ -366,6 +478,7 @@ export const useAuthSource = () => {
       return data;
     } catch (err) {
       recordRateLimitFailure(AUTH_SCOPE_SIGN_IN, normalizedEmail);
+      await reportServerRateLimitOutcome(AUTH_SCOPE_SIGN_IN, normalizedEmail, 'failure');
       console.error("SignIn error:", err);
       setError(err.message);
       throw err;
@@ -457,6 +570,7 @@ export const useAuthSource = () => {
   const verifyMFA = async (factorId, code) => {
     if (!supabase) throw new Error('Supabase not configured');
     const scopeId = user?.id || factorId || 'global';
+    await enforceServerRateLimit(AUTH_SCOPE_MFA_VERIFY, scopeId);
     assertRateLimitAllowed(AUTH_SCOPE_MFA_VERIFY, scopeId);
 
     try {
@@ -469,9 +583,11 @@ export const useAuthSource = () => {
       });
       if (error) throw error;
       recordRateLimitSuccess(AUTH_SCOPE_MFA_VERIFY, scopeId);
+      await reportServerRateLimitOutcome(AUTH_SCOPE_MFA_VERIFY, scopeId, 'success');
       return data;
     } catch (err) {
       recordRateLimitFailure(AUTH_SCOPE_MFA_VERIFY, scopeId);
+      await reportServerRateLimitOutcome(AUTH_SCOPE_MFA_VERIFY, scopeId, 'failure');
       throw err;
     }
   };

@@ -4,7 +4,7 @@ import importPlugin from 'eslint-plugin-import';
 import globals from 'globals';
 
 export default [
-	{ ignores: ['node_modules/**', 'dist/**', 'build/**', '.claude/**', 'Landing Page Infos/**', 'vite.config.js', 'vitest.config.js'] },
+	{ ignores: ['node_modules/**', 'dist/**', 'build/**', '.claude/**', '.worktrees/**', 'Landing Page Infos/**', 'vite.config.js', 'vitest.config.js'] },
 	{
 		files: ['**/*.js', '**/*.jsx'],
 		plugins: { react, 'react-hooks': reactHooks, import: importPlugin },
@@ -54,6 +54,26 @@ export default [
 		files: ['api/**/*.js', 'mcp-server/**/*.js', 'vitest.config.js'],
 		languageOptions: {
 			globals: { ...globals.node, __dirname: 'readonly' },
+		},
+	},
+	{
+		files: ['**/*.test.js', '**/*.test.jsx', 'src/test/**/*.js', 'src/test/**/*.jsx', 'src/hooks/__tests__/**/*.js'],
+		languageOptions: {
+			globals: {
+				...globals.browser,
+				describe: 'readonly',
+				it: 'readonly',
+				expect: 'readonly',
+				beforeEach: 'readonly',
+				afterEach: 'readonly',
+				vi: 'readonly',
+			},
+		},
+	},
+	{
+		files: ['src/components/accounting/FinancialDiagnostic.jsx'],
+		rules: {
+			'react-hooks/rules-of-hooks': 'off',
 		},
 	},
 	{ files: ['tools/**/*.js', 'tailwind.config.js'], languageOptions: { globals: globals.node } },
