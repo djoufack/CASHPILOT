@@ -3318,6 +3318,11 @@
     "charts": {
       "revenueVsExpenses": "Revenus vs charges"
     },
+    "horizon": {
+      "switchLabel": "Mode des données",
+      "actual": "Réalisé",
+      "forecast": "Prévisionnel"
+    },
     "series": {
       "revenue": "Revenus",
       "expenses": "Charges"
