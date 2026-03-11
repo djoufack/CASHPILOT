@@ -1,23 +1,39 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
 import { useSuppliers } from '@/hooks/useSuppliers';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { MapPin, Phone, Mail, Globe, ArrowLeft, CreditCard, FileText, Building2 } from 'lucide-react';
+import { MapPin, Phone, Mail, Globe, ArrowLeft, CreditCard, FileText, Wrench, Package, Receipt, AlertTriangle, Wallet } from 'lucide-react';
 import SupplierServices from '@/components/suppliers/SupplierServices';
 import SupplierProducts from '@/components/suppliers/SupplierProducts';
 import SupplierInvoices from '@/components/suppliers/SupplierInvoices';
+
+const EMPTY_OVERVIEW = {
+  servicesCount: 0,
+  productsCount: 0,
+  invoicesCount: 0,
+  pendingInvoices: 0,
+  overdueInvoices: 0,
+  totalSpend: 0,
+  lowStockProducts: 0,
+  outOfStockProducts: 0,
+};
 
 const SupplierProfile = () => {
   const { t } = useTranslation();
   const { id } = useParams();
   const { getSupplierById } = useSuppliers();
+  const { applyCompanyScope } = useCompanyScope();
   const [supplier, setSupplier] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [overview, setOverview] = useState(EMPTY_OVERVIEW);
+  const [overviewLoading, setOverviewLoading] = useState(true);
 
   useEffect(() => {
     const fetch = async () => {
@@ -27,6 +43,94 @@ const SupplierProfile = () => {
     };
     fetch();
   }, [getSupplierById, id]);
+
+  useEffect(() => {
+    const fetchOverview = async () => {
+      if (!id) return;
+      setOverviewLoading(true);
+      try {
+        let servicesQuery = supabase
+          .from('supplier_services')
+          .select('id, created_at')
+          .eq('supplier_id', id);
+        servicesQuery = applyCompanyScope(servicesQuery);
+
+        let productsQuery = supabase
+          .from('supplier_products')
+          .select('id, stock_quantity, min_stock_level, created_at')
+          .eq('supplier_id', id);
+        productsQuery = applyCompanyScope(productsQuery);
+
+        let invoicesQuery = supabase
+          .from('supplier_invoices')
+          .select('id, total_amount, due_date, payment_status, created_at')
+          .eq('supplier_id', id);
+        invoicesQuery = applyCompanyScope(invoicesQuery);
+
+        const [
+          { data: servicesData, error: servicesError },
+          { data: productsData, error: productsError },
+          { data: invoicesData, error: invoicesError },
+        ] = await Promise.all([servicesQuery, productsQuery, invoicesQuery]);
+
+        if (servicesError) throw servicesError;
+        if (productsError) throw productsError;
+        if (invoicesError) throw invoicesError;
+
+        const safeServices = servicesData || [];
+        const safeProducts = productsData || [];
+        const safeInvoices = invoicesData || [];
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const overdueInvoices = safeInvoices.filter((invoice) => {
+          if (!invoice.due_date || invoice.payment_status === 'paid') return false;
+          const due = new Date(invoice.due_date);
+          due.setHours(0, 0, 0, 0);
+          return due < today;
+        }).length;
+
+        const lowStockProducts = safeProducts.filter((product) => {
+          const stock = Number(product.stock_quantity || 0);
+          const min = Number(product.min_stock_level || 0);
+          return stock > 0 && stock <= min;
+        }).length;
+
+        const outOfStockProducts = safeProducts.filter((product) => Number(product.stock_quantity || 0) <= 0).length;
+
+        setOverview({
+          servicesCount: safeServices.length,
+          productsCount: safeProducts.length,
+          invoicesCount: safeInvoices.length,
+          pendingInvoices: safeInvoices.filter((invoice) => (invoice.payment_status || 'pending') === 'pending').length,
+          overdueInvoices,
+          totalSpend: safeInvoices.reduce((sum, invoice) => sum + Number(invoice.total_amount || 0), 0),
+          lowStockProducts,
+          outOfStockProducts,
+        });
+      } catch (error) {
+        console.error('Failed to fetch supplier overview:', error);
+        setOverview(EMPTY_OVERVIEW);
+      } finally {
+        setOverviewLoading(false);
+      }
+    };
+
+    fetchOverview();
+  }, [applyCompanyScope, id]);
+
+  useEffect(() => {
+    if (!supplier) return;
+    if (supplier.supplier_type === 'service') setActiveTab('services');
+    if (supplier.supplier_type === 'product') setActiveTab('products');
+    if (supplier.supplier_type === 'both') setActiveTab('overview');
+  }, [supplier]);
+
+  const hasAnyData = useMemo(
+    () => overview.servicesCount + overview.productsCount + overview.invoicesCount > 0,
+    [overview],
+  );
 
   if (loading) return <div className="p-8 text-white">{t('loading.page', 'Loading...')}</div>;
   if (!supplier) return <div className="p-8 text-white">{t('supplierProfile.notFound', 'Supplier not found')}</div>;
@@ -40,7 +144,6 @@ const SupplierProfile = () => {
         </Button>
       </Link>
 
-      {/* Header Info */}
       <Card className="bg-gray-900 border-gray-800">
         <CardHeader>
           <div className="flex justify-between items-start">
@@ -60,7 +163,6 @@ const SupplierProfile = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Row 1: Contact, Address, Business Details */}
           <div className="grid md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider flex items-center gap-2">
@@ -109,7 +211,6 @@ const SupplierProfile = () => {
             </div>
           </div>
 
-          {/* Row 2: Bank Details & Notes */}
           <div className="grid md:grid-cols-3 gap-6 pt-4 border-t border-gray-800">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wider flex items-center gap-2">
@@ -139,39 +240,92 @@ const SupplierProfile = () => {
         </CardContent>
       </Card>
 
-      {/* Tabs for Details */}
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="bg-gray-900 border-gray-800">
-          <TabsTrigger value="overview">{t('supplierProfile.overview', 'Overview')}</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="bg-gray-900 border-gray-800 flex flex-wrap h-auto">
+          <TabsTrigger value="overview">{t('supplierProfile.overview', "Vue d'ensemble")}</TabsTrigger>
           {(supplier.supplier_type === 'service' || supplier.supplier_type === 'both') && (
-            <TabsTrigger value="services">{t('supplierProfile.vendorServices', 'Services fournisseur')}</TabsTrigger>
+            <TabsTrigger value="services">{t('supplierProfile.vendorServices', 'Services fournisseur')} ({overview.servicesCount})</TabsTrigger>
           )}
           {(supplier.supplier_type === 'product' || supplier.supplier_type === 'both') && (
-            <TabsTrigger value="products">{t('supplierProfile.products', 'Products')}</TabsTrigger>
+            <TabsTrigger value="products">{t('supplierProfile.products', 'Products')} ({overview.productsCount})</TabsTrigger>
           )}
-          <TabsTrigger value="invoices">{t('common.invoices', 'Invoices')}</TabsTrigger>
+          <TabsTrigger value="invoices">{t('common.invoices', 'Invoices')} ({overview.invoicesCount})</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="overview" className="mt-6">
-          <div className="p-8 border border-gray-800 rounded-lg bg-gray-900/30 text-center text-gray-400">
-            {t('supplierProfile.overviewComingSoon', 'Supplier dashboard overview coming soon...')}
+
+        <TabsContent value="overview" className="mt-6 space-y-6">
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-gradient">{t('supplierProfile.overview', "Vue d'ensemble")} fournisseur</CardTitle>
+              <CardDescription>
+                Vue rapide des donnees disponibles pour ce fournisseur. Si cette zone etait vide avant, c'etait un placeholder non encore implemente.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {overviewLoading ? (
+                <div className="text-gray-400">{t('loading.data', 'Loading data...')}</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                  <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-4">
+                    <p className="text-xs text-gray-400 uppercase flex items-center gap-2"><Wrench className="w-3 h-3" /> Services fournisseur</p>
+                    <p className="text-2xl font-bold text-orange-300 mt-1">{overview.servicesCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-4">
+                    <p className="text-xs text-gray-400 uppercase flex items-center gap-2"><Package className="w-3 h-3" /> Produits fournisseur</p>
+                    <p className="text-2xl font-bold text-blue-300 mt-1">{overview.productsCount}</p>
+                    <p className="text-xs text-gray-400 mt-1">Stock bas: {overview.lowStockProducts} • Rupture: {overview.outOfStockProducts}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-4">
+                    <p className="text-xs text-gray-400 uppercase flex items-center gap-2"><Receipt className="w-3 h-3" /> Factures fournisseur</p>
+                    <p className="text-2xl font-bold text-green-300 mt-1">{overview.invoicesCount}</p>
+                    <p className="text-xs text-gray-400 mt-1">En attente: {overview.pendingInvoices} • En retard: {overview.overdueInvoices}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-4">
+                    <p className="text-xs text-gray-400 uppercase flex items-center gap-2"><Wallet className="w-3 h-3" /> Depenses totalisees</p>
+                    <p className="text-2xl font-bold text-purple-300 mt-1">
+                      {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: supplier.currency || 'EUR' }).format(overview.totalSpend || 0)}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {!overviewLoading && !hasAnyData && (
+            <Card className="bg-gray-900 border-gray-800">
+              <CardContent className="py-6 text-center text-gray-400">
+                <AlertTriangle className="w-5 h-5 mx-auto mb-2 text-yellow-400" />
+                Aucune donnee transactionnelle pour ce fournisseur pour le moment. Ajoutez des services, produits ou factures pour alimenter la vue.
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {(supplier.supplier_type === 'service' || supplier.supplier_type === 'both') && (
+              <Button variant="outline" className="border-gray-700" onClick={() => setActiveTab('services')}>
+                Ouvrir services fournisseur
+              </Button>
+            )}
+            {(supplier.supplier_type === 'product' || supplier.supplier_type === 'both') && (
+              <Button variant="outline" className="border-gray-700" onClick={() => setActiveTab('products')}>
+                Ouvrir produits
+              </Button>
+            )}
+            <Button variant="outline" className="border-gray-700" onClick={() => setActiveTab('invoices')}>
+              Ouvrir factures
+            </Button>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="services" className="mt-6">
-          <SupplierServices supplierId={id} />
+          <SupplierServices supplierId={id} supplier={supplier} />
         </TabsContent>
-        
+
         <TabsContent value="products" className="mt-6">
-          <SupplierProducts supplierId={id} />
+          <SupplierProducts supplierId={id} supplier={supplier} />
         </TabsContent>
 
         <TabsContent value="invoices" className="mt-6">
-           <div className="p-4 border border-gray-800 rounded-lg bg-gray-900/30">
-               <h3 className="text-lg font-bold mb-4">{t('supplierProfile.supplierInvoices', 'Supplier Invoices')}</h3>
-               {/* Simplified Invoice View - Full Implementation would use SupplierInvoices component */}
-               <div className="text-gray-400">Invoice management module loaded.</div>
-           </div>
+          <SupplierInvoices supplierId={id} supplier={supplier} />
         </TabsContent>
       </Tabs>
     </div>
