@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSupplierProducts } from '@/hooks/useSupplierProducts';
 import { useCompany } from '@/hooks/useCompany';
+import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { exportSupplierProductPDF, exportSupplierProductHTML } from '@/services/exportSupplierRecords';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ const SupplierProducts = ({ supplierId, supplier }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { company } = useCompany();
+  const { settings: invoiceSettings } = useInvoiceSettings();
   const { products, categories, createProduct, updateProduct, deleteProduct } = useSupplierProducts(supplierId);
   const { importFromSupplier } = useProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -100,7 +102,7 @@ const SupplierProducts = ({ supplierId, supplier }) => {
 
   const handleExportPdf = async (product) => {
     try {
-      await exportSupplierProductPDF(product, supplier, company);
+      await exportSupplierProductPDF(product, supplier, company, invoiceSettings);
     } catch (error) {
       toast({
         title: t('common.error', 'Erreur'),
@@ -110,9 +112,9 @@ const SupplierProducts = ({ supplierId, supplier }) => {
     }
   };
 
-  const handleExportHtml = (product) => {
+  const handleExportHtml = async (product) => {
     try {
-      exportSupplierProductHTML(product, supplier, company);
+      await exportSupplierProductHTML(product, supplier, company, invoiceSettings);
     } catch (error) {
       toast({
         title: t('common.error', 'Erreur'),
