@@ -1,9 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { usePilotageData } from '@/hooks/usePilotageData';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { ENTITLEMENT_KEYS, filterEntitledItems } from '@/utils/subscriptionEntitlements';
 import PilotageHeader from '@/components/pilotage/PilotageHeader';
 import PilotageOverviewTab from '@/components/pilotage/PilotageOverviewTab';
 import PilotageAccountingTab from '@/components/pilotage/PilotageAccountingTab';
@@ -13,10 +16,12 @@ import PilotageSimulatorTab from '@/components/pilotage/PilotageSimulatorTab';
 import PilotageAuditTab from '@/components/pilotage/PilotageAuditTab';
 import PilotageDataAvailabilityTab from '@/components/pilotage/PilotageDataAvailabilityTab';
 import { formatDateInput, formatStartOfYearInput } from '@/utils/dateFormatting';
-import { BarChart3, Eye, Calculator, TrendingUp, Building2, Play, ShieldCheck, DatabaseZap } from 'lucide-react';
+import { BarChart3, Eye, Calculator, TrendingUp, Building2, Play, ShieldCheck, DatabaseZap, PieChart } from 'lucide-react';
 
 const PilotagePage = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { hasEntitlement } = useEntitlements();
 
   // Period state — default to current fiscal year (Jan 1 to today)
   const [startDate, setStartDate] = useState(() => {
@@ -47,7 +52,21 @@ const PilotagePage = () => {
     { id: 'simulator', label: t('pilotage.tabs.simulator'), icon: Play },
     { id: 'aiAudit', label: t('pilotage.tabs.aiAudit'), icon: ShieldCheck },
     { id: 'dataAvailability', label: t('pilotage.tabs.dataAvailability', 'Disponibilite'), icon: DatabaseZap },
+    { id: 'analytics', label: t('nav.analytics'), icon: PieChart, featureKey: ENTITLEMENT_KEYS.ANALYTICS_REPORTS },
   ], [t]);
+  const visibleTabs = useMemo(
+    () => filterEntitledItems(tabs, hasEntitlement),
+    [hasEntitlement, tabs]
+  );
+
+  const handleTabChange = useCallback((nextTab) => {
+    if (nextTab === 'analytics') {
+      navigate('/app/analytics');
+      return;
+    }
+
+    setActiveTab(nextTab);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gray-950 p-4 md:p-6 space-y-6">
@@ -70,9 +89,9 @@ const PilotagePage = () => {
       </motion.div>
 
       {/* Tab navigation — directly after title, above everything */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-6">
         <TabsList className="w-full flex flex-wrap bg-gray-900/50 border border-gray-800/50 rounded-xl p-1 gap-1 h-auto">
-          {tabs.map(tab => {
+          {visibleTabs.map(tab => {
             const Icon = tab.icon;
             return (
               <TabsTrigger
