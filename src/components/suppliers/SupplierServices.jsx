@@ -28,7 +28,7 @@ const SupplierServices = ({ supplierId, supplier }) => {
   const { toast } = useToast();
   const { company } = useCompany();
   const { settings: invoiceSettings } = useInvoiceSettings();
-  const { services, createService, updateService, deleteService } = useSupplierServices(supplierId);
+  const { services, loading, createService, updateService, deleteService } = useSupplierServices(supplierId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewingService, setViewingService] = useState(null);
   const [editingServiceId, setEditingServiceId] = useState(null);
@@ -292,6 +292,13 @@ const SupplierServices = ({ supplierId, supplier }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {loading && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-gray-500 py-6">
+                  {t('loading.data', 'Chargement des donnees...')}
+                </TableCell>
+              </TableRow>
+            )}
             {services.map((service) => (
               <TableRow key={service.id} className="border-gray-800">
                 <TableCell className="font-medium text-gradient">{service.service_name}</TableCell>
@@ -333,7 +340,7 @@ const SupplierServices = ({ supplierId, supplier }) => {
                 </TableCell>
               </TableRow>
             ))}
-            {services.length === 0 && (
+            {!loading && services.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-gray-500 py-6">{t('suppliers.services.noServices')}</TableCell>
               </TableRow>

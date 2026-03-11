@@ -32,17 +32,29 @@ const SupplierProfile = () => {
   const [supplier, setSupplier] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [tabInitialized, setTabInitialized] = useState(false);
   const [overview, setOverview] = useState(EMPTY_OVERVIEW);
   const [overviewLoading, setOverviewLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const fetch = async () => {
+      setLoading(true);
       const data = await getSupplierById(id);
+      if (cancelled) return;
       setSupplier(data);
       setLoading(false);
     };
     fetch();
+    return () => {
+      cancelled = true;
+    };
   }, [getSupplierById, id]);
+
+  useEffect(() => {
+    setActiveTab('overview');
+    setTabInitialized(false);
+  }, [id]);
 
   useEffect(() => {
     const fetchOverview = async () => {
@@ -121,11 +133,12 @@ const SupplierProfile = () => {
   }, [applyCompanyScope, id]);
 
   useEffect(() => {
-    if (!supplier) return;
+    if (!supplier || tabInitialized) return;
     if (supplier.supplier_type === 'service') setActiveTab('services');
     if (supplier.supplier_type === 'product') setActiveTab('products');
     if (supplier.supplier_type === 'both') setActiveTab('overview');
-  }, [supplier]);
+    setTabInitialized(true);
+  }, [supplier, tabInitialized]);
 
   const hasAnyData = useMemo(
     () => overview.servicesCount + overview.productsCount + overview.invoicesCount > 0,

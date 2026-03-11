@@ -29,7 +29,7 @@ const SupplierProducts = ({ supplierId, supplier }) => {
   const { toast } = useToast();
   const { company } = useCompany();
   const { settings: invoiceSettings } = useInvoiceSettings();
-  const { products, categories, createProduct, updateProduct, deleteProduct } = useSupplierProducts(supplierId);
+  const { products, categories, loading, createProduct, updateProduct, deleteProduct } = useSupplierProducts(supplierId);
   const { importFromSupplier } = useProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewingProduct, setViewingProduct] = useState(null);
@@ -275,6 +275,13 @@ const SupplierProducts = ({ supplierId, supplier }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {loading && (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center text-gray-500 py-6">
+                  {t('loading.data', 'Chargement des donnees...')}
+                </TableCell>
+              </TableRow>
+            )}
             {products.map((product) => {
               const stockSnapshot = getStockSnapshot(product);
               return (
@@ -340,7 +347,7 @@ const SupplierProducts = ({ supplierId, supplier }) => {
                 </TableRow>
               );
             })}
-            {products.length === 0 && (
+            {!loading && products.length === 0 && (
               <TableRow>
                 <TableCell colSpan={8} className="text-center text-gray-500 py-6">{t('supplierProducts.noProducts')}</TableCell>
               </TableRow>
