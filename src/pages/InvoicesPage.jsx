@@ -7,6 +7,7 @@ import QuickInvoice from '@/components/QuickInvoice';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useClients } from '@/hooks/useClients';
 import { useCompany } from '@/hooks/useCompany';
+import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import { useEmailService } from '@/hooks/useEmailService';
 import { useToast } from '@/components/ui/use-toast';
@@ -36,6 +37,7 @@ const InvoicesPage = () => {
   const { invoices, deleteInvoice, updateInvoiceStatus, getInvoiceItems, fetchInvoices } = useInvoices();
   const { clients } = useClients();
   const { company } = useCompany();
+  const { settings: invoiceSettings } = useInvoiceSettings();
   const { guardedAction, modalProps } = useCreditsGuard();
   const { sendInvoiceEmail, sending: emailSending } = useEmailService();
   const { toast } = useToast();
@@ -211,7 +213,7 @@ const InvoicesPage = () => {
             items: getInvoiceItems(invoice.id),
             client: clients.find(c => c.id === (invoice.client_id || invoice.clientId))
           };
-          await exportInvoicePDF(enrichedInvoice, company);
+          await exportInvoicePDF(enrichedInvoice, company, invoiceSettings);
         } catch (error) {
           captureError(error, { tags: { scope: 'invoices', action: 'export_pdf' }, extra: { invoiceId: invoice.id } });
           toast({ title: t('common.error'), description: error?.message || t('common.unexpectedError', 'An unexpected error occurred.'), variant: 'destructive' });
@@ -225,14 +227,14 @@ const InvoicesPage = () => {
     guardedAction(
       CREDIT_COSTS.EXPORT_HTML,
       t('credits.costs.exportHtml'),
-      () => {
+      async () => {
         try {
           const enrichedInvoice = {
             ...invoice,
             items: getInvoiceItems(invoice.id),
             client: clients.find(c => c.id === (invoice.client_id || invoice.clientId))
           };
-          exportInvoiceHTML(enrichedInvoice, company);
+          await exportInvoiceHTML(enrichedInvoice, company, invoiceSettings);
         } catch (error) {
           captureError(error, { tags: { scope: 'invoices', action: 'export_html' }, extra: { invoiceId: invoice.id } });
           toast({ title: t('common.error'), description: error?.message || t('common.unexpectedError', 'An unexpected error occurred.'), variant: 'destructive' });
