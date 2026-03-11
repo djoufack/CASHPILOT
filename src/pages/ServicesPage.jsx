@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useServices, useServiceCategories } from '@/hooks/useServices';
 import { useCompany } from '@/hooks/useCompany';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +28,7 @@ import { Search, Plus, Trash2, Edit2, Download, Briefcase, Clock, DollarSign, Ta
 
 const ServicesPage = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { services, loading, createService, updateService, deleteService } = useServices();
   const { categories, createCategory, deleteCategory } = useServiceCategories();
   const { company } = useCompany();
@@ -273,6 +275,14 @@ const ServicesPage = () => {
       setViewingService(null);
       setServiceInsights(null);
     }
+  };
+
+  const openProjectDetails = (projectId) => {
+    if (!projectId) return;
+    setViewingService(null);
+    setServiceInsights(null);
+    setServiceInsightsLoading(false);
+    navigate(`/app/projects/${projectId}`);
   };
 
   // Submit create or update
@@ -826,9 +836,17 @@ const ServicesPage = () => {
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {serviceInsights.linkedProjects.map((project) => (
-                          <Badge key={project.id} className="bg-blue-500/15 text-blue-300 border-blue-500/30">
+                          <Button
+                            key={project.id}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 rounded-full border-blue-500/40 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20"
+                            onClick={() => openProjectDetails(project.id)}
+                            title="Ouvrir le projet"
+                          >
                             {project.name || 'Projet sans nom'}
-                          </Badge>
+                          </Button>
                         ))}
                       </div>
                     )}
@@ -848,7 +866,19 @@ const ServicesPage = () => {
                           <div>
                             <p className="font-medium text-gray-100">{getTaskLabel(task)}</p>
                             <p className="text-xs text-gray-400">
-                              Projet: {task?.project?.name || '—'} • MAJ: {formatDateTime(task?.updated_at)}
+                              Projet:{' '}
+                              {task?.project?.id ? (
+                                <button
+                                  type="button"
+                                  className="text-blue-300 hover:text-blue-200 underline-offset-2 hover:underline"
+                                  onClick={() => openProjectDetails(task.project.id)}
+                                >
+                                  {task?.project?.name || 'Projet'}
+                                </button>
+                              ) : (
+                                <span>{task?.project?.name || '—'}</span>
+                              )}{' '}
+                              • MAJ: {formatDateTime(task?.updated_at)}
                             </p>
                           </div>
                           <Badge variant="outline" className="border-gray-700 text-gray-300 capitalize">
