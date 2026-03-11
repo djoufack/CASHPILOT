@@ -9,6 +9,7 @@ const corsHeaders = {
 };
 
 const GOCARDLESS_BASE = 'https://bankaccountdata.gocardless.com/api/v2';
+const GOCARDLESS_TIMEOUT_MS = 20000;
 
 class HttpError extends Error {
   status: number;
@@ -64,11 +65,25 @@ function extractErrorMessage(payload: unknown, fallbackMessage: string) {
 }
 
 async function fetchGoCardlessToken(secretId: string, secretKey: string) {
-  const response = await fetch(`${GOCARDLESS_BASE}/token/new/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secret_id: secretId, secret_key: secretKey }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), GOCARDLESS_TIMEOUT_MS);
+  let response: Response;
+
+  try {
+    response = await fetch(`${GOCARDLESS_BASE}/token/new/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret_id: secretId, secret_key: secretKey }),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new HttpError(504, 'GoCardless auth timeout');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const payload = await readJsonResponse(response);
   if (!response.ok || !payload?.access) {
@@ -83,14 +98,28 @@ async function fetchGoCardlessToken(secretId: string, secretKey: string) {
 }
 
 async function fetchGoCardless(accessToken: string, path: string, options: RequestInit = {}) {
-  const response = await fetch(`${GOCARDLESS_BASE}${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), GOCARDLESS_TIMEOUT_MS);
+  let response: Response;
+
+  try {
+    response = await fetch(`${GOCARDLESS_BASE}${path}`, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      },
+      signal: options.signal ?? controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new HttpError(504, 'GoCardless API timeout');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const payload = await readJsonResponse(response);
   if (!response.ok) {
