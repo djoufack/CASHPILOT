@@ -3,7 +3,71 @@ const toNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const lerp = (start, end, progress) => start + (end - start) * progress;
+const buildMonotoneSlopes = (values = []) => {
+  if (!Array.isArray(values) || values.length === 0) {
+    return [];
+  }
+
+  if (values.length === 1) {
+    return [0];
+  }
+
+  const deltas = Array.from({ length: values.length - 1 }, (_, index) => values[index + 1] - values[index]);
+  const slopes = Array(values.length).fill(0);
+
+  slopes[0] = deltas[0];
+  slopes[values.length - 1] = deltas[deltas.length - 1];
+
+  for (let index = 1; index < values.length - 1; index += 1) {
+    slopes[index] = (deltas[index - 1] + deltas[index]) / 2;
+  }
+
+  for (let index = 0; index < deltas.length; index += 1) {
+    const delta = deltas[index];
+
+    if (delta === 0) {
+      slopes[index] = 0;
+      slopes[index + 1] = 0;
+      continue;
+    }
+
+    if (Math.sign(slopes[index]) !== Math.sign(delta)) {
+      slopes[index] = 0;
+    }
+
+    if (Math.sign(slopes[index + 1]) !== Math.sign(delta)) {
+      slopes[index + 1] = 0;
+    }
+
+    const a = slopes[index] / delta;
+    const b = slopes[index + 1] / delta;
+    const sum = a * a + b * b;
+
+    if (sum > 9) {
+      const scale = 3 / Math.sqrt(sum);
+      slopes[index] = scale * a * delta;
+      slopes[index + 1] = scale * b * delta;
+    }
+  }
+
+  return slopes;
+};
+
+const interpolateMonotone = (values, slopes, segmentIndex, progress) => {
+  const start = values[segmentIndex];
+  const end = values[segmentIndex + 1];
+  const startSlope = slopes[segmentIndex];
+  const endSlope = slopes[segmentIndex + 1];
+  const t2 = progress * progress;
+  const t3 = t2 * progress;
+
+  const h00 = 2 * t3 - 3 * t2 + 1;
+  const h10 = t3 - 2 * t2 + progress;
+  const h01 = -2 * t3 + 3 * t2;
+  const h11 = t3 - t2;
+
+  return h00 * start + h10 * startSlope + h01 * end + h11 * endSlope;
+};
 
 export const buildContinuousSeries = (points = [], numericKeys = [], stepsPerSegment = 24) => {
   if (!Array.isArray(points) || points.length === 0) {
@@ -29,6 +93,12 @@ export const buildContinuousSeries = (points = [], numericKeys = [], stepsPerSeg
   }
 
   const safeSteps = Math.max(2, Math.floor(stepsPerSegment));
+  const seriesByKey = Object.fromEntries(
+    numericKeys.map((key) => [key, points.map((point) => toNumber(point[key]))])
+  );
+  const slopesByKey = Object.fromEntries(
+    numericKeys.map((key) => [key, buildMonotoneSlopes(seriesByKey[key])])
+  );
   const rows = [];
 
   for (let index = 0; index < points.length - 1; index += 1) {
@@ -47,7 +117,7 @@ export const buildContinuousSeries = (points = [], numericKeys = [], stepsPerSeg
       };
 
       for (const key of numericKeys) {
-        row[key] = lerp(toNumber(start[key]), toNumber(end[key]), progress);
+        row[key] = interpolateMonotone(seriesByKey[key], slopesByKey[key], index, progress);
       }
 
       rows.push(row);
