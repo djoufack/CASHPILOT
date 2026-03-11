@@ -8,14 +8,20 @@ export function getStoredActiveCompanyId() {
 
 export function setStoredActiveCompanyId(companyId) {
   if (typeof window === 'undefined') return;
+  const normalizedCompanyId = companyId || null;
+  const currentCompanyId = getStoredActiveCompanyId();
 
-  if (companyId) {
-    window.localStorage.setItem(ACTIVE_COMPANY_STORAGE_KEY, companyId);
+  if ((currentCompanyId || null) === normalizedCompanyId) {
+    return;
+  }
+
+  if (normalizedCompanyId) {
+    window.localStorage.setItem(ACTIVE_COMPANY_STORAGE_KEY, normalizedCompanyId);
   } else {
     window.localStorage.removeItem(ACTIVE_COMPANY_STORAGE_KEY);
   }
 
   window.dispatchEvent(new CustomEvent(ACTIVE_COMPANY_EVENT, {
-    detail: companyId || null,
+    detail: normalizedCompanyId,
   }));
 }
