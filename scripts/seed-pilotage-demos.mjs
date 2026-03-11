@@ -3432,6 +3432,72 @@ async function deleteRowsByIds(client, table, ids) {
   }
 }
 
+function toUniqueIds(values) {
+  return [...new Set((values || []).filter(Boolean))];
+}
+
+function chunkValues(values, size = 500) {
+  const chunks = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function isMissingColumnError(message, column) {
+  if (!message) return false;
+  return message.includes(`Could not find the '${column}' column`) || message.includes(`column "${column}" does not exist`);
+}
+
+async function listIdsByFilter(client, table, filterColumn, value, options = {}) {
+  if (!value) return [];
+  const { allowMissingColumn = false } = options;
+  const { data, error } = await client.from(table).select('id').eq(filterColumn, value);
+  if (error) {
+    if (allowMissingColumn && isMissingColumnError(String(error.message || ''), filterColumn)) {
+      return [];
+    }
+    throw new Error(`Failed to list ${table} by ${filterColumn}: ${error.message}`);
+  }
+  return toUniqueIds((data || []).map((row) => row.id));
+}
+
+async function listIdsByValues(client, table, filterColumn, values, options = {}) {
+  const scopedValues = toUniqueIds(values);
+  if (!scopedValues.length) return [];
+  const { allowMissingColumn = false } = options;
+  const ids = [];
+
+  for (const batch of chunkValues(scopedValues)) {
+    const { data, error } = await client.from(table).select('id').in(filterColumn, batch);
+    if (error) {
+      if (allowMissingColumn && isMissingColumnError(String(error.message || ''), filterColumn)) {
+        return [];
+      }
+      throw new Error(`Failed to list ${table} by ${filterColumn}: ${error.message}`);
+    }
+    ids.push(...(data || []).map((row) => row.id));
+  }
+
+  return toUniqueIds(ids);
+}
+
+async function deleteRowsByValues(client, table, filterColumn, values, options = {}) {
+  const scopedValues = toUniqueIds(values);
+  if (!scopedValues.length) return;
+  const { allowMissingColumn = false } = options;
+
+  for (const batch of chunkValues(scopedValues)) {
+    const { error } = await client.from(table).delete().in(filterColumn, batch);
+    if (error) {
+      if (allowMissingColumn && isMissingColumnError(String(error.message || ''), filterColumn)) {
+        return;
+      }
+      throw new Error(`Failed to cleanup ${table}: ${error.message}`);
+    }
+  }
+}
+
 async function cleanupScenarioRows(client, userId) {
   const { data, error } = await client
     .from('financial_scenarios')
@@ -3469,6 +3535,67 @@ async function cleanupScenarioRows(client, userId) {
 }
 
 async function cleanupDemoDataset(client, dataset) {
+  const seedCompanyIds = toUniqueIds(((dataset.companyRows || [dataset.companyRow]) || []).map((row) => row?.id));
+  const existingCompanyIds = await listIdsByFilter(client, 'company', 'user_id', dataset.userId);
+  const companyIds = toUniqueIds([...seedCompanyIds, ...existingCompanyIds]);
+
+  const invoiceIds = toUniqueIds([
+    ...(await listIdsByFilter(client, 'invoices', 'user_id', dataset.userId)),
+    ...(await listIdsByValues(client, 'invoices', 'company_id', companyIds, { allowMissingColumn: true })),
+  ]);
+  const paymentIds = toUniqueIds([
+    ...(await listIdsByFilter(client, 'payments', 'user_id', dataset.userId)),
+    ...(await listIdsByValues(client, 'payments', 'company_id', companyIds, { allowMissingColumn: true })),
+  ]);
+  const recurringInvoiceIds = toUniqueIds([
+    ...(await listIdsByFilter(client, 'recurring_invoices', 'user_id', dataset.userId)),
+    ...(await listIdsByValues(client, 'recurring_invoices', 'company_id', companyIds, { allowMissingColumn: true })),
+  ]);
+  const projectIds = toUniqueIds([
+    ...(await listIdsByFilter(client, 'projects', 'user_id', dataset.userId)),
+    ...(await listIdsByValues(client, 'projects', 'company_id', companyIds, { allowMissingColumn: true })),
+  ]);
+  const quoteIds = toUniqueIds([
+    ...(await listIdsByFilter(client, 'quotes', 'user_id', dataset.userId)),
+    ...(await listIdsByValues(client, 'quotes', 'company_id', companyIds, { allowMissingColumn: true })),
+  ]);
+  const purchaseOrderIds = toUniqueIds([
+    ...(await listIdsByFilter(client, 'purchase_orders', 'user_id', dataset.userId)),
+    ...(await listIdsByValues(client, 'purchase_orders', 'company_id', companyIds, { allowMissingColumn: true })),
+  ]);
+  const taskIds = toUniqueIds([
+    ...(await listIdsByValues(client, 'tasks', 'project_id', projectIds)),
+    ...(await listIdsByValues(client, 'tasks', 'invoice_id', invoiceIds, { allowMissingColumn: true })),
+    ...(await listIdsByValues(client, 'tasks', 'quote_id', quoteIds, { allowMissingColumn: true })),
+    ...(await listIdsByValues(client, 'tasks', 'purchase_order_id', purchaseOrderIds, { allowMissingColumn: true })),
+  ]);
+  const productIds = toUniqueIds([
+    ...(await listIdsByFilter(client, 'products', 'user_id', dataset.userId)),
+    ...(await listIdsByValues(client, 'products', 'company_id', companyIds, { allowMissingColumn: true })),
+  ]);
+  const supplierIds = toUniqueIds([
+    ...(await listIdsByFilter(client, 'suppliers', 'user_id', dataset.userId)),
+    ...(await listIdsByValues(client, 'suppliers', 'company_id', companyIds, { allowMissingColumn: true })),
+  ]);
+  const supplierInvoiceIds = toUniqueIds([
+    ...(await listIdsByFilter(client, 'supplier_invoices', 'user_id', dataset.userId, { allowMissingColumn: true })),
+    ...(await listIdsByValues(client, 'supplier_invoices', 'supplier_id', supplierIds)),
+    ...(await listIdsByValues(client, 'supplier_invoices', 'company_id', companyIds, { allowMissingColumn: true })),
+  ]);
+  const supplierOrderIds = toUniqueIds([
+    ...(await listIdsByFilter(client, 'supplier_orders', 'user_id', dataset.userId, { allowMissingColumn: true })),
+    ...(await listIdsByValues(client, 'supplier_orders', 'supplier_id', supplierIds)),
+    ...(await listIdsByValues(client, 'supplier_orders', 'company_id', companyIds, { allowMissingColumn: true })),
+  ]);
+  const deliveryNoteIds = toUniqueIds([
+    ...(await listIdsByFilter(client, 'delivery_notes', 'user_id', dataset.userId)),
+    ...(await listIdsByValues(client, 'delivery_notes', 'company_id', companyIds, { allowMissingColumn: true })),
+  ]);
+  const creditNoteIds = toUniqueIds([
+    ...(await listIdsByFilter(client, 'credit_notes', 'user_id', dataset.userId)),
+    ...(await listIdsByValues(client, 'credit_notes', 'company_id', companyIds, { allowMissingColumn: true })),
+  ]);
+
   await cleanupScenarioRows(client, dataset.userId);
   await deleteRows(client, 'dashboard_snapshots', 'user_id', dataset.userId);
   await deleteRows(client, 'accounting_depreciation_schedule', 'user_id', dataset.userId);
@@ -3477,17 +3604,18 @@ async function cleanupDemoDataset(client, dataset) {
   await deleteRowsByIds(client, 'webhook_deliveries', dataset.webhookDeliveryRows.map((row) => row.id));
   await deleteRowsByIds(client, 'bank_transactions', dataset.bankTransactionRows.map((row) => row.id));
   await deleteRowsByIds(client, 'bank_sync_history', dataset.bankSyncHistoryRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'delivery_note_items', dataset.deliveryNoteItemRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'credit_note_items', dataset.creditNoteItemRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'recurring_invoice_line_items', dataset.recurringInvoiceLineItemRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'supplier_invoice_line_items', dataset.supplierInvoiceLineItemRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'supplier_order_items', dataset.supplierOrderItemRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'payment_allocations', dataset.paymentAllocationRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'invoice_items', dataset.invoiceItemRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'subtasks', dataset.subtaskRows.map((row) => row.id));
+  await deleteRowsByValues(client, 'delivery_note_items', 'delivery_note_id', deliveryNoteIds);
+  await deleteRowsByValues(client, 'credit_note_items', 'credit_note_id', creditNoteIds);
+  await deleteRowsByValues(client, 'recurring_invoice_line_items', 'recurring_invoice_id', recurringInvoiceIds);
+  await deleteRowsByValues(client, 'supplier_invoice_line_items', 'invoice_id', supplierInvoiceIds);
+  await deleteRowsByValues(client, 'supplier_order_items', 'order_id', supplierOrderIds);
+  await deleteRowsByValues(client, 'payment_allocations', 'payment_id', paymentIds);
+  await deleteRowsByValues(client, 'payment_allocations', 'invoice_id', invoiceIds);
+  await deleteRowsByValues(client, 'invoice_items', 'invoice_id', invoiceIds);
+  await deleteRowsByValues(client, 'subtasks', 'task_id', taskIds);
   await deleteRows(client, 'payments', 'user_id', dataset.userId);
   await deleteRows(client, 'timesheets', 'user_id', dataset.userId);
-  await deleteRowsByIds(client, 'tasks', dataset.taskRows.map((row) => row.id));
+  await deleteRowsByValues(client, 'tasks', 'id', taskIds);
   await deleteRows(client, 'projects', 'user_id', dataset.userId);
   await deleteRows(client, 'purchase_orders', 'user_id', dataset.userId);
   await deleteRows(client, 'quotes', 'user_id', dataset.userId);
@@ -3496,17 +3624,19 @@ async function cleanupDemoDataset(client, dataset) {
   await deleteRows(client, 'payment_reminder_rules', 'user_id', dataset.userId);
   await deleteRows(client, 'credit_notes', 'user_id', dataset.userId);
   await deleteRows(client, 'delivery_notes', 'user_id', dataset.userId);
-  await deleteRowsByIds(client, 'supplier_invoices', dataset.supplierInvoiceRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'supplier_orders', dataset.supplierOrderRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'suppliers', dataset.supplierRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'supplier_services', dataset.supplierServiceRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'supplier_products', dataset.supplierProductRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'supplier_product_categories', dataset.supplierProductCategoryRows.map((row) => row.id));
+  await deleteRowsByValues(client, 'supplier_invoices', 'id', supplierInvoiceIds);
+  await deleteRowsByValues(client, 'supplier_orders', 'id', supplierOrderIds);
+  await deleteRowsByValues(client, 'supplier_services', 'supplier_id', supplierIds);
+  await deleteRowsByValues(client, 'supplier_products', 'supplier_id', supplierIds);
+  await deleteRows(client, 'supplier_product_categories', 'user_id', dataset.userId);
+  await deleteRows(client, 'suppliers', 'user_id', dataset.userId);
   await deleteRows(client, 'peppol_transmission_log', 'user_id', dataset.userId);
   await deleteRows(client, 'webhook_endpoints', 'user_id', dataset.userId);
   await deleteRows(client, 'bank_connections', 'user_id', dataset.userId);
-  await deleteRowsByIds(client, 'stock_alerts', dataset.stockAlertRows.map((row) => row.id));
-  await deleteRowsByIds(client, 'product_stock_history', dataset.productStockHistoryRows.map((row) => row.id));
+  await deleteRowsByValues(client, 'stock_alerts', 'user_product_id', productIds);
+  await deleteRowsByValues(client, 'product_stock_history', 'user_product_id', productIds);
+  await deleteRowsByValues(client, 'stock_alerts', 'company_id', companyIds, { allowMissingColumn: true });
+  await deleteRowsByValues(client, 'product_stock_history', 'company_id', companyIds, { allowMissingColumn: true });
   await deleteRows(client, 'products', 'user_id', dataset.userId);
   await deleteRows(client, 'services', 'user_id', dataset.userId);
   await deleteRows(client, 'product_categories', 'user_id', dataset.userId);
@@ -3530,6 +3660,54 @@ async function cleanupDemoDataset(client, dataset) {
   await deleteRows(client, 'user_accounting_settings', 'user_id', dataset.userId);
   await deleteRows(client, 'payment_terms', 'user_id', dataset.userId);
   await deleteRows(client, 'user_company_preferences', 'user_id', dataset.userId);
+
+  const companyScopedResidualTables = [
+    'product_stock_history',
+    'stock_alerts',
+    'supplier_services',
+    'supplier_products',
+    'supplier_invoices',
+    'supplier_orders',
+    'supplier_locations',
+    'supplier_reports_cache',
+    'supplier_product_categories',
+    'suppliers',
+    'products',
+    'product_categories',
+    'services',
+    'service_categories',
+    'payments',
+    'timesheets',
+    'expenses',
+    'invoices',
+    'quotes',
+    'projects',
+    'clients',
+    'recurring_invoices',
+    'payment_reminder_logs',
+    'payment_reminder_rules',
+    'credit_notes',
+    'delivery_notes',
+    'purchase_orders',
+    'receivables',
+    'payables',
+    'debt_payments',
+    'bank_transactions',
+    'bank_sync_history',
+    'bank_connections',
+    'peppol_transmission_log',
+    'accounting_depreciation_schedule',
+    'accounting_fixed_assets',
+    'accounting_entries',
+    'dashboard_snapshots',
+    'financial_scenarios',
+    'scenario_comparisons',
+  ];
+
+  for (const table of companyScopedResidualTables) {
+    await deleteRowsByValues(client, table, 'company_id', companyIds, { allowMissingColumn: true });
+  }
+
   await deleteRows(client, 'company', 'user_id', dataset.userId);
 }
 
