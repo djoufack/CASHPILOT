@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { notifyPendingSupplierApproval } from '@/services/supplierApprovalNotifications';
+import { linkLineItemsToProducts } from '@/services/supplierInvoiceLineItemLinking';
 
 export const useSupplierInvoices = (supplierId) => {
   const [invoices, setInvoices] = useState([]);
@@ -189,12 +190,31 @@ export const useSupplierInvoices = (supplierId) => {
   const createLineItems = async (invoiceId, items) => {
     if (!items || items.length === 0) return;
     try {
-      const lineItems = items.map((item, index) => ({
+      let enrichedItems = items;
+
+      if (supplierId) {
+        let productsQuery = supabase
+          .from('products')
+          .select('id, product_name, sku, supplier_id, is_active')
+          .eq('supplier_id', supplierId)
+          .eq('is_active', true);
+
+        productsQuery = applyCompanyScope(productsQuery);
+
+        const { data: supplierProducts, error: productsError } = await productsQuery;
+        if (productsError) throw productsError;
+
+        enrichedItems = linkLineItemsToProducts(items, supplierProducts || []);
+      }
+
+      const lineItems = enrichedItems.map((item, index) => ({
         invoice_id: invoiceId,
         description: item.description || '',
         quantity: item.quantity || 1,
         unit_price: item.unit_price || 0,
         total: item.total || 0,
+        vat_rate: item.vat_rate ?? null,
+        user_product_id: item.user_product_id || null,
         sort_order: index,
       }));
 
