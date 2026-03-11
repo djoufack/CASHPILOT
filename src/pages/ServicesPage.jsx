@@ -1,13 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useServices, useServiceCategories } from '@/hooks/useServices';
 import { useCompany } from '@/hooks/useCompany';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { getCurrencySymbol } from '@/utils/currencyService';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatNumber } from '@/utils/calculations';
 import { exportToCSV, exportToExcel } from '@/utils/exportService';
+import { validateServiceCatalogPayload, isGenericServiceName } from '@/utils/serviceCatalogQuality';
+import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -15,17 +19,19 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Search, Plus, Trash2, Edit2, Download, Briefcase, Clock, DollarSign, Tag } from 'lucide-react';
+import { Search, Plus, Trash2, Edit2, Download, Briefcase, Clock, DollarSign, Tag, AlertTriangle, Eye, FolderKanban, Receipt, Loader2 } from 'lucide-react';
 
 const ServicesPage = () => {
   const { t } = useTranslation();
   const { services, loading, createService, updateService, deleteService } = useServices();
   const { categories, createCategory, deleteCategory } = useServiceCategories();
   const { company } = useCompany();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const companyCurrency = resolveAccountingCurrency(company);
   const clientServicesTitle = t('services.clientServicesTitle', 'Prestations clients');
   const clientServicesSubtitle = t(
@@ -38,6 +44,9 @@ const ServicesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingService, setEditingService] = useState(null);
+  const [viewingService, setViewingService] = useState(null);
+  const [serviceInsights, setServiceInsights] = useState(null);
+  const [serviceInsightsLoading, setServiceInsightsLoading] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
   const emptyService = {
@@ -69,6 +78,28 @@ const ServicesPage = () => {
     per_unit: services.filter(s => s.pricing_type === 'per_unit').length,
   };
 
+  const qualitySnapshot = useMemo(() => {
+    const reviewThresholdMs = 90 * 24 * 60 * 60 * 1000;
+    const nowMs = Date.now();
+
+    const stalePrices = services.filter((service) => {
+      if (!service?.updated_at) return true;
+      const updatedAtMs = new Date(service.updated_at).getTime();
+      if (!Number.isFinite(updatedAtMs)) return true;
+      return (nowMs - updatedAtMs) > reviewThresholdMs;
+    }).length;
+
+    const genericNames = services.filter((service) => isGenericServiceName(service?.service_name)).length;
+    const uncategorized = services.filter((service) => !service?.category_id).length;
+
+    return {
+      stalePrices,
+      genericNames,
+      uncategorized,
+      hasAlerts: stalePrices > 0 || genericNames > 0 || uncategorized > 0,
+    };
+  }, [services]);
+
   // Rate display helper
   const getRate = (service) => {
     switch (service.pricing_type) {
@@ -96,6 +127,118 @@ const ServicesPage = () => {
     }
   };
 
+  const formatDateTime = (value) => {
+    if (!value) return '—';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '—';
+    return parsed.toLocaleString('fr-FR');
+  };
+
+  const getMoneyFromLine = (line) => {
+    const directTotal = Number(line?.total);
+    if (Number.isFinite(directTotal)) return directTotal;
+    return Number(line?.quantity || 0) * Number(line?.unit_price || 0);
+  };
+
+  const getTaskLabel = (task) => task?.title || task?.name || 'Sans titre';
+
+  const fetchServiceInsights = async (service) => {
+    if (!service?.id || !supabase || !user) {
+      setServiceInsights(null);
+      return;
+    }
+
+    const safeQuery = async (runner) => {
+      try {
+        const { data, error } = await runner();
+        if (error) {
+          console.warn('ServicesPage detail query warning:', error.message);
+          return [];
+        }
+        return data || [];
+      } catch (error) {
+        console.warn('ServicesPage detail query failed:', error?.message || error);
+        return [];
+      }
+    };
+
+    setServiceInsightsLoading(true);
+    setServiceInsights(null);
+
+    const [tasksData, timesheetsData, invoiceItemsData] = await Promise.all([
+      safeQuery(() =>
+        supabase
+          .from('tasks')
+          .select('id,title,name,status,estimated_hours,due_date,updated_at,project_id,project:projects(id,name,status)')
+          .eq('service_id', service.id)
+          .order('updated_at', { ascending: false })
+          .limit(25),
+      ),
+      safeQuery(() =>
+        supabase
+          .from('timesheets')
+          .select('id,date,duration_minutes,billable,status,invoice_id,hourly_rate,project_id,project:projects(id,name)')
+          .eq('service_id', service.id)
+          .order('date', { ascending: false })
+          .limit(50),
+      ),
+      safeQuery(() =>
+        supabase
+          .from('invoice_items')
+          .select('id,invoice_id,description,quantity,unit_price,total,item_type,created_at,invoice:invoices(id,invoice_number,date,payment_status,currency)')
+          .eq('service_id', service.id)
+          .order('created_at', { ascending: false })
+          .limit(50),
+      ),
+    ]);
+
+    const projectMap = new Map();
+    [...tasksData, ...timesheetsData].forEach((entry) => {
+      const project = entry?.project;
+      if (project?.id && !projectMap.has(project.id)) {
+        projectMap.set(project.id, project);
+      }
+    });
+    const linkedProjects = Array.from(projectMap.values()).sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+
+    const completedTaskCount = tasksData.filter((task) => ['done', 'completed', 'closed'].includes(String(task?.status || '').toLowerCase())).length;
+    const totalHours = timesheetsData.reduce((sum, row) => sum + (Number(row?.duration_minutes || 0) / 60), 0);
+    const billableHours = timesheetsData
+      .filter((row) => row?.billable !== false)
+      .reduce((sum, row) => sum + (Number(row?.duration_minutes || 0) / 60), 0);
+    const invoiceIds = new Set(invoiceItemsData.map((line) => line?.invoice_id).filter(Boolean));
+    const billedAmount = invoiceItemsData.reduce((sum, line) => sum + getMoneyFromLine(line), 0);
+    const latestInvoiceDate = invoiceItemsData
+      .map((line) => line?.invoice?.date || line?.created_at)
+      .filter(Boolean)
+      .sort((a, b) => new Date(b) - new Date(a))[0] || null;
+
+    setServiceInsights({
+      tasks: tasksData,
+      timesheets: timesheetsData,
+      invoiceItems: invoiceItemsData,
+      linkedProjects,
+      summary: {
+        linkedProjectsCount: linkedProjects.length,
+        tasksCount: tasksData.length,
+        completedTaskCount,
+        timesheetsCount: timesheetsData.length,
+        totalHours,
+        billableHours,
+        invoiceLinesCount: invoiceItemsData.length,
+        invoicesCount: invoiceIds.size,
+        billedAmount,
+        latestInvoiceDate,
+      },
+    });
+    setServiceInsightsLoading(false);
+  };
+
+  const handleViewService = async (service) => {
+    setViewingService(service);
+    await fetchServiceInsights(service);
+  };
+
   // Open edit dialog
   const handleEdit = (service) => {
     setEditingService(service);
@@ -120,6 +263,18 @@ const ServicesPage = () => {
     setShowAddDialog(true);
   };
 
+  const handleDeleteService = async (service) => {
+    const confirmed = window.confirm(
+      t('services.confirmDelete', 'Supprimer cette prestation client ? Cette action desactive la prestation dans le catalogue.'),
+    );
+    if (!confirmed) return;
+    await deleteService(service.id);
+    if (viewingService?.id === service.id) {
+      setViewingService(null);
+      setServiceInsights(null);
+    }
+  };
+
   // Submit create or update
   const handleSubmit = async () => {
     const payload = {
@@ -133,6 +288,16 @@ const ServicesPage = () => {
       unit: formData.unit || 'heure',
       is_active: formData.is_active,
     };
+
+    const qualityCheck = validateServiceCatalogPayload(payload, { context: 'client' });
+    if (!qualityCheck.valid) {
+      toast({
+        title: t('common.error', 'Erreur'),
+        description: qualityCheck.errors[0],
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       if (editingService) {
@@ -252,6 +417,38 @@ const ServicesPage = () => {
         </Card>
       </div>
 
+      <Card className="bg-gray-900 border-gray-800">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-gray-300 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-orange-400" />
+            Fiabilite du catalogue
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <p className="text-gray-400">
+            Verifiez regulierement vos services pour limiter les erreurs de facturation et proteger la marge.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Badge className={qualitySnapshot.uncategorized > 0 ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-green-500/20 text-green-300 border-green-500/30'}>
+              Categories manquantes: {qualitySnapshot.uncategorized}
+            </Badge>
+            <Badge className={qualitySnapshot.genericNames > 0 ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-green-500/20 text-green-300 border-green-500/30'}>
+              Noms trop generiques: {qualitySnapshot.genericNames}
+            </Badge>
+            <Badge className={qualitySnapshot.stalePrices > 0 ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' : 'bg-green-500/20 text-green-300 border-green-500/30'}>
+              Prix a revoir (+90j): {qualitySnapshot.stalePrices}
+            </Badge>
+          </div>
+          {qualitySnapshot.hasAlerts ? (
+            <p className="text-orange-300">
+              Action recommandee: corriger les services en anomalie et verifier les ecritures dans Finance &gt; Comptabilite.
+            </p>
+          ) : (
+            <p className="text-green-300">Aucune anomalie detectee sur les controles de base.</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Tabs */}
       <Tabs defaultValue="services" className="w-full">
         <TabsList className="bg-gray-900 border-gray-800">
@@ -307,12 +504,28 @@ const ServicesPage = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-blue-400 hover:text-blue-300"
+                              onClick={() => handleViewService(service)}
+                              title={t('common.view', 'Visualiser')}
+                              aria-label={t('common.view', 'Visualiser')}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white"
-                              onClick={() => handleEdit(service)}>
+                              onClick={() => handleEdit(service)}
+                              title={t('common.edit', 'Modifier')}
+                              aria-label={t('common.edit', 'Modifier')}
+                            >
                               <Edit2 className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300"
-                              onClick={() => deleteService(service.id)}>
+                              onClick={() => handleDeleteService(service)}
+                              title={t('common.delete', 'Supprimer')}
+                              aria-label={t('common.delete', 'Supprimer')}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -470,6 +683,239 @@ const ServicesPage = () => {
               {editingService ? t('buttons.save') : t('services.addService')}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Service Dialog */}
+      <Dialog open={!!viewingService} onOpenChange={(open) => {
+        if (!open) {
+          setViewingService(null);
+          setServiceInsights(null);
+          setServiceInsightsLoading(false);
+        }
+      }}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-4 w-4 text-blue-400" />
+              {t('common.view', 'Visualiser')} - {viewingService?.service_name}
+            </DialogTitle>
+          </DialogHeader>
+
+          {serviceInsightsLoading ? (
+            <div className="py-16 flex items-center justify-center text-gray-400">
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              Chargement des details...
+            </div>
+          ) : (
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="bg-gray-800 border-gray-700">
+                <TabsTrigger value="overview">Vue generale</TabsTrigger>
+                <TabsTrigger value="project" className="flex items-center gap-1">
+                  <FolderKanban className="h-3.5 w-3.5" />
+                  Projet associe
+                </TabsTrigger>
+                <TabsTrigger value="billing" className="flex items-center gap-1">
+                  <Receipt className="h-3.5 w-3.5" />
+                  Facturation
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="bg-gray-950 border-gray-800">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-gray-300">Informations generales</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Nom</span>
+                        <span className="font-medium text-right">{viewingService?.service_name || '—'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Categorie</span>
+                        <span className="font-medium text-right">{viewingService?.category?.name || '—'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Type de tarification</span>
+                        <span className="font-medium text-right">
+                          {viewingService?.pricing_type === 'hourly' ? 'Horaire' : viewingService?.pricing_type === 'fixed' ? 'Forfaitaire' : "A l'unite"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Tarif</span>
+                        <span className="font-medium text-right">{viewingService ? getRate(viewingService) : '—'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Statut</span>
+                        <span>
+                          {viewingService?.is_active
+                            ? <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Actif</Badge>
+                            : <Badge className="bg-red-500/20 text-red-300 border-red-500/30">Inactif</Badge>}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gray-950 border-gray-800">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-gray-300">Cycle de vie</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Cree le</span>
+                        <span className="font-medium text-right">{formatDateTime(viewingService?.created_at)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Derniere mise a jour</span>
+                        <span className="font-medium text-right">{formatDateTime(viewingService?.updated_at)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Projets lies</span>
+                        <span className="font-medium text-right">{serviceInsights?.summary?.linkedProjectsCount || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Lignes facture</span>
+                        <span className="font-medium text-right">{serviceInsights?.summary?.invoiceLinesCount || 0}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card className="bg-gray-950 border-gray-800">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-gray-300">Description</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-gray-300">
+                    {viewingService?.description?.trim() || 'Aucune description renseignee.'}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="project" className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Card className="bg-gray-950 border-gray-800">
+                    <CardContent className="py-4">
+                      <p className="text-xs text-gray-400 uppercase">Projets associes</p>
+                      <p className="text-2xl font-bold text-blue-300 mt-1">{serviceInsights?.summary?.linkedProjectsCount || 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gray-950 border-gray-800">
+                    <CardContent className="py-4">
+                      <p className="text-xs text-gray-400 uppercase">Taches associees</p>
+                      <p className="text-2xl font-bold text-orange-300 mt-1">{serviceInsights?.summary?.tasksCount || 0}</p>
+                      <p className="text-xs text-gray-400 mt-1">Terminees: {serviceInsights?.summary?.completedTaskCount || 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gray-950 border-gray-800">
+                    <CardContent className="py-4">
+                      <p className="text-xs text-gray-400 uppercase">Feuilles de temps</p>
+                      <p className="text-2xl font-bold text-green-300 mt-1">{formatNumber(serviceInsights?.summary?.totalHours || 0)} h</p>
+                      <p className="text-xs text-gray-400 mt-1">Facturables: {formatNumber(serviceInsights?.summary?.billableHours || 0)} h</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card className="bg-gray-950 border-gray-800">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-gray-300">Projets relies a cette prestation</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {(serviceInsights?.linkedProjects?.length || 0) === 0 ? (
+                      <p className="text-sm text-gray-500">Aucun projet associe pour le moment.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {serviceInsights.linkedProjects.map((project) => (
+                          <Badge key={project.id} className="bg-blue-500/15 text-blue-300 border-blue-500/30">
+                            {project.name || 'Projet sans nom'}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gray-950 border-gray-800">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-gray-300">Dernieres taches utilisant cette prestation</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {(serviceInsights?.tasks?.length || 0) === 0 ? (
+                      <p className="text-sm text-gray-500">Aucune tache reliee a cette prestation.</p>
+                    ) : (
+                      serviceInsights.tasks.slice(0, 5).map((task) => (
+                        <div key={task.id} className="rounded border border-gray-800 bg-gray-900/60 px-3 py-2 text-sm flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-medium text-gray-100">{getTaskLabel(task)}</p>
+                            <p className="text-xs text-gray-400">
+                              Projet: {task?.project?.name || '—'} • MAJ: {formatDateTime(task?.updated_at)}
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="border-gray-700 text-gray-300 capitalize">
+                            {task?.status || 'inconnu'}
+                          </Badge>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="billing" className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <Card className="bg-gray-950 border-gray-800">
+                    <CardContent className="py-4">
+                      <p className="text-xs text-gray-400 uppercase">Factures impactees</p>
+                      <p className="text-2xl font-bold text-purple-300 mt-1">{serviceInsights?.summary?.invoicesCount || 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gray-950 border-gray-800">
+                    <CardContent className="py-4">
+                      <p className="text-xs text-gray-400 uppercase">Lignes facture</p>
+                      <p className="text-2xl font-bold text-orange-300 mt-1">{serviceInsights?.summary?.invoiceLinesCount || 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gray-950 border-gray-800 md:col-span-2">
+                    <CardContent className="py-4">
+                      <p className="text-xs text-gray-400 uppercase">Montant facture (estimatif)</p>
+                      <p className="text-2xl font-bold text-green-300 mt-1">
+                        {formatNumber(serviceInsights?.summary?.billedAmount || 0)} {currencySymbol}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Derniere facture: {formatDateTime(serviceInsights?.summary?.latestInvoiceDate)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card className="bg-gray-950 border-gray-800">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-gray-300">Dernieres lignes de facturation</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {(serviceInsights?.invoiceItems?.length || 0) === 0 ? (
+                      <p className="text-sm text-gray-500">Aucune ligne de facture client reliee a cette prestation.</p>
+                    ) : (
+                      serviceInsights.invoiceItems.slice(0, 6).map((line) => (
+                        <div key={line.id} className="rounded border border-gray-800 bg-gray-900/60 px-3 py-2 text-sm flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-medium text-gray-100">{line.description || viewingService?.service_name || 'Ligne service'}</p>
+                            <p className="text-xs text-gray-400">
+                              Facture: {line?.invoice?.invoice_number || '—'} • Date: {formatDateTime(line?.invoice?.date || line?.created_at)}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-green-300">{formatNumber(getMoneyFromLine(line))} {currencySymbol}</p>
+                            <p className="text-xs text-gray-400">Qté {formatNumber(line?.quantity || 0)}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          )}
         </DialogContent>
       </Dialog>
     </div>
