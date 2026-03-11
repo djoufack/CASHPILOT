@@ -902,7 +902,7 @@ export function buildFullDemoDataset(args) {
   });
 
   let supplierOrderRows = [
-    ['001', 'infra', 'delivered', isoDate(CURRENT_YEAR, 1, 18), isoDate(CURRENT_YEAR, 1, 28), isoDate(CURRENT_YEAR, 1, 27), amount(6200), 'Commande fournisseur receptionnee'],
+    ['001', 'infra', 'received', isoDate(CURRENT_YEAR, 1, 18), isoDate(CURRENT_YEAR, 1, 28), isoDate(CURRENT_YEAR, 1, 27), amount(6200), 'Commande fournisseur receptionnee'],
     ['002', 'compliance', 'confirmed', isoDate(CURRENT_YEAR, 2, 14), isoDate(CURRENT_YEAR, 2, 28), null, amount(2400), 'Mission conformite programmee'],
   ].map(([code, supplierKey, orderStatus, orderDate, expectedDeliveryDate, actualDeliveryDate, totalAmount, notes], index) => ({
     id: uuidFromSeed(`${userSeed}:supplier-order:${code}`),
@@ -931,7 +931,7 @@ export function buildFullDemoDataset(args) {
       order_date: orderDate,
       expected_delivery_date: addDays(orderDate, 8 + (index % 10)),
       actual_delivery_date: index % 3 === 0 ? addDays(orderDate, 9 + (index % 8)) : null,
-      order_status: ['draft', 'confirmed', 'delivered', 'confirmed', 'received', 'delivered', 'pending'][index % 7],
+      order_status: ['draft', 'confirmed', 'pending', 'confirmed', 'received', 'cancelled', 'pending'][index % 7],
       total_amount: totalAmount,
       notes: `${template.notes} ${index + 1}`,
       created_at: timestampFor(orderDate, 15),

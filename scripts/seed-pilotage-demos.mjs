@@ -429,6 +429,7 @@ function parseArguments(argv) {
     apply: false,
     dryRun: true,
     resetPasswords: false,
+    preserveCompanies: false,
     countries: ['FR', 'BE', 'OHADA'],
   };
 
@@ -441,6 +442,8 @@ function parseArguments(argv) {
       options.apply = false;
     } else if (arg === '--reset-passwords') {
       options.resetPasswords = true;
+    } else if (arg === '--preserve-companies') {
+      options.preserveCompanies = true;
     } else if (arg.startsWith('--countries=')) {
       options.countries = arg
         .split('=', 2)[1]
@@ -2071,7 +2074,7 @@ function buildEnhancedDataset(config) {
     order_date: secondarySupplierOrderDate,
     expected_delivery_date: isoDate(CURRENT_YEAR, 2, 18),
     actual_delivery_date: isoDate(CURRENT_YEAR, 2, 17),
-    order_status: 'delivered',
+    order_status: 'received',
     total_amount: amount(2730),
     notes: 'Commande multisociete de demonstration',
     created_at: isoTimestamp(secondarySupplierOrderDate, 15),
@@ -2624,7 +2627,7 @@ function buildEnhancedDataset(config) {
       order_date: addDays(invoiceDate, -1),
       expected_delivery_date: addDays(invoiceDate, 5),
       actual_delivery_date: addDays(invoiceDate, 4),
-      order_status: 'delivered',
+      order_status: 'received',
       total_amount: amount(1920 + index * 230),
       notes: `Commande portefeuille ${index + 2}`,
       created_at: isoTimestamp(addDays(invoiceDate, -1), 15),
@@ -3566,91 +3569,282 @@ async function insertRows(client, table, rows) {
   }
 }
 
+async function filterExistingAccountingEntries(client, userId, entries) {
+  if (!entries.length) {
+    return entries;
+  }
+
+  const { data, error } = await client
+    .from('accounting_entries')
+    .select('company_id,transaction_date,account_code,entry_ref')
+    .eq('user_id', userId);
+
+  if (error) {
+    throw new Error(`Failed to read accounting_entries for deduplication: ${error.message}`);
+  }
+
+  const buildKey = (row) =>
+    [
+      String(row.transaction_date || '').slice(0, 10),
+      row.account_code || '',
+      row.entry_ref || '',
+    ].join('|');
+
+  const seenKeys = new Set((data || []).map((row) => buildKey(row)));
+  const filteredEntries = [];
+
+  for (const row of entries) {
+    const key = buildKey(row);
+    if (seenKeys.has(key)) {
+      continue;
+    }
+
+    seenKeys.add(key);
+    filteredEntries.push(row);
+  }
+
+  return filteredEntries;
+}
+
+async function listCompanyRowsForUser(client, userId) {
+  const { data, error } = await client
+    .from('company')
+    .select('id,company_name,created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to list company rows for ${userId}: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+function remapCompanyScopedRow(row, companyIdMap) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) {
+    return row;
+  }
+
+  const nextRow = { ...row };
+
+  if (nextRow.company_id && companyIdMap.has(nextRow.company_id)) {
+    nextRow.company_id = companyIdMap.get(nextRow.company_id);
+  }
+
+  if (nextRow.active_company_id && companyIdMap.has(nextRow.active_company_id)) {
+    nextRow.active_company_id = companyIdMap.get(nextRow.active_company_id);
+  }
+
+  return nextRow;
+}
+
+function remapCompanyScopedDataset(dataset, companyIdMap, companyRows, activeCompanyId) {
+  const nextDataset = { ...dataset };
+
+  for (const [key, value] of Object.entries(nextDataset)) {
+    if (key === 'config') {
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      nextDataset[key] = value.map((item) => remapCompanyScopedRow(item, companyIdMap));
+      continue;
+    }
+
+    if (value && typeof value === 'object') {
+      nextDataset[key] = remapCompanyScopedRow(value, companyIdMap);
+    }
+  }
+
+  nextDataset.companyRows = companyRows.map((companyRow) => ({
+    ...companyRow,
+    user_id: dataset.userId,
+    updated_at: new Date().toISOString(),
+  }));
+
+  const resolvedActiveCompanyId = activeCompanyId || companyRows[0]?.id || dataset.companyRow?.id || null;
+  const mappedCompanyRow =
+    nextDataset.companyRows.find((row) => row.id === resolvedActiveCompanyId) ||
+    nextDataset.companyRows[0] ||
+    remapCompanyScopedRow(dataset.companyRow, companyIdMap);
+
+  nextDataset.companyRow = mappedCompanyRow;
+
+  if (nextDataset.userCompanyPreferenceRow) {
+    nextDataset.userCompanyPreferenceRow = {
+      ...nextDataset.userCompanyPreferenceRow,
+      active_company_id: resolvedActiveCompanyId,
+    };
+  }
+
+  return nextDataset;
+}
+
+async function adaptDatasetForExistingCompanies(client, dataset) {
+  const existingCompanyRows = await listCompanyRowsForUser(client, dataset.userId);
+  if (!existingCompanyRows.length) {
+    return dataset;
+  }
+
+  const generatedCompanyRows = (dataset.companyRows || [dataset.companyRow]).filter(Boolean);
+  if (!generatedCompanyRows.length) {
+    return dataset;
+  }
+
+  const generatedPrimaryCompanyId = dataset.companyRow?.id || generatedCompanyRows[0]?.id || null;
+  const generatedSecondaryCompanyId =
+    generatedCompanyRows.find((row) => row?.id && row.id !== generatedPrimaryCompanyId)?.id || null;
+
+  const existingPrimaryCompany =
+    existingCompanyRows.find((row) => row.id === generatedPrimaryCompanyId) ||
+    existingCompanyRows[existingCompanyRows.length - 1] ||
+    existingCompanyRows[0];
+
+  const usedCompanyIds = new Set();
+  const companyIdMap = new Map();
+
+  if (generatedPrimaryCompanyId && existingPrimaryCompany?.id) {
+    companyIdMap.set(generatedPrimaryCompanyId, existingPrimaryCompany.id);
+    usedCompanyIds.add(existingPrimaryCompany.id);
+  }
+
+  if (generatedSecondaryCompanyId) {
+    const existingSecondaryCompany =
+      existingCompanyRows.find((row) => row.id === generatedSecondaryCompanyId && !usedCompanyIds.has(row.id)) ||
+      existingCompanyRows.find((row) => !usedCompanyIds.has(row.id));
+
+    if (existingSecondaryCompany?.id) {
+      companyIdMap.set(generatedSecondaryCompanyId, existingSecondaryCompany.id);
+      usedCompanyIds.add(existingSecondaryCompany.id);
+    }
+  }
+
+  const remainingGeneratedCompanyIds = generatedCompanyRows
+    .map((row) => row.id)
+    .filter((id) => id && !companyIdMap.has(id));
+  const remainingExistingCompanies = existingCompanyRows.filter((row) => !usedCompanyIds.has(row.id));
+
+  for (let index = 0; index < remainingGeneratedCompanyIds.length; index += 1) {
+    const generatedCompanyId = remainingGeneratedCompanyIds[index];
+    const fallbackExistingCompany =
+      remainingExistingCompanies[index] ||
+      existingCompanyRows[index % existingCompanyRows.length] ||
+      existingPrimaryCompany;
+
+    if (fallbackExistingCompany?.id) {
+      companyIdMap.set(generatedCompanyId, fallbackExistingCompany.id);
+    }
+  }
+
+  const activeCompanyId =
+    companyIdMap.get(dataset.userCompanyPreferenceRow?.active_company_id) ||
+    existingPrimaryCompany?.id ||
+    existingCompanyRows[0]?.id ||
+    null;
+
+  return remapCompanyScopedDataset(dataset, companyIdMap, existingCompanyRows, activeCompanyId);
+}
+
 async function applyDataset(client, dataset, options) {
   const authSummary = await ensureAuthUser(client, dataset, options);
-  const scenarioSeed = await buildScenarioSeedRows(dataset);
-  await cleanupDemoDataset(client, dataset);
+  const effectiveDataset = options.preserveCompanies
+    ? await adaptDatasetForExistingCompanies(client, dataset)
+    : dataset;
+  const scenarioSeed = await buildScenarioSeedRows(effectiveDataset);
 
-  await upsertRows(client, 'profiles', [dataset.profileRow], 'user_id');
-  await upsertRows(client, 'company', dataset.companyRows || [dataset.companyRow], 'id');
-  await upsertRows(client, 'user_company_preferences', [dataset.userCompanyPreferenceRow], 'user_id');
-  await upsertRows(client, 'user_roles', [dataset.userRoleRow], 'user_id');
-  await upsertRows(client, 'user_accounting_settings', [dataset.settingsRow], 'user_id');
-  await upsertRows(client, 'dashboard_snapshots', dataset.dashboardSnapshotRows || [], 'id');
-  await upsertRows(client, 'payment_terms', dataset.paymentTermRows, 'id');
-  await upsertRows(client, 'accounting_chart_of_accounts', dataset.chartRows, 'company_id,account_code');
-  await upsertRows(client, 'accounting_mappings', dataset.mappingRows, 'user_id,source_type,source_category');
-  await upsertRows(client, 'accounting_tax_rates', dataset.taxRateRows, 'id');
-  await upsertRows(client, 'accounting_analytical_axes', dataset.analyticalAxisRows || [], 'id');
-  await upsertRows(client, 'accounting_fixed_assets', dataset.fixedAssetRows || [], 'id');
-  await upsertRows(client, 'accounting_depreciation_schedule', dataset.depreciationScheduleRows || [], 'id');
-  await upsertRows(client, 'product_categories', dataset.productCategoryRows, 'id');
-  await upsertRows(client, 'service_categories', dataset.serviceCategoryRows, 'id');
-  await upsertRows(client, 'supplier_product_categories', dataset.supplierProductCategoryRows, 'id');
-  await upsertRows(client, 'suppliers', dataset.supplierRows, 'id');
-  await upsertRows(client, 'supplier_products', dataset.supplierProductRows, 'id');
-  await upsertRows(client, 'supplier_services', dataset.supplierServiceRows, 'id');
-  await upsertRows(client, 'products', dataset.productRows, 'id');
-  await upsertRows(client, 'services', dataset.serviceRows, 'id');
-  await upsertRows(client, 'clients', dataset.clientRows, 'id');
-  await upsertRows(client, 'quotes', dataset.quoteRows, 'id');
-  await upsertRows(client, 'purchase_orders', dataset.purchaseOrderRows, 'id');
-  await upsertRows(client, 'projects', dataset.projectRows, 'id');
-  await upsertRows(client, 'team_members', dataset.teamMemberRows, 'id');
-  await upsertRows(client, 'invoices', dataset.invoiceRows, 'id');
-  await upsertRows(client, 'invoice_items', dataset.invoiceItemRows, 'id');
+  if (!options.preserveCompanies) {
+    await cleanupDemoDataset(client, effectiveDataset);
+  }
+
+  await upsertRows(client, 'profiles', [effectiveDataset.profileRow], 'user_id');
+  if (!options.preserveCompanies) {
+    await upsertRows(client, 'company', effectiveDataset.companyRows || [effectiveDataset.companyRow], 'id');
+  }
+  await upsertRows(client, 'user_company_preferences', [effectiveDataset.userCompanyPreferenceRow], 'user_id');
+  await upsertRows(client, 'user_roles', [effectiveDataset.userRoleRow], 'user_id');
+  await upsertRows(client, 'user_accounting_settings', [effectiveDataset.settingsRow], 'user_id');
+  await upsertRows(client, 'dashboard_snapshots', effectiveDataset.dashboardSnapshotRows || [], 'id');
+  await upsertRows(client, 'payment_terms', effectiveDataset.paymentTermRows, 'id');
+  await upsertRows(client, 'accounting_chart_of_accounts', effectiveDataset.chartRows, 'company_id,account_code');
+  await upsertRows(client, 'accounting_mappings', effectiveDataset.mappingRows, 'user_id,source_type,source_category');
+  await upsertRows(client, 'accounting_tax_rates', effectiveDataset.taxRateRows, 'id');
+  await upsertRows(client, 'accounting_analytical_axes', effectiveDataset.analyticalAxisRows || [], 'id');
+  await upsertRows(client, 'accounting_fixed_assets', effectiveDataset.fixedAssetRows || [], 'id');
+  await upsertRows(client, 'accounting_depreciation_schedule', effectiveDataset.depreciationScheduleRows || [], 'id');
+  await upsertRows(client, 'product_categories', effectiveDataset.productCategoryRows, 'id');
+  await upsertRows(client, 'service_categories', effectiveDataset.serviceCategoryRows, 'id');
+  await upsertRows(client, 'supplier_product_categories', effectiveDataset.supplierProductCategoryRows, 'id');
+  await upsertRows(client, 'suppliers', effectiveDataset.supplierRows, 'id');
+  await upsertRows(client, 'supplier_products', effectiveDataset.supplierProductRows, 'id');
+  await upsertRows(client, 'supplier_services', effectiveDataset.supplierServiceRows, 'id');
+  await upsertRows(client, 'products', effectiveDataset.productRows, 'id');
+  await upsertRows(client, 'services', effectiveDataset.serviceRows, 'id');
+  await upsertRows(client, 'clients', effectiveDataset.clientRows, 'id');
+  await upsertRows(client, 'quotes', effectiveDataset.quoteRows, 'id');
+  await upsertRows(client, 'purchase_orders', effectiveDataset.purchaseOrderRows, 'id');
+  await upsertRows(client, 'projects', effectiveDataset.projectRows, 'id');
+  await upsertRows(client, 'team_members', effectiveDataset.teamMemberRows, 'id');
+  await upsertRows(client, 'invoices', effectiveDataset.invoiceRows, 'id');
+  await upsertRows(client, 'invoice_items', effectiveDataset.invoiceItemRows, 'id');
   await upsertRows(
     client,
     'payments',
-    dataset.paymentRows.map(({ code, month, day, ...row }) => row),
+    effectiveDataset.paymentRows.map(({ code, month, day, ...row }) => row),
     'id'
   );
-  await upsertRows(client, 'payment_allocations', dataset.paymentAllocationRows, 'id');
-  await upsertRows(client, 'recurring_invoices', dataset.recurringInvoiceRows, 'id');
-  await upsertRows(client, 'recurring_invoice_line_items', dataset.recurringInvoiceLineItemRows, 'id');
-  await upsertRows(client, 'payment_reminder_rules', dataset.paymentReminderRuleRows, 'id');
-  await upsertRows(client, 'payment_reminder_logs', dataset.paymentReminderLogRows, 'id');
-  await upsertRows(client, 'supplier_orders', dataset.supplierOrderRows, 'id');
-  await upsertRows(client, 'supplier_order_items', dataset.supplierOrderItemRows, 'id');
-  await upsertRows(client, 'supplier_invoices', dataset.supplierInvoiceRows, 'id');
-  await upsertRows(client, 'supplier_invoice_line_items', dataset.supplierInvoiceLineItemRows, 'id');
-  await upsertRows(client, 'tasks', dataset.taskRows, 'id');
-  await upsertRows(client, 'subtasks', dataset.subtaskRows, 'id');
-  await upsertRows(client, 'timesheets', dataset.timesheetRows, 'id');
-  await upsertRows(client, 'credit_notes', dataset.creditNoteRows, 'id');
-  await upsertRows(client, 'credit_note_items', dataset.creditNoteItemRows, 'id');
-  await upsertRows(client, 'delivery_notes', dataset.deliveryNoteRows, 'id');
-  await upsertRows(client, 'delivery_note_items', dataset.deliveryNoteItemRows, 'id');
-  await upsertRows(client, 'receivables', dataset.receivableRows, 'id');
-  await upsertRows(client, 'payables', dataset.payableRows, 'id');
-  await upsertRows(client, 'debt_payments', dataset.debtPaymentRows, 'id');
-  await upsertRows(client, 'product_stock_history', dataset.productStockHistoryRows, 'id');
-  await upsertRows(client, 'stock_alerts', dataset.stockAlertRows, 'id');
-  await upsertRows(client, 'notification_preferences', [dataset.notificationPreferencesRow], 'id');
-  await upsertRows(client, 'notifications', dataset.notificationRows, 'id');
-  await upsertRows(client, 'webhook_endpoints', dataset.webhookRows, 'id');
-  await upsertRows(client, 'webhook_deliveries', dataset.webhookDeliveryRows, 'id');
-  await upsertRows(client, 'bank_connections', dataset.bankConnectionRows, 'id');
-  await upsertRows(client, 'bank_sync_history', dataset.bankSyncHistoryRows, 'id');
-  await upsertRows(client, 'bank_transactions', dataset.bankTransactionRows, 'id');
-  await upsertRows(client, 'peppol_transmission_log', dataset.peppolLogRows, 'id');
-  await upsertRows(client, 'billing_info', [dataset.billingInfoRow], 'id');
-  await upsertRows(client, 'invoice_settings', [dataset.invoiceSettingsRow], 'id');
-  await upsertRows(client, 'expenses', dataset.expenseRows, 'id');
-  await upsertRows(client, 'accounting_entries', dataset.accountingEntries, 'id');
+  await upsertRows(client, 'payment_allocations', effectiveDataset.paymentAllocationRows, 'id');
+  await upsertRows(client, 'recurring_invoices', effectiveDataset.recurringInvoiceRows, 'id');
+  await upsertRows(client, 'recurring_invoice_line_items', effectiveDataset.recurringInvoiceLineItemRows, 'id');
+  await upsertRows(client, 'payment_reminder_rules', effectiveDataset.paymentReminderRuleRows, 'id');
+  await upsertRows(client, 'payment_reminder_logs', effectiveDataset.paymentReminderLogRows, 'id');
+  await upsertRows(client, 'supplier_orders', effectiveDataset.supplierOrderRows, 'id');
+  await upsertRows(client, 'supplier_order_items', effectiveDataset.supplierOrderItemRows, 'id');
+  await upsertRows(client, 'supplier_invoices', effectiveDataset.supplierInvoiceRows, 'id');
+  await upsertRows(client, 'supplier_invoice_line_items', effectiveDataset.supplierInvoiceLineItemRows, 'id');
+  await upsertRows(client, 'tasks', effectiveDataset.taskRows, 'id');
+  await upsertRows(client, 'subtasks', effectiveDataset.subtaskRows, 'id');
+  await upsertRows(client, 'timesheets', effectiveDataset.timesheetRows, 'id');
+  await upsertRows(client, 'credit_notes', effectiveDataset.creditNoteRows, 'id');
+  await upsertRows(client, 'credit_note_items', effectiveDataset.creditNoteItemRows, 'id');
+  await upsertRows(client, 'delivery_notes', effectiveDataset.deliveryNoteRows, 'id');
+  await upsertRows(client, 'delivery_note_items', effectiveDataset.deliveryNoteItemRows, 'id');
+  await upsertRows(client, 'receivables', effectiveDataset.receivableRows, 'id');
+  await upsertRows(client, 'payables', effectiveDataset.payableRows, 'id');
+  await upsertRows(client, 'debt_payments', effectiveDataset.debtPaymentRows, 'id');
+  await upsertRows(client, 'product_stock_history', effectiveDataset.productStockHistoryRows, 'id');
+  await upsertRows(client, 'stock_alerts', effectiveDataset.stockAlertRows, 'id');
+  await upsertRows(client, 'notification_preferences', [effectiveDataset.notificationPreferencesRow], 'id');
+  await upsertRows(client, 'notifications', effectiveDataset.notificationRows, 'id');
+  await upsertRows(client, 'webhook_endpoints', effectiveDataset.webhookRows, 'id');
+  await upsertRows(client, 'webhook_deliveries', effectiveDataset.webhookDeliveryRows, 'id');
+  await upsertRows(client, 'bank_connections', effectiveDataset.bankConnectionRows, 'id');
+  await upsertRows(client, 'bank_sync_history', effectiveDataset.bankSyncHistoryRows, 'id');
+  await upsertRows(client, 'bank_transactions', effectiveDataset.bankTransactionRows, 'id');
+  await upsertRows(client, 'peppol_transmission_log', effectiveDataset.peppolLogRows, 'id');
+  await upsertRows(client, 'billing_info', [effectiveDataset.billingInfoRow], 'id');
+  await upsertRows(client, 'invoice_settings', [effectiveDataset.invoiceSettingsRow], 'id');
+  await upsertRows(client, 'expenses', effectiveDataset.expenseRows, 'id');
+  if (!options.preserveCompanies) {
+    const accountingEntriesToUpsert = await filterExistingAccountingEntries(
+      client,
+      effectiveDataset.userId,
+      effectiveDataset.accountingEntries
+    );
+    await upsertRows(client, 'accounting_entries', accountingEntriesToUpsert, 'id');
+  }
   await upsertRows(client, 'financial_scenarios', scenarioSeed.scenarioRows, 'id');
   await upsertRows(client, 'scenario_assumptions', scenarioSeed.scenarioAssumptionRows, 'id');
-  await upsertRows(client, 'scenario_results', scenarioSeed.scenarioResultRows, 'id');
+  await upsertRows(client, 'scenario_results', scenarioSeed.scenarioResultRows, 'scenario_id,calculation_date');
 
   const preferencePayload = {
-    user_id: dataset.userId,
-    active_company_id: dataset.userCompanyPreferenceRow.active_company_id,
+    user_id: effectiveDataset.userId,
+    active_company_id: effectiveDataset.userCompanyPreferenceRow.active_company_id,
     updated_at: new Date().toISOString(),
   };
   const { data: updatedPreferences, error: preferenceUpdateError } = await client
     .from('user_company_preferences')
     .update(preferencePayload)
-    .eq('user_id', dataset.userId)
+    .eq('user_id', effectiveDataset.userId)
     .select('user_id');
   if (preferenceUpdateError) {
     throw new Error(`Failed to enforce user_company_preferences: ${preferenceUpdateError.message}`);
@@ -3666,23 +3860,23 @@ async function applyDataset(client, dataset, options) {
 
   return {
     ...authSummary,
-    clients: dataset.clientRows.length,
-    invoices: dataset.invoiceRows.length,
-    payments: dataset.paymentRows.length,
-    expenses: dataset.expenseRows.length,
-    accounts: dataset.chartRows.length,
-    entries: dataset.accountingEntries.length,
-    products: dataset.productRows.length,
-    services: dataset.serviceRows.length,
-    suppliers: dataset.supplierRows.length,
-    quotes: dataset.quoteRows.length,
-    recurringInvoices: dataset.recurringInvoiceRows.length,
-    projects: dataset.projectRows.length,
+    clients: effectiveDataset.clientRows.length,
+    invoices: effectiveDataset.invoiceRows.length,
+    payments: effectiveDataset.paymentRows.length,
+    expenses: effectiveDataset.expenseRows.length,
+    accounts: effectiveDataset.chartRows.length,
+    entries: effectiveDataset.accountingEntries.length,
+    products: effectiveDataset.productRows.length,
+    services: effectiveDataset.serviceRows.length,
+    suppliers: effectiveDataset.supplierRows.length,
+    quotes: effectiveDataset.quoteRows.length,
+    recurringInvoices: effectiveDataset.recurringInvoiceRows.length,
+    projects: effectiveDataset.projectRows.length,
     scenarios: scenarioSeed.scenarioRows.length,
-    companies: (dataset.companyRows || [dataset.companyRow]).length,
-    fixedAssets: (dataset.fixedAssetRows || []).length,
-    analyticalAxes: (dataset.analyticalAxisRows || []).length,
-    sharedSnapshots: (dataset.dashboardSnapshotRows || []).length,
+    companies: (effectiveDataset.companyRows || [effectiveDataset.companyRow]).length,
+    fixedAssets: (effectiveDataset.fixedAssetRows || []).length,
+    analyticalAxes: (effectiveDataset.analyticalAxisRows || []).length,
+    sharedSnapshots: (effectiveDataset.dashboardSnapshotRows || []).length,
   };
 }
 

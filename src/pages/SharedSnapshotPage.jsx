@@ -8,6 +8,11 @@ import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/calculations';
+import {
+  buildContinuousAxisTicks,
+  buildContinuousSeries,
+  formatContinuousTooltipLabel,
+} from '@/utils/continuousChartSeries';
 
 const formatDate = (value, locale) => {
   if (!value) return '—';
@@ -154,6 +159,19 @@ const SharedAnalyticsSnapshot = ({ snapshot, t }) => {
   const data = snapshot?.snapshot_data || {};
   const currency = data.currency || 'EUR';
   const agingData = data.receivablesAging || [];
+  const monthlyRevenueExpensesData = data.revenueExpensesData || [];
+  const continuousRevenueExpensesData = useMemo(
+    () => buildContinuousSeries(monthlyRevenueExpensesData, ['revenue', 'expenses'], 28),
+    [monthlyRevenueExpensesData]
+  );
+  const continuousRevenueExpenseTicks = useMemo(
+    () => buildContinuousAxisTicks(monthlyRevenueExpensesData),
+    [monthlyRevenueExpensesData]
+  );
+  const continuousRevenueExpenseDomainMax = useMemo(
+    () => Math.max(monthlyRevenueExpensesData.length - 1, 1),
+    [monthlyRevenueExpensesData.length]
+  );
 
   return (
     <div className="space-y-6">
@@ -166,7 +184,7 @@ const SharedAnalyticsSnapshot = ({ snapshot, t }) => {
           </CardHeader>
           <CardContent className="h-[340px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.revenueExpensesData || []}>
+              <AreaChart data={continuousRevenueExpensesData}>
                 <defs>
                   <linearGradient id="sharedAnalyticsRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.28} />
@@ -178,10 +196,20 @@ const SharedAnalyticsSnapshot = ({ snapshot, t }) => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#1f2937" strokeDasharray="3 3" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
+                <XAxis
+                  dataKey="x"
+                  type="number"
+                  domain={[0, continuousRevenueExpenseDomainMax]}
+                  ticks={continuousRevenueExpenseTicks}
+                  allowDecimals={false}
+                  stroke="#94a3b8"
+                  fontSize={11}
+                  tickFormatter={(value) => monthlyRevenueExpensesData[Math.round(Number(value))]?.name || ''}
+                />
                 <YAxis stroke="#94a3b8" fontSize={11} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#020617', borderColor: '#1f2937', color: '#fff' }}
+                  labelFormatter={(_, payload) => formatContinuousTooltipLabel(payload?.[0]?.payload)}
                   formatter={(value) => formatCurrency(value, currency)}
                 />
                 <Area type="monotone" dataKey="revenue" stroke="#10b981" fill="url(#sharedAnalyticsRevenue)" />
