@@ -3680,6 +3680,68 @@ function remapCompanyScopedDataset(dataset, companyIdMap, companyRows, activeCom
   return nextDataset;
 }
 
+function ensureSeedProductsLinkedToSuppliers(dataset) {
+  const supplierRows = Array.isArray(dataset?.supplierRows) ? dataset.supplierRows : [];
+  const productRows = Array.isArray(dataset?.productRows) ? dataset.productRows : [];
+
+  if (!supplierRows.length || !productRows.length) {
+    return dataset;
+  }
+
+  const supplierIdsByCompany = new Map();
+  const allSupplierIds = [];
+
+  for (const supplier of supplierRows) {
+    if (!supplier?.id) {
+      continue;
+    }
+
+    allSupplierIds.push(supplier.id);
+    const companyKey = supplier.company_id || '__no_company__';
+    const companySupplierIds = supplierIdsByCompany.get(companyKey) || [];
+    companySupplierIds.push(supplier.id);
+    supplierIdsByCompany.set(companyKey, companySupplierIds);
+  }
+
+  if (!allSupplierIds.length) {
+    return dataset;
+  }
+
+  const normalizedProductRows = productRows.map((product) => {
+    if (!product || typeof product !== 'object') {
+      return product;
+    }
+
+    const companyKey = product.company_id || '__no_company__';
+    const companySupplierIds = supplierIdsByCompany.get(companyKey) || [];
+    const currentSupplierId = product.supplier_id || null;
+    const currentSupplierIsValid = currentSupplierId
+      && (
+        (companySupplierIds.length > 0 && companySupplierIds.includes(currentSupplierId))
+        || (companySupplierIds.length === 0 && allSupplierIds.includes(currentSupplierId))
+      );
+
+    if (currentSupplierIsValid) {
+      return product;
+    }
+
+    const fallbackSupplierId = companySupplierIds[0] || allSupplierIds[0] || null;
+    if (!fallbackSupplierId) {
+      return product;
+    }
+
+    return {
+      ...product,
+      supplier_id: fallbackSupplierId,
+    };
+  });
+
+  return {
+    ...dataset,
+    productRows: normalizedProductRows,
+  };
+}
+
 async function adaptDatasetForExistingCompanies(client, dataset) {
   const existingCompanyRows = await listCompanyRowsForUser(client, dataset.userId);
   if (!existingCompanyRows.length) {
@@ -3747,9 +3809,10 @@ async function adaptDatasetForExistingCompanies(client, dataset) {
 
 async function applyDataset(client, dataset, options) {
   const authSummary = await ensureAuthUser(client, dataset, options);
-  const effectiveDataset = options.preserveCompanies
+  const companyScopedDataset = options.preserveCompanies
     ? await adaptDatasetForExistingCompanies(client, dataset)
     : dataset;
+  const effectiveDataset = ensureSeedProductsLinkedToSuppliers(companyScopedDataset);
   const scenarioSeed = await buildScenarioSeedRows(effectiveDataset);
 
   if (!options.preserveCompanies) {
