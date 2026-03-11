@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { supabaseUrl } from '@/lib/customSupabaseClient';
+import { supabaseAnonKey, supabaseUrl } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   clearPendingBankConnection,
@@ -33,27 +33,53 @@ export const useBankConnections = () => {
   const [loading, setLoading] = useState(true);
   const institutionsCacheRef = useRef(new Map());
 
+  const getFreshAccessToken = useCallback(async () => {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      throw error;
+    }
+    if (session?.access_token) {
+      return session.access_token;
+    }
+
+    const { data, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      throw refreshError;
+    }
+    return data?.session?.access_token || null;
+  }, []);
+
   const callBankApi = useCallback(async (payload) => {
     if (!supabase) {
       throw new Error('Supabase not configured');
     }
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) {
+    let accessToken = await getFreshAccessToken();
+    if (!accessToken) {
       throw new Error('Authentication required');
     }
 
-    const response = await fetch(
+    const executeRequest = async (token) => fetch(
       `${supabaseUrl}/functions/v1/gocardless-auth`,
       {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
+          apikey: supabaseAnonKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
       }
     );
+
+    let response = await executeRequest(accessToken);
+    if (response.status === 401) {
+      accessToken = await getFreshAccessToken();
+      if (!accessToken) {
+        throw new Error('Authentication required');
+      }
+      response = await executeRequest(accessToken);
+    }
 
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -61,7 +87,7 @@ export const useBankConnections = () => {
     }
 
     return data;
-  }, []);
+  }, [getFreshAccessToken]);
 
   const fetchConnections = useCallback(async () => {
     if (!user) return;

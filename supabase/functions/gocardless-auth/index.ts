@@ -10,6 +10,18 @@ const corsHeaders = {
 
 const GOCARDLESS_BASE = 'https://bankaccountdata.gocardless.com/api/v2';
 
+class HttpError extends Error {
+  status: number;
+  details?: unknown;
+
+  constructor(status: number, message: string, details?: unknown) {
+    super(message);
+    this.name = 'HttpError';
+    this.status = status;
+    this.details = details;
+  }
+}
+
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -60,7 +72,11 @@ async function fetchGoCardlessToken(secretId: string, secretKey: string) {
 
   const payload = await readJsonResponse(response);
   if (!response.ok || !payload?.access) {
-    throw new Error(extractErrorMessage(payload, 'Failed to get GoCardless token'));
+    throw new HttpError(
+      response.status || 502,
+      extractErrorMessage(payload, 'Failed to get GoCardless token'),
+      payload
+    );
   }
 
   return payload.access as string;
@@ -78,13 +94,11 @@ async function fetchGoCardless(accessToken: string, path: string, options: Reque
 
   const payload = await readJsonResponse(response);
   if (!response.ok) {
-    const error = new Error(extractErrorMessage(payload, `GoCardless API error: ${response.status}`)) as Error & {
-      status?: number;
-      details?: unknown;
-    };
-    error.status = response.status;
-    error.details = payload;
-    throw error;
+    throw new HttpError(
+      response.status || 502,
+      extractErrorMessage(payload, `GoCardless API error: ${response.status}`),
+      payload
+    );
   }
 
   return payload;
@@ -326,7 +340,7 @@ serve(async (req) => {
     const secretId = Deno.env.get('GOCARDLESS_SECRET_ID');
     const secretKey = Deno.env.get('GOCARDLESS_SECRET_KEY');
     if (!secretId || !secretKey) {
-      throw new Error('GoCardless credentials not configured');
+      throw new HttpError(500, 'GoCardless credentials not configured');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -638,9 +652,13 @@ serve(async (req) => {
         return jsonResponse({ error: `Unknown action: ${action}` }, 400);
     }
   } catch (error) {
+    const status = typeof error === 'object' && error && 'status' in error
+      ? Number((error as { status?: number }).status || 500)
+      : 500;
+
     return jsonResponse(
       { error: error instanceof Error ? error.message : 'Unexpected error' },
-      500
+      status
     );
   }
 });
