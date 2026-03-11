@@ -3331,6 +3331,11 @@
     "charts": {
       "revenueVsExpenses": "Revenue vs expenses"
     },
+    "horizon": {
+      "switchLabel": "Data mode",
+      "actual": "Actuals",
+      "forecast": "Forecast"
+    },
     "series": {
       "revenue": "Revenue",
       "expenses": "Expenses"

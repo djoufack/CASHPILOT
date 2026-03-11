@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
+import { endOfDay, isValid, parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useTimesheets } from '@/hooks/useTimesheets';
@@ -14,6 +15,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import SnapshotShareDialog from '@/components/SnapshotShareDialog';
 import {
   AlertTriangle,
@@ -67,8 +69,10 @@ const AnalyticsPage = () => {
   const { toast } = useToast();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
+  const [revenueExpenseMode, setRevenueExpenseMode] = useState('actual');
   const companyCurrency = resolveAccountingCurrency(company);
   const locale = i18n.resolvedLanguage || i18n.language || 'en';
+  const todayCutoff = useMemo(() => endOfDay(new Date()), []);
 
   const {
     invoices,
@@ -147,14 +151,40 @@ const AnalyticsPage = () => {
     return name;
   }, [t]);
 
+  const isOnOrBeforeToday = useCallback((value) => {
+    if (!value) return false;
+    const parsed = parseISO(String(value));
+    return isValid(parsed) && parsed <= todayCutoff;
+  }, [todayCutoff]);
+
+  const chartInvoices = useMemo(() => {
+    if (revenueExpenseMode === 'forecast') {
+      return invoices;
+    }
+
+    return invoices.filter((invoice) =>
+      isOnOrBeforeToday(invoice?.invoice_date || invoice?.date || invoice?.created_at)
+    );
+  }, [invoices, isOnOrBeforeToday, revenueExpenseMode]);
+
+  const chartExpenses = useMemo(() => {
+    if (revenueExpenseMode === 'forecast') {
+      return expenses;
+    }
+
+    return expenses.filter((expense) =>
+      isOnOrBeforeToday(expense?.expense_date || expense?.created_at)
+    );
+  }, [expenses, isOnOrBeforeToday, revenueExpenseMode]);
+
   const chartData = useMemo(() => {
-    const revenueByMonth = aggregateRevenueByMonth(invoices);
-    const expensesByMonth = aggregateExpensesByMonth(expenses);
+    const revenueByMonth = aggregateRevenueByMonth(chartInvoices);
+    const expensesByMonth = aggregateExpensesByMonth(chartExpenses);
     return formatChartData(revenueByMonth, expensesByMonth).map((point) => ({
       ...point,
       name: formatMonthKey(point.key),
     }));
-  }, [expenses, formatMonthKey, invoices]);
+  }, [chartExpenses, chartInvoices, formatMonthKey]);
   const continuousChartData = useMemo(
     () => buildContinuousSeries(chartData, ['revenue', 'expenses'], 28),
     [chartData]
@@ -382,10 +412,25 @@ const AnalyticsPage = () => {
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           <div className="xl:col-span-2 bg-gray-900 p-4 md:p-6 rounded-xl border border-gray-800 shadow-lg">
-            <h3 className="text-lg md:text-xl font-bold text-gradient mb-6 flex items-center">
-              <TrendingUp className="w-5 h-5 mr-2 text-green-500" />
-              {t('analyticsPage.charts.revenueVsExpenses')}
-            </h3>
+            <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <h3 className="text-lg md:text-xl font-bold text-gradient flex items-center">
+                <TrendingUp className="w-5 h-5 mr-2 text-green-500" />
+                {t('analyticsPage.charts.revenueVsExpenses')}
+              </h3>
+              <div className="flex items-center gap-2 text-sm">
+                <span className={revenueExpenseMode === 'actual' ? 'text-white' : 'text-gray-400'}>
+                  {t('analyticsPage.horizon.actual')}
+                </span>
+                <Switch
+                  checked={revenueExpenseMode === 'forecast'}
+                  onCheckedChange={(checked) => setRevenueExpenseMode(checked ? 'forecast' : 'actual')}
+                  aria-label={t('analyticsPage.horizon.switchLabel')}
+                />
+                <span className={revenueExpenseMode === 'forecast' ? 'text-white' : 'text-gray-400'}>
+                  {t('analyticsPage.horizon.forecast')}
+                </span>
+              </div>
+            </div>
             <div className="h-[300px] md:h-[400px]">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">

@@ -2205,6 +2205,11 @@
     "charts": {
       "revenueVsExpenses": "Omzet vs kosten"
     },
+    "horizon": {
+      "switchLabel": "Datamodus",
+      "actual": "Gerealiseerd",
+      "forecast": "Voorspelling"
+    },
     "series": {
       "revenue": "Omzet",
       "expenses": "Kosten"
