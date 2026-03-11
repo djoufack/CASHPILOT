@@ -105,6 +105,7 @@
     "scenarios": "Financiële simulaties",
     "catalog": "Catalogus",
     "products": "Producten",
+    "clientServices": "Klantdiensten",
     "categories": "Categorieën",
     "auditComptable": "Boekhoudaudit",
     "supplierInvoices": "Leveranciersfacturen",
@@ -510,6 +511,8 @@
     "notesPlaceholder": "Extra notities over deze leverancier...",
     "services": {
       "catalog": "Dienstencatalogus",
+      "vendorCatalog": "Catalogus leveranciersdiensten",
+      "vendorCatalogSubtitle": "Diensten die bij deze leverancier worden afgenomen (inkoopzijde).",
       "addService": "Dienst toevoegen",
       "serviceName": "Naam van de dienst",
       "pricingType": "Prijstype",
@@ -720,6 +723,8 @@
   },
   "services": {
     "title": "Diensten",
+    "clientServicesTitle": "Klantdiensten",
+    "clientServicesSubtitle": "Catalogus van diensten die aan klanten worden verkocht. Leveranciersdiensten beheert u per leveranciersfiche.",
     "addService": "Dienst toevoegen",
     "editService": "Dienst bewerken",
     "deleteService": "Dienst verwijderen",
@@ -3257,6 +3262,7 @@
     "overviewComingSoon": "Leveranciersdashboard overzicht binnenkort beschikbaar...",
     "products": "Producten",
     "services": "Diensten",
+    "vendorServices": "Leveranciersdiensten",
     "supplierInvoices": "Leveranciersfacturen"
   },
   "notifications": {

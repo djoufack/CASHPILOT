@@ -65,7 +65,7 @@ const MainLayout = () => {
     { path: '/app/purchase-orders', label: t('nav.purchaseOrders'), icon: ClipboardList },
     { type: 'separator', label: t('nav.catalog') },
     { path: '/app/stock', label: t('nav.products'), icon: Package },
-    { path: '/app/services', label: t('services.title'), icon: Wrench },
+    { path: '/app/services', label: t('nav.clientServices', 'Prestations clients'), icon: Wrench },
     { path: '/app/categories', label: t('nav.categories'), icon: Tag },
     { type: 'separator', label: t('suppliers.title') },
     { path: '/app/suppliers', label: t('nav.suppliers'), icon: Truck },

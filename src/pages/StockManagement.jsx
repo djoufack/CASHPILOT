@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Package, Search, Plus, Trash2, Download, FileText, Wallet, TrendingUp, Target, BarChart3 } from 'lucide-react';
+import { AlertTriangle, Package, Search, Plus, Trash2, Download, FileText, Wallet, TrendingUp, Target, BarChart3, Eye, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,6 +41,55 @@ const DEFAULT_NEW_PRODUCT = {
   min_stock_level: '5',
   description: '',
   inventory_tracking_enabled: true,
+};
+
+const DEFAULT_PRODUCT_EDIT_FORM = {
+  product_name: '',
+  sku: '',
+  category_id: '',
+  supplier_id: '',
+  unit: 'pièce',
+  description: '',
+  inventory_tracking_enabled: true,
+  unit_price: '0',
+  purchase_price: '0',
+  stock_quantity: '0',
+  min_stock_level: '5',
+};
+
+const DEFAULT_PRODUCT_PRICING_FORM = {
+  unit_price: '0',
+  purchase_price: '0',
+  stock_quantity: '0',
+  min_stock_level: '5',
+  inventory_tracking_enabled: true,
+};
+
+const buildProductEditForm = (product) => ({
+  product_name: product?.product_name || '',
+  sku: product?.sku || '',
+  category_id: product?.category_id || '',
+  supplier_id: product?.supplier_id || '',
+  unit: product?.unit || 'pièce',
+  description: product?.description || '',
+  inventory_tracking_enabled: product?.inventory_tracking_enabled !== false,
+  unit_price: String(product?.unit_price ?? 0),
+  purchase_price: String(product?.purchase_price ?? 0),
+  stock_quantity: String(product?.stock_quantity ?? 0),
+  min_stock_level: String(product?.min_stock_level ?? 5),
+});
+
+const buildProductPricingForm = (product) => ({
+  unit_price: String(product?.unit_price ?? 0),
+  purchase_price: String(product?.purchase_price ?? 0),
+  stock_quantity: String(product?.stock_quantity ?? 0),
+  min_stock_level: String(product?.min_stock_level ?? 5),
+  inventory_tracking_enabled: product?.inventory_tracking_enabled !== false,
+});
+
+const parseNumericField = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 };
 
 const StockManagement = () => {
@@ -74,6 +123,12 @@ const StockManagement = () => {
   // Add product dialog state
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newProduct, setNewProduct] = useState(DEFAULT_NEW_PRODUCT);
+  const [viewProduct, setViewProduct] = useState(null);
+  const [editProduct, setEditProduct] = useState(null);
+  const [editProductForm, setEditProductForm] = useState(DEFAULT_PRODUCT_EDIT_FORM);
+  const [pricingProduct, setPricingProduct] = useState(null);
+  const [pricingForm, setPricingForm] = useState(DEFAULT_PRODUCT_PRICING_FORM);
+  const [deleteTargetProduct, setDeleteTargetProduct] = useState(null);
 
   useEffect(() => {
     fetchAlerts();
@@ -268,6 +323,75 @@ const StockManagement = () => {
       setNewProduct(DEFAULT_NEW_PRODUCT);
     } catch (err) {
       // Error handled by hook toast
+    }
+  };
+
+  const openEditProductDialog = (product) => {
+    setEditProduct(product);
+    setEditProductForm(buildProductEditForm(product));
+  };
+
+  const openPricingDialog = (product) => {
+    setPricingProduct(product);
+    setPricingForm(buildProductPricingForm(product));
+  };
+
+  const handleUpdateProductDetails = async () => {
+    if (!editProduct) return;
+
+    const inventoryTrackingEnabled = editProductForm.inventory_tracking_enabled !== false;
+
+    try {
+      await updateProduct(editProduct.id, {
+        product_name: editProductForm.product_name,
+        sku: editProductForm.sku || null,
+        category_id: editProductForm.category_id || null,
+        supplier_id: editProductForm.supplier_id || null,
+        unit: editProductForm.unit || 'pièce',
+        description: editProductForm.description || null,
+        inventory_tracking_enabled: inventoryTrackingEnabled,
+        unit_price: parseNumericField(editProductForm.unit_price),
+        purchase_price: parseNumericField(editProductForm.purchase_price),
+        stock_quantity: inventoryTrackingEnabled ? parseNumericField(editProductForm.stock_quantity) : 0,
+        min_stock_level: inventoryTrackingEnabled ? parseNumericField(editProductForm.min_stock_level, 5) : 0,
+      });
+      setEditProduct(null);
+      setEditProductForm(DEFAULT_PRODUCT_EDIT_FORM);
+      fetchAlerts();
+    } catch (err) {
+      // Error toast handled by hook
+    }
+  };
+
+  const handleUpdatePricing = async () => {
+    if (!pricingProduct) return;
+
+    const inventoryTrackingEnabled = pricingForm.inventory_tracking_enabled !== false;
+
+    try {
+      await updateProduct(pricingProduct.id, {
+        unit_price: parseNumericField(pricingForm.unit_price),
+        purchase_price: parseNumericField(pricingForm.purchase_price),
+        stock_quantity: inventoryTrackingEnabled ? parseNumericField(pricingForm.stock_quantity) : 0,
+        min_stock_level: inventoryTrackingEnabled ? parseNumericField(pricingForm.min_stock_level, 5) : 0,
+      });
+      setPricingProduct(null);
+      setPricingForm(DEFAULT_PRODUCT_PRICING_FORM);
+      fetchAlerts();
+    } catch (err) {
+      // Error toast handled by hook
+    }
+  };
+
+  const handleDeleteProductConfirm = async () => {
+    if (!deleteTargetProduct) return;
+
+    try {
+      await deleteProduct(deleteTargetProduct.id);
+      setDeleteTargetProduct(null);
+      fetchAlerts();
+    } catch (err) {
+      // Error toast handled by hook
     }
   };
 
@@ -776,10 +900,44 @@ const StockManagement = () => {
                           <TableCell className="text-gray-400">{product.inventory_tracking_enabled === false ? 'Prestation / non stocké' : 'Article stocké'}</TableCell>
                           <TableCell>{getStockBadge(product)}</TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300"
-                              onClick={() => deleteProduct(product.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-gray-300 hover:text-white"
+                                onClick={() => setViewProduct(product)}
+                                title="Visualiser"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-blue-300 hover:text-blue-200"
+                                onClick={() => openEditProductDialog(product)}
+                                title="Éditer"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-amber-300 hover:text-amber-200"
+                                onClick={() => openPricingDialog(product)}
+                                title="Modifier prix et quantités"
+                              >
+                                <Wallet className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-400 hover:text-red-300"
+                                onClick={() => setDeleteTargetProduct(product)}
+                                title="Supprimer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -976,6 +1134,361 @@ const StockManagement = () => {
             <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleAddProduct}
               disabled={!newProduct.product_name || loading || (newProduct.inventory_tracking_enabled !== false && !newProduct.supplier_id)}>
               {t('common.create', 'Create')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(viewProduct)} onOpenChange={(open) => !open && setViewProduct(null)}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Détails du produit</DialogTitle>
+          </DialogHeader>
+          {viewProduct ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-400">Nom</p>
+                  <p className="font-medium">{viewProduct.product_name || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">SKU</p>
+                  <p className="font-medium">{viewProduct.sku || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Catégorie</p>
+                  <p className="font-medium">{viewProduct.category?.name || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Fournisseur</p>
+                  <p className="font-medium">{viewProduct.supplier?.company_name || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Prix de vente</p>
+                  <p className="font-medium">{formatNumber(viewProduct.unit_price || 0)} {currencySymbol}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Prix d'achat</p>
+                  <p className="font-medium">{formatNumber(viewProduct.purchase_price || 0)} {currencySymbol}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Stock</p>
+                  <p className="font-medium">{viewProduct.inventory_tracking_enabled === false ? '—' : viewProduct.stock_quantity}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Stock min</p>
+                  <p className="font-medium">{viewProduct.inventory_tracking_enabled === false ? '—' : viewProduct.min_stock_level}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Description</p>
+                <p className="text-sm text-gray-200 whitespace-pre-wrap">{viewProduct.description || '—'}</p>
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setViewProduct(null)}>
+              Fermer
+            </Button>
+            <Button
+              variant="outline"
+              className="border-blue-500/40 text-blue-300 hover:bg-blue-500/10"
+              onClick={() => {
+                if (!viewProduct) return;
+                openEditProductDialog(viewProduct);
+                setViewProduct(null);
+              }}
+            >
+              <Pencil className="w-4 h-4 mr-2" /> Éditer
+            </Button>
+            <Button
+              variant="outline"
+              className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
+              onClick={() => {
+                if (!viewProduct) return;
+                openPricingDialog(viewProduct);
+                setViewProduct(null);
+              }}
+            >
+              <Wallet className="w-4 h-4 mr-2" /> Prix / Qté
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(editProduct)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditProduct(null);
+            setEditProductForm(DEFAULT_PRODUCT_EDIT_FORM);
+          }
+        }}
+      >
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Modifier le produit</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nom du produit *</Label>
+                <Input
+                  className="bg-gray-800 border-gray-700"
+                  value={editProductForm.product_name}
+                  onChange={(e) => setEditProductForm((prev) => ({ ...prev, product_name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>SKU</Label>
+                <Input
+                  className="bg-gray-800 border-gray-700"
+                  value={editProductForm.sku}
+                  onChange={(e) => setEditProductForm((prev) => ({ ...prev, sku: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Prix de vente ({currencySymbol})</Label>
+                <Input
+                  type="number"
+                  className="bg-gray-800 border-gray-700"
+                  value={editProductForm.unit_price}
+                  onChange={(e) => setEditProductForm((prev) => ({ ...prev, unit_price: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Prix d'achat ({currencySymbol})</Label>
+                <Input
+                  type="number"
+                  className="bg-gray-800 border-gray-700"
+                  value={editProductForm.purchase_price}
+                  onChange={(e) => setEditProductForm((prev) => ({ ...prev, purchase_price: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <Label className="text-white">Suivi de stock comptable</Label>
+                  <p className="text-sm text-gray-400">
+                    Désactivez pour les prestations non stockées.
+                  </p>
+                </div>
+                <Switch
+                  checked={editProductForm.inventory_tracking_enabled !== false}
+                  onCheckedChange={(checked) => setEditProductForm((prev) => ({
+                    ...prev,
+                    inventory_tracking_enabled: checked,
+                    stock_quantity: checked ? prev.stock_quantity : '0',
+                    min_stock_level: checked ? (prev.min_stock_level === '0' ? '5' : prev.min_stock_level) : '0',
+                  }))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Unité</Label>
+                <Input
+                  className="bg-gray-800 border-gray-700"
+                  value={editProductForm.unit}
+                  onChange={(e) => setEditProductForm((prev) => ({ ...prev, unit: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Stock</Label>
+                <Input
+                  type="number"
+                  className="bg-gray-800 border-gray-700 disabled:opacity-50"
+                  disabled={editProductForm.inventory_tracking_enabled === false}
+                  value={editProductForm.stock_quantity}
+                  onChange={(e) => setEditProductForm((prev) => ({ ...prev, stock_quantity: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Stock min.</Label>
+                <Input
+                  type="number"
+                  className="bg-gray-800 border-gray-700 disabled:opacity-50"
+                  disabled={editProductForm.inventory_tracking_enabled === false}
+                  value={editProductForm.min_stock_level}
+                  onChange={(e) => setEditProductForm((prev) => ({ ...prev, min_stock_level: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Catégorie</Label>
+              <Select
+                value={editProductForm.category_id || 'none'}
+                onValueChange={(value) => setEditProductForm((prev) => ({ ...prev, category_id: value === 'none' ? '' : value }))}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-700">
+                  <SelectValue placeholder="Aucune" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                  <SelectItem value="none">Aucune</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Fournisseur</Label>
+              <Select
+                value={editProductForm.supplier_id || 'none'}
+                onValueChange={(value) => setEditProductForm((prev) => ({ ...prev, supplier_id: value === 'none' ? '' : value }))}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-700">
+                  <SelectValue placeholder="Aucun" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                  <SelectItem value="none">Aucun</SelectItem>
+                  {suppliers.map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.id}>
+                      {supplier.company_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                className="bg-gray-800 border-gray-700"
+                value={editProductForm.description}
+                onChange={(e) => setEditProductForm((prev) => ({ ...prev, description: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setEditProduct(null);
+                setEditProductForm(DEFAULT_PRODUCT_EDIT_FORM);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              className="bg-orange-500 hover:bg-orange-600"
+              onClick={handleUpdateProductDetails}
+              disabled={!editProductForm.product_name || loading}
+            >
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(pricingProduct)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPricingProduct(null);
+            setPricingForm(DEFAULT_PRODUCT_PRICING_FORM);
+          }
+        }}
+      >
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>Modifier prix et quantités</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Prix de vente ({currencySymbol})</Label>
+              <Input
+                type="number"
+                className="bg-gray-800 border-gray-700"
+                value={pricingForm.unit_price}
+                onChange={(e) => setPricingForm((prev) => ({ ...prev, unit_price: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Prix d'achat ({currencySymbol})</Label>
+              <Input
+                type="number"
+                className="bg-gray-800 border-gray-700"
+                value={pricingForm.purchase_price}
+                onChange={(e) => setPricingForm((prev) => ({ ...prev, purchase_price: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-white">Suivi stock</Label>
+              <div className="flex items-center gap-3 rounded border border-gray-800 bg-gray-900/70 px-3 py-2">
+                <Switch
+                  checked={pricingForm.inventory_tracking_enabled !== false}
+                  onCheckedChange={(checked) => setPricingForm((prev) => ({
+                    ...prev,
+                    inventory_tracking_enabled: checked,
+                    stock_quantity: checked ? prev.stock_quantity : '0',
+                    min_stock_level: checked ? (prev.min_stock_level === '0' ? '5' : prev.min_stock_level) : '0',
+                  }))}
+                />
+                <span className="text-sm text-gray-300">
+                  {pricingForm.inventory_tracking_enabled !== false ? 'Article stocké' : 'Prestation / non stocké'}
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Quantité stock</Label>
+                <Input
+                  type="number"
+                  className="bg-gray-800 border-gray-700 disabled:opacity-50"
+                  disabled={pricingForm.inventory_tracking_enabled === false}
+                  value={pricingForm.stock_quantity}
+                  onChange={(e) => setPricingForm((prev) => ({ ...prev, stock_quantity: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Seuil minimum</Label>
+                <Input
+                  type="number"
+                  className="bg-gray-800 border-gray-700 disabled:opacity-50"
+                  disabled={pricingForm.inventory_tracking_enabled === false}
+                  value={pricingForm.min_stock_level}
+                  onChange={(e) => setPricingForm((prev) => ({ ...prev, min_stock_level: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setPricingProduct(null);
+                setPricingForm(DEFAULT_PRODUCT_PRICING_FORM);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleUpdatePricing} disabled={loading}>
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(deleteTargetProduct)} onOpenChange={(open) => !open && setDeleteTargetProduct(null)}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-300">
+            Voulez-vous vraiment supprimer le produit
+            {' '}
+            <span className="font-semibold text-white">{deleteTargetProduct?.product_name || '—'}</span>
+            {' '}?
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteTargetProduct(null)}>Annuler</Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={handleDeleteProductConfirm} disabled={loading}>
+              Supprimer
             </Button>
           </DialogFooter>
         </DialogContent>

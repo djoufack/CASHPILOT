@@ -114,7 +114,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         type: 'category',
         items: [
           { path: '/app/stock', label: t('nav.products') || 'Produits', icon: Package },
-          { path: '/app/services', label: t('services.title') || 'Services', icon: Wrench },
+          { path: '/app/services', label: t('nav.clientServices', 'Prestations clients'), icon: Wrench },
           { path: '/app/categories', label: t('nav.categories') || 'Catégories', icon: Tag },
           { path: '/app/products/barcode', label: t('nav.scanner'), icon: QrCode },
         ],

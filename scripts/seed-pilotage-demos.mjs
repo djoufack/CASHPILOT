@@ -1473,7 +1473,7 @@ function buildDataset(config) {
     user_id: userId,
     country: config.country,
     is_initialized: true,
-    auto_journal_enabled: false,
+    auto_journal_enabled: true,
     updated_at: new Date().toISOString(),
   };
 

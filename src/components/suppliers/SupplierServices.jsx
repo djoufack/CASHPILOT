@@ -33,7 +33,10 @@ const SupplierServices = ({ supplierId }) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gradient">{t('suppliers.services.catalog')}</h3>
+        <div>
+          <h3 className="text-lg font-semibold text-gradient">{t('suppliers.services.vendorCatalog', 'Catalogue des services fournisseur')}</h3>
+          <p className="text-sm text-gray-400">{t('suppliers.services.vendorCatalogSubtitle', 'Services achetés auprès de ce fournisseur (côté achats).')}</p>
+        </div>
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
