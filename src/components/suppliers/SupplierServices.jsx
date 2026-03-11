@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSupplierServices } from '@/hooks/useSupplierServices';
 import { validateServiceCatalogPayload, isGenericServiceName } from '@/utils/serviceCatalogQuality';
 import { useCompany } from '@/hooks/useCompany';
+import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { exportSupplierServicePDF, exportSupplierServiceHTML } from '@/services/exportSupplierRecords';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ const SupplierServices = ({ supplierId, supplier }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { company } = useCompany();
+  const { settings: invoiceSettings } = useInvoiceSettings();
   const { services, createService, updateService, deleteService } = useSupplierServices(supplierId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewingService, setViewingService] = useState(null);
@@ -112,7 +114,7 @@ const SupplierServices = ({ supplierId, supplier }) => {
 
   const handleExportPdf = async (service) => {
     try {
-      await exportSupplierServicePDF(service, supplier, company);
+      await exportSupplierServicePDF(service, supplier, company, invoiceSettings);
     } catch (error) {
       toast({
         title: t('common.error', 'Erreur'),
@@ -122,9 +124,9 @@ const SupplierServices = ({ supplierId, supplier }) => {
     }
   };
 
-  const handleExportHtml = (service) => {
+  const handleExportHtml = async (service) => {
     try {
-      exportSupplierServiceHTML(service, supplier, company);
+      await exportSupplierServiceHTML(service, supplier, company, invoiceSettings);
     } catch (error) {
       toast({
         title: t('common.error', 'Erreur'),

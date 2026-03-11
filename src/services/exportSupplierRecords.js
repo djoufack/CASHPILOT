@@ -5,7 +5,9 @@ import { supabase } from '@/lib/supabase';
 import {
   renderInvoiceTemplateContent,
   buildStandaloneTemplateHtml,
+  resolveInvoiceExportSettings,
 } from '@/services/invoiceTemplateExport';
+import { getTheme } from '@/config/invoiceThemes';
 
 const escapeHtml = (value) =>
   String(value ?? '')
@@ -41,34 +43,9 @@ const downloadHtmlFile = (html, filename) => {
   URL.revokeObjectURL(url);
 };
 
-const wrapStandaloneHtml = (title, content) => `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(title)}</title>
-  <style>
-    body { margin: 0; font-family: Arial, sans-serif; background: #0b1220; color: #e5e7eb; }
-    .container { max-width: 900px; margin: 0 auto; padding: 24px; }
-    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-    .title { margin: 0; font-size: 28px; color: #f8fafc; }
-    .muted { color: #94a3b8; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .label { font-size: 12px; text-transform: uppercase; color: #94a3b8; letter-spacing: .03em; margin-bottom: 4px; }
-    .value { font-size: 16px; color: #f8fafc; font-weight: 600; }
-    @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
-    @media print { body { background: #fff; color: #111827; } .card { border-color: #e5e7eb; } }
-  </style>
-</head>
-<body>
-  <div class="container">${content}</div>
-</body>
-</html>`;
-
-const exportAsPdf = async ({ title, filename, content }) => {
-  const html = wrapStandaloneHtml(title, content);
+const exportSupplierRecordAsPdf = async ({ filename, content }) => {
   const tempDiv = document.createElement('div');
-  setSafeHtml(tempDiv, html);
+  setSafeHtml(tempDiv, content);
   document.body.appendChild(tempDiv);
 
   try {
@@ -76,7 +53,7 @@ const exportAsPdf = async ({ title, filename, content }) => {
       margin: 10,
       filename: `${filename}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
     });
   } finally {
@@ -102,55 +79,146 @@ const exportTemplateInvoiceAsPdf = async ({ filename, content }) => {
   }
 };
 
-const exportAsHtml = ({ title, filename, content }) => {
-  const html = wrapStandaloneHtml(title, content);
+const exportSupplierRecordAsHtml = ({ title, filename, content }) => {
+  const html = buildStandaloneTemplateHtml(title, content);
   downloadHtmlFile(html, filename);
 };
 
-const serviceContent = (service, supplier, company) => {
+const toDisplayDate = (value) => (value ? new Date(value).toLocaleDateString('fr-FR') : '-');
+
+const normalizePricingType = (value) => {
+  if (value === 'hourly') return 'Horaire';
+  if (value === 'fixed') return 'Forfait';
+  if (value === 'per_unit') return 'A l unite';
+  return value || '-';
+};
+
+const getStockMeta = (stock, min) => {
+  if (stock <= 0) {
+    return {
+      label: 'Rupture',
+      textColor: '#991b1b',
+      borderColor: '#fecaca',
+      bgColor: '#fef2f2',
+      reorderQty: Math.max(min, 1),
+    };
+  }
+  if (stock <= min) {
+    return {
+      label: 'Stock bas',
+      textColor: '#92400e',
+      borderColor: '#fde68a',
+      bgColor: '#fffbeb',
+      reorderQty: Math.max(min - stock, 1),
+    };
+  }
+  return {
+    label: 'Stock OK',
+    textColor: '#166534',
+    borderColor: '#bbf7d0',
+    bgColor: '#f0fdf4',
+    reorderQty: 0,
+  };
+};
+
+const resolveSupplierRecordTheme = async (settingsOverride = null) => {
+  const settings = await resolveInvoiceExportSettings(null, settingsOverride);
+  const theme = getTheme(settings.color_theme);
+  return { settings, theme };
+};
+
+const serviceContent = (service, supplier, company, settings, theme) => {
   const currency = supplier?.currency || company?.accounting_currency || 'EUR';
   const priceValue = service?.pricing_type === 'fixed'
     ? formatMoney(service?.fixed_price, currency)
     : `${formatMoney(service?.hourly_rate, currency)} / h`;
 
+  const companyName = escapeHtml(company?.company_name || company?.name || 'CashPilot');
+  const supplierName = escapeHtml(supplier?.company_name || 'Fournisseur');
+  const fontFamily = escapeHtml(settings?.font_family || 'Inter');
+
   return `
-    <section class="card">
-      <h1 class="title">Service fournisseur</h1>
-      <p class="muted">${escapeHtml(supplier?.company_name || 'Fournisseur')} • ${escapeHtml(company?.company_name || company?.name || 'CashPilot')}</p>
-    </section>
-    <section class="card grid">
-      <div><div class="label">Nom du service</div><div class="value">${escapeHtml(service?.service_name || '-')}</div></div>
-      <div><div class="label">Tarification</div><div class="value">${escapeHtml(service?.pricing_type || '-')}</div></div>
-      <div><div class="label">Prix</div><div class="value">${escapeHtml(priceValue)}</div></div>
-      <div><div class="label">Unité</div><div class="value">${escapeHtml(service?.unit || '-')}</div></div>
-      <div><div class="label">Créé le</div><div class="value">${escapeHtml(service?.created_at ? new Date(service.created_at).toLocaleDateString('fr-FR') : '-')}</div></div>
-      <div><div class="label">Dernière mise à jour</div><div class="value">${escapeHtml(service?.updated_at ? new Date(service.updated_at).toLocaleDateString('fr-FR') : '-')}</div></div>
-    </section>
+    <div style="font-family:${fontFamily};max-width:860px;margin:0 auto;padding:20px;background:#f4f6f8;color:${theme.text};">
+      <section style="background:#ffffff;border:2px solid ${theme.accent};border-radius:8px;padding:16px 18px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;">
+          <div>
+            <h1 style="margin:0 0 8px 0;font-size:42px;line-height:1;font-weight:900;color:${theme.primary};">SERVICE FOURNISSEUR</h1>
+            <p style="margin:0;font-size:14px;color:${theme.textLight};">${supplierName} • ${companyName}</p>
+          </div>
+          <div style="text-align:right;font-size:12px;color:${theme.textLight};">
+            <p style="margin:0 0 4px 0;"><strong style="color:${theme.text};">Date export:</strong> ${toDisplayDate(new Date().toISOString())}</p>
+          </div>
+        </div>
+      </section>
+      <section style="background:#ffffff;border:1px solid ${theme.border};border-radius:8px;padding:16px 18px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:${theme.textLight};">Nom du service</p>
+            <p style="margin:0 0 12px 0;font-size:34px;line-height:1.1;font-weight:800;color:${theme.primary};">${escapeHtml(service?.service_name || '-')}</p>
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:${theme.textLight};">Prix</p>
+            <p style="margin:0;font-size:24px;font-weight:800;color:${theme.primary};">${escapeHtml(priceValue)}</p>
+          </div>
+          <div>
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:${theme.textLight};">Tarification</p>
+            <p style="margin:0 0 12px 0;font-size:24px;font-weight:700;color:${theme.text};">${escapeHtml(normalizePricingType(service?.pricing_type))}</p>
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:${theme.textLight};">Unité</p>
+            <p style="margin:0 0 12px 0;font-size:24px;font-weight:700;color:${theme.text};">${escapeHtml(service?.unit || '-')}</p>
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:${theme.textLight};">Dernière mise à jour</p>
+            <p style="margin:0;font-size:18px;font-weight:700;color:${theme.text};">${toDisplayDate(service?.updated_at || service?.created_at)}</p>
+          </div>
+        </div>
+      </section>
+    </div>
   `;
 };
 
-const productContent = (product, supplier, company) => {
+const productContent = (product, supplier, company, settings, theme) => {
   const currency = supplier?.currency || company?.accounting_currency || 'EUR';
   const stock = Number(product?.stock_quantity || 0);
   const min = Number(product?.min_stock_level || 0);
-  const stockStatus = stock <= 0 ? 'Rupture' : stock <= min ? 'Stock bas' : 'Stock OK';
-  const toReorder = Math.max(min - stock, 0);
+  const stockMeta = getStockMeta(stock, min);
+  const companyName = escapeHtml(company?.company_name || company?.name || 'CashPilot');
+  const supplierName = escapeHtml(supplier?.company_name || 'Fournisseur');
+  const fontFamily = escapeHtml(settings?.font_family || 'Inter');
 
   return `
-    <section class="card">
-      <h1 class="title">Produit fournisseur</h1>
-      <p class="muted">${escapeHtml(supplier?.company_name || 'Fournisseur')} • ${escapeHtml(company?.company_name || company?.name || 'CashPilot')}</p>
-    </section>
-    <section class="card grid">
-      <div><div class="label">Nom du produit</div><div class="value">${escapeHtml(product?.product_name || '-')}</div></div>
-      <div><div class="label">SKU</div><div class="value">${escapeHtml(product?.sku || '-')}</div></div>
-      <div><div class="label">Catégorie</div><div class="value">${escapeHtml(product?.category?.name || '-')}</div></div>
-      <div><div class="label">Prix d'achat</div><div class="value">${escapeHtml(formatMoney(product?.unit_price, currency))}</div></div>
-      <div><div class="label">Stock</div><div class="value">${escapeHtml(stock)}</div></div>
-      <div><div class="label">Stock minimum</div><div class="value">${escapeHtml(min)}</div></div>
-      <div><div class="label">Situation stock</div><div class="value">${escapeHtml(stockStatus)}</div></div>
-      <div><div class="label">Réappro conseillé</div><div class="value">${escapeHtml(toReorder > 0 ? `${toReorder} unités` : 'Aucun')}</div></div>
-    </section>
+    <div style="font-family:${fontFamily};max-width:860px;margin:0 auto;padding:20px;background:#f4f6f8;color:${theme.text};">
+      <section style="background:#ffffff;border:2px solid ${theme.accent};border-radius:8px;padding:16px 18px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;">
+          <div>
+            <h1 style="margin:0 0 8px 0;font-size:42px;line-height:1;font-weight:900;color:${theme.primary};">PRODUIT FOURNISSEUR</h1>
+            <p style="margin:0;font-size:14px;color:${theme.textLight};">${supplierName} • ${companyName}</p>
+          </div>
+          <div style="text-align:right;font-size:12px;color:${theme.textLight};">
+            <p style="margin:0 0 4px 0;"><strong style="color:${theme.text};">Date export:</strong> ${toDisplayDate(new Date().toISOString())}</p>
+          </div>
+        </div>
+      </section>
+      <section style="background:#ffffff;border:1px solid ${theme.border};border-radius:8px;padding:16px 18px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:${theme.textLight};">Nom du produit</p>
+            <p style="margin:0 0 12px 0;font-size:34px;line-height:1.1;font-weight:800;color:${theme.primary};">${escapeHtml(product?.product_name || '-')}</p>
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:${theme.textLight};">SKU</p>
+            <p style="margin:0 0 12px 0;font-size:20px;font-weight:700;color:${theme.text};">${escapeHtml(product?.sku || '-')}</p>
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:${theme.textLight};">Prix d'achat</p>
+            <p style="margin:0;font-size:24px;font-weight:800;color:${theme.primary};">${escapeHtml(formatMoney(product?.unit_price, currency))}</p>
+          </div>
+          <div>
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:${theme.textLight};">Catégorie</p>
+            <p style="margin:0 0 12px 0;font-size:24px;font-weight:700;color:${theme.text};">${escapeHtml(product?.category?.name || '-')}</p>
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:${theme.textLight};">Stock actuel / Min</p>
+            <p style="margin:0 0 12px 0;font-size:24px;font-weight:700;color:${theme.text};">${escapeHtml(stock)} / ${escapeHtml(min)}</p>
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:${theme.textLight};">Situation stock</p>
+            <p style="display:inline-block;margin:0 0 12px 0;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:700;color:${stockMeta.textColor};border:1px solid ${stockMeta.borderColor};background:${stockMeta.bgColor};">
+              ${stockMeta.label}
+            </p>
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:${theme.textLight};">Réappro conseillé</p>
+            <p style="margin:0;font-size:18px;font-weight:700;color:${theme.text};">${escapeHtml(stockMeta.reorderQty > 0 ? `${stockMeta.reorderQty} unités` : 'Aucun')}</p>
+          </div>
+        </div>
+      </section>
+    </div>
   `;
 };
 
@@ -195,39 +263,41 @@ const toTemplateSupplierInvoice = async (invoice, supplier) => {
   };
 };
 
-export const exportSupplierServicePDF = async (service, supplier, company) => {
+export const exportSupplierServicePDF = async (service, supplier, company, invoiceSettings = null) => {
+  const { settings, theme } = await resolveSupplierRecordTheme(invoiceSettings);
   const filename = `Supplier_Service_${service?.service_name || 'service'}_${formatDateInput()}`;
-  await exportAsPdf({
+  await exportSupplierRecordAsPdf({
+    filename,
+    content: serviceContent(service, supplier, company, settings, theme),
+  });
+};
+
+export const exportSupplierServiceHTML = async (service, supplier, company, invoiceSettings = null) => {
+  const { settings, theme } = await resolveSupplierRecordTheme(invoiceSettings);
+  const filename = `Supplier_Service_${service?.service_name || 'service'}_${formatDateInput()}`;
+  exportSupplierRecordAsHtml({
     title: 'Service fournisseur',
     filename,
-    content: serviceContent(service, supplier, company),
+    content: serviceContent(service, supplier, company, settings, theme),
   });
 };
 
-export const exportSupplierServiceHTML = (service, supplier, company) => {
-  const filename = `Supplier_Service_${service?.service_name || 'service'}_${formatDateInput()}`;
-  exportAsHtml({
-    title: 'Service fournisseur',
-    filename,
-    content: serviceContent(service, supplier, company),
-  });
-};
-
-export const exportSupplierProductPDF = async (product, supplier, company) => {
+export const exportSupplierProductPDF = async (product, supplier, company, invoiceSettings = null) => {
+  const { settings, theme } = await resolveSupplierRecordTheme(invoiceSettings);
   const filename = `Supplier_Product_${product?.product_name || 'product'}_${formatDateInput()}`;
-  await exportAsPdf({
+  await exportSupplierRecordAsPdf({
+    filename,
+    content: productContent(product, supplier, company, settings, theme),
+  });
+};
+
+export const exportSupplierProductHTML = async (product, supplier, company, invoiceSettings = null) => {
+  const { settings, theme } = await resolveSupplierRecordTheme(invoiceSettings);
+  const filename = `Supplier_Product_${product?.product_name || 'product'}_${formatDateInput()}`;
+  exportSupplierRecordAsHtml({
     title: 'Produit fournisseur',
     filename,
-    content: productContent(product, supplier, company),
-  });
-};
-
-export const exportSupplierProductHTML = (product, supplier, company) => {
-  const filename = `Supplier_Product_${product?.product_name || 'product'}_${formatDateInput()}`;
-  exportAsHtml({
-    title: 'Produit fournisseur',
-    filename,
-    content: productContent(product, supplier, company),
+    content: productContent(product, supplier, company, settings, theme),
   });
 };
 
