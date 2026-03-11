@@ -10,6 +10,7 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { buildCanonicalOperationsSnapshot } from '@/shared/canonicalOperationsSnapshot';
 
 const DEFAULT_BANK_COUNTRY = 'BE';
+const BANK_API_TIMEOUT_MS = 20000;
 
 function normalizeCountryCode(value) {
   return String(value || DEFAULT_BANK_COUNTRY).trim().toUpperCase() || DEFAULT_BANK_COUNTRY;
@@ -67,18 +68,33 @@ export const useBankConnections = () => {
       throw new Error('Authentication required');
     }
 
-    const executeRequest = async (token) => fetch(
-      `${supabaseUrl}/functions/v1/gocardless-auth`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: supabaseAnonKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+    const executeRequest = async (token) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), BANK_API_TIMEOUT_MS);
+
+      try {
+        return await fetch(
+          `${supabaseUrl}/functions/v1/gocardless-auth`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              apikey: supabaseAnonKey,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          }
+        );
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          throw new Error('Le connecteur bancaire ne répond pas (timeout). Réessayez.');
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeoutId);
       }
-    );
+    };
 
     let response = await executeRequest(accessToken);
     if (response.status === 401) {
