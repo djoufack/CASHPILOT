@@ -2,6 +2,10 @@ import { saveElementAsPdf, saveElementAsPdfBytes } from '@/services/pdfExportRun
 import { formatDateInput } from '@/utils/dateFormatting';
 import DOMPurify from 'dompurify';
 import { uploadDocument } from '@/services/documentStorage';
+import {
+  renderInvoiceTemplateContent,
+  buildStandaloneTemplateHtml,
+} from '@/services/invoiceTemplateExport';
 
 const setSafeHtml = (element, html) => {
   element.innerHTML = DOMPurify.sanitize(String(html || ''));
@@ -64,7 +68,7 @@ const computeInvoiceTotals = (invoice) => {
 /**
  * Generate HTML content for Invoice document
  */
-const generateInvoiceHTML = (invoice, companyInfo) => {
+export const generateInvoiceHTML = (invoice, companyInfo) => {
   const { items, subtotal, totalTax, total } = computeInvoiceTotals(invoice);
   const companyName = companyInfo?.name || companyInfo?.company_name || 'Votre Entreprise';
   const companyLines = [
@@ -585,10 +589,14 @@ const generatePurchaseOrderHTML = (purchaseOrder, companyInfo) => {
 /**
  * Export Invoice to PDF
  */
-export const exportInvoicePDF = async (invoice, companyInfo) => {
-  const htmlContent = generateInvoiceHTML(invoice, companyInfo);
+export const exportInvoicePDF = async (invoice, companyInfo, invoiceSettings = null) => {
+  const { content } = await renderInvoiceTemplateContent({
+    invoice,
+    company: companyInfo,
+    settingsOverride: invoiceSettings,
+  });
   const tempDiv = document.createElement('div');
-  setSafeHtml(tempDiv, htmlContent);
+  setSafeHtml(tempDiv, content);
   document.body.appendChild(tempDiv);
 
   const invoiceNum = invoice.invoice_number || invoice.invoiceNumber || 'draft';
@@ -813,9 +821,13 @@ export const exportPurchaseOrderPDF = async (purchaseOrder, companyInfo) => {
 /**
  * Export Invoice to HTML
  */
-export const exportInvoiceHTML = (invoice, companyInfo) => {
-  const content = generateInvoiceHTML(invoice, companyInfo);
-  const html = generateStandaloneHTML(`Facture ${invoice.invoice_number || invoice.invoiceNumber || 'draft'}`, content);
+export const exportInvoiceHTML = async (invoice, companyInfo, invoiceSettings = null) => {
+  const { content } = await renderInvoiceTemplateContent({
+    invoice,
+    company: companyInfo,
+    settingsOverride: invoiceSettings,
+  });
+  const html = buildStandaloneTemplateHtml(`Facture ${invoice.invoice_number || invoice.invoiceNumber || 'draft'}`, content);
   downloadHTML(html, `Facture_${invoice.invoice_number || invoice.invoiceNumber || 'draft'}_${formatDateInput()}`);
 };
 

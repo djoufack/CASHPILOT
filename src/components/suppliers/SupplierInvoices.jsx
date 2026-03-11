@@ -1,31 +1,57 @@
 import React, { useState } from 'react';
 import { useSupplierInvoices } from '@/hooks/useSupplierInvoices';
+import { useCompany } from '@/hooks/useCompany';
+import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
+import { exportSupplierInvoicePDF, exportSupplierInvoiceHTML } from '@/services/exportSupplierRecords';
 import UploadInvoiceModal from '@/components/UploadInvoiceModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import GenericKanbanView from '@/components/GenericKanbanView';
 import RejectApprovalDialog from '@/components/suppliers/RejectApprovalDialog';
-import { Plus, Trash2, Sparkles, FileText, List, CalendarDays, CalendarClock, Kanban, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, Sparkles, FileText, List, CalendarDays, CalendarClock, Kanban, ExternalLink, Eye, Pencil, Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { format } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
 
-const statusColors = {
-  pending: 'bg-yellow-600',
-  paid: 'bg-green-600',
-  overdue: 'bg-red-600',
+const EMPTY_EDIT_FORM = {
+  invoice_number: '',
+  invoice_date: '',
+  due_date: '',
+  total_amount: '',
+  currency: 'EUR',
+  payment_status: 'pending',
+  approval_status: 'pending',
 };
 
-const SupplierInvoices = ({ supplierId }) => {
-  const { invoices, loading, createInvoice, createLineItems, deleteInvoice, updateStatus, updateApprovalStatus, getSignedUrl } = useSupplierInvoices(supplierId);
+const SupplierInvoices = ({ supplierId, supplier }) => {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const { company } = useCompany();
+  const { settings: invoiceSettings } = useInvoiceSettings();
+  const {
+    invoices,
+    loading,
+    createInvoice,
+    updateInvoice,
+    createLineItems,
+    deleteInvoice,
+    updateStatus,
+    updateApprovalStatus,
+    getSignedUrl,
+  } = useSupplierInvoices(supplierId);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
   const [rejectTargetInvoice, setRejectTargetInvoice] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
-  const { t } = useTranslation();
+  const [viewingInvoice, setViewingInvoice] = useState(null);
+  const [editingInvoice, setEditingInvoice] = useState(null);
+  const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
 
   const handleUploadSuccess = async (formData, file) => {
     const invoiceData = {
@@ -59,6 +85,65 @@ const SupplierInvoices = ({ supplierId }) => {
     }
   };
 
+  const openEditModal = (invoice) => {
+    setEditingInvoice(invoice);
+    setEditForm({
+      invoice_number: invoice.invoice_number || '',
+      invoice_date: invoice.invoice_date || '',
+      due_date: invoice.due_date || '',
+      total_amount: invoice.total_amount ?? '',
+      currency: invoice.currency || 'EUR',
+      payment_status: invoice.payment_status || 'pending',
+      approval_status: invoice.approval_status || 'pending',
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditingInvoice(null);
+    setEditForm(EMPTY_EDIT_FORM);
+  };
+
+  const submitEdit = async (e) => {
+    e.preventDefault();
+    if (!editingInvoice) return;
+
+    await updateInvoice(editingInvoice.id, {
+      invoice_number: editForm.invoice_number,
+      invoice_date: editForm.invoice_date,
+      due_date: editForm.due_date || null,
+      total_amount: Number(editForm.total_amount || 0),
+      currency: editForm.currency || 'EUR',
+      payment_status: editForm.payment_status,
+      approval_status: editForm.approval_status,
+    });
+
+    closeEditModal();
+  };
+
+  const handleExportPdf = async (invoice) => {
+    try {
+      await exportSupplierInvoicePDF(invoice, supplier, company, invoiceSettings);
+    } catch (error) {
+      toast({
+        title: t('common.error', 'Erreur'),
+        description: error?.message || t('common.exportError', "Echec de l'export PDF"),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleExportHtml = async (invoice) => {
+    try {
+      await exportSupplierInvoiceHTML(invoice, supplier, company, invoiceSettings);
+    } catch (error) {
+      toast({
+        title: t('common.error', 'Erreur'),
+        description: error?.message || t('common.exportError', "Echec de l'export HTML"),
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Calendar configuration
   const siCalendarStatusColors = {
     pending: { bg: '#eab308', border: '#ca8a04', text: '#000' },
@@ -72,7 +157,7 @@ const SupplierInvoices = ({ supplierId }) => {
     { label: t('supplierInvoices.statusOverdue'), color: '#ef4444' },
   ];
 
-  const siCalendarEvents = invoices.map(inv => ({
+  const siCalendarEvents = invoices.map((inv) => ({
     id: inv.id,
     title: inv.invoice_number || '',
     date: inv.invoice_date,
@@ -80,8 +165,7 @@ const SupplierInvoices = ({ supplierId }) => {
     resource: inv,
   }));
 
-  // Agenda + Kanban items (same shape)
-  const siAgendaItems = invoices.map(inv => {
+  const siAgendaItems = invoices.map((inv) => {
     const ps = inv.payment_status || 'pending';
     const colorMap = {
       pending: 'bg-yellow-500/20 text-yellow-400',
@@ -122,6 +206,21 @@ const SupplierInvoices = ({ supplierId }) => {
     await updateApprovalStatus(rejectTargetInvoice.id, 'rejected', rejectReason);
     setRejectTargetInvoice(null);
     setRejectReason('');
+  };
+
+  const renderInlineExports = (item) => {
+    const invoice = invoices.find((entry) => entry.id === item.id);
+    if (!invoice) return null;
+    return (
+      <>
+        <Button size="sm" variant="ghost" className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 h-7 px-2 text-xs" onClick={() => handleExportPdf(invoice)}>
+          <Download className="w-3 h-3" />
+        </Button>
+        <Button size="sm" variant="ghost" className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 h-7 px-2 text-xs" onClick={() => handleExportHtml(invoice)}>
+          <FileText className="w-3 h-3" />
+        </Button>
+      </>
+    );
   };
 
   return (
@@ -218,13 +317,16 @@ const SupplierInvoices = ({ supplierId }) => {
                       </td>
                       <td className="py-2 px-3 text-center">
                         {inv.file_url ? (
-                          <Button variant="ghost" size="sm"
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="text-gray-400 hover:text-blue-400 h-7 w-7 p-0"
                             title={t('supplierInvoices.viewDocument')}
                             onClick={async () => {
                               const url = await getSignedUrl(inv.file_url);
                               if (url) window.open(url, '_blank');
-                            }}>
+                            }}
+                          >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
                         ) : (
@@ -232,10 +334,29 @@ const SupplierInvoices = ({ supplierId }) => {
                         )}
                       </td>
                       <td className="py-2 px-3 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => deleteInvoice(inv.id)}
-                          className="text-gray-400 hover:text-red-400 h-7 w-7 p-0">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 h-7 w-7 p-0" onClick={() => setViewingInvoice(inv)} title="Visualiser">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-orange-400 hover:text-orange-300 h-7 w-7 p-0" onClick={() => openEditModal(inv)} title="Modifier">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300 h-7 w-7 p-0" onClick={() => handleExportPdf(inv)} title="Export PDF">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300 h-7 w-7 p-0" onClick={() => handleExportHtml(inv)} title="Export HTML">
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteInvoice(inv.id)}
+                            className="text-gray-400 hover:text-red-400 h-7 w-7 p-0"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -250,7 +371,7 @@ const SupplierInvoices = ({ supplierId }) => {
             events={siCalendarEvents}
             statusColors={siCalendarStatusColors}
             legend={siCalendarLegend}
-            onSelectEvent={(inv) => {/* optional */}}
+            onSelectEvent={(inv) => setViewingInvoice(inv.resource || inv)}
           />
         </TabsContent>
 
@@ -258,7 +379,13 @@ const SupplierInvoices = ({ supplierId }) => {
           <GenericAgendaView
             items={siAgendaItems}
             dateField="date"
+            onView={(item) => setViewingInvoice(invoices.find((inv) => inv.id === item.id))}
+            onEdit={(item) => {
+              const invoice = invoices.find((inv) => inv.id === item.id);
+              if (invoice) openEditModal(invoice);
+            }}
             onDelete={(item) => deleteInvoice(item.id)}
+            renderActions={renderInlineExports}
             paidStatuses={['paid']}
           />
         </TabsContent>
@@ -268,10 +395,107 @@ const SupplierInvoices = ({ supplierId }) => {
             columns={siKanbanColumns}
             items={siAgendaItems}
             onStatusChange={(id, status) => updateStatus(id, status)}
+            onView={(item) => setViewingInvoice(invoices.find((inv) => inv.id === item.id))}
+            onEdit={(item) => {
+              const invoice = invoices.find((inv) => inv.id === item.id);
+              if (invoice) openEditModal(invoice);
+            }}
             onDelete={(item) => deleteInvoice(item.id)}
+            renderActions={renderInlineExports}
           />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!viewingInvoice} onOpenChange={(open) => !open && setViewingInvoice(null)}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{t('common.view', 'Visualiser')} - {viewingInvoice?.invoice_number}</DialogTitle>
+          </DialogHeader>
+          {viewingInvoice && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-gray-400">{t('supplierInvoices.date')}</p>
+                  <p className="font-semibold">{viewingInvoice.invoice_date || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400">{t('supplierInvoices.amount')}</p>
+                  <p className="font-semibold">
+                    {parseFloat(viewingInvoice.total_amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {viewingInvoice.currency || 'EUR'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-400">{t('supplierInvoices.status')}</p>
+                  <p className="font-semibold capitalize">{viewingInvoice.payment_status || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400">{t('supplierInvoices.colApproval', 'Approval')}</p>
+                  <p className="font-semibold capitalize">{viewingInvoice.approval_status || '-'}</p>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" className="border-gray-700" onClick={() => handleExportPdf(viewingInvoice)}>
+                  <Download className="w-4 h-4 mr-2" /> PDF
+                </Button>
+                <Button variant="outline" className="border-gray-700" onClick={() => handleExportHtml(viewingInvoice)}>
+                  <FileText className="w-4 h-4 mr-2" /> HTML
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingInvoice} onOpenChange={(open) => !open && closeEditModal()}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{t('common.edit', 'Modifier')} - {editingInvoice?.invoice_number}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitEdit} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>{t('supplierInvoices.invoiceNumber')}</Label>
+                <Input className="bg-gray-800 border-gray-700" value={editForm.invoice_number} onChange={(e) => setEditForm((prev) => ({ ...prev, invoice_number: e.target.value }))} required />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('supplierInvoices.amount')}</Label>
+                <Input className="bg-gray-800 border-gray-700" type="number" value={editForm.total_amount} onChange={(e) => setEditForm((prev) => ({ ...prev, total_amount: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('supplierInvoices.date')}</Label>
+                <Input className="bg-gray-800 border-gray-700" type="date" value={editForm.invoice_date} onChange={(e) => setEditForm((prev) => ({ ...prev, invoice_date: e.target.value }))} required />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('supplierInvoices.dueDate', 'Date echeance')}</Label>
+                <Input className="bg-gray-800 border-gray-700" type="date" value={editForm.due_date} onChange={(e) => setEditForm((prev) => ({ ...prev, due_date: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('common.currency', 'Devise')}</Label>
+                <Input className="bg-gray-800 border-gray-700" value={editForm.currency} onChange={(e) => setEditForm((prev) => ({ ...prev, currency: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('supplierInvoices.status')}</Label>
+                <Select value={editForm.payment_status} onValueChange={(val) => setEditForm((prev) => ({ ...prev, payment_status: val }))}>
+                  <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                    <SelectItem value="pending">{t('supplierInvoices.statusPending')}</SelectItem>
+                    <SelectItem value="paid">{t('supplierInvoices.statusPaid')}</SelectItem>
+                    <SelectItem value="overdue">{t('supplierInvoices.statusOverdue')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" className="border-gray-700" onClick={closeEditModal}>
+                {t('common.cancel', 'Annuler')}
+              </Button>
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600">
+                {t('common.save', 'Enregistrer')}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <UploadInvoiceModal
         isOpen={isUploadOpen}

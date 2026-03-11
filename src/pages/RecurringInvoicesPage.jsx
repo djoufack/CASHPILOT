@@ -5,6 +5,7 @@ import { useRecurringInvoices } from '@/hooks/useRecurringInvoices';
 import { usePaymentReminders } from '@/hooks/usePaymentReminders';
 import { useClients } from '@/hooks/useClients';
 import { useCompany } from '@/hooks/useCompany';
+import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { Button } from '@/components/ui/button';
@@ -96,6 +97,7 @@ const RecurringInvoicesPage = () => {
   } = usePaymentReminders();
   const { clients } = useClients();
   const { company } = useCompany();
+  const { settings: invoiceSettings } = useInvoiceSettings();
   const { guardedAction, modalProps } = useCreditsGuard();
 
   const [activeTab, setActiveTab] = useState('recurring');
@@ -158,7 +160,7 @@ const RecurringInvoicesPage = () => {
       CREDIT_COSTS.PDF_REPORT,
       t('credits.costs.pdfReport', 'Export PDF'),
       async () => {
-        await exportInvoicePDF(toInvoiceDocumentModel(recurring), company);
+        await exportInvoicePDF(toInvoiceDocumentModel(recurring), company, invoiceSettings);
       }
     );
   };
@@ -167,8 +169,8 @@ const RecurringInvoicesPage = () => {
     guardedAction(
       CREDIT_COSTS.EXPORT_HTML,
       t('credits.costs.exportHtml'),
-      () => {
-        exportInvoiceHTML(toInvoiceDocumentModel(recurring), company);
+      async () => {
+        await exportInvoiceHTML(toInvoiceDocumentModel(recurring), company, invoiceSettings);
       }
     );
   };

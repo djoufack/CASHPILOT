@@ -125,6 +125,26 @@ export const useSupplierInvoices = (supplierId) => {
     }
   };
 
+  const updateInvoice = async (id, invoiceData) => {
+    try {
+      const { data, error } = await supabase
+        .from('supplier_invoices')
+        .update(invoiceData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setInvoices((prev) => prev.map((invoice) => (invoice.id === id ? data : invoice)));
+      toast({ title: 'Updated', description: 'Invoice updated successfully' });
+      return data;
+    } catch (err) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      throw err;
+    }
+  };
+
   const updateStatus = async (id, status) => {
       try {
           const { data, error } = await supabase
@@ -237,6 +257,7 @@ export const useSupplierInvoices = (supplierId) => {
     loading,
     fetchInvoices,
     createInvoice,
+    updateInvoice,
     createLineItems,
     deleteInvoice,
     updateStatus,
