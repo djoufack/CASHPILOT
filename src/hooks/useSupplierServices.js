@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { validateServiceCatalogPayload } from '@/utils/serviceCatalogQuality';
 
 export const useSupplierServices = (supplierId) => {
   const [services, setServices] = useState([]);
@@ -41,6 +42,11 @@ export const useSupplierServices = (supplierId) => {
   const createService = async (serviceData) => {
     setLoading(true);
     try {
+      const qualityCheck = validateServiceCatalogPayload(serviceData, { context: 'supplier' });
+      if (!qualityCheck.valid) {
+        throw new Error(qualityCheck.errors[0]);
+      }
+
       const { data, error } = await supabase
         .from('supplier_services')
         .insert([{ ...withCompanyScope(serviceData), supplier_id: supplierId }])
@@ -71,6 +77,12 @@ export const useSupplierServices = (supplierId) => {
   const updateService = async (id, serviceData) => {
     setLoading(true);
     try {
+      const existingService = services.find((service) => service.id === id) || {};
+      const qualityCheck = validateServiceCatalogPayload({ ...existingService, ...serviceData }, { context: 'supplier' });
+      if (!qualityCheck.valid) {
+        throw new Error(qualityCheck.errors[0]);
+      }
+
       const { data, error } = await supabase
         .from('supplier_services')
         .update(serviceData)
