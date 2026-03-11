@@ -80,17 +80,29 @@ export const useSuppliers = () => {
   const getSupplierById = useCallback(async (id) => {
     if (!user) return null;
     try {
-      let query = supabase
+      let scopedQuery = supabase
         .from('suppliers')
         .select('*')
-        .eq('id', id);
+        .eq('id', id)
+        .limit(1);
 
-      query = applyCompanyScope(query);
+      scopedQuery = applyCompanyScope(scopedQuery);
 
-      const { data, error } = await query.single();
+      const { data: scopedData, error: scopedError } = await scopedQuery.maybeSingle();
+      if (scopedError) throw scopedError;
+      if (scopedData) return scopedData;
 
-      if (error) throw error;
-      return data;
+      // Fallback: if active-company scoping misses the record (or scope changed mid-navigation),
+      // try once without explicit company scope to avoid false "not found" states.
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('suppliers')
+        .select('*')
+        .eq('id', id)
+        .limit(1)
+        .maybeSingle();
+
+      if (fallbackError) throw fallbackError;
+      return fallbackData || null;
     } catch (err) {
       console.error("Error fetching supplier:", err);
       return null;
