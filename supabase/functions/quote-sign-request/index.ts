@@ -28,6 +28,35 @@ Deno.serve(async (req) => {
 
     const token = crypto.randomUUID().replace(/-/g, '');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const clientIp = (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '').split(',')[0].trim() || null;
+    const userAgent = req.headers.get('user-agent') || null;
+    const acceptLanguage = req.headers.get('accept-language') || null;
+    const requestId = req.headers.get('x-request-id') || null;
+
+    const { data: quoteMeta, error: quoteMetaError } = await supabase
+      .from('quotes')
+      .select('id, company_id, quote_number')
+      .eq('id', quoteId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (quoteMetaError) {
+      throw quoteMetaError;
+    }
+
+    if (!quoteMeta) {
+      return new Response(JSON.stringify({ error: 'Quote not found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { data: esignSettings } = await supabase
+      .from('company_esign_settings')
+      .select('provider, mode')
+      .eq('company_id', quoteMeta.company_id)
+      .maybeSingle();
+
+    const provider = esignSettings?.provider || 'native';
 
     const { error } = await supabase
       .from('quotes')
@@ -47,18 +76,40 @@ Deno.serve(async (req) => {
       });
     }
 
+    await supabase
+      .from('quote_signature_evidence')
+      .insert({
+        quote_id: quoteMeta.id,
+        user_id: user.id,
+        company_id: quoteMeta.company_id,
+        provider,
+        action: 'requested',
+        signer_email: signerEmail || null,
+        ip_address: clientIp,
+        user_agent: userAgent,
+        accept_language: acceptLanguage,
+        request_id: requestId,
+        metadata: {
+          token_expires_at: expiresAt,
+          mode: esignSettings?.mode || 'redirect',
+        },
+      });
+
     const appUrl = Deno.env.get('APP_URL') || 'https://cashpilot.tech';
     await deliverWebhookEvent(supabase, user.id, 'quote.sent', {
       id: quoteId,
+      quote_number: quoteMeta.quote_number,
       status: 'sent',
       signature_status: 'pending',
       signer_email: signerEmail || null,
       signature_token_expires_at: expiresAt,
+      signature_provider: provider,
     });
 
     return new Response(JSON.stringify({
       signatureUrl: `${appUrl}/quote-sign/${token}`,
       expiresAt,
+      provider,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('quote-sign-request error:', err);

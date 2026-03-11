@@ -33,6 +33,9 @@ verify_jwt = true
 [functions.ai-voice-expense]
 verify_jwt = true
 
+[functions.auth-rate-limit]
+verify_jwt = false
+
 [functions.api-v1]
 verify_jwt = false
 
@@ -41,6 +44,18 @@ verify_jwt = false
 
 [functions.audit-comptable]
 verify_jwt = false
+
+[functions.accounting-oauth-start]
+verify_jwt = true
+
+[functions.accounting-oauth-callback]
+verify_jwt = false
+
+[functions.accounting-sync-trigger]
+verify_jwt = true
+
+[functions.accounting-connector-disconnect]
+verify_jwt = true
 
 [functions.delete-account]
 verify_jwt = true

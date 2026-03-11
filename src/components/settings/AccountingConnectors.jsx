@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,8 +10,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { useCompany } from '@/hooks/useCompany';
 import { useAccountingIntegrations } from '@/hooks/useAccountingIntegrations';
 import { Building2, CheckCircle2, CircleDashed, Link2Off, RefreshCw } from 'lucide-react';
-
-const CONNECTORS_COMING_SOON = true;
 
 const PROVIDERS = [
   {
@@ -64,6 +62,7 @@ const AccountingConnectors = () => {
   const {
     providerState,
     loading,
+    fetchIntegrations,
     connectProvider,
     markProviderPending,
     disconnectProvider,
@@ -75,6 +74,27 @@ const AccountingConnectors = () => {
     quickbooks: { external_company_name: '', external_tenant_id: '', sync_enabled: true },
   });
   const [busyProvider, setBusyProvider] = useState(null);
+
+  useEffect(() => {
+    const onOAuthCallback = (event) => {
+      const data = event?.data;
+      if (!data || data.type !== 'cashpilot:accounting-oauth') return;
+      fetchIntegrations();
+      toast({
+        title: data.status === 'success'
+          ? t('integrationsHub.accountingConnectors.toasts.oauthCompletedTitle', 'OAuth completed')
+          : t('integrationsHub.accountingConnectors.toasts.oauthFailedTitle', 'OAuth failed'),
+        description: data.message || t(
+          'integrationsHub.accountingConnectors.toasts.oauthCompletedDescription',
+          'Connector status has been refreshed.',
+        ),
+        variant: data.status === 'success' ? 'default' : 'destructive',
+      });
+    };
+
+    window.addEventListener('message', onOAuthCallback);
+    return () => window.removeEventListener('message', onOAuthCallback);
+  }, [fetchIntegrations, t, toast]);
 
   const companyName = useMemo(
     () => company?.company_name || company?.name || t('integrationsHub.accountingConnectors.currentCompany', 'Current company'),
@@ -109,12 +129,27 @@ const AccountingConnectors = () => {
   const handleConnect = async (provider) => {
     await withProviderBusy(provider, async () => {
       const payload = formState[provider];
-      await connectProvider(provider, payload);
+      const data = await connectProvider(provider, payload);
+      const authorizationUrl = data?.authorizationUrl;
+      if (!authorizationUrl) {
+        throw new Error('OAuth URL is missing for connector initialization.');
+      }
+
+      const popup = window.open(
+        authorizationUrl,
+        `cashpilot-oauth-${provider}`,
+        'width=720,height=820,menubar=no,toolbar=no,status=no',
+      );
+
+      if (!popup) {
+        window.location.assign(authorizationUrl);
+      }
+
       toast({
-        title: t('integrationsHub.accountingConnectors.toasts.connectedTitle', 'Connector enabled'),
+        title: t('integrationsHub.accountingConnectors.toasts.oauthLaunchTitle', 'OAuth flow started'),
         description: t(
-          'integrationsHub.accountingConnectors.toasts.connectedDescription',
-          `${provider === 'xero' ? 'Xero' : 'QuickBooks'} is connected for ${companyName}.`,
+          'integrationsHub.accountingConnectors.toasts.oauthLaunchDescription',
+          `Continue in the opened window to connect ${provider === 'xero' ? 'Xero' : 'QuickBooks'} for ${companyName}.`,
           { provider: provider === 'xero' ? 'Xero' : 'QuickBooks', company: companyName }
         ),
       });
@@ -186,19 +221,17 @@ const AccountingConnectors = () => {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {CONNECTORS_COMING_SOON ? (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
             <p className="text-sm font-semibold text-amber-200">
-              {t('integrationsHub.accountingConnectors.comingSoonTitle', 'Coming soon')}
+              {t('integrationsHub.accountingConnectors.liveOauthTitle', 'Live OAuth')}
             </p>
             <p className="text-xs text-amber-100/90 mt-1">
               {t(
-                'integrationsHub.accountingConnectors.comingSoonDescription',
-                'OAuth and real synchronization for Xero/QuickBooks are currently being finalized. Actions are temporarily disabled to avoid inconsistent data states.'
+                'integrationsHub.accountingConnectors.liveOauthDescription',
+                'OAuth callback and sync probes are active. Configure provider credentials in Edge Function environment variables before production rollout.'
               )}
             </p>
           </div>
-        ) : null}
 
         {PROVIDERS.map((provider) => {
           const state = providerState[provider.id];
@@ -262,7 +295,6 @@ const AccountingConnectors = () => {
                 <Switch
                   checked={formState[provider.id].sync_enabled}
                   onCheckedChange={(value) => updateForm(provider.id, { sync_enabled: value })}
-                  disabled={CONNECTORS_COMING_SOON}
                 />
               </div>
 
@@ -280,7 +312,7 @@ const AccountingConnectors = () => {
               <div className="flex flex-wrap gap-2">
                 <Button
                   onClick={() => handleConnect(provider.id)}
-                  disabled={isBusy || CONNECTORS_COMING_SOON}
+                  disabled={isBusy}
                   className="bg-cyan-600 hover:bg-cyan-700 text-white"
                 >
                   {isBusy ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -289,7 +321,7 @@ const AccountingConnectors = () => {
                 <Button
                   variant="outline"
                   className="border-amber-500/40 text-amber-300 hover:bg-amber-900/20"
-                  disabled={isBusy || CONNECTORS_COMING_SOON}
+                  disabled={isBusy}
                   onClick={() => handlePrepareOauth(provider.id)}
                 >
                   {t('integrationsHub.accountingConnectors.actions.prepareOauth', 'Prepare OAuth')}
@@ -297,7 +329,7 @@ const AccountingConnectors = () => {
                 <Button
                   variant="outline"
                   className="border-green-500/40 text-green-300 hover:bg-green-900/20"
-                  disabled={isBusy || !canSync || CONNECTORS_COMING_SOON}
+                  disabled={isBusy || !canSync}
                   onClick={() => handleSync(provider.id)}
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
@@ -306,7 +338,7 @@ const AccountingConnectors = () => {
                 <Button
                   variant="outline"
                   className="border-red-500/40 text-red-300 hover:bg-red-900/20"
-                  disabled={isBusy || CONNECTORS_COMING_SOON}
+                  disabled={isBusy}
                   onClick={() => handleDisconnect(provider.id)}
                 >
                   <Link2Off className="w-4 h-4 mr-2" />
