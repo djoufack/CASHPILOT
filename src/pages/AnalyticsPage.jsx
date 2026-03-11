@@ -54,6 +54,11 @@ import {
   computeExecutiveMetrics,
   formatChartData,
 } from '@/utils/analyticsCalculations';
+import {
+  buildContinuousAxisTicks,
+  buildContinuousSeries,
+  formatContinuousTooltipLabel,
+} from '@/utils/continuousChartSeries';
 import { formatCurrency } from '@/utils/calculations';
 
 const AnalyticsPage = () => {
@@ -150,6 +155,18 @@ const AnalyticsPage = () => {
       name: formatMonthKey(point.key),
     }));
   }, [expenses, formatMonthKey, invoices]);
+  const continuousChartData = useMemo(
+    () => buildContinuousSeries(chartData, ['revenue', 'expenses'], 28),
+    [chartData]
+  );
+  const continuousChartTicks = useMemo(
+    () => buildContinuousAxisTicks(chartData),
+    [chartData]
+  );
+  const continuousChartDomainMax = useMemo(
+    () => Math.max(chartData.length - 1, 1),
+    [chartData.length]
+  );
 
   const clientRevenueData = useMemo(
     () => aggregateRevenueByClient(invoices).map((item) => ({
@@ -372,17 +389,43 @@ const AnalyticsPage = () => {
             <div className="h-[300px] md:h-[400px]">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
+                  <LineChart data={continuousChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} />
+                    <XAxis
+                      dataKey="x"
+                      type="number"
+                      domain={[0, continuousChartDomainMax]}
+                      ticks={continuousChartTicks}
+                      allowDecimals={false}
+                      stroke="#9CA3AF"
+                      fontSize={12}
+                      tickFormatter={(value) => chartData[Math.round(Number(value))]?.name || ''}
+                    />
                     <YAxis stroke="#9CA3AF" fontSize={12} />
                     <Tooltip
                       contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
+                      labelFormatter={(_, payload) => formatContinuousTooltipLabel(payload?.[0]?.payload)}
                       formatter={(value) => formatCurrency(value, companyCurrency)}
                     />
                     <Legend />
-                    <Line type="monotone" dataKey="revenue" name={t('analyticsPage.series.revenue')} stroke="#10B981" strokeWidth={3} activeDot={{ r: 8 }} />
-                    <Line type="monotone" dataKey="expenses" name={t('analyticsPage.series.expenses')} stroke="#EF4444" strokeWidth={3} />
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      name={t('analyticsPage.series.revenue')}
+                      stroke="#10B981"
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 7 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="expenses"
+                      name={t('analyticsPage.series.expenses')}
+                      stroke="#EF4444"
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 6 }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
