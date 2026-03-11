@@ -317,7 +317,7 @@ async function main() {
     const { error: receiveError } = await serviceClient
       .from('supplier_orders')
       .update({
-        order_status: 'delivered',
+        order_status: 'received',
       })
       .eq('id', order.id);
 
@@ -398,13 +398,19 @@ async function main() {
       throw entriesError;
     }
 
+    const hasLegacySupplierOrderPosting = entries.some((entry) => entry.account_code === '401' && Number(entry.credit) === 40)
+      && entries.some((entry) => entry.account_code === '601' && Number(entry.debit) === 40);
+    const hasExtournePosting = entries.some((entry) => entry.account_code === '801' && Number(entry.credit) === 40)
+      && entries.some((entry) => entry.account_code === '809' && Number(entry.debit) === 40);
+
     summary.checks.accountingEntriesCreated = Array.isArray(entries)
       && entries.length === 2
-      && entries.some((entry) => entry.account_code === '401' && Number(entry.credit) === 40)
-      && entries.some((entry) => entry.account_code === '601' && Number(entry.debit) === 40);
-    assertCondition(summary.checks.accountingEntriesCreated, 'Expected two accounting entries (601/401) for the supplier order.', {
-      entries,
-    });
+      && (hasLegacySupplierOrderPosting || hasExtournePosting);
+    assertCondition(
+      summary.checks.accountingEntriesCreated,
+      'Expected two accounting entries for the supplier order (either legacy 601/401 or extourne 809/801 model).',
+      { entries },
+    );
 
     summary.checks.accountingCompanyScoped = entries.every((entry) => entry.company_id === company.id);
     assertCondition(summary.checks.accountingCompanyScoped, 'Expected accounting entries to inherit the active company.', {
