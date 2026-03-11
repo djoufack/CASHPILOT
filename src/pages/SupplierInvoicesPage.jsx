@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/utils/calculations';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
+import { linkLineItemsToProducts } from '@/services/supplierInvoiceLineItemLinking';
 import { buildCanonicalOperationsSnapshot } from '@/shared/canonicalOperationsSnapshot';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
@@ -537,12 +538,29 @@ const SupplierInvoicesPage = () => {
 
       // Create line items if AI extraction returned them
       if (newInvoice && formData.ai_raw_response?.line_items?.length) {
-        const lineItems = formData.ai_raw_response.line_items.map((item, index) => ({
+        let mappedLineItems = formData.ai_raw_response.line_items;
+
+        let productsQuery = supabase
+          .from('products')
+          .select('id, product_name, sku, supplier_id, is_active')
+          .eq('supplier_id', selectedSupplierId)
+          .eq('is_active', true);
+
+        productsQuery = applyCompanyScope(productsQuery);
+
+        const { data: supplierProducts, error: supplierProductsError } = await productsQuery;
+        if (supplierProductsError) throw supplierProductsError;
+
+        mappedLineItems = linkLineItemsToProducts(mappedLineItems, supplierProducts || []);
+
+        const lineItems = mappedLineItems.map((item, index) => ({
           invoice_id: newInvoice.id,
           description: item.description || '',
           quantity: item.quantity || 1,
           unit_price: item.unit_price || 0,
           total: item.total || 0,
+          vat_rate: item.vat_rate ?? null,
+          user_product_id: item.user_product_id || null,
           sort_order: index,
         }));
 

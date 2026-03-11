@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useStockAlerts, useStockHistory } from '@/hooks/useStockHistory';
 import { useProducts, useProductCategories } from '@/hooks/useProducts';
+import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
@@ -32,6 +33,7 @@ const DEFAULT_NEW_PRODUCT = {
   product_name: '',
   sku: '',
   category_id: '',
+  supplier_id: '',
   unit_price: '',
   purchase_price: '',
   unit: 'pièce',
@@ -47,6 +49,7 @@ const StockManagement = () => {
   const { getProductHistory, addHistoryEntry, loading: historyLoading } = useStockHistory();
   const { products, loading, createProduct, updateProduct, deleteProduct, fetchProducts } = useProducts();
   const { categories } = useProductCategories();
+  const { suppliers } = useSuppliers();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
   const companyCurrency = resolveAccountingCurrency(company);
@@ -251,6 +254,7 @@ const StockManagement = () => {
         product_name: newProduct.product_name,
         sku: newProduct.sku || null,
         category_id: newProduct.category_id || null,
+        supplier_id: newProduct.supplier_id || null,
         unit_price: parseFloat(newProduct.unit_price) || 0,
         purchase_price: parseFloat(newProduct.purchase_price) || 0,
         unit: newProduct.unit,
@@ -310,6 +314,7 @@ const StockManagement = () => {
     { key: 'product_name', header: 'Produit', width: 25 },
     { key: 'sku', header: 'SKU', width: 15 },
     { key: 'category_name', header: 'Categorie', width: 15, accessor: (p) => p.category?.name || '' },
+    { key: 'supplier_name', header: 'Fournisseur', width: 20, accessor: (p) => p.supplier?.company_name || '' },
     { key: 'unit_price', header: 'Prix vente', type: 'currency', width: 14 },
     { key: 'purchase_price', header: 'Prix achat', type: 'currency', width: 14 },
     { key: 'stock_quantity', header: 'Quantite', type: 'number', width: 10 },
@@ -747,6 +752,7 @@ const StockManagement = () => {
                         <TableHead className="text-gray-400">Produit</TableHead>
                         <TableHead className="text-gray-400">SKU</TableHead>
                         <TableHead className="text-gray-400">Catégorie</TableHead>
+                        <TableHead className="text-gray-400">Fournisseur</TableHead>
                         <TableHead className="text-gray-400 text-right">Prix vente</TableHead>
                         <TableHead className="text-gray-400 text-right">Prix achat</TableHead>
                         <TableHead className="text-gray-400 text-right">Stock</TableHead>
@@ -762,6 +768,7 @@ const StockManagement = () => {
                           <TableCell className="font-medium">{product.product_name}</TableCell>
                           <TableCell className="text-gray-400">{product.sku || '—'}</TableCell>
                           <TableCell className="text-gray-400">{product.category?.name || '—'}</TableCell>
+                          <TableCell className="text-gray-400">{product.supplier?.company_name || '—'}</TableCell>
                           <TableCell className="text-right">{formatNumber(product.unit_price || 0)} {currencySymbol}</TableCell>
                           <TableCell className="text-right text-gray-400">{formatNumber(product.purchase_price || 0)} {currencySymbol}</TableCell>
                           <TableCell className="text-right font-medium">{product.inventory_tracking_enabled === false ? '—' : product.stock_quantity}</TableCell>
@@ -935,6 +942,30 @@ const StockManagement = () => {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Fournisseur</Label>
+              <Select
+                value={newProduct.supplier_id || 'none'}
+                onValueChange={(v) => setNewProduct(p => ({ ...p, supplier_id: v === 'none' ? '' : v }))}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-700">
+                  <SelectValue placeholder="Aucun" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                  <SelectItem value="none">Aucun</SelectItem>
+                  {suppliers.map(supplier => (
+                    <SelectItem key={supplier.id} value={supplier.id}>
+                      {supplier.company_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {newProduct.inventory_tracking_enabled !== false && !newProduct.supplier_id ? (
+                <p className="text-xs text-amber-300">
+                  Recommandé pour la traçabilité achats. Obligatoire si vous voulez rattacher les futurs achats/factures à un fournisseur précis.
+                </p>
+              ) : null}
+            </div>
+            <div className="space-y-2">
               <Label>Description</Label>
               <Textarea className="bg-gray-800 border-gray-700" value={newProduct.description}
                 onChange={e => setNewProduct(p => ({ ...p, description: e.target.value }))} />
@@ -943,7 +974,7 @@ const StockManagement = () => {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setShowAddDialog(false)}>{t('common.cancel', 'Cancel')}</Button>
             <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleAddProduct}
-              disabled={!newProduct.product_name || loading}>
+              disabled={!newProduct.product_name || loading || (newProduct.inventory_tracking_enabled !== false && !newProduct.supplier_id)}>
               {t('common.create', 'Create')}
             </Button>
           </DialogFooter>
