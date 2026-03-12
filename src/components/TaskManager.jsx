@@ -133,6 +133,7 @@ const TaskManager = ({ projectId, quotes = [], project = null }) => {
             onCancel={() => setIsFormOpen(false)}
             quotes={quotes}
             projectContext={project}
+            availableTasks={tasks}
           />
         </DialogContent>
       </Dialog>
