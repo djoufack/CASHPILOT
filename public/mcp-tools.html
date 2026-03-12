@@ -460,12 +460,12 @@
 <!-- Hero -->
 <header class="hero">
   <div class="hero-logo">CashPilot MCP</div>
-  <p class="hero-sub">Catalogue complet des outils MCP disponibles pour piloter votre comptabilite, facturation, tresorerie et plus encore via l'IA.</p>
+  <p class="hero-sub">Catalogue complet des outils MCP disponibles pour piloter la comptabilite, la facturation, les projets et le CRM via l'IA.</p>
   <div class="hero-stats">
-    <div class="stat"><div class="stat-number">249</div><div class="stat-label">Outils au total</div></div>
-    <div class="stat"><div class="stat-number">74</div><div class="stat-label">Outils metier</div></div>
-    <div class="stat"><div class="stat-number">175</div><div class="stat-label">Operations CRUD</div></div>
-    <div class="stat"><div class="stat-number">14</div><div class="stat-label">Categories</div></div>
+    <div class="stat"><div class="stat-number">250+</div><div class="stat-label">Outils au total</div></div>
+    <div class="stat"><div class="stat-number">80+</div><div class="stat-label">Outils metier</div></div>
+    <div class="stat"><div class="stat-number">170+</div><div class="stat-label">Operations CRUD</div></div>
+    <div class="stat"><div class="stat-number">16</div><div class="stat-label">Categories</div></div>
   </div>
   <div class="search-container">
     <span class="search-icon">&#128269;</span>
@@ -487,6 +487,8 @@
     <button class="nav-btn" data-target="accounting">Comptabilite</button>
     <button class="nav-btn" data-target="bank">Banque</button>
     <button class="nav-btn" data-target="analytics">Analytics</button>
+    <button class="nav-btn" data-target="projects_mcp">Projets</button>
+    <button class="nav-btn" data-target="crm">CRM</button>
     <button class="nav-btn" data-target="reporting">Reporting</button>
     <button class="nav-btn" data-target="exports">Exports</button>
     <button class="nav-btn" data-target="crud">CRUD</button>
@@ -1324,6 +1326,94 @@
     </div>
   </section>
 
+  <!-- ==================== PROJETS (MCP) ==================== -->
+  <section class="category" data-cat="projects_mcp" id="cat-projects_mcp">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(167, 139, 250, 0.15);">&#128188;</div>
+      <h2 class="category-title">Projets &amp; Taches (MCP)</h2>
+      <span class="category-count">10 outils</span>
+      <span class="category-desc">Pilotage projets, taches et feuilles de temps</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="list_projects projets societe filtre client statut">
+        <div class="tool-name">list_projects</div>
+        <div class="tool-desc">Lister les projets d'une societe avec filtres (client, statut, limite).</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">status</span>
+          <span class="param-tag optional">client_id</span>
+          <span class="param-tag optional">limit</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="create_projects creer projet">
+        <div class="tool-name">create_projects</div>
+        <div class="tool-desc">Creer un projet scopié par societe (integrite referentielle client/projet).</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag">name</span>
+          <span class="param-tag optional">client_id</span>
+          <span class="param-tag optional">budget_hours</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="update_projects delete_projects get_projects details projet">
+        <div class="tool-name">get_projects / update_projects / delete_projects</div>
+        <div class="tool-desc">Lire, modifier ou supprimer un projet avec controle strict du scope societe/utilisateur.</div>
+      </div>
+      <div class="tool-card" data-search="list_tasks taches projet create_tasks update_tasks delete_tasks depends_on">
+        <div class="tool-name">list_tasks / create_tasks / update_tasks / delete_tasks</div>
+        <div class="tool-desc">Piloter les taches projet (priorite, statut, dependances, estimations, affectation).</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">project_id</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== CRM (MCP) ==================== -->
+  <section class="category" data-cat="crm" id="cat-crm">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(244, 114, 182, 0.15);">&#128101;</div>
+      <h2 class="category-title">CRM &amp; Support SLA (MCP)</h2>
+      <span class="category-count">12 outils</span>
+      <span class="category-desc">Leads, pipeline commercial, tickets support et politiques SLA</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="list_crm_leads leads crm qualification commerciale">
+        <div class="tool-name">list_crm_leads</div>
+        <div class="tool-desc">Lister les leads CRM d'une societe (clients sans devis/facture).</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">limit</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="get_crm_pipeline_summary funnel pipeline crm">
+        <div class="tool-name">get_crm_pipeline_summary</div>
+        <div class="tool-desc">Resume du pipeline CRM: leads, opportunites ouvertes, deals gagnes et backlog support.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="crm_support_tickets list_crm_support_tickets create_crm_support_tickets">
+        <div class="tool-name">crm_support_tickets (list/create/get/update/delete)</div>
+        <div class="tool-desc">Operations completes sur les tickets support CRM (priorite, SLA, echeance, statut).</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">client_id</span>
+          <span class="param-tag optional">project_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="crm_support_sla_policies list create update delete sla">
+        <div class="tool-name">crm_support_sla_policies (list/create/get/update/delete)</div>
+        <div class="tool-desc">Gerer les politiques SLA par societe (delais de reponse et de resolution).</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">priority</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ==================== CRUD GENERES ==================== -->
   <section class="category" data-cat="crud" id="cat-crud">
     <div class="category-header">
@@ -1482,9 +1572,24 @@
               <td>Projets et suivi de gestion</td>
               <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
             </tr>
+            <tr data-search="tasks taches projet dependances sous taches planning">
+              <td class="entity-name">tasks</td>
+              <td>Taches projet (planning, statut, priorite, dependances)</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
             <tr data-search="timesheets feuilles temps heures saisie">
               <td class="entity-name">timesheets</td>
               <td>Feuilles de temps et saisie des heures</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="crm_support_tickets tickets support crm sla">
+              <td class="entity-name">crm_support_tickets</td>
+              <td>Tickets support CRM avec SLA, priorites et echeances</td>
+              <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
+            </tr>
+            <tr data-search="crm_support_sla_policies politiques sla crm support">
+              <td class="entity-name">crm_support_sla_policies</td>
+              <td>Politiques SLA (temps de premiere reponse / resolution)</td>
               <td><div class="crud-ops"><span class="crud-op c">create</span><span class="crud-op r">get</span><span class="crud-op l">list</span><span class="crud-op u">update</span><span class="crud-op d">delete</span></div></td>
             </tr>
             <tr data-search="company_portfolios portefeuilles societes groupes">
@@ -1532,7 +1637,7 @@
 
 <!-- Footer -->
 <footer class="footer">
-  <p><strong>CashPilot MCP</strong> &mdash; 249 outils | 14 categories | Mis a jour le 9 mars 2026</p>
+  <p><strong>CashPilot MCP</strong> &mdash; 250+ outils | 16 categories | Mis a jour le 12 mars 2026</p>
   <p style="margin-top: 0.5rem;">Documentation a destination des utilisateurs du serveur MCP CashPilot. Les outils CRUD sont generes automatiquement a partir du schema de base de donnees Supabase.</p>
 </footer>
 
