@@ -39,7 +39,8 @@ export const useTimesheets = () => {
           *,
           client:clients(company_name),
           project:projects(name, hourly_rate),
-          task:tasks(name)
+          task:tasks(name),
+          executed_by_member:team_members(id, name, email, role)
         `)
         .order('date', { ascending: false });
 
@@ -47,6 +48,8 @@ export const useTimesheets = () => {
       if (filters.startDate) query = query.gte('date', filters.startDate);
       if (filters.endDate) query = query.lte('date', filters.endDate);
       if (filters.projectId) query = query.eq('project_id', filters.projectId);
+      if (filters.clientId) query = query.eq('client_id', filters.clientId);
+      if (filters.executedByMemberId) query = query.eq('executed_by_member_id', filters.executedByMemberId);
 
       const { data, error } = await query;
 
