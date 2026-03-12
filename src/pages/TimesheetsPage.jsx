@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from 'react-i18next';
-import { Plus, ListFilter, Calendar as CalendarIcon, Download, FileText, LayoutGrid, CalendarRange, Printer, X } from 'lucide-react';
+import { Plus, ListFilter, Calendar as CalendarIcon, Download, FileText, LayoutGrid, CalendarRange, Printer, X, ChevronDown } from 'lucide-react';
 import { useTimesheets } from '@/hooks/useTimesheets';
 import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
@@ -26,6 +26,8 @@ import TimesheetKanbanView from '@/components/TimesheetKanbanView';
 import TimesheetAgendaView from '@/components/TimesheetAgendaView';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const locales = {
   'en-US': import('date-fns/locale/en-US'),
@@ -65,6 +67,22 @@ const resolveResourceType = (timesheet = {}) => {
   return 'human';
 };
 
+const resolveResourceKey = (timesheet = {}) => {
+  if (timesheet?.resource_type === 'material') {
+    if (timesheet?.material_resource_id) return `material:${timesheet.material_resource_id}`;
+    if (timesheet?.material_resource_name) return `material-name:${normalizeText(timesheet.material_resource_name)}`;
+  }
+
+  if (timesheet?.executed_by_member_id) return `human:${timesheet.executed_by_member_id}`;
+  if (timesheet?.user_id) return `human-user:${timesheet.user_id}`;
+
+  if (timesheet?.material_resource_id) return `material:${timesheet.material_resource_id}`;
+  if (timesheet?.material_resource_name) return `material-name:${normalizeText(timesheet.material_resource_name)}`;
+  if (timesheet?.resource_name) return `resource-name:${normalizeText(timesheet.resource_name)}`;
+
+  return 'resource:unassigned';
+};
+
 const TimesheetsPage = () => {
   const { t } = useTranslation();
   const { timesheets, loading, fetchTimesheets } = useTimesheets();
@@ -82,7 +100,8 @@ const TimesheetsPage = () => {
   const [projectFilter, setProjectFilter] = useState('all');
   const [clientFilter, setClientFilter] = useState('all');
   const [resourceFilter, setResourceFilter] = useState('all');
-  const [resourceNameFilter, setResourceNameFilter] = useState('');
+  const [selectedResourceKeys, setSelectedResourceKeys] = useState([]);
+  const [resourceMultiSearch, setResourceMultiSearch] = useState('');
   const [resourceTypeFilter, setResourceTypeFilter] = useState('all');
 
   useEffect(() => {
@@ -127,11 +146,48 @@ const TimesheetsPage = () => {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [timesheets]);
 
-  const matchingResourceNameTokens = useMemo(() => {
-    const normalized = normalizeText(resourceNameFilter);
-    if (!normalized) return [];
-    return normalized.split(/\s+/).filter(Boolean);
-  }, [resourceNameFilter]);
+  const resourceNameOptions = useMemo(() => {
+    const map = new Map();
+    (timesheets || []).forEach((timesheet) => {
+      if (projectFilter !== 'all' && timesheet?.project_id !== projectFilter) return;
+      if (resourceTypeFilter !== 'all' && resolveResourceType(timesheet) !== resourceTypeFilter) return;
+
+      const key = resolveResourceKey(timesheet);
+      const label = resolveResourceLabel(timesheet);
+      if (!map.has(key)) {
+        map.set(key, label);
+      }
+    });
+
+    return Array.from(map.entries())
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [timesheets, projectFilter, resourceTypeFilter]);
+
+  const visibleResourceNameOptions = useMemo(() => {
+    const normalizedSearch = normalizeText(resourceMultiSearch);
+    if (!normalizedSearch) return resourceNameOptions;
+    return resourceNameOptions.filter((option) => normalizeText(option.label).includes(normalizedSearch));
+  }, [resourceMultiSearch, resourceNameOptions]);
+
+  useEffect(() => {
+    const availableKeys = new Set(resourceNameOptions.map((option) => option.key));
+    setSelectedResourceKeys((previous) => previous.filter((key) => availableKeys.has(key)));
+  }, [resourceNameOptions]);
+
+  const selectedResourceNameLabel = useMemo(() => {
+    if (selectedResourceKeys.length === 0) {
+      return projectFilter === 'all'
+        ? 'Toutes les ressources'
+        : 'Toutes les ressources du projet';
+    }
+
+    if (selectedResourceKeys.length === 1) {
+      return resourceNameOptions.find((option) => option.key === selectedResourceKeys[0])?.label || '1 ressource';
+    }
+
+    return `${selectedResourceKeys.length} ressources sélectionnées`;
+  }, [selectedResourceKeys, resourceNameOptions, projectFilter]);
 
   const filteredTimesheets = useMemo(() => {
     return (timesheets || []).filter((timesheet) => {
@@ -142,9 +198,8 @@ const TimesheetsPage = () => {
       const matchesStartDate = !startDateFilter || (timesheet.date && timesheet.date >= startDateFilter);
       const matchesEndDate = !endDateFilter || (timesheet.date && timesheet.date <= endDateFilter);
       const matchesResourceType = resourceTypeFilter === 'all' || resolveResourceType(timesheet) === resourceTypeFilter;
-      const normalizedResourceLabel = normalizeText(resolveResourceLabel(timesheet));
-      const matchesResourceName = matchingResourceNameTokens.length === 0
-        || matchingResourceNameTokens.every((token) => normalizedResourceLabel.includes(token));
+      const resourceKey = resolveResourceKey(timesheet);
+      const matchesResourceNames = selectedResourceKeys.length === 0 || selectedResourceKeys.includes(resourceKey);
 
       return (
         matchesProject
@@ -153,7 +208,7 @@ const TimesheetsPage = () => {
         && matchesStartDate
         && matchesEndDate
         && matchesResourceType
-        && matchesResourceName
+        && matchesResourceNames
       );
     });
   }, [
@@ -164,7 +219,7 @@ const TimesheetsPage = () => {
     startDateFilter,
     endDateFilter,
     resourceTypeFilter,
-    matchingResourceNameTokens
+    selectedResourceKeys
   ]);
 
   const simulationMetrics = useMemo(() => {
@@ -355,7 +410,8 @@ const TimesheetsPage = () => {
     setProjectFilter('all');
     setClientFilter('all');
     setResourceFilter('all');
-    setResourceNameFilter('');
+    setSelectedResourceKeys([]);
+    setResourceMultiSearch('');
     setResourceTypeFilter('all');
   };
 
@@ -560,12 +616,64 @@ const TimesheetsPage = () => {
 
                   <div>
                     <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Nom / prénom ressource</p>
-                    <Input
-                      value={resourceNameFilter}
-                      onChange={(event) => setResourceNameFilter(event.target.value)}
-                      placeholder="ex: Henry Dubois"
-                      className="bg-gray-950 border-gray-700 text-gray-100"
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-between bg-gray-950 border-gray-700 text-gray-100 hover:bg-gray-900 hover:text-white"
+                        >
+                          <span className="truncate">{selectedResourceNameLabel}</span>
+                          <ChevronDown className="w-4 h-4 ml-2 opacity-70" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[360px] max-w-[92vw] bg-gray-950 border-gray-700 text-gray-100 p-3" align="start">
+                        <div className="space-y-3">
+                          <Input
+                            value={resourceMultiSearch}
+                            onChange={(event) => setResourceMultiSearch(event.target.value)}
+                            placeholder="Rechercher une ressource..."
+                            className="bg-gray-900 border-gray-700 text-gray-100"
+                          />
+                          <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+                            {visibleResourceNameOptions.length === 0 ? (
+                              <p className="text-sm text-gray-400">
+                                Aucune ressource trouvée pour ce projet.
+                              </p>
+                            ) : (
+                              visibleResourceNameOptions.map((option) => (
+                                <label
+                                  key={option.key}
+                                  className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-gray-900 cursor-pointer"
+                                >
+                                  <Checkbox
+                                    checked={selectedResourceKeys.includes(option.key)}
+                                    onCheckedChange={(checked) => {
+                                      setSelectedResourceKeys((previous) => {
+                                        if (checked) return [...new Set([...previous, option.key])];
+                                        return previous.filter((key) => key !== option.key);
+                                      });
+                                    }}
+                                  />
+                                  <span className="text-sm">{option.label}</span>
+                                </label>
+                              ))
+                            )}
+                          </div>
+                          {selectedResourceKeys.length > 0 && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="text-gray-300 hover:text-white"
+                              onClick={() => setSelectedResourceKeys([])}
+                            >
+                              Vider la sélection
+                            </Button>
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div>
@@ -602,7 +710,7 @@ const TimesheetsPage = () => {
 
                 <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
                   <p className="text-sm text-gray-400">
-                    Pour Henry Dubois: mettez une période, laissez "Projet = Tous", saisissez "Henry Dubois", puis utilisez "Facturer filtre".
+                    Sélectionnez un projet puis cochez une ou plusieurs ressources pour suivre et facturer précisément leurs feuilles de temps.
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
