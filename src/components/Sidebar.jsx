@@ -10,7 +10,7 @@ import {
   Home, Users, Briefcase, Clock, FileText, FileSignature,
   Truck, BarChart3, Calculator, Settings,
   Map, QrCode, FileBarChart, Database, Menu, Package,
-  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck, Tag, ShoppingCart, FileInput, Globe, Webhook, Cable, CreditCard
+  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck, Tag, ShoppingCart, FileInput, Globe, Webhook, Cable, CreditCard, Target, Activity, LifeBuoy, Workflow
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -92,6 +92,23 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
           { path: '/app/audit-comptable', label: t('nav.auditComptable'), icon: ShieldCheck },
           { path: '/app/scenarios', label: t('nav.scenarios') || 'Scénarios', icon: BarChart3, featureKey: ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL },
+        ],
+      },
+      {
+        id: 'crm',
+        label: t('nav.crm', 'CRM'),
+        icon: Target,
+        type: 'category',
+        items: [
+          { path: '/app/crm', label: t('nav.crmOverview', 'Vue CRM'), icon: BarChart3 },
+          { path: '/app/crm/accounts', label: t('nav.crmAccounts', 'Comptes & Contacts'), icon: Users },
+          { path: '/app/crm/leads', label: t('nav.crmLeads', 'Leads'), icon: Users },
+          { path: '/app/crm/opportunities', label: t('nav.crmOpportunities', 'Opportunités'), icon: FileSignature },
+          { path: '/app/crm/activities', label: t('nav.crmActivities', 'Activités'), icon: Activity },
+          { path: '/app/crm/quotes-contracts', label: t('nav.crmQuotesContracts', 'Devis & Contrats'), icon: ClipboardList },
+          { path: '/app/crm/support', label: t('nav.crmSupport', 'Tickets & SLA'), icon: LifeBuoy },
+          { path: '/app/crm/automation', label: t('nav.crmAutomation', 'Automatisation'), icon: Workflow },
+          { path: '/app/crm/reports', label: t('nav.crmReports', 'Rapports CRM'), icon: BarChart3 },
         ],
       },
       {
