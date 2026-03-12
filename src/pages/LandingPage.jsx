@@ -411,6 +411,7 @@ const LandingPage = () => {
     { icon: Shield, className: 'tag tag-blue', label: copy.hero.tags.reverseAccounting },
     { icon: Sparkles, className: 'tag tag-yellow', label: copy.hero.tags.automated },
     { icon: Bot, className: 'tag tag-cyan', label: copy.hero.tags.mcp },
+    { icon: Briefcase, className: 'tag tag-indigo', label: copy.hero.tags.projectsCrm },
     { icon: Lock, className: 'tag tag-red', label: copy.hero.tags.security },
   ];
 
@@ -495,11 +496,11 @@ const LandingPage = () => {
     { iconText: '+', style: { background: 'rgba(255,255,255,0.08)', color: '#a1a1aa' }, ...copy.mcp.agents[7] },
   ];
 
-  const mcpCards = [
-    { icon: Mic, ...copy.mcp.cards[0] },
-    { icon: Plug, ...copy.mcp.cards[1] },
-    { icon: Workflow, ...copy.mcp.cards[2] },
-  ];
+  const mcpCardIcons = [Mic, Briefcase, Users, Workflow, Plug, Bot];
+  const mcpCards = (copy.mcp.cards || []).map((card, index) => ({
+    icon: mcpCardIcons[index % mcpCardIcons.length],
+    ...card,
+  }));
 
   const peppolCards = [
     { icon: Clock, iconStyle: undefined, tagClassName: 'peppol-card-tag tag-green', ...copy.peppol.cards[0] },
