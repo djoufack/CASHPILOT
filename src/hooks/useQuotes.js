@@ -86,7 +86,7 @@ export const useQuotes = () => {
     try {
       let query = supabase
         .from('quotes')
-        .select('*, client:clients(company_name)')
+        .select('*, client:clients!fk_quotes_client_scope(company_name)')
         .order('created_at', { ascending: false });
 
       query = applyCompanyScope(query);
