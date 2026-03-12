@@ -5,6 +5,7 @@ import { useTimesheets } from '@/hooks/useTimesheets';
 import { useClients } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
 import { useServices } from '@/hooks/useServices';
+import { useTeamSettings } from '@/hooks/useTeamSettings';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,7 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
   const { createTimesheet } = useTimesheets();
   const { clients } = useClients();
   const { projects } = useProjects();
+  const { members } = useTeamSettings();
   const { toast } = useToast();
   const { services } = useServices();
   const [projectTasks, setProjectTasks] = useState([]);
@@ -43,6 +45,7 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
     project_id: '',
     task_id: '',
     service_id: '',
+    executed_by_member_id: '',
     notes: ''
   });
   const [calculatedDuration, setCalculatedDuration] = useState('0:00');
@@ -136,6 +139,7 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
         project_id: '',
         task_id: '',
         service_id: '',
+        executed_by_member_id: '',
         notes: ''
       });
       
@@ -242,6 +246,26 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
             {services.filter(s => s.is_active).map((svc) => (
               <SelectItem key={svc.id} value={svc.id}>
                 {svc.service_name} ({svc.pricing_type === 'hourly' ? `${svc.hourly_rate}/h` : svc.pricing_type === 'fixed' ? `${svc.fixed_price}` : `${svc.unit_price}/${svc.unit}`})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="executed_by_member_id">Ressource humaine exécutante</Label>
+        <Select
+          value={formData.executed_by_member_id || 'none'}
+          onValueChange={(value) => setFormData({ ...formData, executed_by_member_id: value === 'none' ? null : value })}
+        >
+          <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-full">
+            <SelectValue placeholder="Sélectionner une ressource (optionnel)" />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-700 border-gray-600 text-white">
+            <SelectItem value="none">Aucune ressource affectée</SelectItem>
+            {members.map((member) => (
+              <SelectItem key={member.id} value={member.id}>
+                {member.name || member.email}
               </SelectItem>
             ))}
           </SelectContent>
