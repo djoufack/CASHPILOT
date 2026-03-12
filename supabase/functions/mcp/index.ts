@@ -540,6 +540,355 @@ const TOOLS = [
       }
     },
   },
+
+  // ── Project Management (MCP) ──
+  {
+    name: 'list_projects',
+    description: 'List projects for a company, with optional status/client filters.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        company_id: { type: 'string', description: 'Company UUID (required for strict scope)' },
+        status: { type: 'string' },
+        client_id: { type: 'string' },
+        limit: { type: 'number', description: 'Default 50, max 200' },
+      },
+      required: ['company_id'],
+    },
+  },
+  {
+    name: 'get_projects',
+    description: 'Get project details by project id.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Project UUID' },
+        company_id: { type: 'string', description: 'Optional extra company scope guard' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'create_projects',
+    description: 'Create a project under a strict company scope.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        company_id: { type: 'string', description: 'Company UUID' },
+        name: { type: 'string' },
+        description: { type: 'string' },
+        client_id: { type: 'string' },
+        status: { type: 'string' },
+        budget_hours: { type: 'number' },
+        hourly_rate: { type: 'number' },
+        start_date: { type: 'string', description: 'YYYY-MM-DD' },
+        end_date: { type: 'string', description: 'YYYY-MM-DD' },
+      },
+      required: ['company_id', 'name'],
+    },
+  },
+  {
+    name: 'update_projects',
+    description: 'Update an existing project.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Project UUID' },
+        company_id: { type: 'string', description: 'Optional extra company scope guard' },
+        name: { type: 'string' },
+        description: { type: 'string' },
+        client_id: { type: 'string' },
+        status: { type: 'string' },
+        budget_hours: { type: 'number' },
+        hourly_rate: { type: 'number' },
+        start_date: { type: 'string', description: 'YYYY-MM-DD' },
+        end_date: { type: 'string', description: 'YYYY-MM-DD' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'delete_projects',
+    description: 'Delete a project.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Project UUID' },
+        company_id: { type: 'string', description: 'Optional extra company scope guard' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'list_tasks',
+    description: 'List tasks for all projects of a company or one specific project.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        company_id: { type: 'string', description: 'Company UUID (required for strict scope)' },
+        project_id: { type: 'string' },
+        status: { type: 'string' },
+        limit: { type: 'number', description: 'Default 100, max 300' },
+      },
+      required: ['company_id'],
+    },
+  },
+  {
+    name: 'get_tasks',
+    description: 'Get task details by task id.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Task UUID' },
+        company_id: { type: 'string', description: 'Optional extra company scope guard' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'create_tasks',
+    description: 'Create a task in a project.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project_id: { type: 'string', description: 'Project UUID' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        status: { type: 'string' },
+        priority: { type: 'string' },
+        assigned_to: { type: 'string' },
+        assigned_member_id: { type: 'string' },
+        due_date: { type: 'string', description: 'YYYY-MM-DD' },
+        started_at: { type: 'string', description: 'YYYY-MM-DD' },
+        completed_at: { type: 'string', description: 'YYYY-MM-DD' },
+        start_date: { type: 'string', description: 'YYYY-MM-DD' },
+        end_date: { type: 'string', description: 'YYYY-MM-DD' },
+        service_id: { type: 'string' },
+        estimated_hours: { type: 'number' },
+        requires_quote: { type: 'boolean' },
+        depends_on: { type: 'array', items: { type: 'string' } },
+        quote_id: { type: 'string' },
+        invoice_id: { type: 'string' },
+        purchase_order_id: { type: 'string' },
+      },
+      required: ['project_id', 'title'],
+    },
+  },
+  {
+    name: 'update_tasks',
+    description: 'Update a task.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Task UUID' },
+        company_id: { type: 'string', description: 'Optional extra company scope guard' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        status: { type: 'string' },
+        priority: { type: 'string' },
+        assigned_to: { type: 'string' },
+        assigned_member_id: { type: 'string' },
+        due_date: { type: 'string', description: 'YYYY-MM-DD' },
+        started_at: { type: 'string', description: 'YYYY-MM-DD' },
+        completed_at: { type: 'string', description: 'YYYY-MM-DD' },
+        start_date: { type: 'string', description: 'YYYY-MM-DD' },
+        end_date: { type: 'string', description: 'YYYY-MM-DD' },
+        service_id: { type: 'string' },
+        estimated_hours: { type: 'number' },
+        requires_quote: { type: 'boolean' },
+        depends_on: { type: 'array', items: { type: 'string' } },
+        quote_id: { type: 'string' },
+        invoice_id: { type: 'string' },
+        purchase_order_id: { type: 'string' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'delete_tasks',
+    description: 'Delete a task.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Task UUID' },
+        company_id: { type: 'string', description: 'Optional extra company scope guard' },
+      },
+      required: ['id'],
+    },
+  },
+
+  // ── CRM (MCP) ──
+  {
+    name: 'list_crm_leads',
+    description: 'List CRM leads for a company (clients with no quotes and no invoices yet).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        company_id: { type: 'string', description: 'Company UUID' },
+        limit: { type: 'number', description: 'Default 100, max 500' },
+      },
+      required: ['company_id'],
+    },
+  },
+  {
+    name: 'get_crm_pipeline_summary',
+    description: 'Get CRM funnel/pipeline summary for a company (leads, opportunities, won/lost, support backlog).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        company_id: { type: 'string', description: 'Company UUID' },
+      },
+      required: ['company_id'],
+    },
+  },
+  {
+    name: 'list_crm_support_tickets',
+    description: 'List CRM support tickets with optional filters.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        company_id: { type: 'string', description: 'Company UUID' },
+        status: { type: 'string' },
+        priority: { type: 'string' },
+        client_id: { type: 'string' },
+        project_id: { type: 'string' },
+        limit: { type: 'number', description: 'Default 50, max 300' },
+      },
+      required: ['company_id'],
+    },
+  },
+  {
+    name: 'get_crm_support_tickets',
+    description: 'Get CRM support ticket details.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Ticket UUID' },
+        company_id: { type: 'string', description: 'Optional extra company scope guard' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'create_crm_support_tickets',
+    description: 'Create a CRM support ticket.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        company_id: { type: 'string', description: 'Company UUID' },
+        client_id: { type: 'string' },
+        project_id: { type: 'string' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        priority: { type: 'string' },
+        status: { type: 'string' },
+        sla_level: { type: 'string' },
+        due_at: { type: 'string', description: 'YYYY-MM-DD' },
+      },
+      required: ['company_id', 'client_id', 'title'],
+    },
+  },
+  {
+    name: 'update_crm_support_tickets',
+    description: 'Update a CRM support ticket.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Ticket UUID' },
+        company_id: { type: 'string', description: 'Optional extra company scope guard' },
+        client_id: { type: 'string' },
+        project_id: { type: 'string' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        priority: { type: 'string' },
+        status: { type: 'string' },
+        sla_level: { type: 'string' },
+        due_at: { type: 'string', description: 'YYYY-MM-DD' },
+        first_response_at: { type: 'string', description: 'YYYY-MM-DD' },
+        resolved_at: { type: 'string', description: 'YYYY-MM-DD' },
+        closed_at: { type: 'string', description: 'YYYY-MM-DD' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'delete_crm_support_tickets',
+    description: 'Delete a CRM support ticket.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Ticket UUID' },
+        company_id: { type: 'string', description: 'Optional extra company scope guard' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'list_crm_support_sla_policies',
+    description: 'List CRM support SLA policies for a company.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        company_id: { type: 'string', description: 'Company UUID' },
+      },
+      required: ['company_id'],
+    },
+  },
+  {
+    name: 'get_crm_support_sla_policies',
+    description: 'Get one CRM support SLA policy.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'SLA policy UUID' },
+        company_id: { type: 'string', description: 'Optional extra company scope guard' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'create_crm_support_sla_policies',
+    description: 'Create a CRM support SLA policy.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        company_id: { type: 'string', description: 'Company UUID' },
+        priority: { type: 'string' },
+        target_first_response_minutes: { type: 'number' },
+        target_resolution_minutes: { type: 'number' },
+        is_active: { type: 'boolean' },
+      },
+      required: ['company_id', 'priority', 'target_first_response_minutes', 'target_resolution_minutes'],
+    },
+  },
+  {
+    name: 'update_crm_support_sla_policies',
+    description: 'Update a CRM support SLA policy.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'SLA policy UUID' },
+        company_id: { type: 'string', description: 'Optional extra company scope guard' },
+        priority: { type: 'string' },
+        target_first_response_minutes: { type: 'number' },
+        target_resolution_minutes: { type: 'number' },
+        is_active: { type: 'boolean' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'delete_crm_support_sla_policies',
+    description: 'Delete a CRM support SLA policy.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'SLA policy UUID' },
+        company_id: { type: 'string', description: 'Optional extra company scope guard' },
+      },
+      required: ['id'],
+    },
+  },
   {
     name: 'backup_all_data',
     description: 'Export all user data as a JSON backup.',
@@ -574,7 +923,26 @@ function validateToolArgs(
 }
 
 // ─── Scope requirements ──────────────────────────────────────────────────────
-const WRITE_TOOLS = new Set(['create_client', 'create_invoice', 'create_payment', 'update_invoice_status', 'init_accounting', ...Array.from(generatedWriteTools)]);
+const WRITE_TOOLS = new Set([
+  'create_client',
+  'create_invoice',
+  'create_payment',
+  'update_invoice_status',
+  'init_accounting',
+  'create_projects',
+  'update_projects',
+  'delete_projects',
+  'create_tasks',
+  'update_tasks',
+  'delete_tasks',
+  'create_crm_support_tickets',
+  'update_crm_support_tickets',
+  'delete_crm_support_tickets',
+  'create_crm_support_sla_policies',
+  'update_crm_support_sla_policies',
+  'delete_crm_support_sla_policies',
+  ...Array.from(generatedWriteTools),
+]);
 
 // ─── Tool Handlers ───────────────────────────────────────────────────────────
 type Handler = (sb: SB, uid: string, a: Record<string, unknown>) => Promise<string>;
@@ -1323,12 +1691,580 @@ const hCompareCompaniesKpis: Handler = async (sb, uid, a) => {
   return JSON.stringify({ period: { start: sDate, end: eDate }, companies: results, totals, company_count: results.length }, null, 2);
 };
 
+const hListProjects: Handler = async (sb, uid, a) => {
+  const companyId = String(a.company_id ?? '').trim();
+  if (!companyId) throw new Error('company_id is required');
+
+  let query = sb
+    .from('projects')
+    .select('id, company_id, client_id, name, description, status, progress, budget_hours, hourly_rate, start_date, end_date, created_at, updated_at, client:clients!fk_projects_client_scope(id, company_name)')
+    .eq('user_id', uid)
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false });
+
+  if (a.status) query = query.eq('status', a.status);
+  if (a.client_id) query = query.eq('client_id', a.client_id);
+
+  const limit = Math.min(200, Math.max(1, Number(a.limit) || 50));
+  const { data, error } = await query.limit(limit);
+  if (error) throw new Error(error.message);
+
+  return JSON.stringify({ projects: data ?? [], count: data?.length ?? 0 }, null, 2);
+};
+
+const hGetProjects: Handler = async (sb, uid, a) => {
+  const projectId = String(a.id ?? '').trim();
+  if (!projectId) throw new Error('id is required');
+
+  let query = sb
+    .from('projects')
+    .select('id, company_id, client_id, name, description, status, progress, budget_hours, hourly_rate, start_date, end_date, created_at, updated_at, client:clients!fk_projects_client_scope(id, company_name, email)')
+    .eq('id', projectId)
+    .eq('user_id', uid);
+
+  if (a.company_id) query = query.eq('company_id', a.company_id);
+
+  const { data, error } = await query.single();
+  if (error) throw new Error(error.message);
+
+  return JSON.stringify({ project: data }, null, 2);
+};
+
+const hCreateProjects: Handler = async (sb, uid, a) => {
+  const companyId = String(a.company_id ?? '').trim();
+  const name = String(a.name ?? '').trim();
+  if (!companyId) throw new Error('company_id is required');
+  if (!name) throw new Error('name is required');
+
+  const payload: Record<string, unknown> = {
+    user_id: uid,
+    company_id: companyId,
+    name,
+  };
+
+  if (a.description !== undefined) payload.description = a.description || null;
+  if (a.client_id !== undefined) payload.client_id = a.client_id || null;
+  if (a.status !== undefined) payload.status = a.status || 'active';
+  if (a.budget_hours !== undefined) payload.budget_hours = a.budget_hours;
+  if (a.hourly_rate !== undefined) payload.hourly_rate = a.hourly_rate;
+  if (a.start_date !== undefined) payload.start_date = a.start_date || null;
+  if (a.end_date !== undefined) payload.end_date = a.end_date || null;
+
+  const { data, error } = await sb
+    .from('projects')
+    .insert(payload)
+    .select('id, company_id, client_id, name, description, status, progress, budget_hours, hourly_rate, start_date, end_date, created_at, updated_at, client:clients!fk_projects_client_scope(id, company_name)')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ created: true, project: data }, null, 2);
+};
+
+const hUpdateProjects: Handler = async (sb, uid, a) => {
+  const projectId = String(a.id ?? '').trim();
+  if (!projectId) throw new Error('id is required');
+
+  const updates: Record<string, unknown> = {};
+  const allowed = ['name', 'description', 'client_id', 'status', 'budget_hours', 'hourly_rate', 'start_date', 'end_date'];
+  for (const key of allowed) {
+    if (Object.prototype.hasOwnProperty.call(a, key)) {
+      updates[key] = (a as Record<string, unknown>)[key];
+    }
+  }
+  if (Object.keys(updates).length === 0) throw new Error('no updatable fields provided');
+
+  let query = sb
+    .from('projects')
+    .update(updates)
+    .eq('id', projectId)
+    .eq('user_id', uid);
+
+  if (a.company_id) query = query.eq('company_id', a.company_id);
+
+  const { data, error } = await query
+    .select('id, company_id, client_id, name, description, status, progress, budget_hours, hourly_rate, start_date, end_date, created_at, updated_at, client:clients!fk_projects_client_scope(id, company_name)')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ updated: true, project: data }, null, 2);
+};
+
+const hDeleteProjects: Handler = async (sb, uid, a) => {
+  const projectId = String(a.id ?? '').trim();
+  if (!projectId) throw new Error('id is required');
+
+  let query = sb
+    .from('projects')
+    .delete()
+    .eq('id', projectId)
+    .eq('user_id', uid);
+
+  if (a.company_id) query = query.eq('company_id', a.company_id);
+
+  const { error } = await query;
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ deleted: true, id: projectId }, null, 2);
+};
+
+const hListTasks: Handler = async (sb, uid, a) => {
+  const companyId = String(a.company_id ?? '').trim();
+  if (!companyId) throw new Error('company_id is required');
+
+  let projectsQuery = sb
+    .from('projects')
+    .select('id')
+    .eq('user_id', uid)
+    .eq('company_id', companyId);
+
+  if (a.project_id) projectsQuery = projectsQuery.eq('id', a.project_id);
+
+  const { data: scopedProjects, error: projectsError } = await projectsQuery;
+  if (projectsError) throw new Error(projectsError.message);
+
+  const projectIds = (scopedProjects ?? []).map((p: any) => p.id).filter(Boolean);
+  if (!projectIds.length) return JSON.stringify({ tasks: [], count: 0 }, null, 2);
+
+  let tasksQuery = sb
+    .from('tasks')
+    .select('id, project_id, title, description, status, priority, assigned_to, assigned_member_id, due_date, started_at, completed_at, start_date, end_date, service_id, estimated_hours, requires_quote, depends_on, quote_id, invoice_id, purchase_order_id, created_at, updated_at')
+    .in('project_id', projectIds)
+    .order('updated_at', { ascending: false });
+
+  if (a.status) tasksQuery = tasksQuery.eq('status', a.status);
+
+  const limit = Math.min(300, Math.max(1, Number(a.limit) || 100));
+  const { data: tasks, error: tasksError } = await tasksQuery.limit(limit);
+  if (tasksError) throw new Error(tasksError.message);
+
+  const projectMap = new Map((scopedProjects ?? []).map((p: any) => [p.id, p]));
+  const enriched = (tasks ?? []).map((task: any) => ({
+    ...task,
+    project: projectMap.get(task.project_id) ?? null,
+  }));
+
+  return JSON.stringify({ tasks: enriched, count: enriched.length }, null, 2);
+};
+
+const hGetTasks: Handler = async (sb, uid, a) => {
+  const taskId = String(a.id ?? '').trim();
+  if (!taskId) throw new Error('id is required');
+
+  const { data: task, error: taskError } = await sb
+    .from('tasks')
+    .select('id, project_id, title, description, status, priority, assigned_to, assigned_member_id, due_date, started_at, completed_at, start_date, end_date, service_id, estimated_hours, requires_quote, depends_on, quote_id, invoice_id, purchase_order_id, created_at, updated_at')
+    .eq('id', taskId)
+    .single();
+
+  if (taskError) throw new Error(taskError.message);
+
+  let projectQuery = sb
+    .from('projects')
+    .select('id, company_id, client_id, name')
+    .eq('id', task.project_id)
+    .eq('user_id', uid);
+
+  if (a.company_id) projectQuery = projectQuery.eq('company_id', a.company_id);
+
+  const { data: project, error: projectError } = await projectQuery.single();
+  if (projectError) throw new Error(projectError.message);
+
+  return JSON.stringify({ task: { ...task, project } }, null, 2);
+};
+
+const hCreateTasks: Handler = async (sb, uid, a) => {
+  const projectId = String(a.project_id ?? '').trim();
+  const title = String(a.title ?? '').trim();
+  if (!projectId) throw new Error('project_id is required');
+  if (!title) throw new Error('title is required');
+
+  const { data: project, error: projectError } = await sb
+    .from('projects')
+    .select('id, company_id')
+    .eq('id', projectId)
+    .eq('user_id', uid)
+    .single();
+
+  if (projectError) throw new Error(projectError.message);
+
+  const payload: Record<string, unknown> = {
+    user_id: uid,
+    project_id: project.id,
+    title,
+  };
+
+  const allowed = ['description', 'status', 'priority', 'assigned_to', 'assigned_member_id', 'due_date', 'started_at', 'completed_at', 'start_date', 'end_date', 'service_id', 'estimated_hours', 'requires_quote', 'depends_on', 'quote_id', 'invoice_id', 'purchase_order_id'];
+  for (const key of allowed) {
+    if (Object.prototype.hasOwnProperty.call(a, key)) {
+      payload[key] = (a as Record<string, unknown>)[key];
+    }
+  }
+
+  const { data, error } = await sb
+    .from('tasks')
+    .insert(payload)
+    .select('id, project_id, title, description, status, priority, assigned_to, assigned_member_id, due_date, started_at, completed_at, start_date, end_date, service_id, estimated_hours, requires_quote, depends_on, quote_id, invoice_id, purchase_order_id, created_at, updated_at')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ created: true, task: { ...data, project } }, null, 2);
+};
+
+const hUpdateTasks: Handler = async (sb, uid, a) => {
+  const taskId = String(a.id ?? '').trim();
+  if (!taskId) throw new Error('id is required');
+
+  const { data: existingTask, error: existingTaskError } = await sb
+    .from('tasks')
+    .select('id, project_id')
+    .eq('id', taskId)
+    .single();
+
+  if (existingTaskError) throw new Error(existingTaskError.message);
+
+  let projectQuery = sb
+    .from('projects')
+    .select('id, company_id')
+    .eq('id', existingTask.project_id)
+    .eq('user_id', uid);
+
+  if (a.company_id) projectQuery = projectQuery.eq('company_id', a.company_id);
+
+  const { error: projectError } = await projectQuery.single();
+  if (projectError) throw new Error(projectError.message);
+
+  const updates: Record<string, unknown> = {};
+  const allowed = ['title', 'description', 'status', 'priority', 'assigned_to', 'assigned_member_id', 'due_date', 'started_at', 'completed_at', 'start_date', 'end_date', 'service_id', 'estimated_hours', 'requires_quote', 'depends_on', 'quote_id', 'invoice_id', 'purchase_order_id'];
+  for (const key of allowed) {
+    if (Object.prototype.hasOwnProperty.call(a, key)) {
+      updates[key] = (a as Record<string, unknown>)[key];
+    }
+  }
+  if (Object.keys(updates).length === 0) throw new Error('no updatable fields provided');
+
+  const { data, error } = await sb
+    .from('tasks')
+    .update(updates)
+    .eq('id', taskId)
+    .select('id, project_id, title, description, status, priority, assigned_to, assigned_member_id, due_date, started_at, completed_at, start_date, end_date, service_id, estimated_hours, requires_quote, depends_on, quote_id, invoice_id, purchase_order_id, created_at, updated_at')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ updated: true, task: data }, null, 2);
+};
+
+const hDeleteTasks: Handler = async (sb, uid, a) => {
+  const taskId = String(a.id ?? '').trim();
+  if (!taskId) throw new Error('id is required');
+
+  const { data: existingTask, error: existingTaskError } = await sb
+    .from('tasks')
+    .select('id, project_id')
+    .eq('id', taskId)
+    .single();
+
+  if (existingTaskError) throw new Error(existingTaskError.message);
+
+  let projectQuery = sb
+    .from('projects')
+    .select('id, company_id')
+    .eq('id', existingTask.project_id)
+    .eq('user_id', uid);
+
+  if (a.company_id) projectQuery = projectQuery.eq('company_id', a.company_id);
+
+  const { error: projectError } = await projectQuery.single();
+  if (projectError) throw new Error(projectError.message);
+
+  const { error } = await sb.from('tasks').delete().eq('id', taskId);
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ deleted: true, id: taskId }, null, 2);
+};
+
+const hListCrmLeads: Handler = async (sb, uid, a) => {
+  const companyId = String(a.company_id ?? '').trim();
+  if (!companyId) throw new Error('company_id is required');
+
+  const limit = Math.min(500, Math.max(1, Number(a.limit) || 100));
+
+  const [clientsRes, quotesRes, invoicesRes] = await Promise.all([
+    sb.from('clients').select('id, company_name, contact_name, email, phone, created_at').eq('user_id', uid).eq('company_id', companyId).is('deleted_at', null).order('created_at', { ascending: false }).limit(limit),
+    sb.from('quotes').select('client_id').eq('user_id', uid).eq('company_id', companyId),
+    sb.from('invoices').select('client_id').eq('user_id', uid).eq('company_id', companyId),
+  ]);
+
+  if (clientsRes.error) throw new Error(clientsRes.error.message);
+  if (quotesRes.error) throw new Error(quotesRes.error.message);
+  if (invoicesRes.error) throw new Error(invoicesRes.error.message);
+
+  const activeClientIds = new Set<string>([
+    ...(quotesRes.data ?? []).map((q: any) => q.client_id).filter(Boolean),
+    ...(invoicesRes.data ?? []).map((i: any) => i.client_id).filter(Boolean),
+  ]);
+
+  const leads = (clientsRes.data ?? []).filter((client: any) => !activeClientIds.has(client.id));
+  return JSON.stringify({ leads, count: leads.length }, null, 2);
+};
+
+const hGetCrmPipelineSummary: Handler = async (sb, uid, a) => {
+  const companyId = String(a.company_id ?? '').trim();
+  if (!companyId) throw new Error('company_id is required');
+
+  const [clientsRes, quotesRes, invoicesRes, supportRes] = await Promise.all([
+    sb.from('clients').select('id').eq('user_id', uid).eq('company_id', companyId).is('deleted_at', null),
+    sb.from('quotes').select('id, client_id, status, total_ttc').eq('user_id', uid).eq('company_id', companyId),
+    sb.from('invoices').select('id, client_id, status, payment_status, total_ttc').eq('user_id', uid).eq('company_id', companyId),
+    sb.from('crm_support_tickets').select('id, status').eq('user_id', uid).eq('company_id', companyId),
+  ]);
+
+  if (clientsRes.error) throw new Error(clientsRes.error.message);
+  if (quotesRes.error) throw new Error(quotesRes.error.message);
+  if (invoicesRes.error) throw new Error(invoicesRes.error.message);
+  if (supportRes.error) throw new Error(supportRes.error.message);
+
+  const quoteClientIds = new Set((quotesRes.data ?? []).map((q: any) => q.client_id).filter(Boolean));
+  const invoiceClientIds = new Set((invoicesRes.data ?? []).map((i: any) => i.client_id).filter(Boolean));
+
+  const leads = (clientsRes.data ?? []).filter((c: any) => !quoteClientIds.has(c.id) && !invoiceClientIds.has(c.id));
+  const openQuotes = (quotesRes.data ?? []).filter((q: any) => ['draft', 'sent', 'pending'].includes(String(q.status || '').toLowerCase()));
+  const wonQuotes = (quotesRes.data ?? []).filter((q: any) => ['accepted', 'approved', 'signed'].includes(String(q.status || '').toLowerCase()));
+  const openSupport = (supportRes.data ?? []).filter((t: any) => ['open', 'in_progress', 'waiting_customer'].includes(String(t.status || '').toLowerCase()));
+
+  const amount = (rows: any[]) => round2(rows.reduce((sum: number, row: any) => sum + Number(row.total_ttc || 0), 0));
+
+  return JSON.stringify({
+    company_id: companyId,
+    leads_count: leads.length,
+    opportunities_open_count: openQuotes.length,
+    opportunities_open_amount: amount(openQuotes),
+    deals_won_count: wonQuotes.length,
+    deals_won_amount: amount(wonQuotes),
+    invoices_count: invoicesRes.data?.length ?? 0,
+    support_open_count: openSupport.length,
+  }, null, 2);
+};
+
+const hListCrmSupportTickets: Handler = async (sb, uid, a) => {
+  const companyId = String(a.company_id ?? '').trim();
+  if (!companyId) throw new Error('company_id is required');
+
+  let query = sb
+    .from('crm_support_tickets')
+    .select('id, ticket_number, title, description, priority, status, sla_level, due_at, first_response_at, resolved_at, closed_at, created_at, updated_at, client_id, project_id, client:clients!fk_crm_support_tickets_client_scope(id, company_name), project:projects!fk_crm_support_tickets_project_scope(id, name)')
+    .eq('user_id', uid)
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false });
+
+  if (a.status) query = query.eq('status', a.status);
+  if (a.priority) query = query.eq('priority', a.priority);
+  if (a.client_id) query = query.eq('client_id', a.client_id);
+  if (a.project_id) query = query.eq('project_id', a.project_id);
+
+  const limit = Math.min(300, Math.max(1, Number(a.limit) || 50));
+  const { data, error } = await query.limit(limit);
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ tickets: data ?? [], count: data?.length ?? 0 }, null, 2);
+};
+
+const hGetCrmSupportTickets: Handler = async (sb, uid, a) => {
+  const ticketId = String(a.id ?? '').trim();
+  if (!ticketId) throw new Error('id is required');
+
+  let query = sb
+    .from('crm_support_tickets')
+    .select('id, ticket_number, title, description, priority, status, sla_level, due_at, first_response_at, resolved_at, closed_at, created_at, updated_at, client_id, project_id, client:clients!fk_crm_support_tickets_client_scope(id, company_name), project:projects!fk_crm_support_tickets_project_scope(id, name)')
+    .eq('id', ticketId)
+    .eq('user_id', uid);
+
+  if (a.company_id) query = query.eq('company_id', a.company_id);
+
+  const { data, error } = await query.single();
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ ticket: data }, null, 2);
+};
+
+const hCreateCrmSupportTickets: Handler = async (sb, uid, a) => {
+  const companyId = String(a.company_id ?? '').trim();
+  const clientId = String(a.client_id ?? '').trim();
+  const title = String(a.title ?? '').trim();
+  if (!companyId) throw new Error('company_id is required');
+  if (!clientId) throw new Error('client_id is required');
+  if (!title) throw new Error('title is required');
+
+  const payload: Record<string, unknown> = {
+    user_id: uid,
+    company_id: companyId,
+    client_id: clientId,
+    title,
+    status: a.status || 'open',
+    priority: a.priority || 'medium',
+    sla_level: a.sla_level || 'standard',
+  };
+
+  if (a.project_id !== undefined) payload.project_id = a.project_id || null;
+  if (a.description !== undefined) payload.description = a.description || null;
+  if (a.due_at !== undefined) payload.due_at = a.due_at || null;
+
+  const { data, error } = await sb
+    .from('crm_support_tickets')
+    .insert(payload)
+    .select('id, ticket_number, title, description, priority, status, sla_level, due_at, first_response_at, resolved_at, closed_at, created_at, updated_at, client_id, project_id, client:clients!fk_crm_support_tickets_client_scope(id, company_name), project:projects!fk_crm_support_tickets_project_scope(id, name)')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ created: true, ticket: data }, null, 2);
+};
+
+const hUpdateCrmSupportTickets: Handler = async (sb, uid, a) => {
+  const ticketId = String(a.id ?? '').trim();
+  if (!ticketId) throw new Error('id is required');
+
+  const updates: Record<string, unknown> = {};
+  const allowed = ['client_id', 'project_id', 'title', 'description', 'priority', 'status', 'sla_level', 'due_at', 'first_response_at', 'resolved_at', 'closed_at'];
+  for (const key of allowed) {
+    if (Object.prototype.hasOwnProperty.call(a, key)) {
+      updates[key] = (a as Record<string, unknown>)[key];
+    }
+  }
+  if (Object.keys(updates).length === 0) throw new Error('no updatable fields provided');
+
+  let query = sb
+    .from('crm_support_tickets')
+    .update(updates)
+    .eq('id', ticketId)
+    .eq('user_id', uid);
+
+  if (a.company_id) query = query.eq('company_id', a.company_id);
+
+  const { data, error } = await query
+    .select('id, ticket_number, title, description, priority, status, sla_level, due_at, first_response_at, resolved_at, closed_at, created_at, updated_at, client_id, project_id, client:clients!fk_crm_support_tickets_client_scope(id, company_name), project:projects!fk_crm_support_tickets_project_scope(id, name)')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ updated: true, ticket: data }, null, 2);
+};
+
+const hDeleteCrmSupportTickets: Handler = async (sb, uid, a) => {
+  const ticketId = String(a.id ?? '').trim();
+  if (!ticketId) throw new Error('id is required');
+
+  let query = sb
+    .from('crm_support_tickets')
+    .delete()
+    .eq('id', ticketId)
+    .eq('user_id', uid);
+
+  if (a.company_id) query = query.eq('company_id', a.company_id);
+
+  const { error } = await query;
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ deleted: true, id: ticketId }, null, 2);
+};
+
+const hListCrmSupportSlaPolicies: Handler = async (sb, uid, a) => {
+  const companyId = String(a.company_id ?? '').trim();
+  if (!companyId) throw new Error('company_id is required');
+
+  const { data, error } = await sb
+    .from('crm_support_sla_policies')
+    .select('*')
+    .eq('user_id', uid)
+    .eq('company_id', companyId)
+    .order('target_first_response_minutes', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ sla_policies: data ?? [], count: data?.length ?? 0 }, null, 2);
+};
+
+const hGetCrmSupportSlaPolicies: Handler = async (sb, uid, a) => {
+  const policyId = String(a.id ?? '').trim();
+  if (!policyId) throw new Error('id is required');
+
+  let query = sb
+    .from('crm_support_sla_policies')
+    .select('*')
+    .eq('id', policyId)
+    .eq('user_id', uid);
+
+  if (a.company_id) query = query.eq('company_id', a.company_id);
+
+  const { data, error } = await query.single();
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ sla_policy: data }, null, 2);
+};
+
+const hCreateCrmSupportSlaPolicies: Handler = async (sb, uid, a) => {
+  const companyId = String(a.company_id ?? '').trim();
+  if (!companyId) throw new Error('company_id is required');
+
+  const payload: Record<string, unknown> = {
+    user_id: uid,
+    company_id: companyId,
+    priority: a.priority,
+    target_first_response_minutes: a.target_first_response_minutes,
+    target_resolution_minutes: a.target_resolution_minutes,
+    is_active: a.is_active ?? true,
+  };
+
+  const { data, error } = await sb
+    .from('crm_support_sla_policies')
+    .insert(payload)
+    .select('*')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ created: true, sla_policy: data }, null, 2);
+};
+
+const hUpdateCrmSupportSlaPolicies: Handler = async (sb, uid, a) => {
+  const policyId = String(a.id ?? '').trim();
+  if (!policyId) throw new Error('id is required');
+
+  const updates: Record<string, unknown> = {};
+  const allowed = ['priority', 'target_first_response_minutes', 'target_resolution_minutes', 'is_active'];
+  for (const key of allowed) {
+    if (Object.prototype.hasOwnProperty.call(a, key)) {
+      updates[key] = (a as Record<string, unknown>)[key];
+    }
+  }
+  if (Object.keys(updates).length === 0) throw new Error('no updatable fields provided');
+
+  let query = sb
+    .from('crm_support_sla_policies')
+    .update(updates)
+    .eq('id', policyId)
+    .eq('user_id', uid);
+
+  if (a.company_id) query = query.eq('company_id', a.company_id);
+
+  const { data, error } = await query.select('*').single();
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ updated: true, sla_policy: data }, null, 2);
+};
+
+const hDeleteCrmSupportSlaPolicies: Handler = async (sb, uid, a) => {
+  const policyId = String(a.id ?? '').trim();
+  if (!policyId) throw new Error('id is required');
+
+  let query = sb
+    .from('crm_support_sla_policies')
+    .delete()
+    .eq('id', policyId)
+    .eq('user_id', uid);
+
+  if (a.company_id) query = query.eq('company_id', a.company_id);
+
+  const { error } = await query;
+  if (error) throw new Error(error.message);
+  return JSON.stringify({ deleted: true, id: policyId }, null, 2);
+};
+
 const hBackupAllData: Handler = async (sb, uid) => {
   const tables = [
     'clients', 'invoices', 'invoice_items', 'payments', 'expenses', 'suppliers',
     'accounting_chart_of_accounts', 'accounting_entries', 'accounting_mappings',
-    'accounting_tax_rates', 'projects', 'timesheets', 'quotes', 'credit_notes',
+    'accounting_tax_rates', 'projects', 'tasks', 'subtasks', 'timesheets', 'quotes', 'credit_notes',
     'recurring_invoices', 'receivables', 'payables',
+    'crm_support_tickets', 'crm_support_sla_policies',
   ];
   const backup: Record<string, unknown[]> = {};
   for (const t of tables) {
@@ -1361,6 +2297,19 @@ const HANDLERS: Record<string, Handler> = {
   get_company_cash_flow: hGetCompanyCashFlow, get_company_financial_summary: hGetCompanyFinancialSummary,
   get_company_profit_and_loss: hGetCompanyProfitAndLoss, get_company_balance_sheet: hGetCompanyBalanceSheet,
   compare_companies_kpis: hCompareCompaniesKpis,
+  // Projects & Tasks
+  list_projects: hListProjects, get_projects: hGetProjects, create_projects: hCreateProjects,
+  update_projects: hUpdateProjects, delete_projects: hDeleteProjects,
+  list_tasks: hListTasks, get_tasks: hGetTasks, create_tasks: hCreateTasks,
+  update_tasks: hUpdateTasks, delete_tasks: hDeleteTasks,
+  // CRM
+  list_crm_leads: hListCrmLeads, get_crm_pipeline_summary: hGetCrmPipelineSummary,
+  list_crm_support_tickets: hListCrmSupportTickets, get_crm_support_tickets: hGetCrmSupportTickets,
+  create_crm_support_tickets: hCreateCrmSupportTickets, update_crm_support_tickets: hUpdateCrmSupportTickets,
+  delete_crm_support_tickets: hDeleteCrmSupportTickets,
+  list_crm_support_sla_policies: hListCrmSupportSlaPolicies, get_crm_support_sla_policies: hGetCrmSupportSlaPolicies,
+  create_crm_support_sla_policies: hCreateCrmSupportSlaPolicies, update_crm_support_sla_policies: hUpdateCrmSupportSlaPolicies,
+  delete_crm_support_sla_policies: hDeleteCrmSupportSlaPolicies,
   ...generatedHandlers,
 };
 

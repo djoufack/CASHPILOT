@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   FileText, Users, CreditCard, Calculator, BarChart3, Download,
   Truck, Landmark, FileCheck, PieChart, Database, Search,
-  Eye, Pencil, Trash2, ChevronDown, ChevronRight, Shield, Wallet
+  Eye, Pencil, Trash2, ChevronDown, ChevronRight, Shield, Wallet, Briefcase
 } from 'lucide-react';
 
 const TOOL_CATEGORIES = [
@@ -273,6 +273,49 @@ const TOOL_CATEGORIES = [
     ]
   },
   {
+    id: 'projects',
+    icon: Briefcase,
+    color: 'text-violet-400',
+    bg: 'bg-violet-500/10',
+    tools: [
+      { name: 'list_projects', desc: 'Lister les projets par société (filtres client/statut)', type: 'read' },
+      { name: 'create_projects', desc: 'Créer un projet', type: 'write' },
+      { name: 'get_projects', desc: "Détails d'un projet", type: 'read' },
+      { name: 'update_projects', desc: 'Modifier un projet', type: 'write' },
+      { name: 'delete_projects', desc: 'Supprimer un projet', type: 'delete' },
+      { name: 'list_tasks', desc: 'Lister les tâches projet par société/projet', type: 'read' },
+      { name: 'create_tasks', desc: 'Créer une tâche projet', type: 'write' },
+      { name: 'get_tasks', desc: "Détails d'une tâche projet", type: 'read' },
+      { name: 'update_tasks', desc: 'Modifier une tâche projet', type: 'write' },
+      { name: 'delete_tasks', desc: 'Supprimer une tâche projet', type: 'delete' },
+      { name: 'list_timesheets', desc: 'Lister les feuilles de temps', type: 'read' },
+      { name: 'create_timesheets', desc: 'Créer une entrée de temps', type: 'write' },
+      { name: 'get_timesheets', desc: "Détails d'une entrée de temps", type: 'read' },
+      { name: 'update_timesheets', desc: 'Modifier une entrée de temps', type: 'write' },
+      { name: 'delete_timesheets', desc: 'Supprimer une entrée de temps', type: 'delete' },
+    ]
+  },
+  {
+    id: 'crm',
+    icon: Users,
+    color: 'text-rose-400',
+    bg: 'bg-rose-500/10',
+    tools: [
+      { name: 'list_crm_leads', desc: 'Lister les leads CRM par société', type: 'read' },
+      { name: 'get_crm_pipeline_summary', desc: 'Résumé du pipeline CRM (leads/opportunités/support)', type: 'read' },
+      { name: 'list_crm_support_tickets', desc: 'Lister les tickets CRM/SLA', type: 'read' },
+      { name: 'create_crm_support_tickets', desc: 'Créer un ticket CRM/SLA', type: 'write' },
+      { name: 'get_crm_support_tickets', desc: "Détails d'un ticket CRM/SLA", type: 'read' },
+      { name: 'update_crm_support_tickets', desc: 'Modifier un ticket CRM/SLA', type: 'write' },
+      { name: 'delete_crm_support_tickets', desc: 'Supprimer un ticket CRM/SLA', type: 'delete' },
+      { name: 'list_crm_support_sla_policies', desc: 'Lister les politiques SLA', type: 'read' },
+      { name: 'create_crm_support_sla_policies', desc: 'Créer une politique SLA', type: 'write' },
+      { name: 'get_crm_support_sla_policies', desc: "Détails d'une politique SLA", type: 'read' },
+      { name: 'update_crm_support_sla_policies', desc: 'Modifier une politique SLA', type: 'write' },
+      { name: 'delete_crm_support_sla_policies', desc: 'Supprimer une politique SLA', type: 'delete' },
+    ]
+  },
+  {
     id: 'company_finance',
     icon: BarChart3,
     color: 'text-indigo-400',
@@ -350,16 +393,6 @@ const TOOL_CATEGORIES = [
       { name: 'get_products', desc: "Détails d'un produit", type: 'read' },
       { name: 'update_products', desc: 'Modifier un produit', type: 'write' },
       { name: 'delete_products', desc: 'Supprimer un produit', type: 'delete' },
-      { name: 'list_projects', desc: 'Lister les projets', type: 'read' },
-      { name: 'create_projects', desc: 'Créer un projet', type: 'write' },
-      { name: 'get_projects', desc: "Détails d'un projet", type: 'read' },
-      { name: 'update_projects', desc: 'Modifier un projet', type: 'write' },
-      { name: 'delete_projects', desc: 'Supprimer un projet', type: 'delete' },
-      { name: 'list_timesheets', desc: 'Lister les feuilles de temps', type: 'read' },
-      { name: 'create_timesheets', desc: 'Créer une entrée de temps', type: 'write' },
-      { name: 'get_timesheets', desc: "Détails d'une entrée de temps", type: 'read' },
-      { name: 'update_timesheets', desc: 'Modifier une entrée de temps', type: 'write' },
-      { name: 'delete_timesheets', desc: 'Supprimer une entrée de temps', type: 'delete' },
     ]
   },
 ];
@@ -374,6 +407,8 @@ const CATEGORY_LABELS = {
   banking: 'Banque & Rapprochement',
   financial_instruments: 'Instruments Financiers',
   documents: 'Documents commerciaux',
+  projects: 'Projets & Tâches',
+  crm: 'CRM & Support SLA',
   company_finance: 'Finance par société',
   reporting: 'Reporting global & KPIs',
   exports: 'Exports & Conformité',
