@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft, BarChart2, Briefcase, Calendar as CalendarIcon, Clock, DollarSign, LayoutList, PieChart, Users, Kanban, List, CalendarDays, Receipt, TrendingUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { format, parseISO } from 'date-fns';
@@ -30,6 +31,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 const ProjectDetail = () => {
   const { projectId } = useParams();
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { projects } = useProjects();
   const [project, setProject] = useState(null);
   const { tasks, loading, createTask, updateTask, deleteTask, refreshTasks } = useTasksForProject(projectId);
@@ -43,11 +45,23 @@ const ProjectDetail = () => {
   const [activeTab, setActiveTab] = useState("kanban");
   const [billingOpen, setBillingOpen] = useState(false);
   const [ganttViewMode, setGanttViewMode] = useState('Week');
+  const [dependencyMode, setDependencyMode] = useState(false);
+  const [dependencySourceTaskId, setDependencySourceTaskId] = useState(null);
 
   const taskTitleMap = useMemo(() => {
     const entries = (tasks || []).map((task) => [task.id, task.title || task.name || task.id]);
     return Object.fromEntries(entries);
   }, [tasks]);
+
+  const getSubtaskCount = (task) => {
+    if (Array.isArray(task?.subtasks)) {
+      if (Object.prototype.hasOwnProperty.call(task.subtasks?.[0] || {}, 'count')) {
+        return Number(task.subtasks?.[0]?.count || 0);
+      }
+      return task.subtasks.length;
+    }
+    return Number(task?.subtasks_count || 0);
+  };
 
   const taskViewsData = useMemo(() => {
     return (tasks || []).map((task) => {
@@ -55,9 +69,10 @@ const ProjectDetail = () => {
       const dependencyTitles = dependencyIds
         .map((dependencyId) => taskTitleMap[dependencyId])
         .filter(Boolean);
-      const subtasksCount = Array.isArray(task?.subtasks)
-        ? Number(task.subtasks?.[0]?.count || 0)
-        : Number(task?.subtasks_count || 0);
+      const subtasksCount = getSubtaskCount(task);
+      const subtaskItems = Array.isArray(task?.subtasks)
+        ? task.subtasks.filter((subtask) => subtask && !Object.prototype.hasOwnProperty.call(subtask, 'count'))
+        : [];
 
       return {
         ...task,
@@ -69,9 +84,20 @@ const ProjectDetail = () => {
         })),
         dependencies_count: dependencyIds.length,
         subtasks_count: subtasksCount,
+        subtasks_items: subtaskItems,
       };
     });
   }, [tasks, taskTitleMap]);
+
+  const subtasksForKanban = useMemo(() => {
+    return taskViewsData.flatMap((task) =>
+      (task?.subtasks_items || []).map((subtask) => ({
+        ...subtask,
+        parent_task_id: task.id,
+        parent_task_title: task.title || task.name || task.id,
+      }))
+    );
+  }, [taskViewsData]);
 
   useEffect(() => {
     if (projects.length > 0) {
@@ -86,6 +112,12 @@ const ProjectDetail = () => {
     }
   }, [activeTab, fetchProfitability]);
 
+  useEffect(() => {
+    if (!dependencyMode) {
+      setDependencySourceTaskId(null);
+    }
+  }, [dependencyMode]);
+
   const handleEdit = (task) => {
     setEditingTask(task);
     setIsFormOpen(true);
@@ -95,6 +127,84 @@ const ProjectDetail = () => {
     const target = (tasks || []).find((task) => task.id === taskId);
     if (target) {
       handleEdit(target);
+    }
+  };
+
+  const handleSubtaskStatusChange = async (subtaskId, nextStatus) => {
+    try {
+      await supabase
+        .from('subtasks')
+        .update({ status: nextStatus, updated_at: new Date().toISOString() })
+        .eq('id', subtaskId);
+      refreshTasks();
+    } catch (error) {
+      console.error('Failed to update subtask status:', error);
+      toast({
+        title: 'Erreur sous-tâche',
+        description: 'Impossible de déplacer la sous-tâche.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleTaskSelectionForDependency = async (rawTaskId) => {
+    const taskId = rawTaskId?.startsWith?.('subtask-') ? null : rawTaskId;
+    if (!taskId) {
+      toast({
+        title: 'Dépendance limitée aux tâches',
+        description: 'Sélectionnez une tâche principale, pas une sous-tâche.',
+      });
+      return;
+    }
+
+    if (!dependencyMode) {
+      handleOpenTask(taskId);
+      return;
+    }
+
+    if (!dependencySourceTaskId) {
+      setDependencySourceTaskId(taskId);
+      toast({
+        title: 'Source sélectionnée',
+        description: 'Cliquez maintenant sur la tâche cible pour créer la dépendance.',
+      });
+      return;
+    }
+
+    if (dependencySourceTaskId === taskId) {
+      setDependencySourceTaskId(null);
+      toast({
+        title: 'Sélection annulée',
+        description: 'La tâche source et la cible doivent être différentes.',
+      });
+      return;
+    }
+
+    const targetTask = (tasks || []).find((task) => task.id === taskId);
+    if (!targetTask) return;
+
+    const previousDependencies = Array.isArray(targetTask.depends_on) ? targetTask.depends_on : [];
+    const nextDependencies = [...new Set([...previousDependencies, dependencySourceTaskId])];
+
+    try {
+      await supabase
+        .from('tasks')
+        .update({ depends_on: nextDependencies, updated_at: new Date().toISOString() })
+        .eq('id', taskId);
+
+      setDependencySourceTaskId(null);
+      await refreshTasks();
+      toast({
+        title: 'Dépendance créée',
+        description: 'La dépendance a été ajoutée avec succès.',
+      });
+    } catch (error) {
+      console.error('Failed to create dependency:', error);
+      toast({
+        title: 'Erreur dépendance',
+        description: 'Impossible de créer la dépendance.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -192,14 +302,34 @@ const ProjectDetail = () => {
             <TabsContent value="kanban" className="focus:outline-none overflow-x-auto">
               <div className="flex justify-between items-center mb-4">
                  <h2 className="text-xl font-bold text-gradient">Board</h2>
-                 <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-orange-500 hover:bg-orange-600">Add Task</Button>
+                 <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant={dependencyMode ? 'default' : 'outline'}
+                    onClick={() => setDependencyMode((previous) => !previous)}
+                    className={dependencyMode ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}
+                  >
+                    {dependencyMode ? 'Mode dépendance actif' : 'Créer dépendance'}
+                  </Button>
+                  <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-orange-500 hover:bg-orange-600">Add Task</Button>
+                 </div>
               </div>
+              {dependencyMode && (
+                <p className="mb-3 text-xs text-indigo-300">
+                  {dependencySourceTaskId
+                    ? 'Cliquez sur la tâche cible pour lier la dépendance.'
+                    : 'Cliquez sur la tâche source, puis sur la tâche cible.'}
+                </p>
+              )}
               <KanbanBoard 
                 tasks={taskViewsData} 
                 onEdit={handleEdit} 
                 onDelete={deleteTask} 
                 onStatusChange={refreshTasks}
                 onOpenTask={handleOpenTask}
+                onTaskClick={(task) => handleTaskSelectionForDependency(task?.id)}
+                subtasks={subtasksForKanban}
+                onSubtaskStatusChange={handleSubtaskStatusChange}
               />
             </TabsContent>
 
@@ -318,7 +448,7 @@ const ProjectDetail = () => {
             <TabsContent value="gantt" className="focus:outline-none">
               <div className="space-y-4">
                 {/* View mode selector */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {['Day', 'Week', 'Month'].map(mode => (
                     <button
                       key={mode}
@@ -332,35 +462,114 @@ const ProjectDetail = () => {
                       {mode === 'Day' ? t('projects.gantt.day') : mode === 'Week' ? t('projects.gantt.week') : t('projects.gantt.month')}
                     </button>
                   ))}
+                  <Button
+                    type="button"
+                    variant={dependencyMode ? 'default' : 'outline'}
+                    onClick={() => setDependencyMode((previous) => !previous)}
+                    className={dependencyMode ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}
+                  >
+                    {dependencyMode ? 'Mode dépendance actif' : 'Créer dépendance'}
+                  </Button>
                 </div>
+                {dependencyMode && (
+                  <p className="text-xs text-indigo-300">
+                    {dependencySourceTaskId
+                      ? 'Cliquez sur la tâche cible du Gantt pour finaliser la dépendance.'
+                      : 'Cliquez sur la tâche source puis la tâche cible dans le Gantt.'}
+                  </p>
+                )}
 
                 {/* Gantt chart */}
                 <GanttView
-                  tasks={(taskViewsData || [])
-                    .filter(task => (task.start_date || task.started_at) && (task.end_date || task.completed_at || task.due_date))
-                    .map(task => ({
+                  tasks={(taskViewsData || []).flatMap((task) => {
+                    const baseTaskStart = task.start_date || task.started_at?.split?.('T')?.[0] || task.started_at;
+                    const baseTaskEnd =
+                      task.end_date ||
+                      task.completed_at?.split?.('T')?.[0] ||
+                      task.completed_at ||
+                      task.due_date?.split?.('T')?.[0] ||
+                      task.due_date;
+                    const taskRows = (baseTaskStart && baseTaskEnd)
+                      ? [{
                       id: task.id,
                       name: task.title || task.name || 'Sans titre',
-                      start: task.start_date || task.started_at?.split?.('T')?.[0] || task.started_at,
-                      end: task.end_date || task.completed_at?.split?.('T')?.[0] || task.completed_at || task.due_date?.split?.('T')?.[0] || task.due_date,
+                      start: baseTaskStart,
+                      end: baseTaskEnd,
                       progress: task.status === 'completed' ? 100 : task.status === 'in_progress' ? 50 : 0,
                       dependencies: (task.depends_on || []).join(','),
                       dependencies_count: task.dependencies_count || 0,
                       subtasks_count: task.subtasks_count || 0,
                       dependency_titles: task.dependency_titles || [],
                       dependency_tasks: task.dependency_tasks || [],
-                    }))}
+                      task_type: 'task',
+                    }]
+                      : [];
+
+                    const subtaskRows = (task.subtasks_items || [])
+                      .filter((subtask) =>
+                        (subtask.started_at || subtask.created_at) &&
+                        (subtask.completed_at || subtask.due_date || subtask.updated_at || subtask.created_at)
+                      )
+                      .map((subtask) => ({
+                        id: `subtask-${subtask.id}`,
+                        name: `↳ ${subtask.title || 'Sous-tâche'}`,
+                        start: subtask.started_at?.split?.('T')?.[0] || subtask.created_at?.split?.('T')?.[0] || subtask.created_at,
+                        end:
+                          subtask.completed_at?.split?.('T')?.[0] ||
+                          subtask.completed_at ||
+                          subtask.due_date?.split?.('T')?.[0] ||
+                          subtask.due_date ||
+                          subtask.updated_at?.split?.('T')?.[0] ||
+                          subtask.updated_at ||
+                          subtask.created_at?.split?.('T')?.[0] ||
+                          subtask.created_at,
+                        progress: subtask.status === 'completed' ? 100 : subtask.status === 'in_progress' ? 50 : 0,
+                        dependencies: task.id,
+                        dependencies_count: 1,
+                        subtasks_count: 0,
+                        dependency_titles: [task.title || task.name || task.id],
+                        dependency_tasks: [{ id: task.id, title: task.title || task.name || task.id }],
+                        task_type: 'subtask',
+                        parent_task_id: task.id,
+                        subtask_id: subtask.id,
+                      }));
+
+                    return [...taskRows, ...subtaskRows];
+                  })}
                   viewMode={ganttViewMode}
-                  onTaskClick={(task) => handleOpenTask(task?.id)}
+                  onTaskClick={(task) => {
+                    const resolvedTaskId = task?.task_type === 'subtask'
+                      ? task?.parent_task_id
+                      : task?.id;
+                    handleTaskSelectionForDependency(resolvedTaskId);
+                  }}
                   onDateChange={async (task, start, end) => {
                     try {
-                      await supabase
-                        .from('tasks')
-                        .update({
-                          start_date: start.toISOString().split('T')[0],
-                          end_date: end.toISOString().split('T')[0],
-                        })
-                        .eq('id', task.id);
+                      const normalizedStart = start.toISOString().split('T')[0];
+                      const normalizedEnd = end.toISOString().split('T')[0];
+
+                      if (String(task?.id || '').startsWith('subtask-') || task?.task_type === 'subtask') {
+                        const subtaskId = task?.subtask_id || String(task.id).replace('subtask-', '');
+                        await supabase
+                          .from('subtasks')
+                          .update({
+                            started_at: normalizedStart,
+                            due_date: normalizedEnd,
+                            completed_at: normalizedEnd,
+                            updated_at: new Date().toISOString(),
+                          })
+                          .eq('id', subtaskId);
+                      } else {
+                        await supabase
+                          .from('tasks')
+                          .update({
+                            start_date: normalizedStart,
+                            end_date: normalizedEnd,
+                            updated_at: new Date().toISOString(),
+                          })
+                          .eq('id', task.id);
+                      }
+                      refreshTasks();
                     } catch (err) {
                       console.error('Failed to update task dates:', err);
                     }

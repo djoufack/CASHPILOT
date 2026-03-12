@@ -23,7 +23,12 @@ const localizer = dateFnsLocalizer({
 
 const CalendarView = ({ tasks, onEdit }) => {
   const toSubtaskCount = (task) => {
-    if (Array.isArray(task?.subtasks)) return Number(task.subtasks?.[0]?.count || 0);
+    if (Array.isArray(task?.subtasks)) {
+      if (Object.prototype.hasOwnProperty.call(task.subtasks?.[0] || {}, 'count')) {
+        return Number(task.subtasks?.[0]?.count || 0);
+      }
+      return task.subtasks.length;
+    }
     return Number(task?.subtasks_count || 0);
   };
 
