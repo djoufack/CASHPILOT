@@ -6,10 +6,20 @@ import {
   ArrowRight,
   BarChart3,
   Building2,
+  CalendarClock,
+  CalendarDays,
   CheckCircle2,
   ClipboardList,
+  Download,
+  Eye,
   FileSignature,
+  FileText,
+  Kanban,
+  LayoutGrid,
   LifeBuoy,
+  List,
+  Pencil,
+  Trash2,
   Users,
   Workflow,
 } from 'lucide-react';
@@ -18,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useCompany } from '@/hooks/useCompany';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useClients } from '@/hooks/useClients';
@@ -27,6 +38,14 @@ import { useProjects } from '@/hooks/useProjects';
 import { useCrmSupport } from '@/hooks/useCrmSupport';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import GenericKanbanView from '@/components/GenericKanbanView';
+import GenericCalendarView from '@/components/GenericCalendarView';
+import GenericAgendaView from '@/components/GenericAgendaView';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  exportCrmSupportTicketHTML,
+  exportCrmSupportTicketPDF,
+} from '@/services/exportCrmSupportRecords';
 
 const sectionConfig = [
   { key: 'overview', label: 'Vue CRM', icon: BarChart3 },
@@ -96,11 +115,41 @@ const ticketStatusLabel = (status = '') => {
   return 'Ouvert';
 };
 
+const supportStatusOptions = [
+  { value: 'open', label: 'Ouvert' },
+  { value: 'in_progress', label: 'En cours' },
+  { value: 'waiting_customer', label: 'Attente client' },
+  { value: 'resolved', label: 'Résolu' },
+  { value: 'closed', label: 'Clôturé' },
+];
+
+const supportPriorityOptions = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+  { value: 'critical', label: 'Critical' },
+];
+
+const supportSlaOptions = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'premium', label: 'Premium' },
+  { value: 'critical', label: 'Critical' },
+];
+
+const supportViewModes = [
+  { key: 'list', label: 'Liste', icon: List },
+  { key: 'gallery', label: 'Galerie', icon: LayoutGrid },
+  { key: 'calendar', label: 'Calendrier', icon: CalendarDays },
+  { key: 'agenda', label: 'Agenda', icon: CalendarClock },
+  { key: 'kanban', label: 'Kanban', icon: Kanban },
+];
+
 const CRMPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { section } = useParams();
   const { user } = useAuth();
+  const { toast } = useToast();
   const normalizedSection = section || 'overview';
   const activeSection = sectionConfig.find((entry) => entry.key === normalizedSection) || sectionConfig[0];
 
@@ -127,6 +176,10 @@ const CRMPage = () => {
   const [activityError, setActivityError] = useState('');
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [ticketSaving, setTicketSaving] = useState(false);
+  const [supportViewMode, setSupportViewMode] = useState('list');
+  const [viewingTicket, setViewingTicket] = useState(null);
+  const [editingTicket, setEditingTicket] = useState(null);
+  const [editTicketSaving, setEditTicketSaving] = useState(false);
   const [ticketDraft, setTicketDraft] = useState({
     title: '',
     description: '',
@@ -134,6 +187,16 @@ const CRMPage = () => {
     project_id: '',
     priority: 'medium',
     sla_level: 'standard',
+    due_at: '',
+  });
+  const [editTicketDraft, setEditTicketDraft] = useState({
+    title: '',
+    description: '',
+    client_id: '',
+    project_id: '',
+    priority: 'medium',
+    sla_level: 'standard',
+    status: 'open',
     due_at: '',
   });
 
@@ -299,6 +362,14 @@ const CRMPage = () => {
     [scopedQuotes],
   );
 
+  const toDateTimeLocalValue = (rawValue) => {
+    if (!rawValue) return '';
+    const date = new Date(rawValue);
+    if (Number.isNaN(date.getTime())) return '';
+    const pad = (value) => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
   useEffect(() => {
     setTicketDraft({
       title: '',
@@ -310,12 +381,59 @@ const CRMPage = () => {
       due_at: '',
     });
     setShowTicketForm(false);
+    setViewingTicket(null);
+    setEditingTicket(null);
+    setSupportViewMode('list');
   }, [activeCompanyId, scopedClients]);
 
   const ticketProjectOptions = useMemo(() => {
     if (!ticketDraft.client_id) return [];
     return scopedProjects.filter((project) => project.client_id === ticketDraft.client_id);
   }, [scopedProjects, ticketDraft.client_id]);
+
+  const editTicketProjectOptions = useMemo(() => {
+    if (!editTicketDraft.client_id) return [];
+    return scopedProjects.filter((project) => project.client_id === editTicketDraft.client_id);
+  }, [editTicketDraft.client_id, scopedProjects]);
+
+  const supportCalendarStatusColors = useMemo(() => ({
+    open: { bg: '#1d4ed8', border: '#1e40af', text: '#dbeafe' },
+    in_progress: { bg: '#ea580c', border: '#c2410c', text: '#ffedd5' },
+    waiting_customer: { bg: '#7c3aed', border: '#6d28d9', text: '#ede9fe' },
+    resolved: { bg: '#059669', border: '#047857', text: '#d1fae5' },
+    closed: { bg: '#475569', border: '#334155', text: '#e2e8f0' },
+  }), []);
+
+  const supportCalendarLegend = useMemo(() => ([
+    { label: 'Ouvert', color: '#1d4ed8' },
+    { label: 'En cours', color: '#ea580c' },
+    { label: 'Attente client', color: '#7c3aed' },
+    { label: 'Résolu', color: '#059669' },
+    { label: 'Clôturé', color: '#475569' },
+  ]), []);
+
+  const supportKanbanColumns = useMemo(() => ([
+    { id: 'open', title: 'Ouvert', color: 'text-blue-300 bg-blue-500/10' },
+    { id: 'in_progress', title: 'En cours', color: 'text-orange-300 bg-orange-500/10' },
+    { id: 'waiting_customer', title: 'Attente client', color: 'text-violet-300 bg-violet-500/10' },
+    { id: 'resolved', title: 'Résolu', color: 'text-emerald-300 bg-emerald-500/10' },
+    { id: 'closed', title: 'Clôturé', color: 'text-slate-300 bg-slate-500/10' },
+  ]), []);
+
+  const supportViewItems = useMemo(
+    () => supportTickets.map((ticket) => ({
+      id: ticket.id,
+      title: ticket.title,
+      subtitle: `${ticket.ticket_number || '-'} • ${ticket.client?.company_name || 'Client inconnu'}`,
+      amount: `${ticket.priority || 'medium'} • SLA ${ticket.sla_level || 'standard'}`,
+      date: ticket.due_at || ticket.created_at,
+      status: ticket.status || 'open',
+      statusLabel: ticketStatusLabel(ticket.status),
+      statusColor: statusBadgeClass(ticket.status),
+      raw: ticket,
+    })),
+    [supportTickets],
+  );
 
   const handleCreateTicket = async (event) => {
     event.preventDefault();
@@ -345,23 +463,205 @@ const CRMPage = () => {
     }
   };
 
-  const handleTicketStatusChange = async (ticket, nextStatus) => {
-    if (!ticket?.id) return;
-
+  const buildStatusPayload = (ticket, nextStatus) => {
     const payload = { status: nextStatus };
+    const nowIso = new Date().toISOString();
     if (nextStatus === 'resolved') {
-      payload.resolved_at = new Date().toISOString();
+      payload.resolved_at = ticket?.resolved_at || nowIso;
       payload.closed_at = null;
+      return payload;
     }
     if (nextStatus === 'closed') {
-      payload.closed_at = new Date().toISOString();
-      payload.resolved_at = ticket.resolved_at || payload.closed_at;
+      payload.closed_at = nowIso;
+      payload.resolved_at = ticket?.resolved_at || nowIso;
+      return payload;
     }
-    if (nextStatus === 'open' || nextStatus === 'in_progress' || nextStatus === 'waiting_customer') {
-      payload.closed_at = null;
-    }
+    payload.closed_at = null;
+    return payload;
+  };
 
+  const handleTicketStatusChange = async (ticket, nextStatus) => {
+    if (!ticket?.id) return;
+    const payload = buildStatusPayload(ticket, nextStatus);
     await updateTicket(ticket.id, payload);
+  };
+
+  const handleTicketStatusChangeById = async (ticketId, nextStatus) => {
+    const ticket = supportTickets.find((entry) => entry.id === ticketId);
+    if (!ticket) return;
+    await handleTicketStatusChange(ticket, nextStatus);
+  };
+
+  const openEditTicketModal = (ticket) => {
+    if (!ticket) return;
+    setEditingTicket(ticket);
+    setEditTicketDraft({
+      title: ticket.title || '',
+      description: ticket.description || '',
+      client_id: ticket.client_id || '',
+      project_id: ticket.project_id || '',
+      priority: ticket.priority || 'medium',
+      sla_level: ticket.sla_level || 'standard',
+      status: ticket.status || 'open',
+      due_at: toDateTimeLocalValue(ticket.due_at),
+    });
+  };
+
+  const handleSaveTicketEdition = async (event) => {
+    event.preventDefault();
+    if (!editingTicket?.id || !editTicketDraft.title || !editTicketDraft.client_id) return;
+
+    const nextStatus = editTicketDraft.status || 'open';
+    const payload = {
+      title: editTicketDraft.title.trim(),
+      description: editTicketDraft.description?.trim() || null,
+      client_id: editTicketDraft.client_id,
+      project_id: editTicketDraft.project_id || null,
+      priority: editTicketDraft.priority || 'medium',
+      sla_level: editTicketDraft.sla_level || 'standard',
+      due_at: editTicketDraft.due_at ? new Date(editTicketDraft.due_at).toISOString() : null,
+      ...buildStatusPayload(editingTicket, nextStatus),
+    };
+
+    setEditTicketSaving(true);
+    try {
+      const updated = await updateTicket(editingTicket.id, payload);
+      setEditingTicket(null);
+      setViewingTicket((prev) => (prev?.id === updated?.id ? updated : prev));
+    } finally {
+      setEditTicketSaving(false);
+    }
+  };
+
+  const handleDeleteSupportTicket = async (ticket) => {
+    if (!ticket?.id) return;
+    await deleteTicket(ticket.id);
+    setViewingTicket((prev) => (prev?.id === ticket.id ? null : prev));
+    setEditingTicket((prev) => (prev?.id === ticket.id ? null : prev));
+  };
+
+  const handleSupportExportPdf = async (ticket) => {
+    if (!ticket) return;
+    try {
+      await exportCrmSupportTicketPDF(ticket, activeCompany);
+      toast({
+        title: 'Export PDF généré',
+        description: `${ticket.ticket_number || ticket.title} exporté en PDF.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erreur export PDF',
+        description: error?.message || 'Impossible de générer le PDF du ticket.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSupportExportHtml = async (ticket) => {
+    if (!ticket) return;
+    try {
+      await exportCrmSupportTicketHTML(ticket, activeCompany);
+      toast({
+        title: 'Export HTML généré',
+        description: `${ticket.ticket_number || ticket.title} exporté en HTML.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erreur export HTML',
+        description: error?.message || 'Impossible de générer le HTML du ticket.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const renderSupportInlineExports = (item) => {
+    const ticket = supportTickets.find((entry) => entry.id === item.id);
+    if (!ticket) return null;
+    return (
+      <>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 h-7 px-2 text-xs"
+          onClick={(event) => {
+            event.stopPropagation();
+            handleSupportExportPdf(ticket);
+          }}
+          title="Export PDF"
+        >
+          <Download className="w-3 h-3" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 h-7 px-2 text-xs"
+          onClick={(event) => {
+            event.stopPropagation();
+            handleSupportExportHtml(ticket);
+          }}
+          title="Export HTML"
+        >
+          <FileText className="w-3 h-3" />
+        </Button>
+      </>
+    );
+  };
+
+  const renderSupportActions = (ticket, compact = true) => {
+    if (!ticket) return null;
+
+    const buttonClass = compact ? 'h-7 w-7 p-0' : 'h-8';
+    const containerClass = compact ? 'flex items-center justify-end gap-1' : 'flex items-center gap-2';
+
+    return (
+      <div className={containerClass}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`text-blue-400 hover:text-blue-300 ${buttonClass}`}
+          onClick={() => setViewingTicket(ticket)}
+          title="Visualiser"
+        >
+          <Eye className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`text-orange-400 hover:text-orange-300 ${buttonClass}`}
+          onClick={() => openEditTicketModal(ticket)}
+          title="Éditer"
+        >
+          <Pencil className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`text-purple-400 hover:text-purple-300 ${buttonClass}`}
+          onClick={() => handleSupportExportPdf(ticket)}
+          title="Export PDF"
+        >
+          <Download className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`text-cyan-400 hover:text-cyan-300 ${buttonClass}`}
+          onClick={() => handleSupportExportHtml(ticket)}
+          title="Export HTML"
+        >
+          <FileText className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`text-red-400 hover:text-red-300 ${buttonClass}`}
+          onClick={() => handleDeleteSupportTicket(ticket)}
+          title="Supprimer"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    );
   };
 
   const renderOverview = () => (
@@ -804,76 +1104,359 @@ const CRMPage = () => {
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-800 bg-gray-900/40 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800 text-left text-gray-400">
-                <th className="py-2 px-3">Ticket</th>
-                <th className="py-2 px-3">Client</th>
-                <th className="py-2 px-3">Projet</th>
-                <th className="py-2 px-3">Priorité</th>
-                <th className="py-2 px-3">SLA</th>
-                <th className="py-2 px-3">Échéance</th>
-                <th className="py-2 px-3">Statut</th>
-                <th className="py-2 px-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {supportTickets.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="py-4 px-3 text-gray-500">
-                    {supportLoading ? 'Chargement des tickets...' : 'Aucun ticket pour la société active.'}
-                  </td>
-                </tr>
-              )}
-              {supportTickets.map((ticket) => (
-                <tr key={ticket.id} className="border-b border-gray-900/70">
-                  <td className="py-2 px-3">
-                    <p className="text-white font-medium">{ticket.title}</p>
-                    <p className="text-xs text-gray-500">{ticket.ticket_number} • {formatDateTime(ticket.created_at)}</p>
-                  </td>
-                  <td className="py-2 px-3 text-gray-300">{ticket.client?.company_name || '-'}</td>
-                  <td className="py-2 px-3 text-gray-300">{ticket.project?.name || '-'}</td>
-                  <td className="py-2 px-3">
-                    <Badge variant="outline" className={ticketPriorityClass(ticket.priority)}>
-                      {ticket.priority || 'medium'}
-                    </Badge>
-                  </td>
-                  <td className="py-2 px-3 text-gray-300">{ticket.sla_level || 'standard'}</td>
-                  <td className="py-2 px-3 text-gray-300">{formatDateTime(ticket.due_at)}</td>
-                  <td className="py-2 px-3">
-                    <select
-                      value={ticket.status || 'open'}
-                      onChange={(event) => handleTicketStatusChange(ticket, event.target.value)}
-                      className="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-white"
-                    >
-                      <option value="open">Ouvert</option>
-                      <option value="in_progress">En cours</option>
-                      <option value="waiting_customer">Attente client</option>
-                      <option value="resolved">Résolu</option>
-                      <option value="closed">Clôturé</option>
-                    </select>
-                    <div className="mt-1">
-                      <Badge variant="outline" className={statusBadgeClass(ticket.status)}>
-                        {ticketStatusLabel(ticket.status)}
-                      </Badge>
-                    </div>
-                  </td>
-                  <td className="py-2 px-3 text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-red-800 text-red-300 hover:bg-red-950/40"
-                      onClick={() => deleteTicket(ticket.id)}
-                    >
-                      Supprimer
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex flex-wrap gap-2">
+          {supportViewModes.map((mode) => {
+            const Icon = mode.icon;
+            const isActiveMode = supportViewMode === mode.key;
+            return (
+              <Button
+                key={mode.key}
+                variant={isActiveMode ? 'default' : 'outline'}
+                className={isActiveMode ? 'bg-orange-500 hover:bg-orange-600' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}
+                onClick={() => setSupportViewMode(mode.key)}
+              >
+                <Icon className="w-4 h-4 mr-2" />
+                {mode.label}
+              </Button>
+            );
+          })}
         </div>
+
+        {supportViewMode === 'list' && (
+          <div className="rounded-lg border border-gray-800 bg-gray-900/40 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-800 text-left text-gray-400">
+                  <th className="py-2 px-3">Ticket</th>
+                  <th className="py-2 px-3">Client</th>
+                  <th className="py-2 px-3">Projet</th>
+                  <th className="py-2 px-3">Priorité</th>
+                  <th className="py-2 px-3">SLA</th>
+                  <th className="py-2 px-3">Échéance</th>
+                  <th className="py-2 px-3">Statut</th>
+                  <th className="py-2 px-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {supportTickets.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="py-4 px-3 text-gray-500">
+                      {supportLoading ? 'Chargement des tickets...' : 'Aucun ticket pour la société active.'}
+                    </td>
+                  </tr>
+                )}
+                {supportTickets.map((ticket) => (
+                  <tr key={ticket.id} className="border-b border-gray-900/70">
+                    <td className="py-2 px-3">
+                      <p className="text-white font-medium">{ticket.title}</p>
+                      <p className="text-xs text-gray-500">{ticket.ticket_number} • {formatDateTime(ticket.created_at)}</p>
+                    </td>
+                    <td className="py-2 px-3 text-gray-300">{ticket.client?.company_name || '-'}</td>
+                    <td className="py-2 px-3 text-gray-300">{ticket.project?.name || '-'}</td>
+                    <td className="py-2 px-3">
+                      <Badge variant="outline" className={ticketPriorityClass(ticket.priority)}>
+                        {ticket.priority || 'medium'}
+                      </Badge>
+                    </td>
+                    <td className="py-2 px-3 text-gray-300">{ticket.sla_level || 'standard'}</td>
+                    <td className="py-2 px-3 text-gray-300">{formatDateTime(ticket.due_at)}</td>
+                    <td className="py-2 px-3">
+                      <select
+                        value={ticket.status || 'open'}
+                        onChange={(event) => handleTicketStatusChange(ticket, event.target.value)}
+                        className="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-white"
+                      >
+                        {supportStatusOptions.map((statusOption) => (
+                          <option key={statusOption.value} value={statusOption.value}>
+                            {statusOption.label}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="mt-1">
+                        <Badge variant="outline" className={statusBadgeClass(ticket.status)}>
+                          {ticketStatusLabel(ticket.status)}
+                        </Badge>
+                      </div>
+                    </td>
+                    <td className="py-2 px-3 text-right">{renderSupportActions(ticket, true)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {supportViewMode === 'gallery' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {supportTickets.length === 0 ? (
+              <div className="col-span-full rounded-lg border border-gray-800 bg-gray-900/40 p-4 text-sm text-gray-500">
+                {supportLoading ? 'Chargement des tickets...' : 'Aucun ticket pour la société active.'}
+              </div>
+            ) : supportTickets.map((ticket) => (
+              <div key={ticket.id} className="rounded-lg border border-gray-800 bg-gray-900/40 p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-white font-semibold">{ticket.title}</p>
+                    <p className="text-xs text-gray-500">{ticket.ticket_number}</p>
+                  </div>
+                  <Badge variant="outline" className={statusBadgeClass(ticket.status)}>
+                    {ticketStatusLabel(ticket.status)}
+                  </Badge>
+                </div>
+                <div className="text-sm text-gray-300 space-y-1">
+                  <p><span className="text-gray-500">Client:</span> {ticket.client?.company_name || '-'}</p>
+                  <p><span className="text-gray-500">Projet:</span> {ticket.project?.name || '-'}</p>
+                  <p><span className="text-gray-500">Priorité:</span> {ticket.priority || 'medium'}</p>
+                  <p><span className="text-gray-500">SLA:</span> {ticket.sla_level || 'standard'}</p>
+                  <p><span className="text-gray-500">Échéance:</span> {formatDateTime(ticket.due_at)}</p>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <select
+                    value={ticket.status || 'open'}
+                    onChange={(event) => handleTicketStatusChange(ticket, event.target.value)}
+                    className="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-white"
+                  >
+                    {supportStatusOptions.map((statusOption) => (
+                      <option key={statusOption.value} value={statusOption.value}>
+                        {statusOption.label}
+                      </option>
+                    ))}
+                  </select>
+                  {renderSupportActions(ticket, false)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {supportViewMode === 'calendar' && (
+          <GenericCalendarView
+            events={supportViewItems.filter((item) => Boolean(item.date))}
+            statusColors={supportCalendarStatusColors}
+            legend={supportCalendarLegend}
+            onSelectEvent={(item) => {
+              const ticket = supportTickets.find((entry) => entry.id === item.id);
+              if (ticket) setViewingTicket(ticket);
+            }}
+          />
+        )}
+
+        {supportViewMode === 'agenda' && (
+          <GenericAgendaView
+            items={supportViewItems}
+            dateField="date"
+            onView={(item) => {
+              const ticket = supportTickets.find((entry) => entry.id === item.id);
+              if (ticket) setViewingTicket(ticket);
+            }}
+            onEdit={(item) => {
+              const ticket = supportTickets.find((entry) => entry.id === item.id);
+              if (ticket) openEditTicketModal(ticket);
+            }}
+            onDelete={(item) => {
+              const ticket = supportTickets.find((entry) => entry.id === item.id);
+              if (ticket) handleDeleteSupportTicket(ticket);
+            }}
+            renderActions={renderSupportInlineExports}
+            paidStatuses={['resolved', 'closed']}
+          />
+        )}
+
+        {supportViewMode === 'kanban' && (
+          <GenericKanbanView
+            columns={supportKanbanColumns}
+            items={supportViewItems}
+            onStatusChange={handleTicketStatusChangeById}
+            onView={(item) => {
+              const ticket = supportTickets.find((entry) => entry.id === item.id);
+              if (ticket) setViewingTicket(ticket);
+            }}
+            onEdit={(item) => {
+              const ticket = supportTickets.find((entry) => entry.id === item.id);
+              if (ticket) openEditTicketModal(ticket);
+            }}
+            onDelete={(item) => {
+              const ticket = supportTickets.find((entry) => entry.id === item.id);
+              if (ticket) handleDeleteSupportTicket(ticket);
+            }}
+            renderActions={renderSupportInlineExports}
+          />
+        )}
+
+        <Dialog open={Boolean(viewingTicket)} onOpenChange={(open) => !open && setViewingTicket(null)}>
+          <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Visualiser - {viewingTicket?.title}</DialogTitle>
+            </DialogHeader>
+            {viewingTicket && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-3">
+                    <p className="text-gray-400">Ticket</p>
+                    <p className="text-white font-semibold">{viewingTicket.ticket_number || '-'}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-3">
+                    <p className="text-gray-400">Statut</p>
+                    <Badge variant="outline" className={statusBadgeClass(viewingTicket.status)}>
+                      {ticketStatusLabel(viewingTicket.status)}
+                    </Badge>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-3">
+                    <p className="text-gray-400">Client</p>
+                    <p className="text-white font-semibold">{viewingTicket.client?.company_name || '-'}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-3">
+                    <p className="text-gray-400">Projet</p>
+                    <p className="text-white font-semibold">{viewingTicket.project?.name || '-'}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-3">
+                    <p className="text-gray-400">Priorité / SLA</p>
+                    <p className="text-white font-semibold">{viewingTicket.priority || 'medium'} / {viewingTicket.sla_level || 'standard'}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-3">
+                    <p className="text-gray-400">Échéance SLA</p>
+                    <p className="text-white font-semibold">{formatDateTime(viewingTicket.due_at)}</p>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-3 text-sm">
+                  <p className="text-gray-400 mb-1">Description</p>
+                  <p className="text-white whitespace-pre-wrap">{viewingTicket.description || 'Aucune description'}</p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" className="border-gray-700" onClick={() => handleSupportExportPdf(viewingTicket)}>
+                    <Download className="w-4 h-4 mr-2" /> PDF
+                  </Button>
+                  <Button variant="outline" className="border-gray-700" onClick={() => handleSupportExportHtml(viewingTicket)}>
+                    <FileText className="w-4 h-4 mr-2" /> HTML
+                  </Button>
+                  <Button variant="outline" className="border-gray-700 text-orange-300 hover:text-orange-200" onClick={() => openEditTicketModal(viewingTicket)}>
+                    <Pencil className="w-4 h-4 mr-2" /> Éditer
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={Boolean(editingTicket)} onOpenChange={(open) => !open && setEditingTicket(null)}>
+          <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Éditer ticket - {editingTicket?.ticket_number || editingTicket?.title}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSaveTicketEdition} className="space-y-3">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Titre du ticket *</p>
+                  <Input
+                    value={editTicketDraft.title}
+                    onChange={(event) => setEditTicketDraft((prev) => ({ ...prev, title: event.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Client *</p>
+                  <select
+                    value={editTicketDraft.client_id}
+                    onChange={(event) => {
+                      const nextClientId = event.target.value;
+                      setEditTicketDraft((prev) => ({ ...prev, client_id: nextClientId, project_id: '' }));
+                    }}
+                    className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+                    required
+                  >
+                    <option value="">Sélectionner un client</option>
+                    {scopedClients.map((client) => (
+                      <option key={client.id} value={client.id}>
+                        {client.company_name || client.contact_name || client.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Projet lié (optionnel)</p>
+                  <select
+                    value={editTicketDraft.project_id}
+                    onChange={(event) => setEditTicketDraft((prev) => ({ ...prev, project_id: event.target.value }))}
+                    className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+                  >
+                    <option value="">Aucun projet</option>
+                    {editTicketProjectOptions.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name || project.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Échéance SLA</p>
+                  <Input
+                    type="datetime-local"
+                    value={editTicketDraft.due_at}
+                    onChange={(event) => setEditTicketDraft((prev) => ({ ...prev, due_at: event.target.value }))}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Priorité</p>
+                  <select
+                    value={editTicketDraft.priority}
+                    onChange={(event) => setEditTicketDraft((prev) => ({ ...prev, priority: event.target.value }))}
+                    className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+                  >
+                    {supportPriorityOptions.map((priorityOption) => (
+                      <option key={priorityOption.value} value={priorityOption.value}>
+                        {priorityOption.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">SLA</p>
+                  <select
+                    value={editTicketDraft.sla_level}
+                    onChange={(event) => setEditTicketDraft((prev) => ({ ...prev, sla_level: event.target.value }))}
+                    className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+                  >
+                    {supportSlaOptions.map((slaOption) => (
+                      <option key={slaOption.value} value={slaOption.value}>
+                        {slaOption.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Statut</p>
+                  <select
+                    value={editTicketDraft.status}
+                    onChange={(event) => setEditTicketDraft((prev) => ({ ...prev, status: event.target.value }))}
+                    className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+                  >
+                    {supportStatusOptions.map((statusOption) => (
+                      <option key={statusOption.value} value={statusOption.value}>
+                        {statusOption.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Description</p>
+                <Textarea
+                  value={editTicketDraft.description}
+                  onChange={(event) => setEditTicketDraft((prev) => ({ ...prev, description: event.target.value }))}
+                  placeholder="Contexte, impact, action attendue..."
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" className="border-gray-700" onClick={() => setEditingTicket(null)}>
+                  Annuler
+                </Button>
+                <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={editTicketSaving || !editTicketDraft.title || !editTicketDraft.client_id}>
+                  {editTicketSaving ? 'Enregistrement...' : 'Enregistrer'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
