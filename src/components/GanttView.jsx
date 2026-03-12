@@ -1,5 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
 /**
  * Gantt chart component using frappe-gantt (lazy loaded).
  *
@@ -8,8 +16,9 @@ import React, { useEffect, useRef, useState } from 'react';
  * @param {'Day'|'Week'|'Month'} viewMode
  * @param {function} onDateChange - (task, start, end) => void
  * @param {function} onProgressChange - (task, progress) => void
+ * @param {function} onTaskClick - (task) => void
  */
-export default function GanttView({ tasks = [], viewMode = 'Week', onDateChange, onProgressChange }) {
+export default function GanttView({ tasks = [], viewMode = 'Week', onDateChange, onProgressChange, onTaskClick }) {
   const containerRef = useRef(null);
   const ganttRef = useRef(null);
   const [GanttClass, setGanttClass] = useState(null);
@@ -33,11 +42,20 @@ export default function GanttView({ tasks = [], viewMode = 'Week', onDateChange,
       date_format: 'YYYY-MM-DD',
       on_date_change: onDateChange || (() => {}),
       on_progress_change: onProgressChange || (() => {}),
+      on_click: onTaskClick || (() => {}),
       custom_popup_html: (task) => `
         <div style="padding:8px; background:#0f1528; border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#fff; font-size:12px; min-width:140px;">
-          <strong>${task.name}</strong><br/>
+          <strong>${escapeHtml(task.name)}</strong><br/>
           <span style="color:#9ca3af">${task.start} → ${task.end}</span><br/>
-          <span style="color:#6366f1">Avancement: ${task.progress}%</span>
+          <span style="color:#6366f1">Avancement: ${task.progress}%</span><br/>
+          <span style="color:#a7f3d0">Dépendances: ${Number(task.dependencies_count || 0)}</span><br/>
+          <span style="color:#c4b5fd">Sous-tâches: ${Number(task.subtasks_count || 0)}</span><br/>
+          ${
+            Array.isArray(task.dependency_titles) && task.dependency_titles.length > 0
+              ? `<span style="color:#cbd5e1">Prérequis: ${escapeHtml(task.dependency_titles.join(', '))}</span><br/>`
+              : ''
+          }
+          <span style="color:#f59e0b">Cliquer pour ouvrir la tâche</span>
         </div>
       `,
     });
@@ -45,7 +63,7 @@ export default function GanttView({ tasks = [], viewMode = 'Week', onDateChange,
     return () => {
       ganttRef.current = null;
     };
-  }, [tasks, viewMode, GanttClass]);
+  }, [tasks, viewMode, GanttClass, onDateChange, onProgressChange, onTaskClick]);
 
   if (!tasks.length) {
     return (

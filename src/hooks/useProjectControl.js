@@ -25,6 +25,12 @@ const toMonthKey = (value) => {
 
 const sortMonthKeys = (monthKeys) => [...monthKeys].sort((a, b) => a.localeCompare(b));
 
+const isMissingProjectIdOnInvoices = (error) => {
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+  return message.includes('invoices.project_id') || message.includes('column project_id') || details.includes('invoices.project_id');
+};
+
 export function useProjectControl(projectId) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -78,15 +84,9 @@ export function useProjectControl(projectId) {
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
-      let invoicesQuery = supabase
-        .from('invoices')
-        .select('id, date, total_ttc, status, payment_status')
-        .eq('project_id', projectId)
-        .order('date', { ascending: true });
-
       let timesheetsQuery = supabase
         .from('timesheets')
-        .select('id, date, duration_minutes, hourly_rate')
+        .select('id, date, duration_minutes, hourly_rate, invoice_id')
         .eq('project_id', projectId)
         .order('date', { ascending: true });
 
@@ -94,7 +94,6 @@ export function useProjectControl(projectId) {
       milestonesQuery = applyCompanyScope(milestonesQuery);
       resourcesQuery = applyCompanyScope(resourcesQuery);
       compensationsQuery = applyCompanyScope(compensationsQuery);
-      invoicesQuery = applyCompanyScope(invoicesQuery);
       timesheetsQuery = applyCompanyScope(timesheetsQuery);
 
       const [
@@ -102,14 +101,12 @@ export function useProjectControl(projectId) {
         milestonesResult,
         resourcesResult,
         compensationsResult,
-        invoicesResult,
         timesheetsResult,
       ] = await Promise.all([
         baselinesQuery,
         milestonesQuery,
         resourcesQuery,
         compensationsQuery,
-        invoicesQuery,
         timesheetsQuery,
       ]);
 
@@ -118,11 +115,45 @@ export function useProjectControl(projectId) {
         milestonesResult.error,
         resourcesResult.error,
         compensationsResult.error,
-        invoicesResult.error,
         timesheetsResult.error,
       ].find(Boolean);
 
       if (firstError) throw firstError;
+
+      let invoicesResult = { data: [], error: null };
+      let byProjectInvoicesQuery = supabase
+        .from('invoices')
+        .select('id, date, total_ttc, status, payment_status')
+        .eq('project_id', projectId)
+        .order('date', { ascending: true });
+      byProjectInvoicesQuery = applyCompanyScope(byProjectInvoicesQuery);
+      invoicesResult = await byProjectInvoicesQuery;
+
+      if (invoicesResult.error && isMissingProjectIdOnInvoices(invoicesResult.error)) {
+        const invoiceIdSet = new Set();
+        for (const timesheet of timesheetsResult.data || []) {
+          if (timesheet?.invoice_id) invoiceIdSet.add(timesheet.invoice_id);
+        }
+        for (const milestone of milestonesResult.data || []) {
+          if (milestone?.linked_invoice_id) invoiceIdSet.add(milestone.linked_invoice_id);
+          if (milestone?.linked_invoice?.id) invoiceIdSet.add(milestone.linked_invoice.id);
+        }
+
+        const invoiceIds = [...invoiceIdSet];
+        if (invoiceIds.length > 0) {
+          let fallbackInvoicesQuery = supabase
+            .from('invoices')
+            .select('id, date, total_ttc, status, payment_status')
+            .in('id', invoiceIds)
+            .order('date', { ascending: true });
+          fallbackInvoicesQuery = applyCompanyScope(fallbackInvoicesQuery);
+          invoicesResult = await fallbackInvoicesQuery;
+        } else {
+          invoicesResult = { data: [], error: null };
+        }
+      }
+
+      if (invoicesResult.error) throw invoicesResult.error;
 
       setBaselines(baselinesResult.data || []);
       setMilestones(milestonesResult.data || []);

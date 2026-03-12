@@ -35,6 +35,9 @@ import { useTaskStatus } from '@/hooks/useTaskStatus';
 const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
   const { updateTaskStatus } = useTaskStatus();
   const isOverdue = task.due_date && isPast(parseISO(task.due_date)) && task.status !== 'completed';
+  const subtaskCount = Array.isArray(task?.subtasks)
+    ? Number(task.subtasks?.[0]?.count || 0)
+    : Number(task?.subtasks_count || 0);
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -199,12 +202,18 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
-                  <div className="p-1.5 rounded bg-indigo-900/30 text-indigo-300 border border-indigo-800 text-xs font-medium inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    className="p-1.5 rounded bg-indigo-900/30 text-indigo-300 border border-indigo-800 text-xs font-medium inline-flex items-center gap-1 hover:bg-indigo-800/40"
+                    onClick={() => onEdit?.(task)}
+                  >
                     <GitBranch className="w-3 h-3" />
                     {task.depends_on.length}
-                  </div>
+                  </button>
                 </TooltipTrigger>
-                <TooltipContent>Prérequis: {task.depends_on.length} tâche(s)</TooltipContent>
+                <TooltipContent>
+                  Prérequis: {task.depends_on.length} tâche(s) {onEdit ? '• Cliquer pour ouvrir' : ''}
+                </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
@@ -244,11 +253,15 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
           )}
         </div>
 
-        {task.subtasks && task.subtasks[0] && (
-          <div className="flex items-center gap-1 text-xs text-gray-500">
+        {subtaskCount > 0 && (
+          <button
+            type="button"
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300"
+            onClick={() => onEdit?.(task)}
+          >
             <CheckSquare className="w-3.5 h-3.5" />
-            <span>{task.subtasks[0].count} Subtasks</span>
-          </div>
+            <span>{subtaskCount} Subtasks</span>
+          </button>
         )}
       </div>
     </motion.div>

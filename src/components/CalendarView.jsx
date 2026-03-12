@@ -22,9 +22,14 @@ const localizer = dateFnsLocalizer({
 });
 
 const CalendarView = ({ tasks, onEdit }) => {
+  const toSubtaskCount = (task) => {
+    if (Array.isArray(task?.subtasks)) return Number(task.subtasks?.[0]?.count || 0);
+    return Number(task?.subtasks_count || 0);
+  };
+
   const events = tasks.map(task => ({
     id: task.id,
-    title: task.title,
+    title: `${task.title || task.name || 'Tâche'}${Array.isArray(task?.depends_on) && task.depends_on.length ? ` • D:${task.depends_on.length}` : ''}${toSubtaskCount(task) > 0 ? ` • S:${toSubtaskCount(task)}` : ''}`,
     start: task.due_date ? new Date(task.due_date) : new Date(task.created_at),
     end: task.due_date ? new Date(task.due_date) : new Date(task.created_at),
     allDay: true,

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useProjects } from '@/hooks/useProjects';
@@ -43,6 +43,31 @@ const ProjectDetail = () => {
   const [activeTab, setActiveTab] = useState("kanban");
   const [billingOpen, setBillingOpen] = useState(false);
   const [ganttViewMode, setGanttViewMode] = useState('Week');
+
+  const taskTitleMap = useMemo(() => {
+    const entries = (tasks || []).map((task) => [task.id, task.title || task.name || task.id]);
+    return Object.fromEntries(entries);
+  }, [tasks]);
+
+  const taskViewsData = useMemo(() => {
+    return (tasks || []).map((task) => {
+      const dependencyIds = Array.isArray(task?.depends_on) ? task.depends_on : [];
+      const dependencyTitles = dependencyIds
+        .map((dependencyId) => taskTitleMap[dependencyId])
+        .filter(Boolean);
+      const subtasksCount = Array.isArray(task?.subtasks)
+        ? Number(task.subtasks?.[0]?.count || 0)
+        : Number(task?.subtasks_count || 0);
+
+      return {
+        ...task,
+        dependency_ids: dependencyIds,
+        dependency_titles: dependencyTitles,
+        dependencies_count: dependencyIds.length,
+        subtasks_count: subtasksCount,
+      };
+    });
+  }, [tasks, taskTitleMap]);
 
   useEffect(() => {
     if (projects.length > 0) {
@@ -159,7 +184,7 @@ const ProjectDetail = () => {
                  <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-orange-500 hover:bg-orange-600">Add Task</Button>
               </div>
               <KanbanBoard 
-                tasks={tasks} 
+                tasks={taskViewsData} 
                 onEdit={handleEdit} 
                 onDelete={deleteTask} 
                 onStatusChange={refreshTasks}
@@ -172,7 +197,7 @@ const ProjectDetail = () => {
                  <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-orange-500 hover:bg-orange-600">Add Task</Button>
               </div>
               <div className="min-w-0 md:min-w-[700px]">
-                <CalendarView tasks={tasks} onEdit={handleEdit} />
+                <CalendarView tasks={taskViewsData} onEdit={handleEdit} />
               </div>
             </TabsContent>
 
@@ -181,7 +206,7 @@ const ProjectDetail = () => {
                  <h2 className="text-xl font-bold text-gradient">Agenda</h2>
                  <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-orange-500 hover:bg-orange-600">Add Task</Button>
               </div>
-              <AgendaView tasks={tasks} onEdit={handleEdit} onDelete={deleteTask} />
+              <AgendaView tasks={taskViewsData} onEdit={handleEdit} onDelete={deleteTask} />
             </TabsContent>
 
             <TabsContent value="stats" className="focus:outline-none">
@@ -299,7 +324,7 @@ const ProjectDetail = () => {
 
                 {/* Gantt chart */}
                 <GanttView
-                  tasks={(tasks || [])
+                  tasks={(taskViewsData || [])
                     .filter(task => (task.start_date || task.started_at) && (task.end_date || task.completed_at || task.due_date))
                     .map(task => ({
                       id: task.id,
@@ -308,8 +333,15 @@ const ProjectDetail = () => {
                       end: task.end_date || task.completed_at?.split?.('T')?.[0] || task.completed_at || task.due_date?.split?.('T')?.[0] || task.due_date,
                       progress: task.status === 'completed' ? 100 : task.status === 'in_progress' ? 50 : 0,
                       dependencies: (task.depends_on || []).join(','),
+                      dependencies_count: task.dependencies_count || 0,
+                      subtasks_count: task.subtasks_count || 0,
+                      dependency_titles: task.dependency_titles || [],
                     }))}
                   viewMode={ganttViewMode}
+                  onTaskClick={(task) => {
+                    const target = (tasks || []).find((item) => item.id === task?.id);
+                    if (target) handleEdit(target);
+                  }}
                   onDateChange={async (task, start, end) => {
                     try {
                       await supabase
