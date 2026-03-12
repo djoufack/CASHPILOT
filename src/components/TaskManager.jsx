@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/select';
 import { useTranslation } from 'react-i18next';
 
-const TaskManager = ({ projectId, quotes = [] }) => {
+const TaskManager = ({ projectId, quotes = [], project = null }) => {
   const { t } = useTranslation();
   const [filters, setFilters] = useState({ status: 'all', priority: 'all', search: '' });
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasksForProject(projectId, filters);
@@ -127,7 +127,13 @@ const TaskManager = ({ projectId, quotes = [] }) => {
           <DialogHeader>
             <DialogTitle>{editingTask ? t('tasks.editTask') : t('tasks.createNewTask')}</DialogTitle>
           </DialogHeader>
-          <TaskForm task={editingTask} onSave={handleSave} onCancel={() => setIsFormOpen(false)} quotes={quotes} />
+          <TaskForm
+            task={editingTask}
+            onSave={handleSave}
+            onCancel={() => setIsFormOpen(false)}
+            quotes={quotes}
+            projectContext={project}
+          />
         </DialogContent>
       </Dialog>
 
