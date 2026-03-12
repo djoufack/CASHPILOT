@@ -32,11 +32,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTaskStatus } from '@/hooks/useTaskStatus';
 
-const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onOpenTask }) => {
+const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onOpenTask, onCardClick }) => {
   const { updateTaskStatus } = useTaskStatus();
   const isOverdue = task.due_date && isPast(parseISO(task.due_date)) && task.status !== 'completed';
   const subtaskCount = Array.isArray(task?.subtasks)
-    ? Number(task.subtasks?.[0]?.count || 0)
+    ? (Object.prototype.hasOwnProperty.call(task.subtasks?.[0] || {}, 'count')
+      ? Number(task.subtasks?.[0]?.count || 0)
+      : task.subtasks.length)
     : Number(task?.subtasks_count || 0);
   const dependencyIds = Array.isArray(task?.dependency_ids)
     ? task.dependency_ids
@@ -96,6 +98,7 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onOpenTask }) => {
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ scale: 1.02, y: -2 }}
       className={`relative p-5 rounded-xl border shadow-lg transition-all ${getStatusColor(task.status)} ${isOverdue ? 'ring-2 ring-red-500/30' : ''}`}
+      onClick={() => onCardClick?.(task)}
     >
       {/* Header */}
       <div className="flex justify-between items-start mb-3">
@@ -137,10 +140,10 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onOpenTask }) => {
           )}
         </div>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" aria-label="Edit task" onClick={() => onEdit(task)} className="h-8 w-8 text-gray-400 hover:text-orange-400">
+          <Button variant="ghost" size="icon" aria-label="Edit task" onClick={(event) => { event.stopPropagation(); onEdit(task); }} className="h-8 w-8 text-gray-400 hover:text-orange-400">
             <Edit2 className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Delete task" onClick={() => onDelete(task.id)} className="h-8 w-8 text-gray-400 hover:text-red-400">
+          <Button variant="ghost" size="icon" aria-label="Delete task" onClick={(event) => { event.stopPropagation(); onDelete(task.id); }} className="h-8 w-8 text-gray-400 hover:text-red-400">
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
@@ -216,7 +219,8 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onOpenTask }) => {
                   <button
                     type="button"
                     className="p-1.5 rounded bg-indigo-900/30 text-indigo-300 border border-indigo-800 text-xs font-medium inline-flex items-center gap-1 hover:bg-indigo-800/40"
-                    onClick={() => {
+                    onClick={(event) => {
+                      event.stopPropagation();
                       const firstDependencyId = dependencyTasks?.[0]?.id;
                       if (firstDependencyId && onOpenTask) {
                         onOpenTask(firstDependencyId);
@@ -275,7 +279,10 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onOpenTask }) => {
           <button
             type="button"
             className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300"
-            onClick={() => onEdit?.(task)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onEdit?.(task);
+            }}
           >
             <CheckSquare className="w-3.5 h-3.5" />
             <span>{subtaskCount} Subtasks</span>
@@ -290,7 +297,8 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onOpenTask }) => {
               key={dependencyTask.id}
               type="button"
               className="rounded-full border border-indigo-800/70 bg-indigo-950/40 px-2.5 py-1 text-[11px] text-indigo-200 hover:bg-indigo-900/50"
-              onClick={() => {
+              onClick={(event) => {
+                event.stopPropagation();
                 if (dependencyTask.id && onOpenTask) {
                   onOpenTask(dependencyTask.id);
                   return;

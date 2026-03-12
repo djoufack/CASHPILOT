@@ -44,7 +44,17 @@ export const useTasksForProject = (projectId, filters = {}) => {
         .from('tasks')
         .select(`
           *,
-          subtasks (count),
+          subtasks (
+            id,
+            task_id,
+            title,
+            status,
+            due_date,
+            started_at,
+            completed_at,
+            created_at,
+            updated_at
+          ),
           service:services(id, service_name, hourly_rate, pricing_type),
           invoice:invoices(id, invoice_number, total_ttc),
           quote:quotes(id, quote_number, total_ttc),
