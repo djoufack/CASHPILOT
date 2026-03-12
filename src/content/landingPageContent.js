@@ -15,9 +15,9 @@ export const landingPageContent = {
     },
     hero: {
       badge: "Solution de gestion d'entreprise complète",
-      subtitle: 'La révolution de la comptabilité automatisée',
+      subtitle: 'La révolution de la gestion automatisée : finance, projets & CRM',
       descriptionHighlight: 'Vous introduisez les données, CashPilot fait le reste.',
-      descriptionBody: "Gestion financière et comptabilité 100% automatisée pour la France, la Belgique et l'Afrique (OHADA).",
+      descriptionBody: "Gestion financière, projets et CRM 100% automatisés pour la France, la Belgique et l'Afrique (OHADA).",
       mcpBanner: "Révolutionnaire dans le monde de la comptabilité et la finance d'entreprise : CashPilot est aussi un serveur MCP, qui offre 170+ outils à tout client MCP (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), dont la gestion Projets, CRM (leads/tickets/SLA) et l'extraction IA de factures fournisseurs (PDF/image), pour une conversation en temps réel ou pour son intégration dans vos workflows d'automatisation (n8n, Zapier, Rube.app).",
       tags: {
         realtime: 'Temps réel (< 1 seconde)',
@@ -26,6 +26,7 @@ export const landingPageContent = {
         reverseAccounting: 'Reverse Accounting',
         automated: '100% automatisé',
         mcp: 'Serveur MCP • 170+ outils IA',
+        projectsCrm: 'Nouveau : Projets + CRM',
         security: 'MFA & GDPR',
       },
       primaryCta: 'Démarrer gratuitement',
@@ -35,8 +36,8 @@ export const landingPageContent = {
         { number: '< 1s', label: 'Génération écritures' },
         { number: '100%', label: 'Auto-comptabilité' },
         { number: '3 pays', label: 'FR • BE • OHADA' },
+        { number: '2', label: 'Modules ajoutés' },
         { number: '0', label: 'Saisie manuelle' },
-        { number: '244', label: 'Tests automatisés' },
       ],
     },
     accounting: {
@@ -145,8 +146,8 @@ export const landingPageContent = {
       title: 'Fonctionnalités principales',
       description: "Une suite complète d'outils pour gérer tous les aspects de votre entreprise",
       cards: [
-        { title: 'Gestion clients', description: 'CRM complet pour suivre vos relations commerciales' },
-        { title: 'Projets & tâches', description: 'Organisez et suivez vos projets avec Kanban' },
+        { title: 'Gestion clients', description: 'CRM Pro par société : comptes, leads, opportunités, activités, devis et tickets SLA' },
+        { title: 'Projets & tâches', description: 'Pilotez vos projets, tâches, dépendances, sous-tâches, Gantt, Kanban, coûts et rentabilité' },
         { title: 'Suivi du temps', description: 'Feuilles de temps et chronomètre intégré' },
         { title: 'Facturation', description: 'Factures et devis professionnels en PDF' },
         { title: 'Comptabilité multi-pays', description: 'France, Belgique, OHADA - écritures automatiques en temps réel' },
@@ -191,7 +192,7 @@ export const landingPageContent = {
     mcp: {
       badge: 'Serveur MCP natif',
       title: 'Connecté à tous vos agents IA',
-      description: "CashPilot est un serveur MCP (Model Context Protocol) avec 170+ outils intégrés, dont la gestion des projets, du CRM (leads/tickets/SLA) et l'extraction IA de factures fournisseurs. Pilotez votre gestion financière par la voix ou le texte, depuis n'importe quel agent IA.",
+      description: "CashPilot est un serveur MCP (Model Context Protocol) avec 170+ outils intégrés, incluant désormais des services dédiés Projets et CRM (leads/tickets/SLA), en plus de l'extraction IA de factures fournisseurs. Pilotez votre gestion financière par la voix ou le texte, depuis n'importe quel agent IA.",
       agents: [
         { name: 'Claude', company: 'Anthropic' },
         { name: 'ChatGPT', company: 'OpenAI' },
@@ -204,6 +205,7 @@ export const landingPageContent = {
       ],
       cards: [
         { title: 'Contrôle vocal & texte', description: 'Pilotez CashPilot depuis Claude, ChatGPT, Gemini ou Mistral par la voix ou le texte. Créez des factures, consultez vos finances, générez des rapports — en langage naturel.' },
+        { title: 'Nouveaux services MCP Projets & CRM', description: 'Créez et suivez des projets, tâches, leads, tickets et politiques SLA directement depuis vos agents IA, en scope société strict.' },
         { title: '170+ outils MCP', description: 'Création de factures, recherche de clients, pilotage projets, opérations CRM, export comptable, résumé financier, extraction IA de factures fournisseurs — 170+ outils accessibles via le protocole MCP standard.' },
         { title: "Brique d'automatisation", description: 'Intégrez CashPilot dans vos pipelines : Rube.app, n8n, Gunloop, Zapier, Make. Votre gestion financière devient un composant de votre écosystème automatisé.' },
       ],
@@ -277,9 +279,9 @@ export const landingPageContent = {
     },
     hero: {
       badge: 'Complete business management platform',
-      subtitle: 'The revolution of automated accounting',
+      subtitle: 'The automated management revolution: finance, projects & CRM',
       descriptionHighlight: 'You enter the data, CashPilot does the rest.',
-      descriptionBody: '100% automated finance and accounting for France, Belgium, and OHADA Africa.',
+      descriptionBody: '100% automated finance, projects, and CRM for France, Belgium, and OHADA Africa.',
       mcpBanner: 'A breakthrough for accounting and business finance: CashPilot is also an MCP server that exposes 170+ tools to any MCP client (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), including Projects, CRM (leads/tickets/SLA), and AI supplier-invoice extraction (PDF/image), for real-time conversations or integration into your automation workflows (n8n, Zapier, Rube.app).',
       tags: {
         realtime: 'Real time (< 1 second)',
@@ -288,6 +290,7 @@ export const landingPageContent = {
         reverseAccounting: 'Reverse accounting',
         automated: '100% automated',
         mcp: 'MCP server • 170+ AI tools',
+        projectsCrm: 'New: Projects + CRM',
         security: 'MFA & GDPR',
       },
       primaryCta: 'Start for free',
@@ -297,8 +300,8 @@ export const landingPageContent = {
         { number: '< 1s', label: 'Journal entries' },
         { number: '100%', label: 'Auto-accounting' },
         { number: '3 countries', label: 'FR • BE • OHADA' },
+        { number: '2', label: 'New modules' },
         { number: '0', label: 'Manual entry' },
-        { number: '244', label: 'Automated tests' },
       ],
     },
     accounting: {
@@ -407,8 +410,8 @@ export const landingPageContent = {
       title: 'Core features',
       description: 'A complete suite to run every part of your business',
       cards: [
-        { title: 'Client management', description: 'A complete CRM to manage commercial relationships' },
-        { title: 'Projects & tasks', description: 'Organize and track work with Kanban' },
+        { title: 'Client management', description: 'Company-scoped Pro CRM: accounts, leads, opportunities, activities, quotes, and SLA tickets' },
+        { title: 'Projects & tasks', description: 'Manage projects, tasks, dependencies, subtasks, Gantt, Kanban, costs, and profitability' },
         { title: 'Time tracking', description: 'Timesheets and built-in timer' },
         { title: 'Invoicing', description: 'Professional invoices and quotes in PDF' },
         { title: 'Multi-country accounting', description: 'France, Belgium, OHADA - automatic real-time entries' },
@@ -453,7 +456,7 @@ export const landingPageContent = {
     mcp: {
       badge: 'Native MCP server',
       title: 'Connected to all your AI agents',
-      description: 'CashPilot is an MCP (Model Context Protocol) server with 170+ built-in tools, including project management, CRM operations (leads/tickets/SLA), and AI supplier-invoice extraction. Run your finance operations by voice or text from any AI agent.',
+      description: 'CashPilot is an MCP (Model Context Protocol) server with 170+ built-in tools, now including dedicated Projects and CRM services (leads/tickets/SLA), plus AI supplier-invoice extraction. Run your finance operations by voice or text from any AI agent.',
       agents: [
         { name: 'Claude', company: 'Anthropic' },
         { name: 'ChatGPT', company: 'OpenAI' },
@@ -466,6 +469,7 @@ export const landingPageContent = {
       ],
       cards: [
         { title: 'Voice & text control', description: 'Operate CashPilot from Claude, ChatGPT, Gemini, or Mistral by voice or text. Create invoices, inspect finances, and generate reports in natural language.' },
+        { title: 'New MCP services: Projects & CRM', description: 'Create and track projects, tasks, leads, tickets, and SLA policies directly from AI agents with strict company scope.' },
         { title: '170+ MCP tools', description: 'Invoice creation, client lookup, project management, CRM operations, accounting export, financial summaries, AI supplier-invoice extraction — 170+ tools available through the standard MCP protocol.' },
         { title: 'Automation building block', description: 'Integrate CashPilot into your pipelines: Rube.app, n8n, Gunloop, Zapier, Make. Your finance operations become a component of your automation stack.' },
       ],
@@ -539,9 +543,9 @@ export const landingPageContent = {
     },
     hero: {
       badge: 'Volledig platform voor bedrijfsbeheer',
-      subtitle: 'De revolutie van geautomatiseerde boekhouding',
+      subtitle: 'De revolutie van geautomatiseerd beheer: finance, projecten & CRM',
       descriptionHighlight: 'U voert de gegevens in, CashPilot doet de rest.',
-      descriptionBody: '100% geautomatiseerde financiële en boekhoudkundige opvolging voor Frankrijk, België en OHADA-Afrika.',
+      descriptionBody: '100% geautomatiseerde financiële opvolging, projectbeheer en CRM voor Frankrijk, België en OHADA-Afrika.',
       mcpBanner: 'Een doorbraak in boekhouding en bedrijfsfinanciën: CashPilot is ook een MCP-server die 170+ tools aanbiedt aan elke MCP-client (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), waaronder projectbeheer, CRM (leads/tickets/SLA) en AI-extractie van leveranciersfacturen (pdf/afbeelding), voor realtime gesprekken of integratie in uw automatiseringsworkflows (n8n, Zapier, Rube.app).',
       tags: {
         realtime: 'Realtime (< 1 seconde)',
@@ -550,6 +554,7 @@ export const landingPageContent = {
         reverseAccounting: 'Reverse accounting',
         automated: '100% geautomatiseerd',
         mcp: 'MCP-server • 170+ AI-tools',
+        projectsCrm: 'Nieuw: Projecten + CRM',
         security: 'MFA & GDPR',
       },
       primaryCta: 'Gratis starten',
@@ -559,8 +564,8 @@ export const landingPageContent = {
         { number: '< 1s', label: 'Boekingen' },
         { number: '100%', label: 'Auto-boekhouding' },
         { number: '3 landen', label: 'FR • BE • OHADA' },
+        { number: '2', label: 'Nieuwe modules' },
         { number: '0', label: 'Handmatige invoer' },
-        { number: '244', label: 'Geautomatiseerde tests' },
       ],
     },
     accounting: {
@@ -669,8 +674,8 @@ export const landingPageContent = {
       title: 'Belangrijkste functies',
       description: 'Een volledige suite om elk onderdeel van uw onderneming te beheren',
       cards: [
-        { title: 'Klantenbeheer', description: 'Volledig CRM om uw commerciële relaties op te volgen' },
-        { title: 'Projecten & taken', description: 'Organiseer en volg werk op met Kanban' },
+        { title: 'Klantenbeheer', description: 'Pro CRM per vennootschap: accounts, leads, opportuniteiten, activiteiten, offertes en SLA-tickets' },
+        { title: 'Projecten & taken', description: 'Beheer projecten, taken, afhankelijkheden, subtaken, Gantt, Kanban, kosten en rendabiliteit' },
         { title: 'Tijdsregistratie', description: 'Urenstaten en ingebouwde timer' },
         { title: 'Facturatie', description: 'Professionele facturen en offertes in pdf' },
         { title: 'Boekhouding voor meerdere landen', description: 'Frankrijk, België, OHADA - automatische realtime boekingen' },
@@ -715,7 +720,7 @@ export const landingPageContent = {
     mcp: {
       badge: 'Native MCP-server',
       title: 'Verbonden met al uw AI-agents',
-      description: 'CashPilot is een MCP-server (Model Context Protocol) met 170+ ingebouwde tools, waaronder projectbeheer, CRM-operaties (leads/tickets/SLA) en AI-extractie van leveranciersfacturen. Stuur uw financiën via stem of tekst vanuit eender welke AI-agent.',
+      description: 'CashPilot is een MCP-server (Model Context Protocol) met 170+ ingebouwde tools, nu ook met dedicated services voor Projecten en CRM (leads/tickets/SLA), plus AI-extractie van leveranciersfacturen. Stuur uw financiën via stem of tekst vanuit eender welke AI-agent.',
       agents: [
         { name: 'Claude', company: 'Anthropic' },
         { name: 'ChatGPT', company: 'OpenAI' },
@@ -728,6 +733,7 @@ export const landingPageContent = {
       ],
       cards: [
         { title: 'Spraak- & tekststuring', description: 'Bedien CashPilot vanuit Claude, ChatGPT, Gemini of Mistral via spraak of tekst. Maak facturen, raadpleeg uw financiën en genereer rapporten in natuurlijke taal.' },
+        { title: 'Nieuwe MCP-services: Projecten & CRM', description: 'Maak en volg projecten, taken, leads, tickets en SLA-beleid rechtstreeks vanuit AI-agents met strikte company-scope.' },
         { title: '170+ MCP-tools', description: 'Facturen aanmaken, klanten opzoeken, projectbeheer, CRM-operaties, boekhoudkundige exporten, financiële samenvattingen, AI-extractie van leveranciersfacturen — 170+ tools toegankelijk via het standaard MCP-protocol.' },
         { title: 'Automatiseringsbouwsteen', description: 'Integreer CashPilot in uw pipelines: Rube.app, n8n, Gunloop, Zapier, Make. Uw financiële beheer wordt een component van uw automatiseringsstack.' },
       ],
