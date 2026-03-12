@@ -341,6 +341,7 @@ const ProjectDetail = () => {
               onCancel={() => setIsFormOpen(false)}
               quotes={projectQuotes}
               projectContext={project}
+              availableTasks={tasks}
             />
           </DialogContent>
         </Dialog>

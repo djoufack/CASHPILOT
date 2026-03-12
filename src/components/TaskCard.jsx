@@ -16,7 +16,8 @@ import {
   PauseCircle,
   XCircle,
   PlayCircle,
-  Wrench
+  Wrench,
+  GitBranch
 } from 'lucide-react';
 import { format, parseISO, isPast, differenceInDays } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -191,6 +192,19 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>Estimated: {task.estimated_hours} hours</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {Array.isArray(task.depends_on) && task.depends_on.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <div className="p-1.5 rounded bg-indigo-900/30 text-indigo-300 border border-indigo-800 text-xs font-medium inline-flex items-center gap-1">
+                    <GitBranch className="w-3 h-3" />
+                    {task.depends_on.length}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>Prérequis: {task.depends_on.length} tâche(s)</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}

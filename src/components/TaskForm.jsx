@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -17,8 +18,9 @@ import { DialogFooter } from '@/components/ui/dialog';
 import { isAfter } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import SubtaskList from './SubtaskList';
 
-const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [], projectContext = null }) => {
+const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [], projectContext = null, availableTasks = [] }) => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
     title: '',
@@ -36,12 +38,20 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [],
     service_id: '',
     estimated_hours: '',
     requires_quote: false,
+    depends_on: [],
   });
 
   const [validationError, setValidationError] = useState('');
   const resolvedProjectId = task?.project_id || projectContext?.id || '';
   const resolvedProjectName = projectContext?.name || task?.project_name || '';
   const resolvedProjectClient = projectContext?.client?.company_name || projectContext?.client_name || '';
+  const dependencyCandidates = useMemo(() => {
+    return (availableTasks || []).filter((candidate) => {
+      if (!candidate?.id) return false;
+      if (task?.id && candidate.id === task.id) return false;
+      return true;
+    });
+  }, [availableTasks, task?.id]);
 
   useEffect(() => {
     if (task) {
@@ -67,6 +77,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [],
         service_id: task.service_id || '',
         estimated_hours: task.estimated_hours || '',
         requires_quote: !!task.requires_quote,
+        depends_on: Array.isArray(task.depends_on) ? task.depends_on : [],
       });
     } else {
       setFormData({
@@ -85,6 +96,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [],
         service_id: '',
         estimated_hours: '',
         requires_quote: false,
+        depends_on: [],
       });
     }
   }, [task]);
@@ -120,6 +132,7 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [],
       service_id: formData.service_id || null,
       estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
       requires_quote: !!formData.requires_quote,
+      depends_on: Array.isArray(formData.depends_on) ? formData.depends_on : [],
     };
     
     onSave(cleanedData);
@@ -302,6 +315,65 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [],
         Ces dates alimentent aussi automatiquement la vue Gantt du projet.
       </p>
 
+      <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <Label className="text-gray-300">{t('tasks.dependencies', 'Dépendances (prérequis)')}</Label>
+            <p className="text-xs text-gray-500 mt-1">
+              {t('tasks.dependenciesDescription', 'Sélectionnez les tâches qui doivent être terminées avant celle-ci.')}
+            </p>
+          </div>
+          {formData.depends_on.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-xs text-gray-300 hover:text-white"
+              onClick={() => setFormData((current) => ({ ...current, depends_on: [] }))}
+            >
+              {t('tasks.clearDependencies', 'Tout retirer')}
+            </Button>
+          )}
+        </div>
+
+        {dependencyCandidates.length === 0 ? (
+          <p className="text-xs text-gray-500">
+            {t('tasks.noDependenciesAvailable', 'Aucune autre tâche disponible pour créer une dépendance.')}
+          </p>
+        ) : (
+          <div className="max-h-44 overflow-y-auto rounded-md border border-gray-800 divide-y divide-gray-800">
+            {dependencyCandidates.map((candidate) => {
+              const checked = formData.depends_on.includes(candidate.id);
+              return (
+                <label
+                  key={candidate.id}
+                  className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-gray-800/50"
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(nextChecked) => {
+                      setFormData((current) => {
+                        const previous = Array.isArray(current.depends_on) ? current.depends_on : [];
+                        const next = nextChecked
+                          ? [...previous, candidate.id]
+                          : previous.filter((dependencyId) => dependencyId !== candidate.id);
+                        return { ...current, depends_on: [...new Set(next)] };
+                      });
+                    }}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-200 truncate">{candidate.title || candidate.name || candidate.id}</p>
+                    <p className="text-xs text-gray-500">
+                      {t('common.status', 'Statut')}: {candidate.status || 'pending'}
+                    </p>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-4 space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -367,6 +439,17 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [],
           className="bg-gray-800 border-gray-700 text-white resize-none w-full min-h-[100px]"
           placeholder={t('tasks.descriptionPlaceholder')}
         />
+      </div>
+
+      <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-4 space-y-3">
+        <Label className="text-gray-300">{t('tasks.subtasks', 'Sous-tâches')}</Label>
+        {task?.id ? (
+          <SubtaskList taskId={task.id} />
+        ) : (
+          <p className="text-xs text-gray-500">
+            {t('tasks.saveBeforeSubtasks', 'Enregistrez d’abord la tâche pour ajouter les sous-tâches.')}
+          </p>
+        )}
       </div>
 
       <DialogFooter className="mt-6 flex-col sm:flex-row gap-2">
