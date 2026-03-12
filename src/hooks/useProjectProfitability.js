@@ -4,6 +4,12 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 
+const isMissingProjectIdOnInvoices = (error) => {
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+  return message.includes('invoices.project_id') || message.includes('column project_id') || details.includes('invoices.project_id');
+};
+
 export function useProjectProfitability(projectId) {
   const { user } = useAuth();
   const { applyCompanyScope } = useCompanyScope();
@@ -25,17 +31,35 @@ export function useProjectProfitability(projectId) {
 
       let invoicesQuery = supabase
         .from('invoices')
-        .select('total_ttc, payment_status, status')
+        .select('id, total_ttc, payment_status, status')
         .eq('project_id', projectId)
         .eq('user_id', user.id);
 
       timesheetsQuery = applyCompanyScope(timesheetsQuery);
       invoicesQuery = applyCompanyScope(invoicesQuery);
 
-      const [tsResult, invResult] = await Promise.all([
+      let [tsResult, invResult] = await Promise.all([
         timesheetsQuery,
         invoicesQuery,
       ]);
+
+      if (invResult?.error && isMissingProjectIdOnInvoices(invResult.error)) {
+        const invoiceIds = [...new Set((tsResult?.data || []).map((row) => row?.invoice_id).filter(Boolean))];
+        if (invoiceIds.length > 0) {
+          let fallbackInvoicesQuery = supabase
+            .from('invoices')
+            .select('id, total_ttc, payment_status, status')
+            .in('id', invoiceIds)
+            .eq('user_id', user.id);
+          fallbackInvoicesQuery = applyCompanyScope(fallbackInvoicesQuery);
+          invResult = await fallbackInvoicesQuery;
+        } else {
+          invResult = { data: [], error: null };
+        }
+      }
+
+      if (tsResult?.error) throw tsResult.error;
+      if (invResult?.error) throw invResult.error;
 
       setTimesheets(tsResult.data || []);
       setInvoices(invResult.data || []);
