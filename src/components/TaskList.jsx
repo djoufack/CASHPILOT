@@ -4,7 +4,7 @@ import TaskCard from './TaskCard';
 import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const TaskList = ({ tasks, loading, onEdit, onDelete, onStatusChange }) => {
+const TaskList = ({ tasks, loading, onEdit, onDelete, onStatusChange, onOpenTask }) => {
   if (loading && tasks.length === 0) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -34,6 +34,7 @@ const TaskList = ({ tasks, loading, onEdit, onDelete, onStatusChange }) => {
             onEdit={onEdit} 
             onDelete={onDelete} 
             onStatusChange={onStatusChange}
+            onOpenTask={onOpenTask}
           />
         ))}
       </AnimatePresence>
