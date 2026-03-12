@@ -150,7 +150,7 @@ const ProjectDetail = () => {
             </div>
 
             <TabsContent value="list" className="focus:outline-none">
-              <TaskManager projectId={projectId} quotes={projectQuotes} />
+              <TaskManager projectId={projectId} quotes={projectQuotes} project={project} />
             </TabsContent>
 
             <TabsContent value="kanban" className="focus:outline-none overflow-x-auto">
@@ -335,7 +335,13 @@ const ProjectDetail = () => {
             <DialogHeader>
               <DialogTitle>{editingTask ? 'Edit Task' : 'Create New Task'}</DialogTitle>
             </DialogHeader>
-            <TaskForm task={editingTask} onSave={handleSave} onCancel={() => setIsFormOpen(false)} quotes={projectQuotes} />
+            <TaskForm
+              task={editingTask}
+              onSave={handleSave}
+              onCancel={() => setIsFormOpen(false)}
+              quotes={projectQuotes}
+              projectContext={project}
+            />
           </DialogContent>
         </Dialog>
 

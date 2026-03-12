@@ -73,7 +73,7 @@ export function useProjectControl(projectId) {
         .from('team_member_compensations')
         .select(`
           *,
-          team_member:team_members(id, name, email, role)
+          team_member:team_members!team_member_compensations_team_member_id_fkey(id, name, email, role)
         `)
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });

@@ -16,8 +16,9 @@ import { Loader2, Calendar as CalendarIcon, AlertTriangle } from 'lucide-react';
 import { DialogFooter } from '@/components/ui/dialog';
 import { isAfter } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 
-const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] }) => {
+const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [], projectContext = null }) => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
     title: '',
@@ -38,6 +39,9 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
   });
 
   const [validationError, setValidationError] = useState('');
+  const resolvedProjectId = task?.project_id || projectContext?.id || '';
+  const resolvedProjectName = projectContext?.name || task?.project_name || '';
+  const resolvedProjectClient = projectContext?.client?.company_name || projectContext?.client_name || '';
 
   useEffect(() => {
     if (task) {
@@ -123,6 +127,34 @@ const TaskForm = ({ task, onSave, onCancel, loading, services = [], quotes = [] 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 py-4 text-white">
+      {(resolvedProjectId || resolvedProjectName) && (
+        <div className="rounded-xl border border-blue-900/40 bg-blue-950/20 p-3">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wide text-blue-300">
+                {t('tasks.associatedProject', 'Projet associé')}
+              </p>
+              <p className="text-sm font-medium text-white">
+                {resolvedProjectName || resolvedProjectId}
+              </p>
+              {resolvedProjectClient && (
+                <p className="text-xs text-blue-200/80">
+                  {t('tasks.client', 'Client')}: {resolvedProjectClient}
+                </p>
+              )}
+            </div>
+            {resolvedProjectId && (
+              <Link
+                to={`/app/projects/${resolvedProjectId}`}
+                className="inline-flex h-8 items-center justify-center rounded-md border border-blue-800/50 px-3 text-xs text-blue-200 hover:bg-blue-900/30"
+              >
+                {t('tasks.openProject', 'Ouvrir le projet')}
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="title" className="text-gray-300">{t('tasks.title')} <span className="text-red-500">*</span></Label>
         <Input
