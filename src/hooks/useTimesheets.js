@@ -40,6 +40,7 @@ export const useTimesheets = () => {
           client:clients(company_name),
           project:projects(name, hourly_rate),
           task:tasks(name),
+          service:services(id, service_name, hourly_rate, pricing_type, fixed_price, unit_price),
           executed_by_member:team_members(id, name, email, role)
         `)
         .order('date', { ascending: false });

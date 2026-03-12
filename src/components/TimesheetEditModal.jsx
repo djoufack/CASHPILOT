@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useTimesheets } from '@/hooks/useTimesheets';
 import { useClients } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
+import { useTeamSettings } from '@/hooks/useTeamSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,6 +43,7 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
   const { updateTimesheet, deleteTimesheet } = useTimesheets();
   const { clients } = useClients();
   const { projects } = useProjects();
+  const { members } = useTeamSettings();
   
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -52,6 +54,7 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
     end_time: '',
     client_id: '',
     project_id: '',
+    executed_by_member_id: '',
     notes: '',
     status: 'draft',
     billable: true
@@ -66,6 +69,7 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
         end_time: timesheet.end_time || '',
         client_id: timesheet.client_id || '',
         project_id: timesheet.project_id || '',
+        executed_by_member_id: timesheet.executed_by_member_id || '',
         notes: timesheet.notes || '',
         status: timesheet.status || 'draft',
         billable: timesheet.billable !== false
@@ -211,6 +215,26 @@ const TimesheetEditModal = ({ isOpen, onClose, timesheet }) => {
                 {filteredProjects.map((project) => (
                   <SelectItem key={project.id} value={project.id?.toString()}>
                     {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-executed_by_member_id" className="text-gray-300">Ressource humaine exécutante</Label>
+            <Select
+              value={formData.executed_by_member_id?.toString() || 'none'}
+              onValueChange={(value) => setFormData({ ...formData, executed_by_member_id: value === 'none' ? null : value })}
+            >
+              <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                <SelectValue placeholder="Sélectionner une ressource (optionnel)" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                <SelectItem value="none">Aucune ressource affectée</SelectItem>
+                {members.map((member) => (
+                  <SelectItem key={member.id} value={member.id?.toString()}>
+                    {member.name || member.email}
                   </SelectItem>
                 ))}
               </SelectContent>

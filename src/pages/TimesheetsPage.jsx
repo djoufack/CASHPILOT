@@ -10,6 +10,7 @@ import getDay from 'date-fns/getDay';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { useTranslation } from 'react-i18next';
 import { Plus, ListFilter, Calendar as CalendarIcon, Download, FileText, LayoutGrid, CalendarRange, Printer, X } from 'lucide-react';
 import { useTimesheets } from '@/hooks/useTimesheets';
@@ -39,6 +40,31 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
+const normalizeText = (value = '') =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const resolveResourceLabel = (timesheet = {}) =>
+  timesheet?.executed_by_member?.name
+  || timesheet?.executed_by_member?.email
+  || timesheet?.material_resource_name
+  || timesheet?.resource_name
+  || 'Ressource non assignée';
+
+const resolveResourceType = (timesheet = {}) => {
+  if (
+    timesheet?.resource_type === 'material'
+    || timesheet?.material_resource_name
+    || timesheet?.material_resource_id
+  ) {
+    return 'material';
+  }
+  return 'human';
+};
+
 const TimesheetsPage = () => {
   const { t } = useTranslation();
   const { timesheets, loading, fetchTimesheets } = useTimesheets();
@@ -51,9 +77,13 @@ const TimesheetsPage = () => {
   const [selectedTimesheet, setSelectedTimesheet] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [view, setView] = useState('list'); // Default to list for mobile safety
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('all');
   const [clientFilter, setClientFilter] = useState('all');
   const [resourceFilter, setResourceFilter] = useState('all');
+  const [resourceNameFilter, setResourceNameFilter] = useState('');
+  const [resourceTypeFilter, setResourceTypeFilter] = useState('all');
 
   useEffect(() => {
     fetchTimesheets();
@@ -97,15 +127,76 @@ const TimesheetsPage = () => {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [timesheets]);
 
+  const matchingResourceNameTokens = useMemo(() => {
+    const normalized = normalizeText(resourceNameFilter);
+    if (!normalized) return [];
+    return normalized.split(/\s+/).filter(Boolean);
+  }, [resourceNameFilter]);
+
   const filteredTimesheets = useMemo(() => {
     return (timesheets || []).filter((timesheet) => {
       const matchesProject = projectFilter === 'all' || timesheet.project_id === projectFilter;
       const matchesClient = clientFilter === 'all' || timesheet.client_id === clientFilter;
       const effectiveResourceId = timesheet.executed_by_member_id || timesheet.user_id;
       const matchesResource = resourceFilter === 'all' || effectiveResourceId === resourceFilter;
-      return matchesProject && matchesClient && matchesResource;
+      const matchesStartDate = !startDateFilter || (timesheet.date && timesheet.date >= startDateFilter);
+      const matchesEndDate = !endDateFilter || (timesheet.date && timesheet.date <= endDateFilter);
+      const matchesResourceType = resourceTypeFilter === 'all' || resolveResourceType(timesheet) === resourceTypeFilter;
+      const normalizedResourceLabel = normalizeText(resolveResourceLabel(timesheet));
+      const matchesResourceName = matchingResourceNameTokens.length === 0
+        || matchingResourceNameTokens.every((token) => normalizedResourceLabel.includes(token));
+
+      return (
+        matchesProject
+        && matchesClient
+        && matchesResource
+        && matchesStartDate
+        && matchesEndDate
+        && matchesResourceType
+        && matchesResourceName
+      );
     });
-  }, [timesheets, projectFilter, clientFilter, resourceFilter]);
+  }, [
+    timesheets,
+    projectFilter,
+    clientFilter,
+    resourceFilter,
+    startDateFilter,
+    endDateFilter,
+    resourceTypeFilter,
+    matchingResourceNameTokens
+  ]);
+
+  const simulationMetrics = useMemo(() => {
+    const totalMinutes = (filteredTimesheets || []).reduce(
+      (sum, timesheet) => sum + Number(timesheet.duration_minutes || 0),
+      0
+    );
+    const billableAmount = (filteredTimesheets || []).reduce((sum, timesheet) => {
+      if (timesheet.billable === false) return sum;
+      const hours = Number(timesheet.duration_minutes || 0) / 60;
+      const rate = Number(
+        timesheet?.service?.hourly_rate
+        || timesheet?.project?.hourly_rate
+        || timesheet?.hourly_rate
+        || 0
+      );
+      return sum + (hours * rate);
+    }, 0);
+    const formatter = new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: company?.currency || 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    return {
+      totalMinutes,
+      totalHoursLabel: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
+      billableAmountLabel: formatter.format(billableAmount),
+      entriesCount: (filteredTimesheets || []).length,
+    };
+  }, [company?.currency, filteredTimesheets]);
 
   const events = filteredTimesheets.map(ts => ({
     id: ts.id,
@@ -227,7 +318,7 @@ const TimesheetsPage = () => {
                   <td>${timesheet.date ? new Date(timesheet.date).toLocaleDateString('fr-FR') : '-'}</td>
                   <td>${timesheet.project?.name || '-'}</td>
                   <td>${timesheet.client?.company_name || '-'}</td>
-                  <td>${timesheet.executed_by_member?.name || '-'}</td>
+                  <td>${resolveResourceLabel(timesheet)}</td>
                   <td>${timesheet.status || 'draft'}</td>
                   <td class="amount">${Math.floor(Number(timesheet.duration_minutes || 0) / 60)}h ${Number(timesheet.duration_minutes || 0) % 60}m</td>
                 </tr>
@@ -259,9 +350,13 @@ const TimesheetsPage = () => {
   };
 
   const clearFilters = () => {
+    setStartDateFilter('');
+    setEndDateFilter('');
     setProjectFilter('all');
     setClientFilter('all');
     setResourceFilter('all');
+    setResourceNameFilter('');
+    setResourceTypeFilter('all');
   };
 
   const eventPropGetter = (event) => {
@@ -397,7 +492,27 @@ const TimesheetsPage = () => {
 
             <div className="space-y-8">
               <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Période - début</p>
+                    <Input
+                      type="date"
+                      value={startDateFilter}
+                      onChange={(event) => setStartDateFilter(event.target.value)}
+                      className="bg-gray-950 border-gray-700 text-gray-100"
+                    />
+                  </div>
+
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Période - fin</p>
+                    <Input
+                      type="date"
+                      value={endDateFilter}
+                      onChange={(event) => setEndDateFilter(event.target.value)}
+                      className="bg-gray-950 border-gray-700 text-gray-100"
+                    />
+                  </div>
+
                   <div>
                     <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Projet</p>
                     <Select value={projectFilter} onValueChange={setProjectFilter}>
@@ -442,21 +557,64 @@ const TimesheetsPage = () => {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Nom / prénom ressource</p>
+                    <Input
+                      value={resourceNameFilter}
+                      onChange={(event) => setResourceNameFilter(event.target.value)}
+                      placeholder="ex: Henry Dubois"
+                      className="bg-gray-950 border-gray-700 text-gray-100"
+                    />
+                  </div>
+
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Type ressource</p>
+                    <Select value={resourceTypeFilter} onValueChange={setResourceTypeFilter}>
+                      <SelectTrigger className="bg-gray-950 border-gray-700 text-gray-100">
+                        <SelectValue placeholder="Tous les types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous les types</SelectItem>
+                        <SelectItem value="human">Ressource humaine</SelectItem>
+                        <SelectItem value="material">Ressource matérielle</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                  <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Entrées filtrées</p>
+                    <p className="text-lg font-semibold text-gray-100">
+                      {simulationMetrics.entriesCount} <span className="text-sm text-gray-400">sur {timesheets.length}</span>
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Durée totale (simulation)</p>
+                    <p className="text-lg font-semibold text-gray-100">{simulationMetrics.totalHoursLabel}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Montant facturable estimé</p>
+                    <p className="text-lg font-semibold text-emerald-400">{simulationMetrics.billableAmountLabel}</p>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
                   <p className="text-sm text-gray-400">
-                    {filteredTimesheets.length} entree(s) sur {timesheets.length}
+                    Pour Henry Dubois: mettez une période, laissez "Projet = Tous", saisissez "Henry Dubois", puis utilisez "Facturer filtre".
                   </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-300 hover:text-white"
-                    onClick={clearFilters}
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Reinitialiser les filtres
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-300 hover:text-white"
+                      onClick={clearFilters}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Reinitialiser les filtres
+                    </Button>
+                  </div>
                 </div>
               </div>
 
