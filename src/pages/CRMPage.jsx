@@ -76,7 +76,7 @@ const CRMPage = () => {
   const normalizedSection = section || 'overview';
   const activeSection = sectionConfig.find((entry) => entry.key === normalizedSection) || sectionConfig[0];
 
-  const { company } = useCompany();
+  const { company, companies = [] } = useCompany();
   const { activeCompanyId, applyCompanyScope } = useCompanyScope();
   const { clients, loading: clientsLoading } = useClients();
   const { quotes, loading: quotesLoading } = useQuotes();
@@ -88,6 +88,29 @@ const CRMPage = () => {
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState('');
 
+  const activeCompany = useMemo(() => {
+    if (!activeCompanyId) return company || null;
+    if (company?.id === activeCompanyId) return company;
+    return companies.find((entry) => entry.id === activeCompanyId) || company || null;
+  }, [activeCompanyId, companies, company]);
+
+  const scopedClients = useMemo(
+    () => (clients || []).filter((client) => client?.company_id === activeCompanyId),
+    [activeCompanyId, clients],
+  );
+  const scopedQuotes = useMemo(
+    () => (quotes || []).filter((quote) => quote?.company_id === activeCompanyId),
+    [activeCompanyId, quotes],
+  );
+  const scopedInvoices = useMemo(
+    () => (invoices || []).filter((invoice) => invoice?.company_id === activeCompanyId),
+    [activeCompanyId, invoices],
+  );
+  const scopedProjects = useMemo(
+    () => (projects || []).filter((project) => project?.company_id === activeCompanyId),
+    [activeCompanyId, projects],
+  );
+
   useEffect(() => {
     if (section && !sectionConfig.some((entry) => entry.key === section)) {
       navigate('/app/crm', { replace: true });
@@ -98,6 +121,15 @@ const CRMPage = () => {
     let cancelled = false;
 
     const fetchActivities = async () => {
+      if (!activeCompanyId) {
+        if (!cancelled) {
+          setTaskActivities([]);
+          setTimesheetActivities([]);
+          setActivityError('');
+          setActivityLoading(false);
+        }
+        return;
+      }
       if (!supabase) return;
       setActivityLoading(true);
       setActivityError('');
@@ -139,33 +171,33 @@ const CRMPage = () => {
     };
   }, [activeCompanyId, applyCompanyScope]);
 
-  const currency = (company?.accounting_currency || company?.currency || 'EUR').toUpperCase();
+  const currency = (activeCompany?.accounting_currency || activeCompany?.currency || 'EUR').toUpperCase();
   const loading = clientsLoading || quotesLoading || invoicesLoading || projectsLoading || activityLoading;
 
   const quoteClientIds = useMemo(
-    () => new Set((quotes || []).map((quote) => quote.client_id).filter(Boolean)),
-    [quotes],
+    () => new Set((scopedQuotes || []).map((quote) => quote.client_id).filter(Boolean)),
+    [scopedQuotes],
   );
   const invoicedClientIds = useMemo(
-    () => new Set((invoices || []).map((invoice) => invoice.client_id).filter(Boolean)),
-    [invoices],
+    () => new Set((scopedInvoices || []).map((invoice) => invoice.client_id).filter(Boolean)),
+    [scopedInvoices],
   );
 
   const kpis = useMemo(() => {
-    const openQuotes = (quotes || []).filter((quote) => openOpportunityStatuses.has(String(quote.status || '').toLowerCase()));
-    const wonQuotes = (quotes || []).filter((quote) => closedWonQuoteStatuses.has(String(quote.status || '').toLowerCase()));
-    const paidInvoices = (invoices || []).filter((invoice) => String(invoice.payment_status || '').toLowerCase() === 'paid');
-    const activeProjects = (projects || []).filter((project) => {
+    const openQuotes = (scopedQuotes || []).filter((quote) => openOpportunityStatuses.has(String(quote.status || '').toLowerCase()));
+    const wonQuotes = (scopedQuotes || []).filter((quote) => closedWonQuoteStatuses.has(String(quote.status || '').toLowerCase()));
+    const paidInvoices = (scopedInvoices || []).filter((invoice) => String(invoice.payment_status || '').toLowerCase() === 'paid');
+    const activeProjects = (scopedProjects || []).filter((project) => {
       const status = String(project.status || '').toLowerCase();
       return status !== 'completed' && status !== 'cancelled';
     });
-    const leads = (clients || []).filter((client) => {
+    const leads = (scopedClients || []).filter((client) => {
       const id = client.id;
       return id && !quoteClientIds.has(id) && !invoicedClientIds.has(id);
     });
 
     return {
-      accounts: clients?.length || 0,
+      accounts: scopedClients?.length || 0,
       leads: leads.length,
       opportunities: openQuotes.length,
       pipelineAmount: openQuotes.reduce((sum, quote) => sum + Number(quote.total_ttc || quote.total_ht || 0), 0),
@@ -173,36 +205,36 @@ const CRMPage = () => {
       paidRevenue: paidInvoices.reduce((sum, invoice) => sum + Number(invoice.total_ttc || 0), 0),
       activeProjects: activeProjects.length,
     };
-  }, [clients, invoicedClientIds, projects, quoteClientIds, quotes, invoices]);
+  }, [invoicedClientIds, quoteClientIds, scopedClients, scopedInvoices, scopedProjects, scopedQuotes]);
 
   const recentQuotes = useMemo(
-    () => [...(quotes || [])].slice(0, 8),
-    [quotes],
+    () => [...(scopedQuotes || [])].slice(0, 8),
+    [scopedQuotes],
   );
   const recentInvoices = useMemo(
-    () => [...(invoices || [])].slice(0, 8),
-    [invoices],
+    () => [...(scopedInvoices || [])].slice(0, 8),
+    [scopedInvoices],
   );
 
   const accountsRows = useMemo(() => {
     const quoteMap = new Map();
-    (quotes || []).forEach((quote) => {
+    (scopedQuotes || []).forEach((quote) => {
       if (!quote?.client_id) return;
       const previous = quoteMap.get(quote.client_id);
       if (!previous || new Date(quote.created_at) > new Date(previous.created_at)) {
         quoteMap.set(quote.client_id, quote);
       }
     });
-    return (clients || []).map((client) => ({
+    return (scopedClients || []).map((client) => ({
       ...client,
       latest_quote: quoteMap.get(client.id) || null,
       is_lead: !quoteClientIds.has(client.id) && !invoicedClientIds.has(client.id),
     }));
-  }, [clients, invoices, quoteClientIds, invoicedClientIds, quotes]);
+  }, [invoicedClientIds, quoteClientIds, scopedClients, scopedQuotes]);
 
   const opportunitiesRows = useMemo(
-    () => (quotes || []).filter((quote) => openOpportunityStatuses.has(String(quote.status || '').toLowerCase())),
-    [quotes],
+    () => (scopedQuotes || []).filter((quote) => openOpportunityStatuses.has(String(quote.status || '').toLowerCase())),
+    [scopedQuotes],
   );
 
   const renderOverview = () => (
@@ -259,7 +291,7 @@ const CRMPage = () => {
                   <ArrowRight className="w-4 h-4 text-gray-500" />
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
-                  Scopé automatiquement sur la société active ({company?.company_name || 'Société non définie'}).
+                  Scopé automatiquement sur la société active ({activeCompany?.company_name || 'Société non définie'}).
                 </p>
               </Link>
             );
@@ -510,7 +542,7 @@ const CRMPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="rounded-lg border border-gray-800 bg-gray-900/40 p-3">
             <p className="text-xs text-gray-400">Société active</p>
-            <p className="text-sm text-white mt-1">{company?.company_name || '-'}</p>
+            <p className="text-sm text-white mt-1">{activeCompany?.company_name || '-'}</p>
           </div>
           <div className="rounded-lg border border-gray-800 bg-gray-900/40 p-3">
             <p className="text-xs text-gray-400">Audit CRUD</p>
@@ -575,6 +607,21 @@ const CRMPage = () => {
   );
 
   const renderActiveSection = () => {
+    if (!activeCompanyId) {
+      return (
+        <Card className="bg-white/5 border-white/10">
+          <CardHeader>
+            <CardTitle className="text-white">Sélection de société requise</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-lg border border-yellow-900/60 bg-yellow-950/20 p-4 text-sm text-yellow-100">
+              Le CRM est strictement isolé par société. Sélectionnez d'abord une société dans le sélecteur en haut de l'écran.
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
     switch (activeSection.key) {
       case 'accounts':
         return renderAccounts();
@@ -611,12 +658,12 @@ const CRMPage = () => {
           <Building2 className="w-4 h-4 text-orange-400" />
           <span className="text-sm text-gray-300">Société active</span>
           <Badge variant="outline" className="bg-orange-500/20 text-orange-300 border-orange-700">
-            {company?.company_name || 'Non définie'}
+            {activeCompany?.company_name || 'Non définie'}
           </Badge>
         </div>
         <div className="flex items-center gap-2 text-xs">
           <Badge variant="outline" className="bg-emerald-500/20 text-emerald-300 border-emerald-700">
-            <CheckCircle2 className="w-3 h-3 mr-1" /> Scope company_id
+            <CheckCircle2 className="w-3 h-3 mr-1" /> Scope company_id strict
           </Badge>
           <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-700">
             Audit & journalisation actifs
