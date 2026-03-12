@@ -360,7 +360,7 @@ const ReportGenerator = () => {
 
     let invoicesQuery = supabase
       .from('invoices')
-      .select('id, invoice_number, date, due_date, status, payment_status, total_ht, total_ttc, balance_due, client:clients(company_name)')
+      .select('id, invoice_number, date, due_date, status, payment_status, total_ht, total_ttc, balance_due, client:clients!fk_invoices_client_scope(company_name)')
       .gte('date', period.startDate)
       .lte('date', period.endDate)
       .order('date', { ascending: false });

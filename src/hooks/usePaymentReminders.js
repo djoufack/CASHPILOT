@@ -43,7 +43,7 @@ export const usePaymentReminders = () => {
             invoice_number,
             total_ttc,
             client_id,
-            client:clients(id, company_name, contact_name, email, preferred_currency)
+            client:clients!fk_invoices_client_scope(id, company_name, contact_name, email, preferred_currency)
           ),
           rule:payment_reminder_rules(id, name)
         `)

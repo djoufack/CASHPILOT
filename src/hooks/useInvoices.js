@@ -115,7 +115,7 @@ export const useInvoices = () => {
         .from('invoices')
         .select(`
           *,
-          client:clients(id, company_name, contact_name, email, preferred_currency),
+          client:clients!fk_invoices_client_scope(id, company_name, contact_name, email, preferred_currency),
           items:invoice_items(*),
           payments:payments(id, amount, payment_date, payment_method, receipt_number)
         `)
@@ -150,7 +150,7 @@ export const useInvoices = () => {
         .from('invoices')
         .select(`
           *,
-          client:clients(id, company_name, contact_name, email, preferred_currency),
+          client:clients!fk_invoices_client_scope(id, company_name, contact_name, email, preferred_currency),
           items:invoice_items(*),
           payments:payments(id, amount, payment_date, payment_method, receipt_number)
         `, usePagination ? { count: 'exact' } : undefined)

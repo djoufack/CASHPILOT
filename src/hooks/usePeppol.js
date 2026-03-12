@@ -27,7 +27,7 @@ export function usePeppol() {
         .select(`
           id, invoice_number, total_ht, total_ttc, tax_rate, status,
           peppol_status, peppol_sent_at, peppol_document_id, peppol_error_message,
-          client:clients(id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled)
+          client:clients!fk_invoices_client_scope(id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled)
         `)
         .eq('user_id', user.id)
         .eq('status', 'sent')

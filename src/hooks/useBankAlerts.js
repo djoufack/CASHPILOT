@@ -72,7 +72,7 @@ export const useBankAlerts = () => {
       const today = formatDateInput();
       let overdueInvoicesQuery = supabase
         .from('invoices')
-        .select('invoice_number, total_ttc, due_date, client:clients(company_name, contact_name)')
+        .select('invoice_number, total_ttc, due_date, client:clients!fk_invoices_client_scope(company_name, contact_name)')
         .eq('user_id', user.id)
         .in('status', ['sent', 'overdue'])
         .lt('due_date', today);
