@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Activity,
-  AlertTriangle,
   ArrowRight,
   BarChart3,
   Building2,
@@ -17,12 +16,16 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useCompany } from '@/hooks/useCompany';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useClients } from '@/hooks/useClients';
 import { useQuotes } from '@/hooks/useQuotes';
 import { useInvoices } from '@/hooks/useInvoices';
 import { useProjects } from '@/hooks/useProjects';
+import { useCrmSupport } from '@/hooks/useCrmSupport';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
 const sectionConfig = [
@@ -55,6 +58,13 @@ const formatDate = (rawDate) => {
   return parsed.toLocaleDateString('fr-FR');
 };
 
+const formatDateTime = (rawDate) => {
+  if (!rawDate) return '-';
+  const parsed = new Date(rawDate);
+  if (Number.isNaN(parsed.getTime())) return '-';
+  return parsed.toLocaleString('fr-FR');
+};
+
 const statusBadgeClass = (status = '') => {
   const normalized = String(status).toLowerCase();
   if (normalized === 'paid' || normalized === 'accepted' || normalized === 'approved' || normalized === 'signed') {
@@ -69,10 +79,28 @@ const statusBadgeClass = (status = '') => {
   return 'bg-slate-700/40 text-slate-300 border-slate-600';
 };
 
+const ticketPriorityClass = (priority = '') => {
+  const normalized = String(priority).toLowerCase();
+  if (normalized === 'critical') return 'bg-red-500/20 text-red-300 border-red-700';
+  if (normalized === 'high') return 'bg-orange-500/20 text-orange-300 border-orange-700';
+  if (normalized === 'medium') return 'bg-blue-500/20 text-blue-300 border-blue-700';
+  return 'bg-slate-700/40 text-slate-300 border-slate-600';
+};
+
+const ticketStatusLabel = (status = '') => {
+  const normalized = String(status).toLowerCase();
+  if (normalized === 'in_progress') return 'En cours';
+  if (normalized === 'waiting_customer') return 'Attente client';
+  if (normalized === 'resolved') return 'Résolu';
+  if (normalized === 'closed') return 'Clôturé';
+  return 'Ouvert';
+};
+
 const CRMPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { section } = useParams();
+  const { user } = useAuth();
   const normalizedSection = section || 'overview';
   const activeSection = sectionConfig.find((entry) => entry.key === normalizedSection) || sectionConfig[0];
 
@@ -82,11 +110,32 @@ const CRMPage = () => {
   const { quotes, loading: quotesLoading } = useQuotes();
   const { invoices, loading: invoicesLoading } = useInvoices();
   const { projects, loading: projectsLoading } = useProjects();
+  const {
+    tickets: supportTickets,
+    slaPolicies,
+    supportKpis,
+    loading: supportLoading,
+    error: supportError,
+    createTicket,
+    updateTicket,
+    deleteTicket,
+  } = useCrmSupport();
 
   const [taskActivities, setTaskActivities] = useState([]);
   const [timesheetActivities, setTimesheetActivities] = useState([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState('');
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [ticketSaving, setTicketSaving] = useState(false);
+  const [ticketDraft, setTicketDraft] = useState({
+    title: '',
+    description: '',
+    client_id: '',
+    project_id: '',
+    priority: 'medium',
+    sla_level: 'standard',
+    due_at: '',
+  });
 
   const activeCompany = useMemo(() => {
     if (!activeCompanyId) return company || null;
@@ -249,6 +298,71 @@ const CRMPage = () => {
     () => (scopedQuotes || []).filter((quote) => openOpportunityStatuses.has(String(quote.status || '').toLowerCase())),
     [scopedQuotes],
   );
+
+  useEffect(() => {
+    setTicketDraft({
+      title: '',
+      description: '',
+      client_id: scopedClients[0]?.id || '',
+      project_id: '',
+      priority: 'medium',
+      sla_level: 'standard',
+      due_at: '',
+    });
+    setShowTicketForm(false);
+  }, [activeCompanyId, scopedClients]);
+
+  const ticketProjectOptions = useMemo(() => {
+    if (!ticketDraft.client_id) return [];
+    return scopedProjects.filter((project) => project.client_id === ticketDraft.client_id);
+  }, [scopedProjects, ticketDraft.client_id]);
+
+  const handleCreateTicket = async (event) => {
+    event.preventDefault();
+    if (!user || !activeCompanyId || !ticketDraft.title || !ticketDraft.client_id) return;
+
+    setTicketSaving(true);
+    try {
+      await createTicket({
+        title: ticketDraft.title.trim(),
+        description: ticketDraft.description?.trim() || null,
+        client_id: ticketDraft.client_id,
+        project_id: ticketDraft.project_id || null,
+        priority: ticketDraft.priority,
+        sla_level: ticketDraft.sla_level,
+        status: 'open',
+        due_at: ticketDraft.due_at ? new Date(ticketDraft.due_at).toISOString() : null,
+      });
+      setTicketDraft((prev) => ({
+        ...prev,
+        title: '',
+        description: '',
+        due_at: '',
+      }));
+      setShowTicketForm(false);
+    } finally {
+      setTicketSaving(false);
+    }
+  };
+
+  const handleTicketStatusChange = async (ticket, nextStatus) => {
+    if (!ticket?.id) return;
+
+    const payload = { status: nextStatus };
+    if (nextStatus === 'resolved') {
+      payload.resolved_at = new Date().toISOString();
+      payload.closed_at = null;
+    }
+    if (nextStatus === 'closed') {
+      payload.closed_at = new Date().toISOString();
+      payload.resolved_at = ticket.resolved_at || payload.closed_at;
+    }
+    if (nextStatus === 'open' || nextStatus === 'in_progress' || nextStatus === 'waiting_customer') {
+      payload.closed_at = null;
+    }
+
+    await updateTicket(ticket.id, payload);
+  };
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -540,31 +654,225 @@ const CRMPage = () => {
 
   const renderSupport = () => (
     <Card className="bg-white/5 border-white/10">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-white">Tickets & SLA</CardTitle>
+        <div className="flex gap-2">
+          <Button asChild variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800">
+            <Link to="/app/clients">Ouvrir clients</Link>
+          </Button>
+          <Button
+            className="bg-orange-500 hover:bg-orange-600"
+            onClick={() => setShowTicketForm((value) => !value)}
+            disabled={!activeCompanyId}
+          >
+            {showTicketForm ? 'Fermer' : 'Nouveau ticket'}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-lg border border-yellow-900/60 bg-yellow-950/20 p-4">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-yellow-300 mt-0.5" />
-            <div className="text-sm text-yellow-100">
-              Le module ticketing est prêt côté navigation CRM et gouvernance par société. La table dédiée tickets/SLA est la prochaine étape d’implémentation fonctionnelle.
+        {showTicketForm && (
+          <form onSubmit={handleCreateTicket} className="rounded-lg border border-gray-800 bg-gray-900/40 p-4 space-y-3">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Titre du ticket *</p>
+                <Input
+                  value={ticketDraft.title}
+                  onChange={(event) => setTicketDraft((prev) => ({ ...prev, title: event.target.value }))}
+                  placeholder="Ex: Incident intégration ERP"
+                  required
+                />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Client *</p>
+                <select
+                  value={ticketDraft.client_id}
+                  onChange={(event) => {
+                    const nextClientId = event.target.value;
+                    setTicketDraft((prev) => ({ ...prev, client_id: nextClientId, project_id: '' }));
+                  }}
+                  className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+                  required
+                >
+                  <option value="">Sélectionner un client</option>
+                  {scopedClients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.company_name || client.contact_name || client.id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Projet lié (optionnel)</p>
+                <select
+                  value={ticketDraft.project_id}
+                  onChange={(event) => setTicketDraft((prev) => ({ ...prev, project_id: event.target.value }))}
+                  className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+                >
+                  <option value="">Aucun projet</option>
+                  {ticketProjectOptions.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name || project.id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Échéance SLA (optionnel)</p>
+                <Input
+                  type="datetime-local"
+                  value={ticketDraft.due_at}
+                  onChange={(event) => setTicketDraft((prev) => ({ ...prev, due_at: event.target.value }))}
+                />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Priorité</p>
+                <select
+                  value={ticketDraft.priority}
+                  onChange={(event) => setTicketDraft((prev) => ({ ...prev, priority: event.target.value }))}
+                  className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">SLA</p>
+                <select
+                  value={ticketDraft.sla_level}
+                  onChange={(event) => setTicketDraft((prev) => ({ ...prev, sla_level: event.target.value }))}
+                  className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+                >
+                  <option value="standard">Standard</option>
+                  <option value="premium">Premium</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
             </div>
-          </div>
-        </div>
+
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Description</p>
+              <Textarea
+                value={ticketDraft.description}
+                onChange={(event) => setTicketDraft((prev) => ({ ...prev, description: event.target.value }))}
+                placeholder="Contexte, impact, action attendue..."
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={ticketSaving || !ticketDraft.title || !ticketDraft.client_id}>
+                {ticketSaving ? 'Création...' : 'Créer le ticket'}
+              </Button>
+            </div>
+          </form>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="rounded-lg border border-gray-800 bg-gray-900/40 p-3">
-            <p className="text-xs text-gray-400">Société active</p>
-            <p className="text-sm text-white mt-1">{activeCompany?.company_name || '-'}</p>
+            <p className="text-xs text-gray-400">Tickets ouverts</p>
+            <p className="text-2xl font-bold text-white mt-1">{supportKpis.open}</p>
           </div>
           <div className="rounded-lg border border-gray-800 bg-gray-900/40 p-3">
-            <p className="text-xs text-gray-400">Audit CRUD</p>
-            <p className="text-sm text-emerald-300 mt-1">Prévu: obligatoire</p>
+            <p className="text-xs text-gray-400">Tickets en retard (SLA)</p>
+            <p className="text-2xl font-bold text-red-300 mt-1">{supportKpis.overdue}</p>
           </div>
           <div className="rounded-lg border border-gray-800 bg-gray-900/40 p-3">
-            <p className="text-xs text-gray-400">Journalisation comptable</p>
-            <p className="text-sm text-emerald-300 mt-1">Prévu: temps réel</p>
+            <p className="text-xs text-gray-400">Tickets résolus/clôturés</p>
+            <p className="text-2xl font-bold text-emerald-300 mt-1">{supportKpis.resolved}</p>
           </div>
+        </div>
+
+        {supportError && (
+          <div className="rounded-lg border border-red-900/50 bg-red-950/30 p-3 text-sm text-red-300">
+            {supportError}
+          </div>
+        )}
+
+        <div className="rounded-lg border border-gray-800 bg-gray-900/40 p-3">
+          <p className="text-xs text-gray-400 mb-2">Politiques SLA (société active)</p>
+          {slaPolicies.length === 0 ? (
+            <p className="text-sm text-gray-500">Aucune politique SLA configurée.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {slaPolicies.map((policy) => (
+                <Badge key={policy.id} variant="outline" className="bg-blue-500/10 text-blue-300 border-blue-800">
+                  {policy.policy_name}: {policy.target_first_response_minutes} min / {policy.target_resolution_minutes} min
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-gray-800 bg-gray-900/40 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-800 text-left text-gray-400">
+                <th className="py-2 px-3">Ticket</th>
+                <th className="py-2 px-3">Client</th>
+                <th className="py-2 px-3">Projet</th>
+                <th className="py-2 px-3">Priorité</th>
+                <th className="py-2 px-3">SLA</th>
+                <th className="py-2 px-3">Échéance</th>
+                <th className="py-2 px-3">Statut</th>
+                <th className="py-2 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {supportTickets.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-4 px-3 text-gray-500">
+                    {supportLoading ? 'Chargement des tickets...' : 'Aucun ticket pour la société active.'}
+                  </td>
+                </tr>
+              )}
+              {supportTickets.map((ticket) => (
+                <tr key={ticket.id} className="border-b border-gray-900/70">
+                  <td className="py-2 px-3">
+                    <p className="text-white font-medium">{ticket.title}</p>
+                    <p className="text-xs text-gray-500">{ticket.ticket_number} • {formatDateTime(ticket.created_at)}</p>
+                  </td>
+                  <td className="py-2 px-3 text-gray-300">{ticket.client?.company_name || '-'}</td>
+                  <td className="py-2 px-3 text-gray-300">{ticket.project?.name || '-'}</td>
+                  <td className="py-2 px-3">
+                    <Badge variant="outline" className={ticketPriorityClass(ticket.priority)}>
+                      {ticket.priority || 'medium'}
+                    </Badge>
+                  </td>
+                  <td className="py-2 px-3 text-gray-300">{ticket.sla_level || 'standard'}</td>
+                  <td className="py-2 px-3 text-gray-300">{formatDateTime(ticket.due_at)}</td>
+                  <td className="py-2 px-3">
+                    <select
+                      value={ticket.status || 'open'}
+                      onChange={(event) => handleTicketStatusChange(ticket, event.target.value)}
+                      className="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-white"
+                    >
+                      <option value="open">Ouvert</option>
+                      <option value="in_progress">En cours</option>
+                      <option value="waiting_customer">Attente client</option>
+                      <option value="resolved">Résolu</option>
+                      <option value="closed">Clôturé</option>
+                    </select>
+                    <div className="mt-1">
+                      <Badge variant="outline" className={statusBadgeClass(ticket.status)}>
+                        {ticketStatusLabel(ticket.status)}
+                      </Badge>
+                    </div>
+                  </td>
+                  <td className="py-2 px-3 text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-red-800 text-red-300 hover:bg-red-950/40"
+                      onClick={() => deleteTicket(ticket.id)}
+                    >
+                      Supprimer
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </CardContent>
     </Card>
