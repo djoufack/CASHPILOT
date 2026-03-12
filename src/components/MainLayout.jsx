@@ -15,7 +15,7 @@ import {
   Truck, Package, BarChart3, Calculator, Settings,
   FileMinus, PackageCheck, Wallet, TrendingUp, Building2, RefreshCw, Shield,
   Receipt, ClipboardList, Wrench, Map, QrCode, FileBarChart, Database, Tag, Globe, Webhook, Cable,
-  CreditCard
+  CreditCard, Target
 } from 'lucide-react';
 
 const MainLayout = () => {
@@ -63,6 +63,8 @@ const MainLayout = () => {
     { path: '/app/debt-manager', label: t('debtManager.title'), icon: Wallet },
     { path: '/app/expenses', label: t('nav.expenses'), icon: Receipt },
     { path: '/app/purchase-orders', label: t('nav.purchaseOrders'), icon: ClipboardList },
+    { type: 'separator', label: t('nav.crm', 'CRM') },
+    { path: '/app/crm', label: t('nav.crmOverview', 'Vue CRM'), icon: Target },
     { type: 'separator', label: t('nav.catalog') },
     { path: '/app/stock', label: t('nav.products'), icon: Package },
     { path: '/app/services', label: t('nav.clientServices', 'Prestations clients'), icon: Wrench },

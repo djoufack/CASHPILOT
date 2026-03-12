@@ -92,6 +92,7 @@ const PortfolioPage = lazyRetry(() => import('./pages/PortfolioPage'));
 const FinancialInstrumentsPage = lazyRetry(() => import('./pages/FinancialInstrumentsPage'));
 const IntegrationsHubPage = lazyRetry(() => import('./pages/IntegrationsHubPage'));
 const SharedSnapshotPage = lazyRetry(() => import('./pages/SharedSnapshotPage'));
+const CRMPage = lazyRetry(() => import('./pages/CRMPage'));
 const PrivacyPage = lazyRetry(() => import('./pages/PrivacyPage'));
 const LegalPage = lazyRetry(() => import('./pages/LegalPage'));
 const NotFoundPage = lazyRetry(() => import('./pages/NotFoundPage'));
@@ -175,6 +176,8 @@ const AuthWrapper = () => {
                 <Route index element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><Dashboard /></Suspense></PageErrorBoundary>} />
                 <Route path="clients" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ClientsPage /></Suspense></PageErrorBoundary>} />
                 <Route path="clients/:id" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ClientProfile /></Suspense></PageErrorBoundary>} />
+                <Route path="crm" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><CRMPage /></Suspense></PageErrorBoundary>} />
+                <Route path="crm/:section" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><CRMPage /></Suspense></PageErrorBoundary>} />
                 <Route path="projects" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ProjectsPage /></Suspense></PageErrorBoundary>} />
                 <Route path="projects/:projectId" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ProjectDetail /></Suspense></PageErrorBoundary>} />
                 <Route path="timesheets" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><TimesheetsPage /></Suspense></PageErrorBoundary>} />
