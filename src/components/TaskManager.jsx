@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTasksForProject } from '@/hooks/useTasksForProject';
 import TaskList from './TaskList';
 import TaskForm from './TaskForm';
@@ -38,6 +38,23 @@ const TaskManager = ({ projectId, quotes = [], project = null }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [taskToDelete, setTaskToDelete] = useState(null);
+  const taskTitleMap = useMemo(() => {
+    return Object.fromEntries((tasks || []).map((task) => [task.id, task.title || task.name || task.id]));
+  }, [tasks]);
+  const tasksWithRelations = useMemo(() => {
+    return (tasks || []).map((task) => {
+      const dependencyIds = Array.isArray(task?.depends_on) ? task.depends_on : [];
+      return {
+        ...task,
+        dependency_ids: dependencyIds,
+        dependency_titles: dependencyIds.map((dependencyId) => taskTitleMap[dependencyId]).filter(Boolean),
+        dependency_tasks: dependencyIds.map((dependencyId) => ({
+          id: dependencyId,
+          title: taskTitleMap[dependencyId] || dependencyId,
+        })),
+      };
+    });
+  }, [tasks, taskTitleMap]);
 
   const handleCreate = () => {
     setEditingTask(null);
@@ -68,6 +85,13 @@ const TaskManager = ({ projectId, quotes = [], project = null }) => {
   const handleStatusChange = async (task) => {
     const newStatus = task.status === 'completed' ? 'pending' : 'completed';
     await updateTask(task.id, { status: newStatus });
+  };
+
+  const handleOpenTask = (taskId) => {
+    const target = (tasksWithRelations || []).find((task) => task.id === taskId);
+    if (target) {
+      handleEdit(target);
+    }
   };
 
   return (
@@ -115,11 +139,12 @@ const TaskManager = ({ projectId, quotes = [], project = null }) => {
       </div>
 
       <TaskList 
-        tasks={tasks} 
+        tasks={tasksWithRelations} 
         loading={loading} 
         onEdit={handleEdit} 
         onDelete={setTaskToDelete} 
         onStatusChange={handleStatusChange}
+        onOpenTask={handleOpenTask}
       />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

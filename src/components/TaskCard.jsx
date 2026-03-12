@@ -32,12 +32,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTaskStatus } from '@/hooks/useTaskStatus';
 
-const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
+const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onOpenTask }) => {
   const { updateTaskStatus } = useTaskStatus();
   const isOverdue = task.due_date && isPast(parseISO(task.due_date)) && task.status !== 'completed';
   const subtaskCount = Array.isArray(task?.subtasks)
     ? Number(task.subtasks?.[0]?.count || 0)
     : Number(task?.subtasks_count || 0);
+  const dependencyIds = Array.isArray(task?.dependency_ids)
+    ? task.dependency_ids
+    : Array.isArray(task?.depends_on)
+      ? task.depends_on
+      : [];
+  const dependencyTasks = Array.isArray(task?.dependency_tasks)
+    ? task.dependency_tasks
+    : dependencyIds.map((dependencyId, index) => ({
+        id: dependencyId,
+        title: task?.dependency_titles?.[index] || `#${index + 1}`,
+      }));
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -198,21 +209,28 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
               </Tooltip>
             </TooltipProvider>
           )}
-          {Array.isArray(task.depends_on) && task.depends_on.length > 0 && (
+          {dependencyIds.length > 0 && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
                   <button
                     type="button"
                     className="p-1.5 rounded bg-indigo-900/30 text-indigo-300 border border-indigo-800 text-xs font-medium inline-flex items-center gap-1 hover:bg-indigo-800/40"
-                    onClick={() => onEdit?.(task)}
+                    onClick={() => {
+                      const firstDependencyId = dependencyTasks?.[0]?.id;
+                      if (firstDependencyId && onOpenTask) {
+                        onOpenTask(firstDependencyId);
+                        return;
+                      }
+                      onEdit?.(task);
+                    }}
                   >
                     <GitBranch className="w-3 h-3" />
-                    {task.depends_on.length}
+                    {dependencyIds.length}
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Prérequis: {task.depends_on.length} tâche(s) {onEdit ? '• Cliquer pour ouvrir' : ''}
+                  Prérequis: {dependencyIds.length} tâche(s) {onOpenTask || onEdit ? '• Cliquer pour ouvrir' : ''}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -264,6 +282,32 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }) => {
           </button>
         )}
       </div>
+
+      {dependencyTasks.length > 0 && (
+        <div className="pl-7 mt-3 flex flex-wrap gap-2">
+          {dependencyTasks.slice(0, 4).map((dependencyTask) => (
+            <button
+              key={dependencyTask.id}
+              type="button"
+              className="rounded-full border border-indigo-800/70 bg-indigo-950/40 px-2.5 py-1 text-[11px] text-indigo-200 hover:bg-indigo-900/50"
+              onClick={() => {
+                if (dependencyTask.id && onOpenTask) {
+                  onOpenTask(dependencyTask.id);
+                  return;
+                }
+                onEdit?.(task);
+              }}
+            >
+              {dependencyTask.title || dependencyTask.id}
+            </button>
+          ))}
+          {dependencyTasks.length > 4 && (
+            <span className="rounded-full border border-indigo-800/60 bg-indigo-950/20 px-2.5 py-1 text-[11px] text-indigo-300">
+              +{dependencyTasks.length - 4}
+            </span>
+          )}
+        </div>
+      )}
     </motion.div>
   );
 };

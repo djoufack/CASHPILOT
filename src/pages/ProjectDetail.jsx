@@ -63,6 +63,10 @@ const ProjectDetail = () => {
         ...task,
         dependency_ids: dependencyIds,
         dependency_titles: dependencyTitles,
+        dependency_tasks: dependencyIds.map((dependencyId, index) => ({
+          id: dependencyId,
+          title: dependencyTitles[index] || dependencyId,
+        })),
         dependencies_count: dependencyIds.length,
         subtasks_count: subtasksCount,
       };
@@ -85,6 +89,13 @@ const ProjectDetail = () => {
   const handleEdit = (task) => {
     setEditingTask(task);
     setIsFormOpen(true);
+  };
+
+  const handleOpenTask = (taskId) => {
+    const target = (tasks || []).find((task) => task.id === taskId);
+    if (target) {
+      handleEdit(target);
+    }
   };
 
   const handleSave = async (data) => {
@@ -188,6 +199,7 @@ const ProjectDetail = () => {
                 onEdit={handleEdit} 
                 onDelete={deleteTask} 
                 onStatusChange={refreshTasks}
+                onOpenTask={handleOpenTask}
               />
             </TabsContent>
 
@@ -206,7 +218,7 @@ const ProjectDetail = () => {
                  <h2 className="text-xl font-bold text-gradient">Agenda</h2>
                  <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="bg-orange-500 hover:bg-orange-600">Add Task</Button>
               </div>
-              <AgendaView tasks={taskViewsData} onEdit={handleEdit} onDelete={deleteTask} />
+              <AgendaView tasks={taskViewsData} onEdit={handleEdit} onDelete={deleteTask} onOpenTask={handleOpenTask} />
             </TabsContent>
 
             <TabsContent value="stats" className="focus:outline-none">
@@ -336,12 +348,10 @@ const ProjectDetail = () => {
                       dependencies_count: task.dependencies_count || 0,
                       subtasks_count: task.subtasks_count || 0,
                       dependency_titles: task.dependency_titles || [],
+                      dependency_tasks: task.dependency_tasks || [],
                     }))}
                   viewMode={ganttViewMode}
-                  onTaskClick={(task) => {
-                    const target = (tasks || []).find((item) => item.id === task?.id);
-                    if (target) handleEdit(target);
-                  }}
+                  onTaskClick={(task) => handleOpenTask(task?.id)}
                   onDateChange={async (task, start, end) => {
                     try {
                       await supabase

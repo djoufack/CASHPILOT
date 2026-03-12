@@ -32,7 +32,7 @@ const COLUMNS = [
 ];
 
 // Sortable Task Item Wrapper
-const SortableTaskItem = ({ task, onEdit, onDelete }) => {
+const SortableTaskItem = ({ task, onEdit, onDelete, onOpenTask }) => {
   const {
     attributes,
     listeners,
@@ -54,13 +54,13 @@ const SortableTaskItem = ({ task, onEdit, onDelete }) => {
          <GripVertical className="w-4 h-4" />
        </div>
        <div className="pl-0"> 
-          <TaskCard task={task} onEdit={onEdit} onDelete={onDelete} />
+          <TaskCard task={task} onEdit={onEdit} onDelete={onDelete} onOpenTask={onOpenTask} />
        </div>
     </div>
   );
 };
 
-const KanbanColumn = ({ column, tasks, onEdit, onDelete }) => {
+const KanbanColumn = ({ column, tasks, onEdit, onDelete, onOpenTask }) => {
   const { setNodeRef } = useDroppable({ id: column.id });
   
   return (
@@ -73,7 +73,7 @@ const KanbanColumn = ({ column, tasks, onEdit, onDelete }) => {
       <div ref={setNodeRef} className="p-3 flex-1 overflow-y-auto min-h-[200px]">
         <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map(task => (
-            <SortableTaskItem key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} />
+            <SortableTaskItem key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} onOpenTask={onOpenTask} />
           ))}
         </SortableContext>
         {tasks.length === 0 && (
@@ -86,7 +86,7 @@ const KanbanColumn = ({ column, tasks, onEdit, onDelete }) => {
   );
 };
 
-const KanbanBoard = ({ tasks, onEdit, onDelete, onStatusChange }) => {
+const KanbanBoard = ({ tasks, onEdit, onDelete, onStatusChange, onOpenTask }) => {
   const { updateTaskStatus } = useTaskStatus();
   const [localTasks, setLocalTasks] = useState(tasks);
   const [activeTask, setActiveTask] = useState(null);
@@ -153,12 +153,13 @@ const KanbanBoard = ({ tasks, onEdit, onDelete, onStatusChange }) => {
             tasks={localTasks.filter(t => t.status === col.id)}
             onEdit={onEdit}
             onDelete={onDelete}
+            onOpenTask={onOpenTask}
           />
         ))}
       </div>
       
       <DragOverlay>
-        {activeTask ? <TaskCard task={activeTask} /> : null}
+        {activeTask ? <TaskCard task={activeTask} onOpenTask={onOpenTask} /> : null}
       </DragOverlay>
     </DndContext>
   );
