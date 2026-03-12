@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { validateServiceCatalogPayload } from '@/utils/serviceCatalogQuality';
 
 export const useServices = () => {
   const [services, setServices] = useState([]);
@@ -47,6 +48,11 @@ export const useServices = () => {
     if (!user || !supabase) return;
     setLoading(true);
     try {
+      const qualityCheck = validateServiceCatalogPayload(serviceData, { context: 'client' });
+      if (!qualityCheck.valid) {
+        throw new Error(qualityCheck.errors[0]);
+      }
+
       const { data, error } = await supabase
         .from('services')
         .insert([{ ...withCompanyScope(serviceData), user_id: user.id }])
@@ -73,6 +79,12 @@ export const useServices = () => {
     if (!supabase) return;
     setLoading(true);
     try {
+      const existingService = services.find((service) => service.id === id) || {};
+      const qualityCheck = validateServiceCatalogPayload({ ...existingService, ...serviceData }, { context: 'client' });
+      if (!qualityCheck.valid) {
+        throw new Error(qualityCheck.errors[0]);
+      }
+
       const { data, error } = await supabase
         .from('services')
         .update(serviceData)

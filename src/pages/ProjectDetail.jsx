@@ -9,6 +9,7 @@ import { useProjectProfitability } from '@/hooks/useProjectProfitability';
 import GanttView from '@/components/GanttView';
 import TaskManager from '@/components/TaskManager';
 import ProjectStatistics from '@/components/ProjectStatistics';
+import ProjectControlCenter from '@/components/ProjectControlCenter';
 import KanbanBoard from '@/components/KanbanBoard';
 import CalendarView from '@/components/CalendarView';
 import AgendaView from '@/components/AgendaView';
@@ -143,6 +144,7 @@ const ProjectDetail = () => {
                 <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><List className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">Agenda</span></TabsTrigger>
                 <TabsTrigger value="stats" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><PieChart className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">Stats</span></TabsTrigger>
                 <TabsTrigger value="profitability" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><TrendingUp className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">{t('projects.profitability.title')}</span></TabsTrigger>
+                <TabsTrigger value="control" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><TrendingUp className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">Control</span></TabsTrigger>
                 <TabsTrigger value="gantt" className="data-[state=active]:bg-orange-500/10 text-gray-400 data-[state=active]:text-orange-400 flex-1"><BarChart2 className="w-4 h-4 md:mr-2" /><span className="hidden md:inline">{t('projects.gantt.title')}</span></TabsTrigger>
               </TabsList>
             </div>
@@ -270,6 +272,10 @@ const ProjectDetail = () => {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="control" className="focus:outline-none">
+              <ProjectControlCenter project={project} tasks={tasks} />
             </TabsContent>
 
             <TabsContent value="gantt" className="focus:outline-none">

@@ -561,7 +561,7 @@ const LandingPage = () => {
           <div className="nav-actions">
             <LanguageSwitcher variant="segmented" />
             <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>{copy.nav.login}</button>
-            <button className="btn btn-primary nav-prismatic magnetic-btn" onClick={() => handleNavigate('/signup')}>
+            <button className="btn btn-primary nav-prismatic magnetic-btn" onClick={() => handleNavigate('/login')}>
               {copy.nav.start} <ArrowRight />
             </button>
           </div>
@@ -588,7 +588,7 @@ const LandingPage = () => {
           <LanguageSwitcher variant="segmented" />
           <div className="mobile-actions">
             <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>{copy.nav.login}</button>
-            <button className="btn btn-primary nav-prismatic" onClick={() => handleNavigate('/signup')}>{copy.nav.start}</button>
+            <button className="btn btn-primary nav-prismatic" onClick={() => handleNavigate('/login')}>{copy.nav.start}</button>
           </div>
         </div>
       </div>
@@ -649,7 +649,7 @@ const LandingPage = () => {
             </div>
 
             <div className="hero-cta animate-in" data-delay="500">
-              <button className="btn btn-hero-primary magnetic-btn" onClick={() => handleNavigate('/signup')}>
+              <button className="btn btn-hero-primary magnetic-btn" onClick={() => handleNavigate('/login')}>
                 <span className="btn-text">{copy.hero.primaryCta}</span>
                 <span className="btn-icon"><ArrowRight /></span>
                 <span className="btn-shine"></span>
@@ -1069,7 +1069,7 @@ const LandingPage = () => {
             <h2 className="cta-title">{copy.cta.title}</h2>
             <p className="cta-description">{copy.cta.description}</p>
             <div className="cta-buttons">
-              <button className="btn btn-cta-primary magnetic-btn" onClick={() => handleNavigate('/signup')}>
+              <button className="btn btn-cta-primary magnetic-btn" onClick={() => handleNavigate('/login')}>
                 <span className="btn-text">{copy.cta.primary}</span>
                 <span className="btn-icon"><ArrowRight /></span>
                 <span className="btn-shine"></span>
