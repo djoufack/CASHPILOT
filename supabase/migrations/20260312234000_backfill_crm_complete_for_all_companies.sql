@@ -169,7 +169,7 @@ BEGIN
           WHEN v_seq <= 2 THEN 'accepted'
           WHEN v_seq <= 4 THEN 'sent'
           WHEN v_seq = 5 THEN 'draft'
-          WHEN v_seq = 6 THEN 'pending'
+          WHEN v_seq = 6 THEN 'draft'
           ELSE 'rejected'
         END;
 
@@ -555,4 +555,3 @@ END;
 $$;
 
 COMMIT;
-
