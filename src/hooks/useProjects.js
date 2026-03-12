@@ -26,7 +26,7 @@ export const useProjects = () => {
     try {
       let query = supabase
         .from('projects')
-        .select('*, client:clients(id, company_name)')
+        .select('*, client:clients!fk_projects_client_scope(id, company_name)')
         .order('created_at', { ascending: false });
 
       query = applyCompanyScope(query);
@@ -65,7 +65,7 @@ export const useProjects = () => {
       const { data, error } = await supabase
         .from('projects')
         .insert([{ ...withCompanyScope(projectData), user_id: user.id }])
-        .select('*, client:clients(id, company_name)')
+        .select('*, client:clients!fk_projects_client_scope(id, company_name)')
         .single();
 
       if (error) throw error;
@@ -106,7 +106,7 @@ export const useProjects = () => {
         .from('projects')
         .update(withCompanyScope(projectData))
         .eq('id', id)
-        .select('*, client:clients(id, company_name)')
+        .select('*, client:clients!fk_projects_client_scope(id, company_name)')
         .single();
 
       if (error) throw error;

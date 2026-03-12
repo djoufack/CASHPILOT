@@ -77,7 +77,7 @@ const CRMPage = () => {
   const activeSection = sectionConfig.find((entry) => entry.key === normalizedSection) || sectionConfig[0];
 
   const { company, companies = [] } = useCompany();
-  const { activeCompanyId, applyCompanyScope } = useCompanyScope();
+  const { activeCompanyId } = useCompanyScope();
   const { clients, loading: clientsLoading } = useClients();
   const { quotes, loading: quotesLoading } = useQuotes();
   const { invoices, loading: invoicesLoading } = useInvoices();
@@ -110,6 +110,10 @@ const CRMPage = () => {
     () => (projects || []).filter((project) => project?.company_id === activeCompanyId),
     [activeCompanyId, projects],
   );
+  const scopedProjectIds = useMemo(
+    () => scopedProjects.map((project) => project?.id).filter(Boolean),
+    [scopedProjects],
+  );
 
   useEffect(() => {
     if (section && !sectionConfig.some((entry) => entry.key === section)) {
@@ -130,25 +134,34 @@ const CRMPage = () => {
         }
         return;
       }
-      if (!supabase) return;
+      if (!supabase || projectsLoading) return;
       setActivityLoading(true);
       setActivityError('');
       try {
+        if (!scopedProjectIds.length) {
+          if (!cancelled) {
+            setTaskActivities([]);
+            setTimesheetActivities([]);
+            setActivityLoading(false);
+          }
+          return;
+        }
+
         let taskQuery = supabase
           .from('tasks')
-          .select('id, title, status, priority, due_date, updated_at, project:projects(name)')
+          .select('id, title, status, priority, due_date, updated_at, project:projects!tasks_project_id_fkey(name)')
+          .in('project_id', scopedProjectIds)
           .order('updated_at', { ascending: false })
           .limit(8);
-        taskQuery = applyCompanyScope(taskQuery, { includeUnassigned: false });
         const { data: taskRows, error: taskError } = await taskQuery;
         if (taskError) throw taskError;
 
         let timesheetQuery = supabase
           .from('timesheets')
-          .select('id, date, duration_minutes, status, created_at, project:projects(name), client:clients(company_name)')
+          .select('id, date, duration_minutes, status, created_at, project:projects!fk_timesheets_project_scope(name), client:clients!fk_timesheets_client_scope(company_name)')
+          .in('project_id', scopedProjectIds)
           .order('date', { ascending: false })
           .limit(8);
-        timesheetQuery = applyCompanyScope(timesheetQuery, { includeUnassigned: false });
         const { data: timesheetRows, error: timesheetError } = await timesheetQuery;
         if (timesheetError) throw timesheetError;
 
@@ -169,7 +182,7 @@ const CRMPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeCompanyId, applyCompanyScope]);
+  }, [activeCompanyId, projectsLoading, scopedProjectIds]);
 
   const currency = (activeCompany?.accounting_currency || activeCompany?.currency || 'EUR').toUpperCase();
   const loading = clientsLoading || quotesLoading || invoicesLoading || projectsLoading || activityLoading;
