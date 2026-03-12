@@ -1461,31 +1461,62 @@ const CRMPage = () => {
     </Card>
   );
 
-  const renderAutomation = () => (
-    <Card className="bg-white/5 border-white/10">
-      <CardHeader>
-        <CardTitle className="text-white">Automatisation CRM</CardTitle>
-      </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-        <Link to="/app/webhooks" className="rounded-lg border border-gray-800 bg-gray-900/40 p-3 hover:border-orange-500/40">
-          <p className="text-white text-sm font-medium">Webhooks</p>
-          <p className="text-xs text-gray-500 mt-1">Déclencheurs CRM par évènement.</p>
-        </Link>
-        <Link to="/app/api-mcp" className="rounded-lg border border-gray-800 bg-gray-900/40 p-3 hover:border-orange-500/40">
-          <p className="text-white text-sm font-medium">API / MCP</p>
-          <p className="text-xs text-gray-500 mt-1">Interop workflows, agents et apps externes.</p>
-        </Link>
-        <Link to="/app/notifications" className="rounded-lg border border-gray-800 bg-gray-900/40 p-3 hover:border-orange-500/40">
-          <p className="text-white text-sm font-medium">Notifications</p>
-          <p className="text-xs text-gray-500 mt-1">Relances commerciales et alertes équipe.</p>
-        </Link>
-        <Link to="/app/scenarios" className="rounded-lg border border-gray-800 bg-gray-900/40 p-3 hover:border-orange-500/40">
-          <p className="text-white text-sm font-medium">Scénarios</p>
-          <p className="text-xs text-gray-500 mt-1">Simulation business et trajectoires pipeline.</p>
-        </Link>
-      </CardContent>
-    </Card>
-  );
+  const renderAutomation = () => {
+    const automationModules = [
+      {
+        key: 'webhooks',
+        title: 'Webhooks',
+        description: 'Déclencheurs CRM par évènement (création lead, update ticket, etc.).',
+        to: '/app/webhooks',
+        cta: 'Ouvrir Webhooks',
+      },
+      {
+        key: 'api-mcp',
+        title: 'API / MCP',
+        description: 'Interop workflows, agents et apps externes.',
+        to: '/app/api-mcp',
+        cta: 'Ouvrir API/MCP',
+      },
+      {
+        key: 'notifications',
+        title: 'Notifications',
+        description: 'Relances commerciales et alertes équipe.',
+        to: '/app/notifications',
+        cta: 'Ouvrir Notifications',
+      },
+      {
+        key: 'scenarios',
+        title: 'Scénarios',
+        description: 'Simulation business et trajectoires pipeline.',
+        to: '/app/scenarios',
+        cta: 'Ouvrir Scénarios',
+      },
+    ];
+
+    return (
+      <Card className="bg-white/5 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white">Automatisation CRM</CardTitle>
+          <p className="text-sm text-gray-400">
+            Cette section sert de centre de pilotage pour brancher et exécuter les automatisations CRM de la société active.
+          </p>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          {automationModules.map((module) => (
+            <div key={module.key} className="rounded-lg border border-gray-800 bg-gray-900/40 p-3 flex flex-col gap-3">
+              <div>
+                <p className="text-white text-sm font-medium">{module.title}</p>
+                <p className="text-xs text-gray-500 mt-1">{module.description}</p>
+              </div>
+              <Button asChild variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 mt-auto">
+                <Link to={module.to}>{module.cta}</Link>
+              </Button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderReports = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
