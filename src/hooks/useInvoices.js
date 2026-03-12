@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { generateInvoiceNumber } from '@/utils/calculations';
 import { sanitizeText } from '@/utils/sanitize';
+import { validateInvoiceCatalogConsistency } from '@/utils/serviceCatalogQuality';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { triggerWebhook } from '@/utils/webhookTrigger';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
@@ -194,6 +195,17 @@ export const useInvoices = () => {
     if (!supabase) throw new Error("Supabase not configured");
     setLoading(true);
     try {
+      const catalogConsistency = validateInvoiceCatalogConsistency(items);
+      if (!catalogConsistency.valid) {
+        const description = catalogConsistency.errors[0] || 'Invoice item validation failed.';
+        toast({
+          title: t('common.error', 'Erreur'),
+          description,
+          variant: 'destructive'
+        });
+        throw new Error(description);
+      }
+
       // If invoice_number is not provided, generate one from DB sequence
       const invoiceNumber = invoiceData.invoice_number || await generateInvoiceNumber(supabase, user.id);
 
@@ -391,6 +403,11 @@ export const useInvoices = () => {
   const createInvoiceItem = async (itemData) => {
     if (!supabase) throw new Error("Supabase not configured");
     try {
+      const catalogConsistency = validateInvoiceCatalogConsistency([itemData]);
+      if (!catalogConsistency.valid) {
+        throw new Error(catalogConsistency.errors[0] || 'Invoice item validation failed.');
+      }
+
       // Sanitize user-facing text fields to prevent XSS
       const sanitizedItem = { ...itemData };
       if (sanitizedItem.description) sanitizedItem.description = sanitizeText(sanitizedItem.description);
