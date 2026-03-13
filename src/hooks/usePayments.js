@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
-import { getPaymentStatus, calculateBalanceDue } from '@/utils/calculations';
+import { calculateBalanceDue } from '@/utils/calculations';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
@@ -166,6 +166,19 @@ export const usePayments = () => {
     return `REC-${year}-${month}-${random}`;
   };
 
+  const determinePaymentStatusFromDb = async (total, amountPaid) => {
+    const { data, error } = await supabase.rpc('determine_payment_status', {
+      p_amount_paid: Number(amountPaid || 0),
+      p_total: Number(total || 0),
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  };
+
   const updateInvoicePaymentData = async (invoiceId) => {
     if (!supabase) return;
     try {
@@ -188,14 +201,14 @@ export const usePayments = () => {
       // Get invoice total
       const { data: invoice } = await supabase
         .from('invoices')
-        .select('total_ttc')
+        .select('total_ttc, payment_status')
         .eq('id', invoiceId)
         .single();
 
       if (!invoice) return;
 
       const balanceDue = calculateBalanceDue(invoice.total_ttc, totalPaid);
-      const paymentStatus = getPaymentStatus(invoice.total_ttc, totalPaid);
+      const paymentStatus = await determinePaymentStatusFromDb(invoice.total_ttc, totalPaid);
 
       await supabase
         .from('invoices')

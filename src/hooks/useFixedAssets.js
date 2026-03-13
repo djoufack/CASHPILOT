@@ -152,51 +152,20 @@ export function useFixedAssets() {
 
   const postDepreciationEntry = useCallback(async (asset, scheduleLine) => {
     if (!user) return;
-    const entryRef = `AMORT-${asset.id.slice(0, 8)}-${scheduleLine.period_year}-${String(scheduleLine.period_month).padStart(2, '0')}`;
     const txDate = `${scheduleLine.period_year}-${String(scheduleLine.period_month).padStart(2, '0')}-28`;
-
-    const entries = [
-      {
-        user_id: user.id,
-        company_id: asset.company_id || activeCompanyId || null,
-        account_code: asset.account_code_expense || '6811',
-        entry_ref: entryRef,
-        transaction_date: txDate,
-        debit: scheduleLine.depreciation_amount,
-        credit: 0,
-        description: `Dotation amortissement — ${asset.asset_name}`,
-        journal: 'OD',
-        source_type: 'fixed_asset',
-        source_id: asset.id,
-        is_auto: true,
-      },
-      {
-        user_id: user.id,
-        company_id: asset.company_id || activeCompanyId || null,
-        account_code: asset.account_code_depreciation || '2815',
-        entry_ref: entryRef,
-        transaction_date: txDate,
-        debit: 0,
-        credit: scheduleLine.depreciation_amount,
-        description: `Amortissement — ${asset.asset_name}`,
-        journal: 'OD',
-        source_type: 'fixed_asset',
-        source_id: asset.id,
-        is_auto: true,
-      },
-    ];
-
-    const { error } = await supabase.from('accounting_entries').insert(entries);
+    // DB function is the authoritative accounting engine for depreciation posting.
+    const { error } = await supabase.rpc('generate_depreciation_entries', {
+      p_user_id: user.id,
+      p_date: txDate,
+    });
     if (error) throw error;
 
-    await supabase
-      .from('accounting_depreciation_schedule')
-      .update({ is_posted: true, entry_ref: entryRef, posted_at: new Date().toISOString() })
-      .eq('id', scheduleLine.id);
-
-    toast({ title: 'Dotation comptabilisée', description: `${scheduleLine.depreciation_amount.toLocaleString('fr-FR')} €` });
+    toast({
+      title: 'Dotation comptabilisée',
+      description: `${asset.asset_name} - ${scheduleLine.depreciation_amount.toLocaleString('fr-FR')} €`,
+    });
     await fetchAssets();
-  }, [user, fetchAssets, toast, activeCompanyId]);
+  }, [user, fetchAssets, toast]);
 
   return { assets, loading, fetchAssets, fetchSchedule, createAsset, updateAsset, deleteAsset, postDepreciationEntry };
 }

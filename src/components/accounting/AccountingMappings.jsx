@@ -1,8 +1,10 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { useAccounting } from '@/hooks/useAccounting';
 import { useAccountingInit } from '@/hooks/useAccountingInit';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getAccountingMappingTemplates } from '@/services/referenceDataService';
+import { useToast } from '@/components/ui/use-toast';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,299 +13,306 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, AlertTriangle, ArrowRight, Settings, Zap, Loader2, Lightbulb } from 'lucide-react';
 
-const SOURCE_TYPES = [
-  { value: 'invoice', label: 'Facture client (vente)' },
-  { value: 'expense', label: 'Dépense' },
-  { value: 'supplier_invoice', label: 'Facture fournisseur (achat)' },
-  { value: 'payment', label: 'Paiement client' },
-  { value: 'credit_note', label: 'Note de crédit' },
-  { value: 'supplier_payment', label: 'Paiement fournisseur' },
-];
+const EMPTY_FORM = {
+  source_type: '',
+  source_category: '',
+  debit_account_code: '',
+  credit_account_code: '',
+  description: '',
+};
 
-const EXPENSE_CATEGORIES = [
-  'general', 'office', 'travel', 'meals', 'transport', 'software',
-  'hardware', 'marketing', 'legal', 'insurance', 'rent', 'utilities',
-  'telecom', 'training', 'consulting', 'other'
-];
-
-const INVOICE_CATEGORIES = ['revenue', 'service', 'product'];
-const SUPPLIER_CATEGORIES = ['purchase', 'service', 'supply'];
-const PAYMENT_CATEGORIES = ['cash', 'bank_transfer', 'card', 'check', 'paypal', 'other'];
-const CREDIT_NOTE_CATEGORIES = ['general'];
-
-// Preset mappings Belgique — PCG belge
-const BELGIAN_MAPPINGS = [
-  // Factures clients (ventes) → Débit: Clients / Crédit: Produits
-  { source_type: 'invoice', source_category: 'revenue', debit_account_code: '400', credit_account_code: '700', description: 'Ventes de marchandises' },
-  { source_type: 'invoice', source_category: 'service', debit_account_code: '400', credit_account_code: '7061', description: 'Prestations de services' },
-  { source_type: 'invoice', source_category: 'product', debit_account_code: '400', credit_account_code: '701', description: 'Ventes de produits finis' },
-  // Dépenses → Débit: Charge / Crédit: Banque
-  { source_type: 'expense', source_category: 'general', debit_account_code: '6180', credit_account_code: '512', description: 'Frais généraux divers' },
-  { source_type: 'expense', source_category: 'office', debit_account_code: '6064', credit_account_code: '512', description: 'Fournitures administratives' },
-  { source_type: 'expense', source_category: 'travel', debit_account_code: '6251', credit_account_code: '512', description: 'Voyages et déplacements' },
-  { source_type: 'expense', source_category: 'meals', debit_account_code: '6257', credit_account_code: '512', description: 'Réceptions et frais de repas' },
-  { source_type: 'expense', source_category: 'transport', debit_account_code: '6241', credit_account_code: '512', description: 'Transport de biens et matériel' },
-  { source_type: 'expense', source_category: 'software', debit_account_code: '6116', credit_account_code: '512', description: 'Logiciels et abonnements numériques' },
-  { source_type: 'expense', source_category: 'hardware', debit_account_code: '6063', credit_account_code: '512', description: 'Matériel informatique (petit équipement)' },
-  { source_type: 'expense', source_category: 'marketing', debit_account_code: '6231', credit_account_code: '512', description: 'Publicité et marketing' },
-  { source_type: 'expense', source_category: 'legal', debit_account_code: '6226', credit_account_code: '512', description: 'Honoraires juridiques et comptables' },
-  { source_type: 'expense', source_category: 'insurance', debit_account_code: '616', credit_account_code: '512', description: 'Primes d\'assurance' },
-  { source_type: 'expense', source_category: 'rent', debit_account_code: '6132', credit_account_code: '512', description: 'Loyers immobiliers' },
-  { source_type: 'expense', source_category: 'utilities', debit_account_code: '6061', credit_account_code: '512', description: 'Énergie (eau, gaz, électricité)' },
-  { source_type: 'expense', source_category: 'telecom', debit_account_code: '626', credit_account_code: '512', description: 'Téléphone et Internet' },
-  { source_type: 'expense', source_category: 'training', debit_account_code: '6333', credit_account_code: '512', description: 'Formation professionnelle' },
-  { source_type: 'expense', source_category: 'consulting', debit_account_code: '6226', credit_account_code: '512', description: 'Honoraires de conseil' },
-  { source_type: 'expense', source_category: 'other', debit_account_code: '658', credit_account_code: '512', description: 'Charges diverses de gestion' },
-  // Factures fournisseurs → Débit: Charge / Crédit: Fournisseurs
-  { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '601', credit_account_code: '401', description: 'Achats de matières et marchandises' },
-  { source_type: 'supplier_invoice', source_category: 'service', debit_account_code: '604', credit_account_code: '401', description: 'Achats de prestations de services' },
-  { source_type: 'supplier_invoice', source_category: 'supply', debit_account_code: '6022', credit_account_code: '401', description: 'Achats de fournitures consommables' },
-  // Paiements clients
-  { source_type: 'payment', source_category: 'cash', debit_account_code: '550', credit_account_code: '400', description: 'Encaissement - espèces' },
-  { source_type: 'payment', source_category: 'bank_transfer', debit_account_code: '550', credit_account_code: '400', description: 'Encaissement - virement' },
-  { source_type: 'payment', source_category: 'card', debit_account_code: '550', credit_account_code: '400', description: 'Encaissement - carte' },
-  { source_type: 'payment', source_category: 'check', debit_account_code: '550', credit_account_code: '400', description: 'Encaissement - chèque' },
-  // Notes de crédit
-  { source_type: 'credit_note', source_category: 'general', debit_account_code: '700', credit_account_code: '400', description: 'Avoir client' },
-];
-
-const FRENCH_MAPPINGS = [
-  // Factures clients (ventes) → Débit: Clients / Crédit: Produits
-  { source_type: 'invoice', source_category: 'revenue', debit_account_code: '411', credit_account_code: '701', description: 'Ventes de marchandises' },
-  { source_type: 'invoice', source_category: 'service', debit_account_code: '411', credit_account_code: '706', description: 'Prestations de services' },
-  { source_type: 'invoice', source_category: 'product', debit_account_code: '411', credit_account_code: '701', description: 'Ventes de produits finis' },
-  // Paiements clients
-  { source_type: 'payment', source_category: 'cash', debit_account_code: '530', credit_account_code: '411', description: 'Encaissement - espèces' },
-  { source_type: 'payment', source_category: 'bank_transfer', debit_account_code: '512', credit_account_code: '411', description: 'Encaissement - virement' },
-  { source_type: 'payment', source_category: 'card', debit_account_code: '512', credit_account_code: '411', description: 'Encaissement - carte' },
-  { source_type: 'payment', source_category: 'check', debit_account_code: '514', credit_account_code: '411', description: 'Encaissement - chèque' },
-  // Notes de crédit
-  { source_type: 'credit_note', source_category: 'general', debit_account_code: '701', credit_account_code: '411', description: 'Avoir client' },
-  // Dépenses
-  { source_type: 'expense', source_category: 'general', debit_account_code: '618', credit_account_code: '512', description: 'Frais généraux divers' },
-  { source_type: 'expense', source_category: 'office', debit_account_code: '6064', credit_account_code: '512', description: 'Fournitures administratives' },
-  { source_type: 'expense', source_category: 'travel', debit_account_code: '6251', credit_account_code: '512', description: 'Voyages et déplacements' },
-  { source_type: 'expense', source_category: 'meals', debit_account_code: '6257', credit_account_code: '512', description: 'Réceptions et frais de repas' },
-  { source_type: 'expense', source_category: 'transport', debit_account_code: '6241', credit_account_code: '512', description: 'Transport de biens' },
-  { source_type: 'expense', source_category: 'software', debit_account_code: '6116', credit_account_code: '512', description: 'Logiciels et abonnements' },
-  { source_type: 'expense', source_category: 'hardware', debit_account_code: '6063', credit_account_code: '512', description: 'Matériel informatique' },
-  { source_type: 'expense', source_category: 'marketing', debit_account_code: '6231', credit_account_code: '512', description: 'Publicité et marketing' },
-  { source_type: 'expense', source_category: 'legal', debit_account_code: '6226', credit_account_code: '512', description: 'Honoraires juridiques' },
-  { source_type: 'expense', source_category: 'insurance', debit_account_code: '616', credit_account_code: '512', description: 'Primes d\'assurance' },
-  { source_type: 'expense', source_category: 'rent', debit_account_code: '6132', credit_account_code: '512', description: 'Loyers immobiliers' },
-  { source_type: 'expense', source_category: 'utilities', debit_account_code: '6061', credit_account_code: '512', description: 'Énergie' },
-  { source_type: 'expense', source_category: 'telecom', debit_account_code: '626', credit_account_code: '512', description: 'Téléphone et Internet' },
-  { source_type: 'expense', source_category: 'training', debit_account_code: '6333', credit_account_code: '512', description: 'Formation professionnelle' },
-  { source_type: 'expense', source_category: 'consulting', debit_account_code: '6226', credit_account_code: '512', description: 'Honoraires de conseil' },
-  { source_type: 'expense', source_category: 'other', debit_account_code: '658', credit_account_code: '512', description: 'Charges diverses' },
-  // Factures fournisseurs
-  { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '601', credit_account_code: '401', description: 'Achats marchandises' },
-  { source_type: 'supplier_invoice', source_category: 'service', debit_account_code: '604', credit_account_code: '401', description: 'Achats prestations services' },
-  { source_type: 'supplier_invoice', source_category: 'supply', debit_account_code: '6022', credit_account_code: '401', description: 'Achats fournitures' },
-];
-
-// Preset mappings OHADA — SYSCOHADA révisé
-const OHADA_MAPPINGS = [
-  // Factures clients (ventes) → Débit: Clients / Crédit: Produits
-  { source_type: 'invoice', source_category: 'revenue', debit_account_code: '411', credit_account_code: '701', description: 'Ventes de marchandises' },
-  { source_type: 'invoice', source_category: 'service', debit_account_code: '411', credit_account_code: '706', description: 'Services vendus' },
-  { source_type: 'invoice', source_category: 'product', debit_account_code: '411', credit_account_code: '702', description: 'Ventes de produits finis' },
-  // Paiements clients
-  { source_type: 'payment', source_category: 'cash', debit_account_code: '571', credit_account_code: '411', description: 'Encaissement - espèces' },
-  { source_type: 'payment', source_category: 'bank_transfer', debit_account_code: '521', credit_account_code: '411', description: 'Encaissement - virement' },
-  { source_type: 'payment', source_category: 'card', debit_account_code: '521', credit_account_code: '411', description: 'Encaissement - carte' },
-  { source_type: 'payment', source_category: 'check', debit_account_code: '513', credit_account_code: '411', description: 'Encaissement - chèque' },
-  // Notes de crédit
-  { source_type: 'credit_note', source_category: 'general', debit_account_code: '701', credit_account_code: '411', description: 'Avoir client' },
-  // Dépenses
-  { source_type: 'expense', source_category: 'general', debit_account_code: '638', credit_account_code: '521', description: 'Autres charges externes' },
-  { source_type: 'expense', source_category: 'office', debit_account_code: '6053', credit_account_code: '521', description: 'Fournitures de bureau' },
-  { source_type: 'expense', source_category: 'travel', debit_account_code: '6371', credit_account_code: '521', description: 'Voyages et déplacements' },
-  { source_type: 'expense', source_category: 'meals', debit_account_code: '636', credit_account_code: '521', description: 'Frais de réceptions' },
-  { source_type: 'expense', source_category: 'transport', debit_account_code: '618', credit_account_code: '521', description: 'Autres frais de transport' },
-  { source_type: 'expense', source_category: 'software', debit_account_code: '634', credit_account_code: '521', description: 'Redevances pour logiciels' },
-  { source_type: 'expense', source_category: 'hardware', debit_account_code: '6054', credit_account_code: '521', description: 'Fournitures informatiques' },
-  { source_type: 'expense', source_category: 'marketing', debit_account_code: '627', credit_account_code: '521', description: 'Publicité et relations publiques' },
-  { source_type: 'expense', source_category: 'legal', debit_account_code: '6324', credit_account_code: '521', description: 'Honoraires' },
-  { source_type: 'expense', source_category: 'insurance', debit_account_code: '625', credit_account_code: '521', description: 'Primes d\'assurance' },
-  { source_type: 'expense', source_category: 'rent', debit_account_code: '6222', credit_account_code: '521', description: 'Locations de bâtiments' },
-  { source_type: 'expense', source_category: 'utilities', debit_account_code: '6051', credit_account_code: '521', description: 'Eau, énergie' },
-  { source_type: 'expense', source_category: 'telecom', debit_account_code: '628', credit_account_code: '521', description: 'Frais de télécommunications' },
-  { source_type: 'expense', source_category: 'training', debit_account_code: '633', credit_account_code: '521', description: 'Formation du personnel' },
-  { source_type: 'expense', source_category: 'consulting', debit_account_code: '6324', credit_account_code: '521', description: 'Honoraires de conseil' },
-  { source_type: 'expense', source_category: 'other', debit_account_code: '658', credit_account_code: '521', description: 'Charges diverses' },
-  // Factures fournisseurs
-  { source_type: 'supplier_invoice', source_category: 'purchase', debit_account_code: '601', credit_account_code: '401', description: 'Achats de marchandises' },
-  { source_type: 'supplier_invoice', source_category: 'service', debit_account_code: '604', credit_account_code: '401', description: 'Achats de matières et fournitures' },
-  { source_type: 'supplier_invoice', source_category: 'supply', debit_account_code: '605', credit_account_code: '401', description: 'Autres achats' },
-];
+const normalizeCountryCode = (countryCode) => String(countryCode || '').trim().toUpperCase();
 
 const AccountingMappings = () => {
-  const { accounts, mappings, fetchAccounts, fetchMappings, createMapping, deleteMapping, bulkCreateMappings, loading } = useAccounting();
+  const {
+    accounts,
+    mappings,
+    fetchAccounts,
+    fetchMappings,
+    createMapping,
+    deleteMapping,
+    bulkCreateMappings,
+  } = useAccounting();
   const { country } = useAccountingInit();
+  const { toast } = useToast();
+
   const [showDialog, setShowDialog] = useState(false);
-  const [showPresetConfirm, setShowPresetConfirm] = useState(false);
+  const [presetCountryCode, setPresetCountryCode] = useState(null);
   const [presetLoading, setPresetLoading] = useState(false);
   const [isSuggested, setIsSuggested] = useState(false);
-  const [form, setForm] = useState({
-    source_type: '',
-    source_category: '',
-    debit_account_code: '',
-    credit_account_code: '',
-    description: ''
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
 
-  useEffect(() => {
-    fetchAccounts();
-    fetchMappings();
-  }, [fetchAccounts, fetchMappings]);
+  const [sourceTypes, setSourceTypes] = useState([]);
+  const [sourceCategories, setSourceCategories] = useState([]);
+  const [presetCountryCodes, setPresetCountryCodes] = useState([]);
+  const [templateMappingsByCountry, setTemplateMappingsByCountry] = useState({});
 
-  // Fonction pour obtenir les suggestions de mapping par défaut
-  const getSuggestedMapping = (sourceType, sourceCategory, userCountry) => {
-    if (!sourceType || !sourceCategory || !userCountry) return null;
+  const activeCountryCode = normalizeCountryCode(country) || 'BE';
 
-    // Sélectionner le bon preset selon le pays
-    let presetMappings = BELGIAN_MAPPINGS; // Par défaut
-    if (userCountry === 'FR') {
-      presetMappings = FRENCH_MAPPINGS;
-    } else if (userCountry === 'OHADA') {
-      presetMappings = OHADA_MAPPINGS;
-    }
+  const sourceTypesByCode = useMemo(
+    () => Object.fromEntries(sourceTypes.map((item) => [item.code, item])),
+    [sourceTypes],
+  );
 
-    // Trouver le mapping correspondant
-    return presetMappings.find(
-      m => m.source_type === sourceType && m.source_category === sourceCategory
-    );
-  };
-
-  // Auto-suggestion quand le type et la catégorie changent
-  useEffect(() => {
-    if (form.source_type && form.source_category && country) {
-      const suggestion = getSuggestedMapping(form.source_type, form.source_category, country);
-      if (suggestion) {
-        setForm(prev => ({
-          ...prev,
-          debit_account_code: suggestion.debit_account_code,
-          credit_account_code: suggestion.credit_account_code,
-          description: suggestion.description || ''
-        }));
-        setIsSuggested(true);
+  const categoriesByType = useMemo(
+    () => sourceCategories.reduce((accumulator, category) => {
+      if (!accumulator[category.source_type]) {
+        accumulator[category.source_type] = [];
       }
+      accumulator[category.source_type].push(category);
+      return accumulator;
+    }, {}),
+    [sourceCategories],
+  );
+
+  const loadCountryTemplates = useCallback(async (countryCode, { force = false } = {}) => {
+    const normalizedCode = normalizeCountryCode(countryCode);
+    if (!normalizedCode) return [];
+
+    if (!force && templateMappingsByCountry[normalizedCode]) {
+      return templateMappingsByCountry[normalizedCode];
     }
-  }, [form.source_type, form.source_category, country]);
 
-  const getCategoriesForType = (type) => {
-    switch (type) {
-      case 'invoice': return INVOICE_CATEGORIES;
-      case 'expense': return EXPENSE_CATEGORIES;
-      case 'supplier_invoice': return SUPPLIER_CATEGORIES;
-      case 'payment': return PAYMENT_CATEGORIES;
-      case 'credit_note': return CREDIT_NOTE_CATEGORIES;
-      case 'supplier_payment': return PAYMENT_CATEGORIES;
-      default: return [];
+    const templates = await getAccountingMappingTemplates(normalizedCode);
+    const normalizedTemplates = (templates || []).map((template) => ({
+      source_type: template.source_type,
+      source_category: template.source_category,
+      debit_account_code: template.debit_account_code,
+      credit_account_code: template.credit_account_code,
+      description: template.description || '',
+    }));
+
+    setTemplateMappingsByCountry((prev) => ({
+      ...prev,
+      [normalizedCode]: normalizedTemplates,
+    }));
+
+    return normalizedTemplates;
+  }, [templateMappingsByCountry]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const bootstrap = async () => {
+      fetchAccounts();
+      fetchMappings();
+
+      if (!supabase) return;
+
+      try {
+        const [sourceTypesRes, sourceCategoriesRes, templateCountriesRes] = await Promise.all([
+          supabase
+            .from('reference_accounting_source_types')
+            .select('code, label, sort_order')
+            .eq('is_active', true)
+            .order('sort_order', { ascending: true }),
+          supabase
+            .from('reference_accounting_source_categories')
+            .select('source_type, code, label, sort_order')
+            .eq('is_active', true)
+            .order('source_type', { ascending: true })
+            .order('sort_order', { ascending: true }),
+          supabase
+            .from('accounting_mapping_templates')
+            .select('country_code'),
+        ]);
+
+        if (sourceTypesRes.error) throw sourceTypesRes.error;
+        if (sourceCategoriesRes.error) throw sourceCategoriesRes.error;
+        if (templateCountriesRes.error) throw templateCountriesRes.error;
+
+        if (!mounted) return;
+
+        setSourceTypes(sourceTypesRes.data || []);
+        setSourceCategories(sourceCategoriesRes.data || []);
+
+        const distinctCountryCodes = Array.from(
+          new Set((templateCountriesRes.data || []).map((row) => normalizeCountryCode(row.country_code)).filter(Boolean)),
+        ).sort((a, b) => a.localeCompare(b));
+
+        setPresetCountryCodes(distinctCountryCodes);
+      } catch (error) {
+        console.error('Error loading accounting mapping references:', error);
+        toast({
+          title: 'Erreur',
+          description: 'Impossible de charger les catalogues de mappings comptables.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    bootstrap();
+
+    return () => {
+      mounted = false;
+    };
+  }, [fetchAccounts, fetchMappings, toast]);
+
+  useEffect(() => {
+    loadCountryTemplates(activeCountryCode).catch((error) => {
+      console.error('Error loading templates for active country:', error);
+    });
+  }, [activeCountryCode, loadCountryTemplates]);
+
+  useEffect(() => {
+    if (!presetCountryCode) return;
+    loadCountryTemplates(presetCountryCode).catch((error) => {
+      console.error('Error loading templates for selected preset country:', error);
+    });
+  }, [presetCountryCode, loadCountryTemplates]);
+
+  const getSuggestedMapping = useCallback((sourceType, sourceCategory, countryCode) => {
+    const normalizedCode = normalizeCountryCode(countryCode);
+    if (!sourceType || !sourceCategory || !normalizedCode) return null;
+
+    const templates = templateMappingsByCountry[normalizedCode] || [];
+    return templates.find(
+      (mapping) => mapping.source_type === sourceType && mapping.source_category === sourceCategory,
+    ) || null;
+  }, [templateMappingsByCountry]);
+
+  useEffect(() => {
+    if (!form.source_type || !form.source_category) return;
+
+    const suggestion = getSuggestedMapping(form.source_type, form.source_category, activeCountryCode);
+    if (suggestion) {
+      setForm((prev) => ({
+        ...prev,
+        debit_account_code: suggestion.debit_account_code,
+        credit_account_code: suggestion.credit_account_code,
+        description: suggestion.description || '',
+      }));
+      setIsSuggested(true);
     }
-  };
+  }, [activeCountryCode, form.source_category, form.source_type, getSuggestedMapping]);
 
-  const getAccountName = (code) => {
-    const acc = accounts.find(a => a.account_code === code);
-    return acc ? `${code} - ${acc.account_name}` : code;
-  };
+  const getCategoriesForType = useCallback(
+    (type) => categoriesByType[type] || [],
+    [categoriesByType],
+  );
 
-  const getSourceLabel = (type) => {
-    return SOURCE_TYPES.find(s => s.value === type)?.label || type;
-  };
+  const getSourceLabel = useCallback(
+    (sourceType) => sourceTypesByCode[sourceType]?.label || sourceType,
+    [sourceTypesByCode],
+  );
+
+  const getCategoryLabel = useCallback(
+    (sourceType, categoryCode) => (
+      (categoriesByType[sourceType] || []).find((category) => category.code === categoryCode)?.label || categoryCode
+    ),
+    [categoriesByType],
+  );
 
   const handleCreate = async () => {
     if (!form.source_type || !form.source_category || !form.debit_account_code || !form.credit_account_code) return;
+
     await createMapping(form);
     setShowDialog(false);
-    setForm({ source_type: '', source_category: '', debit_account_code: '', credit_account_code: '', description: '' });
+    setForm(EMPTY_FORM);
     setIsSuggested(false);
   };
 
   const handleDialogClose = (open) => {
     setShowDialog(open);
     if (!open) {
-      setForm({ source_type: '', source_category: '', debit_account_code: '', credit_account_code: '', description: '' });
+      setForm(EMPTY_FORM);
       setIsSuggested(false);
     }
   };
 
-  const handleLoadBelgianPreset = async () => {
+  const handleLoadCountryPreset = async (countryCode) => {
+    const normalizedCode = normalizeCountryCode(countryCode);
+    if (!normalizedCode) return;
+
     setPresetLoading(true);
     try {
-      await bulkCreateMappings(BELGIAN_MAPPINGS);
-      setShowPresetConfirm(false);
-    } catch (err) {
-      console.error('Erreur chargement preset mappings:', err);
+      const templates = await loadCountryTemplates(normalizedCode, { force: true });
+      if (!templates.length) {
+        toast({
+          title: 'Aucun preset',
+          description: `Aucun mapping de reference disponible pour ${normalizedCode}.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      await bulkCreateMappings(templates);
+      setPresetCountryCode(null);
+    } catch (error) {
+      console.error('Erreur chargement preset mappings:', error);
+      toast({
+        title: 'Erreur',
+        description: error?.message || 'Impossible de charger les presets comptables.',
+        variant: 'destructive',
+      });
     } finally {
       setPresetLoading(false);
     }
   };
 
-  const unmappedCategories = () => {
-    const mapped = new Set(mappings.map(m => `${m.source_type}:${m.source_category}`));
-    const unmapped = [];
-    EXPENSE_CATEGORIES.forEach(cat => {
-      if (!mapped.has(`expense:${cat}`)) unmapped.push({ type: 'expense', category: cat });
-    });
-    INVOICE_CATEGORIES.forEach(cat => {
-      if (!mapped.has(`invoice:${cat}`)) unmapped.push({ type: 'invoice', category: cat });
-    });
-    return unmapped;
-  };
+  const unmapped = useMemo(() => {
+    const mapped = new Set(mappings.map((mapping) => `${mapping.source_type}:${mapping.source_category}`));
+    return sourceCategories
+      .filter((category) => !mapped.has(`${category.source_type}:${category.code}`))
+      .map((category) => ({ type: category.source_type, category: category.code }));
+  }, [mappings, sourceCategories]);
 
-  const unmapped = unmappedCategories();
+  const selectedPresetTemplates = presetCountryCode
+    ? (templateMappingsByCountry[normalizeCountryCode(presetCountryCode)] || [])
+    : [];
+
+  const selectedPresetTypes = useMemo(
+    () => Array.from(new Set(selectedPresetTemplates.map((template) => template.source_type))),
+    [selectedPresetTemplates],
+  );
 
   return (
     <div className="space-y-6">
-      {/* Alert for unmapped categories */}
       {unmapped.length > 0 && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <div>
             <p className="text-amber-400 font-medium text-sm">
-              {unmapped.length} catégorie(s) non associée(s) à un compte comptable
+              {unmapped.length} categorie(s) non associee(s) a un compte comptable
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              Les montants de ces catégories n'apparaîtront pas dans les rapports comptables.
+              Les montants de ces categories n'apparaitront pas dans les rapports comptables.
             </p>
           </div>
         </div>
       )}
 
-      {/* Header */}
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <h3 className="text-lg font-bold text-white">Mappings comptables</h3>
-          <p className="text-sm text-gray-400">Associez chaque catégorie de transaction à un compte du plan comptable.</p>
+          <p className="text-sm text-gray-400">Associez chaque categorie de transaction a un compte du plan comptable.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => setShowPresetConfirm(true)} className="border-gray-700 text-gray-300 hover:text-white hover:border-purple-500">
-            <Zap className="w-4 h-4 mr-2" /> Preset Belgique
-          </Button>
-          <Button variant="outline" onClick={() => bulkCreateMappings(FRENCH_MAPPINGS)} className="border-gray-700 text-gray-300 hover:text-white hover:border-blue-500">
-            <Zap className="w-4 h-4 mr-2" /> Preset France
-          </Button>
-          <Button variant="outline" onClick={() => bulkCreateMappings(OHADA_MAPPINGS)} className="border-gray-700 text-gray-300 hover:text-white hover:border-green-500">
-            <Zap className="w-4 h-4 mr-2" /> Preset OHADA
-          </Button>
+          {presetCountryCodes.map((countryCode) => (
+            <Button
+              key={countryCode}
+              variant="outline"
+              onClick={() => setPresetCountryCode(countryCode)}
+              className="border-gray-700 text-gray-300 hover:text-white"
+            >
+              <Zap className="w-4 h-4 mr-2" /> Preset {countryCode}
+            </Button>
+          ))}
           <Button onClick={() => setShowDialog(true)} className="bg-orange-500 hover:bg-orange-600">
             <Plus className="w-4 h-4 mr-2" /> Ajouter un mapping
           </Button>
         </div>
       </div>
 
-      {/* Mappings list */}
       {mappings.length === 0 ? (
         <div className="text-center py-12 bg-gray-900/50 border border-gray-800 rounded-lg">
           <Settings className="w-12 h-12 mx-auto mb-4 opacity-30 text-gray-500" />
-          <p className="text-gray-400">Aucun mapping configuré</p>
-          <p className="text-xs text-gray-600 mt-1">Créez des mappings pour associer vos transactions aux comptes comptables.</p>
+          <p className="text-gray-400">Aucun mapping configure</p>
+          <p className="text-xs text-gray-600 mt-1">Creez des mappings pour associer vos transactions aux comptes comptables.</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {mappings.map(mapping => (
+          {mappings.map((mapping) => (
             <Card key={mapping.id} className="bg-gray-900 border-gray-800">
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="flex-1 flex items-center gap-3 flex-wrap">
@@ -311,7 +320,7 @@ const AccountingMappings = () => {
                     {getSourceLabel(mapping.source_type)}
                   </Badge>
                   <Badge className="bg-gray-700 text-gray-300 text-xs">
-                    {mapping.source_category}
+                    {getCategoryLabel(mapping.source_type, mapping.source_category)}
                   </Badge>
                   <ArrowRight className="w-4 h-4 text-gray-600" />
                   <div className="text-sm">
@@ -320,7 +329,7 @@ const AccountingMappings = () => {
                     <span className="text-red-400 font-mono">{mapping.credit_account_code}</span>
                   </div>
                   {mapping.description && (
-                    <span className="text-xs text-gray-500">— {mapping.description}</span>
+                    <span className="text-xs text-gray-500">- {mapping.description}</span>
                   )}
                 </div>
                 <Button variant="ghost" size="icon" aria-label="Delete mapping" onClick={() => deleteMapping(mapping.id)}>
@@ -332,7 +341,6 @@ const AccountingMappings = () => {
         </div>
       )}
 
-      {/* Create Dialog */}
       <Dialog open={showDialog} onOpenChange={handleDialogClose}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
           <DialogHeader>
@@ -341,14 +349,14 @@ const AccountingMappings = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Type de source</Label>
-              <Select value={form.source_type} onValueChange={v => {
-                setForm(p => ({ ...p, source_type: v, source_category: '' }));
+              <Select value={form.source_type} onValueChange={(value) => {
+                setForm((prev) => ({ ...prev, source_type: value, source_category: '' }));
                 setIsSuggested(false);
               }}>
-                <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Selectionner" /></SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                  {SOURCE_TYPES.map(s => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  {sourceTypes.map((sourceType) => (
+                    <SelectItem key={sourceType.code} value={sourceType.code}>{sourceType.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -356,29 +364,28 @@ const AccountingMappings = () => {
 
             {form.source_type && (
               <div className="space-y-2">
-                <Label>Catégorie</Label>
-                <Select value={form.source_category} onValueChange={v => {
-                  setForm(p => ({ ...p, source_category: v }));
+                <Label>Categorie</Label>
+                <Select value={form.source_category} onValueChange={(value) => {
+                  setForm((prev) => ({ ...prev, source_category: value }));
                   setIsSuggested(false);
                 }}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                  <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Selectionner" /></SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[200px]">
-                    {getCategoriesForType(form.source_type).map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    {getCategoriesForType(form.source_type).map((category) => (
+                      <SelectItem key={category.code} value={category.code}>{category.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             )}
 
-            {/* Badge de suggestion */}
             {isSuggested && form.debit_account_code && form.credit_account_code && (
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex items-start gap-2">
                 <Lightbulb className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
                 <div className="text-xs">
                   <p className="text-blue-400 font-medium">Suggestion automatique</p>
                   <p className="text-gray-400 mt-0.5">
-                    Comptes suggérés selon votre plan comptable ({country === 'FR' ? 'France' : country === 'BE' ? 'Belgique' : 'OHADA'}). Vous pouvez les modifier si nécessaire.
+                    Comptes suggeres depuis les templates de reference pour {activeCountryCode}. Vous pouvez les modifier si necessaire.
                   </p>
                 </div>
               </div>
@@ -386,32 +393,32 @@ const AccountingMappings = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Compte débit</Label>
-                <Select value={form.debit_account_code} onValueChange={v => {
-                  setForm(p => ({ ...p, debit_account_code: v }));
+                <Label>Compte debit</Label>
+                <Select value={form.debit_account_code} onValueChange={(value) => {
+                  setForm((prev) => ({ ...prev, debit_account_code: value }));
                   setIsSuggested(false);
                 }}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Débit" /></SelectTrigger>
+                  <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Debit" /></SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[200px]">
-                    {accounts.map(a => (
-                      <SelectItem key={a.id} value={a.account_code}>
-                        {a.account_code} - {a.account_name}
+                    {accounts.map((account) => (
+                      <SelectItem key={account.id} value={account.account_code}>
+                        {account.account_code} - {account.account_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Compte crédit</Label>
-                <Select value={form.credit_account_code} onValueChange={v => {
-                  setForm(p => ({ ...p, credit_account_code: v }));
+                <Label>Compte credit</Label>
+                <Select value={form.credit_account_code} onValueChange={(value) => {
+                  setForm((prev) => ({ ...prev, credit_account_code: value }));
                   setIsSuggested(false);
                 }}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Crédit" /></SelectTrigger>
+                  <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Credit" /></SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[200px]">
-                    {accounts.map(a => (
-                      <SelectItem key={a.id} value={a.account_code}>
-                        {a.account_code} - {a.account_name}
+                    {accounts.map((account) => (
+                      <SelectItem key={account.id} value={account.account_code}>
+                        {account.account_code} - {account.account_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -423,7 +430,7 @@ const AccountingMappings = () => {
               <Label>Description (optionnel)</Label>
               <Input
                 value={form.description}
-                onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
                 placeholder="Ex: Ventes de prestations de services"
                 className="bg-gray-800 border-gray-700"
               />
@@ -431,50 +438,55 @@ const AccountingMappings = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => handleDialogClose(false)} className="border-gray-700">Annuler</Button>
-            <Button onClick={handleCreate} className="bg-orange-500 hover:bg-orange-600"
-              disabled={!form.source_type || !form.source_category || !form.debit_account_code || !form.credit_account_code}>
-              Créer le mapping
+            <Button
+              onClick={handleCreate}
+              className="bg-orange-500 hover:bg-orange-600"
+              disabled={!form.source_type || !form.source_category || !form.debit_account_code || !form.credit_account_code}
+            >
+              Creer le mapping
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Belgian Preset Confirmation Dialog */}
-      <Dialog open={showPresetConfirm} onOpenChange={setShowPresetConfirm}>
+      <Dialog open={!!presetCountryCode} onOpenChange={(open) => { if (!open) setPresetCountryCode(null); }}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-gradient flex items-center gap-2">
               <Zap className="w-5 h-5" />
-              Mappings Belgique — PCG belge
+              Preset comptable {presetCountryCode}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <p className="text-gray-300 text-sm">
-              Chargement de <strong>{BELGIAN_MAPPINGS.length} mappings</strong> pré-configurés pour le Plan Comptable Général belge :
+              Chargement de <strong>{selectedPresetTemplates.length}</strong> mappings pre-configures depuis la base de reference.
             </p>
-            <div className="space-y-3 text-xs">
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-                <p className="text-green-400 font-medium mb-1">Factures clients (ventes)</p>
-                <p className="text-gray-400">revenue → 400/700 · service → 400/7061 · product → 400/701</p>
+
+            {selectedPresetTypes.length > 0 && (
+              <div className="bg-gray-800/70 border border-gray-700 rounded-lg p-3">
+                <p className="text-xs text-gray-400 mb-2">Types de source couverts</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedPresetTypes.map((sourceType) => (
+                    <Badge key={sourceType} className="bg-gray-700 text-gray-300 text-xs">
+                      {getSourceLabel(sourceType)}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-              <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
-                <p className="text-orange-400 font-medium mb-1">Dépenses (16 catégories)</p>
-                <p className="text-gray-400">Bureau, loyer, logiciels, déplacements, marketing, assurances, télécom, formation…</p>
-                <p className="text-gray-500 mt-1">Débit: compte de charge (classe 6) / Crédit: 512 Banque</p>
-              </div>
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                <p className="text-red-400 font-medium mb-1">Factures fournisseurs (achats)</p>
-                <p className="text-gray-400">purchase → 601/401 · service → 604/401 · supply → 6022/401</p>
-              </div>
-            </div>
+            )}
+
             <p className="text-gray-400 text-xs">
-              Les mappings existants avec la même catégorie seront mis à jour. Vous pouvez les modifier ensuite individuellement.
+              Les mappings existants avec la meme combinaison type/categorie seront mis a jour.
             </p>
             <div className="flex justify-end gap-3 pt-2">
-              <Button variant="outline" onClick={() => setShowPresetConfirm(false)} className="border-gray-700">
+              <Button variant="outline" onClick={() => setPresetCountryCode(null)} className="border-gray-700">
                 Annuler
               </Button>
-              <Button onClick={handleLoadBelgianPreset} disabled={presetLoading} className="bg-purple-600 hover:bg-purple-700">
+              <Button
+                onClick={() => handleLoadCountryPreset(presetCountryCode)}
+                disabled={presetLoading || !presetCountryCode}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
                 {presetLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -483,7 +495,7 @@ const AccountingMappings = () => {
                 ) : (
                   <>
                     <Zap className="w-4 h-4 mr-2" />
-                    Charger les {BELGIAN_MAPPINGS.length} mappings
+                    Charger les {selectedPresetTemplates.length} mappings
                   </>
                 )}
               </Button>
