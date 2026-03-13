@@ -388,7 +388,7 @@ async function run() {
 
         let toolRateLimited = false;
         let sampleRateBody = null;
-        for (let i = 0; i < 260; i += 1) {
+        for (let i = 0; i < 220; i += 1) {
           const rateResp = await fetch(mcpUrl, {
             method: 'POST',
             headers: {
@@ -401,8 +401,8 @@ async function run() {
               id: 2000 + i,
               method: 'tools/call',
               params: {
-                name: 'not_existing_tool_for_rate_test',
-                arguments: {},
+                name: 'list_invoices',
+                arguments: { limit: 1 },
               },
             }),
           });
@@ -410,7 +410,7 @@ async function run() {
           const rateBody = await rateResp.json();
           sampleRateBody = rateBody;
           const text = JSON.stringify(rateBody);
-          if (/Rate limit exceeded/i.test(text)) {
+          if (rateResp.status === 429 || /Rate limit exceeded/i.test(text)) {
             toolRateLimited = true;
             break;
           }

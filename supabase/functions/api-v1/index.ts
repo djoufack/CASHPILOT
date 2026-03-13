@@ -931,7 +931,7 @@ async function handleExportSaft(supabase: ReturnType<typeof createClient>, userI
     return jsonResponse({ error: 'start_date and end_date query parameters are required' }, 400);
   }
 
-  let companyQuery = supabase.from('companies').select('*').eq('user_id', userId);
+  let companyQuery = supabase.from('company').select('*').eq('user_id', userId);
   let accountsQuery = supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', userId);
   let entriesQuery = supabase.from('accounting_entries').select('*').eq('user_id', userId)
     .gte('transaction_date', startDate).lte('transaction_date', endDate)
@@ -1016,7 +1016,7 @@ async function handleExportFacturx(supabase: ReturnType<typeof createClient>, us
 
   const [invoiceRes, companyRes] = await Promise.all([
     supabase.from('invoices').select('*, client:clients(*)').eq('id', invoiceId).eq('user_id', userId).single(),
-    supabase.from('companies').select('*').eq('user_id', userId).single(),
+    supabase.from('company').select('*').eq('user_id', userId).single(),
   ]);
 
   if (invoiceRes.error) return jsonResponse({ error: 'Invoice not found' }, 404);

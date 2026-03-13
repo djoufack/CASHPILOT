@@ -1,0 +1,32 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import CompanySwitcher from '@/components/CompanySwitcher';
+
+describe('CompanySwitcher', () => {
+  it('places the primary company first and labels it in the dropdown', () => {
+    const companies = [
+      { id: 'b', company_name: 'Beta Conseil', created_at: '2026-02-03T10:00:00.000Z' },
+      { id: 'a', company_name: 'Alpha Studio', created_at: '2026-01-20T10:00:00.000Z' },
+      { id: 'c', company_name: 'CashPilot Demo France Portfolio SARL 2', created_at: '2026-03-01T10:00:00.000Z', is_primary: true },
+    ];
+
+    render(
+      <CompanySwitcher
+        companies={companies}
+        activeCompany={{ id: 'b', company_name: 'Beta Conseil' }}
+      />,
+    );
+
+    const triggerButton = screen.getByRole('button', { name: /beta conseil/i });
+    fireEvent.click(triggerButton);
+
+    const companyButtons = screen
+      .getAllByRole('button')
+      .filter((button) => button !== triggerButton)
+      .filter((button) => !(button.textContent || '').includes('company.addCompany'))
+      .map((button) => button.textContent || '');
+
+    expect(companyButtons[0]).toContain('CashPilot Demo France Portfolio SARL 2');
+    expect(screen.getByText('company.primaryShort')).toBeInTheDocument();
+  });
+});

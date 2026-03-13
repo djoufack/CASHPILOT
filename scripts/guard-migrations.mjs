@@ -2,7 +2,11 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 const ROOT = process.cwd();
-const MIGRATIONS_DIR = path.join(ROOT, 'supabase', 'migrations');
+const MIGRATION_DIRS = [
+  path.join(ROOT, 'supabase', 'migrations'),
+  path.join(ROOT, 'supabase', 'migrations_numbered_legacy'),
+  path.join(ROOT, 'migrations'),
+];
 
 const SECURITY_DEFINER_REGEX = /create\s+(or\s+replace\s+)?function[\s\S]*?\$\$[\s\S]*?\$\$\s*language[\s\S]*?;/gi;
 const POLICY_MUTATION_REGEX = /create\s+policy[\s\S]*?for\s+(all|insert|update|delete)[\s\S]*?;/gi;
@@ -19,6 +23,10 @@ const BASELINE_ALLOWLIST = new Set([
   'supabase/migrations/20260308140000_fix_classify_account_security_definer.sql:SECURITY DEFINER function without SET search_path',
   'supabase/migrations/20260308150000_sprint2_financial_analysis.sql:SECURITY DEFINER function without SET search_path',
   'supabase/migrations/20260308160000_sprint3_pilotage_valuation_tax.sql:SECURITY DEFINER function without SET search_path',
+  // Legacy/root migrations currently archived but still scanned by guard.
+  'migrations/016_monetization_enhancements.sql:SECURITY DEFINER function without SET search_path',
+  'migrations/034_unified_billing_foundation.sql:SECURITY DEFINER function without SET search_path',
+  'supabase/migrations_numbered_legacy/040_accounting_guard.sql:Mutation policy with always-true predicate',
 ]);
 
 function lineFromIndex(text, index) {
@@ -29,12 +37,33 @@ function toPosixPath(filePath) {
   return path.relative(ROOT, filePath).split(path.sep).join('/');
 }
 
+async function collectSqlFiles(dirPath) {
+  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  const nested = await Promise.all(entries.map(async (entry) => {
+    const entryPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      return collectSqlFiles(entryPath);
+    }
+    if (entry.isFile() && entry.name.toLowerCase().endsWith('.sql')) {
+      return [entryPath];
+    }
+    return [];
+  }));
+  return nested.flat();
+}
+
 async function main() {
-  const entries = await fs.readdir(MIGRATIONS_DIR, { withFileTypes: true });
-  const sqlFiles = entries
-    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.sql'))
-    .map((entry) => path.join(MIGRATIONS_DIR, entry.name))
-    .sort();
+  const sqlFilesPerDir = await Promise.all(
+    MIGRATION_DIRS.map(async (dirPath) => {
+      try {
+        await fs.access(dirPath);
+      } catch {
+        return [];
+      }
+      return collectSqlFiles(dirPath);
+    }),
+  );
+  const sqlFiles = sqlFilesPerDir.flat().sort();
 
   const violations = [];
 

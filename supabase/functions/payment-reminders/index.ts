@@ -62,7 +62,7 @@ serve(async (req) => {
       // Fetch unpaid invoices for this user
       let invoiceQuery = supabase
         .from('invoices')
-        .select('*, client:clients(id, name, email)')
+        .select('*, client:clients(id, company_name, email)')
         .eq('user_id', userId)
         .in('status', ['sent', 'overdue', 'draft']);
       if (scopeCompanyId) {
@@ -119,9 +119,10 @@ serve(async (req) => {
 
           try {
             const daysOverdue = Math.max(0, diffDays);
+            const clientName = invoice.client.company_name || invoice.client.email || 'Client';
 
             const template = paymentReminderTemplate({
-              clientName: invoice.client.name,
+              clientName,
               invoiceNumber: invoice.invoice_number,
               totalTTC: invoice.total_ttc,
               currency: invoice.currency || 'EUR',
@@ -220,7 +221,7 @@ async function handleDefaultReminders(
 ) {
   const { data: overdueInvoices, error: fetchError } = await supabase
     .from('invoices')
-    .select('*, client:clients(id, name, email)')
+    .select('*, client:clients(id, company_name, email)')
     .in('status', ['sent', 'overdue'])
     .lt('due_date', today.toISOString().split('T')[0]);
 
@@ -244,9 +245,10 @@ async function handleDefaultReminders(
         .single();
 
       const companyName = profile?.company_name || profile?.full_name || 'CashPilot';
+      const clientName = invoice.client.company_name || invoice.client.email || 'Client';
 
       const template = paymentReminderTemplate({
-        clientName: invoice.client.name,
+        clientName,
         invoiceNumber: invoice.invoice_number,
         totalTTC: invoice.total_ttc,
         currency: invoice.currency || 'EUR',
@@ -255,7 +257,7 @@ async function handleDefaultReminders(
         companyName,
       });
 
-      await fetch('https://api.resend.com/emails', {
+      const resendResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${resendApiKey}`,
@@ -270,22 +272,29 @@ async function handleDefaultReminders(
         }),
       });
 
+      const sendStatus = resendResponse.ok ? 'sent' : 'failed';
+      let sendError: string | undefined;
+      if (!resendResponse.ok) {
+        const errorBody = await resendResponse.text().catch(() => '');
+        sendError = `Resend API error (${resendResponse.status})${errorBody ? `: ${errorBody}` : ''}`;
+      }
+
       // Log the reminder
       await supabase.from('payment_reminder_logs').insert({
         invoice_id: invoice.id,
         rule_id: null,
         reminder_number: daysOverdue,
-        status: 'sent',
+        status: sendStatus,
         recipient_email: invoice.client.email,
         user_id: invoice.user_id,
         company_id: invoice.company_id || null,
       });
 
-      if (invoice.status !== 'overdue') {
+      if (sendStatus === 'sent' && invoice.status !== 'overdue') {
         await supabase.from('invoices').update({ status: 'overdue' }).eq('id', invoice.id);
       }
 
-      results.push({ invoice_id: invoice.id, status: 'sent', daysOverdue });
+      results.push({ invoice_id: invoice.id, status: sendStatus, daysOverdue, ...(sendError ? { error: sendError } : {}) });
     } catch (err) {
       results.push({ invoice_id: invoice.id, status: 'error', error: (err as Error).message });
     }

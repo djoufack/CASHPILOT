@@ -170,7 +170,6 @@ async function main() {
 
   const output = [];
   for (const account of DEMO_ACCOUNTS) {
-    // eslint-disable-next-line no-await-in-loop
     const result = await auditAccount(account, supabaseUrl, anonKey);
     output.push(result);
   }

@@ -4,7 +4,7 @@ import importPlugin from 'eslint-plugin-import';
 import globals from 'globals';
 
 export default [
-	{ ignores: ['node_modules/**', 'dist/**', 'build/**', '.claude/**', '.worktrees/**', 'Landing Page Infos/**', 'vite.config.js', 'vitest.config.js'] },
+	{ ignores: ['node_modules/**', '**/dist/**', 'build/**', '.claude/**', '.worktrees/**', 'Landing Page Infos/**', 'vite.config.js', 'vitest.config.js'] },
 	{
 		files: ['**/*.js', '**/*.jsx'],
 		plugins: { react, 'react-hooks': reactHooks, import: importPlugin },
@@ -32,7 +32,7 @@ export default [
 			'react/display-name': 'off', // Non-critical, component works without displayName
 			'react/jsx-uses-react': 'off', // Not needed in React 17+, non-critical
 			'react/react-in-jsx-scope': 'off', // Not needed in React 17+, non-critical
-			'react/jsx-uses-vars': 'off', // Non-critical, code works fine
+			'react/jsx-uses-vars': 'error', // Ensure JSX component usage marks imports as used
 			'react/jsx-no-comment-textnodes': 'off', // Non-critical, comments could be visible if put inside the JSX, most cases are just rendering text like '///'
 
 			'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }],

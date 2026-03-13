@@ -28,7 +28,7 @@ serve(async (req) => {
 
     const { data: unpaidInvoices } = await supabase
       .from('invoices')
-      .select('id, invoice_number, total_ttc, due_date, status, client:clients(name, email)')
+      .select('id, invoice_number, total_ttc, due_date, status, client:clients(company_name, email)')
       .eq('user_id', userId)
       .in('status', ['sent', 'overdue'])
       .order('due_date', { ascending: true });
@@ -40,7 +40,7 @@ serve(async (req) => {
 
     const prompt = `Pour chaque facture impayée, suggère une stratégie de relance adaptée:
 
-${unpaidInvoices.map(i => `- ${i.invoice_number}: ${i.total_ttc}€, échéance ${i.due_date}, client: ${(i.client as any)?.name}`).join('\n')}
+${unpaidInvoices.map(i => `- ${i.invoice_number}: ${i.total_ttc}€, échéance ${i.due_date}, client: ${(i.client as any)?.company_name || (i.client as any)?.email || 'Client'}`).join('\n')}
 
 Retourne un JSON array: [{ "invoice_id": "string", "urgency": "low|medium|high", "suggested_action": "string", "message_tone": "friendly|firm|urgent", "suggested_message": "string" }]`;
 
