@@ -29,4 +29,23 @@ describe('CompanySwitcher', () => {
     expect(companyButtons[0]).toContain('CashPilot Demo France Portfolio SARL 2');
     expect(screen.getByText('company.primaryShort')).toBeInTheDocument();
   });
+
+  it('shows active marker on selected company even when primary differs', () => {
+    const companies = [
+      { id: '1', company_name: 'Company Principale', created_at: '2026-01-01T10:00:00.000Z', is_primary: true },
+      { id: '2', company_name: 'Company Secondaire', created_at: '2026-01-02T10:00:00.000Z' },
+    ];
+
+    render(
+      <CompanySwitcher
+        companies={companies}
+        activeCompany={{ id: 2, company_name: 'Company Secondaire' }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /company secondaire/i }));
+
+    const activeMarker = screen.getByText(/company\.activeCompany/i);
+    expect(activeMarker.closest('button')?.textContent || '').toContain('Company Secondaire');
+  });
 });

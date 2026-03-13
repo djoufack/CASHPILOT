@@ -5,6 +5,7 @@ import { Building2, ChevronDown, Check, Plus } from 'lucide-react';
 export default function CompanySwitcher({ companies = [], activeCompany, onSwitch, onCreateNew }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const activeCompanyId = activeCompany?.id != null ? String(activeCompany.id) : null;
 
   const primaryCompanyId = useMemo(() => {
     if (!companies.length) return null;
@@ -14,12 +15,12 @@ export default function CompanySwitcher({ companies = [], activeCompany, onSwitc
       || company?.is_primary_company === true
       || company?.is_portfolio_primary === true
     );
-    if (explicitPrimary?.id) {
-      return explicitPrimary.id;
+    if (explicitPrimary?.id != null) {
+      return String(explicitPrimary.id);
     }
 
-    if (activeCompany?.id && companies.some((company) => company?.id === activeCompany.id)) {
-      return activeCompany.id;
+    if (activeCompanyId && companies.some((company) => String(company?.id) === activeCompanyId)) {
+      return activeCompanyId;
     }
 
     const byCreation = [...companies].sort((left, right) => {
@@ -32,21 +33,21 @@ export default function CompanySwitcher({ companies = [], activeCompany, onSwitc
       return leftName.localeCompare(rightName, 'fr');
     });
 
-    return byCreation[0]?.id || companies[0]?.id || null;
-  }, [companies, activeCompany?.id]);
+    const fallbackId = byCreation[0]?.id ?? companies[0]?.id ?? null;
+    return fallbackId != null ? String(fallbackId) : null;
+  }, [activeCompanyId, companies]);
 
   const sortedCompanies = useMemo(() => {
     const next = [...companies];
-    const activeId = activeCompany?.id || null;
     next.sort((left, right) => {
       if (primaryCompanyId) {
-        if (left.id === primaryCompanyId) return -1;
-        if (right.id === primaryCompanyId) return 1;
+        if (String(left.id) === primaryCompanyId) return -1;
+        if (String(right.id) === primaryCompanyId) return 1;
       }
 
-      if (activeId) {
-        if (left.id === activeId) return -1;
-        if (right.id === activeId) return 1;
+      if (activeCompanyId) {
+        if (String(left.id) === activeCompanyId) return -1;
+        if (String(right.id) === activeCompanyId) return 1;
       }
 
       const leftName = String(left.company_name || left.name || '').toLowerCase();
@@ -54,7 +55,7 @@ export default function CompanySwitcher({ companies = [], activeCompany, onSwitc
       return leftName.localeCompare(rightName, 'fr');
     });
     return next;
-  }, [companies, activeCompany?.id, primaryCompanyId]);
+  }, [activeCompanyId, companies, primaryCompanyId]);
 
   if (!companies.length) return null;
 
@@ -81,8 +82,9 @@ export default function CompanySwitcher({ companies = [], activeCompany, onSwitc
               {sortedCompanies.map(co => {
                 const displayName = co.company_name || co.name || '?';
                 const initials = displayName.slice(0, 2).toUpperCase();
-                const isActive = activeCompany?.id === co.id;
-                const isPrimary = primaryCompanyId === co.id;
+                const companyId = String(co.id);
+                const isActive = activeCompanyId === companyId;
+                const isPrimary = primaryCompanyId === companyId;
                 return (
                   <button
                     key={co.id}
