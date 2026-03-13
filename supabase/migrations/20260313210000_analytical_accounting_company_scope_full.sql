@@ -856,6 +856,8 @@ BEGIN
     AND c_to.center_type = 'principal'
     AND a.redistribution_rule_id IS NULL
   ON CONFLICT (redistributed_from_allocation_id, redistribution_rule_id)
+  WHERE redistributed_from_allocation_id IS NOT NULL
+    AND redistribution_rule_id IS NOT NULL
   DO UPDATE SET
     amount = EXCLUDED.amount,
     allocation_percent = EXCLUDED.allocation_percent,
