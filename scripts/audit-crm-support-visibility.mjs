@@ -101,7 +101,6 @@ async function auditDemo(demo) {
 
 const results = [];
 for (const demo of DEMOS) {
-  // eslint-disable-next-line no-await-in-loop
   results.push(await auditDemo(demo));
 }
 

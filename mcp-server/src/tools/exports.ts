@@ -86,7 +86,7 @@ export function registerExportTools(server: McpServer) {
       try { validateDate(end_date, 'end_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
 
       const [companyRes, accountsRes, entriesRes, clientsRes] = await Promise.all([
-        supabase.from('companies').select('*').eq('user_id', getUserId()).single(),
+        supabase.from('company').select('*').eq('user_id', getUserId()).single(),
         supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', getUserId()),
         supabase.from('accounting_entries').select(COLS_ACCOUNTING_ENTRIES).eq('user_id', getUserId())
           .gte('transaction_date', start_date).lte('transaction_date', end_date)
@@ -159,7 +159,7 @@ ${entriesXml}
 
       const [invoiceRes, companyRes] = await Promise.all([
         supabase.from('invoices').select('*, client:clients(*)').eq('id', invoice_id).eq('user_id', getUserId()).single(),
-        supabase.from('companies').select('*').eq('user_id', getUserId()).single()
+        supabase.from('company').select('*').eq('user_id', getUserId()).single()
       ]);
 
       if (invoiceRes.error) return { content: [{ type: 'text' as const, text: safeError(invoiceRes.error, 'export Factur-X') }] };

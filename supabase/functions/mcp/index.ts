@@ -1336,7 +1336,7 @@ const hExportFec: Handler = async (sb, uid, a) => {
 
 const hExportSaft: Handler = async (sb, uid, a) => {
   const [coRes, acRes, enRes, clRes] = await Promise.all([
-    sb.from('companies').select('*').eq('user_id', uid).single(),
+    sb.from('company').select('*').eq('user_id', uid).single(),
     (() => { let q = sb.from('accounting_chart_of_accounts').select('*').eq('user_id', uid); if (a.company_id) q = q.eq('company_id', a.company_id); return q; })(),
     sb.from('accounting_entries').select('*').eq('user_id', uid).gte('transaction_date', a.start_date).lte('transaction_date', a.end_date).order('transaction_date', { ascending: true }),
     sb.from('clients').select('*').eq('user_id', uid),
@@ -1370,7 +1370,7 @@ const hExportFacturx: Handler = async (sb, uid, a) => {
 
   const [invRes, coRes] = await Promise.all([
     sb.from('invoices').select('*, client:clients(*)').eq('id', a.invoice_id).eq('user_id', uid).single(),
-    sb.from('companies').select('*').eq('user_id', uid).single(),
+    sb.from('company').select('*').eq('user_id', uid).single(),
   ]);
   if (invRes.error) throw new Error(`Invoice not found: ${invRes.error.message}`);
 

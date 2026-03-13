@@ -8,6 +8,13 @@ import {
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
 const appUrl = Deno.env.get('APP_URL') || 'https://cashpilot.tech';
+const appOrigin = (() => {
+  try {
+    return new URL(appUrl).origin;
+  } catch {
+    return 'https://cashpilot.tech';
+  }
+})();
 
 const securityHeaders = {
   ...SECURITY_HEADERS,
@@ -56,7 +63,7 @@ const callbackHtml = ({
               provider: '${provider}',
               message: ${JSON.stringify(message)},
             },
-            '*'
+            ${JSON.stringify(appOrigin)}
           );
         }
       } catch (_) {}
