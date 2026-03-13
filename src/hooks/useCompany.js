@@ -98,8 +98,8 @@ export const useCompany = () => {
       const storedPreferred = storedActiveCompanyId
         ? allCompanies.find((company) => String(company.id) === String(storedActiveCompanyId))
         : null;
-      // Fall back to local active company and then first company
-      const resolvedCompany = preferred || storedPreferred || allCompanies[0];
+      // Prioritize local active-company storage to stay in sync with scoped data.
+      const resolvedCompany = storedPreferred || preferred || allCompanies[0];
       setActiveCompany(resolvedCompany);
       setStoredActiveCompanyId(resolvedCompany?.id || null);
     } catch (err) {

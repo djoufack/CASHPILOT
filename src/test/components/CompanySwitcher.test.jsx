@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import CompanySwitcher from '@/components/CompanySwitcher';
+import { ACTIVE_COMPANY_STORAGE_KEY } from '@/utils/activeCompanyStorage';
 
 describe('CompanySwitcher', () => {
   it('places the primary company first and labels it in the dropdown', () => {
@@ -47,5 +48,26 @@ describe('CompanySwitcher', () => {
 
     const activeMarker = screen.getByText(/company\.activeCompany/i);
     expect(activeMarker.closest('button')?.textContent || '').toContain('Company Secondaire');
+  });
+
+  it('uses active company from storage when local active object is stale', () => {
+    window.localStorage.setItem(ACTIVE_COMPANY_STORAGE_KEY, '2');
+    const companies = [
+      { id: '1', company_name: 'Company Principale', created_at: '2026-01-01T10:00:00.000Z', is_primary: true },
+      { id: '2', company_name: 'Company Secondaire', created_at: '2026-01-02T10:00:00.000Z' },
+    ];
+
+    render(
+      <CompanySwitcher
+        companies={companies}
+        activeCompany={{ id: '1', company_name: 'Company Principale' }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /company secondaire/i }));
+
+    const activeMarker = screen.getByText(/company\.activeCompany/i);
+    expect(activeMarker.closest('button')?.textContent || '').toContain('Company Secondaire');
+    window.localStorage.removeItem(ACTIVE_COMPANY_STORAGE_KEY);
   });
 });
