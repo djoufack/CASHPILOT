@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { setStoredActiveCompanyId } from '@/utils/activeCompanyStorage';
+import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
 
 const resolveCompanyAccountingCurrency = (companyData = {}, currentCompany = null) => {
   const rawValue =
@@ -34,6 +35,7 @@ const sanitizeCompanyRecord = (companyRecord = {}) => {
 
 export const useCompany = () => {
   const { user } = useAuth();
+  const storedActiveCompanyId = useActiveCompanyId();
   // Multi-company state
   const [companies, setCompanies] = useState([]);
   const [activeCompany, setActiveCompany] = useState(null);
@@ -92,9 +94,12 @@ export const useCompany = () => {
       }
 
       const preferredId = prefData?.active_company_id;
-      const preferred = allCompanies.find(c => c.id === preferredId);
-      // Fall back to first company if preference not found or not set
-      const resolvedCompany = preferred || allCompanies[0];
+      const preferred = allCompanies.find((company) => String(company.id) === String(preferredId));
+      const storedPreferred = storedActiveCompanyId
+        ? allCompanies.find((company) => String(company.id) === String(storedActiveCompanyId))
+        : null;
+      // Fall back to local active company and then first company
+      const resolvedCompany = preferred || storedPreferred || allCompanies[0];
       setActiveCompany(resolvedCompany);
       setStoredActiveCompanyId(resolvedCompany?.id || null);
     } catch (err) {
@@ -103,7 +108,7 @@ export const useCompany = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [storedActiveCompanyId, user]);
 
   // Keep legacy name for backward compat
   const fetchCompany = fetchCompanies;
@@ -119,13 +124,23 @@ export const useCompany = () => {
     }
   }, [fetchCompanies, user]);
 
+  useEffect(() => {
+    if (!storedActiveCompanyId || !companies.length) return;
+    if (String(activeCompany?.id) === String(storedActiveCompanyId)) return;
+
+    const storedCompany = companies.find((company) => String(company.id) === String(storedActiveCompanyId));
+    if (storedCompany) {
+      setActiveCompany(storedCompany);
+    }
+  }, [activeCompany?.id, companies, storedActiveCompanyId]);
+
   /**
    * Switch the active company and persist the preference.
    */
   const switchCompany = async (companyId) => {
     if (!user || !supabase) return;
 
-    const target = companies.find(c => c.id === companyId);
+    const target = companies.find((company) => String(company.id) === String(companyId));
     if (!target) return;
 
     setActiveCompany(target);
@@ -135,7 +150,7 @@ export const useCompany = () => {
       await supabase
         .from('user_company_preferences')
         .upsert(
-          { user_id: user.id, active_company_id: companyId, updated_at: new Date().toISOString() },
+          { user_id: user.id, active_company_id: target.id, updated_at: new Date().toISOString() },
           { onConflict: 'user_id' }
         );
     } catch (err) {
