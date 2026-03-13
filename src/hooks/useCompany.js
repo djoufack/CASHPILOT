@@ -33,6 +33,11 @@ const sanitizeCompanyRecord = (companyRecord = {}) => {
   };
 };
 
+const normalizeCompanyId = (value) => {
+  if (value == null) return null;
+  return String(value).trim().toLowerCase();
+};
+
 export const useCompany = () => {
   const { user } = useAuth();
   const storedActiveCompanyId = useActiveCompanyId();
@@ -97,13 +102,15 @@ export const useCompany = () => {
         console.warn('Could not fetch company preference:', prefError.message);
       }
 
-      const preferredId = prefData?.active_company_id;
-      const preferred = allCompanies.find((company) => String(company.id) === String(preferredId));
+      const preferredId = normalizeCompanyId(prefData?.active_company_id);
+      const preferred = allCompanies.find(
+        (company) => normalizeCompanyId(company.id) === preferredId,
+      );
       // Read the latest value directly from storage to avoid stale closure races.
       const latestStoredCompanyId = getStoredActiveCompanyId();
-      const effectiveStoredCompanyId = latestStoredCompanyId || storedActiveCompanyId;
+      const effectiveStoredCompanyId = normalizeCompanyId(latestStoredCompanyId);
       const storedPreferred = effectiveStoredCompanyId
-        ? allCompanies.find((company) => String(company.id) === String(effectiveStoredCompanyId))
+        ? allCompanies.find((company) => normalizeCompanyId(company.id) === effectiveStoredCompanyId)
         : null;
       // Prioritize local active-company storage to stay in sync with scoped data.
       const resolvedCompany = storedPreferred || preferred || allCompanies[0];
@@ -118,7 +125,7 @@ export const useCompany = () => {
         setLoading(false);
       }
     }
-  }, [storedActiveCompanyId, user]);
+  }, [user]);
 
   // Keep legacy name for backward compat
   const fetchCompany = fetchCompanies;
@@ -136,9 +143,12 @@ export const useCompany = () => {
 
   useEffect(() => {
     if (!storedActiveCompanyId || !companies.length) return;
-    if (String(activeCompany?.id) === String(storedActiveCompanyId)) return;
+    if (normalizeCompanyId(activeCompany?.id) === normalizeCompanyId(storedActiveCompanyId)) return;
 
-    const storedCompany = companies.find((company) => String(company.id) === String(storedActiveCompanyId));
+    const normalizedStoredCompanyId = normalizeCompanyId(storedActiveCompanyId);
+    const storedCompany = companies.find(
+      (company) => normalizeCompanyId(company.id) === normalizedStoredCompanyId,
+    );
     if (storedCompany) {
       setActiveCompany(storedCompany);
     }
@@ -150,7 +160,10 @@ export const useCompany = () => {
   const switchCompany = async (companyId) => {
     if (!user || !supabase) return;
 
-    const target = companies.find((company) => String(company.id) === String(companyId));
+    const normalizedRequestedCompanyId = normalizeCompanyId(companyId);
+    const target = companies.find(
+      (company) => normalizeCompanyId(company.id) === normalizedRequestedCompanyId,
+    );
     if (!target) return;
 
     setActiveCompany(target);
