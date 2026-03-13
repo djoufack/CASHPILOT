@@ -2,16 +2,21 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Building2, ChevronDown, Check, Plus } from 'lucide-react';
 import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
+import { setStoredActiveCompanyId } from '@/utils/activeCompanyStorage';
+
+const normalizeCompanyId = (value) => (
+  value == null ? null : String(value).trim().toLowerCase()
+);
 
 export default function CompanySwitcher({ companies = [], activeCompany, onSwitch, onCreateNew }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const activeCompanyId = activeCompany?.id != null ? String(activeCompany.id) : null;
+  const activeCompanyId = normalizeCompanyId(activeCompany?.id);
   const storedActiveCompanyId = useActiveCompanyId();
 
   const effectiveActiveCompanyId = useMemo(() => {
-    const normalizedStoredId = storedActiveCompanyId != null ? String(storedActiveCompanyId) : null;
-    if (normalizedStoredId && companies.some((company) => String(company?.id) === normalizedStoredId)) {
+    const normalizedStoredId = normalizeCompanyId(storedActiveCompanyId);
+    if (normalizedStoredId && companies.some((company) => normalizeCompanyId(company?.id) === normalizedStoredId)) {
       return normalizedStoredId;
     }
     return activeCompanyId;
@@ -20,7 +25,7 @@ export default function CompanySwitcher({ companies = [], activeCompany, onSwitc
   const effectiveActiveCompany = useMemo(() => {
     if (!effectiveActiveCompanyId) return activeCompany || null;
     return (
-      companies.find((company) => String(company?.id) === effectiveActiveCompanyId)
+      companies.find((company) => normalizeCompanyId(company?.id) === effectiveActiveCompanyId)
       || activeCompany
       || null
     );
@@ -35,10 +40,10 @@ export default function CompanySwitcher({ companies = [], activeCompany, onSwitc
       || company?.is_portfolio_primary === true
     );
     if (explicitPrimary?.id != null) {
-      return String(explicitPrimary.id);
+      return normalizeCompanyId(explicitPrimary.id);
     }
 
-    if (effectiveActiveCompanyId && companies.some((company) => String(company?.id) === effectiveActiveCompanyId)) {
+    if (effectiveActiveCompanyId && companies.some((company) => normalizeCompanyId(company?.id) === effectiveActiveCompanyId)) {
       return effectiveActiveCompanyId;
     }
 
@@ -53,20 +58,20 @@ export default function CompanySwitcher({ companies = [], activeCompany, onSwitc
     });
 
     const fallbackId = byCreation[0]?.id ?? companies[0]?.id ?? null;
-    return fallbackId != null ? String(fallbackId) : null;
+    return normalizeCompanyId(fallbackId);
   }, [companies, effectiveActiveCompanyId]);
 
   const sortedCompanies = useMemo(() => {
     const next = [...companies];
     next.sort((left, right) => {
       if (primaryCompanyId) {
-        if (String(left.id) === primaryCompanyId) return -1;
-        if (String(right.id) === primaryCompanyId) return 1;
+        if (normalizeCompanyId(left.id) === primaryCompanyId) return -1;
+        if (normalizeCompanyId(right.id) === primaryCompanyId) return 1;
       }
 
       if (effectiveActiveCompanyId) {
-        if (String(left.id) === effectiveActiveCompanyId) return -1;
-        if (String(right.id) === effectiveActiveCompanyId) return 1;
+        if (normalizeCompanyId(left.id) === effectiveActiveCompanyId) return -1;
+        if (normalizeCompanyId(right.id) === effectiveActiveCompanyId) return 1;
       }
 
       const leftName = String(left.company_name || left.name || '').toLowerCase();
@@ -101,13 +106,17 @@ export default function CompanySwitcher({ companies = [], activeCompany, onSwitc
               {sortedCompanies.map(co => {
                 const displayName = co.company_name || co.name || '?';
                 const initials = displayName.slice(0, 2).toUpperCase();
-                const companyId = String(co.id);
+                const companyId = normalizeCompanyId(co.id);
                 const isActive = effectiveActiveCompanyId === companyId;
                 const isPrimary = primaryCompanyId === companyId;
                 return (
                   <button
                     key={co.id}
-                    onClick={() => { onSwitch?.(co.id); setOpen(false); }}
+                    onClick={() => {
+                      setStoredActiveCompanyId(co.id);
+                      onSwitch?.(co.id);
+                      setOpen(false);
+                    }}
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
                   >
                     <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center text-xs font-semibold text-indigo-300 shrink-0">

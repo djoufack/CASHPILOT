@@ -70,4 +70,24 @@ describe('CompanySwitcher', () => {
     expect(activeMarker.closest('button')?.textContent || '').toContain('Company Secondaire');
     window.localStorage.removeItem(ACTIVE_COMPANY_STORAGE_KEY);
   });
+
+  it('matches active company regardless of id casing', () => {
+    window.localStorage.setItem(ACTIVE_COMPANY_STORAGE_KEY, 'abc-123');
+    const companies = [
+      { id: 'AAA-000', company_name: 'Company Principale', created_at: '2026-01-01T10:00:00.000Z', is_primary: true },
+      { id: 'ABC-123', company_name: 'Company Secondaire', created_at: '2026-01-02T10:00:00.000Z' },
+    ];
+
+    render(
+      <CompanySwitcher
+        companies={companies}
+        activeCompany={{ id: 'AAA-000', company_name: 'Company Principale' }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /company secondaire/i }));
+    const activeMarker = screen.getByText(/company\.activeCompany/i);
+    expect(activeMarker.closest('button')?.textContent || '').toContain('Company Secondaire');
+    window.localStorage.removeItem(ACTIVE_COMPANY_STORAGE_KEY);
+  });
 });
