@@ -95,7 +95,11 @@ export const usePayables = () => {
     if (!supabase) throw new Error('Not configured');
     setLoading(true);
     try {
-      await supabase.from('debt_payments').delete().eq('record_type', 'payable').eq('record_id', id);
+      const { error: paymentsDeleteError } = await supabase
+        .from('debt_payments')
+        .delete()
+        .eq('payable_id', id);
+      if (paymentsDeleteError) throw paymentsDeleteError;
       const { error } = await supabase
         .from('payables')
         .delete()
@@ -122,8 +126,7 @@ export const usePayables = () => {
       const { error: payError } = await supabase.from('debt_payments').insert([{
         user_id: user.id,
         company_id: payable.company_id || null,
-        record_type: 'payable',
-        record_id: payableId,
+        payable_id: payableId,
         amount,
         payment_method: paymentMethod,
         notes,
@@ -159,8 +162,7 @@ export const usePayables = () => {
         .from('debt_payments')
         .select('*')
         .eq('user_id', user.id)
-        .eq('record_type', 'payable')
-        .eq('record_id', payableId)
+        .eq('payable_id', payableId)
         .order('payment_date', { ascending: false });
       query = applyCompanyScope(query, { includeUnassigned: false });
 
@@ -172,13 +174,24 @@ export const usePayables = () => {
     }
   };
 
+  const isOutstanding = (record) => parseFloat(record.amount_paid || 0) < parseFloat(record.amount || 0);
+  const isOverdue = (record) => {
+    if (!record?.due_date) return false;
+    const due = new Date(record.due_date);
+    if (Number.isNaN(due.getTime())) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    due.setHours(0, 0, 0, 0);
+    return due < today;
+  };
+
   const stats = {
     totalPayable: payables.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0),
     totalRepaid: payables.reduce((sum, p) => sum + parseFloat(p.amount_paid || 0), 0),
     totalOwed: payables.reduce((sum, p) => sum + (parseFloat(p.amount || 0) - parseFloat(p.amount_paid || 0)), 0),
-    countOverdue: payables.filter(p => p.status === 'overdue').length,
-    countPending: payables.filter(p => p.status === 'pending' || p.status === 'partial').length,
-    countPaid: payables.filter(p => p.status === 'paid').length,
+    countOverdue: payables.filter(p => isOutstanding(p) && isOverdue(p)).length,
+    countPending: payables.filter(isOutstanding).length,
+    countPaid: payables.filter(p => !isOutstanding(p)).length,
   };
 
   useEffect(() => {

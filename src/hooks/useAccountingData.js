@@ -176,33 +176,29 @@ export const useAccountingData = (startDate, endDate) => {
       if (refreshTimeout) clearTimeout(refreshTimeout);
       refreshTimeout = setTimeout(() => { fetchAll(); }, 500);
     };
+    const realtimeTables = [
+      'accounting_entries',
+      'invoices',
+      'expenses',
+      'payments',
+      'supplier_invoices',
+      'payables',
+      'receivables',
+      'bank_transactions',
+      'supplier_orders',
+      'purchase_orders',
+      'accounting_depreciation_schedule',
+      'products',
+    ];
 
-    const entriesSub = supabase
-      .channel('accounting_entries_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'accounting_entries', filter: `user_id=eq.${user.id}` }, debouncedRefresh)
-      .subscribe();
-
-    const invoicesSub = supabase
-      .channel('invoices_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices', filter: `user_id=eq.${user.id}` }, debouncedRefresh)
-      .subscribe();
-
-    const expensesSub = supabase
-      .channel('expenses_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `user_id=eq.${user.id}` }, debouncedRefresh)
-      .subscribe();
-
-    const paymentsSub = supabase
-      .channel('payments_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `user_id=eq.${user.id}` }, debouncedRefresh)
-      .subscribe();
+    const subscriptions = realtimeTables.map((table) => supabase
+      .channel(`${table}_changes`)
+      .on('postgres_changes', { event: '*', schema: 'public', table, filter: `user_id=eq.${user.id}` }, debouncedRefresh)
+      .subscribe());
 
     return () => {
       if (refreshTimeout) clearTimeout(refreshTimeout);
-      entriesSub.unsubscribe();
-      invoicesSub.unsubscribe();
-      expensesSub.unsubscribe();
-      paymentsSub.unsubscribe();
+      subscriptions.forEach((sub) => sub.unsubscribe());
     };
   }, [user, fetchAll]);
 

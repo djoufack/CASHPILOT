@@ -2,23 +2,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Default payment methods (fallback if DB fetch fails)
- */
-const DEFAULT_METHODS = [
-  { code: 'bank_transfer', name: 'bank_transfer', icon: 'Landmark', sort_order: 1 },
-  { code: 'cash', name: 'cash', icon: 'Banknote', sort_order: 2 },
-  { code: 'card', name: 'card', icon: 'CreditCard', sort_order: 3 },
-  { code: 'check', name: 'check', icon: 'DollarSign', sort_order: 4 },
-  { code: 'paypal', name: 'paypal', icon: 'Globe', sort_order: 5 },
-  { code: 'other', name: 'other', icon: 'MoreHorizontal', sort_order: 6 },
-];
-
-/**
  * Hook that fetches payment methods from the payment_methods DB table.
- * Falls back to DEFAULT_METHODS if the fetch fails or returns empty.
+ * DB is the source of truth: no hardcoded payment method fallback.
  */
 export function usePaymentMethods() {
-  const [methods, setMethods] = useState(DEFAULT_METHODS);
+  const [methods, setMethods] = useState([]);
 
   useEffect(() => {
     supabase
@@ -28,7 +16,7 @@ export function usePaymentMethods() {
       .order('sort_order')
       .then(({ data, error }) => {
         if (error) {
-          console.warn('Failed to fetch payment methods from DB, using defaults:', error);
+          console.warn('Failed to fetch payment methods from DB:', error);
           return;
         }
         if (data && data.length > 0) {
