@@ -38,14 +38,15 @@ ALTER TABLE public.accounting_analytical_axes
 
 UPDATE public.accounting_analytical_axes ax
 SET company_id = c.id
-FROM LATERAL (
-  SELECT id
+FROM (
+  SELECT DISTINCT ON (c.user_id)
+    c.user_id,
+    c.id
   FROM public.company c
-  WHERE c.user_id = ax.user_id
-  ORDER BY c.created_at ASC
-  LIMIT 1
+  ORDER BY c.user_id, c.created_at ASC
 ) c
-WHERE ax.company_id IS NULL;
+WHERE ax.company_id IS NULL
+  AND c.user_id = ax.user_id;
 
 DELETE FROM public.accounting_analytical_axes ax
 WHERE ax.company_id IS NULL;
