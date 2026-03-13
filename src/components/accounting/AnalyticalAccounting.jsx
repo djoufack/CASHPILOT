@@ -245,10 +245,25 @@ export default function AnalyticalAccounting() {
     return { kpis: kpiData, variances: varianceData || [] };
   }, [activeCompanyId, endDate, startDate, user]);
 
+  const syncAccountingToAnalytical = useCallback(async () => {
+    if (!activeCompanyId) return 0;
+    const { data, error } = await supabase.rpc('f_seed_analytical_allocations_from_entries', {
+      p_user_id: user.id,
+      p_company_id: activeCompanyId,
+      p_start_date: startDate,
+      p_end_date: endDate,
+    });
+    if (error) throw error;
+    return Number(data || 0);
+  }, [activeCompanyId, endDate, startDate, user]);
+
   const loadAll = useCallback(async () => {
     if (!user || !activeCompanyId) return;
     setLoading(true);
     try {
+      // Keep analytics in sync with posted accounting entries for the active window.
+      await syncAccountingToAnalytical();
+
       const [axesData, axisValuesData, objectsData, centersData, rulesData, allocationsData, budgetsData, reporting] = await Promise.all([
         fetchAxes(),
         fetchAxisValues(),
@@ -273,7 +288,7 @@ export default function AnalyticalAccounting() {
     } finally {
       setLoading(false);
     }
-  }, [activeCompanyId, fetchAllocations, fetchAxes, fetchAxisValues, fetchBudgets, fetchCenters, fetchObjects, fetchReporting, fetchRules, toast, user]);
+  }, [activeCompanyId, fetchAllocations, fetchAxes, fetchAxisValues, fetchBudgets, fetchCenters, fetchObjects, fetchReporting, fetchRules, syncAccountingToAnalytical, toast, user]);
 
   useEffect(() => {
     loadAll();
