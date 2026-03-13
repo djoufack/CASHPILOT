@@ -1,0 +1,4 @@
+interface:
+  display_name: "CashPilot Vercel Prebuilt"
+  short_description: "Deploy CashPilot with Vercel prebuilt"
+  default_prompt: "Use $cashpilot-vercel-prebuilt-deploy to run a fast, low-upload production deploy for CashPilot."
