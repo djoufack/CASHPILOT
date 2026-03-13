@@ -1,0 +1,54 @@
+# Dependencies and build artifacts
+node_modules/
+dist/
+coverage/
+.cache/
+.vite/
+.npm/
+
+# Local/editor metadata
+.git/
+.github/
+.husky/
+.vscode/
+.worktrees/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Generated artifacts and temp files
+artifacts/
+tmp_generated_tool_names.txt
+*.log
+*.tmp
+
+# Non-runtime project documentation and archives (not needed for Vite/API build)
+Agents SaaS/
+Analyse Comptable Et Financière/
+Audit/
+Bank Connection/
+CashPilot Presentation/
+Context/
+Demo/
+Exigences CashPilot/
+Fonctionnalités/
+KIMI K2.5 - CASHPILOT/
+Landing Page Infos/
+Payments/
+Peppol/
+Plans-Implémentation/
+Plugin CashPilot/
+Pricing/
+System-State/
+task-to-do/
+Tests/
+Updates/
+Vérification Implémentations/
+docs/
+
+# Backend/sql assets deployed separately from Vercel frontend
+mcp-server/
+migrations/
+supabase/

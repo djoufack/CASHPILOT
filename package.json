@@ -31,6 +31,10 @@
     "smoke:pilotage-demos": "node scripts/smoke-pilotage-demos.mjs",
     "smoke:pilotage-ui": "node scripts/smoke-pilotage-ui-playwright.mjs",
     "smoke:peppol": "node scripts/smoke-peppol-usage-policy.mjs",
+    "vercel:pull:prod": "npx vercel pull --yes --environment=production",
+    "vercel:build:prod": "npx vercel build --prod",
+    "vercel:deploy:prebuilt:prod": "npx vercel deploy --prebuilt --prod --yes",
+    "vercel:prebuilt:prod": "npm run vercel:pull:prod && npm run vercel:build:prod && npm run vercel:deploy:prebuilt:prod",
     "prepare": "husky"
   },
   "lint-staged": {
