@@ -1,9 +1,9 @@
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-import { setStoredActiveCompanyId } from '@/utils/activeCompanyStorage';
+import { getStoredActiveCompanyId, setStoredActiveCompanyId } from '@/utils/activeCompanyStorage';
 import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
 
 const resolveCompanyAccountingCurrency = (companyData = {}, currentCompany = null) => {
@@ -36,6 +36,7 @@ const sanitizeCompanyRecord = (companyRecord = {}) => {
 export const useCompany = () => {
   const { user } = useAuth();
   const storedActiveCompanyId = useActiveCompanyId();
+  const latestFetchRequestIdRef = useRef(0);
   // Multi-company state
   const [companies, setCompanies] = useState([]);
   const [activeCompany, setActiveCompany] = useState(null);
@@ -50,6 +51,7 @@ export const useCompany = () => {
       setLoading(false);
       return;
     }
+    const requestId = ++latestFetchRequestIdRef.current;
 
     try {
       setLoading(true);
@@ -60,6 +62,7 @@ export const useCompany = () => {
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: true });
+      if (requestId !== latestFetchRequestIdRef.current) return;
 
       if (companiesError) {
         // Handle RLS errors gracefully
@@ -87,6 +90,7 @@ export const useCompany = () => {
         .select('active_company_id')
         .eq('user_id', user.id)
         .maybeSingle();
+      if (requestId !== latestFetchRequestIdRef.current) return;
 
       if (prefError && prefError.code !== '42P01') {
         // If table doesn't exist (42P01), fall back to first company silently
@@ -95,18 +99,24 @@ export const useCompany = () => {
 
       const preferredId = prefData?.active_company_id;
       const preferred = allCompanies.find((company) => String(company.id) === String(preferredId));
-      const storedPreferred = storedActiveCompanyId
-        ? allCompanies.find((company) => String(company.id) === String(storedActiveCompanyId))
+      // Read the latest value directly from storage to avoid stale closure races.
+      const latestStoredCompanyId = getStoredActiveCompanyId();
+      const effectiveStoredCompanyId = latestStoredCompanyId || storedActiveCompanyId;
+      const storedPreferred = effectiveStoredCompanyId
+        ? allCompanies.find((company) => String(company.id) === String(effectiveStoredCompanyId))
         : null;
       // Prioritize local active-company storage to stay in sync with scoped data.
       const resolvedCompany = storedPreferred || preferred || allCompanies[0];
       setActiveCompany(resolvedCompany);
       setStoredActiveCompanyId(resolvedCompany?.id || null);
     } catch (err) {
+      if (requestId !== latestFetchRequestIdRef.current) return;
       console.error('Error fetching companies:', err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (requestId === latestFetchRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [storedActiveCompanyId, user]);
 
