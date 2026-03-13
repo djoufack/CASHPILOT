@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,21 +10,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer
-} from 'recharts';
-import { Plus, Trash2, RefreshCw, BarChart2 } from 'lucide-react';
+  Plus, RefreshCw, Activity, Building2, Calculator, ClipboardList, BarChart2,
+} from 'lucide-react';
 
-// Axis type options
 const AXIS_TYPES = [
   { value: 'cost_center', label: 'Centre de coût' },
   { value: 'department', label: 'Département' },
@@ -34,346 +31,863 @@ const AXIS_TYPES = [
   { value: 'custom', label: 'Personnalisé' },
 ];
 
+const OBJECT_TYPES = [
+  'product',
+  'service',
+  'project',
+  'client',
+  'channel',
+  'geography',
+  'business_unit',
+  'custom',
+];
+
+const CENTER_TYPES = ['principal', 'auxiliary', 'structure'];
+const COST_BEHAVIORS = ['fixed', 'variable', 'semi_variable'];
+const DESTINATIONS = ['production', 'commercial', 'administratif', 'rd'];
+const METHODS = ['full_costing', 'direct_costing', 'standard_costing', 'abc_costing', 'manual'];
+
+const currentDate = () => new Date().toISOString().slice(0, 10);
+const defaultStartDate = () => {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 3);
+  return d.toISOString().slice(0, 10);
+};
+
+const formatMoney = (value) => Number(value || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export default function AnalyticalAccounting() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { applyCompanyScope } = useCompanyScope();
+  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
+
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [moduleTab, setModuleTab] = useState('objects');
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(currentDate);
 
   const [axes, setAxes] = useState([]);
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [reportLoading, setReportLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [activeAxisType, setActiveAxisType] = useState('cost_center');
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 3);
-    return d.toISOString().split('T')[0];
-  });
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [axisValues, setAxisValues] = useState([]);
+  const [objects, setObjects] = useState([]);
+  const [centers, setCenters] = useState([]);
+  const [rules, setRules] = useState([]);
+  const [allocations, setAllocations] = useState([]);
+  const [budgets, setBudgets] = useState([]);
+  const [variances, setVariances] = useState([]);
+  const [kpis, setKpis] = useState(null);
 
-  // New axis form
-  const [form, setForm] = useState({
+  const [axisDialogOpen, setAxisDialogOpen] = useState(false);
+  const [objectDialogOpen, setObjectDialogOpen] = useState(false);
+  const [centerDialogOpen, setCenterDialogOpen] = useState(false);
+  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
+  const [allocationDialogOpen, setAllocationDialogOpen] = useState(false);
+  const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
+
+  const [axisForm, setAxisForm] = useState({
     axis_type: 'cost_center',
     axis_code: '',
     axis_name: '',
     color: '#6366f1',
   });
+  const [objectForm, setObjectForm] = useState({
+    object_type: 'project',
+    object_code: '',
+    object_name: '',
+  });
+  const [centerForm, setCenterForm] = useState({
+    center_code: '',
+    center_name: '',
+    center_type: 'principal',
+    axis_id: '',
+  });
+  const [ruleForm, setRuleForm] = useState({
+    rule_name: '',
+    source_type: '',
+    source_category: '',
+    allocation_percent: '100',
+    cost_center_id: '',
+    object_id: '',
+    axis_value_id: '',
+  });
+  const [allocationForm, setAllocationForm] = useState({
+    entry_id: '',
+    amount: '',
+    allocation_percent: '',
+    object_id: '',
+    cost_center_id: '',
+    axis_value_id: '',
+    is_direct: '__NO__',
+    cost_behavior: 'variable',
+    destination: 'production',
+    method: 'full_costing',
+  });
+  const [budgetForm, setBudgetForm] = useState({
+    budget_name: '',
+    period_start: defaultStartDate(),
+    period_end: currentDate(),
+    method: 'full_costing',
+    object_id: '',
+    cost_center_id: '',
+    axis_value_id: '',
+  });
 
   const fetchAxes = useCallback(async () => {
-    if (!user) return;
+    let query = supabase
+      .from('accounting_analytical_axes')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('axis_type')
+      .order('axis_code');
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }, [applyCompanyScope, user]);
+
+  const fetchAxisValues = useCallback(async () => {
+    let query = supabase
+      .from('analytical_axis_values')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('value_code');
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }, [applyCompanyScope, user]);
+
+  const fetchObjects = useCallback(async () => {
+    let query = supabase
+      .from('analytical_objects')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('object_type')
+      .order('object_code');
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }, [applyCompanyScope, user]);
+
+  const fetchCenters = useCallback(async () => {
+    let query = supabase
+      .from('cost_centers')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('center_type')
+      .order('center_code');
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }, [applyCompanyScope, user]);
+
+  const fetchRules = useCallback(async () => {
+    let query = supabase
+      .from('analytical_allocation_rules')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('priority');
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }, [applyCompanyScope, user]);
+
+  const fetchAllocations = useCallback(async () => {
+    let query = supabase
+      .from('analytical_allocations')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }, [applyCompanyScope, user]);
+
+  const fetchBudgets = useCallback(async () => {
+    let query = supabase
+      .from('analytical_budgets')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }, [applyCompanyScope, user]);
+
+  const fetchReporting = useCallback(async () => {
+    if (!activeCompanyId) {
+      return { kpis: null, variances: [] };
+    }
+    const { data: kpiData, error: kpiError } = await supabase.rpc('f_analytical_kpis', {
+      p_user_id: user.id,
+      p_company_id: activeCompanyId,
+      p_start_date: startDate,
+      p_end_date: endDate,
+      p_fixed_costs: null,
+    });
+    if (kpiError) throw kpiError;
+
+    const { data: varianceData, error: varianceError } = await supabase.rpc('f_analytical_budget_variances', {
+      p_user_id: user.id,
+      p_company_id: activeCompanyId,
+      p_start_date: startDate,
+      p_end_date: endDate,
+    });
+    if (varianceError) throw varianceError;
+
+    return { kpis: kpiData, variances: varianceData || [] };
+  }, [activeCompanyId, endDate, startDate, user]);
+
+  const loadAll = useCallback(async () => {
+    if (!user || !activeCompanyId) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('accounting_analytical_axes')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('axis_type')
-        .order('axis_code');
-      if (error) throw error;
-      setAxes(data || []);
+      const [axesData, axisValuesData, objectsData, centersData, rulesData, allocationsData, budgetsData, reporting] = await Promise.all([
+        fetchAxes(),
+        fetchAxisValues(),
+        fetchObjects(),
+        fetchCenters(),
+        fetchRules(),
+        fetchAllocations(),
+        fetchBudgets(),
+        fetchReporting(),
+      ]);
+      setAxes(axesData);
+      setAxisValues(axisValuesData);
+      setObjects(objectsData);
+      setCenters(centersData);
+      setRules(rulesData);
+      setAllocations(allocationsData);
+      setBudgets(budgetsData);
+      setKpis(reporting.kpis);
+      setVariances(reporting.variances);
     } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      toast({ title: 'Erreur analytique', description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
-
-  const fetchEntries = useCallback(async () => {
-    if (!user) return;
-    setReportLoading(true);
-    try {
-      const columnMap = {
-        cost_center: 'cost_center',
-        department: 'department',
-        product_line: 'product_line',
-      };
-      const col = columnMap[activeAxisType] || 'cost_center';
-
-      let query = supabase
-        .from('accounting_entries')
-        .select(`account_code, debit, credit, ${col}`)
-        .eq('user_id', user.id)
-        .gte('transaction_date', startDate)
-        .lte('transaction_date', endDate)
-        .not(col, 'is', null);
-      query = applyCompanyScope(query, { includeUnassigned: false });
-      const { data, error } = await query;
-      if (error) throw error;
-      setEntries(data || []);
-    } catch (err) {
-      toast({ title: 'Erreur rapport', description: err.message, variant: 'destructive' });
-    } finally {
-      setReportLoading(false);
-    }
-  }, [applyCompanyScope, user, activeAxisType, startDate, endDate, toast]);
+  }, [activeCompanyId, fetchAllocations, fetchAxes, fetchAxisValues, fetchBudgets, fetchCenters, fetchObjects, fetchReporting, fetchRules, toast, user]);
 
   useEffect(() => {
-    fetchAxes();
-  }, [fetchAxes]);
+    loadAll();
+  }, [loadAll]);
 
-  useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
-
-  const handleCreateAxis = async () => {
-    if (!form.axis_code.trim() || !form.axis_name.trim()) return;
-    try {
-      const { error } = await supabase
-        .from('accounting_analytical_axes')
-        .insert({ ...form, user_id: user.id });
-      if (error) throw error;
-      toast({ title: 'Axe créé', description: form.axis_name });
-      setDialogOpen(false);
-      setForm({ axis_type: 'cost_center', axis_code: '', axis_name: '', color: '#6366f1' });
-      fetchAxes();
-    } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
-    }
-  };
-
-  const handleDeleteAxis = async (id) => {
-    try {
-      await supabase.from('accounting_analytical_axes').update({ is_active: false }).eq('id', id);
-      toast({ title: 'Axe supprimé' });
-      fetchAxes();
-    } catch (err) {
-      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
-    }
-  };
-
-  // Aggregate entries by axis value for chart
-  const chartData = (() => {
-    const colMap = { cost_center: 'cost_center', department: 'department', product_line: 'product_line' };
-    const col = colMap[activeAxisType] || 'cost_center';
-    const groups = {};
-    entries.forEach(entry => {
-      const key = entry[col] || 'Non affecté';
-      if (!groups[key]) groups[key] = { name: key, debit: 0, credit: 0 };
-      groups[key].debit += parseFloat(entry.debit || 0);
-      groups[key].credit += parseFloat(entry.credit || 0);
+  const createAxis = async () => {
+    if (!axisForm.axis_code.trim() || !axisForm.axis_name.trim()) return;
+    const payload = withCompanyScope({
+      user_id: user.id,
+      axis_type: axisForm.axis_type,
+      axis_code: axisForm.axis_code.trim(),
+      axis_name: axisForm.axis_name.trim(),
+      color: axisForm.color,
     });
-    return Object.values(groups).map(g => ({
-      ...g,
-      debit: Math.round(g.debit * 100) / 100,
-      credit: Math.round(g.credit * 100) / 100,
-      solde: Math.round((g.debit - g.credit) * 100) / 100,
-    }));
-  })();
+    const { error } = await supabase.from('accounting_analytical_axes').insert(payload);
+    if (error) throw error;
+    setAxisDialogOpen(false);
+    setAxisForm({ axis_type: 'cost_center', axis_code: '', axis_name: '', color: '#6366f1' });
+    await loadAll();
+  };
+
+  const createObject = async () => {
+    if (!objectForm.object_code.trim() || !objectForm.object_name.trim()) return;
+    const payload = withCompanyScope({
+      user_id: user.id,
+      object_type: objectForm.object_type,
+      object_code: objectForm.object_code.trim(),
+      object_name: objectForm.object_name.trim(),
+    });
+    const { error } = await supabase.from('analytical_objects').insert(payload);
+    if (error) throw error;
+    setObjectDialogOpen(false);
+    setObjectForm({ object_type: 'project', object_code: '', object_name: '' });
+    await loadAll();
+  };
+
+  const createCenter = async () => {
+    if (!centerForm.center_code.trim() || !centerForm.center_name.trim()) return;
+    const payload = withCompanyScope({
+      user_id: user.id,
+      center_code: centerForm.center_code.trim(),
+      center_name: centerForm.center_name.trim(),
+      center_type: centerForm.center_type,
+      axis_id: centerForm.axis_id || null,
+    });
+    const { error } = await supabase.from('cost_centers').insert(payload);
+    if (error) throw error;
+    setCenterDialogOpen(false);
+    setCenterForm({ center_code: '', center_name: '', center_type: 'principal', axis_id: '' });
+    await loadAll();
+  };
+
+  const createRule = async () => {
+    if (!ruleForm.rule_name.trim()) return;
+    const payload = withCompanyScope({
+      user_id: user.id,
+      rule_name: ruleForm.rule_name.trim(),
+      source_type: ruleForm.source_type.trim() || null,
+      source_category: ruleForm.source_category.trim() || null,
+      allocation_percent: Number(ruleForm.allocation_percent || 0),
+      cost_center_id: ruleForm.cost_center_id || null,
+      object_id: ruleForm.object_id || null,
+      axis_value_id: ruleForm.axis_value_id || null,
+    });
+    const { error } = await supabase.from('analytical_allocation_rules').insert(payload);
+    if (error) throw error;
+    setRuleDialogOpen(false);
+    setRuleForm({
+      rule_name: '',
+      source_type: '',
+      source_category: '',
+      allocation_percent: '100',
+      cost_center_id: '',
+      object_id: '',
+      axis_value_id: '',
+    });
+    await loadAll();
+  };
+
+  const createAllocation = async () => {
+    if (!allocationForm.entry_id.trim() || !allocationForm.amount) return;
+    const payload = withCompanyScope({
+      user_id: user.id,
+      entry_id: allocationForm.entry_id.trim(),
+      amount: Number(allocationForm.amount || 0),
+      allocation_percent: allocationForm.allocation_percent ? Number(allocationForm.allocation_percent) : null,
+      object_id: allocationForm.object_id || null,
+      cost_center_id: allocationForm.cost_center_id || null,
+      axis_value_id: allocationForm.axis_value_id || null,
+      is_direct: allocationForm.is_direct === '__YES__',
+      cost_behavior: allocationForm.cost_behavior || null,
+      destination: allocationForm.destination || null,
+      method: allocationForm.method || null,
+    });
+    const { error } = await supabase.from('analytical_allocations').insert(payload);
+    if (error) throw error;
+    setAllocationDialogOpen(false);
+    setAllocationForm({
+      entry_id: '',
+      amount: '',
+      allocation_percent: '',
+      object_id: '',
+      cost_center_id: '',
+      axis_value_id: '',
+      is_direct: '__NO__',
+      cost_behavior: 'variable',
+      destination: 'production',
+      method: 'full_costing',
+    });
+    await loadAll();
+  };
+
+  const createBudget = async () => {
+    if (!budgetForm.budget_name.trim()) return;
+    const payload = withCompanyScope({
+      user_id: user.id,
+      budget_name: budgetForm.budget_name.trim(),
+      period_start: budgetForm.period_start,
+      period_end: budgetForm.period_end,
+      method: budgetForm.method,
+      object_id: budgetForm.object_id || null,
+      cost_center_id: budgetForm.cost_center_id || null,
+      axis_value_id: budgetForm.axis_value_id || null,
+    });
+    const { error } = await supabase.from('analytical_budgets').insert(payload);
+    if (error) throw error;
+    setBudgetDialogOpen(false);
+    setBudgetForm({
+      budget_name: '',
+      period_start: defaultStartDate(),
+      period_end: currentDate(),
+      method: 'full_costing',
+      object_id: '',
+      cost_center_id: '',
+      axis_value_id: '',
+    });
+    await loadAll();
+  };
+
+  const redistributeAuxiliaryCenters = async () => {
+    if (!activeCompanyId) return;
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.rpc('f_redistribute_auxiliary_centers', {
+        p_user_id: user.id,
+        p_company_id: activeCompanyId,
+        p_start_date: startDate,
+        p_end_date: endDate,
+      });
+      if (error) throw error;
+      toast({ title: 'Redistribution terminée', description: `${data || 0} allocation(s) générée(s).` });
+      await loadAll();
+    } catch (err) {
+      toast({ title: 'Erreur redistribution', description: err.message, variant: 'destructive' });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const allocationHealth = useMemo(() => {
+    const byEntry = allocations.reduce((acc, row) => {
+      const key = row.entry_id;
+      if (!acc[key]) acc[key] = { totalAmount: 0, totalPct: 0, hasPct: false };
+      acc[key].totalAmount += Number(row.amount || 0);
+      if (row.allocation_percent != null) {
+        acc[key].totalPct += Number(row.allocation_percent || 0);
+        acc[key].hasPct = true;
+      }
+      return acc;
+    }, {});
+    const entries = Object.values(byEntry);
+    const withPct = entries.filter((e) => e.hasPct).length;
+    const validPct = entries.filter((e) => !e.hasPct || Math.abs(e.totalPct - 100) <= 0.01).length;
+    return { totalEntries: entries.length, withPct, validPct };
+  }, [allocations]);
+
+  const safeAction = async (fn) => {
+    try {
+      await fn();
+    } catch (err) {
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  if (!activeCompanyId) {
+    return (
+      <Card className="bg-white/5 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white">{t('accounting.analytique.title', 'Comptabilité analytique')}</CardTitle>
+        </CardHeader>
+        <CardContent className="text-gray-400">
+          Sélectionnez une société active pour gérer la comptabilité analytique.
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">{t('accounting.analytique.title', 'Comptabilité analytique')}</h2>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2">
-              <Plus className="w-4 h-4" />
-              {t('accounting.analytique.newAxis', 'Nouvel axe')}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-[#0f1528] border-white/10 text-white">
-            <DialogHeader>
-              <DialogTitle>{t('accounting.analytique.newAxis', 'Nouvel axe analytique')}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <Label>{t('accounting.analytique.axisType', "Type d'axe")}</Label>
-                <Select value={form.axis_type} onValueChange={v => setForm(f => ({ ...f, axis_type: v }))}>
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#0f1528] border-white/10">
-                    {AXIS_TYPES.map(at => (
-                      <SelectItem key={at.value} value={at.value} className="text-white hover:bg-white/10">
-                        {at.label}
-                      </SelectItem>
+        <div>
+          <h2 className="text-xl font-semibold text-white">{t('accounting.analytique.title', 'Comptabilité analytique')}</h2>
+          <p className="text-xs text-gray-400 mt-1">Scope strict company_id actif • audit CRUD transactionnel • calculs DB-first</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+            <Building2 className="w-3.5 h-3.5 mr-1" />
+            Société active
+          </Badge>
+          <Button size="sm" variant="outline" onClick={loadAll} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Rafraîchir
+          </Button>
+        </div>
+      </div>
+
+      <Tabs value={moduleTab} onValueChange={setModuleTab} className="w-full">
+        <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto rounded-xl border border-white/10 bg-white/5 p-2">
+          <TabsTrigger value="objects">Objets</TabsTrigger>
+          <TabsTrigger value="centers">Centres</TabsTrigger>
+          <TabsTrigger value="rules">Règles</TabsTrigger>
+          <TabsTrigger value="allocations">Imputations</TabsTrigger>
+          <TabsTrigger value="methods">Méthodes</TabsTrigger>
+          <TabsTrigger value="budgets">Budgets</TabsTrigger>
+          <TabsTrigger value="reporting">Reporting</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="objects" className="mt-4">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white text-sm">Objets de coûts & axes</CardTitle>
+              <div className="flex gap-2">
+                <Dialog open={axisDialogOpen} onOpenChange={setAxisDialogOpen}>
+                  <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" />Nouvel axe</Button></DialogTrigger>
+                  <DialogContent className="bg-[#0f1528] border-white/10 text-white">
+                    <DialogHeader><DialogTitle>Créer un axe analytique</DialogTitle></DialogHeader>
+                    <div className="space-y-3">
+                      <Label>Type</Label>
+                      <Select value={axisForm.axis_type} onValueChange={(v) => setAxisForm((p) => ({ ...p, axis_type: v }))}>
+                        <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-[#0f1528] border-white/10">
+                          {AXIS_TYPES.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Label>Code</Label>
+                      <Input className="bg-white/5 border-white/20" value={axisForm.axis_code} onChange={(e) => setAxisForm((p) => ({ ...p, axis_code: e.target.value }))} />
+                      <Label>Libellé</Label>
+                      <Input className="bg-white/5 border-white/20" value={axisForm.axis_name} onChange={(e) => setAxisForm((p) => ({ ...p, axis_name: e.target.value }))} />
+                      <Button className="w-full" onClick={() => safeAction(createAxis)}>Enregistrer</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={objectDialogOpen} onOpenChange={setObjectDialogOpen}>
+                  <DialogTrigger asChild><Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-2" />Nouvel objet</Button></DialogTrigger>
+                  <DialogContent className="bg-[#0f1528] border-white/10 text-white">
+                    <DialogHeader><DialogTitle>Créer un objet de coût</DialogTitle></DialogHeader>
+                    <div className="space-y-3">
+                      <Label>Type</Label>
+                      <Select value={objectForm.object_type} onValueChange={(v) => setObjectForm((p) => ({ ...p, object_type: v }))}>
+                        <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-[#0f1528] border-white/10">
+                          {OBJECT_TYPES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Label>Code</Label>
+                      <Input className="bg-white/5 border-white/20" value={objectForm.object_code} onChange={(e) => setObjectForm((p) => ({ ...p, object_code: e.target.value }))} />
+                      <Label>Nom</Label>
+                      <Input className="bg-white/5 border-white/20" value={objectForm.object_name} onChange={(e) => setObjectForm((p) => ({ ...p, object_name: e.target.value }))} />
+                      <Button className="w-full" onClick={() => safeAction(createObject)}>Enregistrer</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent className="grid md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-400 mb-2">Axes analytiques</p>
+                <Table>
+                  <TableHeader><TableRow className="border-white/10"><TableHead>Type</TableHead><TableHead>Code</TableHead><TableHead>Libellé</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {axes.map((a) => (
+                      <TableRow key={a.id} className="border-white/5">
+                        <TableCell className="text-gray-300">{a.axis_type}</TableCell>
+                        <TableCell><Badge variant="outline">{a.axis_code}</Badge></TableCell>
+                        <TableCell className="text-white">{a.axis_name}</TableCell>
+                      </TableRow>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </TableBody>
+                </Table>
               </div>
-              <div className="space-y-2">
-                <Label>{t('accounting.analytique.axisCode', 'Code')}</Label>
-                <Input
-                  value={form.axis_code}
-                  onChange={e => setForm(f => ({ ...f, axis_code: e.target.value }))}
-                  placeholder="COMM, TECH, ..."
-                  className="bg-white/5 border-white/20 text-white"
-                />
+              <div>
+                <p className="text-xs text-gray-400 mb-2">Objets de coûts</p>
+                <Table>
+                  <TableHeader><TableRow className="border-white/10"><TableHead>Type</TableHead><TableHead>Code</TableHead><TableHead>Nom</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {objects.map((o) => (
+                      <TableRow key={o.id} className="border-white/5">
+                        <TableCell className="text-gray-300">{o.object_type}</TableCell>
+                        <TableCell><Badge variant="outline">{o.object_code}</Badge></TableCell>
+                        <TableCell className="text-white">{o.object_name}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-              <div className="space-y-2">
-                <Label>{t('accounting.analytique.axisName', 'Libellé')}</Label>
-                <Input
-                  value={form.axis_name}
-                  onChange={e => setForm(f => ({ ...f, axis_name: e.target.value }))}
-                  placeholder="Commercial, Technique, ..."
-                  className="bg-white/5 border-white/20 text-white"
-                />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)}>
-                  Annuler
-                </Button>
-                <Button className="flex-1" onClick={handleCreateAxis} disabled={!form.axis_code || !form.axis_name}>
-                  Créer
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* Axis type tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {AXIS_TYPES.slice(0, 3).map(at => (
-          <button
-            key={at.value}
-            onClick={() => setActiveAxisType(at.value)}
-            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-              activeAxisType === at.value
-                ? 'bg-indigo-600 text-white'
-                : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            {at.label}
-          </button>
-        ))}
-      </div>
+        <TabsContent value="centers" className="mt-4">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white text-sm">Centres principaux / auxiliaires / structure</CardTitle>
+              <Dialog open={centerDialogOpen} onOpenChange={setCenterDialogOpen}>
+                <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" />Nouveau centre</Button></DialogTrigger>
+                <DialogContent className="bg-[#0f1528] border-white/10 text-white">
+                  <DialogHeader><DialogTitle>Créer un centre d’analyse</DialogTitle></DialogHeader>
+                  <div className="space-y-3">
+                    <Label>Code</Label>
+                    <Input className="bg-white/5 border-white/20" value={centerForm.center_code} onChange={(e) => setCenterForm((p) => ({ ...p, center_code: e.target.value }))} />
+                    <Label>Nom</Label>
+                    <Input className="bg-white/5 border-white/20" value={centerForm.center_name} onChange={(e) => setCenterForm((p) => ({ ...p, center_name: e.target.value }))} />
+                    <Label>Type</Label>
+                    <Select value={centerForm.center_type} onValueChange={(v) => setCenterForm((p) => ({ ...p, center_type: v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0f1528] border-white/10">
+                        {CENTER_TYPES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Label>Axe (optionnel)</Label>
+                    <Select value={centerForm.axis_id || '__none__'} onValueChange={(v) => setCenterForm((p) => ({ ...p, axis_id: v === '__none__' ? '' : v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0f1528] border-white/10">
+                        <SelectItem value="__none__">Aucun</SelectItem>
+                        {axes.map((a) => <SelectItem key={a.id} value={a.id}>{a.axis_code} • {a.axis_name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button className="w-full" onClick={() => safeAction(createCenter)}>Enregistrer</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader><TableRow className="border-white/10"><TableHead>Code</TableHead><TableHead>Nom</TableHead><TableHead>Type</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {centers.map((c) => (
+                    <TableRow key={c.id} className="border-white/5">
+                      <TableCell><Badge variant="outline">{c.center_code}</Badge></TableCell>
+                      <TableCell className="text-white">{c.center_name}</TableCell>
+                      <TableCell className="text-gray-300">{c.center_type}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* Axes table */}
-      <Card className="bg-white/5 border-white/10">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-white text-sm">
-            {AXIS_TYPES.find(a => a.value === activeAxisType)?.label || 'Axes'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="text-gray-400 text-sm py-4 text-center">Chargement...</p>
-          ) : axes.filter(a => a.axis_type === activeAxisType).length === 0 ? (
-            <p className="text-gray-500 text-sm py-4 text-center">Aucun axe défini. Créez-en un avec le bouton ci-dessus.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/10">
-                  <TableHead className="text-gray-400">Code</TableHead>
-                  <TableHead className="text-gray-400">Libellé</TableHead>
-                  <TableHead className="text-gray-400 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {axes.filter(a => a.axis_type === activeAxisType).map(axis => (
-                  <TableRow key={axis.id} className="border-white/5">
-                    <TableCell>
-                      <Badge
-                        className="font-mono text-xs"
-                        style={{ backgroundColor: axis.color + '33', color: axis.color, borderColor: axis.color + '55' }}
-                      >
-                        {axis.axis_code}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-white">{axis.axis_name}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteAxis(axis.id)}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 w-7 p-0"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="rules" className="mt-4">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white text-sm">Règles de répartition</CardTitle>
+              <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
+                <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" />Nouvelle règle</Button></DialogTrigger>
+                <DialogContent className="bg-[#0f1528] border-white/10 text-white">
+                  <DialogHeader><DialogTitle>Créer une règle d’allocation</DialogTitle></DialogHeader>
+                  <div className="space-y-3">
+                    <Label>Nom</Label>
+                    <Input className="bg-white/5 border-white/20" value={ruleForm.rule_name} onChange={(e) => setRuleForm((p) => ({ ...p, rule_name: e.target.value }))} />
+                    <Label>Source type</Label>
+                    <Input className="bg-white/5 border-white/20" value={ruleForm.source_type} onChange={(e) => setRuleForm((p) => ({ ...p, source_type: e.target.value }))} />
+                    <Label>Source catégorie</Label>
+                    <Input className="bg-white/5 border-white/20" value={ruleForm.source_category} onChange={(e) => setRuleForm((p) => ({ ...p, source_category: e.target.value }))} />
+                    <Label>% allocation</Label>
+                    <Input className="bg-white/5 border-white/20" type="number" value={ruleForm.allocation_percent} onChange={(e) => setRuleForm((p) => ({ ...p, allocation_percent: e.target.value }))} />
+                    <Label>Centre (optionnel)</Label>
+                    <Select value={ruleForm.cost_center_id || '__none__'} onValueChange={(v) => setRuleForm((p) => ({ ...p, cost_center_id: v === '__none__' ? '' : v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0f1528] border-white/10">
+                        <SelectItem value="__none__">Aucun</SelectItem>
+                        {centers.map((c) => <SelectItem key={c.id} value={c.id}>{c.center_code} • {c.center_name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Label>Objet (optionnel)</Label>
+                    <Select value={ruleForm.object_id || '__none__'} onValueChange={(v) => setRuleForm((p) => ({ ...p, object_id: v === '__none__' ? '' : v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0f1528] border-white/10">
+                        <SelectItem value="__none__">Aucun</SelectItem>
+                        {objects.map((o) => <SelectItem key={o.id} value={o.id}>{o.object_code} • {o.object_name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Label>Valeur d’axe (optionnel)</Label>
+                    <Select value={ruleForm.axis_value_id || '__none__'} onValueChange={(v) => setRuleForm((p) => ({ ...p, axis_value_id: v === '__none__' ? '' : v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0f1528] border-white/10">
+                        <SelectItem value="__none__">Aucune</SelectItem>
+                        {axisValues.map((av) => <SelectItem key={av.id} value={av.id}>{av.value_code} • {av.value_name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button className="w-full" onClick={() => safeAction(createRule)}>Enregistrer</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader><TableRow className="border-white/10"><TableHead>Nom</TableHead><TableHead>Source</TableHead><TableHead>%</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {rules.map((r) => (
+                    <TableRow key={r.id} className="border-white/5">
+                      <TableCell className="text-white">{r.rule_name}</TableCell>
+                      <TableCell className="text-gray-300">{r.source_type || '-'} / {r.source_category || '-'}</TableCell>
+                      <TableCell><Badge variant="outline">{formatMoney(r.allocation_percent)}%</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* Analytical report */}
-      <Card className="bg-white/5 border-white/10">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-white text-sm flex items-center gap-2">
-              <BarChart2 className="w-4 h-4" />
-              {t('accounting.analytique.report', 'Rapport analytique')}
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
-                className="bg-white/5 border-white/20 text-white h-7 text-xs w-36"
-              />
-              <span className="text-gray-500 text-xs">→</span>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={e => setEndDate(e.target.value)}
-                className="bg-white/5 border-white/20 text-white h-7 text-xs w-36"
-              />
-              <Button size="sm" variant="ghost" onClick={fetchEntries} className="h-7 w-7 p-0 text-gray-400">
-                <RefreshCw className={`w-3.5 h-3.5 ${reportLoading ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {chartData.length === 0 ? (
-            <p className="text-gray-500 text-sm py-8 text-center">
-              {reportLoading ? 'Chargement...' : 'Aucune écriture avec axe analytique sur cette période.'}
-            </p>
-          ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#0f1528',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                    color: '#fff',
-                  }}
-                  formatter={(v) => [`${v.toLocaleString('fr-FR')} €`]}
-                />
-                <Legend wrapperStyle={{ color: '#9ca3af', fontSize: 12 }} />
-                <Bar dataKey="debit" name="Débit" fill="#6366f1" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="credit" name="Crédit" fill="#22c55e" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-          {chartData.length > 0 && (
-            <Table className="mt-4">
-              <TableHeader>
-                <TableRow className="border-white/10">
-                  <TableHead className="text-gray-400">Axe</TableHead>
-                  <TableHead className="text-gray-400 text-right">Débit</TableHead>
-                  <TableHead className="text-gray-400 text-right">Crédit</TableHead>
-                  <TableHead className="text-gray-400 text-right">Solde</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {chartData.map((row, i) => (
-                  <TableRow key={i} className="border-white/5">
-                    <TableCell className="text-white font-medium">{row.name}</TableCell>
-                    <TableCell className="text-right text-red-400">{row.debit.toLocaleString('fr-FR')} €</TableCell>
-                    <TableCell className="text-right text-green-400">{row.credit.toLocaleString('fr-FR')} €</TableCell>
-                    <TableCell className={`text-right font-semibold ${row.solde >= 0 ? 'text-white' : 'text-red-400'}`}>
-                      {row.solde.toLocaleString('fr-FR')} €
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="allocations" className="mt-4">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white text-sm">Imputations analytiques</CardTitle>
+              <Dialog open={allocationDialogOpen} onOpenChange={setAllocationDialogOpen}>
+                <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" />Nouvelle imputation</Button></DialogTrigger>
+                <DialogContent className="bg-[#0f1528] border-white/10 text-white">
+                  <DialogHeader><DialogTitle>Imputer une écriture</DialogTitle></DialogHeader>
+                  <div className="space-y-3">
+                    <Label>ID écriture comptable</Label>
+                    <Input className="bg-white/5 border-white/20" value={allocationForm.entry_id} onChange={(e) => setAllocationForm((p) => ({ ...p, entry_id: e.target.value }))} />
+                    <Label>Montant</Label>
+                    <Input className="bg-white/5 border-white/20" type="number" value={allocationForm.amount} onChange={(e) => setAllocationForm((p) => ({ ...p, amount: e.target.value }))} />
+                    <Label>% allocation</Label>
+                    <Input className="bg-white/5 border-white/20" type="number" value={allocationForm.allocation_percent} onChange={(e) => setAllocationForm((p) => ({ ...p, allocation_percent: e.target.value }))} />
+                    <Label>Objet (optionnel)</Label>
+                    <Select value={allocationForm.object_id || '__none__'} onValueChange={(v) => setAllocationForm((p) => ({ ...p, object_id: v === '__none__' ? '' : v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0f1528] border-white/10">
+                        <SelectItem value="__none__">Aucun</SelectItem>
+                        {objects.map((o) => <SelectItem key={o.id} value={o.id}>{o.object_code} • {o.object_name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Label>Centre (optionnel)</Label>
+                    <Select value={allocationForm.cost_center_id || '__none__'} onValueChange={(v) => setAllocationForm((p) => ({ ...p, cost_center_id: v === '__none__' ? '' : v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0f1528] border-white/10">
+                        <SelectItem value="__none__">Aucun</SelectItem>
+                        {centers.map((c) => <SelectItem key={c.id} value={c.id}>{c.center_code} • {c.center_name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Label>Valeur d’axe (optionnel)</Label>
+                    <Select value={allocationForm.axis_value_id || '__none__'} onValueChange={(v) => setAllocationForm((p) => ({ ...p, axis_value_id: v === '__none__' ? '' : v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0f1528] border-white/10">
+                        <SelectItem value="__none__">Aucune</SelectItem>
+                        {axisValues.map((av) => <SelectItem key={av.id} value={av.id}>{av.value_code} • {av.value_name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Label>Type de coût</Label>
+                    <Select value={allocationForm.cost_behavior} onValueChange={(v) => setAllocationForm((p) => ({ ...p, cost_behavior: v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0f1528] border-white/10">
+                        {COST_BEHAVIORS.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Label>Destination</Label>
+                    <Select value={allocationForm.destination} onValueChange={(v) => setAllocationForm((p) => ({ ...p, destination: v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0f1528] border-white/10">
+                        {DESTINATIONS.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Label>Méthode</Label>
+                    <Select value={allocationForm.method} onValueChange={(v) => setAllocationForm((p) => ({ ...p, method: v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0f1528] border-white/10">
+                        {METHODS.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button className="w-full" onClick={() => safeAction(createAllocation)}>Enregistrer</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-3 gap-3">
+                <Card className="bg-[#10192d] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Écritures allocées</p><p className="text-xl text-white font-semibold">{allocationHealth.totalEntries}</p></CardContent></Card>
+                <Card className="bg-[#10192d] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Entrées avec %</p><p className="text-xl text-white font-semibold">{allocationHealth.withPct}</p></CardContent></Card>
+                <Card className="bg-[#10192d] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">% équilibré à 100</p><p className="text-xl text-emerald-300 font-semibold">{allocationHealth.validPct}</p></CardContent></Card>
+              </div>
+              <Table>
+                <TableHeader><TableRow className="border-white/10"><TableHead>Entry</TableHead><TableHead>Montant</TableHead><TableHead>%</TableHead><TableHead>Méthode</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {allocations.map((a) => (
+                    <TableRow key={a.id} className="border-white/5">
+                      <TableCell className="text-gray-300 font-mono text-xs">{a.entry_id}</TableCell>
+                      <TableCell className="text-white">{formatMoney(a.amount)} €</TableCell>
+                      <TableCell className="text-gray-300">{a.allocation_percent == null ? '-' : `${formatMoney(a.allocation_percent)}%`}</TableCell>
+                      <TableCell className="text-gray-300">{a.method || '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="methods" className="mt-4">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader>
+              <CardTitle className="text-white text-sm flex items-center gap-2"><Calculator className="w-4 h-4" />Méthodes de coûts & redistribution</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg border border-white/10 bg-[#10192d]">
+                  <p className="text-sm text-white font-medium">Redistribution auxiliaire → principal</p>
+                  <p className="text-xs text-gray-400 mt-1">RPC transactionnelle avec journalisation automatique.</p>
+                  <Button className="mt-3" onClick={redistributeAuxiliaryCenters} disabled={syncing}>
+                    <Activity className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                    Exécuter la redistribution
+                  </Button>
+                </div>
+                <div className="p-3 rounded-lg border border-white/10 bg-[#10192d]">
+                  <p className="text-sm text-white font-medium">Fenêtre d’analyse</p>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <Input type="date" className="bg-white/5 border-white/20" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                    <Input type="date" className="bg-white/5 border-white/20" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                  </div>
+                  <Button className="mt-3" variant="outline" onClick={loadAll}>Recalculer KPI</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="budgets" className="mt-4">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-white text-sm flex items-center gap-2"><ClipboardList className="w-4 h-4" />Budgets analytiques</CardTitle>
+              <Dialog open={budgetDialogOpen} onOpenChange={setBudgetDialogOpen}>
+                <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" />Nouveau budget</Button></DialogTrigger>
+                <DialogContent className="bg-[#0f1528] border-white/10 text-white">
+                  <DialogHeader><DialogTitle>Créer un budget analytique</DialogTitle></DialogHeader>
+                  <div className="space-y-3">
+                    <Label>Nom</Label>
+                    <Input className="bg-white/5 border-white/20" value={budgetForm.budget_name} onChange={(e) => setBudgetForm((p) => ({ ...p, budget_name: e.target.value }))} />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><Label>Début</Label><Input type="date" className="bg-white/5 border-white/20" value={budgetForm.period_start} onChange={(e) => setBudgetForm((p) => ({ ...p, period_start: e.target.value }))} /></div>
+                      <div><Label>Fin</Label><Input type="date" className="bg-white/5 border-white/20" value={budgetForm.period_end} onChange={(e) => setBudgetForm((p) => ({ ...p, period_end: e.target.value }))} /></div>
+                    </div>
+                    <Label>Méthode</Label>
+                    <Select value={budgetForm.method} onValueChange={(v) => setBudgetForm((p) => ({ ...p, method: v }))}>
+                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#0f1528] border-white/10">
+                        {METHODS.filter((m) => m !== 'manual').map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button className="w-full" onClick={() => safeAction(createBudget)}>Enregistrer</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader><TableRow className="border-white/10"><TableHead>Nom</TableHead><TableHead>Période</TableHead><TableHead>Méthode</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {budgets.map((b) => (
+                    <TableRow key={b.id} className="border-white/5">
+                      <TableCell className="text-white">{b.budget_name}</TableCell>
+                      <TableCell className="text-gray-300">{b.period_start} → {b.period_end}</TableCell>
+                      <TableCell className="text-gray-300">{b.method}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reporting" className="mt-4">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader>
+              <CardTitle className="text-white text-sm flex items-center gap-2"><BarChart2 className="w-4 h-4" />KPI analytiques (DB-first)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-3 gap-3">
+                <Card className="bg-[#10192d] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">MCV</p><p className="text-xl text-white font-semibold">{formatMoney(kpis?.mcv)} €</p></CardContent></Card>
+                <Card className="bg-[#10192d] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Seuil rentabilité</p><p className="text-xl text-orange-300 font-semibold">{formatMoney(kpis?.seuil_rentabilite)} €</p></CardContent></Card>
+                <Card className="bg-[#10192d] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Résultat analytique</p><p className="text-xl text-emerald-300 font-semibold">{formatMoney(kpis?.resultat_analytique)} €</p></CardContent></Card>
+              </div>
+              <Table>
+                <TableHeader><TableRow className="border-white/10"><TableHead>Budget</TableHead><TableHead>Dimension</TableHead><TableHead>Prévu</TableHead><TableHead>Réel</TableHead><TableHead>Écart</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {variances.map((v) => (
+                    <TableRow key={`${v.budget_id}-${v.dimension}`} className="border-white/5">
+                      <TableCell className="text-white">{v.budget_name}</TableCell>
+                      <TableCell className="text-gray-300">{v.dimension}</TableCell>
+                      <TableCell className="text-gray-300">{formatMoney(v.planned_amount)} €</TableCell>
+                      <TableCell className="text-gray-300">{formatMoney(v.actual_amount)} €</TableCell>
+                      <TableCell className={Number(v.variance_amount) >= 0 ? 'text-orange-300' : 'text-emerald-300'}>
+                        {formatMoney(v.variance_amount)} € {v.variance_percent == null ? '' : `(${formatMoney(v.variance_percent)}%)`}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
