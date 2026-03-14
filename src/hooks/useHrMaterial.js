@@ -447,6 +447,92 @@ export function useHrMaterial() {
     return data;
   }, [fetchData, supabase, user, withCompanyScope]);
 
+  const syncEmployeeToTeamMember = useCallback(async (employeeOrId) => {
+    if (!user || !supabase) return null;
+
+    const employeeId = typeof employeeOrId === 'string' ? employeeOrId : employeeOrId?.id;
+    if (!employeeId) {
+      throw new Error('employee_id requis pour la synchronisation équipe');
+    }
+
+    let employee = typeof employeeOrId === 'object' ? employeeOrId : null;
+    if (!employee) {
+      const employeeResult = await supabase
+        .from('hr_employees')
+        .select('*')
+        .eq('id', employeeId)
+        .limit(1)
+        .maybeSingle();
+
+      if (employeeResult.error) throw employeeResult.error;
+      employee = employeeResult.data;
+    }
+
+    if (!employee) {
+      throw new Error(`Employé introuvable (${employeeId})`);
+    }
+
+    const firstName = String(employee.first_name || '').trim();
+    const lastName = String(employee.last_name || '').trim();
+    const fullName = String(employee.full_name || `${firstName} ${lastName}`).trim();
+
+    const teamMemberScope = withCompanyScope({
+      user_id: user.id,
+      name: fullName || employee.work_email || 'Employé',
+      email: employee.work_email || null,
+      role: employee.job_title || 'member',
+      joined_at: employee.hire_date || null,
+      employee_id: employee.id,
+    });
+
+    let existingMember = null;
+    const byEmployeeResult = await supabase
+      .from('team_members')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('employee_id', employee.id)
+      .limit(1)
+      .maybeSingle();
+    if (byEmployeeResult.error) throw byEmployeeResult.error;
+    existingMember = byEmployeeResult.data || null;
+
+    if (!existingMember && teamMemberScope.email) {
+      const byEmailResult = await supabase
+        .from('team_members')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('email', teamMemberScope.email)
+        .limit(1)
+        .maybeSingle();
+      if (byEmailResult.error) throw byEmailResult.error;
+      existingMember = byEmailResult.data || null;
+    }
+
+    if (existingMember?.id) {
+      const { data: updatedMember, error: updateMemberError } = await supabase
+        .from('team_members')
+        .update({
+          ...teamMemberScope,
+          employee_id: employee.id,
+        })
+        .eq('id', existingMember.id)
+        .select('*')
+        .single();
+
+      if (updateMemberError) throw updateMemberError;
+      return updatedMember;
+    }
+
+    const { data: insertedMember, error: insertMemberError } = await supabase
+      .from('team_members')
+      .insert([teamMemberScope])
+      .select('*')
+      .single();
+
+    if (insertMemberError) throw insertMemberError;
+    return insertedMember;
+  }, [supabase, user, withCompanyScope]);
+
   const createEmployee = useCallback(async (payload) => {
     if (!user || !supabase) return null;
 
@@ -482,55 +568,7 @@ export function useHrMaterial() {
     let syncError = null;
     if (payload.sync_team_member !== false) {
       try {
-        const teamMemberScope = withCompanyScope({
-          user_id: user.id,
-          name: fullName || `${firstName} ${lastName}`.trim() || payload.work_email || 'Employé',
-          email: payload.work_email || null,
-          role: payload.team_role || payload.job_title || 'member',
-          joined_at: payload.hire_date || null,
-          employee_id: data.id,
-        });
-
-        let existingMember = null;
-        const byEmployeeResult = await supabase
-          .from('team_members')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('employee_id', data.id)
-          .limit(1)
-          .maybeSingle();
-        if (byEmployeeResult.error) throw byEmployeeResult.error;
-        existingMember = byEmployeeResult.data || null;
-
-        if (!existingMember && teamMemberScope.email) {
-          const byEmailResult = await supabase
-            .from('team_members')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('email', teamMemberScope.email)
-            .limit(1)
-            .maybeSingle();
-          if (byEmailResult.error) throw byEmailResult.error;
-          existingMember = byEmailResult.data || null;
-        }
-
-        if (existingMember?.id) {
-          const { error: updateMemberError } = await supabase
-            .from('team_members')
-            .update({
-              ...teamMemberScope,
-              employee_id: data.id,
-            })
-            .eq('id', existingMember.id);
-
-          if (updateMemberError) throw updateMemberError;
-        } else {
-          const { error: insertMemberError } = await supabase
-            .from('team_members')
-            .insert([teamMemberScope]);
-
-          if (insertMemberError) throw insertMemberError;
-        }
+        await syncEmployeeToTeamMember(data);
       } catch (err) {
         syncError = err;
       }
@@ -547,7 +585,7 @@ export function useHrMaterial() {
     }
 
     return data;
-  }, [fetchData, supabase, toast, user, withCompanyScope]);
+  }, [fetchData, supabase, syncEmployeeToTeamMember, toast, user, withCompanyScope]);
 
   const createEmployeeContract = useCallback(async (payload) => {
     if (!user || !supabase) return null;
@@ -705,6 +743,14 @@ export function useHrMaterial() {
     return csvData || '';
   }, [fetchData, supabase, user, withCompanyScope]);
 
+  const syncAllEmployeesToTeamMembers = useCallback(async () => {
+    const currentEmployees = employees || [];
+    for (const employee of currentEmployees) {
+      await syncEmployeeToTeamMember(employee);
+    }
+    await fetchData();
+  }, [employees, fetchData, syncEmployeeToTeamMember]);
+
   const updateCompensationStatus = useCallback(async (compensationId, nextStatus) => {
     if (!compensationId || !supabase) return null;
 
@@ -783,6 +829,8 @@ export function useHrMaterial() {
     createPayrollPeriod,
     calculatePayrollPeriod,
     exportPayrollCsv,
+    syncEmployeeToTeamMember,
+    syncAllEmployeesToTeamMembers,
     updateCompensationStatus,
     assignTaskMember,
   };
