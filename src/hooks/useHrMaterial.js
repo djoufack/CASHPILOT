@@ -50,7 +50,8 @@ export function useHrMaterial() {
 
       let suppliersQuery = supabase
         .from('suppliers')
-        .select('id, company_name, contact_name, email, user_id, company_id')
+        // Keep supplier query schema-tolerant across environments.
+        .select('*')
         .order('company_name', { ascending: true });
 
       let projectsQuery = supabase
