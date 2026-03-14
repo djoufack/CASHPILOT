@@ -22,6 +22,18 @@ import {
 import {
   Plus, RefreshCw, Activity, Building2, Calculator, ClipboardList, BarChart2, Pencil, Trash2, Wand2,
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
 
 const AXIS_TYPES = [
   { value: 'cost_center', label: 'Centre de coût' },
@@ -154,6 +166,11 @@ export default function AnalyticalAccounting() {
   const [selectedBudgetId, setSelectedBudgetId] = useState(null);
   const [budgetTotalAmount, setBudgetTotalAmount] = useState('');
   const [replaceBudgetLines, setReplaceBudgetLines] = useState('__NO__');
+  const [simGrowthPercent, setSimGrowthPercent] = useState('6');
+  const [simCostOptimizationPercent, setSimCostOptimizationPercent] = useState('3');
+  const [simRiskPercent, setSimRiskPercent] = useState('2');
+  const [simulating, setSimulating] = useState(false);
+  const [simulationRows, setSimulationRows] = useState([]);
 
   const fetchAxes = useCallback(async () => {
     let query = supabase
@@ -270,6 +287,23 @@ export default function AnalyticalAccounting() {
     return data || [];
   }, [activeCompanyId, user]);
 
+  const fetchBudgetSimulation = useCallback(async (budgetId, overrides = {}) => {
+    if (!budgetId || !activeCompanyId) return [];
+    const growth = Number(overrides.growth ?? simGrowthPercent ?? 0);
+    const optimization = Number(overrides.optimization ?? simCostOptimizationPercent ?? 0);
+    const risk = Number(overrides.risk ?? simRiskPercent ?? 0);
+    const { data, error } = await supabase.rpc('f_analytical_budget_simulation_curve', {
+      p_user_id: user.id,
+      p_company_id: activeCompanyId,
+      p_budget_id: budgetId,
+      p_revenue_growth_percent: Number.isFinite(growth) ? growth : 0,
+      p_cost_optimization_percent: Number.isFinite(optimization) ? optimization : 0,
+      p_risk_percent: Number.isFinite(risk) ? risk : 0,
+    });
+    if (error) throw error;
+    return data || [];
+  }, [activeCompanyId, simCostOptimizationPercent, simGrowthPercent, simRiskPercent, user]);
+
   const fetchReporting = useCallback(async () => {
     if (!activeCompanyId) {
       return { kpis: null, variances: [] };
@@ -310,15 +344,18 @@ export default function AnalyticalAccounting() {
     if (!budgetId) {
       setBudgetLines([]);
       setBudgetLineVariances([]);
+      setSimulationRows([]);
       return;
     }
-    const [lines, lineVariances] = await Promise.all([
+    const [lines, lineVariances, simData] = await Promise.all([
       fetchBudgetLines(budgetId),
       fetchBudgetLineVariances(budgetId),
+      fetchBudgetSimulation(budgetId),
     ]);
     setBudgetLines(lines);
     setBudgetLineVariances(lineVariances);
-  }, [fetchBudgetLineVariances, fetchBudgetLines]);
+    setSimulationRows(simData);
+  }, [fetchBudgetLineVariances, fetchBudgetLines, fetchBudgetSimulation]);
 
   const loadAll = useCallback(async () => {
     if (!user || !activeCompanyId) return;
@@ -673,6 +710,20 @@ export default function AnalyticalAccounting() {
     await loadAll();
   };
 
+  const runBudgetSimulation = async () => {
+    if (!selectedBudgetId) return;
+    setSimulating(true);
+    try {
+      const data = await fetchBudgetSimulation(selectedBudgetId);
+      setSimulationRows(data);
+      toast({ title: 'Simulation recalculée', description: `${data.length} point(s) de courbe chargés depuis la base.` });
+    } catch (err) {
+      toast({ title: 'Erreur simulation', description: err.message, variant: 'destructive' });
+    } finally {
+      setSimulating(false);
+    }
+  };
+
   const redistributeAuxiliaryCenters = async () => {
     if (!activeCompanyId) return;
     setSyncing(true);
@@ -733,6 +784,29 @@ export default function AnalyticalAccounting() {
   const budgetLineVarianceByMonth = useMemo(
     () => new Map(budgetLineVariances.map((row) => [row.period_month, row])),
     [budgetLineVariances],
+  );
+
+  const simulationByMonth = useMemo(
+    () => new Map(simulationRows.map((row) => [row.period_month, row])),
+    [simulationRows],
+  );
+
+  const budgetCurveData = useMemo(
+    () => budgetLines.map((line) => {
+      const variance = budgetLineVarianceByMonth.get(line.period_month);
+      const sim = simulationByMonth.get(line.period_month);
+      return {
+        period_month: line.period_month,
+        month: line.period_month ? line.period_month.slice(0, 7) : '-',
+        planned: Number(line.planned_amount || 0),
+        actual: Number(variance?.actual_amount || 0),
+        variance: Number(variance?.variance_amount || 0),
+        baseline: Number(sim?.simulated_baseline || 0),
+        optimistic: Number(sim?.simulated_optimistic || 0),
+        prudent: Number(sim?.simulated_prudent || 0),
+      };
+    }),
+    [budgetLineVarianceByMonth, budgetLines, simulationByMonth],
   );
 
   const safeAction = async (fn) => {
@@ -1257,6 +1331,57 @@ export default function AnalyticalAccounting() {
                           </div>
                           <div className="flex items-end">
                             <Button className="w-full" variant="outline" onClick={() => safeAction(generateBudgetLines)}>Générer mois par mois</Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-white/10 bg-[#0f1528] p-3">
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                          <p className="text-sm text-white font-medium">Courbes budgétaires & simulation (source DB)</p>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full md:w-auto">
+                            <Input type="number" className="bg-white/5 border-white/20" value={simGrowthPercent} onChange={(e) => setSimGrowthPercent(e.target.value)} placeholder="Croissance %" />
+                            <Input type="number" className="bg-white/5 border-white/20" value={simCostOptimizationPercent} onChange={(e) => setSimCostOptimizationPercent(e.target.value)} placeholder="Optimisation %" />
+                            <Input type="number" className="bg-white/5 border-white/20" value={simRiskPercent} onChange={(e) => setSimRiskPercent(e.target.value)} placeholder="Risque %" />
+                            <Button variant="outline" onClick={() => safeAction(runBudgetSimulation)} disabled={simulating}>
+                              {simulating ? 'Calcul...' : 'Simuler'}
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">Prévu, réel et simulations sont calculés via des RPC PostgreSQL sur les données de la société active.</p>
+                        <div className="grid lg:grid-cols-2 gap-3 mt-3">
+                          <div className="h-72 rounded-md border border-white/10 bg-[#10192d] p-2">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={budgetCurveData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#25314f" />
+                                <XAxis dataKey="month" stroke="#94a3b8" />
+                                <YAxis stroke="#94a3b8" />
+                                <Tooltip
+                                  contentStyle={{ background: '#0f1528', border: '1px solid #2b3a5d', color: '#fff' }}
+                                  formatter={(value) => `${formatMoney(value)} €`}
+                                />
+                                <Legend />
+                                <Line type="monotone" dataKey="planned" name="Prévu (DB)" stroke="#f97316" strokeWidth={2} dot={false} />
+                                <Line type="monotone" dataKey="actual" name="Réel (DB)" stroke="#22c55e" strokeWidth={2} dot={false} />
+                                <Line type="monotone" dataKey="baseline" name="Simulation base (DB)" stroke="#60a5fa" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                          <div className="h-72 rounded-md border border-white/10 bg-[#10192d] p-2">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={budgetCurveData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#25314f" />
+                                <XAxis dataKey="month" stroke="#94a3b8" />
+                                <YAxis stroke="#94a3b8" />
+                                <Tooltip
+                                  contentStyle={{ background: '#0f1528', border: '1px solid #2b3a5d', color: '#fff' }}
+                                  formatter={(value) => `${formatMoney(value)} €`}
+                                />
+                                <Legend />
+                                <Bar dataKey="variance" name="Écart Réel-Prévu (DB)" fill="#f97316" />
+                                <Bar dataKey="optimistic" name="Simulation optimiste (DB)" fill="#22c55e" />
+                                <Bar dataKey="prudent" name="Simulation prudente (DB)" fill="#60a5fa" />
+                              </BarChart>
+                            </ResponsiveContainer>
                           </div>
                         </div>
                       </div>
