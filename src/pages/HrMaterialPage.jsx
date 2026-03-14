@@ -156,6 +156,8 @@ const HrMaterialPage = () => {
     createPayrollPeriod,
     calculatePayrollPeriod,
     exportPayrollCsv,
+    syncEmployeeToTeamMember,
+    syncAllEmployeesToTeamMembers,
   } = useHrMaterial();
 
   const [allocationForm, setAllocationForm] = useState(defaultAllocationForm);
@@ -488,6 +490,24 @@ const HrMaterialPage = () => {
       toast({ title: 'Export paie généré', description: 'Le CSV RH a été généré et téléchargé.' });
     } catch (error) {
       toast({ title: 'Erreur export paie', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleSyncEmployee = async (employeeId) => {
+    try {
+      await syncEmployeeToTeamMember(employeeId);
+      toast({ title: 'Synchronisation équipe OK', description: 'Employé RH lié à team_members.' });
+    } catch (error) {
+      toast({ title: 'Erreur synchronisation', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleSyncAllEmployees = async () => {
+    try {
+      await syncAllEmployeesToTeamMembers();
+      toast({ title: 'Synchronisation globale OK', description: 'Tous les employés RH sont synchronisés.' });
+    } catch (error) {
+      toast({ title: 'Erreur synchronisation globale', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -837,11 +857,16 @@ const HrMaterialPage = () => {
             <Card className="bg-white/5 border-white/10">
               <CardHeader><CardTitle>Ressources RH créées</CardTitle></CardHeader>
               <CardContent>
+                <div className="mb-3">
+                  <Button size="sm" variant="outline" onClick={handleSyncAllEmployees} disabled={!isCompanyScoped || loading || employees.length === 0}>
+                    Synchroniser tous les employés vers team_members
+                  </Button>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead><tr className="border-b border-slate-700 text-left"><th className="py-2">Employé</th><th className="py-2">Statut</th><th className="py-2">Poste</th><th className="py-2">Contrats</th><th className="py-2">Sync équipe</th></tr></thead>
+                    <thead><tr className="border-b border-slate-700 text-left"><th className="py-2">Employé</th><th className="py-2">Statut</th><th className="py-2">Poste</th><th className="py-2">Contrats</th><th className="py-2">Sync équipe</th><th className="py-2">Action</th></tr></thead>
                     <tbody>
-                      {employees.length === 0 && <tr><td className="py-3 text-gray-500" colSpan={5}>Aucune ressource RH interne.</td></tr>}
+                      {employees.length === 0 && <tr><td className="py-3 text-gray-500" colSpan={6}>Aucune ressource RH interne.</td></tr>}
                       {employees.map((employee) => (
                         <tr key={employee.id} className="border-b border-slate-800">
                           <td className="py-2 text-gray-300">{getEmployeeLabel(employee)}</td>
@@ -849,6 +874,13 @@ const HrMaterialPage = () => {
                           <td className="py-2 text-gray-300">{employee.job_title || '-'}</td>
                           <td className="py-2 text-gray-300">{contractsCountByEmployee.get(employee.id) || 0}</td>
                           <td className="py-2 text-gray-300">{teamMemberEmployeeIds.has(employee.id) ? 'Oui' : 'Non'}</td>
+                          <td className="py-2 text-gray-300">
+                            {!teamMemberEmployeeIds.has(employee.id) && (
+                              <Button size="sm" variant="outline" onClick={() => handleSyncEmployee(employee.id)}>
+                                Synchroniser
+                              </Button>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
