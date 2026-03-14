@@ -374,7 +374,7 @@ export function useHrMaterial() {
     if (updateError) throw updateError;
     await fetchData();
     return data;
-  }, [fetchData, members, supabase, withCompanyScope]);
+  }, [fetchData, members, supabase]);
 
   useEffect(() => {
     fetchData();
