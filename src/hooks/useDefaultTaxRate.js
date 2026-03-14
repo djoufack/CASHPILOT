@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
+export const normalizeTaxRatePercent = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return numeric <= 1 ? numeric * 100 : numeric;
+};
+
 export const useDefaultTaxRate = () => {
   const { user } = useAuth();
   const [defaultRate, setDefaultRate] = useState(0);
@@ -17,20 +23,26 @@ export const useDefaultTaxRate = () => {
     try {
       setLoading(true);
 
-      const [{ data: ratesData, error: ratesError }, { data: resolvedRate, error: defaultRateError }] = await Promise.all([
-        supabase
-          .from('accounting_tax_rates')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('is_default', { ascending: false }),
-        supabase.rpc('get_default_tax_rate', { target_user_id: user.id }),
-      ]);
+      const [{ data: ratesData, error: ratesError }, { data: resolvedRate, error: defaultRateError }] =
+        await Promise.all([
+          supabase
+            .from('accounting_tax_rates')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('is_default', { ascending: false }),
+          supabase.rpc('get_default_tax_rate', { target_user_id: user.id }),
+        ]);
 
       if (ratesError) throw ratesError;
       if (defaultRateError) throw defaultRateError;
 
-      setTaxRates(ratesData || []);
-      setDefaultRate(typeof resolvedRate === 'number' ? resolvedRate : 0);
+      setTaxRates(
+        (ratesData || []).map((rate) => ({
+          ...rate,
+          rate: normalizeTaxRatePercent(rate.rate),
+        }))
+      );
+      setDefaultRate(normalizeTaxRatePercent(resolvedRate));
     } catch (err) {
       console.error('Error fetching default tax rate:', err);
       setTaxRates([]);
@@ -52,6 +64,3 @@ export const useDefaultTaxRate = () => {
 
   return { defaultRate, taxRates, loading };
 };
-
-
-

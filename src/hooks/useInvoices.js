@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
@@ -62,7 +61,10 @@ export const useInvoices = () => {
       });
     }
 
-    if ((statusChanged || paymentStatusChanged || !previousInvoice) && (nextInvoice.status === 'paid' || nextInvoice.payment_status === 'paid')) {
+    if (
+      (statusChanged || paymentStatusChanged || !previousInvoice) &&
+      (nextInvoice.status === 'paid' || nextInvoice.payment_status === 'paid')
+    ) {
       void triggerWebhook('invoice.paid', {
         id: nextInvoice.id,
         company_id: nextInvoice.company_id,
@@ -108,17 +110,19 @@ export const useInvoices = () => {
     async () => {
       if (!user) return [];
       if (!supabase) {
-        console.warn("Supabase not configured");
+        console.warn('Supabase not configured');
         return [];
       }
       let query = supabase
         .from('invoices')
-        .select(`
+        .select(
+          `
           *,
           client:clients!fk_invoices_client_scope(id, company_name, contact_name, email, preferred_currency),
           items:invoice_items(*),
           payments:payments(id, amount, payment_date, payment_method, receipt_number)
-        `)
+        `
+        )
         .order('created_at', { ascending: false });
 
       query = applyCompanyScope(query);
@@ -137,62 +141,68 @@ export const useInvoices = () => {
     { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
   );
 
-  const fetchInvoices = useCallback(async (filters = {}, { page, pageSize } = {}) => {
-    if (!user) return;
-    if (!supabase) {
-      console.warn("Supabase not configured");
-      return;
-    }
-    setLoading(true);
-    try {
-      const usePagination = page != null && pageSize != null;
-      let query = supabase
-        .from('invoices')
-        .select(`
+  const fetchInvoices = useCallback(
+    async (filters = {}, { page, pageSize } = {}) => {
+      if (!user) return;
+      if (!supabase) {
+        console.warn('Supabase not configured');
+        return;
+      }
+      setLoading(true);
+      try {
+        const usePagination = page != null && pageSize != null;
+        let query = supabase
+          .from('invoices')
+          .select(
+            `
           *,
           client:clients!fk_invoices_client_scope(id, company_name, contact_name, email, preferred_currency),
           items:invoice_items(*),
           payments:payments(id, amount, payment_date, payment_method, receipt_number)
-        `, usePagination ? { count: 'exact' } : undefined)
-        .order('created_at', { ascending: false });
+        `,
+            usePagination ? { count: 'exact' } : undefined
+          )
+          .order('created_at', { ascending: false });
 
-      query = applyCompanyScope(query);
-      if (filters.status) query = query.eq('status', filters.status);
+        query = applyCompanyScope(query);
+        if (filters.status) query = query.eq('status', filters.status);
 
-      if (usePagination) {
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize - 1;
-        query = query.range(from, to);
+        if (usePagination) {
+          const from = (page - 1) * pageSize;
+          const to = from + pageSize - 1;
+          query = query.range(from, to);
+        }
+
+        const { data, error, count } = await query;
+        if (error) throw error;
+        setInvoices(data || []);
+        if (usePagination && count != null) {
+          setTotalCount(count);
+        }
+      } catch (err) {
+        // Handle RLS recursion (42P17) or permission (42501) errors gracefully
+        if (err.code === '42P17' || err.code === '42501') {
+          console.warn('RLS policy error fetching invoices:', err.message);
+          setInvoices([]);
+          return;
+        }
+
+        setError(err.message);
+        toast({
+          title: 'Error fetching invoices',
+          description: err.message,
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
       }
-
-      const { data, error, count } = await query;
-      if (error) throw error;
-      setInvoices(data || []);
-      if (usePagination && count != null) {
-        setTotalCount(count);
-      }
-    } catch (err) {
-      // Handle RLS recursion (42P17) or permission (42501) errors gracefully
-      if (err.code === '42P17' || err.code === '42501') {
-        console.warn('RLS policy error fetching invoices:', err.message);
-        setInvoices([]);
-        return;
-      }
-
-      setError(err.message);
-      toast({
-        title: "Error fetching invoices",
-        description: err.message,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [applyCompanyScope, toast, user, setLoading, setInvoices, setError]);
+    },
+    [applyCompanyScope, toast, user, setLoading, setInvoices, setError]
+  );
 
   const createInvoice = async (invoiceData, items = []) => {
     if (!user) return;
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       const catalogConsistency = validateInvoiceCatalogConsistency(items);
@@ -201,90 +211,117 @@ export const useInvoices = () => {
         toast({
           title: t('common.error', 'Erreur'),
           description,
-          variant: 'destructive'
+          variant: 'destructive',
         });
         throw new Error(description);
       }
 
       // If invoice_number is not provided, generate one from DB sequence
-      const invoiceNumber = invoiceData.invoice_number || await generateInvoiceNumber(supabase, user.id);
+      const invoiceNumber = invoiceData.invoice_number || (await generateInvoiceNumber(supabase, user.id));
 
       // Sanitize user-facing text fields to prevent XSS
       const sanitizedData = { ...invoiceData };
       if (sanitizedData.notes) sanitizedData.notes = sanitizeText(sanitizedData.notes);
       if (sanitizedData.header_note) sanitizedData.header_note = sanitizeText(sanitizedData.header_note);
       if (sanitizedData.footer_note) sanitizedData.footer_note = sanitizeText(sanitizedData.footer_note);
-      if (sanitizedData.terms_and_conditions) sanitizedData.terms_and_conditions = sanitizeText(sanitizedData.terms_and_conditions);
+      if (sanitizedData.terms_and_conditions)
+        sanitizedData.terms_and_conditions = sanitizeText(sanitizedData.terms_and_conditions);
       if (sanitizedData.internal_remark) sanitizedData.internal_remark = sanitizeText(sanitizedData.internal_remark);
       if (sanitizedData.adjustment_label) sanitizedData.adjustment_label = sanitizeText(sanitizedData.adjustment_label);
 
       // Insert invoice as draft first (so accounting trigger fires after items exist)
       const { data, error } = await supabase
         .from('invoices')
-        .insert([{ ...withCompanyScope(sanitizedData), invoice_number: invoiceNumber, user_id: user.id, status: 'draft' }])
+        .insert([
+          { ...withCompanyScope(sanitizedData), invoice_number: invoiceNumber, user_id: user.id, status: 'draft' },
+        ])
         .select()
         .single();
 
       if (error) throw error;
 
+      const toFiniteNumber = (value) => {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : 0;
+      };
+      const normalizeTaxRate = (value) => {
+        const numeric = toFiniteNumber(value);
+        return numeric <= 1 ? numeric * 100 : numeric;
+      };
+
       // Insert invoice items if provided
       let calculatedTotalHT = 0;
       let calculatedTotalTTC = 0;
+      let calculatedTaxAmount = 0;
+      const taxRate = normalizeTaxRate(invoiceData.tax_rate);
 
       if (items.length > 0) {
-        const invoiceItems = items.map(item => ({
+        const invoiceItems = items.map((item) => ({
           invoice_id: data.id,
           description: sanitizeText(item.description || ''),
           quantity: Number(item.quantity || 0),
           unit_price: Number(item.unitPrice || item.unit_price || 0),
-          total: Number(item.amount || (Number(item.quantity || 0) * Number(item.unitPrice || item.unit_price || 0))),
+          total: Number(item.amount || Number(item.quantity || 0) * Number(item.unitPrice || item.unit_price || 0)),
           item_type: item.item_type || item.itemType || 'manual',
           product_id: item.product_id || null,
           service_id: item.service_id || null,
           timesheet_id: item.timesheet_id || null,
           discount_type: item.discount_type || null,
           discount_value: item.discount_value ? Number(item.discount_value) : null,
-          hsn_code: item.hsn_code || null
+          hsn_code: item.hsn_code || null,
         }));
 
-        const { error: itemsError } = await supabase
-          .from('invoice_items')
-          .insert(invoiceItems);
+        const { error: itemsError } = await supabase.from('invoice_items').insert(invoiceItems);
 
         if (itemsError) {
           console.error('Error inserting invoice items:', itemsError);
           toast({
             title: t('common.error'),
             description: t('invoices.itemsInsertError', 'Failed to insert invoice items'),
-            variant: 'destructive'
+            variant: 'destructive',
           });
           throw itemsError;
         } else {
           // Calculate totals from the inserted items
-          const itemTotals = invoiceItems.map(item => {
+          const itemTotals = invoiceItems.map((item) => {
             const lineTotal = item.quantity * item.unit_price;
             let discount = 0;
             if (item.discount_type === 'percentage' && item.discount_value) {
-              discount = lineTotal * item.discount_value / 100;
+              discount = (lineTotal * item.discount_value) / 100;
             } else if (item.discount_type === 'fixed' && item.discount_value) {
               discount = item.discount_value;
             }
             return lineTotal - discount;
           });
           calculatedTotalHT = itemTotals.reduce((sum, t) => sum + t, 0);
-          const taxRate = invoiceData.tax_rate || 0;
+          calculatedTaxAmount = calculatedTotalHT * (taxRate / 100);
           calculatedTotalTTC = calculatedTotalHT * (1 + taxRate / 100);
         }
+      } else {
+        calculatedTotalHT = toFiniteNumber(invoiceData.total_ht);
+        calculatedTotalTTC = toFiniteNumber(invoiceData.total_ttc || invoiceData.total);
+        calculatedTaxAmount =
+          calculatedTotalTTC > 0
+            ? Math.max(0, calculatedTotalTTC - calculatedTotalHT)
+            : calculatedTotalHT * (taxRate / 100);
       }
 
       // Round totals to 2 decimal places
       calculatedTotalHT = Number(calculatedTotalHT.toFixed(2));
+      calculatedTaxAmount = Number(calculatedTaxAmount.toFixed(2));
       calculatedTotalTTC = Number(calculatedTotalTTC.toFixed(2));
 
       // Update invoice status to 'sent' and persist calculated totals
       const { data: updatedInvoice, error: updateError } = await supabase
         .from('invoices')
-        .update({ status: 'sent', total_ht: calculatedTotalHT, total_ttc: calculatedTotalTTC })
+        .update({
+          status: 'sent',
+          total_ht: calculatedTotalHT,
+          tax_rate: taxRate,
+          tax_amount: calculatedTaxAmount,
+          total_ttc: calculatedTotalTTC,
+          balance_due: calculatedTotalTTC,
+        })
         .eq('id', data.id)
         .select()
         .single();
@@ -300,16 +337,16 @@ export const useInvoices = () => {
       setInvoices([finalInvoice, ...invoices]);
       emitInvoiceEvents(finalInvoice);
       toast({
-        title: "Success",
-        description: t('messages.success.invoiceGenerated')
+        title: 'Success',
+        description: t('messages.success.invoiceGenerated'),
       });
       return finalInvoice;
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Error creating invoice",
+        title: 'Error creating invoice',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -318,7 +355,7 @@ export const useInvoices = () => {
   };
 
   const updateInvoice = async (id, invoiceData) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -330,22 +367,22 @@ export const useInvoices = () => {
 
       if (error) throw error;
 
-      const oldInvoice = invoices.find(i => i.id === id);
+      const oldInvoice = invoices.find((i) => i.id === id);
       logAction('update', 'invoice', oldInvoice || null, data);
 
-      setInvoices(invoices.map(i => i.id === id ? data : i));
+      setInvoices(invoices.map((i) => (i.id === id ? data : i)));
       emitInvoiceEvents(data, oldInvoice || null);
       toast({
-        title: "Success",
-        description: t('messages.success.invoiceUpdated')
+        title: 'Success',
+        description: t('messages.success.invoiceUpdated'),
       });
       return data;
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Error updating invoice",
+        title: 'Error updating invoice',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -354,30 +391,27 @@ export const useInvoices = () => {
   };
 
   const deleteInvoice = async (id) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('invoices')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('invoices').delete().eq('id', id);
 
       if (error) throw error;
 
-      const deletedInvoice = invoices.find(i => i.id === id);
+      const deletedInvoice = invoices.find((i) => i.id === id);
       logAction('delete', 'invoice', deletedInvoice || { id }, null);
 
-      setInvoices(invoices.filter(i => i.id !== id));
+      setInvoices(invoices.filter((i) => i.id !== id));
       toast({
-        title: "Success",
-        description: t('messages.success.invoiceDeleted')
+        title: 'Success',
+        description: t('messages.success.invoiceDeleted'),
       });
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Error deleting invoice",
+        title: 'Error deleting invoice',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -388,10 +422,7 @@ export const useInvoices = () => {
   const fetchInvoiceItems = async (invoiceId) => {
     if (!supabase) return [];
     try {
-      const { data, error } = await supabase
-        .from('invoice_items')
-        .select('*')
-        .eq('invoice_id', invoiceId);
+      const { data, error } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoiceId);
       if (error) throw error;
       return data;
     } catch (err) {
@@ -401,7 +432,7 @@ export const useInvoices = () => {
   };
 
   const createInvoiceItem = async (itemData) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     try {
       const catalogConsistency = validateInvoiceCatalogConsistency([itemData]);
       if (!catalogConsistency.valid) {
@@ -412,11 +443,7 @@ export const useInvoices = () => {
       const sanitizedItem = { ...itemData };
       if (sanitizedItem.description) sanitizedItem.description = sanitizeText(sanitizedItem.description);
 
-      const { data, error } = await supabase
-        .from('invoice_items')
-        .insert([sanitizedItem])
-        .select()
-        .single();
+      const { data, error } = await supabase.from('invoice_items').insert([sanitizedItem]).select().single();
       if (error) throw error;
       return data;
     } catch (err) {
@@ -425,12 +452,9 @@ export const useInvoices = () => {
   };
 
   const deleteInvoiceItem = async (itemId) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     try {
-      const { error } = await supabase
-        .from('invoice_items')
-        .delete()
-        .eq('id', itemId);
+      const { error } = await supabase.from('invoice_items').delete().eq('id', itemId);
       if (error) throw error;
     } catch (err) {
       throw err;
@@ -438,7 +462,7 @@ export const useInvoices = () => {
   };
 
   const updateInvoiceStatus = async (id, newStatus) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     try {
       const { data, error } = await supabase
         .from('invoices')
@@ -449,36 +473,34 @@ export const useInvoices = () => {
 
       if (error) throw error;
 
-      const oldInvoice = invoices.find(i => i.id === id);
+      const oldInvoice = invoices.find((i) => i.id === id);
       logAction('update', 'invoice', oldInvoice || null, { ...data, status: newStatus });
 
-      setInvoices(invoices.map(i => i.id === id ? { ...i, ...data } : i));
+      setInvoices(invoices.map((i) => (i.id === id ? { ...i, ...data } : i)));
       emitInvoiceEvents({ ...data, status: newStatus }, oldInvoice || null);
       toast({
-        title: "Success",
-        description: t('messages.success.invoiceUpdated')
+        title: 'Success',
+        description: t('messages.success.invoiceUpdated'),
       });
       return data;
     } catch (err) {
       toast({
-        title: "Error",
+        title: 'Error',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     }
   };
 
   const getInvoiceItems = (invoiceId) => {
-    const invoice = invoices.find(i => i.id === invoiceId);
+    const invoice = invoices.find((i) => i.id === invoiceId);
     return invoice?.items || [];
   };
 
   const getPendingInvoicesByClient = (clientId) => {
     return invoices.filter(
-      i => i.client_id === clientId &&
-      i.payment_status !== 'paid' &&
-      Number(i.balance_due || i.total_ttc || 0) > 0
+      (i) => i.client_id === clientId && i.payment_status !== 'paid' && Number(i.balance_due || i.total_ttc || 0) > 0
     );
   };
 
@@ -496,6 +518,6 @@ export const useInvoices = () => {
     deleteInvoiceItem,
     updateInvoiceStatus,
     getInvoiceItems,
-    getPendingInvoicesByClient
+    getPendingInvoicesByClient,
   };
 };
