@@ -148,8 +148,8 @@ export function useHrMaterial() {
       // historical project data remains visible during scope migrations.
       suppliersQuery = applyCompanyScope(suppliersQuery);
       projectsQuery = applyCompanyScope(projectsQuery);
-      tasksQuery = applyCompanyScope(tasksQuery);
-      timesheetsQuery = applyCompanyScope(timesheetsQuery);
+      // Some production schemas still do not expose company_id on tasks/timesheets.
+      // Keep these queries column-safe and enforce company scope after fetch via project links.
       allocationsQuery = applyCompanyScope(allocationsQuery);
       compensationsQuery = applyCompanyScope(compensationsQuery);
       accountingEntriesQuery = applyCompanyScope(accountingEntriesQuery);
@@ -199,13 +199,26 @@ export function useHrMaterial() {
       }
 
       const membersData = membersResult.data || [];
-      const tasksData = tasksResult.data || [];
-      const timesheetsData = timesheetsResult.data || [];
+      const rawTasksData = tasksResult.data || [];
+      const rawTimesheetsData = timesheetsResult.data || [];
       const allocationsData = allocationsResult.data || [];
       const compensationsData = compensationsResult.data || [];
       const projectsData = projectsResult.data || [];
       const suppliersData = suppliersResult.data || [];
       const accountingEntriesData = accountingEntriesResult.data || [];
+      const scopedProjectIds = new Set((projectsData || []).map((project) => project.id));
+
+      const tasksData = activeCompanyId
+        ? rawTasksData.filter((row) => row?.project_id && scopedProjectIds.has(row.project_id))
+        : rawTasksData;
+
+      const scopedTaskIds = new Set(tasksData.map((row) => row.id));
+      const timesheetsData = activeCompanyId
+        ? rawTimesheetsData.filter((row) => (
+          (row?.project_id && scopedProjectIds.has(row.project_id))
+          || (row?.task_id && scopedTaskIds.has(row.task_id))
+        ))
+        : rawTimesheetsData;
 
       let scopedMembers = membersData;
       if (activeCompanyId) {
@@ -345,11 +358,11 @@ export function useHrMaterial() {
 
     const selectedMember = members.find((member) => member.id === memberId);
 
-    const updates = withCompanyScope({
+    const updates = {
       assigned_member_id: memberId || null,
       assigned_to: selectedMember?.name || null,
       updated_at: new Date().toISOString(),
-    });
+    };
 
     const { data, error: updateError } = await supabase
       .from('tasks')
