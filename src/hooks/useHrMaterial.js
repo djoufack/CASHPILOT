@@ -42,11 +42,10 @@ export function useHrMaterial() {
     setError(null);
 
     try {
-      const strictScope = { includeUnassigned: false };
-
       let membersQuery = supabase
         .from('team_members')
-        .select('id, name, email, role, joined_at, user_id, company_id')
+        .select('id, name, email, role, joined_at, user_id')
+        .eq('user_id', user.id)
         .order('name', { ascending: true });
 
       let suppliersQuery = supabase
@@ -144,14 +143,15 @@ export function useHrMaterial() {
         .order('created_at', { ascending: false })
         .limit(200);
 
-      membersQuery = applyCompanyScope(membersQuery, strictScope);
-      suppliersQuery = applyCompanyScope(suppliersQuery, strictScope);
-      projectsQuery = applyCompanyScope(projectsQuery, strictScope);
-      tasksQuery = applyCompanyScope(tasksQuery, strictScope);
-      timesheetsQuery = applyCompanyScope(timesheetsQuery, strictScope);
-      allocationsQuery = applyCompanyScope(allocationsQuery, strictScope);
-      compensationsQuery = applyCompanyScope(compensationsQuery, strictScope);
-      accountingEntriesQuery = applyCompanyScope(accountingEntriesQuery, { includeUnassigned: false });
+      // Keep company scope, but include legacy rows with null company_id so existing
+      // historical project data remains visible during scope migrations.
+      suppliersQuery = applyCompanyScope(suppliersQuery);
+      projectsQuery = applyCompanyScope(projectsQuery);
+      tasksQuery = applyCompanyScope(tasksQuery);
+      timesheetsQuery = applyCompanyScope(timesheetsQuery);
+      allocationsQuery = applyCompanyScope(allocationsQuery);
+      compensationsQuery = applyCompanyScope(compensationsQuery);
+      accountingEntriesQuery = applyCompanyScope(accountingEntriesQuery);
 
       const [
         membersResult,
@@ -197,14 +197,45 @@ export function useHrMaterial() {
         });
       }
 
-      setMembers(membersResult.data || []);
-      setSuppliers(suppliersResult.data || []);
-      setProjects(projectsResult.data || []);
-      setTasks(tasksResult.data || []);
-      setTimesheets(timesheetsResult.data || []);
-      setAllocations(allocationsResult.data || []);
-      setCompensations(compensationsResult.data || []);
-      setAccountingEntries(accountingEntriesResult.data || []);
+      const membersData = membersResult.data || [];
+      const tasksData = tasksResult.data || [];
+      const timesheetsData = timesheetsResult.data || [];
+      const allocationsData = allocationsResult.data || [];
+      const compensationsData = compensationsResult.data || [];
+      const projectsData = projectsResult.data || [];
+      const suppliersData = suppliersResult.data || [];
+      const accountingEntriesData = accountingEntriesResult.data || [];
+
+      let scopedMembers = membersData;
+      if (activeCompanyId) {
+        const memberIdsInScope = new Set();
+
+        tasksData.forEach((row) => {
+          if (row?.assigned_member_id) memberIdsInScope.add(row.assigned_member_id);
+        });
+        timesheetsData.forEach((row) => {
+          if (row?.executed_by_member_id) memberIdsInScope.add(row.executed_by_member_id);
+        });
+        allocationsData.forEach((row) => {
+          if (row?.team_member_id) memberIdsInScope.add(row.team_member_id);
+        });
+        compensationsData.forEach((row) => {
+          if (row?.team_member_id) memberIdsInScope.add(row.team_member_id);
+        });
+
+        if (memberIdsInScope.size > 0) {
+          scopedMembers = membersData.filter((member) => memberIdsInScope.has(member.id));
+        }
+      }
+
+      setMembers(scopedMembers);
+      setSuppliers(suppliersData);
+      setProjects(projectsData);
+      setTasks(tasksData);
+      setTimesheets(timesheetsData);
+      setAllocations(allocationsData);
+      setCompensations(compensationsData);
+      setAccountingEntries(accountingEntriesData);
       setAuditLogs(scopedAuditLogs);
     } catch (err) {
       setError(err.message || 'Impossible de charger le module RH & Matériel');

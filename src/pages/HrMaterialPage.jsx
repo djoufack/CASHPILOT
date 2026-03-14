@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { AlertTriangle, Briefcase, Building2, Receipt, Users } from 'lucide-react';
+import { AlertTriangle, Banknote, Briefcase, Building2, Receipt, Users } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useHrMaterial } from '@/hooks/useHrMaterial';
+import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -40,8 +41,20 @@ const defaultAssignmentForm = {
   member_id: '',
 };
 
+const defaultCompensationForm = {
+  project_id: '',
+  team_member_id: '',
+  task_id: 'none',
+  amount: '0',
+  compensation_type: 'hourly',
+  payment_status: 'planned',
+  planned_payment_date: '',
+  notes: '',
+};
+
 const HrMaterialPage = () => {
   const { toast } = useToast();
+  const { company, companies = [] } = useCompany();
   const {
     activeCompanyId,
     loading,
@@ -54,13 +67,24 @@ const HrMaterialPage = () => {
     accountingEntries,
     auditLogs,
     createAllocation,
+    createCompensation,
+    updateCompensationStatus,
     assignTaskMember,
   } = useHrMaterial();
 
   const [allocationForm, setAllocationForm] = useState(defaultAllocationForm);
   const [assignmentForm, setAssignmentForm] = useState(defaultAssignmentForm);
+  const [compensationForm, setCompensationForm] = useState(defaultCompensationForm);
 
   const isCompanyScoped = Boolean(activeCompanyId);
+  const normalizedActiveCompanyId = String(activeCompanyId || '').trim().toLowerCase();
+  const activeCompany = useMemo(() => {
+    if (!activeCompanyId) return company || null;
+    if (String(company?.id || '').trim().toLowerCase() === normalizedActiveCompanyId) return company;
+    return companies.find((entry) => String(entry?.id || '').trim().toLowerCase() === normalizedActiveCompanyId) || company || null;
+  }, [activeCompanyId, companies, company, normalizedActiveCompanyId]);
+
+  const activeCompanyName = activeCompany?.company_name || activeCompany?.name || '';
 
   const kpis = useMemo(() => {
     const materialAllocations = allocations.filter((row) => row.resource_type === 'material');
@@ -91,6 +115,7 @@ const HrMaterialPage = () => {
   })), [tasks]);
 
   const recentAllocations = useMemo(() => allocations.slice(0, 40), [allocations]);
+  const recentCompensations = useMemo(() => compensations.slice(0, 80), [compensations]);
   const supplierNameById = useMemo(() => new Map(
     suppliers.map((supplier) => [supplier.id, supplier.company_name || '-']),
   ), [suppliers]);
@@ -165,6 +190,57 @@ const HrMaterialPage = () => {
     }
   };
 
+  const handleCreateCompensation = async (event) => {
+    event.preventDefault();
+
+    if (!isCompanyScoped) {
+      toast({
+        title: 'Société active requise',
+        description: 'Sélectionnez d’abord une société du portfolio.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!compensationForm.project_id || !compensationForm.team_member_id) {
+      toast({
+        title: 'Champs requis',
+        description: 'Sélectionnez un projet et un collaborateur.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (Number(compensationForm.amount) <= 0) {
+      toast({
+        title: 'Montant invalide',
+        description: 'Le montant de la paie doit être supérieur à 0.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await createCompensation({
+        ...compensationForm,
+        task_id: compensationForm.task_id === 'none' ? null : compensationForm.task_id,
+      });
+      setCompensationForm(defaultCompensationForm);
+      toast({ title: 'Paie enregistrée', description: 'La compensation RH est enregistrée.' });
+    } catch (error) {
+      toast({ title: 'Erreur paie', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleUpdateCompensationStatus = async (compensationId, nextStatus) => {
+    try {
+      await updateCompensationStatus(compensationId, nextStatus);
+      toast({ title: 'Statut mis à jour', description: `Paie passée en statut "${nextStatus}".` });
+    } catch (error) {
+      toast({ title: 'Erreur statut paie', description: error.message, variant: 'destructive' });
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -187,9 +263,12 @@ const HrMaterialPage = () => {
             </p>
             <p><strong>Fournisseurs</strong> = externes à la société et gérés séparément dans le domaine achats/AP.</p>
             <p><strong>Projet</strong> = ressources internes <em>ou</em> ressources externes (origine obligatoire).</p>
+            <p>
+              <strong>Stockage</strong> = allocations dans <code>project_resource_allocations</code>, paie dans <code>team_member_compensations</code>.
+            </p>
             <p className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
-              Société active: <code>{activeCompanyId || 'Aucune sélectionnée'}</code>
+              Société active: <code>{activeCompanyName || (activeCompanyId ? 'Chargement...' : 'Aucune sélectionnée')}</code>
             </p>
           </CardContent>
         </Card>
@@ -237,6 +316,7 @@ const HrMaterialPage = () => {
           <TabsList className="bg-gray-900 border border-gray-800 p-1">
             <TabsTrigger value="allocation" className="data-[state=active]:text-orange-400"><Users className="w-4 h-4 mr-2" />Allocation</TabsTrigger>
             <TabsTrigger value="tasks" className="data-[state=active]:text-orange-400"><Briefcase className="w-4 h-4 mr-2" />Tâches</TabsTrigger>
+            <TabsTrigger value="payroll" className="data-[state=active]:text-orange-400"><Banknote className="w-4 h-4 mr-2" />Paie</TabsTrigger>
             <TabsTrigger value="accounting" className="data-[state=active]:text-orange-400"><Receipt className="w-4 h-4 mr-2" />Compta</TabsTrigger>
           </TabsList>
 
@@ -396,6 +476,130 @@ const HrMaterialPage = () => {
                     </Button>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payroll" className="space-y-4">
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader><CardTitle>Nouvelle paie RH (compensation)</CardTitle></CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreateCompensation} className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <Label>Projet</Label>
+                    <Select value={compensationForm.project_id} onValueChange={(value) => setCompensationForm((prev) => ({ ...prev, project_id: value }))}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                      <SelectContent>{projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Collaborateur</Label>
+                    <Select value={compensationForm.team_member_id} onValueChange={(value) => setCompensationForm((prev) => ({ ...prev, team_member_id: value }))}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                      <SelectContent>{members.map((member) => <SelectItem key={member.id} value={member.id}>{member.name || member.email}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Tâche (optionnel)</Label>
+                    <Select value={compensationForm.task_id} onValueChange={(value) => setCompensationForm((prev) => ({ ...prev, task_id: value }))}>
+                      <SelectTrigger><SelectValue placeholder="Aucune tâche" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Aucune tâche</SelectItem>
+                        {taskOptions.map((task) => <SelectItem key={task.id} value={task.id}>{task.title} - {task.projectName}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Montant</Label>
+                    <Input type="number" min="0" value={compensationForm.amount} onChange={(e) => setCompensationForm((prev) => ({ ...prev, amount: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Type</Label>
+                    <Select value={compensationForm.compensation_type} onValueChange={(value) => setCompensationForm((prev) => ({ ...prev, compensation_type: value }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hourly">Horaire</SelectItem>
+                        <SelectItem value="fixed">Fixe</SelectItem>
+                        <SelectItem value="bonus">Bonus</SelectItem>
+                        <SelectItem value="malus">Malus</SelectItem>
+                        <SelectItem value="adjustment">Ajustement</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Statut</Label>
+                    <Select value={compensationForm.payment_status} onValueChange={(value) => setCompensationForm((prev) => ({ ...prev, payment_status: value }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="planned">Prévue</SelectItem>
+                        <SelectItem value="approved">Approuvée</SelectItem>
+                        <SelectItem value="paid">Payée</SelectItem>
+                        <SelectItem value="cancelled">Annulée</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Date prévue de paiement</Label>
+                    <Input type="date" value={compensationForm.planned_payment_date} onChange={(e) => setCompensationForm((prev) => ({ ...prev, planned_payment_date: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Note</Label>
+                    <Input value={compensationForm.notes} onChange={(e) => setCompensationForm((prev) => ({ ...prev, notes: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-3">
+                    <Button className="bg-orange-500 hover:bg-orange-600" type="submit" disabled={!isCompanyScoped || loading}>
+                      Enregistrer la paie
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader><CardTitle>Journal des paies RH</CardTitle></CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-700 text-left">
+                        <th className="py-2">Date</th>
+                        <th className="py-2">Projet</th>
+                        <th className="py-2">Collaborateur</th>
+                        <th className="py-2">Type</th>
+                        <th className="py-2">Montant</th>
+                        <th className="py-2">Statut</th>
+                        <th className="py-2">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentCompensations.length === 0 && <tr><td className="py-3 text-gray-500" colSpan={7}>Aucune paie enregistrée.</td></tr>}
+                      {recentCompensations.map((row) => (
+                        <tr key={row.id} className="border-b border-slate-800">
+                          <td className="py-2 text-gray-300">{formatDate(row.planned_payment_date || row.created_at)}</td>
+                          <td className="py-2 text-gray-300">{row?.project?.name || '-'}</td>
+                          <td className="py-2 text-gray-300">{row?.team_member?.name || row?.team_member?.email || '-'}</td>
+                          <td className="py-2 text-gray-300">{row.compensation_type || '-'}</td>
+                          <td className="py-2 text-gray-300">{formatCurrency(row.amount || 0)}</td>
+                          <td className="py-2 text-gray-300">{row.payment_status || '-'}</td>
+                          <td className="py-2 text-gray-300">
+                            <div className="flex gap-2">
+                              {row.payment_status === 'planned' && (
+                                <Button size="sm" variant="outline" onClick={() => handleUpdateCompensationStatus(row.id, 'approved')}>
+                                  Approuver
+                                </Button>
+                              )}
+                              {row.payment_status !== 'paid' && row.payment_status !== 'cancelled' && (
+                                <Button size="sm" variant="outline" onClick={() => handleUpdateCompensationStatus(row.id, 'paid')}>
+                                  Marquer payé
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
