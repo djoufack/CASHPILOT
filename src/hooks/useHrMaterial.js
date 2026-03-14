@@ -96,22 +96,12 @@ export function useHrMaterial() {
 
       let allocationsQuery = supabase
         .from('project_resource_allocations')
-        .select(`
-          *,
-          project:projects(id, name),
-          team_member:team_members(id, name, email, role)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       let compensationsQuery = supabase
         .from('team_member_compensations')
-        .select(`
-          *,
-          project:projects(id, name),
-          team_member:team_members(id, name, email, role),
-          task:tasks(id, title, name),
-          timesheet:timesheets(id, date)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       let accountingEntriesQuery = supabase
@@ -242,13 +232,32 @@ export function useHrMaterial() {
         }
       }
 
+      const projectById = new Map(projectsData.map((project) => [project.id, project]));
+      const memberById = new Map(membersData.map((member) => [member.id, member]));
+      const taskById = new Map(tasksData.map((task) => [task.id, task]));
+      const timesheetById = new Map(timesheetsData.map((timesheet) => [timesheet.id, timesheet]));
+
+      const normalizedAllocations = allocationsData.map((row) => ({
+        ...row,
+        project: row?.project || projectById.get(row.project_id) || null,
+        team_member: row?.team_member || memberById.get(row.team_member_id) || null,
+      }));
+
+      const normalizedCompensations = compensationsData.map((row) => ({
+        ...row,
+        project: row?.project || projectById.get(row.project_id) || null,
+        team_member: row?.team_member || memberById.get(row.team_member_id) || null,
+        task: row?.task || taskById.get(row.task_id) || null,
+        timesheet: row?.timesheet || timesheetById.get(row.timesheet_id) || null,
+      }));
+
       setMembers(scopedMembers);
       setSuppliers(suppliersData);
       setProjects(projectsData);
       setTasks(tasksData);
       setTimesheets(timesheetsData);
-      setAllocations(allocationsData);
-      setCompensations(compensationsData);
+      setAllocations(normalizedAllocations);
+      setCompensations(normalizedCompensations);
       setAccountingEntries(accountingEntriesData);
       setAuditLogs(scopedAuditLogs);
     } catch (err) {
