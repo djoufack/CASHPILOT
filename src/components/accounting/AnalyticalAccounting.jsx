@@ -359,6 +359,32 @@ export default function AnalyticalAccounting() {
     }
   }, [activeCompanyId, fetchAllocations, fetchAxes, fetchAxisValues, fetchBudgets, fetchCenters, fetchObjects, fetchReporting, fetchRules, loadBudgetDetails, selectedBudgetId, syncAccountingToAnalytical, toast, user]);
 
+  const bootstrapAnalyticalFromSeed = useCallback(async () => {
+    if (!activeCompanyId) return;
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.rpc('f_bootstrap_analytical_from_seed', {
+        p_user_id: user.id,
+        p_company_id: activeCompanyId,
+        p_start_date: startDate,
+        p_end_date: endDate,
+      });
+      if (error) throw error;
+      const summary = [
+        `axes: ${Number(data?.axes_upserted || 0)}`,
+        `valeurs: ${Number(data?.axis_values_upserted || 0)}`,
+        `centres: ${Number(data?.centers_upserted || 0)}`,
+        `budgets: ${Number(data?.budgets_upserted || 0)}`,
+      ].join(' · ');
+      toast({ title: 'Initialisation analytique terminée', description: summary });
+      await loadAll();
+    } catch (err) {
+      toast({ title: 'Erreur initialisation', description: err.message, variant: 'destructive' });
+    } finally {
+      setSyncing(false);
+    }
+  }, [activeCompanyId, endDate, loadAll, startDate, toast, user]);
+
   useEffect(() => {
     loadAll();
   }, [loadAll]);
@@ -742,6 +768,10 @@ export default function AnalyticalAccounting() {
             <Building2 className="w-3.5 h-3.5 mr-1" />
             Société active
           </Badge>
+          <Button size="sm" variant="outline" onClick={() => safeAction(bootstrapAnalyticalFromSeed)} disabled={loading || syncing}>
+            <Wand2 className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            Initialiser depuis la compta seedée
+          </Button>
           <Button size="sm" variant="outline" onClick={loadAll} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Rafraîchir
