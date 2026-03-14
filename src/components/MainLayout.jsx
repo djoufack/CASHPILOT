@@ -54,6 +54,7 @@ const MainLayout = () => {
     { path: '/app/clients', label: t('nav.clients'), icon: Users },
     { path: '/app/projects', label: t('nav.projects'), icon: Briefcase },
     { path: '/app/crm', label: t('nav.crm', 'CRM'), icon: Target },
+    { path: '/app/hr-material', label: t('nav.hrMaterial', 'RH & Matériel'), icon: Users },
     { path: '/app/timesheets', label: t('nav.timesheets'), icon: Clock },
     { path: '/app/invoices', label: t('nav.invoices'), icon: FileText },
     { path: '/app/peppol', label: t('nav.peppolEInvoicing'), icon: Globe },

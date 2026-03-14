@@ -127,6 +127,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         items: [
           { path: '/app/projects', label: t('common.projects'), icon: Briefcase },
           { path: '/app/crm', label: t('nav.crm', 'CRM'), icon: Target },
+          { path: '/app/hr-material', label: t('nav.hrMaterial', 'RH & Matériel'), icon: Users },
           { path: '/app/timesheets', label: t('common.timesheets'), icon: Clock },
           { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
         ],

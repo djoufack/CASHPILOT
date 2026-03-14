@@ -43,6 +43,7 @@ const Dashboard = lazyRetry(() => import('./pages/Dashboard'));
 const ClientsPage = lazyRetry(() => import('./pages/ClientsPage'));
 const ProjectsPage = lazyRetry(() => import('./pages/ProjectsPage'));
 const ProjectDetail = lazyRetry(() => import('./pages/ProjectDetail'));
+const HrMaterialPage = lazyRetry(() => import('./pages/HrMaterialPage'));
 const TimesheetsPage = lazyRetry(() => import('./pages/TimesheetsPage'));
 const InvoicesPage = lazyRetry(() => import('./pages/InvoicesPage'));
 const QuotesPage = lazyRetry(() => import('./pages/QuotesPage'));
@@ -180,6 +181,7 @@ const AuthWrapper = () => {
                 <Route path="crm/:section" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><CRMPage /></Suspense></PageErrorBoundary>} />
                 <Route path="projects" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ProjectsPage /></Suspense></PageErrorBoundary>} />
                 <Route path="projects/:projectId" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><ProjectDetail /></Suspense></PageErrorBoundary>} />
+                <Route path="hr-material" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><HrMaterialPage /></Suspense></PageErrorBoundary>} />
                 <Route path="timesheets" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><TimesheetsPage /></Suspense></PageErrorBoundary>} />
                 <Route path="invoices" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><InvoicesPage /></Suspense></PageErrorBoundary>} />
                 <Route path="recurring-invoices" element={<PageErrorBoundary><Suspense fallback={<PageLoader />}><RecurringInvoicesPage /></Suspense></PageErrorBoundary>} />
