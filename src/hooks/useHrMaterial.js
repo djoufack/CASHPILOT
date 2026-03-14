@@ -34,6 +34,14 @@ export function useHrMaterial() {
   const [compensations, setCompensations] = useState([]);
   const [accountingEntries, setAccountingEntries] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [employeeContracts, setEmployeeContracts] = useState([]);
+  const [materialCategories, setMaterialCategories] = useState([]);
+  const [materialAssets, setMaterialAssets] = useState([]);
+  const [payrollPeriods, setPayrollPeriods] = useState([]);
+  const [payrollVariableItems, setPayrollVariableItems] = useState([]);
+  const [payrollAnomalies, setPayrollAnomalies] = useState([]);
+  const [payrollExports, setPayrollExports] = useState([]);
 
   const fetchData = useCallback(async () => {
     if (!user || !supabase) return;
@@ -44,7 +52,7 @@ export function useHrMaterial() {
     try {
       let membersQuery = supabase
         .from('team_members')
-        .select('id, name, email, role, joined_at, user_id')
+        .select('id, name, email, role, joined_at, user_id, company_id, employee_id')
         .eq('user_id', user.id)
         .order('name', { ascending: true });
 
@@ -134,6 +142,50 @@ export function useHrMaterial() {
         .order('created_at', { ascending: false })
         .limit(200);
 
+      let employeesQuery = supabase
+        .from('hr_employees')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      let employeeContractsQuery = supabase
+        .from('hr_employee_contracts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      let materialCategoriesQuery = supabase
+        .from('material_categories')
+        .select('*')
+        .order('name', { ascending: true });
+
+      let materialAssetsQuery = supabase
+        .from('material_assets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      let payrollPeriodsQuery = supabase
+        .from('hr_payroll_periods')
+        .select('*')
+        .order('period_start', { ascending: false })
+        .limit(60);
+
+      let payrollVariableItemsQuery = supabase
+        .from('hr_payroll_variable_items')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(300);
+
+      let payrollAnomaliesQuery = supabase
+        .from('hr_payroll_anomalies')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      let payrollExportsQuery = supabase
+        .from('hr_payroll_exports')
+        .select('*')
+        .order('generated_at', { ascending: false })
+        .limit(120);
+
       // Keep company scope, but include legacy rows with null company_id so existing
       // historical project data remains visible during scope migrations.
       suppliersQuery = applyCompanyScope(suppliersQuery);
@@ -143,6 +195,14 @@ export function useHrMaterial() {
       allocationsQuery = applyCompanyScope(allocationsQuery);
       compensationsQuery = applyCompanyScope(compensationsQuery);
       accountingEntriesQuery = applyCompanyScope(accountingEntriesQuery);
+      employeesQuery = applyCompanyScope(employeesQuery);
+      employeeContractsQuery = applyCompanyScope(employeeContractsQuery);
+      materialCategoriesQuery = applyCompanyScope(materialCategoriesQuery);
+      materialAssetsQuery = applyCompanyScope(materialAssetsQuery);
+      payrollPeriodsQuery = applyCompanyScope(payrollPeriodsQuery);
+      payrollVariableItemsQuery = applyCompanyScope(payrollVariableItemsQuery);
+      payrollAnomaliesQuery = applyCompanyScope(payrollAnomaliesQuery);
+      payrollExportsQuery = applyCompanyScope(payrollExportsQuery);
 
       const [
         membersResult,
@@ -154,6 +214,14 @@ export function useHrMaterial() {
         compensationsResult,
         accountingEntriesResult,
         auditLogsResult,
+        employeesResult,
+        employeeContractsResult,
+        materialCategoriesResult,
+        materialAssetsResult,
+        payrollPeriodsResult,
+        payrollVariableItemsResult,
+        payrollAnomaliesResult,
+        payrollExportsResult,
       ] = await Promise.all([
         membersQuery,
         suppliersQuery,
@@ -164,6 +232,14 @@ export function useHrMaterial() {
         compensationsQuery,
         accountingEntriesQuery,
         auditLogsQuery,
+        employeesQuery,
+        employeeContractsQuery,
+        materialCategoriesQuery,
+        materialAssetsQuery,
+        payrollPeriodsQuery,
+        payrollVariableItemsQuery,
+        payrollAnomaliesQuery,
+        payrollExportsQuery,
       ]);
 
       const firstError = [
@@ -176,6 +252,14 @@ export function useHrMaterial() {
         compensationsResult.error,
         accountingEntriesResult.error,
         auditLogsResult.error,
+        employeesResult.error,
+        employeeContractsResult.error,
+        materialCategoriesResult.error,
+        materialAssetsResult.error,
+        payrollPeriodsResult.error,
+        payrollVariableItemsResult.error,
+        payrollAnomaliesResult.error,
+        payrollExportsResult.error,
       ].find(Boolean);
 
       if (firstError) throw firstError;
@@ -196,6 +280,14 @@ export function useHrMaterial() {
       const projectsData = projectsResult.data || [];
       const suppliersData = suppliersResult.data || [];
       const accountingEntriesData = accountingEntriesResult.data || [];
+      const employeesData = employeesResult.data || [];
+      const employeeContractsData = employeeContractsResult.data || [];
+      const materialCategoriesData = materialCategoriesResult.data || [];
+      const materialAssetsData = materialAssetsResult.data || [];
+      const payrollPeriodsData = payrollPeriodsResult.data || [];
+      const payrollVariableItemsData = payrollVariableItemsResult.data || [];
+      const payrollAnomaliesData = payrollAnomaliesResult.data || [];
+      const payrollExportsData = payrollExportsResult.data || [];
       const scopedProjectIds = new Set((projectsData || []).map((project) => project.id));
 
       const tasksData = activeCompanyId
@@ -212,23 +304,28 @@ export function useHrMaterial() {
 
       let scopedMembers = membersData;
       if (activeCompanyId) {
-        const memberIdsInScope = new Set();
+        const membersWithCompany = membersData.filter((member) => member?.company_id === activeCompanyId);
+        if (membersWithCompany.length > 0) {
+          scopedMembers = membersWithCompany;
+        } else {
+          const memberIdsInScope = new Set();
 
-        tasksData.forEach((row) => {
-          if (row?.assigned_member_id) memberIdsInScope.add(row.assigned_member_id);
-        });
-        timesheetsData.forEach((row) => {
-          if (row?.executed_by_member_id) memberIdsInScope.add(row.executed_by_member_id);
-        });
-        allocationsData.forEach((row) => {
-          if (row?.team_member_id) memberIdsInScope.add(row.team_member_id);
-        });
-        compensationsData.forEach((row) => {
-          if (row?.team_member_id) memberIdsInScope.add(row.team_member_id);
-        });
+          tasksData.forEach((row) => {
+            if (row?.assigned_member_id) memberIdsInScope.add(row.assigned_member_id);
+          });
+          timesheetsData.forEach((row) => {
+            if (row?.executed_by_member_id) memberIdsInScope.add(row.executed_by_member_id);
+          });
+          allocationsData.forEach((row) => {
+            if (row?.team_member_id) memberIdsInScope.add(row.team_member_id);
+          });
+          compensationsData.forEach((row) => {
+            if (row?.team_member_id) memberIdsInScope.add(row.team_member_id);
+          });
 
-        if (memberIdsInScope.size > 0) {
-          scopedMembers = membersData.filter((member) => memberIdsInScope.has(member.id));
+          if (memberIdsInScope.size > 0) {
+            scopedMembers = membersData.filter((member) => memberIdsInScope.has(member.id));
+          }
         }
       }
 
@@ -260,6 +357,14 @@ export function useHrMaterial() {
       setCompensations(normalizedCompensations);
       setAccountingEntries(accountingEntriesData);
       setAuditLogs(scopedAuditLogs);
+      setEmployees(employeesData);
+      setEmployeeContracts(employeeContractsData);
+      setMaterialCategories(materialCategoriesData);
+      setMaterialAssets(materialAssetsData);
+      setPayrollPeriods(payrollPeriodsData);
+      setPayrollVariableItems(payrollVariableItemsData);
+      setPayrollAnomalies(payrollAnomaliesData);
+      setPayrollExports(payrollExportsData);
     } catch (err) {
       setError(err.message || 'Impossible de charger le module RH & Matériel');
       toast({
@@ -342,6 +447,264 @@ export function useHrMaterial() {
     return data;
   }, [fetchData, supabase, user, withCompanyScope]);
 
+  const createEmployee = useCallback(async (payload) => {
+    if (!user || !supabase) return null;
+
+    const firstName = String(payload.first_name || '').trim();
+    const lastName = String(payload.last_name || '').trim();
+    const fullName = String(payload.full_name || `${firstName} ${lastName}`).trim();
+
+    const row = withCompanyScope({
+      employee_number: payload.employee_number || null,
+      first_name: firstName,
+      last_name: lastName,
+      full_name: fullName || null,
+      work_email: payload.work_email || null,
+      phone: payload.phone || null,
+      status: payload.status || 'active',
+      hire_date: payload.hire_date || null,
+      termination_date: payload.termination_date || null,
+      department_id: payload.department_id || null,
+      manager_employee_id: payload.manager_employee_id || null,
+      cost_center_id: payload.cost_center_id || null,
+      work_calendar_id: payload.work_calendar_id || null,
+      job_title: payload.job_title || null,
+    });
+
+    const { data, error: insertError } = await supabase
+      .from('hr_employees')
+      .insert([row])
+      .select('*')
+      .single();
+
+    if (insertError) throw insertError;
+
+    let syncError = null;
+    if (payload.sync_team_member !== false) {
+      try {
+        const teamMemberScope = withCompanyScope({
+          user_id: user.id,
+          name: fullName || `${firstName} ${lastName}`.trim() || payload.work_email || 'Employé',
+          email: payload.work_email || null,
+          role: payload.team_role || payload.job_title || 'member',
+          joined_at: payload.hire_date || null,
+          employee_id: data.id,
+        });
+
+        let existingMember = null;
+        const byEmployeeResult = await supabase
+          .from('team_members')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('employee_id', data.id)
+          .limit(1)
+          .maybeSingle();
+        if (byEmployeeResult.error) throw byEmployeeResult.error;
+        existingMember = byEmployeeResult.data || null;
+
+        if (!existingMember && teamMemberScope.email) {
+          const byEmailResult = await supabase
+            .from('team_members')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('email', teamMemberScope.email)
+            .limit(1)
+            .maybeSingle();
+          if (byEmailResult.error) throw byEmailResult.error;
+          existingMember = byEmailResult.data || null;
+        }
+
+        if (existingMember?.id) {
+          const { error: updateMemberError } = await supabase
+            .from('team_members')
+            .update({
+              ...teamMemberScope,
+              employee_id: data.id,
+            })
+            .eq('id', existingMember.id);
+
+          if (updateMemberError) throw updateMemberError;
+        } else {
+          const { error: insertMemberError } = await supabase
+            .from('team_members')
+            .insert([teamMemberScope]);
+
+          if (insertMemberError) throw insertMemberError;
+        }
+      } catch (err) {
+        syncError = err;
+      }
+    }
+
+    await fetchData();
+
+    if (syncError) {
+      toast({
+        title: 'Employé créé avec avertissement',
+        description: `La liaison vers team_members a échoué: ${syncError.message}`,
+        variant: 'destructive',
+      });
+    }
+
+    return data;
+  }, [fetchData, supabase, toast, user, withCompanyScope]);
+
+  const createEmployeeContract = useCallback(async (payload) => {
+    if (!user || !supabase) return null;
+
+    const row = withCompanyScope({
+      employee_id: payload.employee_id,
+      contract_type: payload.contract_type || 'cdi',
+      status: payload.status || 'active',
+      start_date: payload.start_date,
+      end_date: payload.end_date || null,
+      pay_basis: payload.pay_basis || 'hourly',
+      hourly_rate: toNumber(payload.hourly_rate),
+      monthly_salary: toNumber(payload.monthly_salary),
+    });
+
+    const { data, error: insertError } = await supabase
+      .from('hr_employee_contracts')
+      .insert([row])
+      .select('*')
+      .single();
+
+    if (insertError) throw insertError;
+    await fetchData();
+    return data;
+  }, [fetchData, supabase, user, withCompanyScope]);
+
+  const createMaterialCategory = useCallback(async (payload) => {
+    if (!user || !supabase) return null;
+
+    const row = withCompanyScope({
+      category_code: payload.category_code || null,
+      name: payload.name,
+      description: payload.description || null,
+    });
+
+    const { data, error: insertError } = await supabase
+      .from('material_categories')
+      .insert([row])
+      .select('*')
+      .single();
+
+    if (insertError) throw insertError;
+    await fetchData();
+    return data;
+  }, [fetchData, supabase, user, withCompanyScope]);
+
+  const createMaterialAsset = useCallback(async (payload) => {
+    if (!user || !supabase) return null;
+
+    const row = withCompanyScope({
+      category_id: payload.category_id || null,
+      asset_code: payload.asset_code,
+      asset_name: payload.asset_name,
+      status: payload.status || 'available',
+      unit_usage_cost: toNumber(payload.unit_usage_cost),
+      unit_of_measure: payload.unit_of_measure || 'hour',
+      cost_center_id: payload.cost_center_id || null,
+      linked_fixed_asset_id: payload.linked_fixed_asset_id || null,
+      acquisition_mode: payload.acquisition_mode || 'purchase',
+      supplier_id: payload.supplier_id || null,
+      contract_reference: payload.contract_reference || null,
+      contract_start_date: payload.contract_start_date || null,
+      contract_end_date: payload.contract_end_date || null,
+      purchase_date: payload.purchase_date || null,
+      purchase_cost: toNumber(payload.purchase_cost),
+      rental_rate: toNumber(payload.rental_rate),
+      billing_cycle: payload.billing_cycle || null,
+      notes: payload.notes || null,
+    });
+
+    const { data, error: insertError } = await supabase
+      .from('material_assets')
+      .insert([row])
+      .select('*')
+      .single();
+
+    if (insertError) throw insertError;
+    await fetchData();
+    return data;
+  }, [fetchData, supabase, user, withCompanyScope]);
+
+  const createPayrollPeriod = useCallback(async (payload) => {
+    if (!user || !supabase) return null;
+
+    const row = withCompanyScope({
+      period_start: payload.period_start,
+      period_end: payload.period_end,
+      status: payload.status || 'open',
+      calculation_version: 1,
+    });
+
+    const { data, error: insertError } = await supabase
+      .from('hr_payroll_periods')
+      .insert([row])
+      .select('*')
+      .single();
+
+    if (insertError) throw insertError;
+    await fetchData();
+    return data;
+  }, [fetchData, supabase, user, withCompanyScope]);
+
+  const calculatePayrollPeriod = useCallback(async (payrollPeriodId, incremental = false) => {
+    if (!payrollPeriodId || !supabase) return null;
+
+    const { data, error: rpcError } = await supabase.rpc('hr_calculate_payroll_period', {
+      p_payroll_period_id: payrollPeriodId,
+      p_incremental: incremental,
+    });
+
+    if (rpcError) throw rpcError;
+    await fetchData();
+    return data;
+  }, [fetchData, supabase]);
+
+  const exportPayrollCsv = useCallback(async (payrollPeriodId) => {
+    if (!payrollPeriodId || !supabase || !user) return null;
+
+    const { data: csvData, error: rpcError } = await supabase.rpc('hr_export_payroll_csv', {
+      p_payroll_period_id: payrollPeriodId,
+    });
+
+    if (rpcError) throw rpcError;
+
+    let nextVersion = 1;
+    const existingVersionResult = await supabase
+      .from('hr_payroll_exports')
+      .select('version')
+      .eq('payroll_period_id', payrollPeriodId)
+      .order('version', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingVersionResult.error) throw existingVersionResult.error;
+    if (existingVersionResult.data?.version) {
+      nextVersion = Number(existingVersionResult.data.version) + 1;
+    }
+
+    const exportRow = withCompanyScope({
+      payroll_period_id: payrollPeriodId,
+      export_format: 'csv',
+      export_status: 'generated',
+      version: nextVersion,
+      generated_by: user.id,
+      file_url: null,
+    });
+
+    const { error: exportInsertError } = await supabase
+      .from('hr_payroll_exports')
+      .insert([exportRow]);
+
+    if (exportInsertError) throw exportInsertError;
+
+    await fetchData();
+    return csvData || '';
+  }, [fetchData, supabase, user, withCompanyScope]);
+
   const updateCompensationStatus = useCallback(async (compensationId, nextStatus) => {
     if (!compensationId || !supabase) return null;
 
@@ -402,9 +765,24 @@ export function useHrMaterial() {
     compensations,
     accountingEntries,
     auditLogs,
+    employees,
+    employeeContracts,
+    materialCategories,
+    materialAssets,
+    payrollPeriods,
+    payrollVariableItems,
+    payrollAnomalies,
+    payrollExports,
     fetchData,
     createAllocation,
     createCompensation,
+    createEmployee,
+    createEmployeeContract,
+    createMaterialCategory,
+    createMaterialAsset,
+    createPayrollPeriod,
+    calculatePayrollPeriod,
+    exportPayrollCsv,
     updateCompensationStatus,
     assignTaskMember,
   };

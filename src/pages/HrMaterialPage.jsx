@@ -24,6 +24,25 @@ const formatDate = (value) => {
 };
 
 const getOriginLabel = (origin) => (origin === 'external_supplier' ? 'Externe (fournisseur)' : 'Interne');
+const getEmployeeLabel = (employee) => (
+  employee?.full_name
+  || `${employee?.first_name || ''} ${employee?.last_name || ''}`.trim()
+  || employee?.work_email
+  || employee?.id
+  || '-'
+);
+
+const downloadTextAsFile = (text, filename, mimeType = 'text/plain;charset=utf-8') => {
+  const blob = new Blob([text || ''], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+};
 
 const defaultAllocationForm = {
   resource_type: 'human',
@@ -52,6 +71,58 @@ const defaultCompensationForm = {
   notes: '',
 };
 
+const defaultEmployeeForm = {
+  employee_number: '',
+  first_name: '',
+  last_name: '',
+  work_email: '',
+  phone: '',
+  job_title: '',
+  status: 'active',
+  hire_date: '',
+};
+
+const defaultContractForm = {
+  employee_id: '',
+  contract_type: 'cdi',
+  status: 'active',
+  start_date: '',
+  end_date: '',
+  pay_basis: 'hourly',
+  hourly_rate: '0',
+  monthly_salary: '0',
+};
+
+const defaultMaterialCategoryForm = {
+  category_code: '',
+  name: '',
+  description: '',
+};
+
+const defaultMaterialAssetForm = {
+  category_id: '',
+  asset_code: '',
+  asset_name: '',
+  status: 'available',
+  unit_usage_cost: '0',
+  unit_of_measure: 'hour',
+  acquisition_mode: 'purchase',
+  supplier_id: '',
+  contract_reference: '',
+  contract_start_date: '',
+  contract_end_date: '',
+  purchase_date: '',
+  purchase_cost: '0',
+  rental_rate: '0',
+  billing_cycle: 'monthly',
+  notes: '',
+};
+
+const defaultPayrollPeriodForm = {
+  period_start: '',
+  period_end: '',
+};
+
 const HrMaterialPage = () => {
   const { toast } = useToast();
   const { company, companies = [] } = useCompany();
@@ -66,15 +137,35 @@ const HrMaterialPage = () => {
     compensations,
     accountingEntries,
     auditLogs,
+    employees,
+    employeeContracts,
+    materialCategories,
+    materialAssets,
+    payrollPeriods,
+    payrollVariableItems,
+    payrollAnomalies,
+    payrollExports,
     createAllocation,
     createCompensation,
     updateCompensationStatus,
     assignTaskMember,
+    createEmployee,
+    createEmployeeContract,
+    createMaterialCategory,
+    createMaterialAsset,
+    createPayrollPeriod,
+    calculatePayrollPeriod,
+    exportPayrollCsv,
   } = useHrMaterial();
 
   const [allocationForm, setAllocationForm] = useState(defaultAllocationForm);
   const [assignmentForm, setAssignmentForm] = useState(defaultAssignmentForm);
   const [compensationForm, setCompensationForm] = useState(defaultCompensationForm);
+  const [employeeForm, setEmployeeForm] = useState(defaultEmployeeForm);
+  const [contractForm, setContractForm] = useState(defaultContractForm);
+  const [materialCategoryForm, setMaterialCategoryForm] = useState(defaultMaterialCategoryForm);
+  const [materialAssetForm, setMaterialAssetForm] = useState(defaultMaterialAssetForm);
+  const [payrollPeriodForm, setPayrollPeriodForm] = useState(defaultPayrollPeriodForm);
 
   const isCompanyScoped = Boolean(activeCompanyId);
   const normalizedActiveCompanyId = String(activeCompanyId || '').trim().toLowerCase();
@@ -96,8 +187,10 @@ const HrMaterialPage = () => {
       .reduce((sum, row) => sum + Number(row.amount || 0), 0);
 
     return {
+      employeesCount: employees.length,
       membersCount: members.length,
       suppliersCount: suppliers.length,
+      materialAssetsCount: materialAssets.length,
       materialCount: materialAllocations.length,
       internalAllocations: internalAllocations.length,
       externalAllocations: externalAllocations.length,
@@ -106,7 +199,7 @@ const HrMaterialPage = () => {
       accountingCount: accountingEntries.length,
       auditCount: auditLogs.length,
     };
-  }, [accountingEntries.length, allocations, auditLogs.length, compensations, members.length, suppliers.length, tasks]);
+  }, [accountingEntries.length, allocations, auditLogs.length, compensations, employees.length, materialAssets.length, members.length, suppliers.length, tasks]);
 
   const taskOptions = useMemo(() => tasks.map((task) => ({
     id: task.id,
@@ -114,11 +207,122 @@ const HrMaterialPage = () => {
     projectName: task?.project?.name || 'Projet',
   })), [tasks]);
 
+  const employeeOptions = useMemo(() => employees.map((employee) => ({
+    id: employee.id,
+    name: getEmployeeLabel(employee),
+  })), [employees]);
+
   const recentAllocations = useMemo(() => allocations.slice(0, 40), [allocations]);
   const recentCompensations = useMemo(() => compensations.slice(0, 80), [compensations]);
+  const recentContracts = useMemo(() => employeeContracts.slice(0, 120), [employeeContracts]);
+  const recentMaterialAssets = useMemo(() => materialAssets.slice(0, 120), [materialAssets]);
   const supplierNameById = useMemo(() => new Map(
-    suppliers.map((supplier) => [supplier.id, supplier.company_name || '-']),
+    suppliers.map((supplier) => [supplier.id, supplier.company_name || supplier.name || '-']),
   ), [suppliers]);
+  const employeeById = useMemo(() => new Map(
+    employees.map((employee) => [employee.id, employee]),
+  ), [employees]);
+  const categoryById = useMemo(() => new Map(
+    materialCategories.map((category) => [category.id, category]),
+  ), [materialCategories]);
+  const contractsCountByEmployee = useMemo(() => {
+    const map = new Map();
+    employeeContracts.forEach((contract) => {
+      map.set(contract.employee_id, (map.get(contract.employee_id) || 0) + 1);
+    });
+    return map;
+  }, [employeeContracts]);
+  const teamMemberEmployeeIds = useMemo(
+    () => new Set(members.map((member) => member.employee_id).filter(Boolean)),
+    [members],
+  );
+
+  const guardCompanyScope = () => {
+    if (isCompanyScoped) return true;
+    toast({
+      title: 'Société active requise',
+      description: 'Sélectionnez d’abord une société du portfolio.',
+      variant: 'destructive',
+    });
+    return false;
+  };
+
+  const handleCreateEmployee = async (event) => {
+    event.preventDefault();
+    if (!guardCompanyScope()) return;
+
+    if (!employeeForm.first_name.trim() || !employeeForm.last_name.trim()) {
+      toast({ title: 'Employé incomplet', description: 'Prénom et nom sont requis.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await createEmployee(employeeForm);
+      setEmployeeForm(defaultEmployeeForm);
+      toast({ title: 'Employé RH créé', description: 'Ressource humaine interne enregistrée.' });
+    } catch (error) {
+      toast({ title: 'Erreur création employé', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleCreateContract = async (event) => {
+    event.preventDefault();
+    if (!guardCompanyScope()) return;
+
+    if (!contractForm.employee_id || !contractForm.start_date) {
+      toast({ title: 'Contrat incomplet', description: 'Employé et date de début sont requis.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await createEmployeeContract(contractForm);
+      setContractForm(defaultContractForm);
+      toast({ title: 'Contrat RH créé', description: 'Contrat employé enregistré.' });
+    } catch (error) {
+      toast({ title: 'Erreur contrat RH', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleCreateMaterialCategory = async (event) => {
+    event.preventDefault();
+    if (!guardCompanyScope()) return;
+
+    if (!materialCategoryForm.name.trim()) {
+      toast({ title: 'Catégorie requise', description: 'Saisissez un nom de catégorie.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await createMaterialCategory(materialCategoryForm);
+      setMaterialCategoryForm(defaultMaterialCategoryForm);
+      toast({ title: 'Catégorie créée', description: 'Catégorie matériel enregistrée.' });
+    } catch (error) {
+      toast({ title: 'Erreur catégorie', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleCreateMaterialAsset = async (event) => {
+    event.preventDefault();
+    if (!guardCompanyScope()) return;
+
+    if (!materialAssetForm.asset_code.trim() || !materialAssetForm.asset_name.trim()) {
+      toast({ title: 'Matériel incomplet', description: 'Code et nom du matériel sont requis.', variant: 'destructive' });
+      return;
+    }
+
+    if (materialAssetForm.acquisition_mode !== 'purchase' && !materialAssetForm.supplier_id) {
+      toast({ title: 'Fournisseur requis', description: 'Un fournisseur est requis pour location/service.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await createMaterialAsset(materialAssetForm);
+      setMaterialAssetForm(defaultMaterialAssetForm);
+      toast({ title: 'Matériel créé', description: 'Ressource matérielle enregistrée.' });
+    } catch (error) {
+      toast({ title: 'Erreur création matériel', description: error.message, variant: 'destructive' });
+    }
+  };
 
   const handleCreateAllocation = async (event) => {
     event.preventDefault();
@@ -226,9 +430,9 @@ const HrMaterialPage = () => {
         task_id: compensationForm.task_id === 'none' ? null : compensationForm.task_id,
       });
       setCompensationForm(defaultCompensationForm);
-      toast({ title: 'Paie enregistrée', description: 'La compensation RH est enregistrée.' });
+      toast({ title: 'Paie projet enregistrée', description: 'La compensation projet est enregistrée.' });
     } catch (error) {
-      toast({ title: 'Erreur paie', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erreur paie projet', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -238,6 +442,52 @@ const HrMaterialPage = () => {
       toast({ title: 'Statut mis à jour', description: `Paie passée en statut "${nextStatus}".` });
     } catch (error) {
       toast({ title: 'Erreur statut paie', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleCreatePayrollPeriod = async (event) => {
+    event.preventDefault();
+    if (!guardCompanyScope()) return;
+
+    if (!payrollPeriodForm.period_start || !payrollPeriodForm.period_end) {
+      toast({ title: 'Période incomplète', description: 'Date de début et de fin requises.', variant: 'destructive' });
+      return;
+    }
+
+    if (payrollPeriodForm.period_end < payrollPeriodForm.period_start) {
+      toast({ title: 'Période invalide', description: 'La date de fin doit être >= date de début.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await createPayrollPeriod(payrollPeriodForm);
+      setPayrollPeriodForm(defaultPayrollPeriodForm);
+      toast({ title: 'Période paie créée', description: 'La période RH est enregistrée.' });
+    } catch (error) {
+      toast({ title: 'Erreur période paie', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleCalculatePayroll = async (periodId, incremental = false) => {
+    try {
+      const result = await calculatePayrollPeriod(periodId, incremental);
+      toast({
+        title: incremental ? 'Recalcul incrémental terminé' : 'Calcul paie terminé',
+        description: `Variables: ${result?.inserted_items || 0}, anomalies: ${result?.anomalies || 0}`,
+      });
+    } catch (error) {
+      toast({ title: 'Erreur calcul paie', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleExportPayrollCsv = async (periodId) => {
+    try {
+      const csv = await exportPayrollCsv(periodId);
+      const filename = `paie-rh-${periodId}-${new Date().toISOString().slice(0, 10)}.csv`;
+      downloadTextAsFile(csv, filename, 'text/csv;charset=utf-8');
+      toast({ title: 'Export paie généré', description: 'Le CSV RH a été généré et téléchargé.' });
+    } catch (error) {
+      toast({ title: 'Erreur export paie', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -259,12 +509,12 @@ const HrMaterialPage = () => {
           <CardContent className="pt-5 text-sm text-amber-100 space-y-2">
             <p className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
-              <strong>RH interne</strong> = <code>team_members</code> de la société active.
+              <strong>Ressources internes</strong> = <code>hr_employees</code> / <code>material_assets</code> de la société active.
             </p>
-            <p><strong>Fournisseurs</strong> = externes à la société et gérés séparément dans le domaine achats/AP.</p>
+            <p><strong>Inter-sociétés</strong> = jamais en direct: l’autre société est traitée comme <strong>fournisseur</strong> (service/produit).</p>
             <p><strong>Projet</strong> = ressources internes <em>ou</em> ressources externes (origine obligatoire).</p>
             <p>
-              <strong>Stockage</strong> = allocations dans <code>project_resource_allocations</code>, paie dans <code>team_member_compensations</code>.
+              <strong>Stockage</strong> = allocations dans <code>project_resource_allocations</code>, paie projet dans <code>team_member_compensations</code>, paie RH dans <code>hr_payroll_*</code>.
             </p>
             <p className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
@@ -285,7 +535,14 @@ const HrMaterialPage = () => {
           <Card className="bg-white/5 border-white/10">
             <CardContent className="pt-5">
               <p className="text-xs text-gray-400">Ressources RH internes</p>
-              <p className="text-2xl font-bold">{kpis.membersCount}</p>
+              <p className="text-2xl font-bold">{kpis.employeesCount}</p>
+              <p className="text-xs text-gray-500">{kpis.membersCount} synchronisées dans team_members</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="pt-5">
+              <p className="text-xs text-gray-400">Matériel société</p>
+              <p className="text-2xl font-bold">{kpis.materialAssetsCount}</p>
               <p className="text-xs text-gray-500">{kpis.suppliersCount} fournisseurs externes</p>
             </CardContent>
           </Card>
@@ -298,13 +555,6 @@ const HrMaterialPage = () => {
           </Card>
           <Card className="bg-white/5 border-white/10">
             <CardContent className="pt-5">
-              <p className="text-xs text-gray-400">Tâches structurées</p>
-              <p className="text-2xl font-bold">{kpis.taskCoverage}%</p>
-              <p className="text-xs text-gray-500">{kpis.materialCount} allocations matériel</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/5 border-white/10">
-            <CardContent className="pt-5">
               <p className="text-xs text-gray-400">Comptabilité RH / projet</p>
               <p className="text-2xl font-bold">{kpis.accountingCount}</p>
               <p className="text-xs text-gray-500">{kpis.auditCount} logs • {formatCurrency(kpis.validatedRhCosts)}</p>
@@ -312,13 +562,355 @@ const HrMaterialPage = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="allocation" className="space-y-4">
+        <Tabs defaultValue="resources" className="space-y-4">
           <TabsList className="bg-gray-900 border border-gray-800 p-1">
+            <TabsTrigger value="resources" className="data-[state=active]:text-orange-400"><Users className="w-4 h-4 mr-2" />Ressources</TabsTrigger>
             <TabsTrigger value="allocation" className="data-[state=active]:text-orange-400"><Users className="w-4 h-4 mr-2" />Allocation</TabsTrigger>
             <TabsTrigger value="tasks" className="data-[state=active]:text-orange-400"><Briefcase className="w-4 h-4 mr-2" />Tâches</TabsTrigger>
             <TabsTrigger value="payroll" className="data-[state=active]:text-orange-400"><Banknote className="w-4 h-4 mr-2" />Paie</TabsTrigger>
             <TabsTrigger value="accounting" className="data-[state=active]:text-orange-400"><Receipt className="w-4 h-4 mr-2" />Compta</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="resources" className="space-y-4">
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader><CardTitle>Créer une ressource RH interne</CardTitle></CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreateEmployee} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label>Matricule</Label>
+                    <Input value={employeeForm.employee_number} onChange={(e) => setEmployeeForm((prev) => ({ ...prev, employee_number: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Prénom</Label>
+                    <Input value={employeeForm.first_name} onChange={(e) => setEmployeeForm((prev) => ({ ...prev, first_name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Nom</Label>
+                    <Input value={employeeForm.last_name} onChange={(e) => setEmployeeForm((prev) => ({ ...prev, last_name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Email pro</Label>
+                    <Input type="email" value={employeeForm.work_email} onChange={(e) => setEmployeeForm((prev) => ({ ...prev, work_email: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Téléphone</Label>
+                    <Input value={employeeForm.phone} onChange={(e) => setEmployeeForm((prev) => ({ ...prev, phone: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Poste</Label>
+                    <Input value={employeeForm.job_title} onChange={(e) => setEmployeeForm((prev) => ({ ...prev, job_title: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Statut RH</Label>
+                    <Select value={employeeForm.status} onValueChange={(value) => setEmployeeForm((prev) => ({ ...prev, status: value }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Actif</SelectItem>
+                        <SelectItem value="on_leave">En absence</SelectItem>
+                        <SelectItem value="inactive">Inactif</SelectItem>
+                        <SelectItem value="terminated">Terminé</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Date embauche</Label>
+                    <Input type="date" value={employeeForm.hire_date} onChange={(e) => setEmployeeForm((prev) => ({ ...prev, hire_date: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-4">
+                    <Button className="bg-orange-500 hover:bg-orange-600" type="submit" disabled={!isCompanyScoped || loading}>
+                      Créer employé RH
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader><CardTitle>Créer un contrat RH</CardTitle></CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreateContract} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label>Employé</Label>
+                    <Select value={contractForm.employee_id} onValueChange={(value) => setContractForm((prev) => ({ ...prev, employee_id: value }))}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                      <SelectContent>
+                        {employeeOptions.map((employee) => <SelectItem key={employee.id} value={employee.id}>{employee.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Type contrat</Label>
+                    <Select value={contractForm.contract_type} onValueChange={(value) => setContractForm((prev) => ({ ...prev, contract_type: value }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cdi">CDI</SelectItem>
+                        <SelectItem value="cdd">CDD</SelectItem>
+                        <SelectItem value="freelance">Freelance</SelectItem>
+                        <SelectItem value="consultant">Consultant</SelectItem>
+                        <SelectItem value="interim">Intérim</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Statut contrat</Label>
+                    <Select value={contractForm.status} onValueChange={(value) => setContractForm((prev) => ({ ...prev, status: value }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Brouillon</SelectItem>
+                        <SelectItem value="signed">Signé</SelectItem>
+                        <SelectItem value="active">Actif</SelectItem>
+                        <SelectItem value="suspended">Suspendu</SelectItem>
+                        <SelectItem value="ended">Terminé</SelectItem>
+                        <SelectItem value="cancelled">Annulé</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Base de paie</Label>
+                    <Select value={contractForm.pay_basis} onValueChange={(value) => setContractForm((prev) => ({ ...prev, pay_basis: value }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hourly">Horaire</SelectItem>
+                        <SelectItem value="daily">Journalier</SelectItem>
+                        <SelectItem value="monthly">Mensuel</SelectItem>
+                        <SelectItem value="fixed">Forfait</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Début</Label>
+                    <Input type="date" value={contractForm.start_date} onChange={(e) => setContractForm((prev) => ({ ...prev, start_date: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Fin</Label>
+                    <Input type="date" value={contractForm.end_date} onChange={(e) => setContractForm((prev) => ({ ...prev, end_date: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Taux horaire</Label>
+                    <Input type="number" min="0" value={contractForm.hourly_rate} onChange={(e) => setContractForm((prev) => ({ ...prev, hourly_rate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Salaire mensuel</Label>
+                    <Input type="number" min="0" value={contractForm.monthly_salary} onChange={(e) => setContractForm((prev) => ({ ...prev, monthly_salary: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-4">
+                    <Button className="bg-orange-500 hover:bg-orange-600" type="submit" disabled={!isCompanyScoped || loading}>
+                      Créer contrat RH
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader><CardTitle>Créer une catégorie et un matériel</CardTitle></CardHeader>
+              <CardContent className="space-y-6">
+                <form onSubmit={handleCreateMaterialCategory} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label>Code catégorie</Label>
+                    <Input value={materialCategoryForm.category_code} onChange={(e) => setMaterialCategoryForm((prev) => ({ ...prev, category_code: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Nom catégorie</Label>
+                    <Input value={materialCategoryForm.name} onChange={(e) => setMaterialCategoryForm((prev) => ({ ...prev, name: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Description</Label>
+                    <Input value={materialCategoryForm.description} onChange={(e) => setMaterialCategoryForm((prev) => ({ ...prev, description: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-4">
+                    <Button type="submit" variant="outline" disabled={!isCompanyScoped || loading}>Créer catégorie</Button>
+                  </div>
+                </form>
+
+                <form onSubmit={handleCreateMaterialAsset} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label>Catégorie</Label>
+                    <Select value={materialAssetForm.category_id} onValueChange={(value) => setMaterialAssetForm((prev) => ({ ...prev, category_id: value }))}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                      <SelectContent>
+                        {materialCategories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Code matériel</Label>
+                    <Input value={materialAssetForm.asset_code} onChange={(e) => setMaterialAssetForm((prev) => ({ ...prev, asset_code: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Nom matériel</Label>
+                    <Input value={materialAssetForm.asset_name} onChange={(e) => setMaterialAssetForm((prev) => ({ ...prev, asset_name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Statut</Label>
+                    <Select value={materialAssetForm.status} onValueChange={(value) => setMaterialAssetForm((prev) => ({ ...prev, status: value }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="available">Disponible</SelectItem>
+                        <SelectItem value="in_use">En service</SelectItem>
+                        <SelectItem value="maintenance">Maintenance</SelectItem>
+                        <SelectItem value="out_of_service">Hors service</SelectItem>
+                        <SelectItem value="retired">Retiré</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Coût unitaire d'usage</Label>
+                    <Input type="number" min="0" value={materialAssetForm.unit_usage_cost} onChange={(e) => setMaterialAssetForm((prev) => ({ ...prev, unit_usage_cost: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Unité</Label>
+                    <Input value={materialAssetForm.unit_of_measure} onChange={(e) => setMaterialAssetForm((prev) => ({ ...prev, unit_of_measure: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Acquisition</Label>
+                    <Select value={materialAssetForm.acquisition_mode} onValueChange={(value) => setMaterialAssetForm((prev) => ({ ...prev, acquisition_mode: value }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="purchase">Achat</SelectItem>
+                        <SelectItem value="rental">Location</SelectItem>
+                        <SelectItem value="service">Produit via fournisseur</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Fournisseur</Label>
+                    <Select value={materialAssetForm.supplier_id} onValueChange={(value) => setMaterialAssetForm((prev) => ({ ...prev, supplier_id: value }))}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                      <SelectContent>
+                        {suppliers.map((supplier) => <SelectItem key={supplier.id} value={supplier.id}>{supplier.company_name || supplier.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Réf. contrat</Label>
+                    <Input value={materialAssetForm.contract_reference} onChange={(e) => setMaterialAssetForm((prev) => ({ ...prev, contract_reference: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Début contrat</Label>
+                    <Input type="date" value={materialAssetForm.contract_start_date} onChange={(e) => setMaterialAssetForm((prev) => ({ ...prev, contract_start_date: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Fin contrat</Label>
+                    <Input type="date" value={materialAssetForm.contract_end_date} onChange={(e) => setMaterialAssetForm((prev) => ({ ...prev, contract_end_date: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Date achat</Label>
+                    <Input type="date" value={materialAssetForm.purchase_date} onChange={(e) => setMaterialAssetForm((prev) => ({ ...prev, purchase_date: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Coût achat</Label>
+                    <Input type="number" min="0" value={materialAssetForm.purchase_cost} onChange={(e) => setMaterialAssetForm((prev) => ({ ...prev, purchase_cost: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Tarif location</Label>
+                    <Input type="number" min="0" value={materialAssetForm.rental_rate} onChange={(e) => setMaterialAssetForm((prev) => ({ ...prev, rental_rate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Périodicité</Label>
+                    <Select value={materialAssetForm.billing_cycle} onValueChange={(value) => setMaterialAssetForm((prev) => ({ ...prev, billing_cycle: value }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hourly">Horaire</SelectItem>
+                        <SelectItem value="daily">Journalier</SelectItem>
+                        <SelectItem value="weekly">Hebdo</SelectItem>
+                        <SelectItem value="monthly">Mensuel</SelectItem>
+                        <SelectItem value="yearly">Annuel</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-4">
+                    <Label>Notes</Label>
+                    <Input value={materialAssetForm.notes} onChange={(e) => setMaterialAssetForm((prev) => ({ ...prev, notes: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-4">
+                    <Button className="bg-orange-500 hover:bg-orange-600" type="submit" disabled={!isCompanyScoped || loading}>
+                      Créer ressource matérielle
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader><CardTitle>Ressources RH créées</CardTitle></CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b border-slate-700 text-left"><th className="py-2">Employé</th><th className="py-2">Statut</th><th className="py-2">Poste</th><th className="py-2">Contrats</th><th className="py-2">Sync équipe</th></tr></thead>
+                    <tbody>
+                      {employees.length === 0 && <tr><td className="py-3 text-gray-500" colSpan={5}>Aucune ressource RH interne.</td></tr>}
+                      {employees.map((employee) => (
+                        <tr key={employee.id} className="border-b border-slate-800">
+                          <td className="py-2 text-gray-300">{getEmployeeLabel(employee)}</td>
+                          <td className="py-2 text-gray-300">{employee.status || '-'}</td>
+                          <td className="py-2 text-gray-300">{employee.job_title || '-'}</td>
+                          <td className="py-2 text-gray-300">{contractsCountByEmployee.get(employee.id) || 0}</td>
+                          <td className="py-2 text-gray-300">{teamMemberEmployeeIds.has(employee.id) ? 'Oui' : 'Non'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader><CardTitle>Ressources matérielles créées</CardTitle></CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b border-slate-700 text-left"><th className="py-2">Code</th><th className="py-2">Matériel</th><th className="py-2">Catégorie</th><th className="py-2">Statut</th><th className="py-2">Acquisition</th><th className="py-2">Fournisseur</th><th className="py-2">Coût usage</th></tr></thead>
+                    <tbody>
+                      {recentMaterialAssets.length === 0 && <tr><td className="py-3 text-gray-500" colSpan={7}>Aucune ressource matérielle.</td></tr>}
+                      {recentMaterialAssets.map((asset) => (
+                        <tr key={asset.id} className="border-b border-slate-800">
+                          <td className="py-2 text-gray-300">{asset.asset_code || '-'}</td>
+                          <td className="py-2 text-gray-300">{asset.asset_name || '-'}</td>
+                          <td className="py-2 text-gray-300">{categoryById.get(asset.category_id)?.name || '-'}</td>
+                          <td className="py-2 text-gray-300">{asset.status || '-'}</td>
+                          <td className="py-2 text-gray-300">{asset.acquisition_mode || '-'}</td>
+                          <td className="py-2 text-gray-300">{supplierNameById.get(asset.supplier_id) || '-'}</td>
+                          <td className="py-2 text-gray-300">{formatCurrency(asset.unit_usage_cost || 0)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader><CardTitle>Contrats RH récents</CardTitle></CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b border-slate-700 text-left"><th className="py-2">Employé</th><th className="py-2">Type</th><th className="py-2">Statut</th><th className="py-2">Début</th><th className="py-2">Fin</th><th className="py-2">Base</th><th className="py-2">Taux / Salaire</th></tr></thead>
+                    <tbody>
+                      {recentContracts.length === 0 && <tr><td className="py-3 text-gray-500" colSpan={7}>Aucun contrat RH.</td></tr>}
+                      {recentContracts.map((contract) => (
+                        <tr key={contract.id} className="border-b border-slate-800">
+                          <td className="py-2 text-gray-300">{getEmployeeLabel(employeeById.get(contract.employee_id))}</td>
+                          <td className="py-2 text-gray-300">{contract.contract_type || '-'}</td>
+                          <td className="py-2 text-gray-300">{contract.status || '-'}</td>
+                          <td className="py-2 text-gray-300">{formatDate(contract.start_date)}</td>
+                          <td className="py-2 text-gray-300">{formatDate(contract.end_date)}</td>
+                          <td className="py-2 text-gray-300">{contract.pay_basis || '-'}</td>
+                          <td className="py-2 text-gray-300">
+                            {contract.pay_basis === 'monthly'
+                              ? formatCurrency(contract.monthly_salary || 0)
+                              : formatCurrency(contract.hourly_rate || 0)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="allocation" className="space-y-4">
             <Card className="bg-white/5 border-white/10">
@@ -482,7 +1074,59 @@ const HrMaterialPage = () => {
 
           <TabsContent value="payroll" className="space-y-4">
             <Card className="bg-white/5 border-white/10">
-              <CardHeader><CardTitle>Nouvelle paie RH (compensation)</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Paie RH préparatoire (hr_payroll_*)</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <form onSubmit={handleCreatePayrollPeriod} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label>Début période</Label>
+                    <Input type="date" value={payrollPeriodForm.period_start} onChange={(e) => setPayrollPeriodForm((prev) => ({ ...prev, period_start: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Fin période</Label>
+                    <Input type="date" value={payrollPeriodForm.period_end} onChange={(e) => setPayrollPeriodForm((prev) => ({ ...prev, period_end: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>&nbsp;</Label>
+                    <div>
+                      <Button className="bg-orange-500 hover:bg-orange-600" type="submit" disabled={!isCompanyScoped || loading}>
+                        Créer période paie
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b border-slate-700 text-left"><th className="py-2">Période</th><th className="py-2">Statut</th><th className="py-2">Version</th><th className="py-2">Calculée</th><th className="py-2">Actions</th></tr></thead>
+                    <tbody>
+                      {payrollPeriods.length === 0 && <tr><td className="py-3 text-gray-500" colSpan={5}>Aucune période de paie RH.</td></tr>}
+                      {payrollPeriods.map((period) => (
+                        <tr key={period.id} className="border-b border-slate-800">
+                          <td className="py-2 text-gray-300">{formatDate(period.period_start)} - {formatDate(period.period_end)}</td>
+                          <td className="py-2 text-gray-300">{period.status || '-'}</td>
+                          <td className="py-2 text-gray-300">{period.calculation_version || 1}</td>
+                          <td className="py-2 text-gray-300">{formatDate(period.calculated_at)}</td>
+                          <td className="py-2 text-gray-300">
+                            <div className="flex gap-2 flex-wrap">
+                              <Button size="sm" variant="outline" onClick={() => handleCalculatePayroll(period.id, false)}>Calcul complet</Button>
+                              <Button size="sm" variant="outline" onClick={() => handleCalculatePayroll(period.id, true)}>Recalcul</Button>
+                              <Button size="sm" variant="outline" onClick={() => handleExportPayrollCsv(period.id)}>Exporter CSV</Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="text-xs text-gray-400">
+                  Variables calculées: {payrollVariableItems.length} • anomalies: {payrollAnomalies.length} • exports: {payrollExports.length}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader><CardTitle>Nouvelle paie projet (team_member_compensations)</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={handleCreateCompensation} className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
@@ -548,7 +1192,7 @@ const HrMaterialPage = () => {
                   </div>
                   <div className="md:col-span-3">
                     <Button className="bg-orange-500 hover:bg-orange-600" type="submit" disabled={!isCompanyScoped || loading}>
-                      Enregistrer la paie
+                      Enregistrer la paie projet
                     </Button>
                   </div>
                 </form>
@@ -556,7 +1200,7 @@ const HrMaterialPage = () => {
             </Card>
 
             <Card className="bg-white/5 border-white/10">
-              <CardHeader><CardTitle>Journal des paies RH</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Journal des paies projet</CardTitle></CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
