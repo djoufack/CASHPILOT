@@ -20,7 +20,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  Plus, RefreshCw, Activity, Building2, Calculator, ClipboardList, BarChart2,
+  Plus, RefreshCw, Activity, Building2, Calculator, ClipboardList, BarChart2, Pencil, Trash2, Wand2,
 } from 'lucide-react';
 
 const AXIS_TYPES = [
@@ -53,8 +53,30 @@ const defaultStartDate = () => {
   d.setMonth(d.getMonth() - 3);
   return d.toISOString().slice(0, 10);
 };
+const firstDayOfCurrentMonth = () => {
+  const d = new Date();
+  d.setDate(1);
+  return d.toISOString().slice(0, 10);
+};
 
 const formatMoney = (value) => Number(value || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const emptyBudgetForm = () => ({
+  budget_name: '',
+  period_start: defaultStartDate(),
+  period_end: currentDate(),
+  method: 'full_costing',
+  object_id: '',
+  cost_center_id: '',
+  axis_value_id: '',
+});
+const emptyBudgetLineForm = () => ({
+  id: null,
+  period_month: firstDayOfCurrentMonth(),
+  planned_amount: '',
+  planned_volume: '',
+  planned_unit_cost: '',
+  notes: '',
+});
 
 export default function AnalyticalAccounting() {
   const { t } = useTranslation();
@@ -84,6 +106,8 @@ export default function AnalyticalAccounting() {
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
   const [allocationDialogOpen, setAllocationDialogOpen] = useState(false);
   const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
+  const [budgetLineDialogOpen, setBudgetLineDialogOpen] = useState(false);
+  const [budgetDialogMode, setBudgetDialogMode] = useState('create');
 
   const [axisForm, setAxisForm] = useState({
     axis_type: 'cost_center',
@@ -123,15 +147,13 @@ export default function AnalyticalAccounting() {
     destination: 'production',
     method: 'full_costing',
   });
-  const [budgetForm, setBudgetForm] = useState({
-    budget_name: '',
-    period_start: defaultStartDate(),
-    period_end: currentDate(),
-    method: 'full_costing',
-    object_id: '',
-    cost_center_id: '',
-    axis_value_id: '',
-  });
+  const [budgetForm, setBudgetForm] = useState(emptyBudgetForm);
+  const [budgetLineForm, setBudgetLineForm] = useState(emptyBudgetLineForm);
+  const [budgetLines, setBudgetLines] = useState([]);
+  const [budgetLineVariances, setBudgetLineVariances] = useState([]);
+  const [selectedBudgetId, setSelectedBudgetId] = useState(null);
+  const [budgetTotalAmount, setBudgetTotalAmount] = useState('');
+  const [replaceBudgetLines, setReplaceBudgetLines] = useState('__NO__');
 
   const fetchAxes = useCallback(async () => {
     let query = supabase
@@ -221,6 +243,33 @@ export default function AnalyticalAccounting() {
     return data || [];
   }, [applyCompanyScope, user]);
 
+  const fetchBudgetLines = useCallback(async (budgetId) => {
+    if (!budgetId) return [];
+    let query = supabase
+      .from('analytical_budget_lines')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('budget_id', budgetId)
+      .order('period_month', { ascending: true });
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }, [applyCompanyScope, user]);
+
+  const fetchBudgetLineVariances = useCallback(async (budgetId) => {
+    if (!budgetId || !activeCompanyId) return [];
+    const { data, error } = await supabase.rpc('f_analytical_budget_line_variances', {
+      p_user_id: user.id,
+      p_company_id: activeCompanyId,
+      p_budget_id: budgetId,
+      p_start_date: null,
+      p_end_date: null,
+    });
+    if (error) throw error;
+    return data || [];
+  }, [activeCompanyId, user]);
+
   const fetchReporting = useCallback(async () => {
     if (!activeCompanyId) {
       return { kpis: null, variances: [] };
@@ -257,6 +306,20 @@ export default function AnalyticalAccounting() {
     return Number(data || 0);
   }, [activeCompanyId, endDate, startDate, user]);
 
+  const loadBudgetDetails = useCallback(async (budgetId) => {
+    if (!budgetId) {
+      setBudgetLines([]);
+      setBudgetLineVariances([]);
+      return;
+    }
+    const [lines, lineVariances] = await Promise.all([
+      fetchBudgetLines(budgetId),
+      fetchBudgetLineVariances(budgetId),
+    ]);
+    setBudgetLines(lines);
+    setBudgetLineVariances(lineVariances);
+  }, [fetchBudgetLineVariances, fetchBudgetLines]);
+
   const loadAll = useCallback(async () => {
     if (!user || !activeCompanyId) return;
     setLoading(true);
@@ -283,16 +346,26 @@ export default function AnalyticalAccounting() {
       setBudgets(budgetsData);
       setKpis(reporting.kpis);
       setVariances(reporting.variances);
+
+      const nextBudgetId = (selectedBudgetId && budgetsData.some((b) => b.id === selectedBudgetId))
+        ? selectedBudgetId
+        : (budgetsData[0]?.id ?? null);
+      setSelectedBudgetId(nextBudgetId);
+      await loadBudgetDetails(nextBudgetId);
     } catch (err) {
       toast({ title: 'Erreur analytique', description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [activeCompanyId, fetchAllocations, fetchAxes, fetchAxisValues, fetchBudgets, fetchCenters, fetchObjects, fetchReporting, fetchRules, syncAccountingToAnalytical, toast, user]);
+  }, [activeCompanyId, fetchAllocations, fetchAxes, fetchAxisValues, fetchBudgets, fetchCenters, fetchObjects, fetchReporting, fetchRules, loadBudgetDetails, selectedBudgetId, syncAccountingToAnalytical, toast, user]);
 
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    loadBudgetDetails(selectedBudgetId);
+  }, [loadBudgetDetails, selectedBudgetId]);
 
   const createAxis = async () => {
     if (!axisForm.axis_code.trim() || !axisForm.axis_name.trim()) return;
@@ -413,18 +486,164 @@ export default function AnalyticalAccounting() {
       cost_center_id: budgetForm.cost_center_id || null,
       axis_value_id: budgetForm.axis_value_id || null,
     });
-    const { error } = await supabase.from('analytical_budgets').insert(payload);
+    const { data, error } = await supabase
+      .from('analytical_budgets')
+      .insert(payload)
+      .select('id')
+      .single();
+    if (error) throw error;
+
+    if (data?.id) {
+      const { error: genError } = await supabase.rpc('f_generate_budget_lines', {
+        p_user_id: user.id,
+        p_company_id: activeCompanyId,
+        p_budget_id: data.id,
+        p_total_amount: null,
+        p_replace_existing: true,
+      });
+      if (genError) throw genError;
+      setSelectedBudgetId(data.id);
+    }
+
+    setBudgetDialogOpen(false);
+    setBudgetDialogMode('create');
+    setBudgetForm(emptyBudgetForm());
+    await loadAll();
+  };
+
+  const updateBudget = async () => {
+    if (!selectedBudgetId || !budgetForm.budget_name.trim()) return;
+    const payload = {
+      budget_name: budgetForm.budget_name.trim(),
+      period_start: budgetForm.period_start,
+      period_end: budgetForm.period_end,
+      method: budgetForm.method,
+      object_id: budgetForm.object_id || null,
+      cost_center_id: budgetForm.cost_center_id || null,
+      axis_value_id: budgetForm.axis_value_id || null,
+    };
+    let query = supabase
+      .from('analytical_budgets')
+      .update(payload)
+      .eq('id', selectedBudgetId)
+      .eq('user_id', user.id);
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { error } = await query;
     if (error) throw error;
     setBudgetDialogOpen(false);
+    setBudgetDialogMode('create');
+    setBudgetForm(emptyBudgetForm());
+    await loadAll();
+  };
+
+  const deleteBudget = async (budgetId) => {
+    if (!budgetId) return;
+    const confirmed = window.confirm('Supprimer ce budget et toutes ses lignes ?');
+    if (!confirmed) return;
+    let query = supabase
+      .from('analytical_budgets')
+      .delete()
+      .eq('id', budgetId)
+      .eq('user_id', user.id);
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { error } = await query;
+    if (error) throw error;
+    setSelectedBudgetId((prev) => (prev === budgetId ? null : prev));
+    await loadAll();
+  };
+
+  const openCreateBudgetDialog = () => {
+    setBudgetDialogMode('create');
+    setBudgetForm(emptyBudgetForm());
+    setBudgetDialogOpen(true);
+  };
+
+  const openEditBudgetDialog = (budget) => {
+    if (!budget) return;
+    setBudgetDialogMode('edit');
     setBudgetForm({
-      budget_name: '',
-      period_start: defaultStartDate(),
-      period_end: currentDate(),
-      method: 'full_costing',
-      object_id: '',
-      cost_center_id: '',
-      axis_value_id: '',
+      budget_name: budget.budget_name || '',
+      period_start: budget.period_start || defaultStartDate(),
+      period_end: budget.period_end || currentDate(),
+      method: budget.method || 'full_costing',
+      object_id: budget.object_id || '',
+      cost_center_id: budget.cost_center_id || '',
+      axis_value_id: budget.axis_value_id || '',
     });
+    setBudgetDialogOpen(true);
+  };
+
+  const openCreateBudgetLineDialog = () => {
+    setBudgetLineForm(emptyBudgetLineForm());
+    setBudgetLineDialogOpen(true);
+  };
+
+  const openEditBudgetLineDialog = (line) => {
+    if (!line) return;
+    setBudgetLineForm({
+      id: line.id,
+      period_month: line.period_month,
+      planned_amount: String(line.planned_amount ?? ''),
+      planned_volume: line.planned_volume == null ? '' : String(line.planned_volume),
+      planned_unit_cost: line.planned_unit_cost == null ? '' : String(line.planned_unit_cost),
+      notes: line.notes || '',
+    });
+    setBudgetLineDialogOpen(true);
+  };
+
+  const saveBudgetLine = async () => {
+    if (!selectedBudgetId || !budgetLineForm.period_month) return;
+    const payload = withCompanyScope({
+      user_id: user.id,
+      budget_id: selectedBudgetId,
+      period_month: budgetLineForm.period_month,
+      planned_amount: budgetLineForm.planned_amount === '' ? 0 : Number(budgetLineForm.planned_amount),
+      planned_volume: budgetLineForm.planned_volume === '' ? null : Number(budgetLineForm.planned_volume),
+      planned_unit_cost: budgetLineForm.planned_unit_cost === '' ? null : Number(budgetLineForm.planned_unit_cost),
+      notes: budgetLineForm.notes || null,
+    });
+    if (budgetLineForm.id) {
+      payload.id = budgetLineForm.id;
+    }
+    const { error } = await supabase
+      .from('analytical_budget_lines')
+      .upsert(payload, { onConflict: 'budget_id,period_month' });
+    if (error) throw error;
+    setBudgetLineDialogOpen(false);
+    setBudgetLineForm(emptyBudgetLineForm());
+    await loadBudgetDetails(selectedBudgetId);
+    await loadAll();
+  };
+
+  const deleteBudgetLine = async (lineId) => {
+    if (!lineId) return;
+    const confirmed = window.confirm('Supprimer cette ligne budgétaire ?');
+    if (!confirmed) return;
+    let query = supabase
+      .from('analytical_budget_lines')
+      .delete()
+      .eq('id', lineId)
+      .eq('user_id', user.id);
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { error } = await query;
+    if (error) throw error;
+    await loadBudgetDetails(selectedBudgetId);
+    await loadAll();
+  };
+
+  const generateBudgetLines = async () => {
+    if (!selectedBudgetId) return;
+    const total = budgetTotalAmount === '' ? null : Number(budgetTotalAmount);
+    const { data, error } = await supabase.rpc('f_generate_budget_lines', {
+      p_user_id: user.id,
+      p_company_id: activeCompanyId,
+      p_budget_id: selectedBudgetId,
+      p_total_amount: total,
+      p_replace_existing: replaceBudgetLines === '__YES__',
+    });
+    if (error) throw error;
+    toast({ title: 'Lignes générées', description: `${Number(data || 0)} ligne(s) traitée(s).` });
+    await loadBudgetDetails(selectedBudgetId);
     await loadAll();
   };
 
@@ -464,6 +683,31 @@ export default function AnalyticalAccounting() {
     const validPct = entries.filter((e) => !e.hasPct || Math.abs(e.totalPct - 100) <= 0.01).length;
     return { totalEntries: entries.length, withPct, validPct };
   }, [allocations]);
+
+  const selectedBudget = useMemo(
+    () => budgets.find((b) => b.id === selectedBudgetId) || null,
+    [budgets, selectedBudgetId],
+  );
+
+  const budgetTotals = useMemo(() => {
+    const actualByMonth = new Map(
+      budgetLineVariances.map((row) => [row.period_month, Number(row.actual_amount || 0)]),
+    );
+    const planned = budgetLines.reduce((sum, row) => sum + Number(row.planned_amount || 0), 0);
+    const actual = budgetLines.reduce((sum, row) => (
+      sum + Number(actualByMonth.get(row.period_month) || 0)
+    ), 0);
+    return {
+      planned,
+      actual,
+      variance: actual - planned,
+    };
+  }, [budgetLineVariances, budgetLines]);
+
+  const budgetLineVarianceByMonth = useMemo(
+    () => new Map(budgetLineVariances.map((row) => [row.period_month, row])),
+    [budgetLineVariances],
+  );
 
   const safeAction = async (fn) => {
     try {
@@ -832,42 +1076,214 @@ export default function AnalyticalAccounting() {
           <Card className="bg-white/5 border-white/10">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-white text-sm flex items-center gap-2"><ClipboardList className="w-4 h-4" />Budgets analytiques</CardTitle>
-              <Dialog open={budgetDialogOpen} onOpenChange={setBudgetDialogOpen}>
-                <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-2" />Nouveau budget</Button></DialogTrigger>
-                <DialogContent className="bg-[#0f1528] border-white/10 text-white">
-                  <DialogHeader><DialogTitle>Créer un budget analytique</DialogTitle></DialogHeader>
-                  <div className="space-y-3">
-                    <Label>Nom</Label>
-                    <Input className="bg-white/5 border-white/20" value={budgetForm.budget_name} onChange={(e) => setBudgetForm((p) => ({ ...p, budget_name: e.target.value }))} />
-                    <div className="grid grid-cols-2 gap-2">
-                      <div><Label>Début</Label><Input type="date" className="bg-white/5 border-white/20" value={budgetForm.period_start} onChange={(e) => setBudgetForm((p) => ({ ...p, period_start: e.target.value }))} /></div>
-                      <div><Label>Fin</Label><Input type="date" className="bg-white/5 border-white/20" value={budgetForm.period_end} onChange={(e) => setBudgetForm((p) => ({ ...p, period_end: e.target.value }))} /></div>
+              <div className="flex gap-2">
+                <Dialog open={budgetDialogOpen} onOpenChange={setBudgetDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" onClick={openCreateBudgetDialog}><Plus className="w-4 h-4 mr-2" />Nouveau budget</Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-[#0f1528] border-white/10 text-white">
+                    <DialogHeader><DialogTitle>{budgetDialogMode === 'edit' ? 'Modifier le budget' : 'Créer un budget analytique'}</DialogTitle></DialogHeader>
+                    <div className="space-y-3">
+                      <Label>Nom</Label>
+                      <Input className="bg-white/5 border-white/20" value={budgetForm.budget_name} onChange={(e) => setBudgetForm((p) => ({ ...p, budget_name: e.target.value }))} />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><Label>Début</Label><Input type="date" className="bg-white/5 border-white/20" value={budgetForm.period_start} onChange={(e) => setBudgetForm((p) => ({ ...p, period_start: e.target.value }))} /></div>
+                        <div><Label>Fin</Label><Input type="date" className="bg-white/5 border-white/20" value={budgetForm.period_end} onChange={(e) => setBudgetForm((p) => ({ ...p, period_end: e.target.value }))} /></div>
+                      </div>
+                      <Label>Méthode</Label>
+                      <Select value={budgetForm.method} onValueChange={(v) => setBudgetForm((p) => ({ ...p, method: v }))}>
+                        <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-[#0f1528] border-white/10">
+                          {METHODS.filter((m) => m !== 'manual').map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+
+                      <Label>Objet de coût</Label>
+                      <Select value={budgetForm.object_id || '__NONE__'} onValueChange={(v) => setBudgetForm((p) => ({ ...p, object_id: v === '__NONE__' ? '' : v }))}>
+                        <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-[#0f1528] border-white/10">
+                          <SelectItem value="__NONE__">Aucun</SelectItem>
+                          {objects.map((o) => <SelectItem key={o.id} value={o.id}>{o.object_name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+
+                      <Label>Centre</Label>
+                      <Select value={budgetForm.cost_center_id || '__NONE__'} onValueChange={(v) => setBudgetForm((p) => ({ ...p, cost_center_id: v === '__NONE__' ? '' : v }))}>
+                        <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-[#0f1528] border-white/10">
+                          <SelectItem value="__NONE__">Aucun</SelectItem>
+                          {centers.map((c) => <SelectItem key={c.id} value={c.id}>{c.center_name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+
+                      <Label>Axe</Label>
+                      <Select value={budgetForm.axis_value_id || '__NONE__'} onValueChange={(v) => setBudgetForm((p) => ({ ...p, axis_value_id: v === '__NONE__' ? '' : v }))}>
+                        <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-[#0f1528] border-white/10">
+                          <SelectItem value="__NONE__">Aucun</SelectItem>
+                          {axisValues.map((a) => <SelectItem key={a.id} value={a.id}>{a.value_name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+
+                      <Button className="w-full" onClick={() => safeAction(budgetDialogMode === 'edit' ? updateBudget : createBudget)}>
+                        {budgetDialogMode === 'edit' ? 'Mettre à jour' : 'Enregistrer'}
+                      </Button>
                     </div>
-                    <Label>Méthode</Label>
-                    <Select value={budgetForm.method} onValueChange={(v) => setBudgetForm((p) => ({ ...p, method: v }))}>
-                      <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
-                      <SelectContent className="bg-[#0f1528] border-white/10">
-                        {METHODS.filter((m) => m !== 'manual').map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Button className="w-full" onClick={() => safeAction(createBudget)}>Enregistrer</Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+
+                <Button size="sm" variant="outline" disabled={!selectedBudget} onClick={() => openEditBudgetDialog(selectedBudget)}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Modifier
+                </Button>
+                <Button size="sm" variant="outline" disabled={!selectedBudget} onClick={() => safeAction(() => deleteBudget(selectedBudget?.id))}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Supprimer
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader><TableRow className="border-white/10"><TableHead>Nom</TableHead><TableHead>Période</TableHead><TableHead>Méthode</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {budgets.map((b) => (
-                    <TableRow key={b.id} className="border-white/5">
-                      <TableCell className="text-white">{b.budget_name}</TableCell>
-                      <TableCell className="text-gray-300">{b.period_start} → {b.period_end}</TableCell>
-                      <TableCell className="text-gray-300">{b.method}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <CardContent className="space-y-4">
+              <div className="grid lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-1 rounded-lg border border-white/10 bg-[#10192d] p-3">
+                  <p className="text-xs text-gray-400 mb-2">Budgets disponibles</p>
+                  <div className="space-y-2 max-h-[420px] overflow-auto pr-1">
+                    {budgets.map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        className={`w-full rounded-md border px-3 py-2 text-left transition ${selectedBudgetId === b.id ? 'border-orange-400/60 bg-orange-400/10' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
+                        onClick={() => setSelectedBudgetId(b.id)}
+                      >
+                        <p className="text-white text-sm font-medium">{b.budget_name}</p>
+                        <p className="text-xs text-gray-400">{b.period_start} → {b.period_end}</p>
+                        <p className="text-xs text-gray-500 mt-1">{b.method}</p>
+                      </button>
+                    ))}
+                    {budgets.length === 0 && <p className="text-xs text-gray-500">Aucun budget pour la société active.</p>}
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2 rounded-lg border border-white/10 bg-[#10192d] p-3 space-y-3">
+                  {selectedBudget ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-white font-medium">{selectedBudget.budget_name}</p>
+                          <p className="text-xs text-gray-400">{selectedBudget.period_start} → {selectedBudget.period_end}</p>
+                        </div>
+                        <Dialog open={budgetLineDialogOpen} onOpenChange={setBudgetLineDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button size="sm" onClick={openCreateBudgetLineDialog}><Plus className="w-4 h-4 mr-2" />Nouvelle ligne</Button>
+                          </DialogTrigger>
+                          <DialogContent className="bg-[#0f1528] border-white/10 text-white">
+                            <DialogHeader><DialogTitle>{budgetLineForm.id ? 'Modifier ligne budgétaire' : 'Créer ligne budgétaire'}</DialogTitle></DialogHeader>
+                            <div className="space-y-3">
+                              <Label>Mois</Label>
+                              <Input type="date" className="bg-white/5 border-white/20" value={budgetLineForm.period_month} onChange={(e) => setBudgetLineForm((p) => ({ ...p, period_month: e.target.value }))} />
+                              <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                  <Label>Montant prévu</Label>
+                                  <Input type="number" className="bg-white/5 border-white/20" value={budgetLineForm.planned_amount} onChange={(e) => setBudgetLineForm((p) => ({ ...p, planned_amount: e.target.value }))} />
+                                </div>
+                                <div>
+                                  <Label>Volume</Label>
+                                  <Input type="number" className="bg-white/5 border-white/20" value={budgetLineForm.planned_volume} onChange={(e) => setBudgetLineForm((p) => ({ ...p, planned_volume: e.target.value }))} />
+                                </div>
+                                <div>
+                                  <Label>Coût unitaire</Label>
+                                  <Input type="number" className="bg-white/5 border-white/20" value={budgetLineForm.planned_unit_cost} onChange={(e) => setBudgetLineForm((p) => ({ ...p, planned_unit_cost: e.target.value }))} />
+                                </div>
+                              </div>
+                              <Label>Notes</Label>
+                              <Input className="bg-white/5 border-white/20" value={budgetLineForm.notes} onChange={(e) => setBudgetLineForm((p) => ({ ...p, notes: e.target.value }))} />
+                              <Button className="w-full" onClick={() => safeAction(saveBudgetLine)}>Enregistrer la ligne</Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+
+                      <div className="grid md:grid-cols-3 gap-3">
+                        <Card className="bg-[#0f1528] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Prévu total</p><p className="text-white text-lg font-semibold">{formatMoney(budgetTotals.planned)} €</p></CardContent></Card>
+                        <Card className="bg-[#0f1528] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Réel total</p><p className="text-white text-lg font-semibold">{formatMoney(budgetTotals.actual)} €</p></CardContent></Card>
+                        <Card className="bg-[#0f1528] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Écart total</p><p className={`text-lg font-semibold ${budgetTotals.variance >= 0 ? 'text-orange-300' : 'text-emerald-300'}`}>{formatMoney(budgetTotals.variance)} €</p></CardContent></Card>
+                      </div>
+
+                      <div className="rounded-lg border border-white/10 bg-[#0f1528] p-3">
+                        <p className="text-sm text-white font-medium flex items-center gap-2"><Wand2 className="w-4 h-4" />Génération automatique des lignes</p>
+                        <div className="grid md:grid-cols-3 gap-2 mt-2">
+                          <div>
+                            <Label>Montant total (optionnel)</Label>
+                            <Input type="number" className="bg-white/5 border-white/20" value={budgetTotalAmount} onChange={(e) => setBudgetTotalAmount(e.target.value)} />
+                          </div>
+                          <div>
+                            <Label>Remplacer existant</Label>
+                            <Select value={replaceBudgetLines} onValueChange={setReplaceBudgetLines}>
+                              <SelectTrigger className="bg-white/5 border-white/20"><SelectValue /></SelectTrigger>
+                              <SelectContent className="bg-[#0f1528] border-white/10">
+                                <SelectItem value="__NO__">Non</SelectItem>
+                                <SelectItem value="__YES__">Oui</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex items-end">
+                            <Button className="w-full" variant="outline" onClick={() => safeAction(generateBudgetLines)}>Générer mois par mois</Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-white/10">
+                            <TableHead>Mois</TableHead>
+                            <TableHead>Prévu</TableHead>
+                            <TableHead>Réel</TableHead>
+                            <TableHead>Écart</TableHead>
+                            <TableHead>Volume</TableHead>
+                            <TableHead>Coût unit.</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {budgetLines.map((line) => {
+                            const variance = budgetLineVarianceByMonth.get(line.period_month);
+                            const varianceAmount = Number(variance?.variance_amount || 0);
+                            const variancePercent = variance?.variance_percent == null ? null : Number(variance.variance_percent);
+                            return (
+                              <TableRow key={line.id} className="border-white/5">
+                                <TableCell className="text-gray-300">{line.period_month}</TableCell>
+                                <TableCell className="text-white">{formatMoney(line.planned_amount)} €</TableCell>
+                                <TableCell className="text-gray-300">{formatMoney(variance?.actual_amount)} €</TableCell>
+                                <TableCell className={varianceAmount >= 0 ? 'text-orange-300' : 'text-emerald-300'}>
+                                  {formatMoney(varianceAmount)} € {variancePercent == null ? '' : `(${formatMoney(variancePercent)}%)`}
+                                </TableCell>
+                                <TableCell className="text-gray-300">{line.planned_volume == null ? '-' : line.planned_volume}</TableCell>
+                                <TableCell className="text-gray-300">{line.planned_unit_cost == null ? '-' : line.planned_unit_cost}</TableCell>
+                                <TableCell>
+                                  <div className="flex gap-2">
+                                    <Button size="sm" variant="outline" onClick={() => openEditBudgetLineDialog(line)}>
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => safeAction(() => deleteBudgetLine(line.id))}>
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                          {budgetLines.length === 0 && (
+                            <TableRow className="border-white/5">
+                              <TableCell colSpan={7} className="text-center text-gray-500 py-6">Aucune ligne budgétaire. Générez les mois ou ajoutez une ligne.</TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400">Sélectionnez un budget pour gérer ses lignes, sa génération automatique et ses écarts mensuels.</p>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
