@@ -1,20 +1,19 @@
-
+/* eslint-disable no-console */
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, validateSupabaseConfig } from '@/lib/supabase';
 import { DEFAULT_ROLE, normalizeRole, sanitizeSelfSignupRole } from '@/lib/roles';
 import { validatePasswordStrength } from '@/utils/validation';
 import { sanitizeText } from '@/utils/sanitize';
-import {
-  assertRateLimitAllowed,
-  recordRateLimitFailure,
-  recordRateLimitSuccess,
-} from '@/utils/authRateLimit';
+import { assertRateLimitAllowed, recordRateLimitFailure, recordRateLimitSuccess } from '@/utils/authRateLimit';
 
 const AUTH_SCOPE_SIGN_IN = 'sign-in';
 const AUTH_SCOPE_SIGN_UP = 'sign-up';
 const AUTH_SCOPE_MFA_VERIFY = 'mfa-verify';
 
-const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+const normalizeEmail = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase();
 const extractEmailDomain = (email) => {
   const [, domain = ''] = String(email || '').split('@');
   return domain.trim().toLowerCase();
@@ -24,9 +23,7 @@ const sanitizeOptionalText = (value) => {
   const sanitized = sanitizeText(value).trim();
   return sanitized || null;
 };
-const sanitizeOptionalScalar = (value) => (
-  typeof value === 'string' ? sanitizeText(value).trim() : value
-);
+const sanitizeOptionalScalar = (value) => (typeof value === 'string' ? sanitizeText(value).trim() : value);
 
 const buildServerRateLimitError = (payload, fallbackMessage) => {
   const retryAfterSeconds = Number(payload?.retryAfterSeconds || 0);
@@ -64,8 +61,15 @@ export const useAuthSource = () => {
     });
 
     if (invokeError) {
+      // If the edge function is unreachable (network error, not deployed, etc.),
+      // fail open so users can still log in. Only block when we get a valid
+      // rate-limit response saying the user is blocked.
       const payload = await extractFunctionErrorPayload(invokeError);
-      throw buildServerRateLimitError(payload, invokeError.message);
+      if (payload?.allowed === false) {
+        throw buildServerRateLimitError(payload, invokeError.message);
+      }
+      // auth-rate-limit edge function unavailable — fail open, allow login
+      return;
     }
 
     if (data?.allowed === false) {
@@ -122,11 +126,12 @@ export const useAuthSource = () => {
       throw policyError;
     }
 
-    const blockedByDomain = settingsRows.find((row) => (
-      Array.isArray(row.allowed_email_domains)
-      && row.allowed_email_domains.length > 0
-      && !row.allowed_email_domains.map((domain) => String(domain || '').toLowerCase()).includes(emailDomain)
-    ));
+    const blockedByDomain = settingsRows.find(
+      (row) =>
+        Array.isArray(row.allowed_email_domains) &&
+        row.allowed_email_domains.length > 0 &&
+        !row.allowed_email_domains.map((domain) => String(domain || '').toLowerCase()).includes(emailDomain)
+    );
 
     if (blockedByDomain) {
       await supabase.auth.signOut();
@@ -144,15 +149,15 @@ export const useAuthSource = () => {
       if (supabase) {
         const { error } = await supabase.auth.signOut();
         if (error) {
-           console.error("Supabase signOut error:", error);
-           // Don't throw here, we want to clear local state regardless
+          console.error('Supabase signOut error:', error);
+          // Don't throw here, we want to clear local state regardless
         }
       }
     } catch (err) {
       // Local cleanup will proceed regardless
     } finally {
       // Clear only auth-related storage, preserve UI preferences (language, sidebar, etc.)
-      Object.keys(localStorage).forEach(key => {
+      Object.keys(localStorage).forEach((key) => {
         if (key.startsWith('sb-') || key.startsWith('supabase.')) {
           localStorage.removeItem(key);
         }
@@ -187,76 +192,68 @@ export const useAuthSource = () => {
     await logout();
   }, [logout]);
 
-  const fetchUserProfile = useCallback(async (authUser) => {
-    if (!authUser || !authUser.id) return null;
+  const fetchUserProfile = useCallback(
+    async (authUser) => {
+      if (!authUser || !authUser.id) return null;
 
-    if (!supabase) {
-      return null;
-    }
+      if (!supabase) {
+        return null;
+      }
 
-    try {
-      const [{ data, error }, { data: roleData, error: roleError }] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', authUser.id)
-          .maybeSingle(),
-        // user_roles is the authoritative source for elevated privileges.
-        supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', authUser.id)
-          .maybeSingle(),
-      ]);
+      try {
+        const [{ data, error }, { data: roleData, error: roleError }] = await Promise.all([
+          supabase.from('profiles').select('*').eq('user_id', authUser.id).maybeSingle(),
+          // user_roles is the authoritative source for elevated privileges.
+          supabase.from('user_roles').select('role').eq('user_id', authUser.id).maybeSingle(),
+        ]);
 
-      if (error) {
-        console.error("Profile fetch error:", error);
-        if (
-          error.message?.includes("User from sub claim in JWT does not exist") ||
-          error.code === "user_not_found"
-        ) {
-           await handleInvalidSession();
-           return null;
-        }
+        if (error) {
+          console.error('Profile fetch error:', error);
+          if (error.message?.includes('User from sub claim in JWT does not exist') || error.code === 'user_not_found') {
+            await handleInvalidSession();
+            return null;
+          }
 
-        // RLS or other errors shouldn't log the user out, just degrade gracefully
-        if (error.code === '42P17' || error.code === '42501') {
-          console.warn('Profile fetch skipped (RLS):', error.message);
-        }
+          // RLS or other errors shouldn't log the user out, just degrade gracefully
+          if (error.code === '42P17' || error.code === '42501') {
+            console.warn('Profile fetch skipped (RLS):', error.message);
+          }
 
-        // Return basic user info if profile fetch fails
-        const basicUser = {
+          // Return basic user info if profile fetch fails
+          const basicUser = {
             ...authUser,
-            role: normalizeRole(roleData?.role || DEFAULT_ROLE)
+            role: normalizeRole(roleData?.role || DEFAULT_ROLE),
+          };
+          setUser(basicUser);
+          return basicUser;
+        }
+
+        if (roleError) {
+          console.warn('Role fetch skipped:', roleError.message);
+        }
+
+        const profile = data || {};
+        const resolvedRole = normalizeRole(roleData?.role || profile.role);
+
+        const fullUser = {
+          ...authUser,
+          ...profile,
+          id: authUser.id,
+          profile_id: profile.id || null,
+          role: resolvedRole,
         };
-        setUser(basicUser);
-        return basicUser;
+
+        setUser(fullUser);
+        return fullUser;
+      } catch (err) {
+        console.error('fetchUserProfile error:', err);
+        // Fallback
+        setUser({ ...authUser, role: DEFAULT_ROLE });
+        return null;
       }
-
-      if (roleError) {
-        console.warn('Role fetch skipped:', roleError.message);
-      }
-
-      const profile = data || {};
-      const resolvedRole = normalizeRole(roleData?.role || profile.role);
-
-      const fullUser = {
-        ...authUser,
-        ...profile,
-        id: authUser.id,
-        profile_id: profile.id || null,
-        role: resolvedRole
-      };
-
-      setUser(fullUser);
-      return fullUser;
-    } catch (err) {
-      console.error('fetchUserProfile error:', err);
-      // Fallback
-      setUser({ ...authUser, role: DEFAULT_ROLE });
-      return null;
-    }
-  }, [handleInvalidSession]);
+    },
+    [handleInvalidSession]
+  );
 
   const claimPendingSubscription = useCallback(async () => {
     if (!supabase) {
@@ -282,17 +279,20 @@ export const useAuthSource = () => {
     const initAuth = async () => {
       const config = validateSupabaseConfig();
       if (!config.valid || !supabase) {
-        console.error("Auth init failed: Supabase not configured.", config.missing);
+        console.error('Auth init failed: Supabase not configured.', config.missing);
         if (mounted) {
           setLoading(false);
-          setError("Supabase configuration missing");
+          setError('Supabase configuration missing');
         }
         return;
       }
 
       try {
         // Get initial session
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
 
         if (error) {
           throw error;
@@ -312,15 +312,15 @@ export const useAuthSource = () => {
           }
         }
       } catch (err) {
-        console.error("Auth initialization error:", err);
+        console.error('Auth initialization error:', err);
         if (mounted) {
-          if (err.message && (err.message.includes("fetch failed") || err.message.includes("Network request failed"))) {
-             setError("Network Error: Failed to connect to authentication server.");
+          if (err.message && (err.message.includes('fetch failed') || err.message.includes('Network request failed'))) {
+            setError('Network Error: Failed to connect to authentication server.');
           } else {
-             setError(`Auth Error: ${err.message}`);
+            setError(`Auth Error: ${err.message}`);
           }
 
-          if (err.message?.includes("User from sub claim in JWT does not exist")) {
+          if (err.message?.includes('User from sub claim in JWT does not exist')) {
             await handleInvalidSession();
           }
         }
@@ -342,18 +342,18 @@ export const useAuthSource = () => {
           setSession(null);
           setLoading(false);
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-           setSession(session);
-           if (session?.user) {
-             await fetchUserProfile(session.user);
-             if (event === 'SIGNED_IN') {
-               try {
-                 await claimPendingSubscription();
-               } catch (claimError) {
-                 console.error('Failed to claim pending subscription:', claimError);
-               }
-             }
-           }
-           setLoading(false);
+          setSession(session);
+          if (session?.user) {
+            await fetchUserProfile(session.user);
+            if (event === 'SIGNED_IN') {
+              try {
+                await claimPendingSubscription();
+              } catch (claimError) {
+                console.error('Failed to claim pending subscription:', claimError);
+              }
+            }
+          }
+          setLoading(false);
         }
       });
       subscription = data.subscription;
@@ -366,9 +366,11 @@ export const useAuthSource = () => {
   }, [claimPendingSubscription, fetchUserProfile, handleInvalidSession]);
 
   const signUp = async (email, password, fullName, companyName, role) => {
-    if (!supabase) throw new Error("Supabase is not configured.");
+    if (!supabase) throw new Error('Supabase is not configured.');
     if (!validatePasswordStrength(password)) {
-      throw new Error('Password must be at least 12 characters and include an uppercase letter, a number, and a special character.');
+      throw new Error(
+        'Password must be at least 12 characters and include an uppercase letter, a number, and a special character.'
+      );
     }
 
     const normalizedEmail = normalizeEmail(email);
@@ -393,8 +395,8 @@ export const useAuthSource = () => {
         options: {
           data: {
             full_name: sanitizedFullName,
-          }
-        }
+          },
+        },
       });
 
       if (error) throw error;
@@ -410,15 +412,13 @@ export const useAuthSource = () => {
           company_name: sanitizedCompanyName,
           role: safeRole,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         };
 
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([profileData]);
+        const { error: profileError } = await supabase.from('profiles').insert([profileData]);
 
         if (profileError) {
-          console.error("Profile creation failed:", profileError);
+          console.error('Profile creation failed:', profileError);
           // We don't throw here to allow the user to at least exist in Auth
         } else {
           await fetchUserProfile(data.user);
@@ -437,7 +437,7 @@ export const useAuthSource = () => {
     } catch (err) {
       recordRateLimitFailure(AUTH_SCOPE_SIGN_UP, normalizedEmail);
       await reportServerRateLimitOutcome(AUTH_SCOPE_SIGN_UP, normalizedEmail, 'failure');
-      console.error("SignUp error:", err);
+      console.error('SignUp error:', err);
       setError(err.message);
       throw err;
     } finally {
@@ -446,7 +446,7 @@ export const useAuthSource = () => {
   };
 
   const signIn = async (email, password) => {
-    if (!supabase) throw new Error("Supabase is not configured.");
+    if (!supabase) throw new Error('Supabase is not configured.');
     const normalizedEmail = normalizeEmail(email);
     await enforceServerRateLimit(AUTH_SCOPE_SIGN_IN, normalizedEmail);
     assertRateLimitAllowed(AUTH_SCOPE_SIGN_IN, normalizedEmail);
@@ -479,7 +479,7 @@ export const useAuthSource = () => {
     } catch (err) {
       recordRateLimitFailure(AUTH_SCOPE_SIGN_IN, normalizedEmail);
       await reportServerRateLimitOutcome(AUTH_SCOPE_SIGN_IN, normalizedEmail, 'failure');
-      console.error("SignIn error:", err);
+      console.error('SignIn error:', err);
       setError(err.message);
       throw err;
     } finally {
@@ -525,15 +525,15 @@ export const useAuthSource = () => {
         .from('profiles')
         .update({
           ...safeUpdates,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('user_id', user.id);
 
       if (error) throw error;
 
-      setUser(prev => ({ ...prev, ...safeUpdates }));
+      setUser((prev) => ({ ...prev, ...safeUpdates }));
     } catch (err) {
-      console.error("Update profile error:", err);
+      console.error('Update profile error:', err);
       setError(err.message);
       throw err;
     } finally {
@@ -549,7 +549,7 @@ export const useAuthSource = () => {
     try {
       const { data, error } = await supabase.auth.mfa.listFactors();
       if (error) throw error;
-      const totpFactors = (data?.totp || []).filter(f => f.status === 'verified');
+      const totpFactors = (data?.totp || []).filter((f) => f.status === 'verified');
       return { enabled: totpFactors.length > 0, factors: totpFactors };
     } catch (err) {
       console.error('getMFAStatus error:', err);
@@ -561,7 +561,7 @@ export const useAuthSource = () => {
     if (!supabase) throw new Error('Supabase not configured');
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: 'totp',
-      friendlyName: 'CashPilot Authenticator'
+      friendlyName: 'CashPilot Authenticator',
     });
     if (error) throw error;
     return data; // { id, type, totp: { qr_code, secret, uri } }
@@ -579,7 +579,7 @@ export const useAuthSource = () => {
       const { data, error } = await supabase.auth.mfa.verify({
         factorId,
         challengeId: challenge.id,
-        code
+        code,
       });
       if (error) throw error;
       recordRateLimitSuccess(AUTH_SCOPE_MFA_VERIFY, scopeId);
@@ -611,7 +611,6 @@ export const useAuthSource = () => {
     getMFAStatus,
     enrollMFA,
     verifyMFA,
-    unenrollMFA
+    unenrollMFA,
   };
 };
-
