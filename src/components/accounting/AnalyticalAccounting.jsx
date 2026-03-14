@@ -171,6 +171,12 @@ export default function AnalyticalAccounting() {
   const [simRiskPercent, setSimRiskPercent] = useState('2');
   const [simulating, setSimulating] = useState(false);
   const [simulationRows, setSimulationRows] = useState([]);
+  const [budgetQuality, setBudgetQuality] = useState(null);
+  const [budgetScenarios, setBudgetScenarios] = useState([]);
+  const [scenarioSummaries, setScenarioSummaries] = useState([]);
+  const [selectedScenarioId, setSelectedScenarioId] = useState('');
+  const [scenarioName, setScenarioName] = useState('');
+  const [scenarioNotes, setScenarioNotes] = useState('');
 
   const fetchAxes = useCallback(async () => {
     let query = supabase
@@ -304,6 +310,46 @@ export default function AnalyticalAccounting() {
     return data || [];
   }, [activeCompanyId, simCostOptimizationPercent, simGrowthPercent, simRiskPercent, user]);
 
+  const fetchBudgetQuality = useCallback(async (budgetId) => {
+    if (!budgetId || !activeCompanyId) return null;
+    const { data, error } = await supabase.rpc('f_analytical_budget_data_quality', {
+      p_user_id: user.id,
+      p_company_id: activeCompanyId,
+      p_budget_id: budgetId,
+      p_start_date: null,
+      p_end_date: null,
+    });
+    if (error) throw error;
+    return data?.[0] || null;
+  }, [activeCompanyId, user]);
+
+  const fetchBudgetScenarios = useCallback(async (budgetId) => {
+    if (!budgetId) return [];
+    let query = supabase
+      .from('analytical_budget_scenarios')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('budget_id', budgetId)
+      .eq('is_active', true)
+      .order('is_default', { ascending: false })
+      .order('updated_at', { ascending: false });
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }, [applyCompanyScope, user]);
+
+  const fetchScenarioSummaries = useCallback(async (budgetId) => {
+    if (!budgetId || !activeCompanyId) return [];
+    const { data, error } = await supabase.rpc('f_analytical_budget_scenario_summaries', {
+      p_user_id: user.id,
+      p_company_id: activeCompanyId,
+      p_budget_id: budgetId,
+    });
+    if (error) throw error;
+    return data || [];
+  }, [activeCompanyId, user]);
+
   const fetchReporting = useCallback(async () => {
     if (!activeCompanyId) {
       return { kpis: null, variances: [] };
@@ -345,17 +391,33 @@ export default function AnalyticalAccounting() {
       setBudgetLines([]);
       setBudgetLineVariances([]);
       setSimulationRows([]);
+      setBudgetQuality(null);
+      setBudgetScenarios([]);
+      setScenarioSummaries([]);
+      setSelectedScenarioId('');
       return;
     }
-    const [lines, lineVariances, simData] = await Promise.all([
+    const [lines, lineVariances, simData, qualityData, scenariosData, summariesData] = await Promise.all([
       fetchBudgetLines(budgetId),
       fetchBudgetLineVariances(budgetId),
       fetchBudgetSimulation(budgetId),
+      fetchBudgetQuality(budgetId),
+      fetchBudgetScenarios(budgetId),
+      fetchScenarioSummaries(budgetId),
     ]);
     setBudgetLines(lines);
     setBudgetLineVariances(lineVariances);
     setSimulationRows(simData);
-  }, [fetchBudgetLineVariances, fetchBudgetLines, fetchBudgetSimulation]);
+    setBudgetQuality(qualityData);
+    setBudgetScenarios(scenariosData);
+    setScenarioSummaries(summariesData);
+    if (scenariosData.length === 0) {
+      setSelectedScenarioId('');
+    } else {
+      const nextScenario = scenariosData.find((s) => s.id === selectedScenarioId) || scenariosData[0];
+      setSelectedScenarioId(nextScenario?.id || '');
+    }
+  }, [fetchBudgetLineVariances, fetchBudgetLines, fetchBudgetQuality, fetchBudgetScenarios, fetchBudgetSimulation, fetchScenarioSummaries, selectedScenarioId]);
 
   const loadAll = useCallback(async () => {
     if (!user || !activeCompanyId) return;
@@ -548,6 +610,7 @@ export default function AnalyticalAccounting() {
       object_id: budgetForm.object_id || null,
       cost_center_id: budgetForm.cost_center_id || null,
       axis_value_id: budgetForm.axis_value_id || null,
+      is_active: false,
     });
     const { data, error } = await supabase
       .from('analytical_budgets')
@@ -565,6 +628,15 @@ export default function AnalyticalAccounting() {
         p_replace_existing: true,
       });
       if (genError) throw genError;
+
+      const { error: activateError } = await supabase
+        .from('analytical_budgets')
+        .update({ is_active: true })
+        .eq('id', data.id)
+        .eq('user_id', user.id)
+        .eq('company_id', activeCompanyId);
+      if (activateError) throw activateError;
+
       setSelectedBudgetId(data.id);
     }
 
@@ -710,11 +782,11 @@ export default function AnalyticalAccounting() {
     await loadAll();
   };
 
-  const runBudgetSimulation = async () => {
+  const runBudgetSimulation = async (overrides = null) => {
     if (!selectedBudgetId) return;
     setSimulating(true);
     try {
-      const data = await fetchBudgetSimulation(selectedBudgetId);
+      const data = await fetchBudgetSimulation(selectedBudgetId, overrides || {});
       setSimulationRows(data);
       toast({ title: 'Simulation recalculée', description: `${data.length} point(s) de courbe chargés depuis la base.` });
     } catch (err) {
@@ -722,6 +794,85 @@ export default function AnalyticalAccounting() {
     } finally {
       setSimulating(false);
     }
+  };
+
+  const saveScenario = async () => {
+    if (!selectedBudgetId || !scenarioName.trim()) return;
+    const payload = withCompanyScope({
+      user_id: user.id,
+      budget_id: selectedBudgetId,
+      scenario_name: scenarioName.trim(),
+      revenue_growth_percent: Number(simGrowthPercent || 0),
+      cost_optimization_percent: Number(simCostOptimizationPercent || 0),
+      risk_percent: Number(simRiskPercent || 0),
+      notes: scenarioNotes.trim() || null,
+      is_active: true,
+    });
+    const { error } = await supabase.from('analytical_budget_scenarios').upsert(payload, {
+      onConflict: 'company_id,user_id,budget_id,scenario_name',
+    });
+    if (error) throw error;
+    const [scenariosData, summariesData] = await Promise.all([
+      fetchBudgetScenarios(selectedBudgetId),
+      fetchScenarioSummaries(selectedBudgetId),
+    ]);
+    setBudgetScenarios(scenariosData);
+    setScenarioSummaries(summariesData);
+    const created = scenariosData.find((s) => s.scenario_name === scenarioName.trim());
+    setSelectedScenarioId(created?.id || '');
+    toast({ title: 'Scénario sauvegardé', description: `Scénario "${scenarioName.trim()}" enregistré en base.` });
+  };
+
+  const applyScenario = async (scenarioId) => {
+    if (!selectedBudgetId || !scenarioId) return;
+    const scenario = budgetScenarios.find((s) => s.id === scenarioId);
+    if (!scenario) return;
+    setSelectedScenarioId(scenario.id);
+    setScenarioName(scenario.scenario_name || '');
+    setScenarioNotes(scenario.notes || '');
+    setSimGrowthPercent(String(scenario.revenue_growth_percent ?? 0));
+    setSimCostOptimizationPercent(String(scenario.cost_optimization_percent ?? 0));
+    setSimRiskPercent(String(scenario.risk_percent ?? 0));
+
+    const { data, error } = await supabase.rpc('f_analytical_budget_scenario_curve', {
+      p_user_id: user.id,
+      p_company_id: activeCompanyId,
+      p_budget_id: selectedBudgetId,
+      p_scenario_id: scenario.id,
+    });
+    if (error) throw error;
+    setSimulationRows(data || []);
+    toast({ title: 'Scénario appliqué', description: `${scenario.scenario_name} chargé depuis la base.` });
+  };
+
+  const deleteScenario = async (scenarioId) => {
+    if (!scenarioId) return;
+    const confirmed = window.confirm('Supprimer ce scénario budgétaire ?');
+    if (!confirmed) return;
+    let query = supabase
+      .from('analytical_budget_scenarios')
+      .delete()
+      .eq('id', scenarioId)
+      .eq('user_id', user.id);
+    query = applyCompanyScope(query, { includeUnassigned: false });
+    const { error } = await query;
+    if (error) throw error;
+
+    const [scenariosData, summariesData] = await Promise.all([
+      fetchBudgetScenarios(selectedBudgetId),
+      fetchScenarioSummaries(selectedBudgetId),
+    ]);
+    setBudgetScenarios(scenariosData);
+    setScenarioSummaries(summariesData);
+    setSelectedScenarioId((prev) => (prev === scenarioId ? '' : prev));
+    toast({ title: 'Scénario supprimé' });
+  };
+
+  const clearScenarioSelection = async () => {
+    setSelectedScenarioId('');
+    setScenarioName('');
+    setScenarioNotes('');
+    await runBudgetSimulation();
   };
 
   const redistributeAuxiliaryCenters = async () => {
@@ -766,6 +917,11 @@ export default function AnalyticalAccounting() {
     [budgets, selectedBudgetId],
   );
 
+  const selectedScenario = useMemo(
+    () => budgetScenarios.find((s) => s.id === selectedScenarioId) || null,
+    [budgetScenarios, selectedScenarioId],
+  );
+
   const budgetTotals = useMemo(() => {
     const actualByMonth = new Map(
       budgetLineVariances.map((row) => [row.period_month, Number(row.actual_amount || 0)]),
@@ -808,6 +964,12 @@ export default function AnalyticalAccounting() {
     }),
     [budgetLineVarianceByMonth, budgetLines, simulationByMonth],
   );
+
+  useEffect(() => {
+    if (!selectedScenario) return;
+    setScenarioName(selectedScenario.scenario_name || '');
+    setScenarioNotes(selectedScenario.notes || '');
+  }, [selectedScenario]);
 
   const safeAction = async (fn) => {
     try {
@@ -1306,6 +1468,13 @@ export default function AnalyticalAccounting() {
                         </Dialog>
                       </div>
 
+                      <div className="grid md:grid-cols-4 gap-3">
+                        <Card className="bg-[#0f1528] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Couverture réelle</p><p className="text-white text-lg font-semibold">{formatMoney(budgetQuality?.real_coverage_percent)}%</p></CardContent></Card>
+                        <Card className="bg-[#0f1528] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Mois alimentés (réel)</p><p className="text-white text-lg font-semibold">{Number(budgetQuality?.months_with_actual || 0)} / {Number(budgetQuality?.months_planned || 0)}</p></CardContent></Card>
+                        <Card className="bg-[#0f1528] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Axes imputés</p><p className="text-white text-lg font-semibold">{Number(budgetQuality?.axes_imputed_count || 0)}</p></CardContent></Card>
+                        <Card className="bg-[#0f1528] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Allocations utilisées</p><p className="text-white text-lg font-semibold">{Number(budgetQuality?.allocations_count || 0)}</p></CardContent></Card>
+                      </div>
+
                       <div className="grid md:grid-cols-3 gap-3">
                         <Card className="bg-[#0f1528] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Prévu total</p><p className="text-white text-lg font-semibold">{formatMoney(budgetTotals.planned)} €</p></CardContent></Card>
                         <Card className="bg-[#0f1528] border-white/10"><CardContent className="p-3"><p className="text-xs text-gray-400">Réel total</p><p className="text-white text-lg font-semibold">{formatMoney(budgetTotals.actual)} €</p></CardContent></Card>
@@ -1332,6 +1501,81 @@ export default function AnalyticalAccounting() {
                           <div className="flex items-end">
                             <Button className="w-full" variant="outline" onClick={() => safeAction(generateBudgetLines)}>Générer mois par mois</Button>
                           </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-white/10 bg-[#0f1528] p-3">
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                          <p className="text-sm text-white font-medium">Scénarios persistés (source DB)</p>
+                          <div className="flex gap-2 w-full md:w-auto">
+                            <Input className="bg-white/5 border-white/20" value={scenarioName} onChange={(e) => setScenarioName(e.target.value)} placeholder="Nom scénario (ex: Croissance agressive)" />
+                            <Button variant="outline" onClick={() => safeAction(saveScenario)} disabled={!selectedBudgetId || !scenarioName.trim()}>Sauvegarder</Button>
+                          </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-2 mt-2">
+                          <Input className="bg-white/5 border-white/20" value={scenarioNotes} onChange={(e) => setScenarioNotes(e.target.value)} placeholder="Notes scénario (optionnel)" />
+                          <Select
+                            value={selectedScenarioId || '__NONE__'}
+                            onValueChange={(v) => safeAction(async () => {
+                              if (v === '__NONE__') {
+                                await clearScenarioSelection();
+                                return;
+                              }
+                              await applyScenario(v);
+                            })}
+                          >
+                            <SelectTrigger className="bg-white/5 border-white/20"><SelectValue placeholder="Charger un scénario sauvegardé" /></SelectTrigger>
+                            <SelectContent className="bg-[#0f1528] border-white/10">
+                              <SelectItem value="__NONE__">Aucun</SelectItem>
+                              {budgetScenarios.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>
+                                  {s.scenario_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">Les hypothèses sont historisées par société et budget dans la table `analytical_budget_scenarios`.</p>
+                        {selectedScenarioId && (
+                          <div className="mt-2">
+                            <Button size="sm" variant="outline" onClick={() => safeAction(() => deleteScenario(selectedScenarioId))}>
+                              <Trash2 className="w-3.5 h-3.5 mr-2" />
+                              Supprimer le scénario sélectionné
+                            </Button>
+                          </div>
+                        )}
+                        <div className="mt-3">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="border-white/10">
+                                <TableHead>Scénario</TableHead>
+                                <TableHead>Prévu</TableHead>
+                                <TableHead>Réel</TableHead>
+                                <TableHead>Écart</TableHead>
+                                <TableHead>Sim. base</TableHead>
+                                <TableHead>Sim. optimiste</TableHead>
+                                <TableHead>Sim. prudente</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {scenarioSummaries.map((row) => (
+                                <TableRow key={row.scenario_id} className="border-white/5">
+                                  <TableCell className="text-white">{row.scenario_name}</TableCell>
+                                  <TableCell className="text-gray-300">{formatMoney(row.planned_total)} €</TableCell>
+                                  <TableCell className="text-gray-300">{formatMoney(row.actual_total)} €</TableCell>
+                                  <TableCell className={Number(row.variance_total) >= 0 ? 'text-orange-300' : 'text-emerald-300'}>{formatMoney(row.variance_total)} €</TableCell>
+                                  <TableCell className="text-gray-300">{formatMoney(row.simulated_baseline_total)} €</TableCell>
+                                  <TableCell className="text-emerald-300">{formatMoney(row.simulated_optimistic_total)} €</TableCell>
+                                  <TableCell className="text-sky-300">{formatMoney(row.simulated_prudent_total)} €</TableCell>
+                                </TableRow>
+                              ))}
+                              {scenarioSummaries.length === 0 && (
+                                <TableRow className="border-white/5">
+                                  <TableCell colSpan={7} className="text-center text-gray-500 py-4">Aucun scénario enregistré pour ce budget.</TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
                         </div>
                       </div>
 
