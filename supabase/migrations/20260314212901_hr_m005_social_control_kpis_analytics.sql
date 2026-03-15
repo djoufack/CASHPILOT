@@ -1,0 +1,4 @@
+-- HR M005: Social control, KPIs and analytics
+-- Applied to Supabase production via MCP apply_migration.
+-- Local file created to match remote schema_migrations version.
+-- See local equivalents in git history for full SQL content.

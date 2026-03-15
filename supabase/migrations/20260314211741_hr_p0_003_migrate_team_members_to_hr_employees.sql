@@ -1,0 +1,4 @@
+-- HR P0-003: Migrate team members to HR employees
+-- Applied to Supabase production via MCP apply_migration.
+-- Local file created to match remote schema_migrations version.
+-- See local equivalents in git history for full SQL content.
