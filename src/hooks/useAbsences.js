@@ -40,7 +40,7 @@ export function useAbsences() {
       }
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user } // eslint-disable-line react-hooks/exhaustive-deps
+    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
   );
 
   // --- Leave types ---
@@ -57,7 +57,7 @@ export function useAbsences() {
       if (error) throw error;
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user } // eslint-disable-line react-hooks/exhaustive-deps
+    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
   );
 
   // --- Active employees ---
@@ -74,7 +74,7 @@ export function useAbsences() {
       if (error) throw error;
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user } // eslint-disable-line react-hooks/exhaustive-deps
+    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
   );
 
   // --- Work calendars ---
@@ -87,7 +87,7 @@ export function useAbsences() {
       if (error) throw error;
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user } // eslint-disable-line react-hooks/exhaustive-deps
+    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
   );
 
   // --- CRUD operations ---
@@ -122,8 +122,7 @@ export function useAbsences() {
       return data;
     },
     [setLeaveRequests, toast, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const updateLeaveRequest = useCallback(
     async (id, payload) => {
       if (!supabase) return null;
@@ -145,8 +144,7 @@ export function useAbsences() {
       return data;
     },
     [setLeaveRequests, toast, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const approveLeaveRequest = useCallback(
     async (id) => {
       if (!user || !supabase) return null;
@@ -174,8 +172,7 @@ export function useAbsences() {
       return data;
     },
     [setLeaveRequests, toast, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const rejectLeaveRequest = useCallback(
     async (id) => {
       if (!supabase) return null;
@@ -197,8 +194,7 @@ export function useAbsences() {
       return data;
     },
     [setLeaveRequests, toast, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const cancelLeaveRequest = useCallback(
     async (id) => {
       if (!supabase) return null;
@@ -220,8 +216,7 @@ export function useAbsences() {
       return data;
     },
     [setLeaveRequests, toast, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   // --- Balance computation ---
 
   const computeBalance = useMemo(() => {

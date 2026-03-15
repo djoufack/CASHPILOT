@@ -90,8 +90,7 @@ export function usePerformance() {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [applyCompanyScope, toast, user]);
   // --- Reviews CRUD ---
 
   const createReview = useCallback(
@@ -126,8 +125,7 @@ export function usePerformance() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const updateReview = useCallback(
     async (reviewId, updates) => {
       if (!reviewId || !supabase) return null;
@@ -144,8 +142,7 @@ export function usePerformance() {
       return data;
     },
     [fetchData]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const submitSelfAssessment = useCallback(
     async (reviewId, payload) => {
       if (!reviewId || !supabase) return null;
@@ -168,8 +165,7 @@ export function usePerformance() {
       return data;
     },
     [fetchData]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const submitManagerReview = useCallback(
     async (reviewId, payload) => {
       if (!reviewId || !supabase) return null;
@@ -195,8 +191,7 @@ export function usePerformance() {
       return data;
     },
     [fetchData]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const signReview = useCallback(
     async (reviewId) => {
       if (!reviewId || !supabase) return null;
@@ -216,8 +211,7 @@ export function usePerformance() {
       return data;
     },
     [fetchData]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   // --- Succession Plans ---
 
   const createSuccessionPlan = useCallback(
@@ -245,8 +239,7 @@ export function usePerformance() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const updateSuccessionPlan = useCallback(
     async (planId, updates) => {
       if (!planId || !supabase) return null;
@@ -263,8 +256,7 @@ export function usePerformance() {
       return data;
     },
     [fetchData]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   // --- Headcount Budgets ---
 
   const createBudget = useCallback(
@@ -293,8 +285,7 @@ export function usePerformance() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const updateBudget = useCallback(
     async (budgetId, updates) => {
       if (!budgetId || !supabase) return null;
@@ -323,8 +314,7 @@ export function usePerformance() {
       return data;
     },
     [fetchData]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   useEffect(() => {
     fetchData();
   }, [fetchData]);

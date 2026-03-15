@@ -76,8 +76,7 @@ export function useBilanSocial() {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [applyCompanyScope, toast, user]);
   useEffect(() => {
     fetchData();
   }, [fetchData]);

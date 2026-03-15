@@ -109,7 +109,7 @@ export function usePayroll() {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [applyCompanyScope, toast, user]);
 
   const createPayrollPeriod = useCallback(
     async (payload) => {
@@ -130,7 +130,7 @@ export function usePayroll() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const updatePayrollPeriod = useCallback(
     async (periodId, updates) => {
@@ -148,7 +148,7 @@ export function usePayroll() {
       return data;
     },
     [fetchData]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const addVariableItem = useCallback(
     async (payload) => {
@@ -174,7 +174,7 @@ export function usePayroll() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const removeVariableItem = useCallback(
     async (itemId) => {
@@ -186,7 +186,7 @@ export function usePayroll() {
       await fetchData();
     },
     [fetchData]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const resolveAnomaly = useCallback(
     async (anomalyId) => {
@@ -204,7 +204,7 @@ export function usePayroll() {
       return data;
     },
     [fetchData]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const calculatePayroll = useCallback(
     async (periodId) => {
@@ -219,7 +219,7 @@ export function usePayroll() {
       return data;
     },
     [fetchData, activeCompanyId]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const validatePayroll = useCallback(
     async (periodId) => {
@@ -241,7 +241,7 @@ export function usePayroll() {
       return data;
     },
     [fetchData, user]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const exportPayroll = useCallback(
     async (periodId, format = 'csv') => {
@@ -270,7 +270,7 @@ export function usePayroll() {
       return updatedPeriod;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   useEffect(() => {
     fetchData();

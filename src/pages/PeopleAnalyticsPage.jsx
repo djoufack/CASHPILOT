@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import {
   AlertTriangle,
@@ -243,8 +243,7 @@ function HeadcountSection({ state, fetchForecast }) {
 
   useEffect(() => {
     fetchForecast(activeScenario);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeScenario]);
+  }, [activeScenario, fetchForecast]);
 
   const departments = state.data?.departments || state.data?.data?.departments || [];
 
@@ -336,25 +335,28 @@ function HeadcountSection({ state, fetchForecast }) {
 /*  4. Benchmark Salaires                                              */
 /* ------------------------------------------------------------------ */
 function SalaryBenchmarkSection({ state, onRefresh }) {
+  const didFetchRef = useRef(false);
+
   useEffect(() => {
-    if (!state.data && !state.loading && !state.error) {
+    if (!didFetchRef.current && !state.data && !state.loading && !state.error) {
+      didFetchRef.current = true;
       onRefresh();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const jobs = state.data?.jobs || state.data?.data?.jobs || [];
+  }, [state.data, state.loading, state.error, onRefresh]);
 
   /* Compute global max for scale — must be called before any early return */
   const globalMax = useMemo(() => {
-    if (!jobs.length) return 1;
+    const jobsList = state.data?.jobs || state.data?.data?.jobs || [];
+    if (!jobsList.length) return 1;
     let mx = 0;
-    jobs.forEach((j) => {
+    jobsList.forEach((j) => {
       const val = j.max ?? j.p100 ?? 0;
       if (val > mx) mx = val;
     });
     return mx || 1;
-  }, [state.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.data]);
+
+  const jobs = state.data?.jobs || state.data?.data?.jobs || [];
 
   if (state.loading) return <Spinner />;
   if (state.error) return <ErrorBox message={state.error} onRetry={onRefresh} />;
