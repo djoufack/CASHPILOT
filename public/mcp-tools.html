@@ -462,10 +462,10 @@
   <div class="hero-logo">CashPilot MCP</div>
   <p class="hero-sub">Catalogue complet des outils MCP disponibles pour piloter la comptabilite, la facturation, les projets et le CRM via l'IA.</p>
   <div class="hero-stats">
-    <div class="stat"><div class="stat-number">250+</div><div class="stat-label">Outils au total</div></div>
-    <div class="stat"><div class="stat-number">80+</div><div class="stat-label">Outils metier</div></div>
-    <div class="stat"><div class="stat-number">170+</div><div class="stat-label">Operations CRUD</div></div>
-    <div class="stat"><div class="stat-number">16</div><div class="stat-label">Categories</div></div>
+    <div class="stat"><div class="stat-number">449+</div><div class="stat-label">Outils au total</div></div>
+    <div class="stat"><div class="stat-number">82+</div><div class="stat-label">Outils metier</div></div>
+    <div class="stat"><div class="stat-number">375+</div><div class="stat-label">Operations CRUD</div></div>
+    <div class="stat"><div class="stat-number">19</div><div class="stat-label">Categories</div></div>
   </div>
   <div class="search-container">
     <span class="search-icon">&#128269;</span>
@@ -494,6 +494,9 @@
     <button class="nav-btn" data-target="crud">CRUD</button>
     <button class="nav-btn" data-target="instruments">Instruments</button>
     <button class="nav-btn" data-target="company_finance">Finance societe</button>
+    <button class="nav-btn" data-target="hr">Ressources Humaines</button>
+    <button class="nav-btn" data-target="material">Materiel</button>
+    <button class="nav-btn" data-target="compensations">Compensations</button>
   </div>
 </nav>
 
@@ -1414,13 +1417,182 @@
     </div>
   </section>
 
+  <!-- ==================== RESSOURCES HUMAINES ==================== -->
+  <section class="category" data-cat="hr" id="cat-hr">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(52, 211, 153, 0.15);">&#128106;</div>
+      <h2 class="category-title">Ressources Humaines</h2>
+      <span class="category-count">140 outils</span>
+      <span class="category-desc">Employes, contrats, conges, paie, formation, competences, performance, QVT, recrutement, onboarding</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="hr employees employes salaries effectif rh">
+        <div class="tool-name">CRUD Employes</div>
+        <div class="tool-desc">Operations completes sur les employes : creation, consultation, mise a jour, suppression, listing avec pagination.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">employee_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="hr contracts contrats travail cdi cdd">
+        <div class="tool-name">CRUD Contrats de travail</div>
+        <div class="tool-desc">Gestion des contrats (CDI, CDD, alternance), dates, salaires, clauses.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">employee_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="hr leaves conges absences solde vacances maladie">
+        <div class="tool-name">CRUD Conges &amp; Absences</div>
+        <div class="tool-desc">Demandes de conges, validation, soldes, types d'absence (maladie, vacances, RTT).</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">employee_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="hr payroll paie salaire bulletin fiche">
+        <div class="tool-name">CRUD Paie</div>
+        <div class="tool-desc">Periodes de paie, bulletins de salaire, cotisations, primes et retenues.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">period_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="hr training formation plan competences developpement">
+        <div class="tool-name">CRUD Formations</div>
+        <div class="tool-desc">Plans de formation, sessions, inscriptions, suivi des competences et certifications.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">training_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="hr skills competences evaluation matrice">
+        <div class="tool-name">CRUD Competences</div>
+        <div class="tool-desc">Referentiel de competences, evaluations, matrices de competences par employe.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">skill_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="hr performance evaluation objectifs entretien annuel">
+        <div class="tool-name">CRUD Performance</div>
+        <div class="tool-desc">Entretiens annuels, objectifs, evaluations de performance, plans de developpement.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">employee_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="hr qvt qualite vie travail bien-etre satisfaction">
+        <div class="tool-name">CRUD QVT</div>
+        <div class="tool-desc">Qualite de vie au travail : enquetes, indicateurs bien-etre, plans d'action.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="hr recruitment recrutement candidature offre emploi embauche">
+        <div class="tool-name">CRUD Recrutement</div>
+        <div class="tool-desc">Offres d'emploi, candidatures, pipeline de recrutement, entretiens, embauches.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">job_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="hr onboarding integration accueil nouveau salarie">
+        <div class="tool-name">CRUD Onboarding</div>
+        <div class="tool-desc">Parcours d'integration, checklist d'accueil, suivi des nouveaux salaries.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">employee_id</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== MATERIEL & EQUIPEMENTS ==================== -->
+  <section class="category" data-cat="material" id="cat-material">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(251, 191, 36, 0.15);">&#128295;</div>
+      <h2 class="category-title">Materiel &amp; Equipements</h2>
+      <span class="category-count">30 outils</span>
+      <span class="category-desc">Categories materiel, actifs, affectations, maintenance, utilisation, approbations</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="material categories equipement type classification">
+        <div class="tool-name">CRUD Categories materiel</div>
+        <div class="tool-desc">Classification des types d'equipement (informatique, mobilier, vehicules, outillage).</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="material assets actifs inventaire equipement parc">
+        <div class="tool-name">CRUD Actifs materiels</div>
+        <div class="tool-desc">Inventaire du parc materiel : reference, numero de serie, valeur, etat, localisation.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">asset_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="material assignments affectations attribution employe equipement">
+        <div class="tool-name">CRUD Affectations</div>
+        <div class="tool-desc">Affectation d'equipements aux employes, historique des attributions et restitutions.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">employee_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="material maintenance entretien reparation planification">
+        <div class="tool-name">CRUD Maintenance</div>
+        <div class="tool-desc">Planification et suivi de la maintenance : interventions, couts, historique reparations.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">asset_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="material usage utilisation reservation planning">
+        <div class="tool-name">CRUD Utilisation</div>
+        <div class="tool-desc">Suivi de l'utilisation des equipements, reservations, taux d'occupation.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+        </div>
+      </div>
+      <div class="tool-card" data-search="material approvals approbations demande validation workflow">
+        <div class="tool-name">CRUD Approbations</div>
+        <div class="tool-desc">Workflow d'approbation pour les demandes de materiel, validations hierarchiques.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">request_id</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== COMPENSATIONS EQUIPE ==================== -->
+  <section class="category" data-cat="compensations" id="cat-compensations">
+    <div class="category-header">
+      <div class="category-icon" style="background: rgba(163, 230, 53, 0.15);">&#128176;</div>
+      <h2 class="category-title">Compensations Equipe</h2>
+      <span class="category-count">5 outils</span>
+      <span class="category-desc">Compensations membres equipe</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card" data-search="team member compensations remuneration equipe bonus prime">
+        <div class="tool-name">CRUD Compensations membres</div>
+        <div class="tool-desc">Gestion des compensations des membres d'equipe : salaires, primes, bonus, avantages en nature.</div>
+        <div class="tool-params">
+          <span class="param-tag">company_id</span>
+          <span class="param-tag optional">member_id</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ==================== CRUD GENERES ==================== -->
   <section class="category" data-cat="crud" id="cat-crud">
     <div class="category-header">
       <div class="category-icon" style="background: rgba(148, 163, 184, 0.15);">&#9881;</div>
       <h2 class="category-title">Operations CRUD generees</h2>
-      <span class="category-count">175 outils</span>
-      <span class="category-desc">Create, Read, Update, Delete, List sur 35 tables</span>
+      <span class="category-count">375 outils</span>
+      <span class="category-desc">Create, Read, Update, Delete, List sur 75 tables</span>
     </div>
 
     <div class="crud-section">
@@ -1637,7 +1809,7 @@
 
 <!-- Footer -->
 <footer class="footer">
-  <p><strong>CashPilot MCP</strong> &mdash; 250+ outils | 16 categories | Mis a jour le 12 mars 2026</p>
+  <p><strong>CashPilot MCP</strong> &mdash; 449+ outils | 19 cat&eacute;gories | Mis a jour le 15 mars 2026</p>
   <p style="margin-top: 0.5rem;">Documentation a destination des utilisateurs du serveur MCP CashPilot. Les outils CRUD sont generes automatiquement a partir du schema de base de donnees Supabase.</p>
 </footer>
 

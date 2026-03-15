@@ -7,8 +7,7 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 export function useQVT() {
   const { user } = useAuth();
   const { toast } = useToast();
-  // RLS policies handle access — no client-side company filter needed
-  const { activeCompanyId, withCompanyScope } = useCompanyScope();
+  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -47,6 +46,13 @@ export function useQVT() {
         .select('id, name, company_id')
         .order('name', { ascending: true });
 
+      // Apply company scope to filter by active company
+      surveysQuery = applyCompanyScope(surveysQuery);
+      surveyResponsesQuery = applyCompanyScope(surveyResponsesQuery);
+      riskAssessmentsQuery = applyCompanyScope(riskAssessmentsQuery);
+      employeesQuery = applyCompanyScope(employeesQuery);
+      departmentsQuery = applyCompanyScope(departmentsQuery);
+
       const [surveysResult, surveyResponsesResult, riskAssessmentsResult, employeesResult, departmentsResult] =
         await Promise.all([surveysQuery, surveyResponsesQuery, riskAssessmentsQuery, employeesQuery, departmentsQuery]);
 
@@ -75,7 +81,7 @@ export function useQVT() {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applyCompanyScope, toast, user]);
   const createSurvey = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;

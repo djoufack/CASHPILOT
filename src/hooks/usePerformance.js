@@ -7,8 +7,7 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 export function usePerformance() {
   const { user } = useAuth();
   const { toast } = useToast();
-  // RLS policies handle access — no client-side company filter needed
-  const { activeCompanyId, withCompanyScope } = useCompanyScope();
+  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -52,6 +51,13 @@ export function usePerformance() {
         .select('id, name, company_id')
         .order('name', { ascending: true });
 
+      // Apply company scope to filter by active company
+      reviewsQuery = applyCompanyScope(reviewsQuery);
+      successionQuery = applyCompanyScope(successionQuery);
+      budgetsQuery = applyCompanyScope(budgetsQuery);
+      employeesQuery = applyCompanyScope(employeesQuery);
+      departmentsQuery = applyCompanyScope(departmentsQuery);
+
       const [reviewsResult, successionResult, budgetsResult, employeesResult, departmentsResult] = await Promise.all([
         reviewsQuery,
         successionQuery,
@@ -85,7 +91,7 @@ export function usePerformance() {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applyCompanyScope, toast, user]);
   // --- Reviews CRUD ---
 
   const createReview = useCallback(

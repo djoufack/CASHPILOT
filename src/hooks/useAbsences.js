@@ -8,10 +8,9 @@ import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 export function useAbsences() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { withCompanyScope } = useCompanyScope();
+  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   // --- Leave requests (with employee join) ---
-  // RLS policies handle access — no client-side company filter needed
   const {
     data: leaveRequests,
     setData: setLeaveRequests,
@@ -21,7 +20,7 @@ export function useAbsences() {
   } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from('hr_leave_requests')
         .select(
           `
@@ -31,6 +30,8 @@ export function useAbsences() {
         `
         )
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query);
+      const { data, error } = await query;
       if (error) {
         if (error.code === '42P17' || error.code === '42501') {
           console.warn('RLS error fetching leave requests:', error.message);
@@ -40,11 +41,10 @@ export function useAbsences() {
       }
       return data || [];
     },
-    { deps: [user], defaultData: [], enabled: !!user }
+    { deps: [user, activeCompanyId], defaultData: [], enabled: !!user }
   );
 
   // --- Leave types ---
-  // RLS policies handle access — no client-side company filter needed
   const {
     data: leaveTypes,
     loading: loadingTypes,
@@ -52,39 +52,43 @@ export function useAbsences() {
   } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      const { data, error } = await supabase.from('hr_leave_types').select('*').order('name', { ascending: true });
+      let query = supabase.from('hr_leave_types').select('*').order('name', { ascending: true });
+      query = applyCompanyScope(query);
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    { deps: [user], defaultData: [], enabled: !!user }
+    { deps: [user, activeCompanyId], defaultData: [], enabled: !!user }
   );
 
   // --- Active employees ---
-  // RLS policies handle access — no client-side company filter needed
   const { data: employees, loading: loadingEmployees } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from('hr_employees')
         .select('id, first_name, last_name, full_name, status')
         .eq('status', 'active')
         .order('full_name', { ascending: true });
+      query = applyCompanyScope(query);
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    { deps: [user], defaultData: [], enabled: !!user }
+    { deps: [user, activeCompanyId], defaultData: [], enabled: !!user }
   );
 
   // --- Work calendars ---
-  // RLS policies handle access — no client-side company filter needed
   const { data: workCalendars } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      const { data, error } = await supabase.from('hr_work_calendars').select('*').order('name', { ascending: true });
+      let query = supabase.from('hr_work_calendars').select('*').order('name', { ascending: true });
+      query = applyCompanyScope(query);
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    { deps: [user], defaultData: [], enabled: !!user }
+    { deps: [user, activeCompanyId], defaultData: [], enabled: !!user }
   );
 
   // --- CRUD operations ---
