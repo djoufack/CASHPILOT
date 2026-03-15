@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -8,7 +7,7 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useAccounting = () => {
   const { user } = useAuth();
-  const { applyCompanyScope, withCompanyScope, activeCompanyId } = useCompanyScope();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -18,10 +17,7 @@ export const useAccounting = () => {
   const fetchAccounts = useCallback(async () => {
     if (!user) return;
     try {
-      let query = supabase
-        .from('accounting_chart_of_accounts')
-        .select('*')
-        .order('account_code', { ascending: true });
+      let query = supabase.from('accounting_chart_of_accounts').select('*').order('account_code', { ascending: true });
       query = applyCompanyScope(query, { includeUnassigned: false });
       const { data, error } = await query;
       if (error) throw error;
@@ -36,7 +32,7 @@ export const useAccounting = () => {
     try {
       const validation = validateChartOfAccountsImport([accountData], { existingAccounts: accounts });
       if (!validation.canImport) {
-        const error = new Error(validation.blockingIssues[0]?.message || "Le compte ne peut pas être créé");
+        const error = new Error(validation.blockingIssues[0]?.message || 'Le compte ne peut pas être créé');
         error.validation = validation;
         throw error;
       }
@@ -48,16 +44,17 @@ export const useAccounting = () => {
         .single();
 
       if (error) throw error;
-      setAccounts(prev => [...prev, data].sort((a, b) => a.account_code.localeCompare(b.account_code)));
+      setAccounts((prev) => [...prev, data].sort((a, b) => a.account_code.localeCompare(b.account_code)));
       toast({
-        title: "Success",
-        description: validation.warnings.length > 0
-          ? `Account created with ${validation.warnings.length} warning(s) to review`
-          : "Account created successfully"
+        title: 'Success',
+        description:
+          validation.warnings.length > 0
+            ? `Account created with ${validation.warnings.length} warning(s) to review`
+            : 'Account created successfully',
       });
       return data;
     } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -72,7 +69,7 @@ export const useAccounting = () => {
       const otherAccounts = accounts.filter((account) => account.id !== id);
       const validation = validateChartOfAccountsImport([nextAccount], { existingAccounts: otherAccounts });
       if (!validation.canImport) {
-        const error = new Error(validation.blockingIssues[0]?.message || "Le compte ne peut pas être mis à jour");
+        const error = new Error(validation.blockingIssues[0]?.message || 'Le compte ne peut pas être mis à jour');
         error.validation = validation;
         throw error;
       }
@@ -85,16 +82,17 @@ export const useAccounting = () => {
         .single();
 
       if (error) throw error;
-      setAccounts(prev => prev.map(a => a.id === id ? data : a));
+      setAccounts((prev) => prev.map((a) => (a.id === id ? data : a)));
       toast({
-        title: "Success",
-        description: validation.warnings.length > 0
-          ? `Account updated with ${validation.warnings.length} warning(s) to review`
-          : "Account updated successfully"
+        title: 'Success',
+        description:
+          validation.warnings.length > 0
+            ? `Account updated with ${validation.warnings.length} warning(s) to review`
+            : 'Account updated successfully',
       });
       return data;
     } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -105,10 +103,10 @@ export const useAccounting = () => {
     try {
       const { error } = await supabase.from('accounting_chart_of_accounts').delete().eq('id', id);
       if (error) throw error;
-      setAccounts(prev => prev.filter(a => a.id !== id));
-      toast({ title: "Succès", description: "Compte supprimé" });
+      setAccounts((prev) => prev.filter((a) => a.id !== id));
+      toast({ title: 'Succès', description: 'Compte supprimé' });
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
     }
   };
 
@@ -123,10 +121,12 @@ export const useAccounting = () => {
         throw error;
       }
 
-      const payload = accountsArray.map(a => withCompanyScope({
-        ...a,
-        user_id: user.id
-      }));
+      const payload = accountsArray.map((a) =>
+        withCompanyScope({
+          ...a,
+          user_id: user.id,
+        })
+      );
 
       const { data, error } = await supabase
         .from('accounting_chart_of_accounts')
@@ -136,14 +136,15 @@ export const useAccounting = () => {
       if (error) throw error;
       await fetchAccounts();
       toast({
-        title: "Succès",
-        description: validation.warnings.length > 0
-          ? `${data?.length || 0} comptes importés, ${validation.warnings.length} point(s) à vérifier`
-          : `${data?.length || 0} comptes importés`
+        title: 'Succès',
+        description:
+          validation.warnings.length > 0
+            ? `${data?.length || 0} comptes importés, ${validation.warnings.length} point(s) à vérifier`
+            : `${data?.length || 0} comptes importés`,
       });
       return { count: data?.length || 0, validation };
     } catch (err) {
-      toast({ title: "Erreur d'import", description: err.message, variant: "destructive" });
+      toast({ title: "Erreur d'import", description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -156,31 +157,30 @@ export const useAccounting = () => {
   const fetchMappings = useCallback(async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('accounting_mappings')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let query = supabase.from('accounting_mappings').select('*').order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: true });
+      const { data, error } = await query;
       if (error) throw error;
       setMappings(data || []);
     } catch (err) {
       console.error(err);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   const createMapping = async (mappingData) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('accounting_mappings')
-        .insert([{ ...mappingData, user_id: user.id }])
+        .insert([withCompanyScope({ ...mappingData, user_id: user.id })])
         .select()
         .single();
       if (error) throw error;
-      setMappings(prev => [data, ...prev]);
-      toast({ title: "Success", description: "Mapping created" });
+      setMappings((prev) => [data, ...prev]);
+      toast({ title: 'Success', description: 'Mapping created' });
       return data;
     } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -189,18 +189,13 @@ export const useAccounting = () => {
   const updateMapping = async (id, updates) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('accounting_mappings')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const { data, error } = await supabase.from('accounting_mappings').update(updates).eq('id', id).select().single();
       if (error) throw error;
-      setMappings(prev => prev.map(m => m.id === id ? data : m));
-      toast({ title: "Succès", description: "Mapping mis à jour" });
+      setMappings((prev) => prev.map((m) => (m.id === id ? data : m)));
+      toast({ title: 'Succès', description: 'Mapping mis à jour' });
       return data;
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -210,10 +205,12 @@ export const useAccounting = () => {
     if (!user || !mappingsArray?.length) return { count: 0 };
     setLoading(true);
     try {
-      const payload = mappingsArray.map(m => ({
-        ...m,
-        user_id: user.id
-      }));
+      const payload = mappingsArray.map((m) =>
+        withCompanyScope({
+          ...m,
+          user_id: user.id,
+        })
+      );
 
       const { data, error } = await supabase
         .from('accounting_mappings')
@@ -222,10 +219,10 @@ export const useAccounting = () => {
 
       if (error) throw error;
       await fetchMappings();
-      toast({ title: "Succès", description: `${data?.length || 0} mappings importés` });
+      toast({ title: 'Succès', description: `${data?.length || 0} mappings importés` });
       return { count: data?.length || 0 };
     } catch (err) {
-      toast({ title: "Erreur d'import", description: err.message, variant: "destructive" });
+      toast({ title: "Erreur d'import", description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -236,10 +233,10 @@ export const useAccounting = () => {
     try {
       const { error } = await supabase.from('accounting_mappings').delete().eq('id', id);
       if (error) throw error;
-      setMappings(prev => prev.filter(m => m.id !== id));
-      toast({ title: "Succès", description: "Mapping supprimé" });
+      setMappings((prev) => prev.filter((m) => m.id !== id));
+      toast({ title: 'Succès', description: 'Mapping supprimé' });
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
     }
   };
 
@@ -249,31 +246,30 @@ export const useAccounting = () => {
   const fetchTaxRates = useCallback(async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('accounting_tax_rates')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let query = supabase.from('accounting_tax_rates').select('*').order('created_at', { ascending: false });
+      query = applyCompanyScope(query, { includeUnassigned: true });
+      const { data, error } = await query;
       if (error) throw error;
       setTaxRates(data || []);
     } catch (err) {
       console.error(err);
     }
-  }, [user]);
+  }, [applyCompanyScope, user]);
 
   const createTaxRate = async (taxData) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('accounting_tax_rates')
-        .insert([{ ...taxData, user_id: user.id }])
+        .insert([withCompanyScope({ ...taxData, user_id: user.id })])
         .select()
         .single();
       if (error) throw error;
-      setTaxRates(prev => [data, ...prev]);
-      toast({ title: "Success", description: "Tax Rate created" });
+      setTaxRates((prev) => [data, ...prev]);
+      toast({ title: 'Success', description: 'Tax Rate created' });
       return data;
     } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -289,11 +285,11 @@ export const useAccounting = () => {
         .select()
         .single();
       if (error) throw error;
-      setTaxRates(prev => prev.map(t => t.id === id ? data : t));
-      toast({ title: "Succès", description: "Taux mis à jour" });
+      setTaxRates((prev) => prev.map((t) => (t.id === id ? data : t)));
+      toast({ title: 'Succès', description: 'Taux mis à jour' });
       return data;
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -303,18 +299,18 @@ export const useAccounting = () => {
     try {
       const { error } = await supabase.from('accounting_tax_rates').delete().eq('id', id);
       if (error) throw error;
-      setTaxRates(prev => prev.filter(t => t.id !== id));
-      toast({ title: "Succès", description: "Taux supprimé" });
+      setTaxRates((prev) => prev.filter((t) => t.id !== id));
+      toast({ title: 'Succès', description: 'Taux supprimé' });
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
     }
   };
 
   // --- Entries (Dashboard) ---
   const [entries, setEntries] = useState([]);
-  
+
   const fetchEntries = useCallback(async () => {
-    if(!user) return;
+    if (!user) return;
     try {
       let query = supabase
         .from('accounting_entries')
@@ -326,15 +322,30 @@ export const useAccounting = () => {
       if (error) throw error;
       setEntries(data || []);
     } catch (err) {
-       console.error(err);
+      console.error(err);
     }
   }, [applyCompanyScope, user]);
 
   return {
     loading,
-    accounts, fetchAccounts, createAccount, updateAccount, deleteAccount, bulkCreateAccounts,
-    mappings, fetchMappings, createMapping, updateMapping, deleteMapping, bulkCreateMappings,
-    taxRates, fetchTaxRates, createTaxRate, updateTaxRate, deleteTaxRate,
-    entries, fetchEntries
+    accounts,
+    fetchAccounts,
+    createAccount,
+    updateAccount,
+    deleteAccount,
+    bulkCreateAccounts,
+    mappings,
+    fetchMappings,
+    createMapping,
+    updateMapping,
+    deleteMapping,
+    bulkCreateMappings,
+    taxRates,
+    fetchTaxRates,
+    createTaxRate,
+    updateTaxRate,
+    deleteTaxRate,
+    entries,
+    fetchEntries,
   };
 };
