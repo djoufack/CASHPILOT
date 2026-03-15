@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import HrCrossNav from '@/components/hr/HrCrossNav';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -71,8 +72,7 @@ const EMPTY = {
 
 const EmployeesPage = () => {
   const { toast } = useToast();
-  const { loading, employees, departments, contracts, skills, createEmployee, updateEmployee, deleteEmployee } =
-    useEmployees();
+  const { loading, employees, departments, createEmployee, updateEmployee, deleteEmployee } = useEmployees();
 
   const [activeTab, setActiveTab] = useState('list');
   const [search, setSearch] = useState('');
@@ -84,8 +84,6 @@ const EmployeesPage = () => {
   const [saving, setSaving] = useState(false);
 
   /* Derived data */
-  const deptMap = useMemo(() => Object.fromEntries(departments.map((d) => [d.id, d])), [departments]);
-
   const filtered = useMemo(() => {
     let list = employees;
     if (statusFilter !== 'all') list = list.filter((e) => e.status === statusFilter);
@@ -103,25 +101,20 @@ const EmployeesPage = () => {
   }, [employees, statusFilter, deptFilter, search]);
 
   const selected = useMemo(() => employees.find((e) => e.id === selectedId) || null, [employees, selectedId]);
-  const selContracts = useMemo(
-    () => (selectedId ? contracts.filter((c) => c.employee_id === selectedId) : []),
-    [contracts, selectedId]
-  );
-  const selSkills = useMemo(
-    () => (selectedId ? skills.filter((s) => s.employee_id === selectedId) : []),
-    [skills, selectedId]
-  );
+  const selContracts = selected?.contracts ?? [];
+  const selSkills = selected?.skills ?? [];
 
   const orgTree = useMemo(() => {
     const tree = {};
     const none = { id: '__none__', name: 'Sans departement' };
     for (const emp of employees) {
-      const did = emp.department_id || '__none__';
-      if (!tree[did]) tree[did] = { dept: deptMap[did] || none, emps: [] };
-      tree[did].emps.push(emp);
+      const dept = emp.department || none;
+      const key = dept.id || '__none__';
+      if (!tree[key]) tree[key] = { dept, emps: [] };
+      tree[key].emps.push(emp);
     }
     return Object.values(tree).sort((a, b) => a.dept.name.localeCompare(b.dept.name));
-  }, [employees, deptMap]);
+  }, [employees]);
 
   /* Actions */
   const openDetail = (emp) => {
@@ -196,6 +189,8 @@ const EmployeesPage = () => {
       <Helmet>
         <title>Employes | CashPilot</title>
       </Helmet>
+
+      <HrCrossNav variant="drh" />
 
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -306,7 +301,7 @@ const EmployeesPage = () => {
                           <td className="px-4 py-3 text-white font-mono">{emp.employee_number || '-'}</td>
                           <td className="px-4 py-3 text-white font-medium">{emp.full_name || '-'}</td>
                           <td className="px-4 py-3 text-gray-300">{emp.job_title || '-'}</td>
-                          <td className="px-4 py-3 text-gray-300">{deptMap[emp.department_id]?.name || '-'}</td>
+                          <td className="px-4 py-3 text-gray-300">{emp.department?.name || '-'}</td>
                           <td className="px-4 py-3">
                             <Badge status={emp.status} />
                           </td>
@@ -386,13 +381,13 @@ const EmployeesPage = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {deptMap[selected.department_id] ? (
+                    {selected.department ? (
                       <div className="space-y-3">
                         <Info label="Nom">
-                          <span className="font-medium">{deptMap[selected.department_id].name}</span>
+                          <span className="font-medium">{selected.department.name}</span>
                         </Info>
                         <Info label="Description">
-                          <span className="text-gray-300">{deptMap[selected.department_id].description || '-'}</span>
+                          <span className="text-gray-300">{selected.department.description || '-'}</span>
                         </Info>
                       </div>
                     ) : (

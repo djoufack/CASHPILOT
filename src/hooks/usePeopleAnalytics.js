@@ -1,83 +1,68 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { supabaseUrl, supabaseAnonKey } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
-import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
-
-const callEdgeFunction = async (session, action, activeCompanyId, params = {}) => {
-  const response = await fetch(`${supabaseUrl}/functions/v1/ai-hr-analytics`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session?.access_token}`,
-      apikey: supabaseAnonKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action, activeCompanyId, ...params }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`HTTP ${response.status}: ${errorText}`);
-  }
-
-  return response.json();
-};
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const usePeopleAnalytics = () => {
   const { user } = useAuth();
-  const activeCompanyId = useActiveCompanyId();
+  const { activeCompanyId } = useCompanyScope();
 
-  // Turnover risk
   const [turnoverRisk, setTurnoverRisk] = useState({ loading: false, error: null, data: null });
-  // Absenteeism forecast
   const [absenteeism, setAbsenteeism] = useState({ loading: false, error: null, data: null });
-  // Headcount forecast
   const [headcountForecast, setHeadcountForecast] = useState({ loading: false, error: null, data: null });
-  // Salary benchmark
   const [salaryBenchmark, setSalaryBenchmark] = useState({ loading: false, error: null, data: null });
 
   const fetchTurnoverRisk = useCallback(async () => {
-    if (!user) return;
+    if (!user || !activeCompanyId) return;
     setTurnoverRisk((prev) => ({ ...prev, loading: true, error: null }));
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const result = await callEdgeFunction(session, 'turnover_risk', activeCompanyId);
-      setTurnoverRisk({ loading: false, error: null, data: result });
+      const { data, error } = await supabase.rpc('fn_hr_turnover_risk', { p_company_id: activeCompanyId });
+      if (error) throw error;
+      const employees = (data || []).map((r) => ({
+        id: r.employee_id,
+        name: r.employee_name,
+        department: r.department,
+        risk_score: r.risk_score,
+        risk_factors: r.risk_factors,
+      }));
+      setTurnoverRisk({ loading: false, error: null, data: { employees } });
     } catch (err) {
-      console.error('fetchTurnoverRisk error:', err);
       setTurnoverRisk({ loading: false, error: err.message, data: null });
     }
   }, [user, activeCompanyId]);
 
   const fetchAbsenteeism = useCallback(async () => {
-    if (!user) return;
+    if (!user || !activeCompanyId) return;
     setAbsenteeism((prev) => ({ ...prev, loading: true, error: null }));
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const result = await callEdgeFunction(session, 'absenteeism_forecast', activeCompanyId);
-      setAbsenteeism({ loading: false, error: null, data: result });
+      const { data, error } = await supabase.rpc('fn_hr_absenteeism_forecast', { p_company_id: activeCompanyId });
+      if (error) throw error;
+      setAbsenteeism({ loading: false, error: null, data: { departments: data || [] } });
     } catch (err) {
-      console.error('fetchAbsenteeism error:', err);
       setAbsenteeism({ loading: false, error: err.message, data: null });
     }
   }, [user, activeCompanyId]);
 
   const fetchHeadcountForecast = useCallback(
     async (scenario = 'baseline') => {
-      if (!user) return;
+      if (!user || !activeCompanyId) return;
       setHeadcountForecast((prev) => ({ ...prev, loading: true, error: null }));
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const result = await callEdgeFunction(session, 'headcount_forecast', activeCompanyId, { scenario });
-        setHeadcountForecast({ loading: false, error: null, data: result });
+        const { data, error } = await supabase.rpc('fn_hr_headcount_forecast', {
+          p_scenario: scenario,
+          p_company_id: activeCompanyId,
+        });
+        if (error) throw error;
+        const departments = (data || []).map((r) => ({
+          department: r.department,
+          current: r.current_hc,
+          forecast_3m: r.forecast_3m,
+          forecast_6m: r.forecast_6m,
+          forecast_12m: r.forecast_12m,
+          variation: r.variation,
+        }));
+        setHeadcountForecast({ loading: false, error: null, data: { departments } });
       } catch (err) {
-        console.error('fetchHeadcountForecast error:', err);
         setHeadcountForecast({ loading: false, error: err.message, data: null });
       }
     },
@@ -85,21 +70,25 @@ export const usePeopleAnalytics = () => {
   );
 
   const fetchSalaryBenchmark = useCallback(async () => {
-    if (!user) return;
+    if (!user || !activeCompanyId) return;
     setSalaryBenchmark((prev) => ({ ...prev, loading: true, error: null }));
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const result = await callEdgeFunction(session, 'salary_benchmark', activeCompanyId);
-      setSalaryBenchmark({ loading: false, error: null, data: result });
+      const { data, error } = await supabase.rpc('fn_hr_salary_benchmark', { p_company_id: activeCompanyId });
+      if (error) throw error;
+      const jobs = (data || []).map((r) => ({
+        title: r.title,
+        min: Math.round(Number(r.min_salary)),
+        p25: Math.round(Number(r.p25)),
+        p50: Math.round(Number(r.p50)),
+        p75: Math.round(Number(r.p75)),
+        max: Math.round(Number(r.max_salary)),
+      }));
+      setSalaryBenchmark({ loading: false, error: null, data: { jobs } });
     } catch (err) {
-      console.error('fetchSalaryBenchmark error:', err);
       setSalaryBenchmark({ loading: false, error: err.message, data: null });
     }
   }, [user, activeCompanyId]);
 
-  // Auto-fetch on mount for turnover_risk and absenteeism_forecast
   useEffect(() => {
     fetchTurnoverRisk();
     fetchAbsenteeism();

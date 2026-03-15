@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useCashFlow } from '@/hooks/useCashFlow';
@@ -14,16 +14,7 @@ import {
   Loader2,
   Calendar,
 } from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 const CashFlowPage = () => {
   const { t } = useTranslation();
@@ -33,7 +24,7 @@ const CashFlowPage = () => {
   const forecastData = useMemo(() => forecast(3), [forecast]);
 
   const combinedData = useMemo(() => {
-    const historical = cashFlowData.map(d => ({ ...d, isForecast: false }));
+    const historical = cashFlowData.map((d) => ({ ...d, isForecast: false }));
     return [...historical, ...forecastData];
   }, [cashFlowData, forecastData]);
 
@@ -52,12 +43,8 @@ const CashFlowPage = () => {
         <p className="text-white font-semibold mb-2">
           {formatMonth(label)} {data?.isForecast ? '(Forecast)' : ''}
         </p>
-        <p className="text-green-400 text-sm">
-          Income: {formatCurrency(data?.income || 0)}
-        </p>
-        <p className="text-red-400 text-sm">
-          Expenses: {formatCurrency(data?.expenses || 0)}
-        </p>
+        <p className="text-green-400 text-sm">Income: {formatCurrency(data?.income || 0)}</p>
+        <p className="text-red-400 text-sm">Expenses: {formatCurrency(data?.expenses || 0)}</p>
         <p className={`text-sm font-semibold mt-1 ${(data?.net || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
           Net: {formatCurrency(data?.net || 0)}
         </p>
@@ -102,9 +89,7 @@ const CashFlowPage = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">
-              Cash Flow
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">Cash Flow</h1>
             <p className="text-gray-400 text-sm md:text-base">
               Track your income, expenses, and net cash flow over time
             </p>
@@ -116,9 +101,7 @@ const CashFlowPage = () => {
                   key={m}
                   onClick={() => setPeriod(m)}
                   className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                    period === m
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                    period === m ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'
                   }`}
                 >
                   {m}M
@@ -130,11 +113,7 @@ const CashFlowPage = () => {
               disabled={loading}
               className="bg-gray-800 hover:bg-gray-700 text-white border border-gray-700"
             >
-              {loading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
+              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
               Refresh
             </Button>
           </div>
@@ -153,12 +132,8 @@ const CashFlowPage = () => {
                   <card.icon className={`w-5 h-5 ${card.color}`} />
                 </div>
               </div>
-              <p className={`text-2xl font-bold ${card.color}`}>
-                {formatCurrency(card.value)}
-              </p>
-              <p className="text-gray-500 text-xs mt-1">
-                Last {period} months
-              </p>
+              <p className={`text-2xl font-bold ${card.color}`}>{formatCurrency(card.value)}</p>
+              <p className="text-gray-500 text-xs mt-1">Last {period} months</p>
             </div>
           ))}
         </div>
@@ -174,43 +149,20 @@ const CashFlowPage = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={combinedData} barCategoryGap="15%">
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis
-                    dataKey="month"
-                    stroke="#9CA3AF"
-                    fontSize={12}
-                    tickFormatter={formatMonth}
-                  />
+                  <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} tickFormatter={formatMonth} />
                   <YAxis stroke="#9CA3AF" fontSize={12} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend
                     wrapperStyle={{ color: '#9CA3AF' }}
-                    formatter={(value) =>
-                      value === 'income' ? 'Income' : value === 'expenses' ? 'Expenses' : value
-                    }
+                    formatter={(value) => (value === 'income' ? 'Income' : value === 'expenses' ? 'Expenses' : value)}
                   />
-                  <Bar
-                    dataKey="income"
-                    name="income"
-                    fill="#10B981"
-                    radius={[4, 4, 0, 0]}
-                    opacity={1}
-                  />
-                  <Bar
-                    dataKey="expenses"
-                    name="expenses"
-                    fill="#EF4444"
-                    radius={[4, 4, 0, 0]}
-                    opacity={1}
-                  />
+                  <Bar dataKey="income" name="income" fill="#10B981" radius={[4, 4, 0, 0]} opacity={1} />
+                  <Bar dataKey="expenses" name="expenses" fill="#EF4444" radius={[4, 4, 0, 0]} opacity={1} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">
-                {loading ? (
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                ) : (
-                  'No data available for the selected period'
-                )}
+                {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : 'No data available for the selected period'}
               </div>
             )}
           </div>
@@ -228,34 +180,21 @@ const CashFlowPage = () => {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {forecastData.map((month) => (
-                <div
-                  key={month.month}
-                  className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-4"
-                >
-                  <p className="text-gray-300 font-semibold mb-3 text-center">
-                    {formatMonth(month.month)}
-                  </p>
+                <div key={month.month} className="bg-gray-800/50 rounded-lg border border-gray-700/50 p-4">
+                  <p className="text-gray-300 font-semibold mb-3 text-center">{formatMonth(month.month)}</p>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 text-sm">Income</span>
-                      <span className="text-green-400 font-medium">
-                        {formatCurrency(month.income)}
-                      </span>
+                      <span className="text-green-400 font-medium">{formatCurrency(month.income)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 text-sm">Expenses</span>
-                      <span className="text-red-400 font-medium">
-                        {formatCurrency(month.expenses)}
-                      </span>
+                      <span className="text-red-400 font-medium">{formatCurrency(month.expenses)}</span>
                     </div>
                     <div className="border-t border-gray-700 pt-2 mt-2">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-300 text-sm font-semibold">Net</span>
-                        <span
-                          className={`font-bold ${
-                            month.net >= 0 ? 'text-emerald-400' : 'text-red-400'
-                          }`}
-                        >
+                        <span className={`font-bold ${month.net >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                           {formatCurrency(month.net)}
                         </span>
                       </div>
@@ -278,12 +217,7 @@ const CashFlowPage = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={cashFlowData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis
-                    dataKey="month"
-                    stroke="#9CA3AF"
-                    fontSize={12}
-                    tickFormatter={formatMonth}
-                  />
+                  <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} tickFormatter={formatMonth} />
                   <YAxis stroke="#9CA3AF" fontSize={12} />
                   <Tooltip
                     contentStyle={{
@@ -294,28 +228,16 @@ const CashFlowPage = () => {
                     formatter={(value) => [formatCurrency(value), 'Net']}
                     labelFormatter={formatMonth}
                   />
-                  <Bar
-                    dataKey="net"
-                    name="Net Cash Flow"
-                    radius={[4, 4, 0, 0]}
-                    fill="#3B82F6"
-                  >
+                  <Bar dataKey="net" name="Net Cash Flow" radius={[4, 4, 0, 0]} fill="#3B82F6">
                     {cashFlowData.map((entry, index) => (
-                      <rect
-                        key={`cell-${index}`}
-                        fill={entry.net >= 0 ? '#10B981' : '#EF4444'}
-                      />
+                      <Cell key={`cell-${index}`} fill={entry.net >= 0 ? '#10B981' : '#EF4444'} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">
-                {loading ? (
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                ) : (
-                  'No data available'
-                )}
+                {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : 'No data available'}
               </div>
             )}
           </div>

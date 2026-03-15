@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import HrCrossNav from '@/components/hr/HrCrossNav';
 
 const formatCurrency = (value, currency = 'EUR') =>
   new Intl.NumberFormat('fr-FR', {
@@ -737,8 +738,9 @@ const HrMaterialPage = () => {
       </Helmet>
 
       <div className="container mx-auto space-y-6">
+        <HrCrossNav variant="resources" />
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gradient">RH & Matériel</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gradient">Ressources Projets</h1>
           <p className="text-gray-400 mt-2">
             Distinction claire des ressources internes, des fournisseurs externes, des coûts projet et de la
             journalisation comptable.

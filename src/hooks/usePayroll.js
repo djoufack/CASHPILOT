@@ -12,7 +12,7 @@ const toNumber = (value) => {
 export function usePayroll() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const { activeCompanyId, withCompanyScope } = useCompanyScope();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -21,7 +21,6 @@ export function usePayroll() {
   const [anomalies, setAnomalies] = useState([]);
   const [exports, setExports] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [contracts, setContracts] = useState([]);
 
   const fetchData = useCallback(async () => {
     if (!user || !supabase) return;
@@ -30,57 +29,47 @@ export function usePayroll() {
     setError(null);
 
     try {
-      let periodsQuery = supabase
+      // RLS policies handle access — no client-side company filter needed
+
+      const periodsQuery = supabase
         .from('hr_payroll_periods')
         .select('*')
         .order('period_start', { ascending: false })
         .limit(60);
 
-      let variableItemsQuery = supabase
+      const variableItemsQuery = supabase
         .from('hr_payroll_variable_items')
-        .select('*')
+        .select('*, employee:hr_employees!employee_id(id, full_name)')
         .order('created_at', { ascending: false })
         .limit(500);
 
-      let anomaliesQuery = supabase
+      const anomaliesQuery = supabase
         .from('hr_payroll_anomalies')
-        .select('*')
+        .select('*, employee:hr_employees!employee_id(id, full_name)')
         .order('created_at', { ascending: false })
         .limit(300);
 
-      let exportsQuery = supabase
+      const exportsQuery = supabase
         .from('hr_payroll_exports')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(120);
 
-      let employeesQuery = supabase
+      const employeesQuery = supabase
         .from('hr_employees')
-        .select('id, company_id, first_name, last_name, full_name, status, hire_date')
+        .select(
+          'id, company_id, first_name, last_name, full_name, status, hire_date, department_id, cost_center_id, contracts:hr_employee_contracts(id, contract_type, monthly_salary, hourly_rate, pay_basis, status)'
+        )
         .eq('status', 'active')
-        .order('last_name', { ascending: true });
+        .order('full_name');
 
-      let contractsQuery = supabase
-        .from('hr_employee_contracts')
-        .select('id, employee_id, company_id, contract_type, monthly_salary, hourly_rate')
-        .order('created_at', { ascending: false });
-
-      periodsQuery = applyCompanyScope(periodsQuery);
-      variableItemsQuery = applyCompanyScope(variableItemsQuery);
-      anomaliesQuery = applyCompanyScope(anomaliesQuery);
-      exportsQuery = applyCompanyScope(exportsQuery);
-      employeesQuery = applyCompanyScope(employeesQuery);
-      contractsQuery = applyCompanyScope(contractsQuery);
-
-      const [periodsResult, variableItemsResult, anomaliesResult, exportsResult, employeesResult, contractsResult] =
-        await Promise.all([
-          periodsQuery,
-          variableItemsQuery,
-          anomaliesQuery,
-          exportsQuery,
-          employeesQuery,
-          contractsQuery,
-        ]);
+      const [periodsResult, variableItemsResult, anomaliesResult, exportsResult, employeesResult] = await Promise.all([
+        periodsQuery,
+        variableItemsQuery,
+        anomaliesQuery,
+        exportsQuery,
+        employeesQuery,
+      ]);
 
       const firstError = [
         periodsResult.error,
@@ -88,7 +77,6 @@ export function usePayroll() {
         anomaliesResult.error,
         exportsResult.error,
         employeesResult.error,
-        contractsResult.error,
       ].find(Boolean);
 
       if (firstError) throw firstError;
@@ -98,7 +86,6 @@ export function usePayroll() {
       setAnomalies(anomaliesResult.data || []);
       setExports(exportsResult.data || []);
       setEmployees(employeesResult.data || []);
-      setContracts(contractsResult.data || []);
     } catch (err) {
       setError(err.message || 'Impossible de charger le module Paie');
       toast({
@@ -109,7 +96,7 @@ export function usePayroll() {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]);
+  }, [toast, user]);
 
   const createPayrollPeriod = useCallback(
     async (payload) => {
@@ -285,7 +272,6 @@ export function usePayroll() {
     anomalies,
     exports,
     employees,
-    contracts,
     fetchData,
     createPayrollPeriod,
     updatePayrollPeriod,

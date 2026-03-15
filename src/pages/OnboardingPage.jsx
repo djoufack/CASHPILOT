@@ -43,8 +43,8 @@ const getEmployeeLabel = (emp) =>
 
 const STATUS_MAP = {
   active: { label: 'Actif', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-  completed: { label: 'Termin\u00e9', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-  cancelled: { label: 'Annul\u00e9', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  completed: { label: 'Terminé', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+  cancelled: { label: 'Annulé', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
   paused: { label: 'En pause', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
 };
 
@@ -176,21 +176,19 @@ const OnboardingPage = () => {
           <CardContent className="p-5">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <div>
-                <p className="text-xs text-gray-500 mb-1">Employ\u00e9</p>
+                <p className="text-xs text-gray-500 mb-1">Employé</p>
                 <p className="text-sm text-white font-medium">{getEmployeeLabel(emp)}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Mentor</p>
-                <p className="text-sm text-white font-medium">
-                  {mentor ? getEmployeeLabel(mentor) : 'Non assign\u00e9'}
-                </p>
+                <p className="text-sm text-white font-medium">{mentor ? getEmployeeLabel(mentor) : 'Non assigné'}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Jours restants</p>
                 <p
                   className={`text-sm font-medium ${daysLeft != null && daysLeft <= 5 ? 'text-red-400' : 'text-white'}`}
                 >
-                  {daysLeft != null ? (daysLeft > 0 ? `${daysLeft} jours` : 'Termin\u00e9') : '-'}
+                  {daysLeft != null ? (daysLeft > 0 ? `${daysLeft} jours` : 'Terminé') : '-'}
                 </p>
               </div>
             </div>
@@ -208,13 +206,13 @@ const OnboardingPage = () => {
         <Card className="bg-white/5 border-white/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-base text-white flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-orange-400" /> T\u00e2ches (
-              {tasks.filter((t) => t.completed).length}/{tasks.length})
+              <ClipboardList className="w-4 h-4 text-orange-400" /> Tâches ({tasks.filter((t) => t.completed).length}/
+              {tasks.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {tasks.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">Aucune t\u00e2che d\u00e9finie pour ce plan.</p>
+              <p className="text-sm text-gray-500 text-center py-8">Aucune tâche définie pour ce plan.</p>
             ) : (
               <div className="divide-y divide-white/5">
                 {tasks.map((task, idx) => (
@@ -234,7 +232,7 @@ const OnboardingPage = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm ${task.completed ? 'text-gray-500 line-through' : 'text-white'}`}>
-                        {task.label || `T\u00e2che ${idx + 1}`}
+                        {task.label || `Tâche ${idx + 1}`}
                       </p>
                     </div>
                     <Checkbox
@@ -253,10 +251,10 @@ const OnboardingPage = () => {
         {/* Dates info */}
         <div className="flex items-center gap-4 text-xs text-gray-500">
           <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3" /> D\u00e9but : {formatDate(selectedPlan.start_date)}
+            <Clock className="w-3 h-3" /> Début : {formatDate(selectedPlan.start_date)}
           </span>
-          <span>Dur\u00e9e : {selectedPlan.duration_days || '-'} jours</span>
-          <span>Cr\u00e9\u00e9 le {formatDate(selectedPlan.created_at)}</span>
+          <span>Durée : {selectedPlan.duration_days || '-'} jours</span>
+          <span>Créé le {formatDate(selectedPlan.created_at)}</span>
         </div>
       </div>
     );
@@ -288,7 +286,7 @@ const OnboardingPage = () => {
       {filteredPlans.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>Aucun plan d'onboarding trouv\u00e9</p>
+          <p>Aucun plan d'onboarding trouvé</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -330,7 +328,7 @@ const OnboardingPage = () => {
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-gray-500">
-                        {completedTasks}/{tasks.length} t\u00e2ches
+                        {completedTasks}/{tasks.length} tâches
                       </span>
                       <span className="text-orange-400 font-semibold">{plan.progress_pct || 0}%</span>
                     </div>
@@ -339,12 +337,12 @@ const OnboardingPage = () => {
 
                   {/* Days remaining */}
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-600">D\u00e9but : {formatDate(plan.start_date)}</span>
+                    <span className="text-gray-600">Début : {formatDate(plan.start_date)}</span>
                     {daysLeft != null && (
                       <span
                         className={`font-medium ${daysLeft <= 5 ? 'text-red-400' : daysLeft <= 15 ? 'text-amber-400' : 'text-gray-400'}`}
                       >
-                        {daysLeft > 0 ? `${daysLeft}j restants` : 'D\u00e9lai d\u00e9pass\u00e9'}
+                        {daysLeft > 0 ? `${daysLeft}j restants` : 'Délai dépassé'}
                       </span>
                     )}
                   </div>
@@ -378,7 +376,7 @@ const OnboardingPage = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-white">Onboarding</h1>
-            <p className="text-sm text-gray-400 mt-1">Suivez l'int\u00e9gration de vos nouveaux collaborateurs.</p>
+            <p className="text-sm text-gray-400 mt-1">Suivez l'intégration de vos nouveaux collaborateurs.</p>
           </div>
         </div>
 
@@ -394,7 +392,7 @@ const OnboardingPage = () => {
           </Card>
           <Card className="bg-white/5 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-400">Termin\u00e9s</CardTitle>
+              <CardTitle className="text-sm text-gray-400">Terminés</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-emerald-400">{stats.completed}</p>
@@ -435,17 +433,17 @@ const OnboardingPage = () => {
                 value={newPlanForm.plan_name}
                 onChange={(e) => setNewPlanForm((f) => ({ ...f, plan_name: e.target.value }))}
                 className="bg-white/5 border-white/10 text-white mt-1"
-                placeholder="Onboarding D\u00e9veloppeur"
+                placeholder="Onboarding Développeur"
               />
             </div>
             <div>
-              <Label className="text-gray-300">Employ\u00e9 *</Label>
+              <Label className="text-gray-300">Employé *</Label>
               <Select
                 value={newPlanForm.employee_id}
                 onValueChange={(v) => setNewPlanForm((f) => ({ ...f, employee_id: v }))}
               >
                 <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
-                  <SelectValue placeholder="S\u00e9lectionner un employ\u00e9" />
+                  <SelectValue placeholder="Sélectionner un employé" />
                 </SelectTrigger>
                 <SelectContent>
                   {employees.map((emp) => (
@@ -463,7 +461,7 @@ const OnboardingPage = () => {
                 onValueChange={(v) => setNewPlanForm((f) => ({ ...f, mentor_employee_id: v }))}
               >
                 <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
-                  <SelectValue placeholder="S\u00e9lectionner un mentor (optionnel)" />
+                  <SelectValue placeholder="Sélectionner un mentor (optionnel)" />
                 </SelectTrigger>
                 <SelectContent>
                   {employees.map((emp) => (
@@ -476,7 +474,7 @@ const OnboardingPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-gray-300">Date de d\u00e9but</Label>
+                <Label className="text-gray-300">Date de début</Label>
                 <Input
                   type="date"
                   value={newPlanForm.start_date}
@@ -485,7 +483,7 @@ const OnboardingPage = () => {
                 />
               </div>
               <div>
-                <Label className="text-gray-300">Dur\u00e9e (jours)</Label>
+                <Label className="text-gray-300">Durée (jours)</Label>
                 <Input
                   type="number"
                   value={newPlanForm.duration_days}
@@ -496,13 +494,13 @@ const OnboardingPage = () => {
               </div>
             </div>
             <div>
-              <Label className="text-gray-300">T\u00e2ches (une par ligne)</Label>
+              <Label className="text-gray-300">Tâches (une par ligne)</Label>
               <textarea
                 value={newPlanForm.tasks}
                 onChange={(e) => setNewPlanForm((f) => ({ ...f, tasks: e.target.value }))}
                 className="mt-1 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/40 min-h-[100px] resize-y"
                 placeholder={
-                  "Accueil et visite des locaux\nConfiguration du poste de travail\nPr\u00e9sentation de l'\u00e9quipe\nFormation outils internes\nPoint d'\u00e9tape semaine 1"
+                  "Accueil et visite des locaux\nConfiguration du poste de travail\nPrésentation de l'équipe\nFormation outils internes\nPoint d'étape semaine 1"
                 }
                 rows={5}
               />
@@ -517,7 +515,7 @@ const OnboardingPage = () => {
               disabled={!newPlanForm.employee_id}
               className="bg-orange-500 hover:bg-orange-600 text-white"
             >
-              Cr\u00e9er le plan
+              Créer le plan
             </Button>
           </DialogFooter>
         </DialogContent>

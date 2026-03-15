@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -8,9 +8,10 @@ import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 export function useAbsences() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const { withCompanyScope } = useCompanyScope();
 
   // --- Leave requests (with employee join) ---
+  // RLS policies handle access — no client-side company filter needed
   const {
     data: leaveRequests,
     setData: setLeaveRequests,
@@ -20,17 +21,16 @@ export function useAbsences() {
   } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      let query = supabase
+      const { data, error } = await supabase
         .from('hr_leave_requests')
         .select(
           `
           *,
-          employee:hr_employees!employee_id(id, first_name, last_name, full_name, status)
+          employee:hr_employees!employee_id(id, first_name, last_name, full_name, status),
+          leave_type:hr_leave_types!leave_type_id(id, name, leave_code, is_paid, default_annual_entitlement)
         `
         )
         .order('created_at', { ascending: false });
-      query = applyCompanyScope(query);
-      const { data, error } = await query;
       if (error) {
         if (error.code === '42P17' || error.code === '42501') {
           console.warn('RLS error fetching leave requests:', error.message);
@@ -40,10 +40,11 @@ export function useAbsences() {
       }
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+    { deps: [user], defaultData: [], enabled: !!user }
   );
 
   // --- Leave types ---
+  // RLS policies handle access — no client-side company filter needed
   const {
     data: leaveTypes,
     loading: loadingTypes,
@@ -51,43 +52,39 @@ export function useAbsences() {
   } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      let query = supabase.from('hr_leave_types').select('*').order('name', { ascending: true });
-      query = applyCompanyScope(query);
-      const { data, error } = await query;
+      const { data, error } = await supabase.from('hr_leave_types').select('*').order('name', { ascending: true });
       if (error) throw error;
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+    { deps: [user], defaultData: [], enabled: !!user }
   );
 
   // --- Active employees ---
+  // RLS policies handle access — no client-side company filter needed
   const { data: employees, loading: loadingEmployees } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      let query = supabase
+      const { data, error } = await supabase
         .from('hr_employees')
         .select('id, first_name, last_name, full_name, status')
         .eq('status', 'active')
         .order('full_name', { ascending: true });
-      query = applyCompanyScope(query);
-      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+    { deps: [user], defaultData: [], enabled: !!user }
   );
 
   // --- Work calendars ---
+  // RLS policies handle access — no client-side company filter needed
   const { data: workCalendars } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      let query = supabase.from('hr_work_calendars').select('*').order('name', { ascending: true });
-      query = applyCompanyScope(query);
-      const { data, error } = await query;
+      const { data, error } = await supabase.from('hr_work_calendars').select('*').order('name', { ascending: true });
       if (error) throw error;
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+    { deps: [user], defaultData: [], enabled: !!user }
   );
 
   // --- CRUD operations ---
@@ -100,7 +97,7 @@ export function useAbsences() {
         leave_type_id: payload.leave_type_id,
         start_date: payload.start_date,
         end_date: payload.end_date,
-        days_count: Number(payload.days_count || 0),
+        total_days: Number(payload.total_days || payload.days_count || 0),
         status: 'pending',
         reason: payload.reason || null,
       });
@@ -111,8 +108,9 @@ export function useAbsences() {
         .select(
           `
         *,
-        employee:hr_employees!employee_id(id, first_name, last_name, full_name, status)
-      `
+        employee:hr_employees!employee_id(id, first_name, last_name, full_name, status),
+        leave_type:hr_leave_types!leave_type_id(id, name, leave_code, is_paid, default_annual_entitlement)
+`
         )
         .single();
 
@@ -133,8 +131,9 @@ export function useAbsences() {
         .select(
           `
         *,
-        employee:hr_employees!employee_id(id, first_name, last_name, full_name, status)
-      `
+        employee:hr_employees!employee_id(id, first_name, last_name, full_name, status),
+        leave_type:hr_leave_types!leave_type_id(id, name, leave_code, is_paid, default_annual_entitlement)
+`
         )
         .single();
 
@@ -153,16 +152,15 @@ export function useAbsences() {
         .update(
           withCompanyScope({
             status: 'approved',
-            approved_by: user.id,
-            approved_at: new Date().toISOString(),
           })
         )
         .eq('id', id)
         .select(
           `
         *,
-        employee:hr_employees!employee_id(id, first_name, last_name, full_name, status)
-      `
+        employee:hr_employees!employee_id(id, first_name, last_name, full_name, status),
+        leave_type:hr_leave_types!leave_type_id(id, name, leave_code, is_paid, default_annual_entitlement)
+`
         )
         .single();
 
@@ -183,8 +181,9 @@ export function useAbsences() {
         .select(
           `
         *,
-        employee:hr_employees!employee_id(id, first_name, last_name, full_name, status)
-      `
+        employee:hr_employees!employee_id(id, first_name, last_name, full_name, status),
+        leave_type:hr_leave_types!leave_type_id(id, name, leave_code, is_paid, default_annual_entitlement)
+`
         )
         .single();
 
@@ -205,8 +204,9 @@ export function useAbsences() {
         .select(
           `
         *,
-        employee:hr_employees!employee_id(id, first_name, last_name, full_name, status)
-      `
+        employee:hr_employees!employee_id(id, first_name, last_name, full_name, status),
+        leave_type:hr_leave_types!leave_type_id(id, name, leave_code, is_paid, default_annual_entitlement)
+`
         )
         .single();
 
@@ -217,56 +217,43 @@ export function useAbsences() {
     },
     [setLeaveRequests, toast, withCompanyScope]
   );
-  // --- Balance computation ---
-
-  const computeBalance = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const balanceMap = {};
-
-    employees.forEach((emp) => {
-      balanceMap[emp.id] = {};
-      leaveTypes.forEach((lt) => {
-        balanceMap[emp.id][lt.id] = {
-          employee: emp,
-          leaveType: lt,
-          entitled: lt.default_days_per_year || 0,
-          used: 0,
-          remaining: lt.default_days_per_year || 0,
-        };
+  // --- Leave balances from SQL function (replaces client-side computation) ---
+  const {
+    data: leaveBalances,
+    loading: loadingBalances,
+    refetch: refetchBalances,
+  } = useSupabaseQuery(
+    async () => {
+      if (!user || !supabase) return [];
+      const { data, error } = await supabase.rpc('fn_hr_leave_balance', {
+        p_year: new Date().getFullYear(),
       });
-    });
-
-    leaveRequests.forEach((req) => {
-      if (req.status !== 'approved' && req.status !== 'pending') return;
-      const reqYear = new Date(req.start_date).getFullYear();
-      if (reqYear !== currentYear) return;
-      const empBalance = balanceMap[req.employee_id];
-      if (!empBalance) return;
-      const typeBalance = empBalance[req.leave_type_id];
-      if (!typeBalance) return;
-      if (req.status === 'approved') {
-        typeBalance.used += req.days_count || 0;
-        typeBalance.remaining = typeBalance.entitled - typeBalance.used;
+      if (error) {
+        if (error.code === '42P17' || error.code === '42501') {
+          console.warn('RLS error fetching leave balances:', error.message);
+          return [];
+        }
+        throw error;
       }
-    });
+      return data || [];
+    },
+    { deps: [user], defaultData: [], enabled: !!user }
+  );
 
-    return balanceMap;
-  }, [employees, leaveTypes, leaveRequests]);
-
-  const loading = loadingRequests || loadingTypes || loadingEmployees;
+  const loading = loadingRequests || loadingTypes || loadingEmployees || loadingBalances;
 
   const refetch = useCallback(async () => {
-    await Promise.all([refetchRequests(), refetchTypes()]);
-  }, [refetchRequests, refetchTypes]);
+    await Promise.all([refetchRequests(), refetchTypes(), refetchBalances()]);
+  }, [refetchRequests, refetchTypes, refetchBalances]);
 
   return {
     leaveRequests,
     leaveTypes,
     employees,
     workCalendars,
+    leaveBalances,
     loading,
     error: errorRequests,
-    computeBalance,
     refetch,
     createLeaveRequest,
     updateLeaveRequest,

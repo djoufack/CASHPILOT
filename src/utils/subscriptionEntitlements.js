@@ -36,8 +36,15 @@ export const filterCategorizedNavigation = (categories, hasEntitlement) =>
       return isAllowed(category, hasEntitlement) ? [category] : [];
     }
 
-    const items = (category.items || []).filter((item) => isAllowed(item, hasEntitlement));
-    return items.length > 0 ? [{ ...category, items }] : [];
+    const items = (category.items || []).filter((item) => item.type === 'subgroup' || isAllowed(item, hasEntitlement));
+    // Remove subgroup labels that have no following items
+    const cleaned = items.filter((item, i) => {
+      if (item.type !== 'subgroup') return true;
+      // Keep subgroup only if the next item is NOT another subgroup (i.e. it has children)
+      const next = items[i + 1];
+      return next && next.type !== 'subgroup';
+    });
+    return cleaned.length > 0 ? [{ ...category, items: cleaned }] : [];
   });
 
 export const filterFlatNavigation = (items, hasEntitlement) => {
@@ -68,8 +75,7 @@ export const filterFlatNavigation = (items, hasEntitlement) => {
   return filtered;
 };
 
-export const filterEntitledItems = (items, hasEntitlement) =>
-  items.filter((item) => isAllowed(item, hasEntitlement));
+export const filterEntitledItems = (items, hasEntitlement) => items.filter((item) => isAllowed(item, hasEntitlement));
 
 export const getEntitlementPlanLabel = (featureKey) => ENTITLEMENT_PLANS[featureKey] || 'Premium';
 

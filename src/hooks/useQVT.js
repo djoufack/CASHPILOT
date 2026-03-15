@@ -7,11 +7,13 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 export function useQVT() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
+  // RLS policies handle access — no client-side company filter needed
+  const { activeCompanyId, withCompanyScope } = useCompanyScope();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [surveys, setSurveys] = useState([]);
+  const [surveyResponses, setSurveyResponses] = useState([]);
   const [riskAssessments, setRiskAssessments] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -24,6 +26,11 @@ export function useQVT() {
 
     try {
       let surveysQuery = supabase.from('hr_surveys').select('*').order('created_at', { ascending: false });
+
+      let surveyResponsesQuery = supabase
+        .from('hr_survey_responses')
+        .select('*, survey:hr_surveys!survey_id(id, title), respondent:hr_employees!respondent_id(id, full_name)')
+        .order('submitted_at', { ascending: false });
 
       let riskAssessmentsQuery = supabase
         .from('hr_risk_assessments')
@@ -40,20 +47,12 @@ export function useQVT() {
         .select('id, name, company_id')
         .order('name', { ascending: true });
 
-      surveysQuery = applyCompanyScope(surveysQuery);
-      riskAssessmentsQuery = applyCompanyScope(riskAssessmentsQuery);
-      employeesQuery = applyCompanyScope(employeesQuery);
-      departmentsQuery = applyCompanyScope(departmentsQuery);
-
-      const [surveysResult, riskAssessmentsResult, employeesResult, departmentsResult] = await Promise.all([
-        surveysQuery,
-        riskAssessmentsQuery,
-        employeesQuery,
-        departmentsQuery,
-      ]);
+      const [surveysResult, surveyResponsesResult, riskAssessmentsResult, employeesResult, departmentsResult] =
+        await Promise.all([surveysQuery, surveyResponsesQuery, riskAssessmentsQuery, employeesQuery, departmentsQuery]);
 
       const firstError = [
         surveysResult.error,
+        surveyResponsesResult.error,
         riskAssessmentsResult.error,
         employeesResult.error,
         departmentsResult.error,
@@ -62,6 +61,7 @@ export function useQVT() {
       if (firstError) throw firstError;
 
       setSurveys(surveysResult.data || []);
+      setSurveyResponses(surveyResponsesResult.data || []);
       setRiskAssessments(riskAssessmentsResult.data || []);
       setEmployees(employeesResult.data || []);
       setDepartments(departmentsResult.data || []);
@@ -75,7 +75,7 @@ export function useQVT() {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]);
+  }, [toast, user]);
   const createSurvey = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;
@@ -85,12 +85,17 @@ export function useQVT() {
         survey_type: payload.survey_type || 'engagement',
         status: payload.status || 'draft',
         questions: payload.questions || [],
-        responses: payload.responses || [],
+        target_audience: payload.target_audience || null,
+        anonymous: payload.anonymous ?? true,
+        allow_partial: payload.allow_partial ?? false,
         response_count: 0,
         enps_score: null,
+        avg_satisfaction: null,
         ai_analysis: null,
         starts_at: payload.starts_at || null,
         ends_at: payload.ends_at || null,
+        reminder_at: payload.reminder_at || null,
+        created_by: user.id,
       });
 
       const { data, error: insertError } = await supabase.from('hr_surveys').insert([row]).select('*').single();
@@ -122,44 +127,53 @@ export function useQVT() {
     async (surveyId, responseData) => {
       if (!surveyId || !supabase) return null;
 
-      const survey = surveys.find((s) => s.id === surveyId);
-      if (!survey) throw new Error('Enquete introuvable');
+      const row = withCompanyScope({
+        survey_id: surveyId,
+        respondent_id: responseData.respondent_id || null,
+        responses: responseData.responses || responseData.answers || {},
+        enps_score: responseData.enps_score ?? null,
+        completion_time_secs: responseData.completion_time_secs ?? null,
+        submitted_at: new Date().toISOString(),
+      });
 
-      const currentResponses = Array.isArray(survey.responses) ? survey.responses : [];
-      const updatedResponses = [...currentResponses, { ...responseData, submitted_at: new Date().toISOString() }];
-
-      const { data, error: updateError } = await supabase
-        .from('hr_surveys')
-        .update({
-          responses: updatedResponses,
-          response_count: updatedResponses.length,
-        })
-        .eq('id', surveyId)
+      const { data, error: insertError } = await supabase
+        .from('hr_survey_responses')
+        .insert([row])
         .select('*')
         .single();
 
-      if (updateError) throw updateError;
+      if (insertError) throw insertError;
       await fetchData();
       return data;
     },
-    [fetchData, surveys]
+    [fetchData, withCompanyScope]
   );
   const createRiskAssessment = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;
 
+      const probability = Number(payload.probability) || 1;
+      const severity = Number(payload.severity) || 1;
+
       const row = withCompanyScope({
-        title: payload.title,
         assessment_type: payload.assessment_type || 'duerp',
         department_id: payload.department_id || null,
         risk_category: payload.risk_category || null,
-        probability: Number(payload.probability) || 1,
-        severity: Number(payload.severity) || 1,
+        risk_subcategory: payload.risk_subcategory || null,
+        risk_description: payload.risk_description || payload.title || null,
+        situation: payload.situation || null,
+        probability,
+        severity,
+        risk_score: probability * severity,
+        risk_level: payload.risk_level || null,
         existing_controls: payload.existing_controls || null,
-        action_plan: payload.action_plan || null,
-        responsible_employee_id: payload.responsible_employee_id || null,
-        due_date: payload.due_date || null,
+        prevention_measures: payload.prevention_measures || payload.action_plan || null,
+        responsible_id: payload.responsible_id || payload.responsible_employee_id || null,
+        target_date: payload.target_date || payload.due_date || null,
+        completion_date: payload.completion_date || null,
         status: payload.status || 'identified',
+        assessment_date: payload.assessment_date || new Date().toISOString(),
+        next_review_date: payload.next_review_date || null,
       });
 
       const { data, error: insertError } = await supabase
@@ -200,6 +214,7 @@ export function useQVT() {
     loading,
     error,
     surveys,
+    surveyResponses,
     riskAssessments,
     employees,
     departments,

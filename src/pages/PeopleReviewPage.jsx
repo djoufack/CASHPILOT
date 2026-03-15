@@ -110,10 +110,10 @@ function build9Box(reviews, employees) {
   const grid = Array.from({ length: 3 }, () => Array.from({ length: 5 }, () => []));
 
   for (const r of reviews) {
-    if (!r.performance_label || !r.potential_label) continue;
+    if (!r.performance_rating || !r.nine_box_potential) continue;
 
-    const perfIdx = PERF_AXIS.indexOf(r.performance_label);
-    const potIdx = POT_AXIS.indexOf(r.potential_label);
+    const perfIdx = PERF_AXIS.indexOf(r.performance_rating);
+    const potIdx = POT_AXIS.indexOf(r.nine_box_potential);
 
     if (perfIdx === -1 || potIdx === -1) continue;
 
@@ -122,8 +122,8 @@ function build9Box(reviews, employees) {
       id: r.id,
       name: employeeName(emp),
       jobTitle: emp?.job_title || '',
-      performance: r.performance_label,
-      potential: r.potential_label,
+      performance: r.performance_rating,
+      potential: r.nine_box_potential,
     });
   }
   return grid;
@@ -133,7 +133,8 @@ function getHighPotentials(reviews, employees) {
   return reviews
     .filter(
       (r) =>
-        r.potential_label === 'Eleve' && (r.performance_label === 'Superieur' || r.performance_label === 'Exceptionnel')
+        r.nine_box_potential === 'Eleve' &&
+        (r.performance_rating === 'Superieur' || r.performance_rating === 'Exceptionnel')
     )
     .map((r) => {
       const emp = r.employee || employees.find((e) => e.id === r.employee_id);
@@ -141,9 +142,9 @@ function getHighPotentials(reviews, employees) {
         id: r.id,
         name: employeeName(emp),
         jobTitle: emp?.job_title || '',
-        performance: r.performance_label,
-        potential: r.potential_label,
-        reviewPeriod: r.review_period,
+        performance: r.performance_rating,
+        potential: r.nine_box_potential,
+        reviewPeriod: r.period_year,
       };
     });
 }
@@ -174,18 +175,18 @@ export default function PeopleReviewPage() {
   const [succForm, setSuccForm] = useState({
     position_title: '',
     criticality: 'medium',
-    incumbent_employee_id: '',
+    incumbent_id: '',
     successors: [],
-    risk_of_vacancy: 'low',
+    risk_of_loss: 'low',
   });
 
   /* budget form */
   const [budgetForm, setBudgetForm] = useState({
     fiscal_year: new Date().getFullYear().toString(),
     department_id: '',
-    planned_headcount: '0',
+    budgeted_headcount: '0',
     actual_headcount: '0',
-    planned_payroll_cost: '0',
+    budgeted_payroll_cost: '0',
     actual_payroll_cost: '0',
   });
 
@@ -205,9 +206,9 @@ export default function PeopleReviewPage() {
     setSuccForm({
       position_title: '',
       criticality: 'medium',
-      incumbent_employee_id: '',
+      incumbent_id: '',
       successors: [],
-      risk_of_vacancy: 'low',
+      risk_of_loss: 'low',
     });
     setShowSuccessionForm(false);
   }, []);
@@ -256,9 +257,9 @@ export default function PeopleReviewPage() {
     setBudgetForm({
       fiscal_year: new Date().getFullYear().toString(),
       department_id: '',
-      planned_headcount: '0',
+      budgeted_headcount: '0',
       actual_headcount: '0',
-      planned_payroll_cost: '0',
+      budgeted_payroll_cost: '0',
       actual_payroll_cost: '0',
     });
     setShowBudgetForm(false);
@@ -563,14 +564,14 @@ export default function PeopleReviewPage() {
                         <td className="px-4 py-3">
                           <span
                             className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                              plan.risk_of_vacancy === 'high'
+                              plan.risk_of_loss === 'high'
                                 ? 'bg-red-500/20 text-red-300'
-                                : plan.risk_of_vacancy === 'medium'
+                                : plan.risk_of_loss === 'medium'
                                   ? 'bg-amber-500/20 text-amber-300'
                                   : 'bg-blue-500/20 text-blue-300'
                             }`}
                           >
-                            {RISK_LABELS[plan.risk_of_vacancy] || plan.risk_of_vacancy}
+                            {RISK_LABELS[plan.risk_of_loss] || plan.risk_of_loss}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -647,8 +648,8 @@ export default function PeopleReviewPage() {
                     <div className="space-y-2">
                       <Label className="text-gray-300">Risque vacance</Label>
                       <Select
-                        value={succForm.risk_of_vacancy}
-                        onValueChange={(v) => setSuccForm((p) => ({ ...p, risk_of_vacancy: v }))}
+                        value={succForm.risk_of_loss}
+                        onValueChange={(v) => setSuccForm((p) => ({ ...p, risk_of_loss: v }))}
                       >
                         <SelectTrigger className="bg-white/5 border-white/10 text-white">
                           <SelectValue />
@@ -667,8 +668,8 @@ export default function PeopleReviewPage() {
                   <div className="space-y-2">
                     <Label className="text-gray-300">Titulaire actuel</Label>
                     <Select
-                      value={succForm.incumbent_employee_id}
-                      onValueChange={(v) => setSuccForm((p) => ({ ...p, incumbent_employee_id: v }))}
+                      value={succForm.incumbent_id}
+                      onValueChange={(v) => setSuccForm((p) => ({ ...p, incumbent_id: v }))}
                     >
                       <SelectTrigger className="bg-white/5 border-white/10 text-white">
                         <SelectValue placeholder="Selectionnez..." />
@@ -810,7 +811,7 @@ export default function PeopleReviewPage() {
                         <tr key={b.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="px-4 py-3 font-medium text-white">{b.department?.name || '-'}</td>
                           <td className="px-4 py-3 text-gray-300">{b.fiscal_year || '-'}</td>
-                          <td className="px-4 py-3 text-right text-gray-300">{formatNumber(b.planned_headcount)}</td>
+                          <td className="px-4 py-3 text-right text-gray-300">{formatNumber(b.budgeted_headcount)}</td>
                           <td className="px-4 py-3 text-right text-white font-medium">
                             {formatNumber(b.actual_headcount)}
                           </td>
@@ -826,7 +827,7 @@ export default function PeopleReviewPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right text-gray-300">
-                            {formatCurrency(b.planned_payroll_cost)}
+                            {formatCurrency(b.budgeted_payroll_cost)}
                           </td>
                           <td className="px-4 py-3 text-right text-white font-medium">
                             {formatCurrency(b.actual_payroll_cost)}
@@ -855,7 +856,7 @@ export default function PeopleReviewPage() {
                           Total
                         </td>
                         <td className="px-4 py-3 text-right font-semibold text-gray-300">
-                          {formatNumber(headcountBudgets.reduce((s, b) => s + Number(b.planned_headcount || 0), 0))}
+                          {formatNumber(headcountBudgets.reduce((s, b) => s + Number(b.budgeted_headcount || 0), 0))}
                         </td>
                         <td className="px-4 py-3 text-right font-semibold text-white">
                           {formatNumber(headcountBudgets.reduce((s, b) => s + Number(b.actual_headcount || 0), 0))}
@@ -874,7 +875,7 @@ export default function PeopleReviewPage() {
                         </td>
                         <td className="px-4 py-3 text-right font-semibold text-gray-300">
                           {formatCurrency(
-                            headcountBudgets.reduce((s, b) => s + Number(b.planned_payroll_cost || 0), 0)
+                            headcountBudgets.reduce((s, b) => s + Number(b.budgeted_payroll_cost || 0), 0)
                           )}
                         </td>
                         <td className="px-4 py-3 text-right font-semibold text-white">
@@ -949,8 +950,8 @@ export default function PeopleReviewPage() {
                       <Input
                         type="number"
                         min={0}
-                        value={budgetForm.planned_headcount}
-                        onChange={(e) => setBudgetForm((p) => ({ ...p, planned_headcount: e.target.value }))}
+                        value={budgetForm.budgeted_headcount}
+                        onChange={(e) => setBudgetForm((p) => ({ ...p, budgeted_headcount: e.target.value }))}
                         className="bg-white/5 border-white/10 text-white"
                       />
                     </div>
@@ -973,8 +974,8 @@ export default function PeopleReviewPage() {
                         type="number"
                         min={0}
                         step={100}
-                        value={budgetForm.planned_payroll_cost}
-                        onChange={(e) => setBudgetForm((p) => ({ ...p, planned_payroll_cost: e.target.value }))}
+                        value={budgetForm.budgeted_payroll_cost}
+                        onChange={(e) => setBudgetForm((p) => ({ ...p, budgeted_payroll_cost: e.target.value }))}
                         className="bg-white/5 border-white/10 text-white"
                       />
                     </div>

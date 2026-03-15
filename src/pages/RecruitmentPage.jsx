@@ -62,7 +62,7 @@ const PIPELINE_STAGES = [
   { key: 'interview', label: 'Entretien', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
   { key: 'technical_test', label: 'Test technique', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
   { key: 'offer', label: 'Offre', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-  { key: 'hired', label: 'Embauch\u00e9', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
+  { key: 'hired', label: 'Embauché', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
 ];
 
 const STAGE_ORDER = PIPELINE_STAGES.map((s) => s.key);
@@ -71,22 +71,22 @@ const _getStageConfig = (key) => PIPELINE_STAGES.find((s) => s.key === key) || P
 
 const POSITION_STATUS_MAP = {
   open: { label: 'Ouvert', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-  closed: { label: 'Ferm\u00e9', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  closed: { label: 'Fermé', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
   draft: { label: 'Brouillon', cls: 'bg-gray-500/20 text-gray-300 border-gray-500/30' },
   on_hold: { label: 'En pause', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
 };
 
 const INTERVIEW_TYPE_MAP = {
-  phone: { label: 'T\u00e9l\u00e9phone', icon: Phone },
-  video: { label: 'Vid\u00e9o', icon: Video },
+  phone: { label: 'Téléphone', icon: Phone },
+  video: { label: 'Vidéo', icon: Video },
   onsite: { label: 'Sur site', icon: MapPin },
   technical: { label: 'Technique', icon: FileText },
 };
 
 const INTERVIEW_STATUS_MAP = {
-  scheduled: { label: 'Planifi\u00e9', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-  completed: { label: 'Termin\u00e9', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-  cancelled: { label: 'Annul\u00e9', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  scheduled: { label: 'Planifié', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+  completed: { label: 'Terminé', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+  cancelled: { label: 'Annulé', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
   no_show: { label: 'Absent', cls: 'bg-gray-500/20 text-gray-300 border-gray-500/30' },
 };
 
@@ -328,7 +328,7 @@ const RecruitmentPage = () => {
       {filteredPositions.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>Aucun poste trouv\u00e9</p>
+          <p>Aucun poste trouvé</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -378,7 +378,7 @@ const RecruitmentPage = () => {
                               : pos.employment_type}
                     </span>
                   )}
-                  <p className="text-xs text-gray-600">Cr\u00e9\u00e9 le {formatDate(pos.created_at)}</p>
+                  <p className="text-xs text-gray-600">Créé le {formatDate(pos.created_at)}</p>
                 </CardContent>
               </Card>
             );
@@ -437,7 +437,7 @@ const RecruitmentPage = () => {
                               {cand?.first_name || ''} {cand?.last_name || 'Inconnu'}
                             </p>
                             <p className="text-xs text-gray-400 truncate max-w-[180px]">
-                              {pos?.title || 'Poste non d\u00e9fini'}
+                              {pos?.title || 'Poste non défini'}
                             </p>
                           </div>
                           {app.ai_score != null && (
@@ -510,7 +510,7 @@ const RecruitmentPage = () => {
       {filteredCandidates.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>Aucun candidat trouv\u00e9</p>
+          <p>Aucun candidat trouvé</p>
         </div>
       ) : (
         <Card className="bg-white/5 border-white/10">
@@ -521,10 +521,10 @@ const RecruitmentPage = () => {
                   <tr className="border-b border-white/10 text-left text-gray-400">
                     <th className="px-4 py-3 font-medium">Nom</th>
                     <th className="px-4 py-3 font-medium">Email</th>
-                    <th className="px-4 py-3 font-medium">T\u00e9l\u00e9phone</th>
+                    <th className="px-4 py-3 font-medium">Téléphone</th>
                     <th className="px-4 py-3 font-medium">Source</th>
                     <th className="px-4 py-3 font-medium text-center">Candidatures</th>
-                    <th className="px-4 py-3 font-medium">Ajout\u00e9</th>
+                    <th className="px-4 py-3 font-medium">Ajouté</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -584,7 +584,7 @@ const RecruitmentPage = () => {
       {filteredInterviews.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <Calendar className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>Aucun entretien planifi\u00e9</p>
+          <p>Aucun entretien planifié</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -606,7 +606,7 @@ const RecruitmentPage = () => {
                         <p className="text-sm font-medium text-white">
                           {cand?.first_name || ''} {cand?.last_name || 'Candidat inconnu'}
                         </p>
-                        <p className="text-xs text-gray-400">{pos?.title || 'Poste non d\u00e9fini'}</p>
+                        <p className="text-xs text-gray-400">{pos?.title || 'Poste non défini'}</p>
                         <div className="flex items-center gap-3 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" /> {formatDateTime(iv.scheduled_at)}
@@ -671,7 +671,7 @@ const RecruitmentPage = () => {
           <div>
             <h1 className="text-2xl font-bold text-white">Recrutement ATS</h1>
             <p className="text-sm text-gray-400 mt-1">
-              G\u00e9rez vos postes, candidatures et entretiens en un seul endroit.
+              Gérez vos postes, candidatures et entretiens en un seul endroit.
             </p>
           </div>
         </div>
@@ -704,7 +704,7 @@ const RecruitmentPage = () => {
           </Card>
           <Card className="bg-white/5 border-white/10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-400">Embauch\u00e9s</CardTitle>
+              <CardTitle className="text-sm text-gray-400">Embauchés</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-emerald-400">{stats.hired}</p>
@@ -753,12 +753,12 @@ const RecruitmentPage = () => {
                 value={positionForm.title}
                 onChange={(e) => setPositionForm((f) => ({ ...f, title: e.target.value }))}
                 className="bg-white/5 border-white/10 text-white mt-1"
-                placeholder="D\u00e9veloppeur Full-Stack"
+                placeholder="Développeur Full-Stack"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-gray-300">D\u00e9partement</Label>
+                <Label className="text-gray-300">Département</Label>
                 <Input
                   value={positionForm.department}
                   onChange={(e) => setPositionForm((f) => ({ ...f, department: e.target.value }))}
@@ -830,7 +830,7 @@ const RecruitmentPage = () => {
                     <SelectItem value="open">Ouvert</SelectItem>
                     <SelectItem value="draft">Brouillon</SelectItem>
                     <SelectItem value="on_hold">En pause</SelectItem>
-                    <SelectItem value="closed">Ferm\u00e9</SelectItem>
+                    <SelectItem value="closed">Fermé</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -855,7 +855,7 @@ const RecruitmentPage = () => {
               disabled={!positionForm.title.trim()}
               className="bg-orange-500 hover:bg-orange-600 text-white"
             >
-              Cr\u00e9er
+              Créer
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -870,7 +870,7 @@ const RecruitmentPage = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-gray-300">Pr\u00e9nom *</Label>
+                <Label className="text-gray-300">Prénom *</Label>
                 <Input
                   value={candidateForm.first_name}
                   onChange={(e) => setCandidateForm((f) => ({ ...f, first_name: e.target.value }))}
@@ -896,7 +896,7 @@ const RecruitmentPage = () => {
               />
             </div>
             <div>
-              <Label className="text-gray-300">T\u00e9l\u00e9phone</Label>
+              <Label className="text-gray-300">Téléphone</Label>
               <Input
                 value={candidateForm.phone}
                 onChange={(e) => setCandidateForm((f) => ({ ...f, phone: e.target.value }))}
@@ -961,7 +961,7 @@ const RecruitmentPage = () => {
                 onValueChange={(v) => setApplyForm((f) => ({ ...f, candidate_id: v }))}
               >
                 <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
-                  <SelectValue placeholder="S\u00e9lectionner un candidat" />
+                  <SelectValue placeholder="Sélectionner un candidat" />
                 </SelectTrigger>
                 <SelectContent>
                   {candidates.map((c) => (
@@ -979,7 +979,7 @@ const RecruitmentPage = () => {
                 onValueChange={(v) => setApplyForm((f) => ({ ...f, position_id: v }))}
               >
                 <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
-                  <SelectValue placeholder="S\u00e9lectionner un poste" />
+                  <SelectValue placeholder="Sélectionner un poste" />
                 </SelectTrigger>
                 <SelectContent>
                   {positions
@@ -1022,7 +1022,7 @@ const RecruitmentPage = () => {
                 onValueChange={(v) => setInterviewForm((f) => ({ ...f, application_id: v }))}
               >
                 <SelectTrigger className="bg-white/5 border-white/10 text-white mt-1">
-                  <SelectValue placeholder="S\u00e9lectionner une candidature" />
+                  <SelectValue placeholder="Sélectionner une candidature" />
                 </SelectTrigger>
                 <SelectContent>
                   {applications.map((app) => (
@@ -1044,8 +1044,8 @@ const RecruitmentPage = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="phone">T\u00e9l\u00e9phone</SelectItem>
-                  <SelectItem value="video">Vid\u00e9o</SelectItem>
+                  <SelectItem value="phone">Téléphone</SelectItem>
+                  <SelectItem value="video">Vidéo</SelectItem>
                   <SelectItem value="onsite">Sur site</SelectItem>
                   <SelectItem value="technical">Technique</SelectItem>
                 </SelectContent>

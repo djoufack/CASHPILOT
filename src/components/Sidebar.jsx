@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -7,10 +7,50 @@ import {
   ChevronRight,
   ChevronDown,
   Shield,
-  Home, Users, Briefcase, Clock, FileText, FileSignature,
-  Truck, BarChart3, Calculator, Settings,
-  Map, QrCode, FileBarChart, Database, Menu, Package,
-  Receipt, Building2, ClipboardList, FileMinus, PackageCheck, Wallet, RefreshCw, TrendingUp, Wrench, ShieldCheck, Tag, ShoppingCart, FileInput, Globe, Webhook, Cable, CreditCard, Target
+  Home,
+  Users,
+  Briefcase,
+  Clock,
+  FileText,
+  FileSignature,
+  Truck,
+  BarChart3,
+  Calculator,
+  Settings,
+  Map,
+  QrCode,
+  FileBarChart,
+  Database,
+  Menu,
+  Package,
+  Receipt,
+  Building2,
+  ClipboardList,
+  FileMinus,
+  PackageCheck,
+  Wallet,
+  RefreshCw,
+  TrendingUp,
+  Wrench,
+  ShieldCheck,
+  Tag,
+  ShoppingCart,
+  FileInput,
+  Globe,
+  Cable,
+  CreditCard,
+  Target,
+  UserCheck,
+  Banknote,
+  CalendarOff,
+  Search,
+  GraduationCap,
+  Brain,
+  HeartPulse,
+  ClipboardCheck,
+  BarChart2,
+  PieChart,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -32,8 +72,9 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
   };
 
-  // Build categorized navigation
-  const categories = useMemo(() => {
+  // Build categorized navigation (main + bottom sections)
+  const allCategories = useMemo(() => {
+    // === MAIN NAVIGATION ===
     const cats = [
       {
         id: 'dashboard',
@@ -50,108 +91,159 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         path: '/app/pilotage',
       },
       {
-        id: 'portfolio',
-        label: t('nav.companyPortfolio') || 'Portefeuille sociétés',
-        icon: Building2,
-        type: 'direct',
-        path: '/app/portfolio',
-      },
-      {
-        id: 'peppol',
-        label: t('nav.peppolEInvoicing'),
-        icon: Globe,
-        type: 'direct',
-        path: '/app/peppol',
-      },
-      {
         id: 'sales',
-        label: t('nav.sales') || 'Ventes',
+        label: t('nav.sales', 'Ventes'),
         icon: FileText,
         type: 'category',
         items: [
           { path: '/app/clients', label: t('common.clients'), icon: Users },
-          { path: '/app/invoices', label: t('common.invoices'), icon: FileText },
           { path: '/app/quotes', label: t('common.quotes'), icon: FileSignature },
-          { path: '/app/expenses', label: t('nav.expenses') || 'Dépenses', icon: Receipt },
-          { path: '/app/recurring-invoices', label: t('recurringInvoices.title'), icon: RefreshCw },
+          { path: '/app/invoices', label: t('common.invoices'), icon: FileText },
           { path: '/app/credit-notes', label: t('creditNotes.title'), icon: FileMinus },
+          { path: '/app/recurring-invoices', label: t('recurringInvoices.title'), icon: RefreshCw },
           { path: '/app/delivery-notes', label: t('deliveryNotes.title'), icon: PackageCheck },
-          { path: '/app/debt-manager', label: t('debtManager.title'), icon: Wallet },
-          { path: '/app/purchase-orders', label: t('nav.purchaseOrders') || 'Bons de commande', icon: ClipboardList },
+        ],
+      },
+      {
+        id: 'purchases',
+        label: t('nav.purchasesExpenses', 'Achats & Dépenses'),
+        icon: ShoppingCart,
+        type: 'category',
+        items: [
+          { path: '/app/suppliers', label: t('common.suppliers'), icon: Truck },
+          {
+            path: '/app/purchase-orders',
+            label: t('nav.purchaseOrders', 'Commandes fournisseurs'),
+            icon: ClipboardList,
+          },
+          {
+            path: '/app/supplier-invoices',
+            label: t('nav.supplierInvoices', 'Factures fournisseurs'),
+            icon: FileInput,
+          },
+          { path: '/app/purchases', label: t('purchases.title', 'Achats'), icon: ShoppingCart },
+          { path: '/app/expenses', label: t('nav.expenses', 'Dépenses'), icon: Receipt },
+          { path: '/app/suppliers/map', label: t('nav.supplierMap', 'Cartographie'), icon: Map },
         ],
       },
       {
         id: 'finance',
-        label: t('nav.financeSection'),
+        label: t('nav.treasuryAccounting', 'Trésorerie & Comptabilité'),
         icon: TrendingUp,
         type: 'category',
         items: [
-          { path: '/app/cash-flow', label: t('nav.cashFlow') || 'Cash Flow', icon: TrendingUp },
-          { path: '/app/bank-connections', label: t('nav.bankConnections') || 'Connexions bancaires', icon: Building2 },
-          { path: '/app/financial-instruments', label: t('nav.financialInstruments') || 'Instruments financiers', icon: CreditCard },
+          { path: '/app/cash-flow', label: t('nav.treasury', 'Trésorerie'), icon: TrendingUp },
+          { path: '/app/debt-manager', label: t('nav.collection', 'Recouvrement'), icon: Wallet },
+          { path: '/app/bank-connections', label: t('nav.bankConnections', 'Connexions bancaires'), icon: Building2 },
+          {
+            path: '/app/financial-instruments',
+            label: t('nav.financialInstruments', 'Instruments financiers'),
+            icon: CreditCard,
+          },
           { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
           { path: '/app/audit-comptable', label: t('nav.auditComptable'), icon: ShieldCheck },
-          { path: '/app/scenarios', label: t('nav.scenarios') || 'Scénarios', icon: BarChart3, featureKey: ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL },
-        ],
-      },
-      {
-        id: 'suppliers',
-        label: t('suppliers.title') || 'Fournisseurs',
-        icon: Truck,
-        type: 'category',
-        items: [
-          { path: '/app/purchases', label: t('purchases.title') || 'Achats', icon: ShoppingCart },
-          { path: '/app/supplier-invoices', label: t('nav.supplierInvoices') || 'Factures fournisseurs', icon: FileInput },
-          { path: '/app/suppliers', label: t('common.suppliers'), icon: Truck },
-          { path: '/app/suppliers/map', label: t('nav.mapView'), icon: Map },
-          { path: '/app/suppliers/reports', label: t('suppliers.reports'), icon: BarChart3 },
+          {
+            path: '/app/scenarios',
+            label: t('nav.scenarios', 'Scénarios'),
+            icon: BarChart3,
+            featureKey: ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL,
+          },
         ],
       },
       {
         id: 'catalog',
-        label: t('nav.catalog') || 'Catalogue',
+        label: t('nav.catalog', 'Catalogue'),
         icon: Package,
         type: 'category',
         items: [
-          { path: '/app/stock', label: t('nav.products') || 'Produits', icon: Package },
+          { path: '/app/stock', label: t('nav.productsStock', 'Produits & Stock'), icon: Package },
           { path: '/app/services', label: t('nav.clientServices', 'Prestations clients'), icon: Wrench },
-          { path: '/app/categories', label: t('nav.categories') || 'Catégories', icon: Tag },
+          { path: '/app/categories', label: t('nav.categories', 'Catégories'), icon: Tag },
           { path: '/app/products/barcode', label: t('nav.scanner'), icon: QrCode },
         ],
       },
       {
-        id: 'management',
-        label: t('nav.management'),
+        id: 'projects',
+        label: t('nav.projectsCRM', 'Projets & CRM'),
         icon: Briefcase,
         type: 'category',
         items: [
           { path: '/app/projects', label: t('common.projects'), icon: Briefcase },
           { path: '/app/crm', label: t('nav.crm', 'CRM'), icon: Target },
-          { path: '/app/hr-material', label: t('nav.hrMaterial', 'RH & Matériel'), icon: Users },
           { path: '/app/timesheets', label: t('common.timesheets'), icon: Clock },
+          { path: '/app/hr-material', label: t('nav.projectResources', 'Ressources'), icon: Users },
           { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
         ],
       },
       {
-        id: 'settings',
-        label: t('common.settings') || 'Paramètres',
-        icon: Settings,
+        id: 'drh',
+        label: t('nav.humanResources', 'Ressources Humaines'),
+        icon: UserCheck,
         type: 'category',
         items: [
-          { path: '/app/integrations', label: t('nav.integrations') || 'Intégrations', icon: Cable },
-          { path: '/app/api-mcp', label: 'API-Webhook-MCP', icon: Cable, featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS },
-          { path: '/app/security', label: t('nav.security') || 'Sécurité', icon: Shield },
-          { path: '/app/settings', label: t('common.settings'), icon: Settings },
+          // Sub-group: Administration
+          { type: 'subgroup', label: t('nav.hrAdministration', 'Administration') },
+          { path: '/app/rh/employes', label: t('nav.employees', 'Employés'), icon: UserCheck },
+          { path: '/app/rh/paie', label: t('nav.payroll', 'Paie'), icon: Banknote },
+          { path: '/app/rh/absences', label: t('nav.absences', 'Absences & Congés'), icon: CalendarOff },
+          // Sub-group: Talents
+          { type: 'subgroup', label: t('nav.hrTalents', 'Talents') },
+          { path: '/app/rh/recrutement', label: t('nav.recruitment', 'Recrutement'), icon: Search },
+          { path: '/app/rh/onboarding', label: t('nav.onboardingHR', 'Onboarding'), icon: UserCheck },
+          { path: '/app/rh/formation', label: t('nav.training', 'Formation'), icon: GraduationCap },
+          { path: '/app/rh/competences', label: t('nav.skills', 'Compétences'), icon: Brain },
+          // Sub-group: Performance
+          { type: 'subgroup', label: t('nav.hrPerformance', 'Performance') },
+          { path: '/app/rh/entretiens', label: t('nav.performanceReview', 'Entretiens'), icon: ClipboardCheck },
+          { path: '/app/rh/people-review', label: t('nav.peopleReview', 'People Review'), icon: BarChart2 },
+          { path: '/app/rh/qvt', label: t('nav.qvt', 'QVT & Risques'), icon: HeartPulse },
+          { path: '/app/rh/bilan-social', label: t('nav.bilanSocial', 'Bilan Social'), icon: PieChart },
+          { path: '/app/rh/analytics', label: t('nav.peopleAnalytics', 'Analytics RH'), icon: Bot },
         ],
       },
     ];
 
+    // === BOTTOM CATEGORIES (pinned to bottom of sidebar) ===
+    const bottomCats = [
+      {
+        id: 'company',
+        label: t('nav.myCompany', 'Mon Entreprise'),
+        icon: Building2,
+        type: 'category',
+        position: 'bottom',
+        items: [
+          { path: '/app/portfolio', label: t('nav.companyPortfolio', 'Portfolio sociétés'), icon: Building2 },
+          { path: '/app/peppol', label: t('nav.peppolEInvoicing'), icon: Globe },
+        ],
+      },
+      {
+        id: 'settings',
+        label: t('common.settings', 'Paramètres'),
+        icon: Settings,
+        type: 'category',
+        position: 'bottom',
+        items: [
+          { path: '/app/integrations', label: t('nav.integrations', 'Intégrations'), icon: Cable },
+          {
+            path: '/app/api-mcp',
+            label: 'API-Webhook-MCP',
+            icon: Cable,
+            featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS,
+          },
+          { path: '/app/security', label: t('nav.security', 'Sécurité'), icon: Shield },
+          { path: '/app/settings', label: t('nav.generalSettings', 'Paramètres généraux'), icon: Settings },
+        ],
+      },
+    ];
+
+    // Admin section
     if (isAdmin) {
-      cats.push({
+      bottomCats.push({
         id: 'admin',
         label: t('common.admin'),
         icon: Shield,
         type: 'category',
+        position: 'bottom',
         items: [
           { path: '/admin', label: t('common.admin'), icon: Shield },
           { path: '/admin/seed-data', label: t('nav.seedData'), icon: Database },
@@ -159,38 +251,47 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
       });
     }
 
-    return cats;
+    return { main: cats, bottom: bottomCats };
   }, [isAdmin, t]);
 
-  const visibleCategories = useMemo(
-    () => filterCategorizedNavigation(categories, hasEntitlement),
-    [categories, hasEntitlement],
+  const visibleMain = useMemo(
+    () => filterCategorizedNavigation(allCategories.main, hasEntitlement),
+    [allCategories.main, hasEntitlement]
+  );
+  const visibleBottom = useMemo(
+    () => filterCategorizedNavigation(allCategories.bottom, hasEntitlement),
+    [allCategories.bottom, hasEntitlement]
   );
 
   // Determine which category contains the current path
   const activeCategoryId = useMemo(() => {
-    for (const cat of visibleCategories) {
+    for (const cat of [...visibleMain, ...visibleBottom]) {
       if (cat.type === 'direct' && cat.path === location.pathname) return cat.id;
-      if (cat.type === 'category' && cat.items?.some(item => location.pathname === item.path)) {
+      if (
+        cat.type === 'category' &&
+        cat.items?.filter((i) => i.type !== 'subgroup').some((item) => location.pathname === item.path)
+      ) {
         return cat.id;
       }
     }
     return null;
-  }, [visibleCategories, location.pathname]);
+  }, [visibleMain, visibleBottom, location.pathname]);
 
   // Expanded state: load from localStorage, auto-expand active category
   const [expandedCategories, setExpandedCategories] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if (saved && typeof saved === 'object') return saved;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return {};
   });
 
   // Auto-expand the category containing the active page
   useEffect(() => {
     if (activeCategoryId) {
-      setExpandedCategories(prev => {
+      setExpandedCategories((prev) => {
         if (prev[activeCategoryId]) {
           return prev;
         }
@@ -202,7 +303,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
   }, [activeCategoryId]);
 
   const toggleCategory = useCallback((categoryId) => {
-    setExpandedCategories(prev => {
+    setExpandedCategories((prev) => {
       const next = { ...prev, [categoryId]: !prev[categoryId] };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       return next;
@@ -211,22 +312,31 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
 
   // If navItems prop is passed, use the old flat rendering for backward compat
   if (navItemsProp) {
-    return <FlatSidebar isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} navItems={navItemsProp} location={location} />;
+    return (
+      <FlatSidebar
+        isCollapsed={isCollapsed}
+        toggleSidebar={toggleSidebar}
+        navItems={navItemsProp}
+        location={location}
+      />
+    );
   }
 
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 bg-gray-950 border-r border-gray-800/50 transition-all duration-300 ease-in-out flex flex-col h-screen",
-        isCollapsed ? "w-[68px]" : "w-[260px]"
+        'fixed inset-y-0 left-0 z-50 bg-gray-950 border-r border-gray-800/50 transition-all duration-300 ease-in-out flex flex-col h-screen',
+        isCollapsed ? 'w-[68px]' : 'w-[260px]'
       )}
       aria-label={t('common.sidebar', 'Barre latérale')}
     >
       {/* Header */}
-      <div className={cn(
-        "h-16 flex items-center border-b border-gray-800/50 shrink-0",
-        isCollapsed ? "justify-center px-2" : "px-5"
-      )}>
+      <div
+        className={cn(
+          'h-16 flex items-center border-b border-gray-800/50 shrink-0',
+          isCollapsed ? 'justify-center px-2' : 'px-5'
+        )}
+      >
         {!isCollapsed && (
           <div className="flex items-center gap-3 flex-1">
             <Menu className="w-5 h-5 text-gray-500" aria-hidden="true" />
@@ -241,21 +351,25 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           size="icon"
           onClick={toggleSidebar}
           className="text-gray-500 hover:text-white hover:bg-gray-800/50 h-8 w-8"
-          aria-label={isCollapsed ? t('common.expandSidebar', 'Étendre la barre latérale') : t('common.collapseSidebar', 'Réduire la barre latérale')}
+          aria-label={
+            isCollapsed
+              ? t('common.expandSidebar', 'Étendre la barre latérale')
+              : t('common.collapseSidebar', 'Réduire la barre latérale')
+          }
           aria-expanded={!isCollapsed}
         >
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </Button>
       </div>
 
-      {/* Navigation */}
+      {/* Main scrollable navigation */}
       <nav
         className="flex-1 px-2 overflow-y-auto overflow-x-hidden mt-2 custom-scrollbar"
         role="navigation"
         aria-label={t('common.primaryNavigation', 'Navigation principale')}
       >
         <TooltipProvider delayDuration={0}>
-          {visibleCategories.map(category => {
+          {visibleMain.map((category) => {
             if (category.type === 'direct') {
               return (
                 <DirectNavItem
@@ -287,6 +401,31 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           })}
         </TooltipProvider>
       </nav>
+
+      {/* Bottom pinned navigation */}
+      {visibleBottom.length > 0 && (
+        <div className="shrink-0 px-2 pb-2 pt-2 border-t border-gray-800/30">
+          <TooltipProvider delayDuration={0}>
+            {visibleBottom.map((category) => (
+              <CategoryGroup
+                key={category.id}
+                category={category}
+                isCollapsed={isCollapsed}
+                isExpanded={!!expandedCategories[category.id]}
+                onToggle={() => toggleCategory(category.id)}
+                currentPath={location.pathname}
+                activeCategoryId={activeCategoryId}
+                onExpandSidebar={() => {
+                  if (isCollapsed) {
+                    setIsCollapsed(false);
+                    localStorage.setItem('sidebarCollapsed', JSON.stringify(false));
+                  }
+                }}
+              />
+            ))}
+          </TooltipProvider>
+        </div>
+      )}
     </aside>
   );
 };
@@ -297,28 +436,23 @@ const DirectNavItem = ({ category, isCollapsed, isActive }) => {
 
   const linkContent = (
     <Link to={category.path} aria-current={isActive ? 'page' : undefined}>
-      <div className={cn(
-        "flex items-center gap-3 rounded-lg transition-all duration-200 cursor-pointer group",
-        isCollapsed ? "h-10 w-10 mx-auto justify-center mb-1" : "px-3 py-2.5 mb-0.5",
-        isActive
-          ? "bg-orange-500/10 text-orange-400"
-          : "text-gray-500 hover:bg-gray-800/50 hover:text-gray-200"
-      )}>
-        <Icon size={20} className={cn(
-          "shrink-0 transition-colors",
-          isActive ? "text-orange-400" : "group-hover:text-gray-200"
-        )} />
+      <div
+        className={cn(
+          'flex items-center gap-3 rounded-lg transition-all duration-200 cursor-pointer group',
+          isCollapsed ? 'h-10 w-10 mx-auto justify-center mb-1' : 'px-3 py-2.5 mb-0.5',
+          isActive ? 'bg-orange-500/10 text-orange-400' : 'text-gray-500 hover:bg-gray-800/50 hover:text-gray-200'
+        )}
+      >
+        <Icon
+          size={20}
+          className={cn('shrink-0 transition-colors', isActive ? 'text-orange-400' : 'group-hover:text-gray-200')}
+        />
         {!isCollapsed && (
-          <span className={cn(
-            "text-sm font-medium truncate",
-            isActive ? "text-orange-400" : ""
-          )}>
+          <span className={cn('text-sm font-medium truncate', isActive ? 'text-orange-400' : '')}>
             {category.label}
           </span>
         )}
-        {!isCollapsed && isActive && (
-          <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />
-        )}
+        {!isCollapsed && isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />}
       </div>
     </Link>
   );
@@ -338,7 +472,15 @@ const DirectNavItem = ({ category, isCollapsed, isActive }) => {
 };
 
 /** Collapsible category group */
-const CategoryGroup = ({ category, isCollapsed, isExpanded, onToggle, currentPath, activeCategoryId, onExpandSidebar }) => {
+const CategoryGroup = ({
+  category,
+  isCollapsed,
+  isExpanded,
+  onToggle,
+  currentPath,
+  activeCategoryId,
+  onExpandSidebar,
+}) => {
   const Icon = category.icon;
   const hasActiveChild = activeCategoryId === category.id;
 
@@ -355,17 +497,20 @@ const CategoryGroup = ({ category, isCollapsed, isExpanded, onToggle, currentPat
           <button
             onClick={handleCollapsedClick}
             className={cn(
-              "flex items-center justify-center h-10 w-10 mx-auto rounded-lg transition-all duration-200 cursor-pointer group mb-1",
+              'flex items-center justify-center h-10 w-10 mx-auto rounded-lg transition-all duration-200 cursor-pointer group mb-1',
               hasActiveChild
-                ? "bg-orange-500/10 text-orange-400"
-                : "text-gray-500 hover:bg-gray-800/50 hover:text-gray-200"
+                ? 'bg-orange-500/10 text-orange-400'
+                : 'text-gray-500 hover:bg-gray-800/50 hover:text-gray-200'
             )}
             aria-label={category.label}
           >
-            <Icon size={20} className={cn(
-              "shrink-0 transition-colors",
-              hasActiveChild ? "text-orange-400" : "group-hover:text-gray-200"
-            )} />
+            <Icon
+              size={20}
+              className={cn(
+                'shrink-0 transition-colors',
+                hasActiveChild ? 'text-orange-400' : 'group-hover:text-gray-200'
+              )}
+            />
           </button>
         </TooltipTrigger>
         <TooltipContent side="right" className="bg-gray-900 border-gray-700 text-white ml-1">
@@ -382,62 +527,76 @@ const CategoryGroup = ({ category, isCollapsed, isExpanded, onToggle, currentPat
       <button
         onClick={onToggle}
         className={cn(
-          "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer group",
-          hasActiveChild
-            ? "text-orange-400"
-            : "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200"
+          'w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer group',
+          hasActiveChild ? 'text-orange-400' : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
         )}
         aria-expanded={isExpanded}
       >
-        <Icon size={18} className={cn(
-          "shrink-0 transition-colors",
-          hasActiveChild ? "text-orange-400" : "group-hover:text-gray-200"
-        )} />
-        <span className={cn(
-          "text-[13px] font-semibold truncate flex-1 text-left",
-          hasActiveChild ? "text-orange-400" : ""
-        )}>
+        <Icon
+          size={18}
+          className={cn('shrink-0 transition-colors', hasActiveChild ? 'text-orange-400' : 'group-hover:text-gray-200')}
+        />
+        <span
+          className={cn('text-[13px] font-semibold truncate flex-1 text-left', hasActiveChild ? 'text-orange-400' : '')}
+        >
           {category.label}
         </span>
-        <ChevronDown size={14} className={cn(
-          "shrink-0 transition-transform duration-200 text-gray-600",
-          isExpanded ? "rotate-0" : "-rotate-90"
-        )} />
+        <ChevronDown
+          size={14}
+          className={cn(
+            'shrink-0 transition-transform duration-200 text-gray-600',
+            isExpanded ? 'rotate-0' : '-rotate-90'
+          )}
+        />
       </button>
 
       {/* Collapsible children */}
       <div
         className={cn(
-          "overflow-hidden transition-all duration-200 ease-in-out",
-          isExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+          'overflow-hidden transition-all duration-200 ease-in-out',
+          isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
         )}
       >
         <div className="ml-2 pl-3 border-l border-gray-800/50">
-          {category.items.map(item => {
+          {category.items.map((item, idx) => {
+            if (item.type === 'subgroup') {
+              return (
+                <div
+                  key={`subgroup-${idx}`}
+                  className="px-3 pt-3 pb-1 text-[10px] font-semibold text-gray-600 uppercase tracking-wider"
+                >
+                  {item.label}
+                </div>
+              );
+            }
+
+            // Defensive guard: skip items without a valid icon or path
+            if (!item.icon || !item.path) return null;
+
             const isActive = currentPath === item.path;
             const ItemIcon = item.icon;
 
             return (
               <Link key={item.path} to={item.path} aria-current={isActive ? 'page' : undefined}>
-                <div className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer group mb-0.5",
-                  isActive
-                    ? "bg-orange-500/10 text-orange-400"
-                    : "text-gray-500 hover:bg-gray-800/50 hover:text-gray-200"
-                )}>
-                  <ItemIcon size={16} className={cn(
-                    "shrink-0 transition-colors",
-                    isActive ? "text-orange-400" : "group-hover:text-gray-200"
-                  )} />
-                  <span className={cn(
-                    "text-sm font-medium truncate",
-                    isActive ? "text-orange-400" : ""
-                  )}>
+                <div
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer group mb-0.5',
+                    isActive
+                      ? 'bg-orange-500/10 text-orange-400'
+                      : 'text-gray-500 hover:bg-gray-800/50 hover:text-gray-200'
+                  )}
+                >
+                  <ItemIcon
+                    size={16}
+                    className={cn(
+                      'shrink-0 transition-colors',
+                      isActive ? 'text-orange-400' : 'group-hover:text-gray-200'
+                    )}
+                  />
+                  <span className={cn('text-sm font-medium truncate', isActive ? 'text-orange-400' : '')}>
                     {item.label}
                   </span>
-                  {isActive && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />
-                  )}
+                  {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />}
                 </div>
               </Link>
             );
@@ -455,15 +614,17 @@ const FlatSidebar = ({ isCollapsed, toggleSidebar, navItems, location }) => {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 bg-gray-950 border-r border-gray-800/50 transition-all duration-300 ease-in-out flex flex-col h-screen",
-        isCollapsed ? "w-[68px]" : "w-[260px]"
+        'fixed inset-y-0 left-0 z-50 bg-gray-950 border-r border-gray-800/50 transition-all duration-300 ease-in-out flex flex-col h-screen',
+        isCollapsed ? 'w-[68px]' : 'w-[260px]'
       )}
       aria-label={t('common.sidebar', 'Sidebar')}
     >
-      <div className={cn(
-        "h-16 flex items-center border-b border-gray-800/50 shrink-0",
-        isCollapsed ? "justify-center px-2" : "px-5"
-      )}>
+      <div
+        className={cn(
+          'h-16 flex items-center border-b border-gray-800/50 shrink-0',
+          isCollapsed ? 'justify-center px-2' : 'px-5'
+        )}
+      >
         {!isCollapsed && (
           <div className="flex items-center gap-3 flex-1">
             <Menu className="w-5 h-5 text-gray-500" aria-hidden="true" />
@@ -478,7 +639,9 @@ const FlatSidebar = ({ isCollapsed, toggleSidebar, navItems, location }) => {
           size="icon"
           onClick={toggleSidebar}
           className="text-gray-500 hover:text-white hover:bg-gray-800/50 h-8 w-8"
-          aria-label={isCollapsed ? t('common.expandSidebar', 'Expand sidebar') : t('common.collapseSidebar', 'Collapse sidebar')}
+          aria-label={
+            isCollapsed ? t('common.expandSidebar', 'Expand sidebar') : t('common.collapseSidebar', 'Collapse sidebar')
+          }
           aria-expanded={!isCollapsed}
         >
           {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -494,7 +657,10 @@ const FlatSidebar = ({ isCollapsed, toggleSidebar, navItems, location }) => {
             if (item.type === 'separator') {
               if (isCollapsed) return <div key={index} className="h-px bg-gray-800/50 mx-2 my-3" />;
               return (
-                <div key={index} className="px-3 pt-5 pb-2 text-[10px] font-semibold text-gray-600 uppercase tracking-widest">
+                <div
+                  key={index}
+                  className="px-3 pt-5 pb-2 text-[10px] font-semibold text-gray-600 uppercase tracking-widest"
+                >
                   {item.label}
                 </div>
               );
@@ -502,28 +668,28 @@ const FlatSidebar = ({ isCollapsed, toggleSidebar, navItems, location }) => {
             const isActive = location.pathname === item.path;
             const linkContent = (
               <Link to={item.path} aria-label={item.label} aria-current={isActive ? 'page' : undefined}>
-                <div className={cn(
-                  "flex items-center gap-3 rounded-lg transition-all duration-200 cursor-pointer group",
-                  isCollapsed ? "h-10 w-10 mx-auto justify-center mb-1" : "px-3 py-2.5 mb-0.5",
-                  isActive
-                    ? "bg-orange-500/10 text-orange-400"
-                    : "text-gray-500 hover:bg-gray-800/50 hover:text-gray-200"
-                )}>
-                  <item.icon size={20} className={cn(
-                    "shrink-0 transition-colors",
-                    isActive ? "text-orange-400" : "group-hover:text-gray-200"
-                  )} />
+                <div
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg transition-all duration-200 cursor-pointer group',
+                    isCollapsed ? 'h-10 w-10 mx-auto justify-center mb-1' : 'px-3 py-2.5 mb-0.5',
+                    isActive
+                      ? 'bg-orange-500/10 text-orange-400'
+                      : 'text-gray-500 hover:bg-gray-800/50 hover:text-gray-200'
+                  )}
+                >
+                  <item.icon
+                    size={20}
+                    className={cn(
+                      'shrink-0 transition-colors',
+                      isActive ? 'text-orange-400' : 'group-hover:text-gray-200'
+                    )}
+                  />
                   {!isCollapsed && (
-                    <span className={cn(
-                      "text-sm font-medium truncate",
-                      isActive ? "text-orange-400" : ""
-                    )}>
+                    <span className={cn('text-sm font-medium truncate', isActive ? 'text-orange-400' : '')}>
                       {item.label}
                     </span>
                   )}
-                  {!isCollapsed && isActive && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />
-                  )}
+                  {!isCollapsed && isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />}
                 </div>
               </Link>
             );
