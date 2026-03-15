@@ -106,9 +106,24 @@ export const useAccountingData = (startDate, endDate) => {
       };
 
       const [
-        invRes, expRes, supRes, accRes, mapRes, taxRes, entRes, settingsRes,
-        tbRes, cumTbRes, isRes, bsRes, diagRes,
-        vatSumRes, vatBkRes, monthlyRes, ledgerRes, journalRes,
+        invRes,
+        expRes,
+        supRes,
+        accRes,
+        mapRes,
+        taxRes,
+        entRes,
+        settingsRes,
+        tbRes,
+        cumTbRes,
+        isRes,
+        bsRes,
+        diagRes,
+        vatSumRes,
+        vatBkRes,
+        monthlyRes,
+        ledgerRes,
+        journalRes,
       ] = await Promise.all([
         invoicesQuery,
         expensesQuery,
@@ -117,18 +132,35 @@ export const useAccountingData = (startDate, endDate) => {
             let q = supabase.from('supplier_invoices').select('*').order('created_at', { ascending: false });
             q = applyCompanyScope(q);
             return await q;
-          } catch { return { data: [], error: null }; }
+          } catch {
+            return { data: [], error: null };
+          }
         })(),
-        applyCompanyScope(supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', user.id).order('account_code', { ascending: true }), { includeUnassigned: false }),
-        supabase.from('accounting_mappings').select('*').eq('user_id', user.id),
-        supabase.from('accounting_tax_rates').select('*').eq('user_id', user.id),
+        applyCompanyScope(
+          supabase
+            .from('accounting_chart_of_accounts')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('account_code', { ascending: true }),
+          { includeUnassigned: false }
+        ),
+        applyCompanyScope(supabase.from('accounting_mappings').select('*').eq('user_id', user.id), {
+          includeUnassigned: true,
+        }),
+        applyCompanyScope(supabase.from('accounting_tax_rates').select('*').eq('user_id', user.id), {
+          includeUnassigned: true,
+        }),
         entriesQuery,
         supabase.from('user_accounting_settings').select('*').eq('user_id', user.id).maybeSingle(),
 
         supabase.rpc('f_trial_balance', rpcParams),
         supabase.rpc('f_trial_balance', { ...rpcParams, p_start_date: null }),
         supabase.rpc('f_income_statement', rpcParams),
-        supabase.rpc('f_balance_sheet', { p_user_id: user.id, p_company_id: activeCompanyId || null, p_end_date: period.endDate }),
+        supabase.rpc('f_balance_sheet', {
+          p_user_id: user.id,
+          p_company_id: activeCompanyId || null,
+          p_end_date: period.endDate,
+        }),
         supabase.rpc('f_financial_diagnostic', { ...rpcParams, p_region: 'belgium' }),
         supabase.rpc('f_vat_summary', rpcParams),
         supabase.rpc('f_vat_breakdown', rpcParams),
@@ -156,7 +188,6 @@ export const useAccountingData = (startDate, endDate) => {
       setSqlMonthlyData(monthlyRes?.data ?? []);
       setSqlGeneralLedger(ledgerRes?.data ?? []);
       setSqlJournalBook(journalRes?.data ?? []);
-
     } catch (err) {
       console.error('Error fetching accounting data:', err);
       setError(err.message);
@@ -174,7 +205,9 @@ export const useAccountingData = (startDate, endDate) => {
     let refreshTimeout = null;
     const debouncedRefresh = () => {
       if (refreshTimeout) clearTimeout(refreshTimeout);
-      refreshTimeout = setTimeout(() => { fetchAll(); }, 500);
+      refreshTimeout = setTimeout(() => {
+        fetchAll();
+      }, 500);
     };
     const realtimeTables = [
       'accounting_entries',
@@ -191,10 +224,16 @@ export const useAccountingData = (startDate, endDate) => {
       'products',
     ];
 
-    const subscriptions = realtimeTables.map((table) => supabase
-      .channel(`${table}_changes`)
-      .on('postgres_changes', { event: '*', schema: 'public', table, filter: `user_id=eq.${user.id}` }, debouncedRefresh)
-      .subscribe());
+    const subscriptions = realtimeTables.map((table) =>
+      supabase
+        .channel(`${table}_changes`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table, filter: `user_id=eq.${user.id}` },
+          debouncedRefresh
+        )
+        .subscribe()
+    );
 
     return () => {
       if (refreshTimeout) clearTimeout(refreshTimeout);
@@ -202,7 +241,7 @@ export const useAccountingData = (startDate, endDate) => {
     };
   }, [user, fetchAll]);
 
-  const hasAutoEntries = useMemo(() => entries.some(e => e.is_auto === true), [entries]);
+  const hasAutoEntries = useMemo(() => entries.some((e) => e.is_auto === true), [entries]);
 
   const computed = useMemo(() => {
     if (!period.startDate || !period.endDate) return null;
@@ -247,7 +286,22 @@ export const useAccountingData = (startDate, endDate) => {
       consistencyWarnings: [],
       qualityGate,
     };
-  }, [accounts, entries, sqlIncomeStatement, sqlBalanceSheet, sqlTrialBalance, sqlCumulativeTrialBalance, sqlDiagnostic, sqlVatSummary, sqlVatBreakdown, sqlMonthlyData, sqlGeneralLedger, sqlJournalBook, period.endDate, period.startDate]);
+  }, [
+    accounts,
+    entries,
+    sqlIncomeStatement,
+    sqlBalanceSheet,
+    sqlTrialBalance,
+    sqlCumulativeTrialBalance,
+    sqlDiagnostic,
+    sqlVatSummary,
+    sqlVatBreakdown,
+    sqlMonthlyData,
+    sqlGeneralLedger,
+    sqlJournalBook,
+    period.endDate,
+    period.startDate,
+  ]);
 
   return {
     loading,
@@ -271,7 +325,15 @@ export const useAccountingData = (startDate, endDate) => {
       inputVAT: 0,
       vatPayable: 0,
       vatBreakdown: { output: [], input: [] },
-      balanceSheet: { assets: [], liabilities: [], equity: [], totalAssets: 0, totalLiabilities: 0, totalEquity: 0, balanced: true },
+      balanceSheet: {
+        assets: [],
+        liabilities: [],
+        equity: [],
+        totalAssets: 0,
+        totalLiabilities: 0,
+        totalEquity: 0,
+        balanced: true,
+      },
       incomeStatement: { revenueItems: [], expenseItems: [], totalRevenue: 0, totalExpenses: 0, netIncome: 0 },
       taxEstimate: { totalTax: 0, effectiveRate: 0, details: [], quarterlyPayment: 0 },
       monthlyData: [],
