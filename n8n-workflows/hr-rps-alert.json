@@ -1,0 +1,353 @@
+{
+  "name": "HR RPS Absenteeism Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "node-cron-monday",
+      "name": "Weekly Monday 8AM Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const now = new Date();\nconst thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);\n\nreturn [{\n  json: {\n    date_from: thirtyDaysAgo.toISOString().split('T')[0],\n    date_to: now.toISOString().split('T')[0],\n    analysis_date: now.toISOString(),\n    threshold_absences: 3\n  }\n}];"
+      },
+      "id": "node-set-date-range",
+      "name": "Set Date Range (Last 30 Days)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://rfzvrezrcigzmldgvntz.supabase.co/rest/v1/hr_leave_requests?request_date=gte.{{ $json.date_from }}&request_date=lte.{{ $json.date_to }}&status=in.(approved,taken)&select=*,hr_employees(id,first_name,last_name,email,position_title,department_id)",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-fetch-leave-requests",
+      "name": "Fetch Leave Requests (30 Days)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const leaveRequests = $input.first().json;\nconst threshold = $node['Set Date Range (Last 30 Days)'].json.threshold_absences;\n\nif (!Array.isArray(leaveRequests) || leaveRequests.length === 0) {\n  return [{ json: { flagged_employees: [], total_requests: 0, has_alerts: false } }];\n}\n\n// Group absences by employee\nconst absencesByEmployee = {};\n\nfor (const req of leaveRequests) {\n  const empId = req.employee_id;\n  if (!absencesByEmployee[empId]) {\n    absencesByEmployee[empId] = {\n      employee_id: empId,\n      employee_name: req.hr_employees ? `${req.hr_employees.first_name} ${req.hr_employees.last_name}` : 'Inconnu',\n      employee_email: req.hr_employees ? req.hr_employees.email : null,\n      position_title: req.hr_employees ? req.hr_employees.position_title : null,\n      department_id: req.hr_employees ? req.hr_employees.department_id : null,\n      absence_count: 0,\n      total_days: 0,\n      leave_types: [],\n      requests: []\n    };\n  }\n  absencesByEmployee[empId].absence_count += 1;\n  absencesByEmployee[empId].total_days += req.duration_days || 1;\n  absencesByEmployee[empId].leave_types.push(req.leave_type || 'non_specifie');\n  absencesByEmployee[empId].requests.push({\n    id: req.id,\n    start_date: req.start_date,\n    end_date: req.end_date,\n    leave_type: req.leave_type,\n    reason: req.reason,\n    duration_days: req.duration_days || 1\n  });\n}\n\n// Flag employees exceeding threshold\nconst flaggedEmployees = Object.values(absencesByEmployee)\n  .filter(emp => emp.absence_count > threshold)\n  .sort((a, b) => b.absence_count - a.absence_count)\n  .map(emp => ({\n    ...emp,\n    leave_types: [...new Set(emp.leave_types)],\n    risk_level: emp.absence_count > 6 ? 'critical' : emp.absence_count > 4 ? 'high' : 'moderate',\n    absenteeism_rate: ((emp.total_days / 22) * 100).toFixed(1)\n  }));\n\nreturn [{\n  json: {\n    flagged_employees: flaggedEmployees,\n    total_requests: leaveRequests.length,\n    total_employees_analyzed: Object.keys(absencesByEmployee).length,\n    flagged_count: flaggedEmployees.length,\n    has_alerts: flaggedEmployees.length > 0,\n    analysis_period: {\n      from: $node['Set Date Range (Last 30 Days)'].json.date_from,\n      to: $node['Set Date Range (Last 30 Days)'].json.date_to\n    },\n    threshold: threshold\n  }\n}];"
+      },
+      "id": "node-calculate-absenteeism",
+      "name": "Calculate Absenteeism per Employee",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.has_alerts }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-check-alerts",
+      "name": "Has Flagged Employees?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rfzvrezrcigzmldgvntz.supabase.co/functions/v1/ai-anomaly-detect",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"analysis_type\": \"hr_absenteeism\",\n  \"data\": {\n    \"flagged_employees\": {{ JSON.stringify($json.flagged_employees) }},\n    \"period\": {{ JSON.stringify($json.analysis_period) }},\n    \"total_requests\": {{ $json.total_requests }},\n    \"total_employees_analyzed\": {{ $json.total_employees_analyzed }},\n    \"threshold\": {{ $json.threshold }}\n  },\n  \"options\": {\n    \"detect_patterns\": true,\n    \"suggest_actions\": true,\n    \"risk_scoring\": true,\n    \"language\": \"fr\"\n  }\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "node-ai-anomaly-detect",
+      "name": "AI Anomaly Detection",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1440, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "const flaggedData = $node['Calculate Absenteeism per Employee'].json;\nconst aiAnalysis = $input.first().json;\n\n// Build HTML table rows for flagged employees\nlet employeeRows = '';\nfor (const emp of flaggedData.flagged_employees) {\n  const riskColor = emp.risk_level === 'critical' ? '#dc2626' : emp.risk_level === 'high' ? '#f59e0b' : '#3b82f6';\n  const riskLabel = emp.risk_level === 'critical' ? 'CRITIQUE' : emp.risk_level === 'high' ? 'ELEVE' : 'MODERE';\n  \n  employeeRows += `\n    <tr>\n      <td style=\"padding: 8px; border-bottom: 1px solid #e5e7eb;\">${emp.employee_name}</td>\n      <td style=\"padding: 8px; border-bottom: 1px solid #e5e7eb;\">${emp.position_title || '-'}</td>\n      <td style=\"padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center; font-weight: bold;\">${emp.absence_count}</td>\n      <td style=\"padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;\">${emp.total_days}j</td>\n      <td style=\"padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;\">${emp.absenteeism_rate}%</td>\n      <td style=\"padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;\"><span style=\"background: ${riskColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;\">${riskLabel}</span></td>\n      <td style=\"padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 12px;\">${emp.leave_types.join(', ')}</td>\n    </tr>`;\n}\n\n// AI insights section\nlet aiSection = '';\nif (aiAnalysis && aiAnalysis.insights) {\n  aiSection = `\n    <div style=\"background: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 4px; margin: 16px 0;\">\n      <h3 style=\"margin: 0 0 8px; color: #1e40af;\">Analyse IA</h3>\n      <p style=\"margin: 0; white-space: pre-wrap;\">${aiAnalysis.insights}</p>\n    </div>`;\n  if (aiAnalysis.recommendations && Array.isArray(aiAnalysis.recommendations)) {\n    aiSection += '<h3>Recommandations IA :</h3><ul>';\n    for (const rec of aiAnalysis.recommendations) {\n      aiSection += `<li>${rec}</li>`;\n    }\n    aiSection += '</ul>';\n  }\n} else if (aiAnalysis && aiAnalysis.error) {\n  aiSection = `<p style=\"color: #9ca3af;\"><em>Analyse IA indisponible : ${aiAnalysis.error}</em></p>`;\n}\n\nreturn [{\n  json: {\n    employee_table_html: employeeRows,\n    ai_section_html: aiSection,\n    flagged_count: flaggedData.flagged_count,\n    total_analyzed: flaggedData.total_employees_analyzed,\n    period_from: flaggedData.analysis_period.from,\n    period_to: flaggedData.analysis_period.to,\n    critical_count: flaggedData.flagged_employees.filter(e => e.risk_level === 'critical').length,\n    high_count: flaggedData.flagged_employees.filter(e => e.risk_level === 'high').length,\n    ai_raw: aiAnalysis\n  }\n}];"
+      },
+      "id": "node-prepare-alert",
+      "name": "Prepare DRH Alert Content",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1680, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "alertes-rh@cashpilot.app",
+        "toEmail": "drh@cashpilot.app",
+        "subject": "=[ALERTE RPS] {{ $json.flagged_count }} employe(s) avec absenteisme eleve - Semaine du {{ $json.period_to }}",
+        "text": "",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;\">\n  <div style=\"background: linear-gradient(135deg, #7f1d1d, #991b1b); padding: 24px; border-radius: 12px 12px 0 0; color: white;\">\n    <h1 style=\"margin: 0; font-size: 20px;\">ALERTE RPS - Absenteisme Eleve</h1>\n    <p style=\"margin: 8px 0 0; opacity: 0.9;\">Periode analysee : {{ $json.period_from }} au {{ $json.period_to }}</p>\n  </div>\n\n  <div style=\"padding: 20px; background: #fef2f2; border-bottom: 1px solid #fecaca;\">\n    <div style=\"display: flex; gap: 20px; text-align: center;\">\n      <div style=\"flex: 1; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);\">\n        <div style=\"font-size: 28px; font-weight: bold; color: #dc2626;\">{{ $json.flagged_count }}</div>\n        <div style=\"font-size: 12px; color: #6b7280;\">Employe(s) signale(s)</div>\n      </div>\n      <div style=\"flex: 1; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);\">\n        <div style=\"font-size: 28px; font-weight: bold; color: #991b1b;\">{{ $json.critical_count }}</div>\n        <div style=\"font-size: 12px; color: #6b7280;\">Niveau critique</div>\n      </div>\n      <div style=\"flex: 1; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);\">\n        <div style=\"font-size: 28px; font-weight: bold; color: #f59e0b;\">{{ $json.high_count }}</div>\n        <div style=\"font-size: 12px; color: #6b7280;\">Niveau eleve</div>\n      </div>\n      <div style=\"flex: 1; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);\">\n        <div style=\"font-size: 28px; font-weight: bold; color: #6b7280;\">{{ $json.total_analyzed }}</div>\n        <div style=\"font-size: 12px; color: #6b7280;\">Employes analyses</div>\n      </div>\n    </div>\n  </div>\n\n  <div style=\"padding: 20px; background: white;\">\n    <h2 style=\"margin: 0 0 12px; font-size: 16px;\">Detail des employes signales (seuil : >3 absences / 30 jours)</h2>\n    <table style=\"width: 100%; border-collapse: collapse; font-size: 13px;\">\n      <thead>\n        <tr style=\"background: #f3f4f6;\">\n          <th style=\"padding: 8px; text-align: left;\">Employe</th>\n          <th style=\"padding: 8px; text-align: left;\">Poste</th>\n          <th style=\"padding: 8px; text-align: center;\">Absences</th>\n          <th style=\"padding: 8px; text-align: center;\">Jours</th>\n          <th style=\"padding: 8px; text-align: center;\">Taux</th>\n          <th style=\"padding: 8px; text-align: center;\">Risque</th>\n          <th style=\"padding: 8px; text-align: left;\">Types</th>\n        </tr>\n      </thead>\n      <tbody>\n        {{ $json.employee_table_html }}\n      </tbody>\n    </table>\n  </div>\n\n  <div style=\"padding: 20px; background: #f9fafb;\">\n    {{ $json.ai_section_html }}\n  </div>\n\n  <div style=\"padding: 20px; background: #fef3c7; border-radius: 0 0 12px 12px;\">\n    <h3 style=\"margin: 0 0 8px; font-size: 14px;\">Actions recommandees :</h3>\n    <ul style=\"margin: 0; padding-left: 20px; font-size: 13px;\">\n      <li>Planifier des entretiens individuels avec les employes en alerte critique</li>\n      <li>Verifier les conditions de travail des departements concernes</li>\n      <li>Consulter la medecine du travail si necessaire</li>\n      <li>Mettre a jour le DUERP (Document Unique d'Evaluation des Risques Professionnels)</li>\n    </ul>\n    <p style=\"margin: 12px 0 0; text-align: center;\">\n      <a href=\"https://app.cashpilot.app/hr/rps-dashboard\" style=\"display: inline-block; background: #991b1b; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;\">Ouvrir le tableau de bord RPS</a>\n    </p>\n  </div>\n\n  <p style=\"color: #9ca3af; font-size: 11px; text-align: center; margin-top: 16px;\">Alerte generee automatiquement par CashPilot HR - Module Prevention RPS. Ne pas repondre a cet email.</p>\n</div>",
+        "options": {}
+      },
+      "id": "node-send-drh-alert",
+      "name": "Send DRH Alert Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1920, 200],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-cashpilot",
+          "name": "CashPilot SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rfzvrezrcigzmldgvntz.supabase.co/rest/v1/hr_rps_alerts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"alert_type\": \"absenteeism_high\",\n  \"analysis_period_start\": \"{{ $json.period_from }}\",\n  \"analysis_period_end\": \"{{ $json.period_to }}\",\n  \"flagged_employee_count\": {{ $json.flagged_count }},\n  \"critical_count\": {{ $json.critical_count }},\n  \"high_count\": {{ $json.high_count }},\n  \"total_analyzed\": {{ $json.total_analyzed }},\n  \"ai_analysis\": {{ JSON.stringify($json.ai_raw) }},\n  \"notification_sent_at\": \"{{ new Date().toISOString() }}\",\n  \"status\": \"sent\"\n}",
+        "options": {}
+      },
+      "id": "node-log-alert",
+      "name": "Log Alert to hr_rps_alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [2160, 200]
+    },
+    {
+      "parameters": {},
+      "id": "node-no-alerts",
+      "name": "No Alerts Needed",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1440, 440]
+    },
+    {
+      "parameters": {},
+      "id": "node-workflow-end",
+      "name": "Workflow Complete",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [2400, 300]
+    }
+  ],
+  "connections": {
+    "Weekly Monday 8AM Cron": {
+      "main": [
+        [
+          {
+            "node": "Set Date Range (Last 30 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Date Range (Last 30 Days)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Leave Requests (30 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Leave Requests (30 Days)": {
+      "main": [
+        [
+          {
+            "node": "Calculate Absenteeism per Employee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Absenteeism per Employee": {
+      "main": [
+        [
+          {
+            "node": "Has Flagged Employees?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Flagged Employees?": {
+      "main": [
+        [
+          {
+            "node": "AI Anomaly Detection",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Alerts Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Anomaly Detection": {
+      "main": [
+        [
+          {
+            "node": "Prepare DRH Alert Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare DRH Alert Content": {
+      "main": [
+        [
+          {
+            "node": "Send DRH Alert Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send DRH Alert Email": {
+      "main": [
+        [
+          {
+            "node": "Log Alert to hr_rps_alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Alert to hr_rps_alerts": {
+      "main": [
+        [
+          {
+            "node": "Workflow Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Alerts Needed": {
+      "main": [
+        [
+          {
+            "node": "Workflow Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "",
+    "timezone": "Europe/Paris"
+  },
+  "versionId": "1",
+  "id": "hr-rps-alert",
+  "meta": {
+    "instanceId": "cashpilot-n8n-instance"
+  },
+  "tags": [
+    {
+      "id": "tag-hr",
+      "name": "HR"
+    },
+    {
+      "id": "tag-rps",
+      "name": "RPS"
+    },
+    {
+      "id": "tag-alerting",
+      "name": "Alerting"
+    }
+  ]
+}

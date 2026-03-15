@@ -1,0 +1,357 @@
+{
+  "name": "HR Payroll Notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "node-cron-trigger",
+      "name": "Monthly Payroll Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://rfzvrezrcigzmldgvntz.supabase.co/rest/v1/hr_payroll_periods?status=eq.validated&select=*",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "id": "node-fetch-payroll-periods",
+      "name": "Fetch Validated Payroll Periods",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.length }}",
+              "operation": "largerEqual",
+              "value2": 1
+            }
+          ]
+        }
+      },
+      "id": "node-check-periods",
+      "name": "Has Validated Periods?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const periods = $input.first().json;\nconst currentMonth = new Date().getMonth();\nconst currentYear = new Date().getFullYear();\n\n// Find the payroll period matching current month\nconst currentPeriod = periods.find(p => {\n  const periodDate = new Date(p.period_start);\n  return periodDate.getMonth() === currentMonth - 1 && periodDate.getFullYear() === currentYear;\n}) || periods[periods.length - 1];\n\nreturn [{\n  json: {\n    period_id: currentPeriod.id,\n    period_name: currentPeriod.name || `Paie ${currentPeriod.period_start} - ${currentPeriod.period_end}`,\n    period_start: currentPeriod.period_start,\n    period_end: currentPeriod.period_end,\n    company_id: currentPeriod.company_id,\n    total_gross: currentPeriod.total_gross,\n    total_net: currentPeriod.total_net,\n    total_employer_charges: currentPeriod.total_employer_charges\n  }\n}];"
+      },
+      "id": "node-extract-period",
+      "name": "Extract Current Period",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [960, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://rfzvrezrcigzmldgvntz.supabase.co/rest/v1/hr_employees?company_id=eq.{{ $json.company_id }}&status=in.(active,onboarding)&select=id,first_name,last_name,email,position_title,department_id",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-fetch-employees",
+      "name": "Fetch Active Employees",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "",
+        "options": {}
+      },
+      "id": "node-split-employees",
+      "name": "Split Into Individual Employees",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [1440, 200],
+      "parameters_extra": {
+        "batchSize": 1
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "paie@cashpilot.app",
+        "toEmail": "={{ $json.email }}",
+        "subject": "=Votre bulletin de paie est disponible - {{ $node['Extract Current Period'].json.period_name }}",
+        "text": "",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;\">\n  <div style=\"background: linear-gradient(135deg, #0a0e1a, #141c33); padding: 30px; border-radius: 12px; color: white; text-align: center;\">\n    <h1 style=\"margin: 0; font-size: 22px;\">Bulletin de Paie Disponible</h1>\n    <p style=\"margin: 8px 0 0; opacity: 0.8;\">{{ $node['Extract Current Period'].json.period_name }}</p>\n  </div>\n  <div style=\"padding: 20px; background: #f9fafb; border-radius: 0 0 12px 12px;\">\n    <p>Bonjour <strong>{{ $json.first_name }} {{ $json.last_name }}</strong>,</p>\n    <p>Votre bulletin de paie pour la periode du <strong>{{ $node['Extract Current Period'].json.period_start }}</strong> au <strong>{{ $node['Extract Current Period'].json.period_end }}</strong> est maintenant disponible.</p>\n    <p>Vous pouvez le consulter et le telecharger depuis votre espace personnel :</p>\n    <p style=\"text-align: center; margin: 24px 0;\">\n      <a href=\"https://app.cashpilot.app/hr/my-payslips\" style=\"display: inline-block; background: #1e40af; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;\">Consulter mon bulletin</a>\n    </p>\n    <div style=\"background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; border-radius: 4px; margin: 16px 0;\">\n      <p style=\"margin: 0; font-size: 13px;\"><strong>Rappel :</strong> En cas de question concernant votre bulletin, contactez le service paie avant le 10 du mois.</p>\n    </div>\n    <p style=\"color: #6b7280; font-size: 12px;\">Ce message est genere automatiquement. Merci de ne pas y repondre directement.</p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "id": "node-send-payslip-email",
+      "name": "Send Payslip Notification Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1680, 200],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-cashpilot",
+          "name": "CashPilot SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Collect all processed employee IDs\nconst items = $input.all();\nconst employeeIds = items.map(item => item.json.id).filter(Boolean);\n\nreturn [{\n  json: {\n    processed_count: employeeIds.length,\n    employee_ids: employeeIds,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-aggregate-results",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1920, 200]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://rfzvrezrcigzmldgvntz.supabase.co/rest/v1/hr_payroll_periods?id=eq.{{ $node['Extract Current Period'].json.period_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"notification_sent_at\": \"{{ $json.timestamp }}\",\n  \"notification_count\": {{ $json.processed_count }}\n}",
+        "options": {}
+      },
+      "id": "node-update-notification-ts",
+      "name": "Update Notification Timestamp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [2160, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "paie@cashpilot.app",
+        "toEmail": "rh-manager@cashpilot.app",
+        "subject": "=Notifications bulletins de paie envoyees - {{ $node['Extract Current Period'].json.period_name }}",
+        "text": "",
+        "html": "=<div style=\"font-family: Arial, sans-serif; padding: 20px;\">\n  <h2>Rapport d'envoi des notifications de paie</h2>\n  <p><strong>Periode :</strong> {{ $node['Extract Current Period'].json.period_name }}</p>\n  <p><strong>Nombre de notifications envoyees :</strong> {{ $node['Aggregate Results'].json.processed_count }}</p>\n  <p><strong>Date d'envoi :</strong> {{ $node['Aggregate Results'].json.timestamp }}</p>\n  <p>Tous les employes actifs ont ete notifies de la disponibilite de leur bulletin de paie.</p>\n</div>",
+        "options": {}
+      },
+      "id": "node-notify-hr-summary",
+      "name": "Send HR Summary Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [2400, 200],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-cashpilot",
+          "name": "CashPilot SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "node-no-periods",
+      "name": "No Validated Periods",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [960, 440]
+    }
+  ],
+  "connections": {
+    "Monthly Payroll Cron": {
+      "main": [
+        [
+          {
+            "node": "Fetch Validated Payroll Periods",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Validated Payroll Periods": {
+      "main": [
+        [
+          {
+            "node": "Has Validated Periods?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Validated Periods?": {
+      "main": [
+        [
+          {
+            "node": "Extract Current Period",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Validated Periods",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Current Period": {
+      "main": [
+        [
+          {
+            "node": "Fetch Active Employees",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Active Employees": {
+      "main": [
+        [
+          {
+            "node": "Split Into Individual Employees",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Individual Employees": {
+      "main": [
+        [
+          {
+            "node": "Send Payslip Notification Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Payslip Notification Email": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Results": {
+      "main": [
+        [
+          {
+            "node": "Update Notification Timestamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Notification Timestamp": {
+      "main": [
+        [
+          {
+            "node": "Send HR Summary Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "",
+    "timezone": "Europe/Paris"
+  },
+  "versionId": "1",
+  "id": "hr-payroll-notifications",
+  "meta": {
+    "instanceId": "cashpilot-n8n-instance"
+  },
+  "tags": [
+    {
+      "id": "tag-hr",
+      "name": "HR"
+    },
+    {
+      "id": "tag-payroll",
+      "name": "Payroll"
+    }
+  ]
+}
