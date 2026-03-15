@@ -70,17 +70,9 @@ function StatusBadge({ status }) {
 }
 
 /* ============ TAB 1 - Demandes ============ */
-function DemandesTab({
-  leaveRequests,
-  leaveTypes,
-  employees,
-  approveLeaveRequest,
-  rejectLeaveRequest,
-  cancelLeaveRequest,
-}) {
+function DemandesTab({ leaveRequests, employees, approveLeaveRequest, rejectLeaveRequest, cancelLeaveRequest }) {
   const [statusF, setStatusF] = useState('all');
   const [empF, setEmpF] = useState('all');
-  const ltMap = useMemo(() => Object.fromEntries((leaveTypes || []).map((t) => [t.id, t])), [leaveTypes]);
   const rows = useMemo(() => {
     let l = leaveRequests || [];
     if (statusF !== 'all') l = l.filter((r) => r.status === statusF);
@@ -147,10 +139,10 @@ function DemandesTab({
                 rows.map((r) => (
                   <tr key={r.id} className="hover:bg-white/[0.03] transition-colors">
                     <td className="px-4 py-3 text-white font-medium">{empName(r.employee)}</td>
-                    <td className="px-4 py-3 text-gray-300">{ltMap[r.leave_type_id]?.name || '-'}</td>
+                    <td className="px-4 py-3 text-gray-300">{r.leave_type?.name || '-'}</td>
                     <td className="px-4 py-3 text-gray-300">{formatDate(r.start_date)}</td>
                     <td className="px-4 py-3 text-gray-300">{formatDate(r.end_date)}</td>
-                    <td className="px-4 py-3 text-center text-white">{r.days_count || '-'}</td>
+                    <td className="px-4 py-3 text-center text-white">{r.total_days || '-'}</td>
                     <td className="px-4 py-3">
                       <StatusBadge status={r.status} />
                     </td>
@@ -327,7 +319,17 @@ function CalendrierTab({ leaveRequests, leaveTypes, employees }) {
 }
 
 /* ============ TAB 3 - Soldes ============ */
-function SoldesTab({ employees, leaveTypes, computeBalance }) {
+function SoldesTab({ employees, leaveTypes, leaveBalances }) {
+  // Group balances by employee for rendering
+  const balancesByEmployee = useMemo(() => {
+    const map = {};
+    (leaveBalances || []).forEach((b) => {
+      if (!map[b.employee_id]) map[b.employee_id] = [];
+      map[b.employee_id].push(b);
+    });
+    return map;
+  }, [leaveBalances]);
+
   return (
     <div className="space-y-4">
       {!(employees || []).length ? (
@@ -335,50 +337,54 @@ function SoldesTab({ employees, leaveTypes, computeBalance }) {
           Aucun employé actif
         </div>
       ) : (
-        (employees || []).map((emp) => (
-          <Card key={emp.id} className="bg-white/5 border-white/10 backdrop-blur">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base text-white">{empName(emp)}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {!(leaveTypes || []).length ? (
-                  <p className="text-gray-500 text-sm">Aucun type de congé configuré</p>
-                ) : (
-                  (leaveTypes || []).map((lt) => {
-                    const b = computeBalance?.[emp.id]?.[lt.id];
-                    const ent = b?.entitled || 0,
-                      used = b?.used || 0,
-                      rem = b?.remaining ?? ent;
-                    const pct = ent > 0 ? Math.min(100, Math.round((used / ent) * 100)) : 0;
-                    const barColor = rem <= 2 && ent > 0 ? 'bg-red-400' : pct > 70 ? 'bg-orange-400' : 'bg-emerald-400';
-                    return (
-                      <div key={lt.id} className="space-y-1.5">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-300">{lt.name}</span>
-                          <span className="text-white font-medium">
-                            {rem}
-                            <span className="text-gray-500 font-normal"> / {ent} j restants</span>
-                          </span>
+        (employees || []).map((emp) => {
+          const empBalances = balancesByEmployee[emp.id] || [];
+          return (
+            <Card key={emp.id} className="bg-white/5 border-white/10 backdrop-blur">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-white">{empName(emp)}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {!(leaveTypes || []).length ? (
+                    <p className="text-gray-500 text-sm">Aucun type de congé configuré</p>
+                  ) : (
+                    (leaveTypes || []).map((lt) => {
+                      const b = empBalances.find((x) => x.leave_type_id === lt.id);
+                      const ent = b?.entitled || 0,
+                        used = b?.used || 0,
+                        rem = b?.remaining ?? ent;
+                      const pct = ent > 0 ? Math.min(100, Math.round((used / ent) * 100)) : 0;
+                      const barColor =
+                        rem <= 2 && ent > 0 ? 'bg-red-400' : pct > 70 ? 'bg-orange-400' : 'bg-emerald-400';
+                      return (
+                        <div key={lt.id} className="space-y-1.5">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-300">{lt.name}</span>
+                            <span className="text-white font-medium">
+                              {rem}
+                              <span className="text-gray-500 font-normal"> / {ent} j restants</span>
+                            </span>
+                          </div>
+                          <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/10">
+                            <div
+                              className={`h-full rounded-full transition-all ${barColor}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-500">
+                            <span>{used} j utilisés</span>
+                            <span>{ent} j accordés</span>
+                          </div>
                         </div>
-                        <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/10">
-                          <div
-                            className={`h-full rounded-full transition-all ${barColor}`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-500">
-                          <span>{used} j utilisés</span>
-                          <span>{ent} j accordés</span>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))
+                      );
+                    })
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })
       )}
     </div>
   );
@@ -402,7 +408,7 @@ function NouvelleDemandeTab({ employees, leaveTypes, createLeaveRequest }) {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      await createLeaveRequest({ ...form, days_count: computed });
+      await createLeaveRequest({ ...form, total_days: computed });
       setForm({ employee_id: '', leave_type_id: '', start_date: '', end_date: '', reason: '' });
     } catch {
       /* hook handles toast */
@@ -507,8 +513,8 @@ export default function AbsencesPage() {
     leaveRequests,
     leaveTypes,
     employees,
+    leaveBalances,
     loading,
-    computeBalance,
     createLeaveRequest,
     approveLeaveRequest,
     rejectLeaveRequest,
@@ -521,7 +527,7 @@ export default function AbsencesPage() {
     return {
       pending: lr.filter((r) => r.status === 'pending').length,
       approved: lr.filter((r) => r.status === 'approved').length,
-      totalDays: lr.filter((r) => r.status === 'approved').reduce((s, r) => s + (r.days_count || 0), 0),
+      totalDays: lr.filter((r) => r.status === 'approved').reduce((s, r) => s + (r.total_days || 0), 0),
     };
   }, [leaveRequests]);
 
@@ -620,7 +626,6 @@ export default function AbsencesPage() {
             <TabsContent value="demandes">
               <DemandesTab
                 leaveRequests={leaveRequests}
-                leaveTypes={leaveTypes}
                 employees={employees}
                 approveLeaveRequest={approveLeaveRequest}
                 rejectLeaveRequest={rejectLeaveRequest}
@@ -633,7 +638,7 @@ export default function AbsencesPage() {
             </TabsContent>
 
             <TabsContent value="soldes">
-              <SoldesTab employees={employees} leaveTypes={leaveTypes} computeBalance={computeBalance} />
+              <SoldesTab employees={employees} leaveTypes={leaveTypes} leaveBalances={leaveBalances} />
             </TabsContent>
 
             <TabsContent value="nouvelle">

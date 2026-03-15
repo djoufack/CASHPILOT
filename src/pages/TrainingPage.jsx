@@ -31,14 +31,14 @@ const STATUS_MAP = {
   cancelled: { label: 'Annulé', cls: 'bg-red-500/20 text-red-400 border-red-500/30' },
 };
 
-const CATEGORY_COLORS = {
+const TAG_COLORS = {
   technique: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
   management: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   soft_skills: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
   compliance: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
   safety: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
 };
-const fallbackCategoryCls = 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+const fallbackTagCls = 'bg-gray-500/20 text-gray-400 border-gray-500/30';
 
 /* ── helpers ─────────────────────────────────────────────────── */
 const fmtCurrency = (v, cur = 'EUR') =>
@@ -56,7 +56,7 @@ const TrainingPage = () => {
 
   const [tab, setTab] = useState('catalogue');
   const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('all');
   const [selectedTraining, setSelectedTraining] = useState(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
@@ -64,33 +64,38 @@ const TrainingPage = () => {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    category: '',
-    duration_hours: '',
     provider: '',
+    provider_type: '',
+    format: '',
+    duration_hours: '',
     cost_per_person: '',
     currency: 'EUR',
     cpf_eligible: false,
     opco_eligible: false,
-    max_participants: '',
-    status: 'active',
+    is_mandatory: false,
+    tags: [],
+    is_active: true,
   });
   const [enrollForm, setEnrollForm] = useState({ training_id: '', employee_id: '' });
   const [submitting, setSubmitting] = useState(false);
 
   /* ── derived data ──────────────────────────────────────────── */
-  const categories = useMemo(() => {
-    const s = new Set(trainings.map((t) => t.category).filter(Boolean));
+  const allTags = useMemo(() => {
+    const s = new Set(trainings.flatMap((t) => (Array.isArray(t.tags) ? t.tags : [])).filter(Boolean));
     return [...s].sort();
   }, [trainings]);
 
   const filteredTrainings = useMemo(() => {
     const q = search.toLowerCase().trim();
     return trainings.filter((t) => {
-      if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
+      if (tagFilter !== 'all') {
+        const tags = Array.isArray(t.tags) ? t.tags : [];
+        if (!tags.includes(tagFilter)) return false;
+      }
       if (q && !t.title?.toLowerCase().includes(q) && !t.provider?.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [trainings, search, categoryFilter]);
+  }, [trainings, search, tagFilter]);
 
   const enrollmentCountMap = useMemo(() => {
     const m = {};
@@ -125,15 +130,17 @@ const TrainingPage = () => {
       setForm({
         title: '',
         description: '',
-        category: '',
-        duration_hours: '',
         provider: '',
+        provider_type: '',
+        format: '',
+        duration_hours: '',
         cost_per_person: '',
         currency: 'EUR',
         cpf_eligible: false,
         opco_eligible: false,
-        max_participants: '',
-        status: 'active',
+        is_mandatory: false,
+        tags: [],
+        is_active: true,
       });
       setShowCreateDialog(false);
     } catch (err) {
@@ -227,14 +234,12 @@ const TrainingPage = () => {
             <div className="rounded-xl bg-white/5 border border-white/10 p-6 space-y-4">
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-2xl font-bold text-white">{selectedTraining.title}</h2>
-                {selectedTraining.category && (
-                  <Badge
-                    variant="outline"
-                    className={CATEGORY_COLORS[selectedTraining.category] || fallbackCategoryCls}
-                  >
-                    {selectedTraining.category}
-                  </Badge>
-                )}
+                {Array.isArray(selectedTraining.tags) &&
+                  selectedTraining.tags.map((tag) => (
+                    <Badge key={tag} variant="outline" className={TAG_COLORS[tag] || fallbackTagCls}>
+                      {tag}
+                    </Badge>
+                  ))}
                 {selectedTraining.cpf_eligible && (
                   <Badge variant="outline" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
                     CPF
@@ -323,15 +328,15 @@ const TrainingPage = () => {
                   className="pl-10 bg-white/5 border-white/10 text-gray-100"
                 />
               </div>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <Select value={tagFilter} onValueChange={setTagFilter}>
                 <SelectTrigger className="w-full sm:w-48 bg-white/5 border-white/10 text-gray-100">
-                  <SelectValue placeholder="Categorie" />
+                  <SelectValue placeholder="Tag" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toutes categories</SelectItem>
-                  {categories.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
+                  <SelectItem value="all">Tous les tags</SelectItem>
+                  {allTags.map((tag) => (
+                    <SelectItem key={tag} value={tag}>
+                      {tag}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -353,11 +358,12 @@ const TrainingPage = () => {
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex flex-wrap gap-2">
-                        {t.category && (
-                          <Badge variant="outline" className={CATEGORY_COLORS[t.category] || fallbackCategoryCls}>
-                            {t.category}
-                          </Badge>
-                        )}
+                        {Array.isArray(t.tags) &&
+                          t.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className={TAG_COLORS[tag] || fallbackTagCls}>
+                              {tag}
+                            </Badge>
+                          ))}
                         {t.cpf_eligible && (
                           <Badge
                             variant="outline"
@@ -574,20 +580,38 @@ const TrainingPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label className="text-gray-300">Categorie</Label>
-                  <Select value={form.category} onValueChange={(v) => setForm((p) => ({ ...p, category: v }))}>
+                  <Label className="text-gray-300">Type de prestataire</Label>
+                  <Select
+                    value={form.provider_type}
+                    onValueChange={(v) => setForm((p) => ({ ...p, provider_type: v }))}
+                  >
                     <SelectTrigger className="bg-white/5 border-white/10 text-gray-100">
                       <SelectValue placeholder="Choisir" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="technique">Technique</SelectItem>
-                      <SelectItem value="management">Management</SelectItem>
-                      <SelectItem value="soft_skills">Soft Skills</SelectItem>
-                      <SelectItem value="compliance">Compliance</SelectItem>
-                      <SelectItem value="safety">Securite</SelectItem>
+                      <SelectItem value="internal">Interne</SelectItem>
+                      <SelectItem value="external">Externe</SelectItem>
+                      <SelectItem value="online">En ligne</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="grid gap-2">
+                  <Label className="text-gray-300">Format</Label>
+                  <Select value={form.format} onValueChange={(v) => setForm((p) => ({ ...p, format: v }))}>
+                    <SelectTrigger className="bg-white/5 border-white/10 text-gray-100">
+                      <SelectValue placeholder="Choisir" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="classroom">Presentiel</SelectItem>
+                      <SelectItem value="online">En ligne</SelectItem>
+                      <SelectItem value="hybrid">Hybride</SelectItem>
+                      <SelectItem value="elearning">E-learning</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label className="text-gray-300">Duree (heures)</Label>
                   <Input
@@ -597,6 +621,23 @@ const TrainingPage = () => {
                     onChange={(e) => setForm((p) => ({ ...p, duration_hours: e.target.value }))}
                     className="bg-white/5 border-white/10 text-gray-100"
                     placeholder="0"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-gray-300">Tags (separes par des virgules)</Label>
+                  <Input
+                    value={Array.isArray(form.tags) ? form.tags.join(', ') : ''}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        tags: e.target.value
+                          .split(',')
+                          .map((s) => s.trim())
+                          .filter(Boolean),
+                      }))
+                    }
+                    className="bg-white/5 border-white/10 text-gray-100"
+                    placeholder="technique, management, ..."
                   />
                 </div>
               </div>
@@ -639,19 +680,7 @@ const TrainingPage = () => {
                 />
               </div>
 
-              <div className="grid gap-2">
-                <Label className="text-gray-300">Places max.</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={form.max_participants}
-                  onChange={(e) => setForm((p) => ({ ...p, max_participants: e.target.value }))}
-                  className="bg-white/5 border-white/10 text-gray-100"
-                  placeholder="Illimite si vide"
-                />
-              </div>
-
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-6 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={form.cpf_eligible}
@@ -665,6 +694,13 @@ const TrainingPage = () => {
                     onCheckedChange={(v) => setForm((p) => ({ ...p, opco_eligible: v }))}
                   />
                   <Label className="text-gray-300 text-sm">Eligible OPCO</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={form.is_mandatory}
+                    onCheckedChange={(v) => setForm((p) => ({ ...p, is_mandatory: v }))}
+                  />
+                  <Label className="text-gray-300 text-sm">Obligatoire</Label>
                 </div>
               </div>
 

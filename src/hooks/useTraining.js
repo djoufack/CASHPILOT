@@ -7,7 +7,8 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 export function useTraining() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
+  // RLS policies handle access — no client-side company filter needed
+  const { activeCompanyId, withCompanyScope } = useCompanyScope();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -15,7 +16,6 @@ export function useTraining() {
   const [enrollments, setEnrollments] = useState([]);
   const [skillAssessments, setSkillAssessments] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [employeeSkills, setEmployeeSkills] = useState([]);
 
   const fetchData = useCallback(async () => {
     if (!user || !supabase) return;
@@ -24,52 +24,40 @@ export function useTraining() {
     setError(null);
 
     try {
-      let trainingsQuery = supabase.from('hr_training_catalog').select('*').order('created_at', { ascending: false });
+      const trainingsQuery = supabase.from('hr_training_catalog').select('*').order('created_at', { ascending: false });
 
-      let enrollmentsQuery = supabase
+      const enrollmentsQuery = supabase
         .from('hr_training_enrollments')
-        .select('*, hr_employees(id, first_name, last_name, full_name), hr_training_catalog(id, title, category)')
-        .order('enrolled_at', { ascending: false });
-
-      let skillAssessmentsQuery = supabase
-        .from('hr_skill_assessments')
         .select(
-          '*, hr_employees!hr_skill_assessments_employee_id_fkey(id, first_name, last_name, full_name), hr_training_catalog(id, title)'
+          '*, hr_employees!employee_id(id, first_name, last_name, full_name), hr_training_catalog!training_id(id, title)'
         )
-        .order('assessment_date', { ascending: false });
+        .order('created_at', { ascending: false });
 
-      let employeesQuery = supabase
+      const skillAssessmentsQuery = supabase
+        .from('hr_skill_assessments')
+        .select('*, hr_employees!employee_id(id, first_name, last_name, full_name)')
+        .order('assessed_at', { ascending: false });
+
+      const employeesQuery = supabase
         .from('hr_employees')
-        .select('id, company_id, first_name, last_name, full_name, status, department_id')
+        .select(
+          'id, company_id, first_name, last_name, full_name, status, department_id, skills:hr_employee_skills(id, skill_name, skill_level)'
+        )
         .eq('status', 'active')
         .order('full_name', { ascending: true });
 
-      let employeeSkillsQuery = supabase
-        .from('hr_employee_skills')
-        .select('*')
-        .order('skill_name', { ascending: true });
-
-      trainingsQuery = applyCompanyScope(trainingsQuery);
-      enrollmentsQuery = applyCompanyScope(enrollmentsQuery);
-      skillAssessmentsQuery = applyCompanyScope(skillAssessmentsQuery);
-      employeesQuery = applyCompanyScope(employeesQuery);
-      employeeSkillsQuery = applyCompanyScope(employeeSkillsQuery);
-
-      const [trainingsResult, enrollmentsResult, skillAssessmentsResult, employeesResult, employeeSkillsResult] =
-        await Promise.all([
-          trainingsQuery,
-          enrollmentsQuery,
-          skillAssessmentsQuery,
-          employeesQuery,
-          employeeSkillsQuery,
-        ]);
+      const [trainingsResult, enrollmentsResult, skillAssessmentsResult, employeesResult] = await Promise.all([
+        trainingsQuery,
+        enrollmentsQuery,
+        skillAssessmentsQuery,
+        employeesQuery,
+      ]);
 
       const firstError = [
         trainingsResult.error,
         enrollmentsResult.error,
         skillAssessmentsResult.error,
         employeesResult.error,
-        employeeSkillsResult.error,
       ].find(Boolean);
 
       if (firstError) throw firstError;
@@ -78,7 +66,6 @@ export function useTraining() {
       setEnrollments(enrollmentsResult.data || []);
       setSkillAssessments(skillAssessmentsResult.data || []);
       setEmployees(employeesResult.data || []);
-      setEmployeeSkills(employeeSkillsResult.data || []);
     } catch (err) {
       setError(err.message || 'Impossible de charger les formations');
       toast({
@@ -89,7 +76,7 @@ export function useTraining() {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]);
+  }, [toast, user]);
   const createTraining = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;
@@ -97,15 +84,21 @@ export function useTraining() {
       const row = withCompanyScope({
         title: payload.title,
         description: payload.description || null,
-        category: payload.category || null,
-        duration_hours: Number(payload.duration_hours) || 0,
         provider: payload.provider || null,
-        cpf_eligible: payload.cpf_eligible || false,
-        opco_eligible: payload.opco_eligible || false,
+        provider_type: payload.provider_type || null,
+        format: payload.format || null,
+        duration_hours: Number(payload.duration_hours) || 0,
         cost_per_person: Number(payload.cost_per_person) || 0,
         currency: payload.currency || 'EUR',
-        max_participants: payload.max_participants ? Number(payload.max_participants) : null,
-        status: payload.status || 'active',
+        skills_covered: payload.skills_covered || [],
+        is_mandatory: payload.is_mandatory || false,
+        cpf_eligible: payload.cpf_eligible || false,
+        opco_eligible: payload.opco_eligible || false,
+        certification_name: payload.certification_name || null,
+        passing_score: payload.passing_score != null ? Number(payload.passing_score) : null,
+        validity_months: payload.validity_months != null ? Number(payload.validity_months) : null,
+        tags: payload.tags || [],
+        is_active: payload.is_active !== undefined ? payload.is_active : true,
       });
 
       const { data, error: insertError } = await supabase
@@ -127,16 +120,23 @@ export function useTraining() {
       const updates = {};
       if (payload.title !== undefined) updates.title = payload.title;
       if (payload.description !== undefined) updates.description = payload.description;
-      if (payload.category !== undefined) updates.category = payload.category;
-      if (payload.duration_hours !== undefined) updates.duration_hours = Number(payload.duration_hours) || 0;
       if (payload.provider !== undefined) updates.provider = payload.provider;
-      if (payload.cpf_eligible !== undefined) updates.cpf_eligible = payload.cpf_eligible;
-      if (payload.opco_eligible !== undefined) updates.opco_eligible = payload.opco_eligible;
+      if (payload.provider_type !== undefined) updates.provider_type = payload.provider_type;
+      if (payload.format !== undefined) updates.format = payload.format;
+      if (payload.duration_hours !== undefined) updates.duration_hours = Number(payload.duration_hours) || 0;
       if (payload.cost_per_person !== undefined) updates.cost_per_person = Number(payload.cost_per_person) || 0;
       if (payload.currency !== undefined) updates.currency = payload.currency;
-      if (payload.max_participants !== undefined)
-        updates.max_participants = payload.max_participants ? Number(payload.max_participants) : null;
-      if (payload.status !== undefined) updates.status = payload.status;
+      if (payload.skills_covered !== undefined) updates.skills_covered = payload.skills_covered;
+      if (payload.is_mandatory !== undefined) updates.is_mandatory = payload.is_mandatory;
+      if (payload.cpf_eligible !== undefined) updates.cpf_eligible = payload.cpf_eligible;
+      if (payload.opco_eligible !== undefined) updates.opco_eligible = payload.opco_eligible;
+      if (payload.certification_name !== undefined) updates.certification_name = payload.certification_name;
+      if (payload.passing_score !== undefined)
+        updates.passing_score = payload.passing_score != null ? Number(payload.passing_score) : null;
+      if (payload.validity_months !== undefined)
+        updates.validity_months = payload.validity_months != null ? Number(payload.validity_months) : null;
+      if (payload.tags !== undefined) updates.tags = payload.tags;
+      if (payload.is_active !== undefined) updates.is_active = payload.is_active;
 
       const { data, error: updateError } = await supabase
         .from('hr_training_catalog')
@@ -158,14 +158,18 @@ export function useTraining() {
       const row = withCompanyScope({
         training_id: payload.training_id,
         employee_id: payload.employee_id,
+        training_plan_id: payload.training_plan_id || null,
         status: payload.status || 'enrolled',
-        enrolled_at: payload.enrolled_at || new Date().toISOString(),
+        planned_start_date: payload.planned_start_date || null,
+        planned_end_date: payload.planned_end_date || null,
       });
 
       const { data, error: insertError } = await supabase
         .from('hr_training_enrollments')
         .insert([row])
-        .select('*, hr_employees(id, first_name, last_name, full_name), hr_training_catalog(id, title, category)')
+        .select(
+          '*, hr_employees!employee_id(id, first_name, last_name, full_name), hr_training_catalog!training_id(id, title)'
+        )
         .single();
 
       if (insertError) throw insertError;
@@ -180,17 +184,28 @@ export function useTraining() {
 
       const updates = {};
       if (payload.status !== undefined) updates.status = payload.status;
-      if (payload.completed_at !== undefined) updates.completed_at = payload.completed_at;
+      if (payload.planned_start_date !== undefined) updates.planned_start_date = payload.planned_start_date;
+      if (payload.planned_end_date !== undefined) updates.planned_end_date = payload.planned_end_date;
+      if (payload.actual_start_date !== undefined) updates.actual_start_date = payload.actual_start_date;
+      if (payload.actual_end_date !== undefined) updates.actual_end_date = payload.actual_end_date;
       if (payload.score !== undefined) updates.score = Number(payload.score);
+      if (payload.passed !== undefined) updates.passed = payload.passed;
       if (payload.certificate_url !== undefined) updates.certificate_url = payload.certificate_url;
-      if (payload.feedback !== undefined) updates.feedback = payload.feedback;
-      if (payload.rating !== undefined) updates.rating = Number(payload.rating);
+      if (payload.certificate_expiry !== undefined) updates.certificate_expiry = payload.certificate_expiry;
+      if (payload.actual_cost !== undefined) updates.actual_cost = Number(payload.actual_cost);
+      if (payload.funded_by !== undefined) updates.funded_by = payload.funded_by;
+      if (payload.cpf_hours_used !== undefined) updates.cpf_hours_used = Number(payload.cpf_hours_used);
+      if (payload.rating_hot !== undefined) updates.rating_hot = Number(payload.rating_hot);
+      if (payload.rating_cold !== undefined) updates.rating_cold = Number(payload.rating_cold);
+      if (payload.feedback_comment !== undefined) updates.feedback_comment = payload.feedback_comment;
 
       const { data, error: updateError } = await supabase
         .from('hr_training_enrollments')
         .update(updates)
         .eq('id', id)
-        .select('*, hr_employees(id, first_name, last_name, full_name), hr_training_catalog(id, title, category)')
+        .select(
+          '*, hr_employees!employee_id(id, first_name, last_name, full_name), hr_training_catalog!training_id(id, title)'
+        )
         .single();
 
       if (updateError) throw updateError;
@@ -204,26 +219,28 @@ export function useTraining() {
       if (!user || !supabase) return null;
 
       const currentLevel = Number(payload.current_level) || 0;
+      const requiredLevel = Number(payload.required_level) || 0;
       const targetLevel = Number(payload.target_level) || 0;
 
       const row = withCompanyScope({
         employee_id: payload.employee_id,
-        assessed_by: payload.assessed_by || user.id,
-        assessment_date: payload.assessment_date || new Date().toISOString().split('T')[0],
         skill_name: payload.skill_name,
+        skill_category: payload.skill_category || null,
+        required_level: requiredLevel,
         current_level: currentLevel,
         target_level: targetLevel,
         gap: targetLevel - currentLevel,
-        recommended_training_id: payload.recommended_training_id || null,
+        assessed_by: payload.assessed_by || null,
+        assessment_method: payload.assessment_method || null,
+        assessed_at: payload.assessed_at || new Date().toISOString(),
+        next_assessment_date: payload.next_assessment_date || null,
         notes: payload.notes || null,
       });
 
       const { data, error: insertError } = await supabase
         .from('hr_skill_assessments')
         .insert([row])
-        .select(
-          '*, hr_employees!hr_skill_assessments_employee_id_fkey(id, first_name, last_name, full_name), hr_training_catalog(id, title)'
-        )
+        .select('*, hr_employees!employee_id(id, first_name, last_name, full_name)')
         .single();
 
       if (insertError) throw insertError;
@@ -244,7 +261,6 @@ export function useTraining() {
     enrollments,
     skillAssessments,
     employees,
-    employeeSkills,
     fetchData,
     createTraining,
     updateTraining,

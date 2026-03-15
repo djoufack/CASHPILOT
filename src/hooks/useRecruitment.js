@@ -8,9 +8,10 @@ import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 export const useRecruitment = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const { withCompanyScope } = useCompanyScope();
 
   // --- Job Positions ---
+  // RLS policies handle access — no client-side company filter needed
   const {
     data: positions,
     setData: setPositions,
@@ -19,13 +20,12 @@ export const useRecruitment = () => {
   } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      let query = supabase.from('hr_job_positions').select('*').order('created_at', { ascending: false });
-      query = applyCompanyScope(query);
+      const query = supabase.from('hr_job_positions').select('*').order('created_at', { ascending: false });
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+    { deps: [user], defaultData: [], enabled: !!user }
   );
 
   // --- Candidates ---
@@ -37,13 +37,12 @@ export const useRecruitment = () => {
   } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      let query = supabase.from('hr_candidates').select('*').order('created_at', { ascending: false });
-      query = applyCompanyScope(query);
+      const query = supabase.from('hr_candidates').select('*').order('created_at', { ascending: false });
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+    { deps: [user], defaultData: [], enabled: !!user }
   );
 
   // --- Applications (with joins) ---
@@ -55,7 +54,7 @@ export const useRecruitment = () => {
   } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      let query = supabase
+      const query = supabase
         .from('hr_applications')
         .select(
           `
@@ -65,12 +64,11 @@ export const useRecruitment = () => {
         `
         )
         .order('created_at', { ascending: false });
-      query = applyCompanyScope(query);
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+    { deps: [user], defaultData: [], enabled: !!user }
   );
 
   // --- Interview Sessions ---
@@ -82,7 +80,7 @@ export const useRecruitment = () => {
   } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      let query = supabase
+      const query = supabase
         .from('hr_interview_sessions')
         .select(
           `
@@ -91,17 +89,15 @@ export const useRecruitment = () => {
             *,
             candidate:hr_candidates(*),
             position:hr_job_positions(*)
-          ),
-          interviewer:hr_employees(*)
+          )
         `
         )
         .order('scheduled_at', { ascending: false });
-      query = applyCompanyScope(query);
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+    { deps: [user], defaultData: [], enabled: !!user }
   );
 
   // --- Onboarding Plans ---
@@ -113,39 +109,36 @@ export const useRecruitment = () => {
   } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      let query = supabase
+      const query = supabase
         .from('hr_onboarding_plans')
         .select(
           `
           *,
-          employee:hr_employees!hr_onboarding_plans_employee_id_fkey(*),
-          mentor:hr_employees!hr_onboarding_plans_mentor_employee_id_fkey(*)
+          employee:hr_employees!hr_onboarding_plans_employee_id_fkey(*)
         `
         )
         .order('created_at', { ascending: false });
-      query = applyCompanyScope(query);
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+    { deps: [user], defaultData: [], enabled: !!user }
   );
 
   // --- Employees (for dropdowns) ---
   const { data: employees, loading: employeesLoading } = useSupabaseQuery(
     async () => {
       if (!user || !supabase) return [];
-      let query = supabase
+      const query = supabase
         .from('hr_employees')
         .select('id, first_name, last_name, full_name, work_email, job_title, status')
         .eq('status', 'active')
         .order('last_name', { ascending: true });
-      query = applyCompanyScope(query);
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    { deps: [user, applyCompanyScope], defaultData: [], enabled: !!user }
+    { deps: [user], defaultData: [], enabled: !!user }
   );
 
   // --- CRUD Operations ---
@@ -222,7 +215,7 @@ export const useRecruitment = () => {
       if (!supabase) throw new Error('Supabase not configured');
       const { data, error } = await supabase
         .from('hr_applications')
-        .update(withCompanyScope({ status: newStatus, stage_changed_at: new Date().toISOString() }))
+        .update(withCompanyScope({ status: newStatus }))
         .eq('id', id)
         .select(
           `
@@ -252,8 +245,7 @@ export const useRecruitment = () => {
           *,
           candidate:hr_candidates(*),
           position:hr_job_positions(*)
-        ),
-        interviewer:hr_employees(*)
+        )
       `
         )
         .single();
@@ -269,12 +261,11 @@ export const useRecruitment = () => {
       if (!supabase) throw new Error('Supabase not configured');
       const { data, error } = await supabase
         .from('hr_onboarding_plans')
-        .insert([withCompanyScope({ ...planData, status: planData.status || 'active', progress_pct: 0 })])
+        .insert([withCompanyScope({ ...planData, status: planData.status || 'active', completion_pct: 0 })])
         .select(
           `
         *,
-        employee:hr_employees!hr_onboarding_plans_employee_id_fkey(*),
-        mentor:hr_employees!hr_onboarding_plans_mentor_employee_id_fkey(*)
+        employee:hr_employees!hr_onboarding_plans_employee_id_fkey(*)
       `
         )
         .single();
@@ -291,23 +282,22 @@ export const useRecruitment = () => {
       const plan = onboardingPlans.find((p) => p.id === planId);
       if (!plan) throw new Error('Plan not found');
 
-      const tasks = Array.isArray(plan.tasks) ? [...plan.tasks] : [];
-      if (taskIndex < 0 || taskIndex >= tasks.length) throw new Error('Invalid task index');
+      const checklist = Array.isArray(plan.checklist) ? [...plan.checklist] : [];
+      if (taskIndex < 0 || taskIndex >= checklist.length) throw new Error('Invalid task index');
 
-      tasks[taskIndex] = { ...tasks[taskIndex], completed };
-      const completedCount = tasks.filter((t) => t.completed).length;
-      const progress_pct = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
-      const status = progress_pct === 100 ? 'completed' : 'active';
+      checklist[taskIndex] = { ...checklist[taskIndex], completed };
+      const completedCount = checklist.filter((t) => t.completed).length;
+      const completion_pct = checklist.length > 0 ? Math.round((completedCount / checklist.length) * 100) : 0;
+      const status = completion_pct === 100 ? 'completed' : 'active';
 
       const { data, error } = await supabase
         .from('hr_onboarding_plans')
-        .update(withCompanyScope({ tasks, progress_pct, status }))
+        .update(withCompanyScope({ checklist, completion_pct, status }))
         .eq('id', planId)
         .select(
           `
         *,
-        employee:hr_employees!hr_onboarding_plans_employee_id_fkey(*),
-        mentor:hr_employees!hr_onboarding_plans_mentor_employee_id_fkey(*)
+        employee:hr_employees!hr_onboarding_plans_employee_id_fkey(*)
       `
         )
         .single();

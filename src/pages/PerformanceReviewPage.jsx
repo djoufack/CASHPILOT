@@ -73,7 +73,7 @@ const emptyObjective = () => ({
 const emptyForm = () => ({
   employee_id: '',
   reviewer_id: '',
-  review_period: new Date().getFullYear().toString(),
+  period_year: new Date().getFullYear().toString(),
   review_type: 'annual',
   objectives: [emptyObjective()],
   competencies: [],
@@ -148,10 +148,10 @@ function RatingStars({ value, max = 5, onChange }) {
 function groupByCampaign(reviews) {
   const map = {};
   for (const r of reviews) {
-    const key = `${r.review_period || 'N/A'}::${r.review_type || 'annual'}`;
+    const key = `${r.period_year || 'N/A'}::${r.review_type || 'annual'}`;
     if (!map[key]) {
       map[key] = {
-        period: r.review_period || 'N/A',
+        period: r.period_year || 'N/A',
         type: r.review_type || 'annual',
         reviews: [],
         completed: 0,
@@ -160,9 +160,9 @@ function groupByCampaign(reviews) {
     }
     map[key].reviews.push(r);
     map[key].total += 1;
-    if (r.status === 'signed') map[key].completed += 1;
+    if (r.status === 'completed') map[key].completed += 1;
   }
-  return Object.values(map).sort((a, b) => b.period.localeCompare(a.period));
+  return Object.values(map).sort((a, b) => String(b.period).localeCompare(String(a.period)));
 }
 
 /* ========== MAIN COMPONENT ========== */
@@ -208,7 +208,7 @@ export default function PerformanceReviewPage() {
     setForm({
       employee_id: review.employee_id || '',
       reviewer_id: review.reviewer_id || '',
-      review_period: review.review_period || new Date().getFullYear().toString(),
+      period_year: review.period_year || new Date().getFullYear().toString(),
       review_type: review.review_type || 'annual',
       objectives: review.objectives?.length
         ? review.objectives.map((o) => ({ ...o, id: o.id || crypto.randomUUID() }))
@@ -255,7 +255,7 @@ export default function PerformanceReviewPage() {
       if (editingReview) {
         await updateReview(editingReview.id, {
           reviewer_id: form.reviewer_id || null,
-          review_period: form.review_period,
+          period_year: form.period_year,
           review_type: form.review_type,
           objectives: form.objectives,
           competencies: form.competencies,
@@ -438,7 +438,7 @@ export default function PerformanceReviewPage() {
                       >
                         <td className="px-4 py-3 font-medium text-white">{employeeName(r.employee)}</td>
                         <td className="px-4 py-3 text-gray-300">{employeeName(r.reviewer)}</td>
-                        <td className="px-4 py-3 text-gray-300">{r.review_period || '-'}</td>
+                        <td className="px-4 py-3 text-gray-300">{r.period_year || '-'}</td>
                         <td className="px-4 py-3 text-gray-300">
                           {REVIEW_TYPES.find((t) => t.value === r.review_type)?.label || r.review_type}
                         </td>
@@ -446,10 +446,10 @@ export default function PerformanceReviewPage() {
                           <StatusBadge status={r.status} />
                         </td>
                         <td className="px-4 py-3">
-                          <LabelBadge label={r.performance_label} type="performance" />
+                          <LabelBadge label={r.performance_rating} type="performance" />
                         </td>
                         <td className="px-4 py-3">
-                          <LabelBadge label={r.potential_label} type="potential" />
+                          <LabelBadge label={r.nine_box_potential} type="potential" />
                         </td>
                         <td className="px-4 py-3 text-right">
                           <Button
@@ -522,8 +522,8 @@ export default function PerformanceReviewPage() {
                     <div className="space-y-2">
                       <Label className="text-gray-300">Periode</Label>
                       <Input
-                        value={form.review_period}
-                        onChange={(e) => handleFieldChange('review_period', e.target.value)}
+                        value={form.period_year}
+                        onChange={(e) => handleFieldChange('period_year', e.target.value)}
                         placeholder="2026"
                         className="bg-white/5 border-white/10 text-white"
                       />
@@ -643,7 +643,7 @@ export default function PerformanceReviewPage() {
                 </DialogTitle>
                 <DialogDescription className="text-gray-400">
                   {REVIEW_TYPES.find((t) => t.value === detailReview.review_type)?.label || detailReview.review_type}{' '}
-                  &bull; Periode : {detailReview.review_period || '-'} &bull; Cree le{' '}
+                  &bull; Periode : {detailReview.period_year || '-'} &bull; Cree le{' '}
                   {formatDate(detailReview.created_at)}
                 </DialogDescription>
               </DialogHeader>
@@ -651,10 +651,12 @@ export default function PerformanceReviewPage() {
               {/* Status + Labels */}
               <div className="flex flex-wrap items-center gap-3 mt-2">
                 <StatusBadge status={detailReview.status} />
-                {detailReview.performance_label && (
-                  <LabelBadge label={detailReview.performance_label} type="performance" />
+                {detailReview.performance_rating && (
+                  <LabelBadge label={detailReview.performance_rating} type="performance" />
                 )}
-                {detailReview.potential_label && <LabelBadge label={detailReview.potential_label} type="potential" />}
+                {detailReview.nine_box_potential && (
+                  <LabelBadge label={detailReview.nine_box_potential} type="potential" />
+                )}
               </div>
 
               {/* Evaluateur */}
@@ -723,36 +725,32 @@ export default function PerformanceReviewPage() {
               )}
 
               {/* Ratings summary */}
-              <div className="mt-6 grid grid-cols-2 gap-4">
+              <div className="mt-6">
                 <div className="bg-white/5 border border-white/10 rounded-lg p-3 space-y-1">
-                  <p className="text-xs text-gray-400">Note globale (auto)</p>
-                  <RatingStars value={detailReview.overall_self_rating} />
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-lg p-3 space-y-1">
-                  <p className="text-xs text-gray-400">Note globale (manager)</p>
-                  <RatingStars value={detailReview.overall_manager_rating} />
+                  <p className="text-xs text-gray-400">Note globale</p>
+                  <RatingStars value={detailReview.overall_score} />
                 </div>
               </div>
 
               {/* Comments */}
               <div className="mt-6 space-y-4">
-                {detailReview.employee_comments && (
+                {detailReview.employee_comment && (
                   <div className="space-y-1">
                     <h4 className="text-xs font-medium text-gray-400 flex items-center gap-1">
-                      <MessageSquare className="h-3 w-3" /> Commentaires collaborateur
+                      <MessageSquare className="h-3 w-3" /> Commentaire collaborateur
                     </h4>
                     <p className="text-sm text-gray-300 bg-white/5 border border-white/10 rounded-lg p-3">
-                      {detailReview.employee_comments}
+                      {detailReview.employee_comment}
                     </p>
                   </div>
                 )}
-                {detailReview.manager_comments && (
+                {detailReview.hr_comment && (
                   <div className="space-y-1">
                     <h4 className="text-xs font-medium text-gray-400 flex items-center gap-1">
-                      <MessageSquare className="h-3 w-3" /> Commentaires manager
+                      <MessageSquare className="h-3 w-3" /> Commentaire RH
                     </h4>
                     <p className="text-sm text-gray-300 bg-white/5 border border-white/10 rounded-lg p-3">
-                      {detailReview.manager_comments}
+                      {detailReview.hr_comment}
                     </p>
                   </div>
                 )}
@@ -769,10 +767,10 @@ export default function PerformanceReviewPage() {
               </div>
 
               {/* Sign date */}
-              {detailReview.signed_at && (
+              {detailReview.employee_signed_at && (
                 <p className="mt-4 text-xs text-emerald-400 flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
-                  Signe le {formatDate(detailReview.signed_at)}
+                  Signe le {formatDate(detailReview.employee_signed_at)}
                 </p>
               )}
 

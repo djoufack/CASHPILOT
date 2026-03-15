@@ -12,14 +12,12 @@ const toNumber = (value) => {
 export function useEmployees() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const { withCompanyScope } = useCompanyScope();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [contracts, setContracts] = useState([]);
-  const [skills, setSkills] = useState([]);
 
   const fetchData = useCallback(async () => {
     if (!user || !supabase) return;
@@ -28,39 +26,34 @@ export function useEmployees() {
     setError(null);
 
     try {
-      let employeesQuery = supabase.from('hr_employees').select('*').order('created_at', { ascending: false });
+      const EMPLOYEES_SELECT = `
+        *,
+        department:hr_departments!department_id(id, name, description),
+        manager:hr_employees!manager_employee_id(id, full_name, job_title),
+        contracts:hr_employee_contracts(id, contract_type, status, start_date, end_date, pay_basis, hourly_rate, monthly_salary),
+        skills:hr_employee_skills(id, skill_name, skill_level)
+      `;
 
-      let departmentsQuery = supabase.from('hr_departments').select('*').order('name', { ascending: true });
+      const employeesQuery = supabase
+        .from('hr_employees')
+        .select(EMPLOYEES_SELECT)
+        .order('created_at', { ascending: false });
 
-      let contractsQuery = supabase.from('hr_employee_contracts').select('*').order('created_at', { ascending: false });
+      // Lightweight departments query for filter dropdown only
+      const departmentsQuery = supabase.from('hr_departments').select('id, name').order('name');
 
-      let skillsQuery = supabase.from('hr_employee_skills').select('*').order('created_at', { ascending: false });
+      // No client-side company filter on reads — RLS policies
+      // (p_company_owner_rw, fn_is_drh_admin, fn_is_hr_manager)
+      // already restrict rows to the user's accessible companies.
 
-      employeesQuery = applyCompanyScope(employeesQuery);
-      departmentsQuery = applyCompanyScope(departmentsQuery);
-      contractsQuery = applyCompanyScope(contractsQuery);
-      skillsQuery = applyCompanyScope(skillsQuery);
+      const [employeesResult, departmentsResult] = await Promise.all([employeesQuery, departmentsQuery]);
 
-      const [employeesResult, departmentsResult, contractsResult, skillsResult] = await Promise.all([
-        employeesQuery,
-        departmentsQuery,
-        contractsQuery,
-        skillsQuery,
-      ]);
-
-      const firstError = [
-        employeesResult.error,
-        departmentsResult.error,
-        contractsResult.error,
-        skillsResult.error,
-      ].find(Boolean);
+      const firstError = [employeesResult.error, departmentsResult.error].find(Boolean);
 
       if (firstError) throw firstError;
 
       setEmployees(employeesResult.data || []);
       setDepartments(departmentsResult.data || []);
-      setContracts(contractsResult.data || []);
-      setSkills(skillsResult.data || []);
     } catch (err) {
       setError(err.message || 'Impossible de charger les employÃ©s');
       toast({
@@ -71,7 +64,7 @@ export function useEmployees() {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]);
+  }, [toast, user]);
   const createEmployee = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;
@@ -195,7 +188,6 @@ export function useEmployees() {
         employee_id: payload.employee_id,
         skill_name: payload.skill_name,
         skill_level: payload.skill_level || null,
-        certified: payload.certified || false,
       });
 
       const { data, error: insertError } = await supabase.from('hr_employee_skills').insert([row]).select('*').single();
@@ -216,8 +208,6 @@ export function useEmployees() {
     error,
     employees,
     departments,
-    contracts,
-    skills,
     fetchData,
     createEmployee,
     updateEmployee,

@@ -257,7 +257,6 @@ const PeriodesTab = ({ periods, selectedPeriodId, onSelectPeriod, onCreatePeriod
 const CalculTab = ({
   selectedPeriod,
   employees,
-  contracts,
   variableItems,
   anomalies,
   currency,
@@ -278,14 +277,6 @@ const CalculTab = ({
     quantity: '1',
   });
 
-  const contractMap = useMemo(() => {
-    const m = new Map();
-    (contracts || []).forEach((c) => {
-      if (!m.has(c.employee_id)) m.set(c.employee_id, c);
-    });
-    return m;
-  }, [contracts]);
-
   const pVI = useMemo(
     () => (variableItems || []).filter((v) => v.payroll_period_id === selectedPeriod?.id),
     [variableItems, selectedPeriod?.id]
@@ -299,7 +290,7 @@ const CalculTab = ({
   const rows = useMemo(
     () =>
       (employees || []).map((e) => {
-        const ct = contractMap.get(e.id);
+        const ct = e.contracts?.find((c) => c.status === 'active') || e.contracts?.[0];
         const gross = Number(ct?.monthly_salary || 0);
         const charges = gross * 0.22;
         const extras = pVI
@@ -315,7 +306,7 @@ const CalculTab = ({
           totalNet: gross - charges + extras * 0.78,
         };
       }),
-    [employees, contractMap, pVI]
+    [employees, pVI]
   );
 
   const totals = useMemo(
@@ -513,7 +504,6 @@ const CalculTab = ({
           ) : (
             <div className="space-y-2">
               {pVI.map((vi) => {
-                const emp = employees.find((e) => e.id === vi.employee_id);
                 return (
                   <div
                     key={vi.id}
@@ -523,7 +513,7 @@ const CalculTab = ({
                       <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs">{vi.item_type}</Badge>
                       <div className="min-w-0">
                         <p className="text-sm text-gray-200 truncate">
-                          {vi.label || vi.item_type} - {empLabel(emp)}
+                          {vi.label || vi.item_type} - {vi.employee?.full_name || vi.employee_id || '-'}
                         </p>
                       </div>
                     </div>
@@ -811,18 +801,18 @@ const BulletinsTab = ({ selectedPeriod, employees, currency: _currency, onExport
 
 /* ---- Tab 4 : Historique (SVG bar chart) ---- */
 
-const HistoriqueTab = ({ periods, contracts, employees, currency }) => {
+const HistoriqueTab = ({ periods, employees, currency }) => {
   const chartData = useMemo(() => {
     const sorted = [...(periods || [])]
       .filter((p) => p.period_start)
       .sort((a, b) => new Date(a.period_start) - new Date(b.period_start))
       .slice(-12);
     const monthlyTotal = (employees || []).reduce((s, emp) => {
-      const ct = (contracts || []).find((c) => c.employee_id === emp.id);
+      const ct = emp.contracts?.find((c) => c.status === 'active') || emp.contracts?.[0];
       return s + Number(ct?.monthly_salary || 0);
     }, 0);
     return sorted.map((p) => ({ label: fmtMonth(p.period_start), value: monthlyTotal * 1.22, status: p.status }));
-  }, [periods, contracts, employees]);
+  }, [periods, employees]);
 
   const maxVal = Math.max(...chartData.map((d) => d.value), 1);
   const fillMap = {
@@ -989,7 +979,6 @@ const PayrollPage = () => {
     variableItems,
     anomalies,
     employees,
-    contracts,
     fetchData,
     createPayrollPeriod,
     addVariableItem,
@@ -1090,7 +1079,6 @@ const PayrollPage = () => {
               <CalculTab
                 selectedPeriod={selectedPeriod}
                 employees={employees}
-                contracts={contracts}
                 variableItems={variableItems}
                 anomalies={anomalies}
                 currency={currency}
@@ -1110,7 +1098,7 @@ const PayrollPage = () => {
               />
             </TabsContent>
             <TabsContent value="historique">
-              <HistoriqueTab periods={periods} contracts={contracts} employees={employees} currency={currency} />
+              <HistoriqueTab periods={periods} employees={employees} currency={currency} />
             </TabsContent>
           </Tabs>
         )}

@@ -7,7 +7,8 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 export function usePerformance() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
+  // RLS policies handle access — no client-side company filter needed
+  const { activeCompanyId, withCompanyScope } = useCompanyScope();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -33,7 +34,7 @@ export function usePerformance() {
 
       let successionQuery = supabase
         .from('hr_succession_plans')
-        .select('*, incumbent:hr_employees!incumbent_employee_id(id, full_name, job_title)')
+        .select('*, incumbent:hr_employees!incumbent_id(id, full_name, job_title)')
         .order('created_at', { ascending: false });
 
       let budgetsQuery = supabase
@@ -50,12 +51,6 @@ export function usePerformance() {
         .from('hr_departments')
         .select('id, name, company_id')
         .order('name', { ascending: true });
-
-      reviewsQuery = applyCompanyScope(reviewsQuery);
-      successionQuery = applyCompanyScope(successionQuery);
-      budgetsQuery = applyCompanyScope(budgetsQuery);
-      employeesQuery = applyCompanyScope(employeesQuery);
-      departmentsQuery = applyCompanyScope(departmentsQuery);
 
       const [reviewsResult, successionResult, budgetsResult, employeesResult, departmentsResult] = await Promise.all([
         reviewsQuery,
@@ -90,7 +85,7 @@ export function usePerformance() {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]);
+  }, [toast, user]);
   // --- Reviews CRUD ---
 
   const createReview = useCallback(
@@ -100,17 +95,18 @@ export function usePerformance() {
       const row = withCompanyScope({
         employee_id: payload.employee_id,
         reviewer_id: payload.reviewer_id || null,
-        review_period: payload.review_period,
+        period_year: payload.period_year ?? new Date().getFullYear(),
+        period_label: payload.period_label || null,
         review_type: payload.review_type || 'annual',
         status: 'draft',
         objectives: payload.objectives || [],
         competencies: payload.competencies || [],
-        overall_self_rating: null,
-        overall_manager_rating: null,
-        performance_label: null,
-        potential_label: null,
-        employee_comments: null,
-        manager_comments: null,
+        overall_score: null,
+        performance_rating: null,
+        nine_box_performance: null,
+        nine_box_potential: null,
+        employee_comment: null,
+        hr_comment: null,
         development_plan: null,
       });
 
@@ -150,8 +146,8 @@ export function usePerformance() {
       const { data, error: updateError } = await supabase
         .from('hr_performance_reviews')
         .update({
-          overall_self_rating: payload.overall_self_rating,
-          employee_comments: payload.employee_comments || null,
+          overall_score: payload.overall_score,
+          employee_comment: payload.employee_comment || null,
           objectives: payload.objectives || undefined,
           competencies: payload.competencies || undefined,
           status: 'self_assessment_done',
@@ -173,10 +169,11 @@ export function usePerformance() {
       const { data, error: updateError } = await supabase
         .from('hr_performance_reviews')
         .update({
-          overall_manager_rating: payload.overall_manager_rating,
-          manager_comments: payload.manager_comments || null,
-          performance_label: payload.performance_label || null,
-          potential_label: payload.potential_label || null,
+          overall_score: payload.overall_score,
+          hr_comment: payload.hr_comment || null,
+          performance_rating: payload.performance_rating || null,
+          nine_box_performance: payload.nine_box_performance ?? null,
+          nine_box_potential: payload.nine_box_potential ?? null,
           development_plan: payload.development_plan || null,
           objectives: payload.objectives || undefined,
           competencies: payload.competencies || undefined,
@@ -200,7 +197,7 @@ export function usePerformance() {
         .from('hr_performance_reviews')
         .update({
           status: 'signed',
-          signed_at: new Date().toISOString(),
+          employee_signed_at: new Date().toISOString(),
         })
         .eq('id', reviewId)
         .select('*')
@@ -221,11 +218,15 @@ export function usePerformance() {
       const row = withCompanyScope({
         position_id: payload.position_id || null,
         position_title: payload.position_title,
-        criticality: payload.criticality || 'medium',
-        incumbent_employee_id: payload.incumbent_employee_id || null,
-        successors: payload.successors || [],
-        risk_of_vacancy: payload.risk_of_vacancy || 'low',
-        last_reviewed_at: new Date().toISOString(),
+        incumbent_id: payload.incumbent_id || null,
+        successor_id: payload.successor_id || null,
+        readiness_level: payload.readiness_level || null,
+        nine_box_performance: payload.nine_box_performance ?? null,
+        nine_box_potential: payload.nine_box_potential ?? null,
+        risk_of_loss: payload.risk_of_loss || 'low',
+        development_actions: payload.development_actions || null,
+        notes: payload.notes || null,
+        reviewed_at: new Date().toISOString().split('T')[0],
       });
 
       const { data, error: insertError } = await supabase
@@ -246,7 +247,7 @@ export function usePerformance() {
 
       const { data, error: updateError } = await supabase
         .from('hr_succession_plans')
-        .update({ ...updates, last_reviewed_at: new Date().toISOString() })
+        .update({ ...updates, reviewed_at: new Date().toISOString().split('T')[0] })
         .eq('id', planId)
         .select('*')
         .single();
@@ -266,12 +267,19 @@ export function usePerformance() {
       const row = withCompanyScope({
         fiscal_year: payload.fiscal_year,
         department_id: payload.department_id || null,
-        planned_headcount: Number(payload.planned_headcount || 0),
+        budgeted_headcount: Number(payload.budgeted_headcount || 0),
         actual_headcount: Number(payload.actual_headcount || 0),
-        planned_payroll_cost: Number(payload.planned_payroll_cost || 0),
+        budgeted_fte: payload.budgeted_fte != null ? Number(payload.budgeted_fte) : null,
+        actual_fte: payload.actual_fte != null ? Number(payload.actual_fte) : null,
+        budgeted_payroll_cost: Number(payload.budgeted_payroll_cost || 0),
         actual_payroll_cost: Number(payload.actual_payroll_cost || 0),
-        variance_headcount: Number(payload.actual_headcount || 0) - Number(payload.planned_headcount || 0),
-        variance_cost: Number(payload.actual_payroll_cost || 0) - Number(payload.planned_payroll_cost || 0),
+        currency: payload.currency || 'EUR',
+        planned_hires: payload.planned_hires != null ? Number(payload.planned_hires) : null,
+        planned_exits: payload.planned_exits != null ? Number(payload.planned_exits) : null,
+        planned_promotions: payload.planned_promotions != null ? Number(payload.planned_promotions) : null,
+        version: payload.version || null,
+        status: payload.status || 'draft',
+        notes: payload.notes || null,
       });
 
       const { data, error: insertError } = await supabase
@@ -290,21 +298,9 @@ export function usePerformance() {
     async (budgetId, updates) => {
       if (!budgetId || !supabase) return null;
 
-      const patchedUpdates = { ...updates };
-      if (updates.actual_headcount !== undefined || updates.planned_headcount !== undefined) {
-        const planned = Number(updates.planned_headcount ?? 0);
-        const actual = Number(updates.actual_headcount ?? 0);
-        patchedUpdates.variance_headcount = actual - planned;
-      }
-      if (updates.actual_payroll_cost !== undefined || updates.planned_payroll_cost !== undefined) {
-        const planned = Number(updates.planned_payroll_cost ?? 0);
-        const actual = Number(updates.actual_payroll_cost ?? 0);
-        patchedUpdates.variance_cost = actual - planned;
-      }
-
       const { data, error: updateError } = await supabase
         .from('hr_headcount_budgets')
-        .update(patchedUpdates)
+        .update(updates)
         .eq('id', budgetId)
         .select('*')
         .single();

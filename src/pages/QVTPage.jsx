@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import {
   AlertTriangle,
@@ -159,6 +159,7 @@ const QVTPage = () => {
     loading,
     error,
     surveys,
+    surveyResponses,
     riskAssessments,
     employees: _employees,
     departments,
@@ -203,13 +204,20 @@ const QVTPage = () => {
     return surveys.find((s) => s.id === selectedSurvey) || null;
   }, [selectedSurvey, surveys]);
 
+  const selectedSurveyResponses = useMemo(() => {
+    if (!selectedSurvey) return [];
+    return surveyResponses.filter((r) => r.survey_id === selectedSurvey);
+  }, [selectedSurvey, surveyResponses]);
+
   const questionBreakdown = useMemo(() => {
     if (!selectedSurveyData) return [];
     const questions = selectedSurveyData.questions || [];
-    const responses = selectedSurveyData.responses || [];
     return questions.map((q, idx) => {
-      const answers = responses
-        .map((r) => (r.answers ? r.answers[idx] : undefined))
+      const answers = selectedSurveyResponses
+        .map((r) => {
+          const resp = r.responses || {};
+          return resp[idx] ?? resp[String(idx)] ?? undefined;
+        })
         .filter((a) => a !== undefined && a !== null);
       const numericAnswers = answers.filter((a) => typeof a === 'number');
       const avg =
@@ -220,7 +228,7 @@ const QVTPage = () => {
         average: avg,
       };
     });
-  }, [selectedSurveyData]);
+  }, [selectedSurveyData, selectedSurveyResponses]);
 
   /* ---------------------------------------------------------------- */
   /*  Handlers                                                        */
@@ -340,10 +348,8 @@ const QVTPage = () => {
 
                 {/* Rows (from high probability to low) */}
                 {[3, 2, 1, 0].map((pIdx) => (
-                  <>
-                    <div key={`row-label-${pIdx}`} className="flex items-center text-xs text-white/50 pr-2">
-                      {MATRIX_LABELS[pIdx]}
-                    </div>
+                  <Fragment key={`row-${pIdx}`}>
+                    <div className="flex items-center text-xs text-white/50 pr-2">{MATRIX_LABELS[pIdx]}</div>
                     {[0, 1, 2, 3].map((sIdx) => (
                       <div
                         key={`cell-${pIdx}-${sIdx}`}
@@ -352,7 +358,7 @@ const QVTPage = () => {
                         {matrixCounts[pIdx][sIdx] > 0 ? matrixCounts[pIdx][sIdx] : ''}
                       </div>
                     ))}
-                  </>
+                  </Fragment>
                 ))}
               </div>
 
@@ -409,7 +415,7 @@ const QVTPage = () => {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
-                    <p className="text-white font-medium">{risk.title}</p>
+                    <p className="text-white font-medium">{risk.risk_description}</p>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
                       {risk.risk_category && (
                         <Badge className="bg-white/10 text-white/70 border-white/20">
@@ -454,7 +460,7 @@ const QVTPage = () => {
   /* ---------------------------------------------------------------- */
 
   const risksWithActions = useMemo(
-    () => riskAssessments.filter((r) => r.action_plan || r.responsible_employee_id || r.due_date),
+    () => riskAssessments.filter((r) => r.prevention_measures || r.responsible_id || r.target_date),
     [riskAssessments]
   );
 
@@ -491,26 +497,26 @@ const QVTPage = () => {
               <tbody>
                 {risksWithActions.map((risk) => {
                   const isOverdue =
-                    risk.due_date &&
-                    new Date(risk.due_date) < new Date() &&
+                    risk.target_date &&
+                    new Date(risk.target_date) < new Date() &&
                     risk.status !== 'resolved' &&
                     risk.status !== 'mitigated';
                   return (
                     <tr key={risk.id} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
-                      <td className="p-3 text-white max-w-[200px] truncate">{risk.title}</td>
+                      <td className="p-3 text-white max-w-[200px] truncate">{risk.risk_description}</td>
                       <td className="p-3 text-white/60">
                         {risk.risk_category
                           ? risk.risk_category.charAt(0).toUpperCase() + risk.risk_category.slice(1)
                           : '-'}
                       </td>
                       <td className="p-3 text-white/70 max-w-[250px]">
-                        <p className="line-clamp-2">{risk.action_plan || '-'}</p>
+                        <p className="line-clamp-2">{risk.prevention_measures || '-'}</p>
                       </td>
                       <td className="p-3 text-white/60">{risk.responsible?.full_name || '-'}</td>
                       <td className={`p-3 ${isOverdue ? 'text-red-400 font-medium' : 'text-white/60'}`}>
                         <div className="flex items-center gap-1">
                           {isOverdue && <AlertTriangle className="h-3.5 w-3.5" />}
-                          {formatDate(risk.due_date)}
+                          {formatDate(risk.target_date)}
                         </div>
                       </td>
                       <td className="p-3">
