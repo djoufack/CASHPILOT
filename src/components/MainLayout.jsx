@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import TopNavBar from './TopNavBar';
 import { Outlet } from 'react-router-dom';
@@ -11,11 +11,47 @@ import { useEntitlements } from '@/hooks/useEntitlements';
 import { ENTITLEMENT_KEYS, filterFlatNavigation } from '@/utils/subscriptionEntitlements';
 import {
   Menu,
-  LayoutDashboard, Users, Briefcase, Clock, FileText, FileSignature,
-  Truck, Package, BarChart3, Calculator, Settings,
-  FileMinus, PackageCheck, Wallet, TrendingUp, Building2, RefreshCw, Shield,
-  Receipt, ClipboardList, Wrench, Map, QrCode, FileBarChart, Database, Tag, Globe, Webhook, Cable,
-  CreditCard, Target
+  LayoutDashboard,
+  Users,
+  Briefcase,
+  Clock,
+  FileText,
+  FileSignature,
+  Truck,
+  Package,
+  BarChart3,
+  Calculator,
+  Settings,
+  FileMinus,
+  PackageCheck,
+  Wallet,
+  TrendingUp,
+  Building2,
+  RefreshCw,
+  Shield,
+  Receipt,
+  ClipboardList,
+  Wrench,
+  Map,
+  QrCode,
+  FileBarChart,
+  Tag,
+  Globe,
+  Webhook,
+  Cable,
+  CreditCard,
+  Target,
+  UserCheck,
+  Banknote,
+  CalendarOff,
+  Search,
+  GraduationCap,
+  Brain,
+  HeartPulse,
+  ClipboardCheck,
+  BarChart2,
+  PieChart,
+  Bot,
 } from 'lucide-react';
 
 const MainLayout = () => {
@@ -30,11 +66,11 @@ const MainLayout = () => {
     if (saved !== null) {
       setIsCollapsed(JSON.parse(saved));
     } else {
-        if (window.innerWidth >= 768 && window.innerWidth < 1024) {
-            setIsCollapsed(true);
-        } else {
-            setIsCollapsed(false);
-        }
+      if (window.innerWidth >= 768 && window.innerWidth < 1024) {
+        setIsCollapsed(true);
+      } else {
+        setIsCollapsed(false);
+      }
     }
 
     const handleResize = () => {
@@ -55,6 +91,18 @@ const MainLayout = () => {
     { path: '/app/projects', label: t('nav.projects'), icon: Briefcase },
     { path: '/app/crm', label: t('nav.crm', 'CRM'), icon: Target },
     { path: '/app/hr-material', label: t('nav.hrMaterial', 'RH & Matériel'), icon: Users },
+    { path: '/app/rh/employes', label: t('nav.employees', 'Employés'), icon: UserCheck },
+    { path: '/app/rh/paie', label: t('nav.payroll', 'Paie'), icon: Banknote },
+    { path: '/app/rh/absences', label: t('nav.absences', 'Absences & Congés'), icon: CalendarOff },
+    { path: '/app/rh/recrutement', label: t('nav.recruitment', 'Recrutement ATS'), icon: Search },
+    { path: '/app/rh/onboarding', label: t('nav.onboarding', 'Onboarding'), icon: UserCheck },
+    { path: '/app/rh/formation', label: t('nav.training', 'Formation'), icon: GraduationCap },
+    { path: '/app/rh/competences', label: t('nav.skills', 'Compétences'), icon: Brain },
+    { path: '/app/rh/qvt', label: t('nav.qvt', 'QVT & Risques'), icon: HeartPulse },
+    { path: '/app/rh/entretiens', label: t('nav.performanceReview', 'Entretiens'), icon: ClipboardCheck },
+    { path: '/app/rh/people-review', label: t('nav.peopleReview', 'People Review'), icon: BarChart2 },
+    { path: '/app/rh/bilan-social', label: t('nav.bilanSocial', 'Bilan Social'), icon: PieChart },
+    { path: '/app/rh/analytics', label: t('nav.peopleAnalytics', 'People Analytics'), icon: Bot },
     { path: '/app/timesheets', label: t('nav.timesheets'), icon: Clock },
     { path: '/app/invoices', label: t('nav.invoices'), icon: FileText },
     { path: '/app/peppol', label: t('nav.peppolEInvoicing'), icon: Globe },
@@ -75,7 +123,12 @@ const MainLayout = () => {
     { path: '/app/products/barcode', label: t('nav.scanner'), icon: QrCode },
     { path: '/app/suppliers/reports', label: t('nav.reports'), icon: BarChart3 },
     { path: '/app/suppliers/accounting', label: t('nav.accounting'), icon: Calculator },
-    { path: '/app/scenarios', label: t('nav.scenarios'), icon: TrendingUp, featureKey: ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL },
+    {
+      path: '/app/scenarios',
+      label: t('nav.scenarios'),
+      icon: TrendingUp,
+      featureKey: ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL,
+    },
     { type: 'separator', label: t('nav.financeSection') },
     { path: '/app/bank-connections', label: t('nav.bankConnections'), icon: Building2 },
     { path: '/app/financial-instruments', label: t('nav.financialInstruments'), icon: CreditCard },
@@ -83,7 +136,12 @@ const MainLayout = () => {
     { type: 'separator', label: t('nav.systemSection') },
     { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
     { path: '/app/integrations', label: t('nav.integrations'), icon: Cable },
-    { path: '/app/webhooks', label: t('nav.apiWebhooks'), icon: Webhook, featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS },
+    {
+      path: '/app/webhooks',
+      label: t('nav.apiWebhooks'),
+      icon: Webhook,
+      featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS,
+    },
     { path: '/app/security', label: t('nav.security'), icon: Shield },
     { path: '/app/settings', label: t('nav.settings'), icon: Settings },
   ];
@@ -111,28 +169,22 @@ const MainLayout = () => {
             <Menu className="h-6 w-6 text-white" />
           </Button>
           <span className="text-xl font-bold">
-            <span className="text-orange-400">Cash</span><span className="text-white">Pilot</span>
+            <span className="text-orange-400">Cash</span>
+            <span className="text-white">Pilot</span>
           </span>
         </div>
       </div>
 
       {/* Desktop Sidebar — uses built-in categorized navigation */}
       <div className="hidden md:block">
-        <Sidebar
-          isCollapsed={isCollapsed}
-          setIsCollapsed={setIsCollapsed}
-        />
+        <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       </div>
 
       {/* Desktop Top Navigation Bar */}
       <TopNavBar isCollapsed={isCollapsed} />
 
       {/* Mobile Menu Overlay */}
-      <MobileMenu
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-        menuItems={visibleNavItems}
-      />
+      <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} menuItems={visibleNavItems} />
 
       <main
         id="main-content"
@@ -145,7 +197,7 @@ const MainLayout = () => {
       >
         <OnboardingBanner />
         <div className="w-full h-full">
-            <Outlet />
+          <Outlet />
         </div>
       </main>
     </div>

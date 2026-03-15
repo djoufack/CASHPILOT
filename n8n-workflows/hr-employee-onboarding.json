@@ -1,0 +1,370 @@
+{
+  "name": "HR Employee Onboarding",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hr-onboarding-webhook",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "node-webhook-trigger",
+      "name": "Supabase Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "hr-onboarding-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.record.status }}",
+              "operation": "equals",
+              "value2": "hired"
+            }
+          ]
+        }
+      },
+      "id": "node-filter-hired",
+      "name": "Filter Status Hired",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const application = $input.first().json.record;\n\nreturn [{\n  json: {\n    application_id: application.id,\n    first_name: application.first_name,\n    last_name: application.last_name,\n    email: application.email,\n    phone: application.phone,\n    position_title: application.position_title,\n    department_id: application.department_id,\n    company_id: application.company_id,\n    hired_date: new Date().toISOString().split('T')[0],\n    start_date: application.proposed_start_date || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]\n  }\n}];"
+      },
+      "id": "node-prepare-employee",
+      "name": "Prepare Employee Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rfzvrezrcigzmldgvntz.supabase.co/rest/v1/hr_employees",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"first_name\": \"{{ $json.first_name }}\",\n  \"last_name\": \"{{ $json.last_name }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"phone\": \"{{ $json.phone }}\",\n  \"position_title\": \"{{ $json.position_title }}\",\n  \"department_id\": \"{{ $json.department_id }}\",\n  \"company_id\": \"{{ $json.company_id }}\",\n  \"hire_date\": \"{{ $json.hired_date }}\",\n  \"status\": \"onboarding\",\n  \"employment_type\": \"full_time\",\n  \"application_id\": \"{{ $json.application_id }}\"\n}",
+        "options": {}
+      },
+      "id": "node-create-employee",
+      "name": "Create hr_employees Record",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rfzvrezrcigzmldgvntz.supabase.co/rest/v1/hr_onboarding_plans",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"employee_id\": \"{{ $node['Create hr_employees Record'].json[0].id }}\",\n  \"company_id\": \"{{ $node['Prepare Employee Data'].json.company_id }}\",\n  \"plan_name\": \"Onboarding - {{ $node['Prepare Employee Data'].json.first_name }} {{ $node['Prepare Employee Data'].json.last_name }}\",\n  \"start_date\": \"{{ $node['Prepare Employee Data'].json.start_date }}\",\n  \"end_date\": \"{{ new Date(new Date($node['Prepare Employee Data'].json.start_date).getTime() + 90 * 86400000).toISOString().split('T')[0] }}\",\n  \"status\": \"pending\",\n  \"tasks\": [\n    {\"name\": \"IT Equipment Setup\", \"due_offset_days\": -2, \"assigned_to\": \"IT\"},\n    {\"name\": \"Badge & Access Creation\", \"due_offset_days\": -1, \"assigned_to\": \"Security\"},\n    {\"name\": \"Welcome Meeting with Manager\", \"due_offset_days\": 0, \"assigned_to\": \"Manager\"},\n    {\"name\": \"HR Documentation Signing\", \"due_offset_days\": 0, \"assigned_to\": \"HR\"},\n    {\"name\": \"Team Introduction\", \"due_offset_days\": 1, \"assigned_to\": \"Manager\"},\n    {\"name\": \"Mandatory Training Enrollment\", \"due_offset_days\": 3, \"assigned_to\": \"HR\"},\n    {\"name\": \"30-Day Check-in\", \"due_offset_days\": 30, \"assigned_to\": \"Manager\"},\n    {\"name\": \"90-Day Evaluation\", \"due_offset_days\": 90, \"assigned_to\": \"Manager\"}\n  ]\n}",
+        "options": {}
+      },
+      "id": "node-create-onboarding-plan",
+      "name": "Create hr_onboarding_plans",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rfzvrezrcigzmldgvntz.supabase.co/rest/v1/hr_employee_contracts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"employee_id\": \"{{ $node['Create hr_employees Record'].json[0].id }}\",\n  \"company_id\": \"{{ $node['Prepare Employee Data'].json.company_id }}\",\n  \"contract_type\": \"cdi\",\n  \"start_date\": \"{{ $node['Prepare Employee Data'].json.start_date }}\",\n  \"position_title\": \"{{ $node['Prepare Employee Data'].json.position_title }}\",\n  \"status\": \"draft\",\n  \"trial_period_months\": 3,\n  \"working_hours_per_week\": 35,\n  \"notice_period_months\": 1\n}",
+        "options": {}
+      },
+      "id": "node-create-contract",
+      "name": "Create hr_employee_contracts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1200, 400]
+    },
+    {
+      "parameters": {
+        "fromEmail": "rh@cashpilot.app",
+        "toEmail": "={{ $node['Prepare Employee Data'].json.email }}",
+        "subject": "=Bienvenue chez CashPilot - {{ $node['Prepare Employee Data'].json.first_name }} !",
+        "text": "",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;\">\n  <div style=\"background: linear-gradient(135deg, #0a0e1a, #141c33); padding: 30px; border-radius: 12px; color: white; text-align: center;\">\n    <h1 style=\"margin: 0;\">Bienvenue chez CashPilot</h1>\n  </div>\n  <div style=\"padding: 20px; background: #f9fafb; border-radius: 0 0 12px 12px;\">\n    <p>Bonjour <strong>{{ $node['Prepare Employee Data'].json.first_name }} {{ $node['Prepare Employee Data'].json.last_name }}</strong>,</p>\n    <p>Nous avons le plaisir de vous confirmer votre embauche au poste de <strong>{{ $node['Prepare Employee Data'].json.position_title }}</strong>.</p>\n    <p>Votre date de prise de poste est fixee au <strong>{{ $node['Prepare Employee Data'].json.start_date }}</strong>.</p>\n    <h3>Prochaines etapes :</h3>\n    <ul>\n      <li>Vous recevrez votre contrat de travail sous 48h pour signature electronique</li>\n      <li>Un email de configuration de vos acces IT vous sera envoye avant votre arrivee</li>\n      <li>Votre manager organisera un meeting d'accueil le jour J</li>\n    </ul>\n    <p>N'hesitez pas a contacter l'equipe RH pour toute question.</p>\n    <p>A tres bientot !</p>\n    <p><em>L'equipe RH - CashPilot</em></p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "id": "node-send-welcome-email",
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1480, 200],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-cashpilot",
+          "name": "CashPilot SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://rfzvrezrcigzmldgvntz.supabase.co/rest/v1/hr_employees?id=eq.{{ $node['Prepare Employee Data'].json.department_id }}&role=eq.hr_manager&select=email,first_name,last_name",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-fetch-hr-manager",
+      "name": "Fetch HR Manager",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1480, 500]
+    },
+    {
+      "parameters": {
+        "fromEmail": "rh@cashpilot.app",
+        "toEmail": "={{ $json[0].email || 'rh-manager@cashpilot.app' }}",
+        "subject": "=Nouvel employe a integrer : {{ $node['Prepare Employee Data'].json.first_name }} {{ $node['Prepare Employee Data'].json.last_name }}",
+        "text": "",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;\">\n  <div style=\"background: #1e40af; padding: 20px; border-radius: 12px 12px 0 0; color: white;\">\n    <h2 style=\"margin: 0;\">Notification RH - Nouvel Employe</h2>\n  </div>\n  <div style=\"padding: 20px; background: #f9fafb; border-radius: 0 0 12px 12px;\">\n    <p>Un nouveau collaborateur doit etre integre :</p>\n    <table style=\"width: 100%; border-collapse: collapse;\">\n      <tr><td style=\"padding: 8px; font-weight: bold;\">Nom</td><td style=\"padding: 8px;\">{{ $node['Prepare Employee Data'].json.first_name }} {{ $node['Prepare Employee Data'].json.last_name }}</td></tr>\n      <tr><td style=\"padding: 8px; font-weight: bold;\">Poste</td><td style=\"padding: 8px;\">{{ $node['Prepare Employee Data'].json.position_title }}</td></tr>\n      <tr><td style=\"padding: 8px; font-weight: bold;\">Date d'arrivee</td><td style=\"padding: 8px;\">{{ $node['Prepare Employee Data'].json.start_date }}</td></tr>\n      <tr><td style=\"padding: 8px; font-weight: bold;\">Email</td><td style=\"padding: 8px;\">{{ $node['Prepare Employee Data'].json.email }}</td></tr>\n    </table>\n    <h3>Actions requises :</h3>\n    <ul>\n      <li>Valider et envoyer le contrat de travail</li>\n      <li>Preparer le plan d'onboarding</li>\n      <li>Configurer les acces et equipements</li>\n      <li>Planifier le meeting d'accueil</li>\n    </ul>\n    <p><a href=\"https://app.cashpilot.app/hr/employees/{{ $node['Create hr_employees Record'].json[0].id }}\" style=\"display: inline-block; background: #1e40af; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none;\">Voir la fiche employe</a></p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "id": "node-notify-hr-manager",
+      "name": "Notify HR Manager",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1740, 500],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-cashpilot",
+          "name": "CashPilot SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "node-noop-end",
+      "name": "Onboarding Complete",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [2000, 300]
+    }
+  ],
+  "connections": {
+    "Supabase Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter Status Hired",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Status Hired": {
+      "main": [
+        [
+          {
+            "node": "Prepare Employee Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Prepare Employee Data": {
+      "main": [
+        [
+          {
+            "node": "Create hr_employees Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create hr_employees Record": {
+      "main": [
+        [
+          {
+            "node": "Create hr_onboarding_plans",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create hr_employee_contracts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create hr_onboarding_plans": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create hr_employee_contracts": {
+      "main": [
+        [
+          {
+            "node": "Fetch HR Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Onboarding Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch HR Manager": {
+      "main": [
+        [
+          {
+            "node": "Notify HR Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify HR Manager": {
+      "main": [
+        [
+          {
+            "node": "Onboarding Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "versionId": "1",
+  "id": "hr-employee-onboarding",
+  "meta": {
+    "instanceId": "cashpilot-n8n-instance"
+  },
+  "tags": [
+    {
+      "id": "tag-hr",
+      "name": "HR"
+    },
+    {
+      "id": "tag-onboarding",
+      "name": "Onboarding"
+    }
+  ]
+}
