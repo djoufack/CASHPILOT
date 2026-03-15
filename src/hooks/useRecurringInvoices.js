@@ -16,14 +16,16 @@ export const useRecurringInvoices = () => {
     try {
       let query = supabase
         .from('recurring_invoices')
-        .select(`
+        .select(
+          `
           *,
           client:clients(id, company_name, contact_name, email, preferred_currency),
           line_items:recurring_invoice_line_items(*)
-        `)
+        `
+        )
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-      query = applyCompanyScope(query, { includeUnassigned: false });
+      query = applyCompanyScope(query, { includeUnassigned: true });
 
       const { data, error } = await query;
 
@@ -90,11 +92,7 @@ export const useRecurringInvoices = () => {
 
   const deleteRecurringInvoice = async (id) => {
     try {
-      const { error } = await supabase
-        .from('recurring_invoices')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+      const { error } = await supabase.from('recurring_invoices').delete().eq('id', id).eq('user_id', user.id);
 
       if (error) throw error;
       await fetchRecurringInvoices();

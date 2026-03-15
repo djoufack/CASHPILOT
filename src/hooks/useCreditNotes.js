@@ -22,15 +22,17 @@ export const useCreditNotes = () => {
     try {
       let query = supabase
         .from('credit_notes')
-        .select(`
+        .select(
+          `
           *,
           client:clients(id, company_name, contact_name, email, preferred_currency),
           invoice:invoices(id, invoice_number, total_ttc),
           items:credit_note_items(*)
-        `)
+        `
+        )
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-      query = applyCompanyScope(query, { includeUnassigned: false });
+      query = applyCompanyScope(query, { includeUnassigned: true });
 
       const { data, error } = await query;
 
@@ -64,17 +66,15 @@ export const useCreditNotes = () => {
 
       // Insert items if any
       if (items.length > 0) {
-        const itemsToInsert = items.map(item => ({
+        const itemsToInsert = items.map((item) => ({
           credit_note_id: data.id,
           description: item.description,
           quantity: Number(item.quantity),
           unit_price: Number(item.unitPrice || item.unit_price),
-          amount: Number(item.quantity) * Number(item.unitPrice || item.unit_price)
+          amount: Number(item.quantity) * Number(item.unitPrice || item.unit_price),
         }));
 
-        const { error: itemError } = await supabase
-          .from('credit_note_items')
-          .insert(itemsToInsert);
+        const { error: itemError } = await supabase.from('credit_note_items').insert(itemsToInsert);
 
         if (itemError) throw itemError;
       }
@@ -107,10 +107,10 @@ export const useCreditNotes = () => {
 
       if (error) throw error;
 
-      const oldCreditNote = creditNotes.find(cn => cn.id === id);
+      const oldCreditNote = creditNotes.find((cn) => cn.id === id);
       logAction('update', 'credit_note', oldCreditNote || null, updated);
 
-      setCreditNotes(creditNotes.map(cn => cn.id === id ? { ...cn, ...updated } : cn));
+      setCreditNotes(creditNotes.map((cn) => (cn.id === id ? { ...cn, ...updated } : cn)));
       toast({ title: t('common.success'), description: t('creditNotes.updated') });
       return updated;
     } catch (err) {
@@ -126,17 +126,13 @@ export const useCreditNotes = () => {
     setLoading(true);
     try {
       // Items are deleted automatically via DB CASCADE
-      const { error } = await supabase
-        .from('credit_notes')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+      const { error } = await supabase.from('credit_notes').delete().eq('id', id).eq('user_id', user.id);
       if (error) throw error;
 
-      const deletedCreditNote = creditNotes.find(cn => cn.id === id);
+      const deletedCreditNote = creditNotes.find((cn) => cn.id === id);
       logAction('delete', 'credit_note', deletedCreditNote || { id }, null);
 
-      setCreditNotes(creditNotes.filter(cn => cn.id !== id));
+      setCreditNotes(creditNotes.filter((cn) => cn.id !== id));
       toast({ title: t('common.success'), description: t('creditNotes.deleted') });
     } catch (err) {
       toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
@@ -157,6 +153,6 @@ export const useCreditNotes = () => {
     fetchCreditNotes,
     createCreditNote,
     updateCreditNote,
-    deleteCreditNote
+    deleteCreditNote,
   };
 };

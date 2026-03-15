@@ -14,46 +14,49 @@ export const usePurchaseOrders = () => {
   const { logAction } = useAuditLog();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
-  const fetchPurchaseOrders = useCallback(async (filters = {}) => {
-    if (!user) return;
-    if (!supabase) {
-      console.warn("Supabase not configured");
-      return;
-    }
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('purchase_orders')
-        .select('*, client:clients(company_name)')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      query = applyCompanyScope(query, { includeUnassigned: false });
-
-      if (filters.status) query = query.eq('status', filters.status);
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setPurchaseOrders(data || []);
-    } catch (err) {
-      if (err.code === '42P17' || err.code === '42501') {
-        console.warn('RLS policy error fetching purchase orders:', err.message);
-        setPurchaseOrders([]);
+  const fetchPurchaseOrders = useCallback(
+    async (filters = {}) => {
+      if (!user) return;
+      if (!supabase) {
+        console.warn('Supabase not configured');
         return;
       }
-      setError(err.message);
-      toast({
-        title: "Erreur",
-        description: err.message,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [applyCompanyScope, toast, user]);
+      setLoading(true);
+      try {
+        let query = supabase
+          .from('purchase_orders')
+          .select('*, client:clients(company_name)')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        query = applyCompanyScope(query, { includeUnassigned: true });
+
+        if (filters.status) query = query.eq('status', filters.status);
+
+        const { data, error } = await query;
+        if (error) throw error;
+        setPurchaseOrders(data || []);
+      } catch (err) {
+        if (err.code === '42P17' || err.code === '42501') {
+          console.warn('RLS policy error fetching purchase orders:', err.message);
+          setPurchaseOrders([]);
+          return;
+        }
+        setError(err.message);
+        toast({
+          title: 'Erreur',
+          description: err.message,
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [applyCompanyScope, toast, user]
+  );
 
   const createPurchaseOrder = async (poData) => {
     if (!user) return;
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       const poNumber = poData.po_number || `PO-${Date.now()}`;
@@ -70,16 +73,16 @@ export const usePurchaseOrders = () => {
 
       setPurchaseOrders([data, ...purchaseOrders]);
       toast({
-        title: "Succès",
-        description: "Bon de commande créé avec succès"
+        title: 'Succès',
+        description: 'Bon de commande créé avec succès',
       });
       return data;
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Erreur",
+        title: 'Erreur',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -88,7 +91,7 @@ export const usePurchaseOrders = () => {
   };
 
   const updatePurchaseOrder = async (id, poData) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -101,21 +104,21 @@ export const usePurchaseOrders = () => {
 
       if (error) throw error;
 
-      const oldPO = purchaseOrders.find(po => po.id === id);
+      const oldPO = purchaseOrders.find((po) => po.id === id);
       logAction('update', 'purchase_order', oldPO || null, data);
 
-      setPurchaseOrders(purchaseOrders.map(po => po.id === id ? data : po));
+      setPurchaseOrders(purchaseOrders.map((po) => (po.id === id ? data : po)));
       toast({
-        title: "Succès",
-        description: "Bon de commande mis à jour"
+        title: 'Succès',
+        description: 'Bon de commande mis à jour',
       });
       return data;
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Erreur",
+        title: 'Erreur',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -124,31 +127,27 @@ export const usePurchaseOrders = () => {
   };
 
   const deletePurchaseOrder = async (id) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('purchase_orders')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+      const { error } = await supabase.from('purchase_orders').delete().eq('id', id).eq('user_id', user.id);
 
       if (error) throw error;
 
-      const deletedPO = purchaseOrders.find(po => po.id === id);
+      const deletedPO = purchaseOrders.find((po) => po.id === id);
       logAction('delete', 'purchase_order', deletedPO || { id }, null);
 
-      setPurchaseOrders(purchaseOrders.filter(po => po.id !== id));
+      setPurchaseOrders(purchaseOrders.filter((po) => po.id !== id));
       toast({
-        title: "Succès",
-        description: "Bon de commande supprimé"
+        title: 'Succès',
+        description: 'Bon de commande supprimé',
       });
     } catch (err) {
       setError(err.message);
       toast({
-        title: "Erreur",
+        title: 'Erreur',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -167,6 +166,6 @@ export const usePurchaseOrders = () => {
     fetchPurchaseOrders,
     createPurchaseOrder,
     updatePurchaseOrder,
-    deletePurchaseOrder
+    deletePurchaseOrder,
   };
 };
