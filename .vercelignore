@@ -1,30 +1,38 @@
-# Dependencies and build artifacts
+# ============================================================
+# .vercelignore — Only deploy files needed for the Vite build
+# ============================================================
+
+# Dependencies (Vercel installs from package.json)
 node_modules/
+.npm/
+
+# Build artifacts (Vercel builds fresh)
 dist/
 coverage/
 .cache/
 .vite/
-.npm/
 
-# Local/editor metadata
+# Git and local tooling
 .git/
 .github/
 .husky/
 .vscode/
 .worktrees/
+.claude/
 
-# Local environment files
+# Environment files
 .env
 .env.*
 !.env.example
 
-# Generated artifacts and temp files
+# Temp files
 artifacts/
 tmp_generated_tool_names.txt
 *.log
 *.tmp
+AGENTS.md
 
-# Non-runtime project documentation and archives (not needed for Vite/API build)
+# ---- Non-runtime directories (docs, plans, archives) ----
 Agents SaaS/
 Analyse Comptable Et Financière/
 Audit/
@@ -34,6 +42,7 @@ Context/
 Demo/
 Exigences CashPilot/
 Fonctionnalités/
+Gestion Ressources Humaines Et Matérielles/
 KIMI K2.5 - CASHPILOT/
 Landing Page Infos/
 Payments/
@@ -46,9 +55,14 @@ task-to-do/
 Tests/
 Updates/
 Vérification Implémentations/
-docs/
 
-# Backend/sql assets deployed separately from Vercel frontend
+# ---- Backend / SQL (deployed separately via Supabase) ----
 mcp-server/
 migrations/
 supabase/
+
+# ---- Other non-runtime directories ----
+api/
+n8n-workflows/
+skills/
+stripe/
