@@ -26,38 +26,54 @@ const SupplierStats = React.memo(() => {
   const [stats, setStats] = useState(() => EMPTY_CANONICAL_OPERATIONS_SNAPSHOT.suppliers);
 
   useEffect(() => {
+    const safeQuery = async (query, label) => {
+      try {
+        const { data, error } = await query;
+        if (error) {
+          console.warn(`SupplierStats: ${label} query failed:`, error.message);
+          return [];
+        }
+        return data || [];
+      } catch (err) {
+        console.warn(`SupplierStats: ${label} query exception:`, err.message);
+        return [];
+      }
+    };
+
     const fetchStats = async () => {
       try {
-        const suppliersQuery = applyCompanyScope(
-          supabase.from('suppliers').select('id, status')
-        );
-        const productsQuery = applyCompanyScope(
-          supabase.from('products').select('id, stock_quantity, min_stock_level')
-        );
-        const ordersQuery = applyCompanyScope(
-          supabase.from('supplier_orders').select('id, order_status, total_amount, total_ttc, amount')
-        );
-        const invoicesQuery = applyCompanyScope(
-          supabase.from('supplier_invoices').select('id, payment_status, total_amount, total_ttc, amount')
-        );
-
-        const [suppliersRes, productsRes, ordersRes, invoicesRes] = await Promise.all([
-          suppliersQuery,
-          productsQuery,
-          ordersQuery,
-          invoicesQuery,
+        const [suppliers, products, supplierOrders, supplierInvoices] = await Promise.all([
+          safeQuery(
+            applyCompanyScope(supabase.from('suppliers').select('id, status'), { includeUnassigned: true }),
+            'suppliers'
+          ),
+          safeQuery(
+            applyCompanyScope(supabase.from('products').select('id, stock_quantity, min_stock_level'), {
+              includeUnassigned: true,
+            }),
+            'products'
+          ),
+          safeQuery(
+            applyCompanyScope(
+              supabase.from('supplier_orders').select('id, order_status, total_amount, total_ttc, amount'),
+              { includeUnassigned: true }
+            ),
+            'supplier_orders'
+          ),
+          safeQuery(
+            applyCompanyScope(
+              supabase.from('supplier_invoices').select('id, payment_status, total_amount, total_ttc, amount'),
+              { includeUnassigned: true }
+            ),
+            'supplier_invoices'
+          ),
         ]);
 
-        if (suppliersRes.error) throw suppliersRes.error;
-        if (productsRes.error) throw productsRes.error;
-        if (ordersRes.error) throw ordersRes.error;
-        if (invoicesRes.error) throw invoicesRes.error;
-
         const snapshot = buildCanonicalOperationsSnapshot({
-          suppliers: suppliersRes.data || [],
-          products: productsRes.data || [],
-          supplierOrders: ordersRes.data || [],
-          supplierInvoices: invoicesRes.data || [],
+          suppliers,
+          products,
+          supplierOrders,
+          supplierInvoices,
         });
 
         setStats(snapshot.suppliers);
@@ -72,18 +88,8 @@ const SupplierStats = React.memo(() => {
 
   return (
     <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6 md:mb-8">
-      <StatCard
-        title="Fournisseurs"
-        value={stats.totalSuppliers}
-        icon={Users}
-        color="text-orange-400"
-      />
-      <StatCard
-        title="Mes Produits"
-        value={stats.totalProducts}
-        icon={Package}
-        color="text-green-500"
-      />
+      <StatCard title="Fournisseurs" value={stats.totalSuppliers} icon={Users} color="text-orange-400" />
+      <StatCard title="Mes Produits" value={stats.totalProducts} icon={Package} color="text-green-500" />
       <StatCard
         title="Stock bas"
         value={stats.lowStockProducts}
@@ -91,18 +97,8 @@ const SupplierStats = React.memo(() => {
         color="text-red-500"
         subtext="Nécessite attention"
       />
-      <StatCard
-        title="Commandes en cours"
-        value={stats.inProgressOrders}
-        icon={ShoppingCart}
-        color="text-yellow-500"
-      />
-      <StatCard
-        title="Factures en retard"
-        value={stats.overdueInvoices}
-        icon={FileText}
-        color="text-orange-500"
-      />
+      <StatCard title="Commandes en cours" value={stats.inProgressOrders} icon={ShoppingCart} color="text-yellow-500" />
+      <StatCard title="Factures en retard" value={stats.overdueInvoices} icon={FileText} color="text-orange-500" />
     </div>
   );
 });

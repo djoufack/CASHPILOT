@@ -22,15 +22,17 @@ export const useDeliveryNotes = () => {
     try {
       let query = supabase
         .from('delivery_notes')
-        .select(`
+        .select(
+          `
           *,
           client:clients(id, company_name, contact_name, email, preferred_currency),
           invoice:invoices(id, invoice_number, total_ttc),
           items:delivery_note_items(*)
-        `)
+        `
+        )
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-      query = applyCompanyScope(query, { includeUnassigned: false });
+      query = applyCompanyScope(query, { includeUnassigned: true });
 
       const { data, error } = await query;
 
@@ -63,16 +65,14 @@ export const useDeliveryNotes = () => {
       if (error) throw error;
 
       if (items.length > 0) {
-        const itemsToInsert = items.map(item => ({
+        const itemsToInsert = items.map((item) => ({
           delivery_note_id: data.id,
           description: item.description,
           quantity: Number(item.quantity),
-          unit: item.unit || 'pcs'
+          unit: item.unit || 'pcs',
         }));
 
-        const { error: itemError } = await supabase
-          .from('delivery_note_items')
-          .insert(itemsToInsert);
+        const { error: itemError } = await supabase.from('delivery_note_items').insert(itemsToInsert);
 
         if (itemError) throw itemError;
       }
@@ -105,10 +105,10 @@ export const useDeliveryNotes = () => {
 
       if (error) throw error;
 
-      const oldDeliveryNote = deliveryNotes.find(dn => dn.id === id);
+      const oldDeliveryNote = deliveryNotes.find((dn) => dn.id === id);
       logAction('update', 'delivery_note', oldDeliveryNote || null, updated);
 
-      setDeliveryNotes(deliveryNotes.map(dn => dn.id === id ? { ...dn, ...updated } : dn));
+      setDeliveryNotes(deliveryNotes.map((dn) => (dn.id === id ? { ...dn, ...updated } : dn)));
       toast({ title: t('common.success'), description: t('deliveryNotes.updated') });
       return updated;
     } catch (err) {
@@ -124,17 +124,13 @@ export const useDeliveryNotes = () => {
     setLoading(true);
     try {
       // Items are deleted automatically via DB CASCADE
-      const { error } = await supabase
-        .from('delivery_notes')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+      const { error } = await supabase.from('delivery_notes').delete().eq('id', id).eq('user_id', user.id);
       if (error) throw error;
 
-      const deletedDeliveryNote = deliveryNotes.find(dn => dn.id === id);
+      const deletedDeliveryNote = deliveryNotes.find((dn) => dn.id === id);
       logAction('delete', 'delivery_note', deletedDeliveryNote || { id }, null);
 
-      setDeliveryNotes(deliveryNotes.filter(dn => dn.id !== id));
+      setDeliveryNotes(deliveryNotes.filter((dn) => dn.id !== id));
       toast({ title: t('common.success'), description: t('deliveryNotes.deleted') });
     } catch (err) {
       toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
@@ -155,6 +151,6 @@ export const useDeliveryNotes = () => {
     fetchDeliveryNotes,
     createDeliveryNote,
     updateDeliveryNote,
-    deleteDeliveryNote
+    deleteDeliveryNote,
   };
 };
