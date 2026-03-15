@@ -16,6 +16,9 @@ import { registerCompanyFinanceTools } from './tools/company-finance.js';
 import { registerFinancialInstrumentTools } from './tools/financial-instruments.js';
 import { registerHrCrudTools } from './tools/generated_crud_hr.js';
 import { registerProjectCrmCrudTools } from './tools/generated_crud_projects.js';
+import { registerCfoTools } from './tools/cfo.js';
+import { registerMobileMoneyTools } from './tools/mobile_money.js';
+import { registerSycohadaTools } from './tools/syscohada.js';
 
 /**
  * Creates and configures a fully-equipped CashPilot MCP server instance
@@ -83,6 +86,9 @@ export function createServer(): McpServer {
   registerFinancialInstrumentTools(server);
   registerHrCrudTools(server);
   registerProjectCrmCrudTools(server);
+  registerCfoTools(server);
+  registerMobileMoneyTools(server);
+  registerSycohadaTools(server);
 
   return server;
 }
