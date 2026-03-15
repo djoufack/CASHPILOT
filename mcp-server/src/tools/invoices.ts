@@ -5,22 +5,27 @@ import { sanitizeText } from '../utils/sanitize.js';
 import { validateDate } from '../utils/validation.js';
 import { safeError } from '../utils/errors.js';
 
-const COLS_INVOICES = 'id, invoice_number, client_id, date, due_date, total_ht, tax_rate, total_ttc, status, payment_status, amount_paid, balance_due, notes, reference, invoice_type, discount_type, discount_value, discount_amount, shipping_fee, adjustment, adjustment_label, header_note, footer_note, conditions, terms_and_conditions, internal_remark, custom_fields, attached_image_url, payment_terms_id, peppol_status, peppol_document_id, peppol_sent_at, peppol_error_message, created_at';
+const COLS_INVOICES =
+  'id, invoice_number, client_id, date, due_date, total_ht, tax_rate, total_ttc, status, payment_status, amount_paid, balance_due, notes, reference, invoice_type, discount_type, discount_value, discount_amount, shipping_fee, adjustment, adjustment_label, header_note, footer_note, conditions, terms_and_conditions, internal_remark, custom_fields, attached_image_url, payment_terms_id, peppol_status, peppol_document_id, peppol_sent_at, peppol_error_message, created_at';
 
 export function registerInvoiceTools(server: McpServer) {
-
   server.tool(
     'list_invoices',
     'List invoices with optional filters (status, client, limit)',
     {
-      status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial']).optional().describe('Filter by status'),
+      status: z
+        .enum(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial'])
+        .optional()
+        .describe('Filter by status'),
       client_id: z.string().optional().describe('Filter by client UUID'),
-      limit: z.number().optional().describe('Max results (default 50)')
+      limit: z.number().optional().describe('Max results (default 50)'),
     },
     async ({ status, client_id, limit }) => {
       let query = supabase
         .from('invoices')
-        .select(`${COLS_INVOICES}, client:clients(id, company_name, contact_name, email), items:invoice_items(id, invoice_id, description, quantity, unit_price, total, tax_rate, discount, sort_order)`)
+        .select(
+          `${COLS_INVOICES}, client:clients(id, company_name, contact_name, email), items:invoice_items(id, invoice_id, description, quantity, unit_price, total, tax_rate, discount_type, discount_value, discount_amount)`
+        )
         .eq('user_id', getUserId())
         .order('created_at', { ascending: false })
         .limit(limit ?? 50);
@@ -32,7 +37,7 @@ export function registerInvoiceTools(server: McpServer) {
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list invoices') }] };
 
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }]
+        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
       };
     }
   );
@@ -41,12 +46,14 @@ export function registerInvoiceTools(server: McpServer) {
     'get_invoice',
     'Get full details of a single invoice including items, payments, and client info',
     {
-      invoice_id: z.string().describe('Invoice UUID')
+      invoice_id: z.string().describe('Invoice UUID'),
     },
     async ({ invoice_id }) => {
       const { data, error } = await supabase
         .from('invoices')
-        .select(`${COLS_INVOICES}, client:clients(id, company_name, contact_name, email, phone, address, city, postal_code, country, vat_number, preferred_currency), items:invoice_items(id, invoice_id, description, quantity, unit_price, total, tax_rate, discount, sort_order), payments:payments(id, amount, payment_date, payment_method, receipt_number)`)
+        .select(
+          `${COLS_INVOICES}, client:clients(id, company_name, contact_name, email, phone, address, city, postal_code, country, vat_number, preferred_currency), items:invoice_items(id, invoice_id, description, quantity, unit_price, total, tax_rate, discount_type, discount_value, discount_amount), payments:payments(id, amount, payment_date, payment_method, receipt_number)`
+        )
         .eq('id', invoice_id)
         .eq('user_id', getUserId())
         .single();
@@ -54,7 +61,7 @@ export function registerInvoiceTools(server: McpServer) {
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get invoice') }] };
 
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }]
+        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
       };
     }
   );
@@ -70,35 +77,50 @@ export function registerInvoiceTools(server: McpServer) {
       total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).describe('Total excluding VAT'),
       tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional().describe('VAT rate (default 20)'),
       total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).describe('Total including VAT'),
-      status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial']).optional().describe('Status (default draft)'),
-      notes: z.string().optional().describe('Invoice notes')
+      status: z
+        .enum(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial'])
+        .optional()
+        .describe('Status (default draft)'),
+      notes: z.string().optional().describe('Invoice notes'),
     },
     async ({ invoice_number, client_id, date, due_date, total_ht, tax_rate, total_ttc, status, notes }) => {
-      try { validateDate(date, 'date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
-      try { validateDate(due_date, 'due_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+      try {
+        validateDate(date, 'date');
+      } catch (e: any) {
+        return { content: [{ type: 'text' as const, text: e.message }] };
+      }
+      try {
+        validateDate(due_date, 'due_date');
+      } catch (e: any) {
+        return { content: [{ type: 'text' as const, text: e.message }] };
+      }
       const vatRate = tax_rate ?? 20;
 
       const { data, error } = await supabase
         .from('invoices')
-        .insert([{
-          user_id: getUserId(),
-          invoice_number,
-          client_id,
-          date,
-          due_date,
-          total_ht,
-          tax_rate: vatRate,
-          total_ttc,
-          status: status ?? 'draft',
-          notes: notes ? sanitizeText(notes) : null
-        }])
+        .insert([
+          {
+            user_id: getUserId(),
+            invoice_number,
+            client_id,
+            date,
+            due_date,
+            total_ht,
+            tax_rate: vatRate,
+            total_ttc,
+            status: status ?? 'draft',
+            notes: notes ? sanitizeText(notes) : null,
+          },
+        ])
         .select()
         .single();
 
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create invoice') }] };
 
       return {
-        content: [{ type: 'text' as const, text: `Invoice ${invoice_number} created.\n${JSON.stringify(data, null, 2)}` }]
+        content: [
+          { type: 'text' as const, text: `Invoice ${invoice_number} created.\n${JSON.stringify(data, null, 2)}` },
+        ],
       };
     }
   );
@@ -107,19 +129,15 @@ export function registerInvoiceTools(server: McpServer) {
     'delete_invoice',
     'Delete an invoice from CashPilot',
     {
-      invoice_id: z.string().describe('Invoice UUID to delete')
+      invoice_id: z.string().describe('Invoice UUID to delete'),
     },
     async ({ invoice_id }) => {
-      const { error } = await supabase
-        .from('invoices')
-        .delete()
-        .eq('id', invoice_id)
-        .eq('user_id', getUserId());
+      const { error } = await supabase.from('invoices').delete().eq('id', invoice_id).eq('user_id', getUserId());
 
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete invoice') }] };
 
       return {
-        content: [{ type: 'text' as const, text: `Successfully deleted invoice ${invoice_id}` }]
+        content: [{ type: 'text' as const, text: `Successfully deleted invoice ${invoice_id}` }],
       };
     }
   );
@@ -129,7 +147,7 @@ export function registerInvoiceTools(server: McpServer) {
     'Update the status of an invoice',
     {
       invoice_id: z.string().describe('Invoice UUID'),
-      status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial']).describe('New status')
+      status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial']).describe('New status'),
     },
     async ({ invoice_id, status }) => {
       const { data, error } = await supabase
@@ -143,7 +161,9 @@ export function registerInvoiceTools(server: McpServer) {
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update invoice status') }] };
 
       return {
-        content: [{ type: 'text' as const, text: `Invoice status updated to '${status}'.\n${JSON.stringify(data, null, 2)}` }]
+        content: [
+          { type: 'text' as const, text: `Invoice status updated to '${status}'.\n${JSON.stringify(data, null, 2)}` },
+        ],
       };
     }
   );
@@ -152,7 +172,7 @@ export function registerInvoiceTools(server: McpServer) {
     'search_invoices',
     'Search invoices by text (invoice number, notes, client name)',
     {
-      query: z.string().describe('Search text')
+      query: z.string().describe('Search text'),
     },
     async ({ query: q }) => {
       const safeQ = q.replace(/[|,().]/g, '\\$&');
@@ -168,7 +188,9 @@ export function registerInvoiceTools(server: McpServer) {
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'search invoices') }] };
 
       return {
-        content: [{ type: 'text' as const, text: `Found ${data?.length ?? 0} invoices.\n${JSON.stringify(data, null, 2)}` }]
+        content: [
+          { type: 'text' as const, text: `Found ${data?.length ?? 0} invoices.\n${JSON.stringify(data, null, 2)}` },
+        ],
       };
     }
   );
@@ -177,7 +199,7 @@ export function registerInvoiceTools(server: McpServer) {
     'get_invoice_stats',
     'Get invoice statistics: totals billed, paid, unpaid, overdue',
     {
-      months: z.number().optional().describe('Period in months (default 12)')
+      months: z.number().optional().describe('Period in months (default 12)'),
     },
     async ({ months }) => {
       const period = months ?? 12;
@@ -201,7 +223,7 @@ export function registerInvoiceTools(server: McpServer) {
         total_overdue: 0,
         count_paid: 0,
         count_unpaid: 0,
-        count_overdue: 0
+        count_overdue: 0,
       };
 
       for (const inv of data ?? []) {
@@ -228,7 +250,7 @@ export function registerInvoiceTools(server: McpServer) {
       stats.total_overdue = Math.round(stats.total_overdue * 100) / 100;
 
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify(stats, null, 2) }]
+        content: [{ type: 'text' as const, text: JSON.stringify(stats, null, 2) }],
       };
     }
   );
@@ -242,7 +264,7 @@ export function registerInvoiceTools(server: McpServer) {
       const { data, error } = await supabase.rpc('get_dunning_candidates', { p_user_id: userId });
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get dunning candidates') }] };
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }]
+        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
       };
     }
   );
