@@ -15,18 +15,20 @@ export const landingPageContent = {
     },
     hero: {
       badge: "Solution de gestion d'entreprise complète",
-      subtitle: 'La révolution de la gestion automatisée : finance, projets & CRM',
+      subtitle: 'La révolution de la gestion automatisée : finance, RH, projets, CRM & matériel',
       descriptionHighlight: 'Vous introduisez les données, CashPilot fait le reste.',
-      descriptionBody: "Gestion financière, projets et CRM 100% automatisés pour la France, la Belgique et l'Afrique (OHADA).",
-      mcpBanner: "Révolutionnaire dans le monde de la comptabilité et la finance d'entreprise : CashPilot est aussi un serveur MCP, qui offre 170+ outils à tout client MCP (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), dont la gestion Projets, CRM (leads/tickets/SLA) et l'extraction IA de factures fournisseurs (PDF/image), pour une conversation en temps réel ou pour son intégration dans vos workflows d'automatisation (n8n, Zapier, Rube.app).",
+      descriptionBody:
+        "Gestion financière, RH, projets, CRM et matériel 100% automatisés pour la France, la Belgique et l'Afrique (OHADA).",
+      mcpBanner:
+        "Révolutionnaire dans le monde de la gestion d'entreprise : CashPilot est aussi un serveur MCP, qui offre 449 outils à tout client MCP (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), couvrant la finance, les projets, le CRM (leads/tickets/SLA), les ressources humaines (DRH), le matériel et l'extraction IA de factures fournisseurs (PDF/image), pour une conversation en temps réel ou pour son intégration dans vos workflows d'automatisation (n8n, Zapier, Rube.app).",
       tags: {
         realtime: 'Temps réel (< 1 seconde)',
         regions: 'France • Belgique • OHADA',
         whatIf: 'Simulations What-If',
         reverseAccounting: 'Reverse Accounting',
         automated: '100% automatisé',
-        mcp: 'Serveur MCP • 170+ outils IA',
-        projectsCrm: 'Nouveau : Projets + CRM',
+        mcp: 'Serveur MCP • 449 outils IA',
+        projectsCrm: 'Nouveau : RH + Projets + CRM + Matériel',
         security: 'MFA & GDPR',
       },
       primaryCta: 'Démarrer gratuitement',
@@ -36,7 +38,7 @@ export const landingPageContent = {
         { number: '< 1s', label: 'Génération écritures' },
         { number: '100%', label: 'Auto-comptabilité' },
         { number: '3 pays', label: 'FR • BE • OHADA' },
-        { number: '2', label: 'Modules ajoutés' },
+        { number: '5', label: 'Modules ajoutés' },
         { number: '0', label: 'Saisie manuelle' },
       ],
     },
@@ -103,7 +105,7 @@ export const landingPageContent = {
         },
         {
           title: 'Optimisation trésorerie',
-          question: "« Si je négocie 60 jours de délai fournisseur au lieu de 30, quel impact sur le BFR ? »",
+          question: '« Si je négocie 60 jours de délai fournisseur au lieu de 30, quel impact sur le BFR ? »',
         },
         {
           title: 'Budget prévisionnel',
@@ -146,21 +148,59 @@ export const landingPageContent = {
       title: 'Fonctionnalités principales',
       description: "Une suite complète d'outils pour gérer tous les aspects de votre entreprise",
       cards: [
-        { title: 'Gestion clients', description: 'CRM Pro par société : comptes, leads, opportunités, activités, devis et tickets SLA' },
-        { title: 'Projets & tâches', description: 'Pilotez vos projets, tâches, dépendances, sous-tâches, Gantt, Kanban, coûts et rentabilité' },
+        {
+          title: 'Gestion clients',
+          description: 'CRM Pro par société : comptes, leads, opportunités, activités, devis et tickets SLA',
+        },
+        {
+          title: 'Projets & CRM',
+          description:
+            'Projets, tâches, dépendances, Gantt, Kanban, feuilles de temps, ressources, rapports, baselines, milestones, coûts et rentabilité',
+        },
         { title: 'Suivi du temps', description: 'Feuilles de temps et chronomètre intégré' },
         { title: 'Facturation', description: 'Factures et devis professionnels en PDF' },
-        { title: 'Comptabilité multi-pays', description: 'France, Belgique, OHADA - écritures automatiques en temps réel' },
+        {
+          title: 'Comptabilité multi-pays',
+          description: 'France, Belgique, OHADA - écritures automatiques en temps réel',
+        },
         { title: 'Gestion stock', description: 'Inventaire avec scanner de codes-barres' },
         { title: 'Dépenses', description: 'Suivi et catégorisation des dépenses' },
         { title: 'Fournisseurs', description: 'Gestion fournisseurs + extraction IA de factures via MCP' },
-        { title: 'Pilotage stratégique', description: 'Centre de pilotage unifié : ratios, benchmarks sectoriels, fiscalité multi-zones et valorisation' },
+        {
+          title: 'Pilotage stratégique',
+          description:
+            'Centre de pilotage unifié : ratios, benchmarks sectoriels, fiscalité multi-zones et valorisation',
+        },
         { title: 'Rapports & analytics', description: 'Visualisations et exports PDF personnalisés' },
         { title: 'Simulations financières', description: "Scénarios what-if et projections pour anticiper l'avenir" },
-        { title: 'Serveur MCP & API', description: '170+ outils MCP (finance + projets + CRM + extraction IA factures) + API REST pour agents IA et automations' },
-        { title: 'MFA / 2FA (TOTP)', description: 'Authentification à deux facteurs via Google Authenticator ou Authy' },
+        {
+          title: 'Ressources Humaines (DRH)',
+          description:
+            'Employés, contrats, paie, congés, recrutement, formation, compétences, entretiens, QVT, bilan social et analytics RH',
+        },
+        {
+          title: 'Matériel & Équipements',
+          description:
+            "Gestion d'actifs, affectations projets, maintenance préventive, suivi d'utilisation et amortissements",
+        },
+        {
+          title: 'Mon Entreprise',
+          description: 'Portfolio sociétés, facturation e-Peppol, tableaux de bord consolidés multi-sociétés',
+        },
+        {
+          title: 'Serveur MCP & API',
+          description:
+            '449 outils MCP (finance + projets + CRM + RH + matériel + extraction IA factures) + API REST pour agents IA et automations',
+        },
+        {
+          title: 'MFA / 2FA (TOTP)',
+          description: 'Authentification à deux facteurs via Google Authenticator ou Authy',
+        },
         { title: 'Conformité RGPD', description: "Consentement cookies, export données, droit à l'oubli" },
-        { title: 'Extraction IA factures', description: 'Upload PDF/image → extraction automatique par Gemini 2.0 Flash, aussi via MCP' },
+        {
+          title: 'Extraction IA factures',
+          description: 'Upload PDF/image → extraction automatique par Gemini 2.0 Flash, aussi via MCP',
+        },
         { title: 'Connexion bancaire', description: '3000+ banques via GoCardless Open Banking' },
         { title: 'Email & rappels auto', description: 'Envoi de factures et rappels de paiement automatiques' },
         { title: 'Factures récurrentes', description: 'Facturation automatique des abonnements et contrats' },
@@ -172,27 +212,62 @@ export const landingPageContent = {
     pilotage: {
       badge: "Pilotage d'entreprise",
       title: 'Centre de pilotage stratégique',
-      description: 'Un tableau de bord unifié avec 6 onglets pour piloter votre entreprise en temps réel : ratios financiers, benchmarks sectoriels, fiscalité multi-zones et valorisation.',
+      description:
+        'Un tableau de bord unifié avec 6 onglets pour piloter votre entreprise en temps réel : ratios financiers, benchmarks sectoriels, fiscalité multi-zones et valorisation.',
       cards: [
-        { title: "Vue d'ensemble", description: 'KPIs temps réel (CA, EBITDA, résultat net, FCF, valorisation), graphiques de tendances et alertes financières automatiques' },
-        { title: 'Analyse comptable', description: "Ratios de structure (indépendance financière, gearing) et d'activité (DSO, DPO, rotation stocks, cycle de conversion cash)" },
-        { title: 'Analyse financière', description: 'Marges (brute, EBITDA, opérationnelle), rentabilité (ROE, ROA, ROCE), structure du capital et tendances' },
-        { title: 'Fiscalité & valorisation', description: "IS multi-zones (France, Belgique, OHADA), crédits d'impôt, valorisation par multiples EBITDA + DCF, sensibilité WACC" },
-        { title: 'Simulateur', description: "Scénarios what-if : testez l'impact de vos décisions sur la trésorerie, les marges et la valorisation" },
-        { title: 'Audit IA', description: 'Score de santé comptable, détection d’anomalies par catégorie, recommandations et corrections automatiques' },
+        {
+          title: "Vue d'ensemble",
+          description:
+            'KPIs temps réel (CA, EBITDA, résultat net, FCF, valorisation), graphiques de tendances et alertes financières automatiques',
+        },
+        {
+          title: 'Analyse comptable',
+          description:
+            "Ratios de structure (indépendance financière, gearing) et d'activité (DSO, DPO, rotation stocks, cycle de conversion cash)",
+        },
+        {
+          title: 'Analyse financière',
+          description:
+            'Marges (brute, EBITDA, opérationnelle), rentabilité (ROE, ROA, ROCE), structure du capital et tendances',
+        },
+        {
+          title: 'Fiscalité & valorisation',
+          description:
+            "IS multi-zones (France, Belgique, OHADA), crédits d'impôt, valorisation par multiples EBITDA + DCF, sensibilité WACC",
+        },
+        {
+          title: 'Simulateur',
+          description:
+            "Scénarios what-if : testez l'impact de vos décisions sur la trésorerie, les marges et la valorisation",
+        },
+        {
+          title: 'Audit IA',
+          description:
+            'Score de santé comptable, détection d’anomalies par catégorie, recommandations et corrections automatiques',
+        },
       ],
       featureTitle: 'Benchmarks sectoriels intégrés',
       features: [
         { title: '5 secteurs', description: 'SaaS, industrie, commerce, construction, services B2B — cibles adaptées' },
-        { title: '3 zones géographiques', description: 'France, Belgique, zone OHADA (17 pays) — fiscalité et normes locales' },
-        { title: '13 ratios comparés', description: 'DSO, DPO, gearing, ROE, ROA, ROCE, marges... vs cibles sectorielles' },
-        { title: 'Scoring automatique', description: "Chaque ratio évalué : excellent, bon, moyen ou critique — en un coup d'œil" },
+        {
+          title: '3 zones géographiques',
+          description: 'France, Belgique, zone OHADA (17 pays) — fiscalité et normes locales',
+        },
+        {
+          title: '13 ratios comparés',
+          description: 'DSO, DPO, gearing, ROE, ROA, ROCE, marges... vs cibles sectorielles',
+        },
+        {
+          title: 'Scoring automatique',
+          description: "Chaque ratio évalué : excellent, bon, moyen ou critique — en un coup d'œil",
+        },
       ],
     },
     mcp: {
       badge: 'Serveur MCP natif',
       title: 'Connecté à tous vos agents IA',
-      description: "CashPilot est un serveur MCP (Model Context Protocol) avec 170+ outils intégrés, incluant désormais des services dédiés Projets et CRM (leads/tickets/SLA), en plus de l'extraction IA de factures fournisseurs. Pilotez votre gestion financière par la voix ou le texte, depuis n'importe quel agent IA.",
+      description:
+        "CashPilot est un serveur MCP (Model Context Protocol) avec 449 outils intégrés couvrant la finance, les projets, le CRM (leads/tickets/SLA), les ressources humaines (DRH), le matériel et l'extraction IA de factures fournisseurs. Pilotez toute votre gestion d'entreprise par la voix ou le texte, depuis n'importe quel agent IA.",
       agents: [
         { name: 'Claude', company: 'Anthropic' },
         { name: 'ChatGPT', company: 'OpenAI' },
@@ -204,10 +279,26 @@ export const landingPageContent = {
         { name: 'Tout client MCP', company: 'Universel' },
       ],
       cards: [
-        { title: 'Contrôle vocal & texte', description: 'Pilotez CashPilot depuis Claude, ChatGPT, Gemini ou Mistral par la voix ou le texte. Créez des factures, consultez vos finances, générez des rapports — en langage naturel.' },
-        { title: 'Nouveaux services MCP Projets & CRM', description: 'Créez et suivez des projets, tâches, leads, tickets et politiques SLA directement depuis vos agents IA, en scope société strict.' },
-        { title: '170+ outils MCP', description: 'Création de factures, recherche de clients, pilotage projets, opérations CRM, export comptable, résumé financier, extraction IA de factures fournisseurs — 170+ outils accessibles via le protocole MCP standard.' },
-        { title: "Brique d'automatisation", description: 'Intégrez CashPilot dans vos pipelines : Rube.app, n8n, Gunloop, Zapier, Make. Votre gestion financière devient un composant de votre écosystème automatisé.' },
+        {
+          title: 'Contrôle vocal & texte',
+          description:
+            'Pilotez CashPilot depuis Claude, ChatGPT, Gemini ou Mistral par la voix ou le texte. Créez des factures, consultez vos finances, générez des rapports — en langage naturel.',
+        },
+        {
+          title: 'Services MCP : Projets, CRM, RH & Matériel',
+          description:
+            'Créez et suivez des projets, tâches, leads, tickets SLA, employés, contrats, paie, congés, équipements et maintenance directement depuis vos agents IA, en scope société strict.',
+        },
+        {
+          title: '449 outils MCP',
+          description:
+            'Finance, projets, CRM, ressources humaines, matériel, extraction IA de factures fournisseurs — 449 outils accessibles via le protocole MCP standard.',
+        },
+        {
+          title: "Brique d'automatisation",
+          description:
+            'Intégrez CashPilot dans vos pipelines : Rube.app, n8n, Gunloop, Zapier, Make. Votre gestion financière devient un composant de votre écosystème automatisé.',
+        },
       ],
       exampleLabel: 'Exemple depuis un agent IA',
       exampleText: '« Extrais cette facture fournisseur et enregistre-la dans CashPilot »',
@@ -216,11 +307,27 @@ export const landingPageContent = {
     peppol: {
       badge: 'Peppol & e-invoicing',
       title: 'Facturation électronique via Peppol',
-      description: 'Envoyez et recevez vos factures sur le réseau européen Peppol directement depuis CashPilot, grâce à Scrada, Access Point certifié belge. Conforme EN16931 & UBL 2.1.',
+      description:
+        'Envoyez et recevez vos factures sur le réseau européen Peppol directement depuis CashPilot, grâce à Scrada, Access Point certifié belge. Conforme EN16931 & UBL 2.1.',
       cards: [
-        { title: 'Configuration en 5 minutes', description: "Créez votre compte Scrada, générez une clé API, et collez vos identifiants dans CashPilot. Un clic pour tester la connexion — c'est prêt.", tag: 'Dès 2 €/mois' },
-        { title: 'Envoi Peppol automatique', description: "CashPilot valide votre facture (13 règles EN16931), génère le XML UBL conforme, et l'envoie via Scrada sur le réseau Peppol. Suivi du statut en temps réel.", tag: 'UBL 2.1 / BIS Billing 3.0' },
-        { title: 'Réception & vérification', description: "Recevez les factures entrantes via Peppol et vérifiez si vos clients sont enregistrés sur le réseau — en un clic depuis leur fiche.", tag: 'B2G & B2B' },
+        {
+          title: 'Configuration en 5 minutes',
+          description:
+            "Créez votre compte Scrada, générez une clé API, et collez vos identifiants dans CashPilot. Un clic pour tester la connexion — c'est prêt.",
+          tag: 'Dès 2 €/mois',
+        },
+        {
+          title: 'Envoi Peppol automatique',
+          description:
+            "CashPilot valide votre facture (13 règles EN16931), génère le XML UBL conforme, et l'envoie via Scrada sur le réseau Peppol. Suivi du statut en temps réel.",
+          tag: 'UBL 2.1 / BIS Billing 3.0',
+        },
+        {
+          title: 'Réception & vérification',
+          description:
+            'Recevez les factures entrantes via Peppol et vérifiez si vos clients sont enregistrés sur le réseau — en un clic depuis leur fiche.',
+          tag: 'B2G & B2B',
+        },
       ],
       imageAlt: 'Connexion CashPilot - Peppol via Scrada : configuration, forfaits et bénéfices',
       cta: 'Voir le guide complet',
@@ -234,8 +341,8 @@ export const landingPageContent = {
         'Simulations financières : testez vos décisions avant de les prendre',
         'Génération instantanée des écritures comptables (< 1 seconde)',
         'Reverse accounting : annulations et corrections automatiques',
-        'Tout-en-un : gestion, facturation, comptabilité, simulations',
-        'Serveur MCP : 170+ outils (finance, projets, CRM) dont extraction IA de factures, depuis ChatGPT, Claude, Gemini, Mistral',
+        'Tout-en-un : gestion, facturation, comptabilité, RH, matériel, simulations',
+        'Serveur MCP : 449 outils (finance, projets, CRM, RH, matériel) dont extraction IA de factures, depuis ChatGPT, Claude, Gemini, Mistral',
         'Sécurité renforcée : MFA/2FA, RGPD, 244 tests automatisés',
         'IA intégrée : extraction factures fournisseurs par Gemini 2.0 Flash',
         'Banque connectée : 3000+ banques, rapprochement auto, taux de change BCE',
@@ -279,18 +386,20 @@ export const landingPageContent = {
     },
     hero: {
       badge: 'Complete business management platform',
-      subtitle: 'The automated management revolution: finance, projects & CRM',
+      subtitle: 'The automated management revolution: finance, HR, projects, CRM & equipment',
       descriptionHighlight: 'You enter the data, CashPilot does the rest.',
-      descriptionBody: '100% automated finance, projects, and CRM for France, Belgium, and OHADA Africa.',
-      mcpBanner: 'A breakthrough for accounting and business finance: CashPilot is also an MCP server that exposes 170+ tools to any MCP client (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), including Projects, CRM (leads/tickets/SLA), and AI supplier-invoice extraction (PDF/image), for real-time conversations or integration into your automation workflows (n8n, Zapier, Rube.app).',
+      descriptionBody:
+        '100% automated finance, HR, projects, CRM, and equipment management for France, Belgium, and OHADA Africa.',
+      mcpBanner:
+        'A breakthrough for business management: CashPilot is also an MCP server that exposes 449 tools to any MCP client (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), covering finance, projects, CRM (leads/tickets/SLA), human resources (HR), equipment, and AI supplier-invoice extraction (PDF/image), for real-time conversations or integration into your automation workflows (n8n, Zapier, Rube.app).',
       tags: {
         realtime: 'Real time (< 1 second)',
         regions: 'France • Belgium • OHADA',
         whatIf: 'What-if simulations',
         reverseAccounting: 'Reverse accounting',
         automated: '100% automated',
-        mcp: 'MCP server • 170+ AI tools',
-        projectsCrm: 'New: Projects + CRM',
+        mcp: 'MCP server • 449 AI tools',
+        projectsCrm: 'New: HR + Projects + CRM + Equipment',
         security: 'MFA & GDPR',
       },
       primaryCta: 'Start for free',
@@ -300,7 +409,7 @@ export const landingPageContent = {
         { number: '< 1s', label: 'Journal entries' },
         { number: '100%', label: 'Auto-accounting' },
         { number: '3 countries', label: 'FR • BE • OHADA' },
-        { number: '2', label: 'New modules' },
+        { number: '5', label: 'New modules' },
         { number: '0', label: 'Manual entry' },
       ],
     },
@@ -410,21 +519,52 @@ export const landingPageContent = {
       title: 'Core features',
       description: 'A complete suite to run every part of your business',
       cards: [
-        { title: 'Client management', description: 'Company-scoped Pro CRM: accounts, leads, opportunities, activities, quotes, and SLA tickets' },
-        { title: 'Projects & tasks', description: 'Manage projects, tasks, dependencies, subtasks, Gantt, Kanban, costs, and profitability' },
+        {
+          title: 'Client management',
+          description: 'Company-scoped Pro CRM: accounts, leads, opportunities, activities, quotes, and SLA tickets',
+        },
+        {
+          title: 'Projects & CRM',
+          description:
+            'Projects, tasks, dependencies, Gantt, Kanban, timesheets, resources, reports, baselines, milestones, costs, and profitability',
+        },
         { title: 'Time tracking', description: 'Timesheets and built-in timer' },
         { title: 'Invoicing', description: 'Professional invoices and quotes in PDF' },
         { title: 'Multi-country accounting', description: 'France, Belgium, OHADA - automatic real-time entries' },
         { title: 'Inventory management', description: 'Inventory with barcode scanner' },
         { title: 'Expenses', description: 'Expense tracking and categorization' },
         { title: 'Suppliers', description: 'Supplier management + AI invoice extraction through MCP' },
-        { title: 'Strategic steering', description: 'Unified cockpit for ratios, sector benchmarks, multi-zone taxation, and valuation' },
+        {
+          title: 'Strategic steering',
+          description: 'Unified cockpit for ratios, sector benchmarks, multi-zone taxation, and valuation',
+        },
         { title: 'Reports & analytics', description: 'Visual dashboards and custom PDF exports' },
         { title: 'Financial simulations', description: 'What-if scenarios and projections to anticipate the future' },
-        { title: 'MCP server & API', description: '170+ MCP tools (finance + projects + CRM + AI invoice extraction) + REST API for AI agents and automations' },
+        {
+          title: 'Human Resources (HR)',
+          description:
+            'Employees, contracts, payroll, leave, recruitment, training, skills, reviews, QWL, social report, and HR analytics',
+        },
+        {
+          title: 'Equipment & Assets',
+          description:
+            'Asset management, project assignments, preventive maintenance, usage tracking, and depreciation',
+        },
+        {
+          title: 'My Company',
+          description: 'Company portfolio, e-Peppol invoicing, consolidated multi-company dashboards',
+        },
+        {
+          title: 'MCP server & API',
+          description:
+            '449 MCP tools (finance + projects + CRM + HR + equipment + AI invoice extraction) + REST API for AI agents and automations',
+        },
         { title: 'MFA / 2FA (TOTP)', description: 'Two-factor authentication with Google Authenticator or Authy' },
         { title: 'GDPR compliance', description: 'Cookie consent, data export, and right to be forgotten' },
-        { title: 'AI invoice extraction', description: 'Upload PDF/image → automatic extraction by Gemini 2.0 Flash, also via MCP' },
+        {
+          title: 'AI invoice extraction',
+          description: 'Upload PDF/image → automatic extraction by Gemini 2.0 Flash, also via MCP',
+        },
         { title: 'Bank connectivity', description: '3000+ banks through GoCardless Open Banking' },
         { title: 'Email & auto reminders', description: 'Automatic invoice sending and payment reminders' },
         { title: 'Recurring invoices', description: 'Automated billing for subscriptions and contracts' },
@@ -436,27 +576,61 @@ export const landingPageContent = {
     pilotage: {
       badge: 'Business steering',
       title: 'Strategic steering cockpit',
-      description: 'A unified dashboard with six tabs to steer your business in real time: financial ratios, sector benchmarks, multi-zone taxation, and valuation.',
+      description:
+        'A unified dashboard with six tabs to steer your business in real time: financial ratios, sector benchmarks, multi-zone taxation, and valuation.',
       cards: [
-        { title: 'Overview', description: 'Real-time KPIs (revenue, EBITDA, net income, FCF, valuation), trend charts, and financial alerts' },
-        { title: 'Accounting analysis', description: 'Structural ratios (financial independence, gearing) and activity ratios (DSO, DPO, stock turns, cash conversion cycle)' },
-        { title: 'Financial analysis', description: 'Margins (gross, EBITDA, operating), profitability (ROE, ROA, ROCE), capital structure, and trends' },
-        { title: 'Tax & valuation', description: 'Corporate tax across regions (France, Belgium, OHADA), tax credits, EBITDA multiples + DCF valuation, WACC sensitivity' },
-        { title: 'Simulator', description: 'What-if scenarios: test the impact of decisions on cash flow, margins, and valuation' },
-        { title: 'AI audit', description: 'Accounting-health score, anomaly detection by category, recommendations, and automated corrections' },
+        {
+          title: 'Overview',
+          description:
+            'Real-time KPIs (revenue, EBITDA, net income, FCF, valuation), trend charts, and financial alerts',
+        },
+        {
+          title: 'Accounting analysis',
+          description:
+            'Structural ratios (financial independence, gearing) and activity ratios (DSO, DPO, stock turns, cash conversion cycle)',
+        },
+        {
+          title: 'Financial analysis',
+          description:
+            'Margins (gross, EBITDA, operating), profitability (ROE, ROA, ROCE), capital structure, and trends',
+        },
+        {
+          title: 'Tax & valuation',
+          description:
+            'Corporate tax across regions (France, Belgium, OHADA), tax credits, EBITDA multiples + DCF valuation, WACC sensitivity',
+        },
+        {
+          title: 'Simulator',
+          description: 'What-if scenarios: test the impact of decisions on cash flow, margins, and valuation',
+        },
+        {
+          title: 'AI audit',
+          description:
+            'Accounting-health score, anomaly detection by category, recommendations, and automated corrections',
+        },
       ],
       featureTitle: 'Built-in sector benchmarks',
       features: [
         { title: '5 sectors', description: 'SaaS, industry, retail, construction, B2B services — tailored targets' },
-        { title: '3 geographies', description: 'France, Belgium, OHADA area (17 countries) — local tax and accounting rules' },
-        { title: '13 compared ratios', description: 'DSO, DPO, gearing, ROE, ROA, ROCE, margins... against sector targets' },
-        { title: 'Automatic scoring', description: 'Every ratio graded as excellent, good, average, or critical — at a glance' },
+        {
+          title: '3 geographies',
+          description: 'France, Belgium, OHADA area (17 countries) — local tax and accounting rules',
+        },
+        {
+          title: '13 compared ratios',
+          description: 'DSO, DPO, gearing, ROE, ROA, ROCE, margins... against sector targets',
+        },
+        {
+          title: 'Automatic scoring',
+          description: 'Every ratio graded as excellent, good, average, or critical — at a glance',
+        },
       ],
     },
     mcp: {
       badge: 'Native MCP server',
       title: 'Connected to all your AI agents',
-      description: 'CashPilot is an MCP (Model Context Protocol) server with 170+ built-in tools, now including dedicated Projects and CRM services (leads/tickets/SLA), plus AI supplier-invoice extraction. Run your finance operations by voice or text from any AI agent.',
+      description:
+        'CashPilot is an MCP (Model Context Protocol) server with 449 built-in tools covering finance, projects, CRM (leads/tickets/SLA), human resources (HR), equipment, and AI supplier-invoice extraction. Run your entire business by voice or text from any AI agent.',
       agents: [
         { name: 'Claude', company: 'Anthropic' },
         { name: 'ChatGPT', company: 'OpenAI' },
@@ -468,10 +642,26 @@ export const landingPageContent = {
         { name: 'Any MCP client', company: 'Universal' },
       ],
       cards: [
-        { title: 'Voice & text control', description: 'Operate CashPilot from Claude, ChatGPT, Gemini, or Mistral by voice or text. Create invoices, inspect finances, and generate reports in natural language.' },
-        { title: 'New MCP services: Projects & CRM', description: 'Create and track projects, tasks, leads, tickets, and SLA policies directly from AI agents with strict company scope.' },
-        { title: '170+ MCP tools', description: 'Invoice creation, client lookup, project management, CRM operations, accounting export, financial summaries, AI supplier-invoice extraction — 170+ tools available through the standard MCP protocol.' },
-        { title: 'Automation building block', description: 'Integrate CashPilot into your pipelines: Rube.app, n8n, Gunloop, Zapier, Make. Your finance operations become a component of your automation stack.' },
+        {
+          title: 'Voice & text control',
+          description:
+            'Operate CashPilot from Claude, ChatGPT, Gemini, or Mistral by voice or text. Create invoices, inspect finances, and generate reports in natural language.',
+        },
+        {
+          title: 'MCP services: Projects, CRM, HR & Equipment',
+          description:
+            'Create and track projects, tasks, leads, SLA tickets, employees, contracts, payroll, leave, equipment, and maintenance directly from AI agents with strict company scope.',
+        },
+        {
+          title: '449 MCP tools',
+          description:
+            'Finance, projects, CRM, human resources, equipment, AI supplier-invoice extraction — 449 tools available through the standard MCP protocol.',
+        },
+        {
+          title: 'Automation building block',
+          description:
+            'Integrate CashPilot into your pipelines: Rube.app, n8n, Gunloop, Zapier, Make. Your finance operations become a component of your automation stack.',
+        },
       ],
       exampleLabel: 'Example from an AI agent',
       exampleText: '"Extract this supplier invoice and save it to CashPilot"',
@@ -480,11 +670,27 @@ export const landingPageContent = {
     peppol: {
       badge: 'Peppol & e-invoicing',
       title: 'Electronic invoicing through Peppol',
-      description: 'Send and receive invoices on the European Peppol network directly from CashPilot, thanks to Scrada, a certified Belgian access point. Compliant with EN16931 & UBL 2.1.',
+      description:
+        'Send and receive invoices on the European Peppol network directly from CashPilot, thanks to Scrada, a certified Belgian access point. Compliant with EN16931 & UBL 2.1.',
       cards: [
-        { title: 'Setup in 5 minutes', description: 'Create your Scrada account, generate an API key, and paste your credentials into CashPilot. One click to test the connection — you are ready.', tag: 'From €2/month' },
-        { title: 'Automatic Peppol sending', description: 'CashPilot validates your invoice (13 EN16931 rules), generates compliant UBL XML, and sends it through Scrada on the Peppol network. Live status tracking included.', tag: 'UBL 2.1 / BIS Billing 3.0' },
-        { title: 'Receiving & verification', description: 'Receive incoming invoices through Peppol and verify whether your clients are registered on the network — directly from their profile in one click.', tag: 'B2G & B2B' },
+        {
+          title: 'Setup in 5 minutes',
+          description:
+            'Create your Scrada account, generate an API key, and paste your credentials into CashPilot. One click to test the connection — you are ready.',
+          tag: 'From €2/month',
+        },
+        {
+          title: 'Automatic Peppol sending',
+          description:
+            'CashPilot validates your invoice (13 EN16931 rules), generates compliant UBL XML, and sends it through Scrada on the Peppol network. Live status tracking included.',
+          tag: 'UBL 2.1 / BIS Billing 3.0',
+        },
+        {
+          title: 'Receiving & verification',
+          description:
+            'Receive incoming invoices through Peppol and verify whether your clients are registered on the network — directly from their profile in one click.',
+          tag: 'B2G & B2B',
+        },
       ],
       imageAlt: 'CashPilot - Peppol via Scrada connection: setup, plans, and benefits',
       cta: 'See the full guide',
@@ -498,8 +704,8 @@ export const landingPageContent = {
         'Financial simulations: test decisions before you make them',
         'Instant journal-entry generation (< 1 second)',
         'Reverse accounting: automatic cancellations and corrections',
-        'All-in-one: operations, invoicing, accounting, simulations',
-        'MCP server: 170+ tools (finance, projects, CRM) including AI invoice extraction from ChatGPT, Claude, Gemini, and Mistral',
+        'All-in-one: operations, invoicing, accounting, HR, equipment, simulations',
+        'MCP server: 449 tools (finance, projects, CRM, HR, equipment) including AI invoice extraction from ChatGPT, Claude, Gemini, and Mistral',
         'Stronger security: MFA/2FA, GDPR, 244 automated tests',
         'Built-in AI: supplier-invoice extraction with Gemini 2.0 Flash',
         'Connected banking: 3000+ banks, automatic matching, ECB exchange rates',
@@ -543,18 +749,20 @@ export const landingPageContent = {
     },
     hero: {
       badge: 'Volledig platform voor bedrijfsbeheer',
-      subtitle: 'De revolutie van geautomatiseerd beheer: finance, projecten & CRM',
+      subtitle: 'De revolutie van geautomatiseerd beheer: finance, HR, projecten, CRM & materieel',
       descriptionHighlight: 'U voert de gegevens in, CashPilot doet de rest.',
-      descriptionBody: '100% geautomatiseerde financiële opvolging, projectbeheer en CRM voor Frankrijk, België en OHADA-Afrika.',
-      mcpBanner: 'Een doorbraak in boekhouding en bedrijfsfinanciën: CashPilot is ook een MCP-server die 170+ tools aanbiedt aan elke MCP-client (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), waaronder projectbeheer, CRM (leads/tickets/SLA) en AI-extractie van leveranciersfacturen (pdf/afbeelding), voor realtime gesprekken of integratie in uw automatiseringsworkflows (n8n, Zapier, Rube.app).',
+      descriptionBody:
+        '100% geautomatiseerde financiële opvolging, HR, projectbeheer, CRM en materieelbeheer voor Frankrijk, België en OHADA-Afrika.',
+      mcpBanner:
+        'Een doorbraak in bedrijfsbeheer: CashPilot is ook een MCP-server die 449 tools aanbiedt aan elke MCP-client (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), voor finance, projecten, CRM (leads/tickets/SLA), human resources (HR), materieel en AI-extractie van leveranciersfacturen (pdf/afbeelding), voor realtime gesprekken of integratie in uw automatiseringsworkflows (n8n, Zapier, Rube.app).',
       tags: {
         realtime: 'Realtime (< 1 seconde)',
         regions: 'Frankrijk • België • OHADA',
         whatIf: 'What-if-simulaties',
         reverseAccounting: 'Reverse accounting',
         automated: '100% geautomatiseerd',
-        mcp: 'MCP-server • 170+ AI-tools',
-        projectsCrm: 'Nieuw: Projecten + CRM',
+        mcp: 'MCP-server • 449 AI-tools',
+        projectsCrm: 'Nieuw: HR + Projecten + CRM + Materieel',
         security: 'MFA & GDPR',
       },
       primaryCta: 'Gratis starten',
@@ -564,7 +772,7 @@ export const landingPageContent = {
         { number: '< 1s', label: 'Boekingen' },
         { number: '100%', label: 'Auto-boekhouding' },
         { number: '3 landen', label: 'FR • BE • OHADA' },
-        { number: '2', label: 'Nieuwe modules' },
+        { number: '5', label: 'Nieuwe modules' },
         { number: '0', label: 'Handmatige invoer' },
       ],
     },
@@ -631,7 +839,8 @@ export const landingPageContent = {
         },
         {
           title: 'Cashoptimalisatie',
-          question: '"Als ik 60 dagen leverancierskrediet onderhandel in plaats van 30, wat is de impact op het werkkapitaal?"',
+          question:
+            '"Als ik 60 dagen leverancierskrediet onderhandel in plaats van 30, wat is de impact op het werkkapitaal?"',
         },
         {
           title: 'Budgetplanning',
@@ -674,23 +883,62 @@ export const landingPageContent = {
       title: 'Belangrijkste functies',
       description: 'Een volledige suite om elk onderdeel van uw onderneming te beheren',
       cards: [
-        { title: 'Klantenbeheer', description: 'Pro CRM per vennootschap: accounts, leads, opportuniteiten, activiteiten, offertes en SLA-tickets' },
-        { title: 'Projecten & taken', description: 'Beheer projecten, taken, afhankelijkheden, subtaken, Gantt, Kanban, kosten en rendabiliteit' },
+        {
+          title: 'Klantenbeheer',
+          description:
+            'Pro CRM per vennootschap: accounts, leads, opportuniteiten, activiteiten, offertes en SLA-tickets',
+        },
+        {
+          title: 'Projecten & CRM',
+          description:
+            'Projecten, taken, afhankelijkheden, Gantt, Kanban, urenstaten, resources, rapporten, baselines, milestones, kosten en rendabiliteit',
+        },
         { title: 'Tijdsregistratie', description: 'Urenstaten en ingebouwde timer' },
         { title: 'Facturatie', description: 'Professionele facturen en offertes in pdf' },
-        { title: 'Boekhouding voor meerdere landen', description: 'Frankrijk, België, OHADA - automatische realtime boekingen' },
+        {
+          title: 'Boekhouding voor meerdere landen',
+          description: 'Frankrijk, België, OHADA - automatische realtime boekingen',
+        },
         { title: 'Voorraadbeheer', description: 'Inventaris met barcodescanner' },
         { title: 'Uitgaven', description: 'Opvolging en categorisatie van uitgaven' },
         { title: 'Leveranciers', description: 'Leveranciersbeheer + AI-factuurextractie via MCP' },
-        { title: 'Strategische sturing', description: 'Geünificeerd cockpit voor ratio’s, sectorbenchmarks, fiscaliteit in meerdere zones en waardering' },
+        {
+          title: 'Strategische sturing',
+          description:
+            'Geünificeerd cockpit voor ratio’s, sectorbenchmarks, fiscaliteit in meerdere zones en waardering',
+        },
         { title: 'Rapporten & analyses', description: 'Visuele dashboards en aangepaste pdf-exporten' },
         { title: 'Financiële simulaties', description: 'What-if-scenario’s en projecties om vooruit te kijken' },
-        { title: 'MCP-server & API', description: '170+ MCP-tools (finance + projecten + CRM + AI-factuurextractie) + REST API voor AI-agents en automatiseringen' },
+        {
+          title: 'Human Resources (HR)',
+          description:
+            'Medewerkers, contracten, loonbeheer, verlof, werving, opleiding, competenties, evaluaties, QWL, sociaal verslag en HR-analytics',
+        },
+        {
+          title: 'Materieel & Uitrusting',
+          description: 'Activabeheer, projecttoewijzingen, preventief onderhoud, gebruiksopvolging en afschrijvingen',
+        },
+        {
+          title: 'Mijn Bedrijf',
+          description:
+            'Bedrijfsportfolio, e-Peppol-facturatie, geconsolideerde dashboards voor meerdere vennootschappen',
+        },
+        {
+          title: 'MCP-server & API',
+          description:
+            '449 MCP-tools (finance + projecten + CRM + HR + materieel + AI-factuurextractie) + REST API voor AI-agents en automatiseringen',
+        },
         { title: 'MFA / 2FA (TOTP)', description: 'Twee-factor-authenticatie via Google Authenticator of Authy' },
         { title: 'GDPR-compliance', description: 'Cookieconsent, data-export en recht op vergetelheid' },
-        { title: 'AI-factuurextractie', description: 'Upload pdf/afbeelding → automatische extractie door Gemini 2.0 Flash, ook via MCP' },
+        {
+          title: 'AI-factuurextractie',
+          description: 'Upload pdf/afbeelding → automatische extractie door Gemini 2.0 Flash, ook via MCP',
+        },
         { title: 'Bankkoppeling', description: '3000+ banken via GoCardless Open Banking' },
-        { title: 'E-mail & automatische herinneringen', description: 'Automatisch verzenden van facturen en betalingsherinneringen' },
+        {
+          title: 'E-mail & automatische herinneringen',
+          description: 'Automatisch verzenden van facturen en betalingsherinneringen',
+        },
         { title: 'Terugkerende facturen', description: 'Automatische facturatie van abonnementen en contracten' },
         { title: 'REST API & webhooks', description: 'Gedocumenteerde API + HMAC-webhooks voor externe integraties' },
         { title: 'ECB-wisselkoersen', description: '33 valuta met automatisch bijgewerkte officiële koersen' },
@@ -700,27 +948,61 @@ export const landingPageContent = {
     pilotage: {
       badge: 'Bedrijfssturing',
       title: 'Strategische stuurcockpit',
-      description: 'Een geünificeerd dashboard met zes tabs om uw onderneming realtime te sturen: financiële ratio’s, sectorbenchmarks, fiscaliteit in meerdere zones en waardering.',
+      description:
+        'Een geünificeerd dashboard met zes tabs om uw onderneming realtime te sturen: financiële ratio’s, sectorbenchmarks, fiscaliteit in meerdere zones en waardering.',
       cards: [
-        { title: 'Overzicht', description: 'Realtime KPI’s (omzet, EBITDA, nettoresultaat, FCF, waardering), trendgrafieken en automatische financiële waarschuwingen' },
-        { title: 'Boekhoudanalyse', description: 'Structuurratio’s (financiële onafhankelijkheid, gearing) en activiteitsratio’s (DSO, DPO, voorraadrotatie, cash conversion cycle)' },
-        { title: 'Financiële analyse', description: 'Marges (bruto, EBITDA, operationeel), rendabiliteit (ROE, ROA, ROCE), kapitaalstructuur en trends' },
-        { title: 'Fiscaliteit & waardering', description: 'Vennootschapsbelasting per regio (Frankrijk, België, OHADA), belastingkredieten, EBITDA-multiples + DCF-waardering, WACC-sensitiviteit' },
-        { title: 'Simulator', description: 'What-if-scenario’s: test de impact van beslissingen op cashflow, marges en waardering' },
-        { title: 'AI-audit', description: 'Score voor boekhoudgezondheid, anomaliedetectie per categorie, aanbevelingen en automatische correcties' },
+        {
+          title: 'Overzicht',
+          description:
+            'Realtime KPI’s (omzet, EBITDA, nettoresultaat, FCF, waardering), trendgrafieken en automatische financiële waarschuwingen',
+        },
+        {
+          title: 'Boekhoudanalyse',
+          description:
+            'Structuurratio’s (financiële onafhankelijkheid, gearing) en activiteitsratio’s (DSO, DPO, voorraadrotatie, cash conversion cycle)',
+        },
+        {
+          title: 'Financiële analyse',
+          description:
+            'Marges (bruto, EBITDA, operationeel), rendabiliteit (ROE, ROA, ROCE), kapitaalstructuur en trends',
+        },
+        {
+          title: 'Fiscaliteit & waardering',
+          description:
+            'Vennootschapsbelasting per regio (Frankrijk, België, OHADA), belastingkredieten, EBITDA-multiples + DCF-waardering, WACC-sensitiviteit',
+        },
+        {
+          title: 'Simulator',
+          description: 'What-if-scenario’s: test de impact van beslissingen op cashflow, marges en waardering',
+        },
+        {
+          title: 'AI-audit',
+          description:
+            'Score voor boekhoudgezondheid, anomaliedetectie per categorie, aanbevelingen en automatische correcties',
+        },
       ],
       featureTitle: 'Geïntegreerde sectorbenchmarks',
       features: [
         { title: '5 sectoren', description: 'SaaS, industrie, handel, bouw, B2B-diensten — aangepaste doelwaarden' },
-        { title: '3 geografische zones', description: 'Frankrijk, België, OHADA-zone (17 landen) — lokale fiscale en boekhoudregels' },
-        { title: '13 vergeleken ratio’s', description: 'DSO, DPO, gearing, ROE, ROA, ROCE, marges... tegenover sectordoelen' },
-        { title: 'Automatische scoring', description: 'Elke ratio beoordeeld als uitstekend, goed, gemiddeld of kritisch — in één oogopslag' },
+        {
+          title: '3 geografische zones',
+          description: 'Frankrijk, België, OHADA-zone (17 landen) — lokale fiscale en boekhoudregels',
+        },
+        {
+          title: '13 vergeleken ratio’s',
+          description: 'DSO, DPO, gearing, ROE, ROA, ROCE, marges... tegenover sectordoelen',
+        },
+        {
+          title: 'Automatische scoring',
+          description: 'Elke ratio beoordeeld als uitstekend, goed, gemiddeld of kritisch — in één oogopslag',
+        },
       ],
     },
     mcp: {
       badge: 'Native MCP-server',
       title: 'Verbonden met al uw AI-agents',
-      description: 'CashPilot is een MCP-server (Model Context Protocol) met 170+ ingebouwde tools, nu ook met dedicated services voor Projecten en CRM (leads/tickets/SLA), plus AI-extractie van leveranciersfacturen. Stuur uw financiën via stem of tekst vanuit eender welke AI-agent.',
+      description:
+        'CashPilot is een MCP-server (Model Context Protocol) met 449 ingebouwde tools voor finance, projecten, CRM (leads/tickets/SLA), human resources (HR), materieel en AI-extractie van leveranciersfacturen. Bestuur uw volledige bedrijf via stem of tekst vanuit eender welke AI-agent.',
       agents: [
         { name: 'Claude', company: 'Anthropic' },
         { name: 'ChatGPT', company: 'OpenAI' },
@@ -732,23 +1014,56 @@ export const landingPageContent = {
         { name: 'Elke MCP-client', company: 'Universeel' },
       ],
       cards: [
-        { title: 'Spraak- & tekststuring', description: 'Bedien CashPilot vanuit Claude, ChatGPT, Gemini of Mistral via spraak of tekst. Maak facturen, raadpleeg uw financiën en genereer rapporten in natuurlijke taal.' },
-        { title: 'Nieuwe MCP-services: Projecten & CRM', description: 'Maak en volg projecten, taken, leads, tickets en SLA-beleid rechtstreeks vanuit AI-agents met strikte company-scope.' },
-        { title: '170+ MCP-tools', description: 'Facturen aanmaken, klanten opzoeken, projectbeheer, CRM-operaties, boekhoudkundige exporten, financiële samenvattingen, AI-extractie van leveranciersfacturen — 170+ tools toegankelijk via het standaard MCP-protocol.' },
-        { title: 'Automatiseringsbouwsteen', description: 'Integreer CashPilot in uw pipelines: Rube.app, n8n, Gunloop, Zapier, Make. Uw financiële beheer wordt een component van uw automatiseringsstack.' },
+        {
+          title: 'Spraak- & tekststuring',
+          description:
+            'Bedien CashPilot vanuit Claude, ChatGPT, Gemini of Mistral via spraak of tekst. Maak facturen, raadpleeg uw financiën en genereer rapporten in natuurlijke taal.',
+        },
+        {
+          title: 'MCP-services: Projecten, CRM, HR & Materieel',
+          description:
+            'Maak en volg projecten, taken, leads, SLA-tickets, medewerkers, contracten, loonbeheer, verlof, materieel en onderhoud rechtstreeks vanuit AI-agents met strikte company-scope.',
+        },
+        {
+          title: '449 MCP-tools',
+          description:
+            'Finance, projecten, CRM, human resources, materieel, AI-extractie van leveranciersfacturen — 449 tools toegankelijk via het standaard MCP-protocol.',
+        },
+        {
+          title: 'Automatiseringsbouwsteen',
+          description:
+            'Integreer CashPilot in uw pipelines: Rube.app, n8n, Gunloop, Zapier, Make. Uw financiële beheer wordt een component van uw automatiseringsstack.',
+        },
       ],
       exampleLabel: 'Voorbeeld vanuit een AI-agent',
       exampleText: '"Haal deze leveranciersfactuur op en sla ze op in CashPilot"',
-      exampleResult: 'Factuur door AI geëxtraheerd: Leverancier ABC, €2.450 incl. btw, 3 lijnen. Automatisch opgeslagen.',
+      exampleResult:
+        'Factuur door AI geëxtraheerd: Leverancier ABC, €2.450 incl. btw, 3 lijnen. Automatisch opgeslagen.',
     },
     peppol: {
       badge: 'Peppol & e-invoicing',
       title: 'Elektronische facturatie via Peppol',
-      description: 'Verzend en ontvang uw facturen op het Europese Peppol-netwerk rechtstreeks vanuit CashPilot, dankzij Scrada, een gecertificeerd Belgisch access point. Conform EN16931 & UBL 2.1.',
+      description:
+        'Verzend en ontvang uw facturen op het Europese Peppol-netwerk rechtstreeks vanuit CashPilot, dankzij Scrada, een gecertificeerd Belgisch access point. Conform EN16931 & UBL 2.1.',
       cards: [
-        { title: 'Opzet in 5 minuten', description: 'Maak uw Scrada-account aan, genereer een API-sleutel en plak uw gegevens in CashPilot. Eén klik om de verbinding te testen — klaar.', tag: 'Vanaf €2/maand' },
-        { title: 'Automatisch Peppol-verzenden', description: 'CashPilot valideert uw factuur (13 EN16931-regels), genereert conforme UBL-XML en verstuurt die via Scrada op het Peppol-netwerk. Inclusief realtime statusopvolging.', tag: 'UBL 2.1 / BIS Billing 3.0' },
-        { title: 'Ontvangst & verificatie', description: 'Ontvang inkomende facturen via Peppol en controleer of uw klanten op het netwerk geregistreerd zijn — met één klik vanuit hun fiche.', tag: 'B2G & B2B' },
+        {
+          title: 'Opzet in 5 minuten',
+          description:
+            'Maak uw Scrada-account aan, genereer een API-sleutel en plak uw gegevens in CashPilot. Eén klik om de verbinding te testen — klaar.',
+          tag: 'Vanaf €2/maand',
+        },
+        {
+          title: 'Automatisch Peppol-verzenden',
+          description:
+            'CashPilot valideert uw factuur (13 EN16931-regels), genereert conforme UBL-XML en verstuurt die via Scrada op het Peppol-netwerk. Inclusief realtime statusopvolging.',
+          tag: 'UBL 2.1 / BIS Billing 3.0',
+        },
+        {
+          title: 'Ontvangst & verificatie',
+          description:
+            'Ontvang inkomende facturen via Peppol en controleer of uw klanten op het netwerk geregistreerd zijn — met één klik vanuit hun fiche.',
+          tag: 'B2G & B2B',
+        },
       ],
       imageAlt: 'CashPilot - Peppol via Scrada: configuratie, formules en voordelen',
       cta: 'Bekijk de volledige gids',
@@ -762,8 +1077,8 @@ export const landingPageContent = {
         'Financiële simulaties: test uw beslissingen vóór u ze neemt',
         'Onmiddellijke generatie van boekingen (< 1 seconde)',
         'Reverse accounting: automatische annulaties en correcties',
-        'Alles-in-één: beheer, facturatie, boekhouding, simulaties',
-        'MCP-server: 170+ tools (finance, projecten, CRM) waaronder AI-factuurextractie vanuit ChatGPT, Claude, Gemini en Mistral',
+        'Alles-in-één: beheer, facturatie, boekhouding, HR, materieel, simulaties',
+        'MCP-server: 449 tools (finance, projecten, CRM, HR, materieel) waaronder AI-factuurextractie vanuit ChatGPT, Claude, Gemini en Mistral',
         'Sterkere beveiliging: MFA/2FA, GDPR, 244 geautomatiseerde tests',
         'Ingebouwde AI: leveranciersfactuurextractie met Gemini 2.0 Flash',
         'Verbonden bankieren: 3000+ banken, automatische matching, ECB-koersen',

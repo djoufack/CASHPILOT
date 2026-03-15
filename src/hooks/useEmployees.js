@@ -12,7 +12,7 @@ const toNumber = (value) => {
 export function useEmployees() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { withCompanyScope } = useCompanyScope();
+  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -34,17 +34,17 @@ export function useEmployees() {
         skills:hr_employee_skills(id, skill_name, skill_level)
       `;
 
-      const employeesQuery = supabase
+      let employeesQuery = supabase
         .from('hr_employees')
         .select(EMPLOYEES_SELECT)
         .order('created_at', { ascending: false });
 
       // Lightweight departments query for filter dropdown only
-      const departmentsQuery = supabase.from('hr_departments').select('id, name').order('name');
+      let departmentsQuery = supabase.from('hr_departments').select('id, name').order('name');
 
-      // No client-side company filter on reads — RLS policies
-      // (p_company_owner_rw, fn_is_drh_admin, fn_is_hr_manager)
-      // already restrict rows to the user's accessible companies.
+      // Apply company scope to filter by active company
+      employeesQuery = applyCompanyScope(employeesQuery);
+      departmentsQuery = applyCompanyScope(departmentsQuery);
 
       const [employeesResult, departmentsResult] = await Promise.all([employeesQuery, departmentsQuery]);
 
@@ -64,7 +64,7 @@ export function useEmployees() {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applyCompanyScope, toast, user]);
   const createEmployee = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;

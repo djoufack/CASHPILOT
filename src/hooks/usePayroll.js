@@ -12,7 +12,7 @@ const toNumber = (value) => {
 export function usePayroll() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { activeCompanyId, withCompanyScope } = useCompanyScope();
+  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -29,39 +29,44 @@ export function usePayroll() {
     setError(null);
 
     try {
-      // RLS policies handle access — no client-side company filter needed
-
-      const periodsQuery = supabase
+      let periodsQuery = supabase
         .from('hr_payroll_periods')
         .select('*')
         .order('period_start', { ascending: false })
         .limit(60);
 
-      const variableItemsQuery = supabase
+      let variableItemsQuery = supabase
         .from('hr_payroll_variable_items')
         .select('*, employee:hr_employees!employee_id(id, full_name)')
         .order('created_at', { ascending: false })
         .limit(500);
 
-      const anomaliesQuery = supabase
+      let anomaliesQuery = supabase
         .from('hr_payroll_anomalies')
         .select('*, employee:hr_employees!employee_id(id, full_name)')
         .order('created_at', { ascending: false })
         .limit(300);
 
-      const exportsQuery = supabase
+      let exportsQuery = supabase
         .from('hr_payroll_exports')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(120);
 
-      const employeesQuery = supabase
+      let employeesQuery = supabase
         .from('hr_employees')
         .select(
           'id, company_id, first_name, last_name, full_name, status, hire_date, department_id, cost_center_id, contracts:hr_employee_contracts(id, contract_type, monthly_salary, hourly_rate, pay_basis, status)'
         )
         .eq('status', 'active')
         .order('full_name');
+
+      // Apply company scope to filter by active company
+      periodsQuery = applyCompanyScope(periodsQuery);
+      variableItemsQuery = applyCompanyScope(variableItemsQuery);
+      anomaliesQuery = applyCompanyScope(anomaliesQuery);
+      exportsQuery = applyCompanyScope(exportsQuery);
+      employeesQuery = applyCompanyScope(employeesQuery);
 
       const [periodsResult, variableItemsResult, anomaliesResult, exportsResult, employeesResult] = await Promise.all([
         periodsQuery,
@@ -96,7 +101,7 @@ export function usePayroll() {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applyCompanyScope, toast, user]);
 
   const createPayrollPeriod = useCallback(
     async (payload) => {

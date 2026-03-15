@@ -7,8 +7,7 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 export function useTraining() {
   const { user } = useAuth();
   const { toast } = useToast();
-  // RLS policies handle access — no client-side company filter needed
-  const { activeCompanyId, withCompanyScope } = useCompanyScope();
+  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -24,27 +23,33 @@ export function useTraining() {
     setError(null);
 
     try {
-      const trainingsQuery = supabase.from('hr_training_catalog').select('*').order('created_at', { ascending: false });
+      let trainingsQuery = supabase.from('hr_training_catalog').select('*').order('created_at', { ascending: false });
 
-      const enrollmentsQuery = supabase
+      let enrollmentsQuery = supabase
         .from('hr_training_enrollments')
         .select(
           '*, hr_employees!employee_id(id, first_name, last_name, full_name), hr_training_catalog!training_id(id, title)'
         )
         .order('created_at', { ascending: false });
 
-      const skillAssessmentsQuery = supabase
+      let skillAssessmentsQuery = supabase
         .from('hr_skill_assessments')
         .select('*, hr_employees!employee_id(id, first_name, last_name, full_name)')
         .order('assessed_at', { ascending: false });
 
-      const employeesQuery = supabase
+      let employeesQuery = supabase
         .from('hr_employees')
         .select(
           'id, company_id, first_name, last_name, full_name, status, department_id, skills:hr_employee_skills(id, skill_name, skill_level)'
         )
         .eq('status', 'active')
         .order('full_name', { ascending: true });
+
+      // Apply company scope to filter by active company
+      trainingsQuery = applyCompanyScope(trainingsQuery);
+      enrollmentsQuery = applyCompanyScope(enrollmentsQuery);
+      skillAssessmentsQuery = applyCompanyScope(skillAssessmentsQuery);
+      employeesQuery = applyCompanyScope(employeesQuery);
 
       const [trainingsResult, enrollmentsResult, skillAssessmentsResult, employeesResult] = await Promise.all([
         trainingsQuery,
@@ -76,7 +81,7 @@ export function useTraining() {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applyCompanyScope, toast, user]);
   const createTraining = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;
