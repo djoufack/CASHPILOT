@@ -91,6 +91,16 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         path: '/app/pilotage',
       },
       {
+        id: 'company',
+        label: t('nav.myCompany', 'Mon Entreprise'),
+        icon: Building2,
+        type: 'category',
+        items: [
+          { path: '/app/portfolio', label: t('nav.companyPortfolio', 'Portfolio sociétés'), icon: Building2 },
+          { path: '/app/peppol', label: t('nav.peppolEInvoicing'), icon: Globe },
+        ],
+      },
+      {
         id: 'sales',
         label: t('nav.sales', 'Ventes'),
         icon: FileText,
@@ -205,17 +215,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
 
     // === BOTTOM CATEGORIES (pinned to bottom of sidebar) ===
     const bottomCats = [
-      {
-        id: 'company',
-        label: t('nav.myCompany', 'Mon Entreprise'),
-        icon: Building2,
-        type: 'category',
-        position: 'bottom',
-        items: [
-          { path: '/app/portfolio', label: t('nav.companyPortfolio', 'Portfolio sociétés'), icon: Building2 },
-          { path: '/app/peppol', label: t('nav.peppolEInvoicing'), icon: Globe },
-        ],
-      },
       {
         id: 'settings',
         label: t('common.settings', 'Paramètres'),
