@@ -89,8 +89,7 @@ export function useTraining() {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [applyCompanyScope, toast, user]);
   const createTraining = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;
@@ -120,8 +119,7 @@ export function useTraining() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const updateTraining = useCallback(
     async (id, payload) => {
       if (!id || !supabase) return null;
@@ -152,8 +150,7 @@ export function useTraining() {
       return data;
     },
     [fetchData]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const enrollEmployee = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;
@@ -176,8 +173,7 @@ export function useTraining() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const updateEnrollment = useCallback(
     async (id, payload) => {
       if (!id || !supabase) return null;
@@ -202,8 +198,7 @@ export function useTraining() {
       return data;
     },
     [fetchData]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const createSkillAssessment = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;
@@ -236,8 +231,7 @@ export function useTraining() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   useEffect(() => {
     fetchData();
   }, [fetchData]);

@@ -164,8 +164,7 @@ export const useRecruitment = () => {
       return data;
     },
     [withCompanyScope, toast, setPositions]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const updatePosition = useCallback(
     async (id, positionData) => {
       if (!supabase) throw new Error('Supabase not configured');
@@ -181,8 +180,7 @@ export const useRecruitment = () => {
       return data;
     },
     [withCompanyScope, toast, setPositions]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const createCandidate = useCallback(
     async (candidateData) => {
       if (!supabase) throw new Error('Supabase not configured');
@@ -197,8 +195,7 @@ export const useRecruitment = () => {
       return data;
     },
     [withCompanyScope, toast, setCandidates]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const createApplication = useCallback(
     async (applicationData) => {
       if (!supabase) throw new Error('Supabase not configured');
@@ -219,8 +216,7 @@ export const useRecruitment = () => {
       return data;
     },
     [withCompanyScope, toast, setApplications]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const moveApplication = useCallback(
     async (id, newStatus) => {
       if (!supabase) throw new Error('Supabase not configured');
@@ -242,8 +238,7 @@ export const useRecruitment = () => {
       return data;
     },
     [withCompanyScope, toast, setApplications]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const scheduleInterview = useCallback(
     async (interviewData) => {
       if (!supabase) throw new Error('Supabase not configured');
@@ -268,8 +263,7 @@ export const useRecruitment = () => {
       return data;
     },
     [withCompanyScope, toast, setInterviews]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const createOnboardingPlan = useCallback(
     async (planData) => {
       if (!supabase) throw new Error('Supabase not configured');
@@ -290,8 +284,7 @@ export const useRecruitment = () => {
       return data;
     },
     [withCompanyScope, toast, setOnboardingPlans]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const updateOnboardingTask = useCallback(
     async (planId, taskIndex, completed) => {
       if (!supabase) throw new Error('Supabase not configured');
@@ -324,8 +317,7 @@ export const useRecruitment = () => {
       return data;
     },
     [withCompanyScope, toast, onboardingPlans, setOnboardingPlans]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const loading =
     positionsLoading ||
     candidatesLoading ||

@@ -75,8 +75,7 @@ export function useQVT() {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [applyCompanyScope, toast, user]);
   const createSurvey = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;
@@ -101,8 +100,7 @@ export function useQVT() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const updateSurvey = useCallback(
     async (surveyId, updates) => {
       if (!surveyId || !supabase) return null;
@@ -119,8 +117,7 @@ export function useQVT() {
       return data;
     },
     [fetchData, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const submitSurveyResponse = useCallback(
     async (surveyId, responseData) => {
       if (!surveyId || !supabase) return null;
@@ -146,8 +143,7 @@ export function useQVT() {
       return data;
     },
     [fetchData, surveys]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const createRiskAssessment = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;
@@ -177,8 +173,7 @@ export function useQVT() {
       return data;
     },
     [fetchData, user, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   const updateRiskAssessment = useCallback(
     async (assessmentId, updates) => {
       if (!assessmentId || !supabase) return null;
@@ -195,8 +190,7 @@ export function useQVT() {
       return data;
     },
     [fetchData, withCompanyScope]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
+  );
   useEffect(() => {
     fetchData();
   }, [fetchData]);

@@ -71,8 +71,7 @@ export function useEmployees() {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, toast, user]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [applyCompanyScope, toast, user]);
   const createEmployee = useCallback(
     async (payload) => {
       if (!user || !supabase) return null;
