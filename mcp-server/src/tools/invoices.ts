@@ -24,7 +24,7 @@ export function registerInvoiceTools(server: McpServer) {
       let query = supabase
         .from('invoices')
         .select(
-          `${COLS_INVOICES}, client:clients(id, company_name, contact_name, email), items:invoice_items(id, invoice_id, description, quantity, unit_price, total, tax_rate, discount_type, discount_value, discount_amount)`
+          `${COLS_INVOICES}, client:clients(id, company_name, contact_name, email), items:invoice_items(id, invoice_id, description, quantity, unit_price, total, discount_type, discount_value, discount_amount)`
         )
         .eq('user_id', getUserId())
         .order('created_at', { ascending: false })
@@ -52,7 +52,7 @@ export function registerInvoiceTools(server: McpServer) {
       const { data, error } = await supabase
         .from('invoices')
         .select(
-          `${COLS_INVOICES}, client:clients(id, company_name, contact_name, email, phone, address, city, postal_code, country, vat_number, preferred_currency), items:invoice_items(id, invoice_id, description, quantity, unit_price, total, tax_rate, discount_type, discount_value, discount_amount), payments:payments(id, amount, payment_date, payment_method, receipt_number)`
+          `${COLS_INVOICES}, client:clients(id, company_name, contact_name, email, phone, address, city, postal_code, country, vat_number, preferred_currency), items:invoice_items(id, invoice_id, description, quantity, unit_price, total, discount_type, discount_value, discount_amount), payments:payments(id, amount, payment_date, payment_method, receipt_number)`
         )
         .eq('id', invoice_id)
         .eq('user_id', getUserId())
