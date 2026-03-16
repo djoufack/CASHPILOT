@@ -68,6 +68,28 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { ENTITLEMENT_KEYS, filterCategorizedNavigation } from '@/utils/subscriptionEntitlements';
+import { useCompany } from '@/hooks/useCompany';
+
+// OHADA zone countries (ISO 3166-1 alpha-2) — SYSCOHADA/TAFIRE only apply to these
+const OHADA_COUNTRIES = new Set([
+  'BJ',
+  'BF',
+  'CM',
+  'CF',
+  'TD',
+  'KM',
+  'CG',
+  'CD',
+  'GQ',
+  'GA',
+  'GN',
+  'GW',
+  'CI',
+  'ML',
+  'NE',
+  'SN',
+  'TG',
+]);
 
 const STORAGE_KEY = 'sidebarExpandedCategories';
 
@@ -76,6 +98,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
   const location = useLocation();
   const { isAdmin } = useUserRole();
   const { hasEntitlement } = useEntitlements();
+  const { activeCompany } = useCompany();
+  const isOhadaZone = OHADA_COUNTRIES.has((activeCompany?.country || '').toUpperCase());
 
   const toggleSidebar = () => {
     const newState = !isCollapsed;
@@ -177,13 +201,21 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
             icon: CreditCard,
           },
           { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
-          { path: '/app/syscohada/balance-sheet', label: t('nav.sycohadaBalance', 'Bilan SYSCOHADA'), icon: BookOpen },
-          {
-            path: '/app/syscohada/income-statement',
-            label: t('nav.sycohadaIncome', 'Résultat SYSCOHADA'),
-            icon: BookOpen,
-          },
-          { path: '/app/tafire', label: t('nav.tafire', 'TAFIRE'), icon: BookOpen },
+          ...(isOhadaZone
+            ? [
+                {
+                  path: '/app/syscohada/balance-sheet',
+                  label: t('nav.sycohadaBalance', 'Bilan SYSCOHADA'),
+                  icon: BookOpen,
+                },
+                {
+                  path: '/app/syscohada/income-statement',
+                  label: t('nav.sycohadaIncome', 'Résultat SYSCOHADA'),
+                  icon: BookOpen,
+                },
+                { path: '/app/tafire', label: t('nav.tafire', 'TAFIRE'), icon: BookOpen },
+              ]
+            : []),
           { path: '/app/tax-filing', label: t('nav.taxFiling', 'Télédéclaration'), icon: Gavel },
           { path: '/app/audit-comptable', label: t('nav.auditComptable'), icon: ShieldCheck },
           {
@@ -291,7 +323,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
     }
 
     return { main: cats, bottom: bottomCats };
-  }, [isAdmin, t]);
+  }, [isAdmin, isOhadaZone, t]);
 
   const visibleMain = useMemo(
     () => filterCategorizedNavigation(allCategories.main, hasEntitlement),

@@ -4,12 +4,19 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
-import { createServiceClient } from '../_shared/billing.ts';
+const SECURITY_HEADERS: Record<string, string> = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+};
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   ...SECURITY_HEADERS,
 };
 
@@ -42,7 +49,13 @@ interface AuditOutput {
   summary: { total_checks: number; passed: number; warnings: number; errors: number };
   categories: Record<string, CategoryResult>;
   recommendations: { priority: string; category: string; check_id: string; message: string; action: string }[];
-  data_summary: { entries_count: number; accounts_count: number; invoices_count: number; expenses_count: number; bank_transactions_count: number };
+  data_summary: {
+    entries_count: number;
+    accounts_count: number;
+    invoices_count: number;
+    expenses_count: number;
+    bank_transactions_count: number;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -108,22 +121,22 @@ serve(async (req) => {
     // ── Auth (use service-role client to validate JWT) ─────────
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing Authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token', details: authError?.message }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ error: 'Invalid token', details: authError?.message }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     const userId = user.id;
 
@@ -136,7 +149,7 @@ serve(async (req) => {
     const companyId: string | undefined = body.company_id;
     let country: string = (body.country || '').toUpperCase();
 
-    const supabase = createServiceClient();
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
     // ── Auto-detect country from user_accounting_settings ────
     if (!country) {
@@ -162,10 +175,7 @@ serve(async (req) => {
         return q;
       })(),
       (() => {
-        let q = supabase
-          .from('accounting_chart_of_accounts')
-          .select('*')
-          .eq('user_id', userId);
+        let q = supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', userId);
         if (companyId) q = q.eq('company_id', companyId);
         return q;
       })(),
@@ -223,9 +233,10 @@ serve(async (req) => {
 
     // ── Determine which categories to run ────────────────────
     const allCategoryKeys = ['balance', 'fiscal', 'anomalies'];
-    const categoriesToRun = requestedCategories && requestedCategories.length > 0
-      ? allCategoryKeys.filter(k => requestedCategories.includes(k))
-      : allCategoryKeys;
+    const categoriesToRun =
+      requestedCategories && requestedCategories.length > 0
+        ? allCategoryKeys.filter((k) => requestedCategories.includes(k))
+        : allCategoryKeys;
 
     // ====================================================================
     // CHECK IMPLEMENTATIONS
@@ -268,7 +279,9 @@ serve(async (req) => {
         categoryBalances[cat] = (categoryBalances[cat] || 0) + balance;
       }
       const assets = round2(categoryBalances.asset || 0);
-      const liabilitiesPlusEquity = round2(Math.abs(categoryBalances.liability || 0) + Math.abs(categoryBalances.equity || 0));
+      const liabilitiesPlusEquity = round2(
+        Math.abs(categoryBalances.liability || 0) + Math.abs(categoryBalances.equity || 0)
+      );
       const diff = round2(Math.abs(assets - liabilitiesPlusEquity));
       const pass = diff < 0.01;
       return {
@@ -279,7 +292,9 @@ serve(async (req) => {
         details: pass
           ? `Actif (${assets}) = Passif + Capitaux (${liabilitiesPlusEquity})`
           : `Ecart de ${diff}: Actif=${assets}, Passif+Capitaux=${liabilitiesPlusEquity}`,
-        recommendation: pass ? null : 'Verifier la classification des comptes (actif/passif/capitaux) dans le plan comptable.',
+        recommendation: pass
+          ? null
+          : 'Verifier la classification des comptes (actif/passif/capitaux) dans le plan comptable.',
       };
     }
 
@@ -299,7 +314,9 @@ serve(async (req) => {
         details: pass
           ? 'Toutes les ecritures referencent un compte existant.'
           : `${orphanEntries.length} ecriture(s) referencent un compte absent du plan comptable.`,
-        recommendation: pass ? null : 'Ajouter les comptes manquants au plan comptable ou corriger les codes dans les ecritures.',
+        recommendation: pass
+          ? null
+          : 'Ajouter les comptes manquants au plan comptable ou corriger les codes dans les ecritures.',
         items: pass ? undefined : orphanEntries.slice(0, 10),
       };
     }
@@ -311,7 +328,7 @@ serve(async (req) => {
           name: 'Sequence des Ecritures',
           status: 'pass',
           severity: 'warning',
-          details: 'Pas assez d\'ecritures pour verifier la sequence.',
+          details: "Pas assez d'ecritures pour verifier la sequence.",
           recommendation: null,
         };
       }
@@ -322,7 +339,9 @@ serve(async (req) => {
         return String(aNum).localeCompare(String(bNum));
       });
       // Check for numeric entry_number gaps
-      const numericEntries = sorted.filter((e: any) => typeof e.entry_number === 'number' || (e.entry_number && !isNaN(Number(e.entry_number))));
+      const numericEntries = sorted.filter(
+        (e: any) => typeof e.entry_number === 'number' || (e.entry_number && !isNaN(Number(e.entry_number)))
+      );
       const gaps: any[] = [];
       if (numericEntries.length >= 2) {
         for (let i = 1; i < numericEntries.length; i++) {
@@ -342,7 +361,9 @@ serve(async (req) => {
         details: pass
           ? 'Numerotation des ecritures continue, sans rupture.'
           : `${gaps.length} rupture(s) de sequence detectee(s).`,
-        recommendation: pass ? null : 'Verifier s\'il manque des ecritures dans la numerotation. Des ecritures supprimees peuvent indiquer une irregularite.',
+        recommendation: pass
+          ? null
+          : "Verifier s'il manque des ecritures dans la numerotation. Des ecritures supprimees peuvent indiquer une irregularite.",
         items: pass ? undefined : gaps.slice(0, 10),
       };
     }
@@ -358,8 +379,12 @@ serve(async (req) => {
         details: pass
           ? 'Aucune ecriture avec debit et credit a zero.'
           : `${zeroes.length} ecriture(s) ont debit=0 et credit=0.`,
-        recommendation: pass ? null : 'Supprimer ou corriger les ecritures vides qui n\'apportent aucune information comptable.',
-        items: pass ? undefined : zeroes.slice(0, 10).map((e: any) => ({ id: e.id, account_code: e.account_code, date: e.transaction_date })),
+        recommendation: pass
+          ? null
+          : "Supprimer ou corriger les ecritures vides qui n'apportent aucune information comptable.",
+        items: pass
+          ? undefined
+          : zeroes.slice(0, 10).map((e: any) => ({ id: e.id, account_code: e.account_code, date: e.transaction_date })),
       };
     }
 
@@ -378,13 +403,15 @@ serve(async (req) => {
       const pass = nonZero.length === 0;
       return {
         id: 'suspense_accounts',
-        name: 'Comptes d\'Attente (47x)',
+        name: "Comptes d'Attente (47x)",
         status: pass ? 'pass' : 'warning',
         severity: 'warning',
         details: pass
-          ? 'Aucun solde non nul sur les comptes d\'attente.'
+          ? "Aucun solde non nul sur les comptes d'attente."
           : `${nonZero.length} compte(s) d'attente avec solde non nul.`,
-        recommendation: pass ? null : 'Solder les comptes d\'attente (47x) en reclassant les montants vers les comptes definitifs.',
+        recommendation: pass
+          ? null
+          : "Solder les comptes d'attente (47x) en reclassant les montants vers les comptes definitifs.",
         items: pass ? undefined : nonZero.slice(0, 10),
       };
     }
@@ -403,8 +430,14 @@ serve(async (req) => {
         details: pass
           ? `Toutes les ecritures sont dans la periode ${periodStart} - ${periodEnd}.`
           : `${outOfRange.length} ecriture(s) hors de la periode.`,
-        recommendation: pass ? null : 'Deplacer les ecritures hors periode vers l\'exercice correct ou ajuster la periode d\'audit.',
-        items: pass ? undefined : outOfRange.slice(0, 10).map((e: any) => ({ id: e.id, date: e.transaction_date, account_code: e.account_code })),
+        recommendation: pass
+          ? null
+          : "Deplacer les ecritures hors periode vers l'exercice correct ou ajuster la periode d'audit.",
+        items: pass
+          ? undefined
+          : outOfRange
+              .slice(0, 10)
+              .map((e: any) => ({ id: e.id, date: e.transaction_date, account_code: e.account_code })),
       };
     }
 
@@ -433,7 +466,9 @@ serve(async (req) => {
         details: pass
           ? `Tous les taux de TVA correspondent aux taux legaux (${country}: ${legalRates.join(', ')}%).`
           : `${invalidInvoices.length} facture(s) avec un taux de TVA non conforme.`,
-        recommendation: pass ? null : `Corriger les taux de TVA pour correspondre aux taux legaux ${country}: ${legalRates.join(', ')}%.`,
+        recommendation: pass
+          ? null
+          : `Corriger les taux de TVA pour correspondre aux taux legaux ${country}: ${legalRates.join(', ')}%.`,
         items: pass ? undefined : invalidInvoices.slice(0, 10),
       };
     }
@@ -447,7 +482,7 @@ serve(async (req) => {
         // Fallback: estimate from tax_rate if present
         if (exp.tax_rate) {
           const rate = num(exp.tax_rate);
-          return s + (num(exp.amount) * rate / (100 + rate));
+          return s + (num(exp.amount) * rate) / (100 + rate);
         }
         return s;
       }, 0);
@@ -458,7 +493,7 @@ serve(async (req) => {
         status: 'pass',
         severity: 'warning',
         details: `TVA collectee: ${round2(outputVat)}, TVA deductible: ${round2(inputVat)}, TVA nette a payer: ${vatPayable}.`,
-        recommendation: vatPayable < 0 ? 'Credit de TVA detecte. Verifier l\'eligibilite au remboursement.' : null,
+        recommendation: vatPayable < 0 ? "Credit de TVA detecte. Verifier l'eligibilite au remboursement." : null,
       };
     }
 
@@ -484,7 +519,9 @@ serve(async (req) => {
         details: pass
           ? 'Toutes les ecritures ont les champs obligatoires FEC remplis.'
           : `${nonConformEntries.length} ecriture(s) avec des champs FEC manquants.`,
-        recommendation: pass ? null : 'Completer les champs obligatoires (code compte, libelle compte, date, description) pour la conformite FEC.',
+        recommendation: pass
+          ? null
+          : 'Completer les champs obligatoires (code compte, libelle compte, date, description) pour la conformite FEC.',
         items: pass ? undefined : nonConformEntries.slice(0, 10),
       };
     }
@@ -511,7 +548,8 @@ serve(async (req) => {
           status: 'pass',
           severity: 'warning',
           details: `TVA collectee non journalisee (aucun compte 4457). TVA factures: ${round2(invoiceVat)}.`,
-          recommendation: invoiceVat > 0 ? 'Journaliser la TVA collectee sur les factures clients dans le compte 4457.' : null,
+          recommendation:
+            invoiceVat > 0 ? 'Journaliser la TVA collectee sur les factures clients dans le compte 4457.' : null,
         };
       }
       const diff = round2(Math.abs(invoiceVat - vatCollectee));
@@ -525,7 +563,9 @@ serve(async (req) => {
         details: pass
           ? `TVA factures (${round2(invoiceVat)}) correspond aux comptes 4457 (${round2(vatCollectee)}).`
           : `Ecart de ${diff} entre TVA factures (${round2(invoiceVat)}) et comptes 4457 (${round2(vatCollectee)}).`,
-        recommendation: pass ? null : 'Rapprocher la TVA collectee des factures avec les ecritures 4457. L\'ecart peut indiquer des factures non journalisees.',
+        recommendation: pass
+          ? null
+          : "Rapprocher la TVA collectee des factures avec les ecritures 4457. L'ecart peut indiquer des factures non journalisees.",
       };
     }
 
@@ -545,8 +585,19 @@ serve(async (req) => {
         details: pass
           ? 'Aucune facture > 150 EUR sans TVA.'
           : `${suspicious.length} facture(s) > 150 EUR sans TVA appliquee.`,
-        recommendation: pass ? null : 'Verifier si l\'exoneration de TVA est justifiee (export, autoliquidation, franchise). Ajouter la mention legale correspondante.',
-        items: pass ? undefined : suspicious.slice(0, 10).map((inv: any) => ({ id: inv.id, invoice_number: inv.invoice_number, total_ttc: inv.total_ttc, total_ht: inv.total_ht })),
+        recommendation: pass
+          ? null
+          : "Verifier si l'exoneration de TVA est justifiee (export, autoliquidation, franchise). Ajouter la mention legale correspondante.",
+        items: pass
+          ? undefined
+          : suspicious
+              .slice(0, 10)
+              .map((inv: any) => ({
+                id: inv.id,
+                invoice_number: inv.invoice_number,
+                total_ttc: inv.total_ttc,
+                total_ht: inv.total_ht,
+              })),
       };
     }
 
@@ -577,7 +628,9 @@ serve(async (req) => {
         details: pass
           ? 'Aucun doublon detecte.'
           : `${duplicates.length} groupe(s) d'ecritures potentiellement en doublon.`,
-        recommendation: pass ? null : 'Examiner les ecritures identiques (meme compte, date, montant). Supprimer les doublons averes.',
+        recommendation: pass
+          ? null
+          : 'Examiner les ecritures identiques (meme compte, date, montant). Supprimer les doublons averes.',
         items: pass ? undefined : duplicates.slice(0, 10),
       };
     }
@@ -623,7 +676,9 @@ serve(async (req) => {
         details: pass
           ? 'Aucun montant anormalement eleve detecte.'
           : `${anomalies.length} ecriture(s) avec un montant > 4 ecarts-types de la moyenne du compte.`,
-        recommendation: pass ? null : 'Verifier les ecritures avec des montants statistiquement anormaux. Elles peuvent indiquer une erreur de saisie.',
+        recommendation: pass
+          ? null
+          : 'Verifier les ecritures avec des montants statistiquement anormaux. Elles peuvent indiquer une erreur de saisie.',
         items: pass ? undefined : anomalies.slice(0, 10),
       };
     }
@@ -648,8 +703,18 @@ serve(async (req) => {
         status: suspicious ? 'warning' : 'pass',
         severity: 'info',
         details: `${roundEntries.length}/${largeEntries.length} ecritures >= 1000 sont des montants ronds (${round2(ratio * 100)}%).`,
-        recommendation: suspicious ? 'Un taux eleve de montants ronds (> 15%) peut indiquer des estimations plutot que des montants reels. Verifier les justificatifs.' : null,
-        items: suspicious ? roundEntries.slice(0, 10).map((e: any) => ({ id: e.id, account_code: e.account_code, amount: Math.max(num(e.debit), num(e.credit)) })) : undefined,
+        recommendation: suspicious
+          ? 'Un taux eleve de montants ronds (> 15%) peut indiquer des estimations plutot que des montants reels. Verifier les justificatifs.'
+          : null,
+        items: suspicious
+          ? roundEntries
+              .slice(0, 10)
+              .map((e: any) => ({
+                id: e.id,
+                account_code: e.account_code,
+                amount: Math.max(num(e.debit), num(e.credit)),
+              }))
+          : undefined,
       };
     }
 
@@ -669,32 +734,40 @@ serve(async (req) => {
         name: 'Comptes Rarement Utilises',
         status: pass ? 'pass' : 'warning',
         severity: 'info',
-        details: rareAccounts.length === 0
-          ? 'Tous les comptes sont utilises plus d\'une fois.'
-          : `${rareAccounts.length} compte(s) utilise(s) une seule fois sur la periode.`,
-        recommendation: pass ? null : 'Verifier que les comptes a usage unique ne sont pas des erreurs de saisie de code comptable.',
+        details:
+          rareAccounts.length === 0
+            ? "Tous les comptes sont utilises plus d'une fois."
+            : `${rareAccounts.length} compte(s) utilise(s) une seule fois sur la periode.`,
+        recommendation: pass
+          ? null
+          : 'Verifier que les comptes a usage unique ne sont pas des erreurs de saisie de code comptable.',
         items: pass ? undefined : rareAccounts.slice(0, 10),
       };
     }
 
     function checkBankReconciliation(): CheckResult {
       // Bank transactions where invoice_id is null and reconciliation_status is not 'ignored'
-      const unreconciled = bankTx.filter((tx: any) =>
-        tx.invoice_id === null && tx.reconciliation_status !== 'ignored',
-      );
+      const unreconciled = bankTx.filter((tx: any) => tx.invoice_id === null && tx.reconciliation_status !== 'ignored');
       const total = bankTx.length;
       const ratio = total > 0 ? unreconciled.length / total : 0;
-      const suspicious = ratio > 0.10;
+      const suspicious = ratio > 0.1;
       return {
         id: 'bank_reconciliation',
         name: 'Rapprochement Bancaire',
         status: suspicious ? 'warning' : 'pass',
         severity: 'warning',
-        details: total === 0
-          ? 'Aucune transaction bancaire sur la periode.'
-          : `${unreconciled.length}/${total} transactions non rapprochees (${round2(ratio * 100)}%).`,
-        recommendation: suspicious ? 'Plus de 10% des transactions bancaires ne sont pas rapprochees. Effectuer un rapprochement bancaire complet.' : null,
-        items: suspicious ? unreconciled.slice(0, 10).map((tx: any) => ({ id: tx.id, date: tx.date, amount: tx.amount, description: tx.description })) : undefined,
+        details:
+          total === 0
+            ? 'Aucune transaction bancaire sur la periode.'
+            : `${unreconciled.length}/${total} transactions non rapprochees (${round2(ratio * 100)}%).`,
+        recommendation: suspicious
+          ? 'Plus de 10% des transactions bancaires ne sont pas rapprochees. Effectuer un rapprochement bancaire complet.'
+          : null,
+        items: suspicious
+          ? unreconciled
+              .slice(0, 10)
+              .map((tx: any) => ({ id: tx.id, date: tx.date, amount: tx.amount, description: tx.description }))
+          : undefined,
       };
     }
 
@@ -726,7 +799,7 @@ serve(async (req) => {
         ],
       },
       anomalies: {
-        label: 'Detection d\'Anomalies',
+        label: "Detection d'Anomalies",
         checks: [
           checkDuplicates,
           checkAbnormalAmounts,
@@ -743,7 +816,7 @@ serve(async (req) => {
     for (const catKey of categoriesToRun) {
       const config = categoryConfigs[catKey];
       if (!config) continue;
-      const checkResults = config.checks.map(fn => fn());
+      const checkResults = config.checks.map((fn) => fn());
       allChecks.push(...checkResults);
       categories[catKey] = {
         score: computeCategoryScore(checkResults),
@@ -759,9 +832,9 @@ serve(async (req) => {
     const overallScore = computeScore(allChecks);
     const grade = gradeFromScore(overallScore);
 
-    const passed = allChecks.filter(c => c.status === 'pass').length;
-    const warnings = allChecks.filter(c => c.status === 'warning').length;
-    const errors = allChecks.filter(c => c.status === 'fail').length;
+    const passed = allChecks.filter((c) => c.status === 'pass').length;
+    const warnings = allChecks.filter((c) => c.status === 'warning').length;
+    const errors = allChecks.filter((c) => c.status === 'fail').length;
 
     // ====================================================================
     // Recommendations
@@ -818,10 +891,9 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: (error as Error).message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
-

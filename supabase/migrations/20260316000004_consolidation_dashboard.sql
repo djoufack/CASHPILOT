@@ -48,8 +48,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_consolidation_snapshot_per_portfolio_date
 CREATE TABLE IF NOT EXISTS public.intercompany_transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  source_company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
-  target_company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
+  company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
+  linked_company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
   invoice_id UUID REFERENCES public.invoices(id) ON DELETE SET NULL,
   amount NUMERIC(15,2) NOT NULL,
   currency TEXT NOT NULL DEFAULT 'EUR',
@@ -62,9 +62,9 @@ CREATE TABLE IF NOT EXISTS public.intercompany_transactions (
 CREATE INDEX IF NOT EXISTS idx_intercompany_txn_user_id
   ON public.intercompany_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_intercompany_txn_source
-  ON public.intercompany_transactions(source_company_id);
+  ON public.intercompany_transactions(company_id);
 CREATE INDEX IF NOT EXISTS idx_intercompany_txn_target
-  ON public.intercompany_transactions(target_company_id);
+  ON public.intercompany_transactions(linked_company_id);
 CREATE INDEX IF NOT EXISTS idx_intercompany_txn_status
   ON public.intercompany_transactions(status);
 
@@ -129,7 +129,7 @@ BEGIN
   FOR v_rec IN
     SELECT
       cpm.company_id,
-      c.name AS company_name,
+      c.company_name AS company_name,
       COALESCE(SUM(CASE
         WHEN coa.account_type = 'revenue' THEN ae.credit - ae.debit
         ELSE 0
@@ -149,7 +149,7 @@ BEGIN
       AND coa.user_id = ae.user_id
     WHERE cpm.portfolio_id = p_portfolio_id
       AND cpm.user_id = auth.uid()
-    GROUP BY cpm.company_id, c.name
+    GROUP BY cpm.company_id, c.company_name
   LOOP
     v_total_revenue := v_total_revenue + v_rec.revenue;
     v_total_expenses := v_total_expenses + v_rec.expenses;
@@ -172,11 +172,11 @@ BEGIN
     AND it.created_at >= p_start_date
     AND it.created_at <= p_end_date
     AND (
-      it.source_company_id IN (
+      it.company_id IN (
         SELECT company_id FROM company_portfolio_members
         WHERE portfolio_id = p_portfolio_id AND user_id = auth.uid()
       )
-      AND it.target_company_id IN (
+      AND it.linked_company_id IN (
         SELECT company_id FROM company_portfolio_members
         WHERE portfolio_id = p_portfolio_id AND user_id = auth.uid()
       )
@@ -234,7 +234,7 @@ BEGIN
   FOR v_rec IN
     SELECT
       cpm.company_id,
-      c.name AS company_name,
+      c.company_name AS company_name,
       COALESCE(SUM(CASE
         WHEN coa.account_type = 'asset' THEN ae.debit - ae.credit
         ELSE 0
@@ -257,7 +257,7 @@ BEGIN
       AND coa.user_id = ae.user_id
     WHERE cpm.portfolio_id = p_portfolio_id
       AND cpm.user_id = auth.uid()
-    GROUP BY cpm.company_id, c.name
+    GROUP BY cpm.company_id, c.company_name
   LOOP
     v_total_assets := v_total_assets + v_rec.assets;
     v_total_liabilities := v_total_liabilities + v_rec.liabilities;
@@ -279,11 +279,11 @@ BEGIN
   WHERE it.user_id = auth.uid()
     AND it.status IN ('confirmed', 'eliminated')
     AND it.created_at <= p_date
-    AND it.source_company_id IN (
+    AND it.company_id IN (
       SELECT company_id FROM company_portfolio_members
       WHERE portfolio_id = p_portfolio_id AND user_id = auth.uid()
     )
-    AND it.target_company_id IN (
+    AND it.linked_company_id IN (
       SELECT company_id FROM company_portfolio_members
       WHERE portfolio_id = p_portfolio_id AND user_id = auth.uid()
     );
@@ -334,7 +334,7 @@ BEGIN
   FOR v_rec IN
     SELECT
       cpm.company_id,
-      c.name AS company_name,
+      c.company_name AS company_name,
       COALESCE(SUM(ae.debit - ae.credit), 0) AS cash_balance
     FROM company_portfolio_members cpm
     JOIN company c ON c.id = cpm.company_id
@@ -346,7 +346,7 @@ BEGIN
     WHERE cpm.portfolio_id = p_portfolio_id
       AND cpm.user_id = auth.uid()
       AND (coa.account_type = 'asset' AND coa.account_code LIKE '5%')
-    GROUP BY cpm.company_id, c.name
+    GROUP BY cpm.company_id, c.company_name
   LOOP
     v_total_cash := v_total_cash + v_rec.cash_balance;
 

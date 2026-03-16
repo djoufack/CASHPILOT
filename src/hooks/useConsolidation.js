@@ -24,7 +24,7 @@ export function useConsolidation() {
     try {
       const { data, error: fetchError } = await supabase
         .from('company_portfolios')
-        .select('*, company_portfolio_members(id, company_id, company:company(id, name))')
+        .select('*, company_portfolio_members(id, company_id, company:company(id, company_name))')
         .eq('user_id', user.id)
         .eq('is_active', true)
         .order('portfolio_name');
