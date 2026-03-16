@@ -51,6 +51,17 @@ import {
   BarChart2,
   PieChart,
   Bot,
+  Sparkles,
+  Landmark,
+  Smartphone,
+  LineChart,
+  BookOpen,
+  ArrowLeftRight,
+  Gavel,
+  Code2,
+  FileCheck,
+  Bell,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -91,6 +102,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         path: '/app/pilotage',
       },
       {
+        id: 'cfo-agent',
+        label: t('nav.cfoAgent', 'CFO Agent IA'),
+        icon: Sparkles,
+        type: 'direct',
+        path: '/app/cfo-agent',
+      },
+      {
         id: 'company',
         label: t('nav.myCompany', 'Mon Entreprise'),
         icon: Building2,
@@ -98,6 +116,10 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         items: [
           { path: '/app/portfolio', label: t('nav.companyPortfolio', 'Portfolio sociétés'), icon: Building2 },
           { path: '/app/peppol', label: t('nav.peppolEInvoicing'), icon: Globe },
+          { path: '/app/pdp-compliance', label: t('nav.pdpCompliance', 'PDP / Certification'), icon: FileCheck },
+          { path: '/app/inter-company', label: t('nav.interCompany', 'Inter-Sociétés'), icon: ArrowLeftRight },
+          { path: '/app/consolidation', label: t('nav.consolidation', 'Consolidation'), icon: Landmark },
+          { path: '/app/regulatory-intel', label: t('nav.regulatoryIntel', 'Veille réglementaire'), icon: Bell },
         ],
       },
       {
@@ -112,6 +134,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           { path: '/app/credit-notes', label: t('creditNotes.title'), icon: FileMinus },
           { path: '/app/recurring-invoices', label: t('recurringInvoices.title'), icon: RefreshCw },
           { path: '/app/delivery-notes', label: t('deliveryNotes.title'), icon: PackageCheck },
+          { path: '/app/smart-dunning', label: t('nav.smartDunning', 'Relances IA'), icon: Zap },
         ],
       },
       {
@@ -143,14 +166,25 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
         type: 'category',
         items: [
           { path: '/app/cash-flow', label: t('nav.treasury', 'Trésorerie'), icon: TrendingUp },
+          { path: '/app/cash-flow-forecast', label: t('nav.cashFlowForecast', 'Prévisions IA'), icon: LineChart },
           { path: '/app/debt-manager', label: t('nav.collection', 'Recouvrement'), icon: Wallet },
           { path: '/app/bank-connections', label: t('nav.bankConnections', 'Connexions bancaires'), icon: Building2 },
+          { path: '/app/embedded-banking', label: t('nav.embeddedBanking', 'Banking intégré'), icon: Landmark },
+          { path: '/app/recon-ia', label: t('nav.reconIA', 'Rapprochement IA'), icon: Sparkles },
           {
             path: '/app/financial-instruments',
             label: t('nav.financialInstruments', 'Instruments financiers'),
             icon: CreditCard,
           },
           { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
+          { path: '/app/syscohada/balance-sheet', label: t('nav.sycohadaBalance', 'Bilan SYSCOHADA'), icon: BookOpen },
+          {
+            path: '/app/syscohada/income-statement',
+            label: t('nav.sycohadaIncome', 'Résultat SYSCOHADA'),
+            icon: BookOpen,
+          },
+          { path: '/app/tafire', label: t('nav.tafire', 'TAFIRE'), icon: BookOpen },
+          { path: '/app/tax-filing', label: t('nav.taxFiling', 'Télédéclaration'), icon: Gavel },
           { path: '/app/audit-comptable', label: t('nav.auditComptable'), icon: ShieldCheck },
           {
             path: '/app/scenarios',
@@ -209,6 +243,9 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
           { path: '/app/rh/qvt', label: t('nav.qvt', 'QVT & Risques'), icon: HeartPulse },
           { path: '/app/rh/bilan-social', label: t('nav.bilanSocial', 'Bilan Social'), icon: PieChart },
           { path: '/app/rh/analytics', label: t('nav.peopleAnalytics', 'Analytics RH'), icon: Bot },
+          // Sub-group: Self-service
+          { type: 'subgroup', label: t('nav.hrSelfService', 'Self-Service') },
+          { path: '/app/employee-portal', label: t('nav.employeePortal', 'Portail employé'), icon: UserCheck },
         ],
       },
     ];
@@ -229,6 +266,9 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, navItems: navItemsProp }) => {
             icon: Cable,
             featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS,
           },
+          { path: '/app/open-api', label: t('nav.openApi', 'Open API & Marketplace'), icon: Code2 },
+          { path: '/app/mobile-money', label: t('nav.mobileMoney', 'Mobile Money'), icon: Smartphone },
+          { path: '/app/accountant-portal', label: t('nav.accountantPortal', 'Portail comptable'), icon: BookOpen },
           { path: '/app/security', label: t('nav.security', 'Sécurité'), icon: Shield },
           { path: '/app/settings', label: t('nav.generalSettings', 'Paramètres généraux'), icon: Settings },
         ],
