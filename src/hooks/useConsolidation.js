@@ -148,13 +148,12 @@ export function useConsolidation() {
           .select(
             `
           *,
-          source_company:company!intercompany_transactions_source_company_id_fkey(id, name),
-          target_company:company!intercompany_transactions_target_company_id_fkey(id, name)
+          source_company:company!intercompany_transactions_company_id_fkey(id, company_name),
+          target_company:company!intercompany_transactions_linked_company_id_fkey(id, company_name)
         `
           )
           .eq('user_id', user.id)
-          .in('source_company_id', companyIds)
-          .in('target_company_id', companyIds)
+          .in('company_id', companyIds)
           .order('created_at', { ascending: false });
 
         if (txnError) throw txnError;
