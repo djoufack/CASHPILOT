@@ -32,6 +32,7 @@ const RegulatoryIntelPage = () => {
     updates,
     checklists,
     subscriptions,
+    availableCountries,
     loading,
     error,
     scanForUpdates,
@@ -288,7 +289,11 @@ const RegulatoryIntelPage = () => {
         {/* Tab: Subscriptions                           */}
         {/* ============================================ */}
         {activeTab === 'subscriptions' && (
-          <RegulatorySubscriptions subscriptions={subscriptions} onUpdate={handleUpdateSubscription} />
+          <RegulatorySubscriptions
+            subscriptions={subscriptions}
+            availableCountries={availableCountries}
+            onUpdate={handleUpdateSubscription}
+          />
         )}
       </div>
     </>

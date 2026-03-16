@@ -2,21 +2,6 @@ import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe, Power, Loader2 } from 'lucide-react';
 
-const AVAILABLE_COUNTRIES = [
-  { code: 'FR', name: 'France' },
-  { code: 'SN', name: 'Senegal' },
-  { code: 'CI', name: "Cote d'Ivoire" },
-  { code: 'CM', name: 'Cameroun' },
-  { code: 'MA', name: 'Maroc' },
-  { code: 'TN', name: 'Tunisie' },
-  { code: 'GA', name: 'Gabon' },
-  { code: 'BF', name: 'Burkina Faso' },
-  { code: 'ML', name: 'Mali' },
-  { code: 'CD', name: 'RD Congo' },
-  { code: 'BE', name: 'Belgique' },
-  { code: 'CH', name: 'Suisse' },
-];
-
 const ALL_DOMAINS = ['tax', 'labor', 'accounting', 'corporate'];
 
 const DOMAIN_COLORS = {
@@ -41,9 +26,9 @@ const DOMAIN_COLORS = {
 /**
  * RegulatorySubscriptions - Manage country subscriptions with domain toggles.
  *
- * @param {{ subscriptions: Array, onUpdate: Function }} props
+ * @param {{ subscriptions: Array, availableCountries: Array<{code: string, name: string}>, onUpdate: Function }} props
  */
-const RegulatorySubscriptions = ({ subscriptions, onUpdate }) => {
+const RegulatorySubscriptions = ({ subscriptions, availableCountries = [], onUpdate }) => {
   const { t } = useTranslation();
   const [updatingCountry, setUpdatingCountry] = useState(null);
 
@@ -101,7 +86,7 @@ const RegulatorySubscriptions = ({ subscriptions, onUpdate }) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {AVAILABLE_COUNTRIES.map((country) => {
+      {availableCountries.map((country) => {
         const sub = subLookup[country.code];
         const isActive = sub?.is_active ?? false;
         const domains = sub?.domains || ALL_DOMAINS;

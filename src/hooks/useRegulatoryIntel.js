@@ -10,12 +10,14 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
  *
  * @returns {{
  *   updates: Array, checklists: Array, subscriptions: Array,
+ *   availableCountries: Array<{code: string, name: string}>,
  *   loading: boolean, error: string|null,
  *   scanForUpdates: (countryCode: string) => Promise,
  *   markUpdate: (updateId: string, status: string) => Promise,
  *   toggleChecklist: (itemId: string, isCompleted: boolean) => Promise,
  *   updateSubscription: (countryCode: string, data: object) => Promise,
- *   fetchUpdates: () => Promise, fetchChecklists: () => Promise, fetchSubscriptions: () => Promise
+ *   fetchUpdates: () => Promise, fetchChecklists: () => Promise,
+ *   fetchSubscriptions: () => Promise, fetchAvailableCountries: () => Promise
  * }}
  */
 export const useRegulatoryIntel = () => {
@@ -25,6 +27,7 @@ export const useRegulatoryIntel = () => {
   const [updates, setUpdates] = useState([]);
   const [checklists, setChecklists] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
+  const [availableCountries, setAvailableCountries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -93,6 +96,28 @@ export const useRegulatoryIntel = () => {
       setError(err.message || 'Failed to fetch subscriptions');
     }
   }, [user, activeCompanyId, applyCompanyScope]);
+
+  // ------------------------------------------
+  // Fetch available countries (reference table)
+  // ------------------------------------------
+  const fetchAvailableCountries = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('regulatory_countries')
+        .select('code, name')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (fetchError) throw fetchError;
+
+      setAvailableCountries(data || []);
+    } catch (err) {
+      console.error('useRegulatoryIntel fetchAvailableCountries error:', err);
+      setError(err.message || 'Failed to fetch available countries');
+    }
+  }, [user]);
 
   // ------------------------------------------
   // Scan for new updates via edge function
@@ -279,7 +304,9 @@ export const useRegulatoryIntel = () => {
   useEffect(() => {
     if (user && activeCompanyId) {
       setLoading(true);
-      Promise.all([fetchUpdates(), fetchChecklists(), fetchSubscriptions()]).finally(() => setLoading(false));
+      Promise.all([fetchUpdates(), fetchChecklists(), fetchSubscriptions(), fetchAvailableCountries()]).finally(() =>
+        setLoading(false)
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, activeCompanyId]);
@@ -288,6 +315,7 @@ export const useRegulatoryIntel = () => {
     updates,
     checklists,
     subscriptions,
+    availableCountries,
     loading,
     error,
     scanForUpdates,
@@ -297,5 +325,6 @@ export const useRegulatoryIntel = () => {
     fetchUpdates,
     fetchChecklists,
     fetchSubscriptions,
+    fetchAvailableCountries,
   };
 };
