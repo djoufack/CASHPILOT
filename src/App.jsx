@@ -109,6 +109,32 @@ const PrivacyPage = lazyRetry(() => import('./pages/PrivacyPage'));
 const LegalPage = lazyRetry(() => import('./pages/LegalPage'));
 const NotFoundPage = lazyRetry(() => import('./pages/NotFoundPage'));
 
+// Game Changer Features — Wave 1
+const CfoPage = lazyRetry(() => import('./pages/CfoPage'));
+const TafirePage = lazyRetry(() => import('./pages/TafirePage'));
+const SycohadaBalanceSheetPage = lazyRetry(() => import('./pages/SycohadaBalanceSheetPage'));
+const SycohadaIncomeStatementPage = lazyRetry(() => import('./pages/SycohadaIncomeStatementPage'));
+const MobileMoneySettingsPage = lazyRetry(() => import('./pages/MobileMoneySettingsPage'));
+
+// Game Changer Features — Wave 2
+const CashFlowForecastPage = lazyRetry(() => import('./pages/CashFlowForecastPage'));
+const AccountantPortalPage = lazyRetry(() => import('./pages/AccountantPortalPage'));
+const AccountantDashboardPage = lazyRetry(() => import('./pages/AccountantDashboardPage'));
+const EmbeddedBankingPage = lazyRetry(() => import('./pages/EmbeddedBankingPage'));
+const ConsolidationDashboardPage = lazyRetry(() => import('./pages/ConsolidationDashboardPage'));
+
+// Game Changer Features — Wave 3
+const SmartDunningPage = lazyRetry(() => import('./pages/SmartDunningPage'));
+const EmployeePortalPage = lazyRetry(() => import('./pages/EmployeePortalPage'));
+const ReconIAPage = lazyRetry(() => import('./pages/ReconIAPage'));
+const TaxFilingPage = lazyRetry(() => import('./pages/TaxFilingPage'));
+
+// Game Changer Features — Wave 4
+const RegulatoryIntelPage = lazyRetry(() => import('./pages/RegulatoryIntelPage'));
+const InterCompanyPage = lazyRetry(() => import('./pages/InterCompanyPage'));
+const OpenApiPage = lazyRetry(() => import('./pages/OpenApiPage'));
+const PdpCompliancePage = lazyRetry(() => import('./pages/PdpCompliancePage'));
+
 // Lazy-loaded feature components
 const SupplierMap = lazyRetry(() => import('@/components/SupplierMap'));
 const BarcodeScanner = lazyRetry(() => import('@/components/BarcodeScanner'));
@@ -946,6 +972,198 @@ const AuthWrapper = () => {
             </PageErrorBoundary>
           }
         />
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* Game Changer Features                                  */}
+        {/* ═══════════════════════════════════════════════════════ */}
+
+        {/* Wave 1: CFO Agent, SYSCOHADA, Mobile Money, Tafire */}
+        <Route
+          path="cfo-agent"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <CfoPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="tafire"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <TafirePage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="syscohada/balance-sheet"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <SycohadaBalanceSheetPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="syscohada/income-statement"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <SycohadaIncomeStatementPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="mobile-money"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <MobileMoneySettingsPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+
+        {/* Wave 2: Cash Flow IA, Accountant Portal, Banking, Consolidation */}
+        <Route
+          path="cash-flow-forecast"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <CashFlowForecastPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="accountant-portal"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <AccountantPortalPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="accountant-dashboard"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <AccountantDashboardPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="embedded-banking"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <EmbeddedBankingPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="consolidation"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <ConsolidationDashboardPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+
+        {/* Wave 3: Smart Dunning, Employee Portal, Recon IA, Tax Filing */}
+        <Route
+          path="smart-dunning"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <SmartDunningPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="employee-portal"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <EmployeePortalPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="recon-ia"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <ReconIAPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="tax-filing"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <TaxFilingPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+
+        {/* Wave 4: Regulatory Intel, Inter-Company, Open API, PDP Compliance */}
+        <Route
+          path="regulatory-intel"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <RegulatoryIntelPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="inter-company"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <InterCompanyPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="open-api"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <OpenApiPage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+        <Route
+          path="pdp-compliance"
+          element={
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <PdpCompliancePage />
+              </Suspense>
+            </PageErrorBoundary>
+          }
+        />
+
         <Route
           path="settings"
           element={
