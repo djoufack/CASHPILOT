@@ -4470,102 +4470,6 @@
       "create": "Cr\u00e9er"
     }
   },
-  "employee": {
-    "page": {
-      "title": "Mon Espace",
-      "subtitle": "G\u00e9rez vos cong\u00e9s, fiches de paie et notes de frais",
-      "refresh": "Actualiser"
-    },
-    "noAccess": {
-      "title": "Acc\u00e8s non configur\u00e9",
-      "description": "Votre compte n'est pas encore li\u00e9 \u00e0 un dossier employ\u00e9. Contactez votre administrateur pour obtenir l'acc\u00e8s au portail."
-    },
-    "info": {
-      "title": "Informations personnelles",
-      "name": "Nom complet",
-      "jobTitle": "Poste",
-      "email": "Email professionnel",
-      "hireDate": "Date d'embauche",
-      "status": {
-        "active": "Actif",
-        "on_leave": "En cong\u00e9",
-        "inactive": "Inactif",
-        "terminated": "Termin\u00e9"
-      }
-    },
-    "leave": {
-      "title": "Mes cong\u00e9s",
-      "request": "Demander",
-      "days": "jours",
-      "taken": "pris",
-      "remaining": "restants",
-      "noBalance": "Aucun type de cong\u00e9 configur\u00e9.",
-      "newRequest": "Nouvelle demande de cong\u00e9",
-      "type": "Type de cong\u00e9",
-      "selectType": "S\u00e9lectionner...",
-      "startDate": "D\u00e9but",
-      "endDate": "Fin",
-      "workingDays": "jour(s) ouvrable(s)",
-      "reason": "Motif (optionnel)",
-      "reasonPlaceholder": "Raison de votre demande...",
-      "submit": "Soumettre la demande"
-    },
-    "payslip": {
-      "title": "Fiches de paie",
-      "entries": "bulletins",
-      "period": "P\u00e9riode",
-      "status": "Statut",
-      "generatedAt": "G\u00e9n\u00e9r\u00e9 le",
-      "download": "T\u00e9l\u00e9charger PDF",
-      "noFile": "Fichier non disponible",
-      "validated": "Valid\u00e9",
-      "exported": "Export\u00e9",
-      "closed": "Cl\u00f4tur\u00e9",
-      "empty": "Aucune fiche de paie disponible.",
-      "emptyHint": "Les bulletins appara\u00eetront ici apr\u00e8s validation."
-    },
-    "expense": {
-      "title": "Notes de frais",
-      "new": "Nouvelle note",
-      "newForm": "Nouvelle note de frais",
-      "reportTitle": "Titre de la note",
-      "titlePlaceholder": "Ex: D\u00e9placement client Mars 2026",
-      "lineItems": "Lignes de d\u00e9pense",
-      "addLine": "Ajouter une ligne",
-      "description": "Description",
-      "descriptionPlaceholder": "Ex: Taxi client",
-      "amount": "Montant",
-      "category": "Cat\u00e9gorie",
-      "selectCategory": "---",
-      "date": "Date",
-      "receipt": "Re\u00e7u",
-      "uploadReceipt": "Joindre un re\u00e7u",
-      "total": "Total",
-      "notes": "Commentaires (optionnel)",
-      "notesPlaceholder": "Informations compl\u00e9mentaires...",
-      "submit": "Soumettre la note de frais",
-      "items": "poste(s)",
-      "empty": "Aucune note de frais.",
-      "emptyHint": "Cr\u00e9ez votre premi\u00e8re note de frais ci-dessus.",
-      "status": {
-        "draft": "Brouillon",
-        "submitted": "Soumise",
-        "approved": "Approuv\u00e9e",
-        "rejected": "Rejet\u00e9e",
-        "reimbursed": "Rembours\u00e9e"
-      },
-      "categories": {
-        "transport": "Transport",
-        "meals": "Repas",
-        "accommodation": "H\u00e9bergement",
-        "office_supplies": "Fournitures de bureau",
-        "communication": "Communication",
-        "training": "Formation",
-        "subscriptions": "Abonnements",
-        "other": "Autre"
-      }
-    }
-  },
   "dunning": {
     "page": {
       "title": "Relances Intelligentes",
@@ -4880,6 +4784,140 @@
         "expired": "Expir\u00e9",
         "terminated": "R\u00e9sili\u00e9"
       }
+    }
+  },
+  "regulatory": {
+    "page": {
+      "title": "Veille R\u00e9glementaire",
+      "description": "Surveillance automatis\u00e9e des \u00e9volutions r\u00e9glementaires par pays",
+      "scanNow": "Scanner maintenant",
+      "refresh": "Actualiser"
+    },
+    "tabs": {
+      "updates": "Mises \u00e0 jour",
+      "checklists": "Conformit\u00e9",
+      "subscriptions": "Abonnements"
+    },
+    "kpi": {
+      "newUpdates": "Nouvelles mises \u00e0 jour",
+      "criticalAlerts": "Alertes critiques",
+      "pendingActions": "Actions en attente",
+      "countriesMonitored": "Pays surveill\u00e9s"
+    },
+    "severity": {
+      "info": "Info",
+      "warning": "Avertissement",
+      "critical": "Critique"
+    },
+    "status": {
+      "new": "Nouveau",
+      "reviewed": "Revu",
+      "actioned": "Trait\u00e9",
+      "dismissed": "Ignor\u00e9"
+    },
+    "domain": {
+      "tax": "Fiscal",
+      "labor": "Travail",
+      "accounting": "Comptabilit\u00e9",
+      "corporate": "Soci\u00e9t\u00e9s"
+    },
+    "actions": {
+      "source": "Source",
+      "review": "Marquer revu",
+      "dismiss": "Ignorer",
+      "viewChecklist": "Voir la checklist"
+    },
+    "updates": {
+      "empty": "Aucune mise \u00e0 jour r\u00e9glementaire",
+      "emptyDesc": "Lancez un scan pour d\u00e9tecter les \u00e9volutions r\u00e9glementaires."
+    },
+    "checklist": {
+      "empty": "Aucune action requise",
+      "emptyDesc": "Les actions de conformit\u00e9 appara\u00eetront ici apr\u00e8s un scan.",
+      "progress": "Progression",
+      "unknownUpdate": "Mise \u00e0 jour inconnue"
+    },
+    "subscriptions": {
+      "active": "Actif",
+      "inactive": "Inactif"
+    }
+  },
+  "compliance": {
+    "pageTitle": "PDP / Certification Fiscale",
+    "title": "Conformit\u00e9 Certification Fiscale",
+    "subtitle": "Tableau de bord NF525, PDP, Factur-X et Chorus Pro",
+    "refresh": "Actualiser",
+    "runAudit": "Lancer l'audit",
+    "certificationsTitle": "Certifications",
+    "progress": "Progression",
+    "expiresOn": "Expire le",
+    "startCertification": "D\u00e9marrer la certification",
+    "certTypes": {
+      "nf525": "NF525",
+      "pdp": "PDP",
+      "facturx": "Factur-X",
+      "chorus_pro": "Chorus Pro"
+    },
+    "certDescriptions": {
+      "nf525": "Certification de conformit\u00e9 fiscale pour logiciels de caisse",
+      "pdp": "Plateforme de D\u00e9mat\u00e9rialisation Partenaire pour la facturation \u00e9lectronique",
+      "facturx": "Norme fran\u00e7aise de facturation \u00e9lectronique (ZUGFeRD/Factur-X)",
+      "chorus_pro": "Portail de facturation du secteur public fran\u00e7ais"
+    },
+    "statuses": {
+      "not_started": "Non d\u00e9marr\u00e9",
+      "in_progress": "En cours",
+      "submitted": "Soumis",
+      "certified": "Certifi\u00e9",
+      "expired": "Expir\u00e9"
+    },
+    "kpi": {
+      "certified": "Certifi\u00e9es",
+      "inProgress": "En cours",
+      "expired": "Expir\u00e9es",
+      "avgProgress": "Progr. moy."
+    },
+    "tabs": {
+      "audit": "Piste d'audit",
+      "archives": "Archives"
+    },
+    "auditTrail": {
+      "searchPlaceholder": "Rechercher par ID, action ou hash...",
+      "filterByType": "Filtrer par type",
+      "allTypes": "Tous les types",
+      "invoice": "Facture",
+      "creditNote": "Avoir",
+      "credit_note": "Avoir",
+      "payment": "Paiement",
+      "noEntries": "Aucune entr\u00e9e dans la piste d'audit",
+      "timestamp": "Date/Heure",
+      "entity": "Entit\u00e9",
+      "action": "Action",
+      "hash": "Hash",
+      "actions": {
+        "created": "Cr\u00e9\u00e9",
+        "modified": "Modifi\u00e9",
+        "archived": "Archiv\u00e9",
+        "signed": "Sign\u00e9",
+        "transmitted": "Transmis"
+      }
+    },
+    "archive": {
+      "totalArchived": "Total archiv\u00e9",
+      "byFormat": "Par format",
+      "noArchives": "Aucun document archiv\u00e9",
+      "retentionStatus": "Statut de r\u00e9tention",
+      "expiringSoon": "expirant dans 30 jours",
+      "allRetained": "Tous les documents sont dans la p\u00e9riode de r\u00e9tention"
+    },
+    "auditResult": {
+      "title": "Audit termin\u00e9 : {{coverage}}% de couverture",
+      "detail": "{{audited}}/{{total}} factures audit\u00e9es, {{missing}} manquantes"
+    },
+    "toast": {
+      "statusUpdated": "Statut de certification mis \u00e0 jour",
+      "auditComplete": "Audit termin\u00e9",
+      "auditCoverage": "Couverture : {{coverage}}%"
     }
   }
 }
