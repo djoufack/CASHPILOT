@@ -4483,102 +4483,6 @@
       "create": "Create"
     }
   },
-  "employee": {
-    "page": {
-      "title": "My Space",
-      "subtitle": "Manage your leaves, payslips and expense reports",
-      "refresh": "Refresh"
-    },
-    "noAccess": {
-      "title": "Access not configured",
-      "description": "Your account is not yet linked to an employee record. Contact your administrator to get portal access."
-    },
-    "info": {
-      "title": "Personal Information",
-      "name": "Full name",
-      "jobTitle": "Job title",
-      "email": "Work email",
-      "hireDate": "Hire date",
-      "status": {
-        "active": "Active",
-        "on_leave": "On leave",
-        "inactive": "Inactive",
-        "terminated": "Terminated"
-      }
-    },
-    "leave": {
-      "title": "My Leaves",
-      "request": "Request",
-      "days": "days",
-      "taken": "taken",
-      "remaining": "remaining",
-      "noBalance": "No leave types configured.",
-      "newRequest": "New leave request",
-      "type": "Leave type",
-      "selectType": "Select...",
-      "startDate": "Start",
-      "endDate": "End",
-      "workingDays": "working day(s)",
-      "reason": "Reason (optional)",
-      "reasonPlaceholder": "Reason for your request...",
-      "submit": "Submit request"
-    },
-    "payslip": {
-      "title": "Payslips",
-      "entries": "payslips",
-      "period": "Period",
-      "status": "Status",
-      "generatedAt": "Generated on",
-      "download": "Download PDF",
-      "noFile": "File not available",
-      "validated": "Validated",
-      "exported": "Exported",
-      "closed": "Closed",
-      "empty": "No payslips available.",
-      "emptyHint": "Payslips will appear here after validation."
-    },
-    "expense": {
-      "title": "Expense Reports",
-      "new": "New report",
-      "newForm": "New expense report",
-      "reportTitle": "Report title",
-      "titlePlaceholder": "E.g.: Client trip March 2026",
-      "lineItems": "Expense lines",
-      "addLine": "Add a line",
-      "description": "Description",
-      "descriptionPlaceholder": "E.g.: Client taxi",
-      "amount": "Amount",
-      "category": "Category",
-      "selectCategory": "---",
-      "date": "Date",
-      "receipt": "Receipt",
-      "uploadReceipt": "Attach a receipt",
-      "total": "Total",
-      "notes": "Comments (optional)",
-      "notesPlaceholder": "Additional information...",
-      "submit": "Submit expense report",
-      "items": "item(s)",
-      "empty": "No expense reports.",
-      "emptyHint": "Create your first expense report above.",
-      "status": {
-        "draft": "Draft",
-        "submitted": "Submitted",
-        "approved": "Approved",
-        "rejected": "Rejected",
-        "reimbursed": "Reimbursed"
-      },
-      "categories": {
-        "transport": "Transport",
-        "meals": "Meals",
-        "accommodation": "Accommodation",
-        "office_supplies": "Office supplies",
-        "communication": "Communication",
-        "training": "Training",
-        "subscriptions": "Subscriptions",
-        "other": "Other"
-      }
-    }
-  },
   "dunning": {
     "page": {
       "title": "Smart Dunning",
@@ -4893,6 +4797,140 @@
         "expired": "Expired",
         "terminated": "Terminated"
       }
+    }
+  },
+  "regulatory": {
+    "page": {
+      "title": "Regulatory Intelligence",
+      "description": "Automated monitoring of regulatory changes by country",
+      "scanNow": "Scan Now",
+      "refresh": "Refresh"
+    },
+    "tabs": {
+      "updates": "Recent Updates",
+      "checklists": "Compliance Checklists",
+      "subscriptions": "Subscriptions"
+    },
+    "kpi": {
+      "newUpdates": "New Updates",
+      "criticalAlerts": "Critical Alerts",
+      "pendingActions": "Pending Actions",
+      "countriesMonitored": "Countries Monitored"
+    },
+    "severity": {
+      "info": "Info",
+      "warning": "Warning",
+      "critical": "Critical"
+    },
+    "status": {
+      "new": "New",
+      "reviewed": "Reviewed",
+      "actioned": "Actioned",
+      "dismissed": "Dismissed"
+    },
+    "domain": {
+      "tax": "Tax",
+      "labor": "Labor",
+      "accounting": "Accounting",
+      "corporate": "Corporate"
+    },
+    "actions": {
+      "source": "Source",
+      "review": "Mark Reviewed",
+      "dismiss": "Dismiss",
+      "viewChecklist": "View Checklist"
+    },
+    "updates": {
+      "empty": "No regulatory updates",
+      "emptyDesc": "Run a scan to detect regulatory changes."
+    },
+    "checklist": {
+      "empty": "No action items",
+      "emptyDesc": "Compliance action items will appear here after a scan.",
+      "progress": "Progress",
+      "unknownUpdate": "Unknown update"
+    },
+    "subscriptions": {
+      "active": "Active",
+      "inactive": "Inactive"
+    }
+  },
+  "compliance": {
+    "pageTitle": "PDP / Tax Certification",
+    "title": "Tax Certification Compliance",
+    "subtitle": "NF525, PDP, Factur-X and Chorus Pro certification dashboard",
+    "refresh": "Refresh",
+    "runAudit": "Run Audit",
+    "certificationsTitle": "Certifications",
+    "progress": "Progress",
+    "expiresOn": "Expires on",
+    "startCertification": "Start Certification",
+    "certTypes": {
+      "nf525": "NF525",
+      "pdp": "PDP",
+      "facturx": "Factur-X",
+      "chorus_pro": "Chorus Pro"
+    },
+    "certDescriptions": {
+      "nf525": "Tax compliance certification for cash register software",
+      "pdp": "Partner Dematerialization Platform for electronic invoicing",
+      "facturx": "French e-invoicing standard (ZUGFeRD/Factur-X)",
+      "chorus_pro": "French public sector invoicing portal"
+    },
+    "statuses": {
+      "not_started": "Not started",
+      "in_progress": "In progress",
+      "submitted": "Submitted",
+      "certified": "Certified",
+      "expired": "Expired"
+    },
+    "kpi": {
+      "certified": "Certified",
+      "inProgress": "In Progress",
+      "expired": "Expired",
+      "avgProgress": "Avg. Progress"
+    },
+    "tabs": {
+      "audit": "Audit Trail",
+      "archives": "Archives"
+    },
+    "auditTrail": {
+      "searchPlaceholder": "Search by ID, action or hash...",
+      "filterByType": "Filter by type",
+      "allTypes": "All types",
+      "invoice": "Invoice",
+      "creditNote": "Credit Note",
+      "credit_note": "Credit Note",
+      "payment": "Payment",
+      "noEntries": "No audit trail entries found",
+      "timestamp": "Timestamp",
+      "entity": "Entity",
+      "action": "Action",
+      "hash": "Hash",
+      "actions": {
+        "created": "Created",
+        "modified": "Modified",
+        "archived": "Archived",
+        "signed": "Signed",
+        "transmitted": "Transmitted"
+      }
+    },
+    "archive": {
+      "totalArchived": "Total Archived",
+      "byFormat": "By Format",
+      "noArchives": "No archived documents",
+      "retentionStatus": "Retention Status",
+      "expiringSoon": "expiring within 30 days",
+      "allRetained": "All documents within retention period"
+    },
+    "auditResult": {
+      "title": "Audit complete: {{coverage}}% coverage",
+      "detail": "{{audited}}/{{total}} invoices audited, {{missing}} missing"
+    },
+    "toast": {
+      "statusUpdated": "Certification status updated",
+      "auditComplete": "Audit completed",
+      "auditCoverage": "Coverage: {{coverage}}%"
     }
   }
 }
