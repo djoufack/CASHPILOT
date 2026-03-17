@@ -320,11 +320,7 @@ const GedHubPage = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowCreateDialog(true)}
-            className="border-gray-700 text-gray-100 hover:bg-gray-800"
-          >
+          <Button variant="upload3d" onClick={() => setShowCreateDialog(true)} className="font-semibold">
             <Plus className="h-4 w-4 mr-2" />
             Nouveau / Televerser
           </Button>
@@ -519,10 +515,10 @@ const GedHubPage = () => {
                             <Download className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="ghost"
+                            variant="upload3d"
                             size="sm"
                             onClick={() => handleUploadForDocument(doc)}
-                            className="text-emerald-400 hover:text-emerald-300 h-8 w-8 p-0"
+                            className="h-8 w-8 p-0 rounded-md"
                             title="Televerser un fichier"
                             disabled={mutating}
                           >
@@ -723,7 +719,10 @@ const GedHubPage = () => {
               </Button>
               <Button
                 onClick={handleCreateOrUpload}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
+                variant={createForm.mode === 'upload' ? 'upload3d' : 'default'}
+                className={
+                  createForm.mode === 'upload' ? 'font-semibold' : 'bg-orange-500 hover:bg-orange-600 text-white'
+                }
                 disabled={mutating || counterpartiesLoading}
               >
                 {createForm.mode === 'upload' ? (
