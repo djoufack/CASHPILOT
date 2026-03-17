@@ -121,7 +121,8 @@
     "sales": "Verkoop",
     "companyPortfolio": "Bedrijfsportefeuille",
     "integrations": "Integraties",
-    "apiWebhooks": "API & webhooks"
+    "apiWebhooks": "API & webhooks",
+    "gedHub": "GED HUB"
   },
   "dashboard": {
     "title": "Dashboard",

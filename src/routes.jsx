@@ -99,6 +99,7 @@ const FinancialInstrumentsPage = lazyRetry(() => import('./pages/FinancialInstru
 const IntegrationsHubPage = lazyRetry(() => import('./pages/IntegrationsHubPage'));
 const SharedSnapshotPage = lazyRetry(() => import('./pages/SharedSnapshotPage'));
 const CRMPage = lazyRetry(() => import('./pages/CRMPage'));
+const GedHubPage = lazyRetry(() => import('./pages/GedHubPage'));
 const PrivacyPage = lazyRetry(() => import('./pages/PrivacyPage'));
 const LegalPage = lazyRetry(() => import('./pages/LegalPage'));
 const NotFoundPage = lazyRetry(() => import('./pages/NotFoundPage'));
@@ -221,6 +222,7 @@ const AppRoutes = () => {
         <Route path="clients/:id" element={page(ClientProfile)} />
         <Route path="crm" element={page(CRMPage)} />
         <Route path="crm/:section" element={page(CRMPage)} />
+        <Route path="ged-hub" element={page(GedHubPage)} />
         <Route path="projects" element={page(ProjectsPage)} />
         <Route path="projects/:projectId" element={page(ProjectDetail)} />
         <Route path="hr-material" element={page(HrMaterialPage)} />
