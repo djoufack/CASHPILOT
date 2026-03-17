@@ -33,6 +33,27 @@ const ACCOUNTS = [
   },
 ];
 
+function parseArguments(argv) {
+  const options = {
+    emails: null,
+  };
+
+  for (const rawArg of argv || []) {
+    if (!rawArg.startsWith('--')) continue;
+    const [flag, value = ''] = rawArg.split('=');
+
+    if (flag === '--emails') {
+      const parsed = value
+        .split(',')
+        .map((entry) => entry.trim().toLowerCase())
+        .filter(Boolean);
+      options.emails = parsed.length ? new Set(parsed) : null;
+    }
+  }
+
+  return options;
+}
+
 function loadEnvFile(filePath) {
   const absolutePath = path.resolve(filePath);
   if (!fs.existsSync(absolutePath)) return;
@@ -546,6 +567,7 @@ async function runAccount(account) {
 }
 
 async function main() {
+  const options = parseArguments(process.argv.slice(2));
   loadEnvFile('.env.local');
   loadEnvFile('.env');
 
@@ -553,8 +575,16 @@ async function main() {
     throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY in env');
   }
 
+  const targetAccounts = options.emails
+    ? ACCOUNTS.filter((account) => options.emails.has(String(account.email || '').trim().toLowerCase()))
+    : ACCOUNTS;
+
+  if (!targetAccounts.length) {
+    throw new Error('No matching demo accounts for --emails filter.');
+  }
+
   const output = [];
-  for (const account of ACCOUNTS) {
+  for (const account of targetAccounts) {
     output.push(await runAccount(account));
   }
 
