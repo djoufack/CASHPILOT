@@ -103,7 +103,7 @@ export const useGedHub = () => {
       let invoicesQuery = supabase
         .from('invoices')
         .select(
-          'id, company_id, user_id, invoice_number, status, total_ttc, total_ht, currency, file_url, file_generated_at, created_at, updated_at, client:clients(company_name)'
+          'id, company_id, user_id, invoice_number, status, total_ttc, total_ht, currency, file_url, file_generated_at, created_at, client:clients(company_name)'
         )
         .order('created_at', { ascending: false });
       invoicesQuery = applyCompanyScope(invoicesQuery);
@@ -111,7 +111,7 @@ export const useGedHub = () => {
       let quotesQuery = supabase
         .from('quotes')
         .select(
-          'id, company_id, user_id, quote_number, status, total_ttc, total_ht, currency, file_url, file_generated_at, created_at, updated_at, client:clients(company_name)'
+          'id, company_id, user_id, quote_number, status, total_ttc, total_ht, currency, file_url, file_generated_at, created_at, client:clients(company_name)'
         )
         .order('created_at', { ascending: false });
       quotesQuery = applyCompanyScope(quotesQuery);
@@ -119,7 +119,7 @@ export const useGedHub = () => {
       let creditNotesQuery = supabase
         .from('credit_notes')
         .select(
-          'id, company_id, user_id, credit_note_number, status, total_ttc, total_ht, currency, file_url, file_generated_at, created_at, updated_at, client:clients(company_name)'
+          'id, company_id, user_id, credit_note_number, status, total_ttc, total_ht, currency, file_url, file_generated_at, created_at, client:clients(company_name)'
         )
         .order('created_at', { ascending: false });
       creditNotesQuery = applyCompanyScope(creditNotesQuery);
@@ -127,7 +127,7 @@ export const useGedHub = () => {
       let deliveryNotesQuery = supabase
         .from('delivery_notes')
         .select(
-          'id, company_id, user_id, delivery_note_number, status, total_ttc, total_ht, currency, file_url, file_generated_at, created_at, updated_at, client:clients(company_name)'
+          'id, company_id, user_id, delivery_note_number, status, total_ttc, total_ht, currency, file_url, file_generated_at, created_at, client:clients(company_name)'
         )
         .order('created_at', { ascending: false });
       deliveryNotesQuery = applyCompanyScope(deliveryNotesQuery);
@@ -135,7 +135,7 @@ export const useGedHub = () => {
       let purchaseOrdersQuery = supabase
         .from('purchase_orders')
         .select(
-          'id, company_id, user_id, order_number, po_number, status, total_amount, currency, file_url, file_generated_at, created_at, updated_at, client:clients(company_name)'
+          'id, company_id, user_id, order_number, po_number, status, total_amount, currency, file_url, file_generated_at, created_at, client:clients(company_name)'
         )
         .order('created_at', { ascending: false });
       purchaseOrdersQuery = applyCompanyScope(purchaseOrdersQuery, { includeUnassigned: true });
@@ -143,7 +143,7 @@ export const useGedHub = () => {
       let supplierInvoicesQuery = supabase
         .from('supplier_invoices')
         .select(
-          'id, company_id, invoice_number, payment_status, approval_status, total_amount, currency, file_url, created_at, updated_at, supplier:suppliers(company_name)'
+          'id, company_id, invoice_number, payment_status, approval_status, total_amount, currency, file_url, created_at, supplier:suppliers(company_name)'
         )
         .order('created_at', { ascending: false });
       supplierInvoicesQuery = applyCompanyScope(supplierInvoicesQuery);
