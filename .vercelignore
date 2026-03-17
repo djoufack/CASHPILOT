@@ -57,7 +57,9 @@ AGENTS.md
 /Tests/
 /Updates/
 /Vérification Implémentations/
-/docs/
+/docs/*
+!/docs/guide/
+!/docs/guide/**
 
 # ---- Backend / SQL (deployed separately via Supabase) ----
 /mcp-server/
