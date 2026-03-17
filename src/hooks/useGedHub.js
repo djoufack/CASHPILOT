@@ -58,10 +58,22 @@ const mapRowsToDocuments = (sourceTable, rows) =>
       row.delivery_note_number ||
       row.order_number ||
       row.po_number ||
+      row.purchase_order_number ||
+      row.reference ||
+      row.number ||
       'N/A';
-    const status = row.status || row.payment_status || row.approval_status || 'draft';
-    const amount = row.total_ttc ?? row.total_amount ?? row.total ?? row.total_ht ?? null;
-    const counterpartyName = row.client?.company_name || row.supplier?.company_name || null;
+    const status = row.status || row.payment_status || row.approval_status || row.state || 'draft';
+    const amount =
+      row.total_ttc ??
+      row.total_amount ??
+      row.total ??
+      row.total_ht ??
+      row.amount_ttc ??
+      row.amount_total ??
+      row.amount_ht ??
+      null;
+    const counterpartyName =
+      row.client?.company_name || row.supplier?.company_name || row.client_name || row.supplier_name || null;
 
     return {
       sourceTable,
@@ -72,12 +84,12 @@ const mapRowsToDocuments = (sourceTable, rows) =>
       number,
       status,
       amount,
-      currency: row.currency || 'EUR',
+      currency: row.currency || row.currency_code || 'EUR',
       fileUrl: row.file_url || null,
       fileGeneratedAt: row.file_generated_at || null,
       counterpartyName,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      createdAt: row.created_at || row.date || row.issue_date || row.invoice_date || null,
+      updatedAt: row.updated_at || row.modified_at || null,
       raw: row,
     };
   });
@@ -100,56 +112,26 @@ export const useGedHub = () => {
 
     setLoading(true);
     try {
-      let invoicesQuery = supabase
-        .from('invoices')
-        .select(
-          'id, company_id, user_id, invoice_number, status, total_ttc, total_ht, currency, file_url, file_generated_at, created_at, client:clients(company_name)'
-        )
-        .order('created_at', { ascending: false });
+      let invoicesQuery = supabase.from('invoices').select('*').order('created_at', { ascending: false });
       invoicesQuery = applyCompanyScope(invoicesQuery);
 
-      let quotesQuery = supabase
-        .from('quotes')
-        .select(
-          'id, company_id, user_id, quote_number, status, total_ttc, total_ht, currency, file_url, file_generated_at, created_at, client:clients(company_name)'
-        )
-        .order('created_at', { ascending: false });
+      let quotesQuery = supabase.from('quotes').select('*').order('created_at', { ascending: false });
       quotesQuery = applyCompanyScope(quotesQuery);
 
-      let creditNotesQuery = supabase
-        .from('credit_notes')
-        .select(
-          'id, company_id, user_id, credit_note_number, status, total_ttc, total_ht, currency, file_url, file_generated_at, created_at, client:clients(company_name)'
-        )
-        .order('created_at', { ascending: false });
+      let creditNotesQuery = supabase.from('credit_notes').select('*').order('created_at', { ascending: false });
       creditNotesQuery = applyCompanyScope(creditNotesQuery);
 
-      let deliveryNotesQuery = supabase
-        .from('delivery_notes')
-        .select(
-          'id, company_id, user_id, delivery_note_number, status, total_ttc, total_ht, currency, file_url, file_generated_at, created_at, client:clients(company_name)'
-        )
-        .order('created_at', { ascending: false });
+      let deliveryNotesQuery = supabase.from('delivery_notes').select('*').order('created_at', { ascending: false });
       deliveryNotesQuery = applyCompanyScope(deliveryNotesQuery);
 
-      let purchaseOrdersQuery = supabase
-        .from('purchase_orders')
-        .select(
-          'id, company_id, user_id, order_number, po_number, status, total_amount, currency, file_url, file_generated_at, created_at, client:clients(company_name)'
-        )
-        .order('created_at', { ascending: false });
+      let purchaseOrdersQuery = supabase.from('purchase_orders').select('*').order('created_at', { ascending: false });
       purchaseOrdersQuery = applyCompanyScope(purchaseOrdersQuery, { includeUnassigned: true });
 
       let supplierInvoicesQuery = supabase
         .from('supplier_invoices')
-        .select(
-          'id, company_id, invoice_number, payment_status, approval_status, total_amount, currency, file_url, created_at, supplier:suppliers(company_name)'
-        )
+        .select('*')
         .order('created_at', { ascending: false });
       supplierInvoicesQuery = applyCompanyScope(supplierInvoicesQuery);
-
-      let metadataQuery = supabase.from('document_hub_metadata').select('*');
-      metadataQuery = applyCompanyScope(metadataQuery);
 
       const [
         { data: invoices, error: invoicesError },
@@ -158,7 +140,6 @@ export const useGedHub = () => {
         { data: deliveryNotes, error: deliveryNotesError },
         { data: purchaseOrders, error: purchaseOrdersError },
         { data: supplierInvoices, error: supplierInvoicesError },
-        { data: metadataRows, error: metadataError },
       ] = await Promise.all([
         invoicesQuery,
         quotesQuery,
@@ -166,8 +147,19 @@ export const useGedHub = () => {
         deliveryNotesQuery,
         purchaseOrdersQuery,
         supplierInvoicesQuery,
-        metadataQuery,
       ]);
+
+      let metadataRows = [];
+      let metadataError = null;
+      let metadataQuery = supabase.from('document_hub_metadata').select('*');
+      metadataQuery = applyCompanyScope(metadataQuery);
+      const metadataResult = await metadataQuery;
+      if (metadataResult.error?.code === 'PGRST205') {
+        metadataRows = [];
+      } else {
+        metadataRows = metadataResult.data || [];
+        metadataError = metadataResult.error || null;
+      }
 
       const firstError =
         invoicesError ||
@@ -237,6 +229,15 @@ export const useGedHub = () => {
     const { error } = await supabase.from('document_hub_metadata').upsert(payload, {
       onConflict: 'company_id,source_table,source_id',
     });
+
+    if (error?.code === 'PGRST205') {
+      toast({
+        title: 'Metadonnees indisponibles',
+        description: 'La table document_hub_metadata nest pas encore deployee sur cet environnement.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     if (error) {
       throw error;
