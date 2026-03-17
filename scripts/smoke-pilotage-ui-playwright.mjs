@@ -33,6 +33,11 @@ const DEMO_ACCOUNT_TEMPLATES = [
 
 const PAGE_CHECKS = [
   {
+    key: 'gedHub',
+    path: '/app/ged-hub',
+    expectedText: (account) => account.expectations.gedHub,
+  },
+  {
     key: 'purchases',
     path: '/app/purchases',
     expectedText: (account) => account.expectations.purchases,
@@ -392,6 +397,8 @@ async function loadExpectations(serviceClient, userId, company) {
   );
 
   const expectations = {
+    gedHub: pickFirstText(peppolInvoiceRows, [(row) => row.invoice_number]) ||
+      pickFirstText(supplierInvoiceRows, [(row) => row.invoice_number]),
     purchases: pickFirstText(purchasesRows, [(row) => row.order_number]),
     supplierInvoices: pickFirstText(supplierInvoiceRows, [(row) => row.invoice_number]),
     stock: pickFirstText(productRows, [(row) => row.product_name, (row) => row.sku]),
