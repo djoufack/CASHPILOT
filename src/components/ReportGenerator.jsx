@@ -56,7 +56,6 @@ const toNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-
 const formatCurrency = (amount, currency = 'EUR', locale = 'fr-FR') =>
   new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -87,15 +86,17 @@ const buildBarChart = (bars, height = 120) => {
   const barWidth = Math.floor(200 / bars.length);
   const gap = 8;
   const totalWidth = bars.length * (barWidth + gap);
-  const rects = bars.map((bar, i) => {
-    const barHeight = Math.round((Math.abs(bar.value) / maxVal) * (height - 24));
-    const x = i * (barWidth + gap);
-    const y = height - barHeight - 20;
-    return `
+  const rects = bars
+    .map((bar, i) => {
+      const barHeight = Math.round((Math.abs(bar.value) / maxVal) * (height - 24));
+      const x = i * (barWidth + gap);
+      const y = height - barHeight - 20;
+      return `
       <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${bar.color}" rx="3"/>
       <text x="${x + barWidth / 2}" y="${height - 4}" text-anchor="middle" font-size="10" fill="#475569">${escapeHtml(bar.label)}</text>
     `;
-  }).join('');
+    })
+    .join('');
   return `<svg width="${totalWidth}" height="${height}" style="display:block;margin:12px auto;">${rects}</svg>`;
 };
 
@@ -126,9 +127,21 @@ const buildReportHtml = ({ companyName, currency, preset, period, sections, data
           </div>
         </div>
         ${buildBarChart([
-          { label: t('reportBuilder.html.revenue', 'Revenue').slice(0, 10), value: data.metrics.revenue, color: '#22c55e' },
-          { label: t('reportBuilder.html.expenses', 'Expenses').slice(0, 10), value: data.metrics.expenses, color: '#ef4444' },
-          { label: t('reportBuilder.html.grossProfit', 'Profit').slice(0, 10), value: data.metrics.grossProfit, color: '#3b82f6' },
+          {
+            label: t('reportBuilder.html.revenue', 'Revenue').slice(0, 10),
+            value: data.metrics.revenue,
+            color: '#22c55e',
+          },
+          {
+            label: t('reportBuilder.html.expenses', 'Expenses').slice(0, 10),
+            value: data.metrics.expenses,
+            color: '#ef4444',
+          },
+          {
+            label: t('reportBuilder.html.grossProfit', 'Profit').slice(0, 10),
+            value: data.metrics.grossProfit,
+            color: '#3b82f6',
+          },
         ])}
       </section>
     `);
@@ -155,9 +168,21 @@ const buildReportHtml = ({ companyName, currency, preset, period, sections, data
           </tbody>
         </table>
         ${buildBarChart([
-          { label: t('reportBuilder.html.cashIn', 'In').split('(')[0].trim().slice(0, 10), value: data.metrics.cashIn, color: '#22c55e' },
-          { label: t('reportBuilder.html.cashOut', 'Out').split('(')[0].trim().slice(0, 10), value: data.metrics.expenses, color: '#ef4444' },
-          { label: t('reportBuilder.html.netCash', 'Net').slice(0, 10), value: data.metrics.cashIn - data.metrics.expenses, color: '#6366f1' },
+          {
+            label: t('reportBuilder.html.cashIn', 'In').split('(')[0].trim().slice(0, 10),
+            value: data.metrics.cashIn,
+            color: '#22c55e',
+          },
+          {
+            label: t('reportBuilder.html.cashOut', 'Out').split('(')[0].trim().slice(0, 10),
+            value: data.metrics.expenses,
+            color: '#ef4444',
+          },
+          {
+            label: t('reportBuilder.html.netCash', 'Net').slice(0, 10),
+            value: data.metrics.cashIn - data.metrics.expenses,
+            color: '#6366f1',
+          },
         ])}
       </section>
     `);
@@ -178,7 +203,9 @@ const buildReportHtml = ({ companyName, currency, preset, period, sections, data
             </tr>
           </thead>
           <tbody>
-            ${data.invoices.map((invoice) => `
+            ${data.invoices
+              .map(
+                (invoice) => `
               <tr>
                 <td style="padding:8px;border:1px solid #cbd5e1;">${escapeHtml(invoice.invoice_number || '-')}</td>
                 <td style="padding:8px;border:1px solid #cbd5e1;">${escapeHtml(invoice.client?.company_name || '-')}</td>
@@ -186,7 +213,9 @@ const buildReportHtml = ({ companyName, currency, preset, period, sections, data
                 <td style="padding:8px;border:1px solid #cbd5e1;">${escapeHtml(invoice.status || '-')}</td>
                 <td style="padding:8px;border:1px solid #cbd5e1;text-align:right;">${formatCurrency(invoice.total_ttc || invoice.total || 0, currency, intlLocale)}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join('')}
           </tbody>
         </table>
       </section>
@@ -208,7 +237,9 @@ const buildReportHtml = ({ companyName, currency, preset, period, sections, data
             </tr>
           </thead>
           <tbody>
-            ${data.supplierInvoices.map((invoice) => `
+            ${data.supplierInvoices
+              .map(
+                (invoice) => `
               <tr>
                 <td style="padding:8px;border:1px solid #cbd5e1;">${escapeHtml(invoice.invoice_number || '-')}</td>
                 <td style="padding:8px;border:1px solid #cbd5e1;">${escapeHtml(invoice.supplier?.company_name || invoice.supplier_name_extracted || '-')}</td>
@@ -216,7 +247,9 @@ const buildReportHtml = ({ companyName, currency, preset, period, sections, data
                 <td style="padding:8px;border:1px solid #cbd5e1;">${escapeHtml(invoice.approval_status || 'pending')}</td>
                 <td style="padding:8px;border:1px solid #cbd5e1;text-align:right;">${formatCurrency(invoice.total_amount || invoice.total_ttc || 0, currency, intlLocale)}</td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join('')}
           </tbody>
         </table>
       </section>
@@ -288,16 +321,19 @@ const ReportGenerator = () => {
   const [previewHtml, setPreviewHtml] = useState('');
   const [generating, setGenerating] = useState(false);
 
-  const mapTemplateRow = useCallback((row) => ({
-    id: row.id,
-    name: row.name,
-    preset: row.preset || 'custom',
-    period: {
-      startDate: row.period_start,
-      endDate: row.period_end,
-    },
-    sections: row.sections || {},
-  }), []);
+  const mapTemplateRow = useCallback(
+    (row) => ({
+      id: row.id,
+      name: row.name,
+      preset: row.preset || 'custom',
+      period: {
+        startDate: row.period_start,
+        endDate: row.period_end,
+      },
+      sections: row.sections || {},
+    }),
+    []
+  );
 
   const fetchTemplates = useCallback(async () => {
     if (!user?.id) {
@@ -322,7 +358,7 @@ const ReportGenerator = () => {
       toast({
         title: t('common.error', 'Error'),
         description: t('reportBuilder.toasts.templatesLoadError', 'Unable to load templates from database.'),
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setTemplatesLoading(false);
@@ -338,10 +374,7 @@ const ReportGenerator = () => {
     fetchTemplates();
   }, [fetchTemplates]);
 
-  const currency = useMemo(
-    () => (company?.accounting_currency || company?.currency || 'EUR').toUpperCase(),
-    [company]
-  );
+  const currency = useMemo(() => (company?.accounting_currency || company?.currency || 'EUR').toUpperCase(), [company]);
 
   const intlLocale = useMemo(() => {
     const lang = i18n.language || 'fr';
@@ -360,7 +393,9 @@ const ReportGenerator = () => {
 
     let invoicesQuery = supabase
       .from('invoices')
-      .select('id, invoice_number, date, due_date, status, payment_status, total_ht, total_ttc, balance_due, client:clients!fk_invoices_client_scope(company_name)')
+      .select(
+        'id, invoice_number, date, due_date, status, payment_status, total_ht, total_ttc, balance_due, client:clients!fk_invoices_client_scope(company_name)'
+      )
       .gte('date', period.startDate)
       .lte('date', period.endDate)
       .order('date', { ascending: false });
@@ -381,7 +416,9 @@ const ReportGenerator = () => {
 
     let supplierInvoicesQuery = supabase
       .from('supplier_invoices')
-      .select('id, invoice_number, invoice_date, due_date, payment_status, approval_status, total_amount, total_ttc, vat_amount, supplier_name_extracted, supplier:suppliers!supplier_invoices_supplier_id_fkey(company_name)')
+      .select(
+        'id, invoice_number, invoice_date, due_date, payment_status, approval_status, total_amount, total_ttc, vat_amount, supplier_name_extracted, supplier:suppliers!supplier_invoices_supplier_id_fkey(company_name)'
+      )
       .gte('invoice_date', period.startDate)
       .lte('invoice_date', period.endDate)
       .order('invoice_date', { ascending: false });
@@ -391,17 +428,28 @@ const ReportGenerator = () => {
     paymentsQuery = applyCompanyScope(paymentsQuery);
     supplierInvoicesQuery = applyCompanyScope(supplierInvoicesQuery);
 
-    const [invoicesRes, expensesRes, paymentsRes, supplierInvoicesRes] = await Promise.all([
+    const _reportResults = await Promise.allSettled([
       invoicesQuery,
       expensesQuery,
       paymentsQuery,
       supplierInvoicesQuery,
     ]);
 
-    if (invoicesRes.error) throw invoicesRes.error;
-    if (expensesRes.error) throw expensesRes.error;
-    if (paymentsRes.error) throw paymentsRes.error;
-    if (supplierInvoicesRes.error) throw supplierInvoicesRes.error;
+    const _reportLabels = ['invoices', 'expenses', 'payments', 'supplierInvoices'];
+    _reportResults.forEach((r, i) => {
+      if (r.status === 'rejected') console.error(`ReportGenerator fetch "${_reportLabels[i]}" failed:`, r.reason);
+    });
+
+    const _rv = (i) =>
+      (_reportResults[i].status === 'fulfilled' ? _reportResults[i].value : null) || { data: null, error: null };
+    const invoicesRes = _rv(0);
+    const expensesRes = _rv(1);
+    const paymentsRes = _rv(2);
+    const supplierInvoicesRes = _rv(3);
+
+    [invoicesRes, expensesRes, paymentsRes, supplierInvoicesRes].forEach((res, i) => {
+      if (res.error) console.error(`ReportGenerator query "${_reportLabels[i]}" error:`, res.error);
+    });
 
     const invoices = invoicesRes.data || [];
     const expenses = expensesRes.data || [];
@@ -472,59 +520,51 @@ const ReportGenerator = () => {
   };
 
   const handleDownloadPDF = async () => {
-    await guardedAction(
-      CREDIT_COSTS.PDF_REPORT,
-      t('credits.costReport'),
-      async () => {
-        setGenerating(true);
-        let container;
-        try {
-          const data = await ensureReportData();
-          const html = getHtml(data);
-          container = document.createElement('div');
-          container.innerHTML = DOMPurify.sanitize(html);
-          document.body.appendChild(container);
+    await guardedAction(CREDIT_COSTS.PDF_REPORT, t('credits.costReport'), async () => {
+      setGenerating(true);
+      let container;
+      try {
+        const data = await ensureReportData();
+        const html = getHtml(data);
+        container = document.createElement('div');
+        container.innerHTML = DOMPurify.sanitize(html);
+        document.body.appendChild(container);
 
-          await saveElementAsPdf(container, {
-            filename: `cashpilot-report-builder-${Date.now()}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          });
+        await saveElementAsPdf(container, {
+          filename: `cashpilot-report-builder-${Date.now()}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        });
 
-          toast({ title: 'Success', description: 'PDF report generated.' });
-        } catch (error) {
-          toast({ title: 'Error', description: error.message, variant: 'destructive' });
-        } finally {
-          if (container && container.parentNode) container.parentNode.removeChild(container);
-          setGenerating(false);
-        }
+        toast({ title: 'Success', description: 'PDF report generated.' });
+      } catch (error) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      } finally {
+        if (container && container.parentNode) container.parentNode.removeChild(container);
+        setGenerating(false);
       }
-    );
+    });
   };
 
   const handleDownloadHTML = () => {
-    guardedAction(
-      CREDIT_COSTS.EXPORT_HTML,
-      t('credits.costs.exportHtml'),
-      async () => {
-        try {
-          const data = await ensureReportData();
-          const langAttr = i18n.language || 'fr';
-          const html = `<!DOCTYPE html><html lang="${langAttr}"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>CashPilot Report Builder</title></head><body>${getHtml(data)}</body></html>`;
-          const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-          const url = URL.createObjectURL(blob);
-          const anchor = document.createElement('a');
-          anchor.href = url;
-          anchor.download = `cashpilot-report-builder-${Date.now()}.html`;
-          anchor.click();
-          URL.revokeObjectURL(url);
-          toast({ title: 'Success', description: 'HTML report downloaded.' });
-        } catch (error) {
-          toast({ title: 'Error', description: error.message, variant: 'destructive' });
-        }
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, t('credits.costs.exportHtml'), async () => {
+      try {
+        const data = await ensureReportData();
+        const langAttr = i18n.language || 'fr';
+        const html = `<!DOCTYPE html><html lang="${langAttr}"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>CashPilot Report Builder</title></head><body>${getHtml(data)}</body></html>`;
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `cashpilot-report-builder-${Date.now()}.html`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        toast({ title: 'Success', description: 'HTML report downloaded.' });
+      } catch (error) {
+        toast({ title: 'Error', description: error.message, variant: 'destructive' });
       }
-    );
+    });
   };
 
   const handleDownloadJSON = async () => {
@@ -564,7 +604,7 @@ const ReportGenerator = () => {
     if (!name) {
       toast({
         title: t('reportBuilder.toasts.templateNameRequired', 'Template name required'),
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -573,7 +613,7 @@ const ReportGenerator = () => {
       toast({
         title: t('common.error', 'Error'),
         description: t('reportBuilder.toasts.userRequired', 'You must be signed in to save templates.'),
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -609,7 +649,7 @@ const ReportGenerator = () => {
       toast({
         title: t('common.error', 'Error'),
         description: error.message,
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setTemplatesLoading(false);
@@ -707,7 +747,11 @@ const ReportGenerator = () => {
                 placeholder={t('reportBuilder.placeholders.templateName', 'Template name')}
                 className="bg-gray-900 border-gray-700"
               />
-              <Button onClick={handleSaveTemplate} disabled={templatesLoading} className="bg-blue-600 hover:bg-blue-700">
+              <Button
+                onClick={handleSaveTemplate}
+                disabled={templatesLoading}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
                 <Save className="w-4 h-4 mr-2" />
                 {t('reportBuilder.actions.saveTemplate', 'Save')}
               </Button>
@@ -717,7 +761,9 @@ const ReportGenerator = () => {
                 </SelectTrigger>
                 <SelectContent className="bg-gray-900 border-gray-700 text-white">
                   {templates.length === 0 ? (
-                    <SelectItem value="__none__" disabled>{t('reportBuilder.placeholders.noTemplate', 'No template')}</SelectItem>
+                    <SelectItem value="__none__" disabled>
+                      {t('reportBuilder.placeholders.noTemplate', 'No template')}
+                    </SelectItem>
                   ) : (
                     templates.map((template) => (
                       <SelectItem key={template.id} value={template.id}>
@@ -745,14 +791,20 @@ const ReportGenerator = () => {
                 setGenerating(true);
                 fetchReportData()
                   .then(() => toast({ title: t('reportBuilder.toasts.refreshed', 'Data refreshed') }))
-                  .catch((error) => toast({ title: t('common.error', 'Error'), description: error.message, variant: 'destructive' }))
+                  .catch((error) =>
+                    toast({ title: t('common.error', 'Error'), description: error.message, variant: 'destructive' })
+                  )
                   .finally(() => setGenerating(false));
               }}
               disabled={generating}
               variant="outline"
               className="border-gray-600 hover:bg-gray-700"
             >
-              {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UploadCloud className="w-4 h-4 mr-2" />}
+              {generating ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <UploadCloud className="w-4 h-4 mr-2" />
+              )}
               {t('reportBuilder.refreshData', 'Refresh data')}
             </Button>
             <Button onClick={handleDownloadPDF} disabled={generating} className="bg-orange-500 hover:bg-orange-600">
@@ -766,7 +818,8 @@ const ReportGenerator = () => {
               className="border-gray-600 hover:bg-gray-700"
             >
               <FileText className="mr-2 h-4 w-4" />
-              {t('reportBuilder.downloadHtml', 'Download HTML')} ({CREDIT_COSTS.EXPORT_HTML} {t('credits.creditsLabel')})
+              {t('reportBuilder.downloadHtml', 'Download HTML')} ({CREDIT_COSTS.EXPORT_HTML} {t('credits.creditsLabel')}
+              )
             </Button>
             <Button
               onClick={handleDownloadJSON}

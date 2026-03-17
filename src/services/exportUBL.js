@@ -9,19 +9,10 @@
 import { resolveInvoiceCurrency } from '@/utils/invoiceCurrency';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { uploadDocument } from '@/services/documentStorage';
+import { escapeXML as escapeXml } from '@/utils/sanitize';
 
 const PEPPOL_CUSTOMIZATION_ID = 'urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0';
 const PEPPOL_PROFILE_ID = 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0';
-
-const escapeXml = (str) => {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-};
 
 const formatDate = (date) => {
   if (!date) return '';
@@ -45,10 +36,10 @@ const computeTaxBreakdown = (items) => {
     if (!groups[rate]) groups[rate] = { rate, taxableAmount: 0 };
     groups[rate].taxableAmount += Number(item.total || 0);
   }
-  return Object.values(groups).map(g => ({
+  return Object.values(groups).map((g) => ({
     rate: g.rate,
     taxableAmount: Number(g.taxableAmount.toFixed(2)),
-    taxAmount: Number((g.taxableAmount * g.rate / 100).toFixed(2)),
+    taxAmount: Number(((g.taxableAmount * g.rate) / 100).toFixed(2)),
     categoryId: g.rate === 0 ? 'Z' : 'S',
   }));
 };
@@ -72,16 +63,24 @@ const generatePartyBlock = (party, tag) => {
           <cac:Country>
             <cbc:IdentificationCode>${escapeXml(party.country || 'BE')}</cbc:IdentificationCode>
           </cac:Country>
-        </cac:PostalAddress>${party.vat_number ? `
+        </cac:PostalAddress>${
+          party.vat_number
+            ? `
         <cac:PartyTaxScheme>
           <cbc:CompanyID>${escapeXml(party.vat_number)}</cbc:CompanyID>
           <cac:TaxScheme>
             <cbc:ID>VAT</cbc:ID>
           </cac:TaxScheme>
-        </cac:PartyTaxScheme>` : ''}
+        </cac:PartyTaxScheme>`
+            : ''
+        }
         <cac:PartyLegalEntity>
-          <cbc:RegistrationName>${escapeXml(name)}</cbc:RegistrationName>${endpointId ? `
-          <cbc:CompanyID schemeID="${escapeXml(schemeId)}">${escapeXml(endpointId)}</cbc:CompanyID>` : ''}
+          <cbc:RegistrationName>${escapeXml(name)}</cbc:RegistrationName>${
+            endpointId
+              ? `
+          <cbc:CompanyID schemeID="${escapeXml(schemeId)}">${escapeXml(endpointId)}</cbc:CompanyID>`
+              : ''
+          }
         </cac:PartyLegalEntity>
       </cac:Party>
     </cac:${tag}>`;
@@ -93,10 +92,14 @@ const generatePaymentMeans = (seller) => {
     <cac:PaymentMeans>
       <cbc:PaymentMeansCode>30</cbc:PaymentMeansCode>
       <cac:PayeeFinancialAccount>
-        <cbc:ID>${escapeXml(seller.iban)}</cbc:ID>${seller.bic ? `
+        <cbc:ID>${escapeXml(seller.iban)}</cbc:ID>${
+          seller.bic
+            ? `
         <cac:FinancialInstitutionBranch>
           <cbc:ID>${escapeXml(seller.bic)}</cbc:ID>
-        </cac:FinancialInstitutionBranch>` : ''}
+        </cac:FinancialInstitutionBranch>`
+            : ''
+        }
       </cac:PayeeFinancialAccount>
     </cac:PaymentMeans>`;
 };
@@ -105,7 +108,9 @@ const generateTaxTotal = (invoice, items, currency) => {
   const breakdown = computeTaxBreakdown(items);
   const totalVat = formatAmount(invoice.total_vat || 0);
 
-  const subtotals = breakdown.map(b => `
+  const subtotals = breakdown
+    .map(
+      (b) => `
       <cac:TaxSubtotal>
         <cbc:TaxableAmount currencyID="${currency}">${formatAmount(b.taxableAmount)}</cbc:TaxableAmount>
         <cbc:TaxAmount currencyID="${currency}">${formatAmount(b.taxAmount)}</cbc:TaxAmount>
@@ -116,7 +121,9 @@ const generateTaxTotal = (invoice, items, currency) => {
             <cbc:ID>VAT</cbc:ID>
           </cac:TaxScheme>
         </cac:TaxCategory>
-      </cac:TaxSubtotal>`).join('');
+      </cac:TaxSubtotal>`
+    )
+    .join('');
 
   return `
     <cac:TaxTotal>
@@ -135,10 +142,11 @@ const generateLegalMonetaryTotal = (invoice, currency) => {
 };
 
 const generateInvoiceLines = (items, currency, lineTag, qtyTag) => {
-  return items.map((item, index) => {
-    const rate = Number(item.tax_rate || 0);
-    const categoryId = rate === 0 ? 'Z' : 'S';
-    return `
+  return items
+    .map((item, index) => {
+      const rate = Number(item.tax_rate || 0);
+      const categoryId = rate === 0 ? 'Z' : 'S';
+      return `
     <cac:${lineTag}>
       <cbc:ID>${index + 1}</cbc:ID>
       <cbc:${qtyTag} unitCode="C62">${Number(item.quantity || 0)}</cbc:${qtyTag}>
@@ -157,7 +165,8 @@ const generateInvoiceLines = (items, currency, lineTag, qtyTag) => {
         <cbc:PriceAmount currencyID="${currency}">${formatAmount(item.unit_price)}</cbc:PriceAmount>
       </cac:Price>
     </cac:${lineTag}>`;
-  }).join('');
+    })
+    .join('');
 };
 
 /**
@@ -174,8 +183,12 @@ export const generateUBLInvoice = (invoice, seller, buyer, items) => {
   <cbc:CustomizationID>${PEPPOL_CUSTOMIZATION_ID}</cbc:CustomizationID>
   <cbc:ProfileID>${PEPPOL_PROFILE_ID}</cbc:ProfileID>
   <cbc:ID>${escapeXml(invoice.invoice_number)}</cbc:ID>
-  <cbc:IssueDate>${formatDate(invoice.invoice_date)}</cbc:IssueDate>${invoice.due_date ? `
-  <cbc:DueDate>${formatDate(invoice.due_date)}</cbc:DueDate>` : ''}
+  <cbc:IssueDate>${formatDate(invoice.invoice_date)}</cbc:IssueDate>${
+    invoice.due_date
+      ? `
+  <cbc:DueDate>${formatDate(invoice.due_date)}</cbc:DueDate>`
+      : ''
+  }
   <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
   <cbc:DocumentCurrencyCode>${escapeXml(currency)}</cbc:DocumentCurrencyCode>
   <cbc:BuyerReference>${escapeXml(buyerRef)}</cbc:BuyerReference>${generatePartyBlock(seller, 'AccountingSupplierParty')}${generatePartyBlock(buyer, 'AccountingCustomerParty')}${generatePaymentMeans(seller)}${generateTaxTotal(invoice, items, currency)}${generateLegalMonetaryTotal(invoice, currency)}${generateInvoiceLines(items, currency, 'InvoiceLine', 'InvoicedQuantity')}
@@ -225,8 +238,8 @@ export const exportUBL = async (invoice, seller, buyer, items) => {
       userId: invoice.user_id,
       fileName: `ubl/${filename}`,
       fileData: blob,
-      contentType: 'application/xml;charset=utf-8'
-    }).catch(err => console.warn('UBL upload failed:', err));
+      contentType: 'application/xml;charset=utf-8',
+    }).catch((err) => console.warn('UBL upload failed:', err));
   }
 
   return {

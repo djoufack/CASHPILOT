@@ -91,7 +91,7 @@ const BottomNavBar = ({ onOpenMenu, onOpenCreate }) => {
               key={tab.id}
               onClick={tab.action}
               className={cn(
-                'relative flex flex-col items-center justify-center flex-1 py-2 transition-colors',
+                'relative flex flex-col items-center justify-center flex-1 py-2 min-h-[44px] transition-colors',
                 tab.isActive ? 'text-orange-400' : 'text-gray-500 active:text-gray-300'
               )}
               aria-label={tab.label}

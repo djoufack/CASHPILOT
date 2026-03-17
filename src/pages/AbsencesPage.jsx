@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { ABSENCE_STATUSES } from '@/config/statusMappings';
 
 /* ---------- helpers ---------- */
 const formatDate = (v) => {
@@ -28,22 +29,7 @@ const formatDate = (v) => {
   return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('fr-FR');
 };
 const empName = (e) => e?.full_name || `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || '-';
-const STATUS = {
-  pending: {
-    label: 'En attente',
-    dot: 'bg-yellow-400',
-    text: 'text-yellow-300',
-    bg: 'bg-yellow-400/10 border-yellow-400/30',
-  },
-  approved: {
-    label: 'Approuvé',
-    dot: 'bg-green-400',
-    text: 'text-green-300',
-    bg: 'bg-green-400/10 border-green-400/30',
-  },
-  rejected: { label: 'Refusé', dot: 'bg-red-400', text: 'text-red-300', bg: 'bg-red-400/10 border-red-400/30' },
-  cancelled: { label: 'Annulé', dot: 'bg-gray-400', text: 'text-gray-300', bg: 'bg-gray-400/10 border-gray-400/30' },
-};
+const STATUS = ABSENCE_STATUSES;
 const LT_COLORS = [
   'bg-orange-400',
   'bg-blue-400',

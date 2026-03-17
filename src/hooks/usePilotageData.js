@@ -7,11 +7,7 @@ import { useCashFlow } from '@/hooks/useCashFlow';
 import { useCompany } from '@/hooks/useCompany';
 import { useReferenceData } from '@/contexts/ReferenceDataContext';
 import { getSectorBenchmarks, evaluateRatio } from '@/utils/sectorBenchmarks';
-import {
-  DEFAULT_PILOTAGE_SECTOR,
-  normalizePilotageSector,
-  resolvePilotageRegion,
-} from '@/utils/pilotagePreferences';
+import { DEFAULT_PILOTAGE_SECTOR, normalizePilotageSector, resolvePilotageRegion } from '@/utils/pilotagePreferences';
 
 // ---------------------------------------------------------------------------
 // Helpers (inlined from deleted pilotageCalculations.js)
@@ -79,12 +75,7 @@ function buildPilotageMonthlySeries(accountingMonthlyData = [], cashFlowData = [
 // ---------------------------------------------------------------------------
 
 const hasFiniteMetric = (source) =>
-  Boolean(
-    source &&
-      Object.values(source).some((value) =>
-        typeof value === 'number' && Number.isFinite(value)
-      )
-  );
+  Boolean(source && Object.values(source).some((value) => typeof value === 'number' && Number.isFinite(value)));
 
 const createAvailabilityItem = (key, titleKey, status, missingInputs = []) => ({
   key,
@@ -102,11 +93,15 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
   const cashFlowResult = useCashFlow({ startDate, endDate, granularity: 'month' });
   const { company, loading: companyLoading, error: companyError } = useCompany();
   const { loading: referenceLoading, error: referenceError } = useReferenceData();
-  const resolvedContext = useMemo(() => resolvePilotageRegion({
-    accountingCountry: accountingData.accountingSettings?.country,
-    companyCountry: company?.country,
-    fallback: region,
-  }), [accountingData.accountingSettings?.country, company?.country, region]);
+  const resolvedContext = useMemo(
+    () =>
+      resolvePilotageRegion({
+        accountingCountry: accountingData.accountingSettings?.country,
+        companyCountry: company?.country,
+        fallback: region,
+      }),
+    [accountingData.accountingSettings?.country, company?.country, region]
+  );
   const effectiveRegion = resolvedContext.region;
   const effectiveSector = normalizePilotageSector(sector || company?.business_sector || DEFAULT_PILOTAGE_SECTOR);
 
@@ -127,7 +122,7 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
     };
 
     try {
-      const [ratiosRes, taxRes, valRes] = await Promise.all([
+      const _results = await Promise.allSettled([
         supabase.rpc('f_pilotage_ratios', rpcParams),
         supabase.rpc('f_tax_synthesis', {
           ...rpcParams,
@@ -143,23 +138,38 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
         }),
       ]);
 
+      const _pilLabels = ['ratios', 'taxSynthesis', 'valuation'];
+      _results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`Pilotage fetch "${_pilLabels[i]}" failed:`, r.reason);
+      });
+
+      const ratiosRes = _results[0].status === 'fulfilled' ? _results[0].value : null;
+      const taxRes = _results[1].status === 'fulfilled' ? _results[1].value : null;
+      const valRes = _results[2].status === 'fulfilled' ? _results[2].value : null;
+
       setPilotageRatios(ratiosRes?.data ?? null);
       setTaxSynthesis(taxRes?.data ?? null);
       setValuation(valRes?.data ?? null);
     } catch (err) {
       console.error('Error fetching pilotage SQL data:', err);
     }
-  }, [user, activeCompanyId, accountingData.loading, accountingData.period?.startDate, accountingData.period?.endDate, effectiveRegion, effectiveSector, company?.company_type]);
+  }, [
+    user,
+    activeCompanyId,
+    accountingData.loading,
+    accountingData.period?.startDate,
+    accountingData.period?.endDate,
+    effectiveRegion,
+    effectiveSector,
+    company?.company_type,
+  ]);
 
   useEffect(() => {
     fetchPilotageSQL();
   }, [fetchPilotageSQL]);
 
   const monthlyData = useMemo(() => {
-    return buildPilotageMonthlySeries(
-      accountingData.monthlyData,
-      cashFlowResult.cashFlowData
-    );
+    return buildPilotageMonthlySeries(accountingData.monthlyData, cashFlowResult.cashFlowData);
   }, [accountingData.monthlyData, cashFlowResult.cashFlowData]);
 
   // 3. Alerts from SQL pilotage ratios
@@ -179,18 +189,48 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
     return {
       dso: evaluateRatio(pilotageRatios.activity?.dso, benchmarks.dso, true),
       dpo: evaluateRatio(pilotageRatios.activity?.dpo, benchmarks.dpo, false),
-      stockRotationDays: benchmarks.stockRotationDays ? evaluateRatio(pilotageRatios.activity?.stockRotationDays, benchmarks.stockRotationDays, true) : null,
+      stockRotationDays: benchmarks.stockRotationDays
+        ? evaluateRatio(pilotageRatios.activity?.stockRotationDays, benchmarks.stockRotationDays, true)
+        : null,
       ccc: evaluateRatio(pilotageRatios.activity?.ccc, benchmarks.ccc, true),
       bfrToRevenue: evaluateRatio(pilotageRatios.activity?.bfrToRevenue, benchmarks.bfrToRevenue, true),
-      financialIndependence: evaluateRatio(pilotageRatios.structure?.financialIndependence, benchmarks.financialIndependence, false),
+      financialIndependence: evaluateRatio(
+        pilotageRatios.structure?.financialIndependence,
+        benchmarks.financialIndependence,
+        false
+      ),
       gearing: evaluateRatio(pilotageRatios.structure?.gearing, benchmarks.gearing, true),
-      currentRatio: evaluateRatio(pilotageRatios.structure?.currentRatio ?? accountingData.financialDiagnostic?.ratios?.liquidity?.currentRatio, benchmarks.currentRatio, false),
-      roe: evaluateRatio(pilotageRatios.profitability?.roe ?? accountingData.financialDiagnostic?.ratios?.profitability?.roe, benchmarks.roe, false),
+      currentRatio: evaluateRatio(
+        pilotageRatios.structure?.currentRatio ?? accountingData.financialDiagnostic?.ratios?.liquidity?.currentRatio,
+        benchmarks.currentRatio,
+        false
+      ),
+      roe: evaluateRatio(
+        pilotageRatios.profitability?.roe ?? accountingData.financialDiagnostic?.ratios?.profitability?.roe,
+        benchmarks.roe,
+        false
+      ),
       roa: evaluateRatio(pilotageRatios.profitability?.roa, benchmarks.roa, false),
-      roce: evaluateRatio(pilotageRatios.profitability?.roce ?? accountingData.financialDiagnostic?.ratios?.profitability?.roce, benchmarks.roce, false),
-      operatingMargin: evaluateRatio(accountingData.financialDiagnostic?.margins?.operatingMargin, benchmarks.operatingMargin, false),
-      grossMargin: evaluateRatio(accountingData.financialDiagnostic?.margins?.grossMarginPercent, benchmarks.grossMargin, false),
-      netMargin: evaluateRatio(accountingData.financialDiagnostic?.ratios?.profitability?.netMargin, benchmarks.netMargin, false),
+      roce: evaluateRatio(
+        pilotageRatios.profitability?.roce ?? accountingData.financialDiagnostic?.ratios?.profitability?.roce,
+        benchmarks.roce,
+        false
+      ),
+      operatingMargin: evaluateRatio(
+        accountingData.financialDiagnostic?.margins?.operatingMargin,
+        benchmarks.operatingMargin,
+        false
+      ),
+      grossMargin: evaluateRatio(
+        accountingData.financialDiagnostic?.margins?.grossMarginPercent,
+        benchmarks.grossMargin,
+        false
+      ),
+      netMargin: evaluateRatio(
+        accountingData.financialDiagnostic?.ratios?.profitability?.netMargin,
+        benchmarks.netMargin,
+        false
+      ),
     };
   }, [pilotageRatios, benchmarks, accountingData.financialDiagnostic]);
 
@@ -217,7 +257,7 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
           ? 'blocked'
           : qualityGate?.reliabilityStatus === 'warning'
             ? 'warning'
-        : 'ready';
+            : 'ready';
 
     const lastEntryDate = accountingData.entries?.reduce((latest, entry) => {
       if (!entry?.transaction_date) return latest;
@@ -244,13 +284,14 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
       periodDays,
       preTaxReady: Number.isFinite(preTaxIncome) && qualityGate?.canRunPilotage !== false,
       valuationReady: ebitda > 0 && freeCashFlow > 0 && qualityGate?.canRunPilotage !== false,
-      valuationMode: qualityGate?.canRunPilotage === false
-        ? 'unavailable'
-        : freeCashFlow > 0
-          ? 'full'
-          : ebitda > 0
-            ? 'multiples-only'
-            : 'unavailable',
+      valuationMode:
+        qualityGate?.canRunPilotage === false
+          ? 'unavailable'
+          : freeCashFlow > 0
+            ? 'full'
+            : ebitda > 0
+              ? 'multiples-only'
+              : 'unavailable',
       qualityGate,
       topIssues: qualityGate?.issues?.slice(0, 3) || [],
     };
@@ -273,36 +314,33 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
     const hasBalanceSheet =
       hasAccounts &&
       hasEntries &&
-      (
-        (accountingData.balanceSheet?.assets?.length || 0) > 0 ||
+      ((accountingData.balanceSheet?.assets?.length || 0) > 0 ||
         (accountingData.balanceSheet?.liabilities?.length || 0) > 0 ||
         (accountingData.balanceSheet?.equity?.length || 0) > 0 ||
         Math.abs(accountingData.balanceSheet?.totalAssets || 0) > 0 ||
         Math.abs(accountingData.balanceSheet?.totalLiabilities || 0) > 0 ||
-        Math.abs(accountingData.balanceSheet?.totalEquity || 0) > 0
-      );
+        Math.abs(accountingData.balanceSheet?.totalEquity || 0) > 0);
     const hasIncomeStatement =
       hasEntries &&
-      (
-        (accountingData.incomeStatement?.revenueItems?.length || 0) > 0 ||
+      ((accountingData.incomeStatement?.revenueItems?.length || 0) > 0 ||
         (accountingData.incomeStatement?.expenseItems?.length || 0) > 0 ||
         Math.abs(accountingData.incomeStatement?.totalRevenue || 0) > 0 ||
         Math.abs(accountingData.incomeStatement?.totalExpenses || 0) > 0 ||
-        Math.abs(accountingData.incomeStatement?.netIncome || 0) > 0
-      );
+        Math.abs(accountingData.incomeStatement?.netIncome || 0) > 0);
     const hasTrialBalance = hasEntries && (accountingData.trialBalance?.length || 0) > 0;
     const hasMonthlySeries = hasEntries && (monthlyData?.length || 0) > 0;
     const hasCashSeries = hasEntries && (cashFlowResult.cashFlowData?.length || 0) > 0;
     const hasMargins = hasIncomeStatement && hasFiniteMetric(accountingData.financialDiagnostic?.margins);
     const hasFinancing = hasBalanceSheet && hasFiniteMetric(accountingData.financialDiagnostic?.financing);
-    const hasLiquidityRatios = hasBalanceSheet && hasFiniteMetric(accountingData.financialDiagnostic?.ratios?.liquidity);
-    const hasProfitabilityRatios = hasIncomeStatement && hasFiniteMetric(accountingData.financialDiagnostic?.ratios?.profitability);
+    const hasLiquidityRatios =
+      hasBalanceSheet && hasFiniteMetric(accountingData.financialDiagnostic?.ratios?.liquidity);
+    const hasProfitabilityRatios =
+      hasIncomeStatement && hasFiniteMetric(accountingData.financialDiagnostic?.ratios?.profitability);
     const hasStructureRatios = hasBalanceSheet && hasFiniteMetric(pilotageRatios?.structure);
     const hasActivityRatios = hasEntries && hasFiniteMetric(pilotageRatios?.activity);
     const hasAlertsInputs = hasStructureRatios || hasActivityRatios || hasProfitabilityRatios || hasCashSeries;
     const hasPreTaxIncome =
-      hasIncomeStatement &&
-      Number.isFinite(accountingData.financialDiagnostic?.tax?.preTaxIncome);
+      hasIncomeStatement && Number.isFinite(accountingData.financialDiagnostic?.tax?.preTaxIncome);
     const hasValuation = hasEntries && Boolean(valuation?.multiples || valuation?.dcf);
     const hasSensitivity = (valuation?.sensitivity?.length || 0) > 0;
     const hasBenchmarks = Object.keys(benchmarks || {}).length > 0;
@@ -327,11 +365,7 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
         performanceChart: createAvailabilityItem(
           'overview.performanceChart',
           'pilotage.dataRequirements.items.performanceChart',
-          hasMonthlySeries && hasCashSeries
-            ? 'ready'
-            : hasMonthlySeries
-              ? 'partial'
-              : 'unavailable',
+          hasMonthlySeries && hasCashSeries ? 'ready' : hasMonthlySeries ? 'partial' : 'unavailable',
           hasMonthlySeries && hasCashSeries
             ? []
             : hasMonthlySeries
@@ -341,11 +375,7 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
         ratioStatus: createAvailabilityItem(
           'overview.ratioStatus',
           'pilotage.dataRequirements.items.ratioStatus',
-          hasRatioEvaluations
-            ? 'ready'
-            : hasStructureRatios
-              ? 'partial'
-              : 'unavailable',
+          hasRatioEvaluations ? 'ready' : hasStructureRatios ? 'partial' : 'unavailable',
           hasRatioEvaluations
             ? []
             : hasStructureRatios
@@ -360,23 +390,96 @@ export const usePilotageData = (startDate, endDate, sector = 'b2b_services', reg
         ),
       },
       accounting: {
-        structure: createAvailabilityItem('accounting.structure', 'pilotage.dataRequirements.items.structureRatios', hasStructureRatios ? 'ready' : 'unavailable', hasStructureRatios ? [] : ['balanceSheet', 'incomeStatement', 'structureRatios']),
-        liquidity: createAvailabilityItem('accounting.liquidity', 'pilotage.dataRequirements.items.liquidityRatios', hasLiquidityRatios ? 'ready' : 'unavailable', hasLiquidityRatios ? [] : ['balanceSheet', 'incomeStatement']),
-        activity: createAvailabilityItem('accounting.activity', 'pilotage.dataRequirements.items.activityRatios', hasActivityRatios ? 'ready' : 'unavailable', hasActivityRatios ? [] : ['journalEntries', 'incomeStatement', 'activityRatios']),
-        trialBalance: createAvailabilityItem('accounting.trialBalance', 'pilotage.dataRequirements.items.trialBalance', hasTrialBalance ? 'ready' : 'unavailable', hasTrialBalance ? [] : ['chartOfAccounts', 'journalEntries', 'trialBalance']),
+        structure: createAvailabilityItem(
+          'accounting.structure',
+          'pilotage.dataRequirements.items.structureRatios',
+          hasStructureRatios ? 'ready' : 'unavailable',
+          hasStructureRatios ? [] : ['balanceSheet', 'incomeStatement', 'structureRatios']
+        ),
+        liquidity: createAvailabilityItem(
+          'accounting.liquidity',
+          'pilotage.dataRequirements.items.liquidityRatios',
+          hasLiquidityRatios ? 'ready' : 'unavailable',
+          hasLiquidityRatios ? [] : ['balanceSheet', 'incomeStatement']
+        ),
+        activity: createAvailabilityItem(
+          'accounting.activity',
+          'pilotage.dataRequirements.items.activityRatios',
+          hasActivityRatios ? 'ready' : 'unavailable',
+          hasActivityRatios ? [] : ['journalEntries', 'incomeStatement', 'activityRatios']
+        ),
+        trialBalance: createAvailabilityItem(
+          'accounting.trialBalance',
+          'pilotage.dataRequirements.items.trialBalance',
+          hasTrialBalance ? 'ready' : 'unavailable',
+          hasTrialBalance ? [] : ['chartOfAccounts', 'journalEntries', 'trialBalance']
+        ),
       },
       financial: {
-        margins: createAvailabilityItem('financial.margins', 'pilotage.dataRequirements.items.marginAnalysis', hasMargins ? 'ready' : 'unavailable', hasMargins ? [] : ['incomeStatement', 'journalEntries']),
-        financing: createAvailabilityItem('financial.financing', 'pilotage.dataRequirements.items.financingAnalysis', hasFinancing ? 'ready' : 'unavailable', hasFinancing ? [] : ['balanceSheet', 'journalEntries', 'financingData']),
-        profitability: createAvailabilityItem('financial.profitability', 'pilotage.dataRequirements.items.profitabilityRatios', hasProfitabilityRatios ? 'ready' : 'unavailable', hasProfitabilityRatios ? [] : ['incomeStatement', 'balanceSheet', 'profitabilityRatios']),
-        capitalStructure: createAvailabilityItem('financial.capitalStructure', 'pilotage.dataRequirements.items.capitalStructure', hasCapitalStructure ? 'ready' : 'unavailable', hasCapitalStructure ? [] : ['balanceSheet', 'financingData']),
-        profitabilityTrend: createAvailabilityItem('financial.profitabilityTrend', 'pilotage.dataRequirements.items.profitabilityTrend', hasTrendSeries ? 'ready' : 'unavailable', hasTrendSeries ? [] : ['journalEntries', 'monthlySeries']),
+        margins: createAvailabilityItem(
+          'financial.margins',
+          'pilotage.dataRequirements.items.marginAnalysis',
+          hasMargins ? 'ready' : 'unavailable',
+          hasMargins ? [] : ['incomeStatement', 'journalEntries']
+        ),
+        financing: createAvailabilityItem(
+          'financial.financing',
+          'pilotage.dataRequirements.items.financingAnalysis',
+          hasFinancing ? 'ready' : 'unavailable',
+          hasFinancing ? [] : ['balanceSheet', 'journalEntries', 'financingData']
+        ),
+        profitability: createAvailabilityItem(
+          'financial.profitability',
+          'pilotage.dataRequirements.items.profitabilityRatios',
+          hasProfitabilityRatios ? 'ready' : 'unavailable',
+          hasProfitabilityRatios ? [] : ['incomeStatement', 'balanceSheet', 'profitabilityRatios']
+        ),
+        capitalStructure: createAvailabilityItem(
+          'financial.capitalStructure',
+          'pilotage.dataRequirements.items.capitalStructure',
+          hasCapitalStructure ? 'ready' : 'unavailable',
+          hasCapitalStructure ? [] : ['balanceSheet', 'financingData']
+        ),
+        profitabilityTrend: createAvailabilityItem(
+          'financial.profitabilityTrend',
+          'pilotage.dataRequirements.items.profitabilityTrend',
+          hasTrendSeries ? 'ready' : 'unavailable',
+          hasTrendSeries ? [] : ['journalEntries', 'monthlySeries']
+        ),
       },
       taxValuation: {
-        tax: createAvailabilityItem('taxValuation.tax', 'pilotage.dataRequirements.items.taxSynthesis', hasPreTaxIncome ? 'ready' : 'unavailable', hasPreTaxIncome ? [] : ['incomeStatement', 'taxBase']),
-        valuation: createAvailabilityItem('taxValuation.valuation', 'pilotage.dataRequirements.items.valuation', hasValuation ? dataQuality?.valuationMode === 'full' ? 'ready' : 'partial' : 'unavailable', hasValuation ? dataQuality?.valuationMode === 'full' ? [] : ['valuationInputs'] : ['incomeStatement', 'cashSeries', 'valuationInputs']),
-        sensitivity: createAvailabilityItem('taxValuation.sensitivity', 'pilotage.dataRequirements.items.sensitivity', hasSensitivity ? 'ready' : 'unavailable', hasSensitivity ? [] : ['valuationInputs']),
-        benchmark: createAvailabilityItem('taxValuation.benchmark', 'pilotage.dataRequirements.items.benchmark', hasBenchmarks && hasRatioEvaluations ? 'ready' : hasBenchmarks ? 'partial' : 'unavailable', hasBenchmarks && hasRatioEvaluations ? [] : hasBenchmarks ? ['benchmarkReference', 'profitabilityRatios'] : ['benchmarkReference', 'profitabilityRatios', 'structureRatios']),
+        tax: createAvailabilityItem(
+          'taxValuation.tax',
+          'pilotage.dataRequirements.items.taxSynthesis',
+          hasPreTaxIncome ? 'ready' : 'unavailable',
+          hasPreTaxIncome ? [] : ['incomeStatement', 'taxBase']
+        ),
+        valuation: createAvailabilityItem(
+          'taxValuation.valuation',
+          'pilotage.dataRequirements.items.valuation',
+          hasValuation ? (dataQuality?.valuationMode === 'full' ? 'ready' : 'partial') : 'unavailable',
+          hasValuation
+            ? dataQuality?.valuationMode === 'full'
+              ? []
+              : ['valuationInputs']
+            : ['incomeStatement', 'cashSeries', 'valuationInputs']
+        ),
+        sensitivity: createAvailabilityItem(
+          'taxValuation.sensitivity',
+          'pilotage.dataRequirements.items.sensitivity',
+          hasSensitivity ? 'ready' : 'unavailable',
+          hasSensitivity ? [] : ['valuationInputs']
+        ),
+        benchmark: createAvailabilityItem(
+          'taxValuation.benchmark',
+          'pilotage.dataRequirements.items.benchmark',
+          hasBenchmarks && hasRatioEvaluations ? 'ready' : hasBenchmarks ? 'partial' : 'unavailable',
+          hasBenchmarks && hasRatioEvaluations
+            ? []
+            : hasBenchmarks
+              ? ['benchmarkReference', 'profitabilityRatios']
+              : ['benchmarkReference', 'profitabilityRatios', 'structureRatios']
+        ),
       },
       inputs: {
         hasAccounts,

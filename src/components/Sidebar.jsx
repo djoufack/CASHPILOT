@@ -510,7 +510,7 @@ const DirectNavItem = ({ category, isCollapsed, isActive }) => {
       <div
         className={cn(
           'flex items-center gap-3 rounded-lg transition-all duration-200 cursor-pointer group',
-          isCollapsed ? 'h-10 w-10 mx-auto justify-center mb-1' : 'px-3 py-2.5 mb-0.5',
+          isCollapsed ? 'h-11 w-11 mx-auto justify-center mb-1' : 'px-3 py-2.5 mb-0.5',
           isActive ? 'bg-orange-500/10 text-orange-400' : 'text-gray-500 hover:bg-gray-800/50 hover:text-gray-200'
         )}
       >
@@ -568,7 +568,7 @@ const CategoryGroup = ({
           <button
             onClick={handleCollapsedClick}
             className={cn(
-              'flex items-center justify-center h-10 w-10 mx-auto rounded-lg transition-all duration-200 cursor-pointer group mb-1',
+              'flex items-center justify-center h-11 w-11 mx-auto rounded-lg transition-all duration-200 cursor-pointer group mb-1',
               hasActiveChild
                 ? 'bg-orange-500/10 text-orange-400'
                 : 'text-gray-500 hover:bg-gray-800/50 hover:text-gray-200'
@@ -742,7 +742,7 @@ const FlatSidebar = ({ isCollapsed, toggleSidebar, navItems, location }) => {
                 <div
                   className={cn(
                     'flex items-center gap-3 rounded-lg transition-all duration-200 cursor-pointer group',
-                    isCollapsed ? 'h-10 w-10 mx-auto justify-center mb-1' : 'px-3 py-2.5 mb-0.5',
+                    isCollapsed ? 'h-11 w-11 mx-auto justify-center mb-1' : 'px-3 py-2.5 mb-0.5',
                     isActive
                       ? 'bg-orange-500/10 text-orange-400'
                       : 'text-gray-500 hover:bg-gray-800/50 hover:text-gray-200'

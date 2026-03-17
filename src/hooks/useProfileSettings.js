@@ -18,43 +18,37 @@ export const useProfileSettings = () => {
   const addLog = useCallback((message, type = 'info', data = null) => {
     const timestamp = new Date().toLocaleTimeString();
     const logEntry = { timestamp, message, type, data };
-    const color = type === 'error' ? 'color: red' : type === 'success' ? 'color: green' : 'color: blue';
-    console.log(`%c[useProfileSettings] ${message}`, color, data || '');
-    setDebugLogs(prev => [logEntry, ...prev].slice(0, 50));
+    setDebugLogs((prev) => [logEntry, ...prev].slice(0, 50));
   }, []);
 
   const fetchProfile = useCallback(async () => {
-    addLog("Fetching profile data...");
+    addLog('Fetching profile data...');
     try {
       setLoading(true);
 
-      if (!supabase) throw new Error("Supabase client not initialized");
+      if (!supabase) throw new Error('Supabase client not initialized');
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const { data, error } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
 
       if (error) {
-        addLog("Error fetching profile", 'error', error);
+        addLog('Error fetching profile', 'error', error);
         throw error;
       }
 
       if (data) {
-        addLog("Profile data loaded", 'success', data);
+        addLog('Profile data loaded', 'success', data);
         setProfile(data);
       } else {
-        addLog("No profile found — will create on first save", 'info');
+        addLog('No profile found — will create on first save', 'info');
         setProfile(null);
       }
     } catch (err) {
-      addLog("Fetch exception", 'error', err);
+      addLog('Fetch exception', 'error', err);
       setError(err.message);
       toast({
-        title: "Erreur chargement profil",
+        title: 'Erreur chargement profil',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -70,14 +64,14 @@ export const useProfileSettings = () => {
   }, [fetchProfile, user]);
 
   const validateFile = (file) => {
-    addLog("Validating file...", "info", { name: file.name, size: file.size, type: file.type });
+    addLog('Validating file...', 'info', { name: file.name, size: file.size, type: file.type });
 
-    if (!file) return { valid: false, error: "No file provided" };
+    if (!file) return { valid: false, error: 'No file provided' };
 
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       const errorMsg = `File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB. Max 5MB.`;
-      addLog("File validation failed: Size", "error", errorMsg);
+      addLog('File validation failed: Size', 'error', errorMsg);
       return { valid: false, error: errorMsg };
     }
 
@@ -87,26 +81,30 @@ export const useProfileSettings = () => {
 
     if (!allowedTypes.includes(file.type)) {
       const errorMsg = `Invalid MIME type: ${file.type}. Allowed: JPEG, PNG, GIF, WebP, SVG.`;
-      addLog("File validation failed: MIME Type", "error", errorMsg);
+      addLog('File validation failed: MIME Type', 'error', errorMsg);
       return { valid: false, error: errorMsg };
     }
 
     if (!allowedExtensions.includes(fileExt)) {
-       const errorMsg = `Invalid file extension: .${fileExt}.`;
-       addLog("File validation failed: Extension", "error", errorMsg);
-       return { valid: false, error: errorMsg };
+      const errorMsg = `Invalid file extension: .${fileExt}.`;
+      addLog('File validation failed: Extension', 'error', errorMsg);
+      return { valid: false, error: errorMsg };
     }
 
-    addLog("File validated successfully", "success", { type: file.type, ext: fileExt });
+    addLog('File validated successfully', 'success', { type: file.type, ext: fileExt });
     return { valid: true };
   };
 
   const uploadFile = async (bucket, file, prefix = 'file') => {
-    addLog(`Starting upload to bucket: '${bucket}'`, 'info', { fileName: file?.name, size: file?.size, type: file?.type });
+    addLog(`Starting upload to bucket: '${bucket}'`, 'info', {
+      fileName: file?.name,
+      size: file?.size,
+      type: file?.type,
+    });
 
     try {
-      if (!file) throw new Error("No file provided");
-      if (!supabase) throw new Error("Supabase client not ready");
+      if (!file) throw new Error('No file provided');
+      if (!supabase) throw new Error('Supabase client not ready');
 
       const validation = validateFile(file);
       if (!validation.valid) throw new Error(validation.error);
@@ -122,18 +120,16 @@ export const useProfileSettings = () => {
         .upload(filePath, file, { upsert: true, contentType: file.type });
 
       if (uploadError) {
-        addLog("Upload failed", 'error', uploadError);
+        addLog('Upload failed', 'error', uploadError);
         throw uploadError;
       }
 
-      addLog("File uploaded to storage", 'success', data);
+      addLog('File uploaded to storage', 'success', data);
 
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
 
       if (!urlData || !urlData.publicUrl) {
-        throw new Error("Failed to generate public URL");
+        throw new Error('Failed to generate public URL');
       }
 
       addLog(`Public URL generated: ${urlData.publicUrl}`, 'success');
@@ -146,14 +142,14 @@ export const useProfileSettings = () => {
 
   const updateAvatar = async (file) => {
     if (!file) return;
-    addLog("Initiating avatar update flow...", "info");
+    addLog('Initiating avatar update flow...', 'info');
     setUploading(true);
 
     try {
       const publicUrl = await uploadFile('avatars', file, 'avatar');
-      if (!publicUrl) throw new Error("Could not get public URL for avatar");
+      if (!publicUrl) throw new Error('Could not get public URL for avatar');
 
-      addLog("Updating profile avatar_url in database...", "info", { avatar_url: publicUrl });
+      addLog('Updating profile avatar_url in database...', 'info', { avatar_url: publicUrl });
 
       const { error: dbError } = await supabase
         .from('profiles')
@@ -162,27 +158,31 @@ export const useProfileSettings = () => {
 
       if (dbError) throw dbError;
 
-      addLog("Database updated successfully", "success");
-      setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
+      addLog('Database updated successfully', 'success');
+      setProfile((prev) => ({ ...prev, avatar_url: publicUrl }));
 
       if (updateContextProfile) {
-        try { await updateContextProfile({ avatar_url: publicUrl }); } catch (e) { /* ignore */ }
+        try {
+          await updateContextProfile({ avatar_url: publicUrl });
+        } catch (e) {
+          /* ignore */
+        }
       }
 
       toast({
-        title: "Succès",
-        description: "Avatar mis à jour avec succès",
-        className: "bg-green-600 border-none text-white"
+        title: 'Succès',
+        description: 'Avatar mis à jour avec succès',
+        className: 'bg-green-600 border-none text-white',
       });
 
       return publicUrl;
     } catch (err) {
-      console.error("Avatar update error:", err);
-      addLog("Avatar update failed", "error", err);
+      console.error('Avatar update error:', err);
+      addLog('Avatar update failed', 'error', err);
       toast({
-        title: "Erreur Upload",
+        title: 'Erreur Upload',
         description: err.message || "Erreur lors de l'upload",
-        variant: "destructive"
+        variant: 'destructive',
       });
       return null;
     } finally {
@@ -191,7 +191,7 @@ export const useProfileSettings = () => {
   };
 
   const deleteAvatar = async () => {
-    addLog("Deleting avatar...", "info");
+    addLog('Deleting avatar...', 'info');
     setUploading(true);
     try {
       const { error: dbError } = await supabase
@@ -201,23 +201,27 @@ export const useProfileSettings = () => {
 
       if (dbError) throw dbError;
 
-      setProfile(prev => ({ ...prev, avatar_url: null }));
+      setProfile((prev) => ({ ...prev, avatar_url: null }));
       if (updateContextProfile) {
-        try { await updateContextProfile({ avatar_url: null }); } catch (e) { /* ignore */ }
+        try {
+          await updateContextProfile({ avatar_url: null });
+        } catch (e) {
+          /* ignore */
+        }
       }
 
-      toast({ title: "Supprimé", description: "Avatar supprimé." });
-      addLog("Avatar removed", "success");
+      toast({ title: 'Supprimé', description: 'Avatar supprimé.' });
+      addLog('Avatar removed', 'success');
     } catch (err) {
-      addLog("Error removing avatar", "error", err);
-      toast({ title: "Erreur", description: "Impossible de supprimer l'avatar.", variant: "destructive" });
+      addLog('Error removing avatar', 'error', err);
+      toast({ title: 'Erreur', description: "Impossible de supprimer l'avatar.", variant: 'destructive' });
     } finally {
       setUploading(false);
     }
   };
 
   const deleteSignature = async () => {
-    addLog("Deleting signature...", "info");
+    addLog('Deleting signature...', 'info');
     setSaving(true);
     try {
       const { error: dbError } = await supabase
@@ -227,24 +231,24 @@ export const useProfileSettings = () => {
 
       if (dbError) throw dbError;
 
-      setProfile(prev => ({ ...prev, signature_url: null }));
-      toast({ title: "Supprimé", description: "Signature supprimée." });
-      addLog("Signature removed", "success");
+      setProfile((prev) => ({ ...prev, signature_url: null }));
+      toast({ title: 'Supprimé', description: 'Signature supprimée.' });
+      addLog('Signature removed', 'success');
     } catch (err) {
-      addLog("Error removing signature", "error", err);
-      toast({ title: "Erreur", description: "Impossible de supprimer la signature.", variant: "destructive" });
+      addLog('Error removing signature', 'error', err);
+      toast({ title: 'Erreur', description: 'Impossible de supprimer la signature.', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
   };
 
   const saveProfile = async (formData, signatureFile) => {
-    addLog("Saving profile data...", 'info', formData);
+    addLog('Saving profile data...', 'info', formData);
     try {
       setSaving(true);
       setError(null);
 
-      if (!supabase) throw new Error("Supabase client missing");
+      if (!supabase) throw new Error('Supabase client missing');
 
       // Only send fields that exist in the profiles table
       const profileFields = {
@@ -256,12 +260,12 @@ export const useProfileSettings = () => {
         country: formData.country || '',
         currency: formData.currency || 'EUR',
         timezone: formData.timezone || 'CET',
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       // Handle signature separately if provided
       if (signatureFile) {
-        addLog("Processing signature file...");
+        addLog('Processing signature file...');
         try {
           const validation = validateFile(signatureFile);
           if (!validation.valid) throw new Error(validation.error);
@@ -269,27 +273,22 @@ export const useProfileSettings = () => {
           const signatureUrl = await uploadFile('signatures', signatureFile, 'signature');
           if (signatureUrl) profileFields.signature_url = signatureUrl;
         } catch (sigErr) {
-          addLog("Signature upload failed", "warn", sigErr);
+          addLog('Signature upload failed', 'warn', sigErr);
           toast({
-             title: "Avertissement",
-             description: `Signature: ${sigErr.message}`,
-             variant: "destructive"
+            title: 'Avertissement',
+            description: `Signature: ${sigErr.message}`,
+            variant: 'destructive',
           });
         }
       }
 
-      addLog("Updating database record...", 'info', profileFields);
+      addLog('Updating database record...', 'info', profileFields);
 
       let result;
 
       if (profile?.id) {
         // Update existing profile
-        result = await supabase
-          .from('profiles')
-          .update(profileFields)
-          .eq('user_id', user.id)
-          .select()
-          .single();
+        result = await supabase.from('profiles').update(profileFields).eq('user_id', user.id).select().single();
       } else {
         // Insert new profile if none exists
         result = await supabase
@@ -300,11 +299,11 @@ export const useProfileSettings = () => {
       }
 
       if (result.error) {
-        addLog("Database operation failed", 'error', result.error);
+        addLog('Database operation failed', 'error', result.error);
         throw result.error;
       }
 
-      addLog("Profile saved successfully in DB", 'success', result.data);
+      addLog('Profile saved successfully in DB', 'success', result.data);
 
       // Update local state with what was actually saved in DB
       setProfile(result.data);
@@ -312,25 +311,25 @@ export const useProfileSettings = () => {
       try {
         if (updateContextProfile) await updateContextProfile(profileFields);
       } catch (ctxErr) {
-        addLog("Auth context update warning (non-blocking)", 'warn', ctxErr);
+        addLog('Auth context update warning (non-blocking)', 'warn', ctxErr);
       }
 
       toast({
-        title: "Succès",
-        description: "Profil mis à jour avec succès.",
-        className: "bg-green-600 border-none text-white"
+        title: 'Succès',
+        description: 'Profil mis à jour avec succès.',
+        className: 'bg-green-600 border-none text-white',
       });
 
       return true;
     } catch (err) {
       console.error('Error saving profile:', err);
       setError(err.message);
-      addLog("Save operation failed", 'error', err.message);
+      addLog('Save operation failed', 'error', err.message);
 
       toast({
-        title: "Erreur de sauvegarde",
+        title: 'Erreur de sauvegarde',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       return false;
     } finally {
@@ -353,6 +352,6 @@ export const useProfileSettings = () => {
     debugLogs,
     addLog,
     clearLogs,
-    validateFile
+    validateFile,
   };
 };

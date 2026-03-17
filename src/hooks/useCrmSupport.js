@@ -30,10 +30,11 @@ export function useCrmSupport() {
     setLoading(true);
     setError('');
     try {
-      const [ticketsResult, policiesResult] = await Promise.all([
+      const _results = await Promise.allSettled([
         supabase
           .from('crm_support_tickets')
-          .select(`
+          .select(
+            `
             id,
             ticket_number,
             title,
@@ -51,7 +52,8 @@ export function useCrmSupport() {
             project_id,
             client:clients!fk_crm_support_tickets_client_scope(company_name),
             project:projects!fk_crm_support_tickets_project_scope(name)
-          `)
+          `
+          )
           .eq('company_id', activeCompanyId)
           .order('created_at', { ascending: false }),
         supabase
@@ -61,8 +63,15 @@ export function useCrmSupport() {
           .order('target_first_response_minutes', { ascending: true }),
       ]);
 
-      if (ticketsResult.error) throw ticketsResult.error;
-      if (policiesResult.error) throw policiesResult.error;
+      _results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`CrmSupport fetch ${i} failed:`, r.reason);
+      });
+
+      const ticketsResult = _results[0].status === 'fulfilled' ? _results[0].value : { data: null, error: null };
+      const policiesResult = _results[1].status === 'fulfilled' ? _results[1].value : { data: null, error: null };
+
+      if (ticketsResult.error) console.error('CrmSupport tickets query error:', ticketsResult.error);
+      if (policiesResult.error) console.error('CrmSupport policies query error:', policiesResult.error);
 
       setTickets(ticketsResult.data || []);
       setSlaPolicies(policiesResult.data || []);
@@ -78,22 +87,24 @@ export function useCrmSupport() {
     fetchCrmSupport();
   }, [fetchCrmSupport]);
 
-  const createTicket = useCallback(async (payload) => {
-    if (!supabase || !user || !activeCompanyId) return null;
+  const createTicket = useCallback(
+    async (payload) => {
+      if (!supabase || !user || !activeCompanyId) return null;
 
-    const ticketPayload = {
-      ...payload,
-      user_id: user.id,
-      company_id: activeCompanyId,
-      status: payload.status || DEFAULT_TICKET_STATUS,
-      priority: payload.priority || DEFAULT_TICKET_PRIORITY,
-      sla_level: payload.sla_level || DEFAULT_SLA_LEVEL,
-    };
+      const ticketPayload = {
+        ...payload,
+        user_id: user.id,
+        company_id: activeCompanyId,
+        status: payload.status || DEFAULT_TICKET_STATUS,
+        priority: payload.priority || DEFAULT_TICKET_PRIORITY,
+        sla_level: payload.sla_level || DEFAULT_SLA_LEVEL,
+      };
 
-    const { data, error: insertError } = await supabase
-      .from('crm_support_tickets')
-      .insert([ticketPayload])
-      .select(`
+      const { data, error: insertError } = await supabase
+        .from('crm_support_tickets')
+        .insert([ticketPayload])
+        .select(
+          `
         id,
         ticket_number,
         title,
@@ -111,35 +122,40 @@ export function useCrmSupport() {
         project_id,
         client:clients!fk_crm_support_tickets_client_scope(company_name),
         project:projects!fk_crm_support_tickets_project_scope(name)
-      `)
-      .single();
+      `
+        )
+        .single();
 
-    if (insertError) {
+      if (insertError) {
+        toast({
+          title: 'Erreur',
+          description: insertError.message,
+          variant: 'destructive',
+        });
+        throw insertError;
+      }
+
+      setTickets((prev) => [data, ...prev]);
       toast({
-        title: 'Erreur',
-        description: insertError.message,
-        variant: 'destructive',
+        title: 'Ticket créé',
+        description: `${data.ticket_number || 'Ticket'} créé avec succès.`,
       });
-      throw insertError;
-    }
+      return data;
+    },
+    [activeCompanyId, toast, user]
+  );
 
-    setTickets((prev) => [data, ...prev]);
-    toast({
-      title: 'Ticket créé',
-      description: `${data.ticket_number || 'Ticket'} créé avec succès.`,
-    });
-    return data;
-  }, [activeCompanyId, toast, user]);
+  const updateTicket = useCallback(
+    async (ticketId, payload) => {
+      if (!supabase || !user || !activeCompanyId || !ticketId) return null;
 
-  const updateTicket = useCallback(async (ticketId, payload) => {
-    if (!supabase || !user || !activeCompanyId || !ticketId) return null;
-
-    const { data, error: updateError } = await supabase
-      .from('crm_support_tickets')
-      .update(payload)
-      .eq('id', ticketId)
-      .eq('company_id', activeCompanyId)
-      .select(`
+      const { data, error: updateError } = await supabase
+        .from('crm_support_tickets')
+        .update(payload)
+        .eq('id', ticketId)
+        .eq('company_id', activeCompanyId)
+        .select(
+          `
         id,
         ticket_number,
         title,
@@ -157,47 +173,53 @@ export function useCrmSupport() {
         project_id,
         client:clients!fk_crm_support_tickets_client_scope(company_name),
         project:projects!fk_crm_support_tickets_project_scope(name)
-      `)
-      .single();
+      `
+        )
+        .single();
 
-    if (updateError) {
+      if (updateError) {
+        toast({
+          title: 'Erreur',
+          description: updateError.message,
+          variant: 'destructive',
+        });
+        throw updateError;
+      }
+
+      setTickets((prev) => prev.map((ticket) => (ticket.id === ticketId ? data : ticket)));
+      return data;
+    },
+    [activeCompanyId, toast, user]
+  );
+
+  const deleteTicket = useCallback(
+    async (ticketId) => {
+      if (!supabase || !user || !activeCompanyId || !ticketId) return false;
+
+      const { error: deleteError } = await supabase
+        .from('crm_support_tickets')
+        .delete()
+        .eq('id', ticketId)
+        .eq('company_id', activeCompanyId);
+
+      if (deleteError) {
+        toast({
+          title: 'Erreur',
+          description: deleteError.message,
+          variant: 'destructive',
+        });
+        throw deleteError;
+      }
+
+      setTickets((prev) => prev.filter((ticket) => ticket.id !== ticketId));
       toast({
-        title: 'Erreur',
-        description: updateError.message,
-        variant: 'destructive',
+        title: 'Ticket supprimé',
+        description: 'Le ticket a été supprimé.',
       });
-      throw updateError;
-    }
-
-    setTickets((prev) => prev.map((ticket) => (ticket.id === ticketId ? data : ticket)));
-    return data;
-  }, [activeCompanyId, toast, user]);
-
-  const deleteTicket = useCallback(async (ticketId) => {
-    if (!supabase || !user || !activeCompanyId || !ticketId) return false;
-
-    const { error: deleteError } = await supabase
-      .from('crm_support_tickets')
-      .delete()
-      .eq('id', ticketId)
-      .eq('company_id', activeCompanyId);
-
-    if (deleteError) {
-      toast({
-        title: 'Erreur',
-        description: deleteError.message,
-        variant: 'destructive',
-      });
-      throw deleteError;
-    }
-
-    setTickets((prev) => prev.filter((ticket) => ticket.id !== ticketId));
-    toast({
-      title: 'Ticket supprimé',
-      description: 'Le ticket a été supprimé.',
-    });
-    return true;
-  }, [activeCompanyId, toast, user]);
+      return true;
+    },
+    [activeCompanyId, toast, user]
+  );
 
   const supportKpis = useMemo(() => {
     const now = Date.now();

@@ -47,11 +47,9 @@ import {
   Landmark,
   Mail,
   Repeat,
-  Webhook,
   Coins,
   Download,
   Rocket,
-  Wand2
 } from 'lucide-react';
 import '../styles/landing.css';
 
@@ -64,9 +62,7 @@ const LandingPage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [mobileMenuActive, setMobileMenuActive] = useState(false);
   const [navbarScrolled, setNavbarScrolled] = useState(false);
-  const [demoBannerVisible, setDemoBannerVisible] = useState(
-    !localStorage.getItem('cashpilot_demo_banner_dismissed')
-  );
+  const [demoBannerVisible, setDemoBannerVisible] = useState(!localStorage.getItem('cashpilot_demo_banner_dismissed'));
 
   const preloaderRef = useRef(null);
   const cursorFollowerRef = useRef(null);
@@ -107,9 +103,12 @@ const LandingPage = () => {
 
     if (!cursor || !dot) return;
 
-    let mouseX = 0, mouseY = 0;
-    let cursorX = 0, cursorY = 0;
-    let dotX = 0, dotY = 0;
+    let mouseX = 0,
+      mouseY = 0;
+    let cursorX = 0,
+      cursorY = 0;
+    let dotX = 0,
+      dotY = 0;
 
     const handleMouseMove = (e) => {
       mouseX = e.clientX;
@@ -135,9 +134,11 @@ const LandingPage = () => {
     animateCursor();
 
     // Hover effects
-    const interactiveElements = document.querySelectorAll('a, button, .feature-card, .audience-card, .simulation-card, .accounting-card, .country-item, .advantage-item');
+    const interactiveElements = document.querySelectorAll(
+      'a, button, .feature-card, .audience-card, .simulation-card, .accounting-card, .country-item, .advantage-item'
+    );
 
-    interactiveElements.forEach(el => {
+    interactiveElements.forEach((el) => {
       el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
       el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
     });
@@ -185,7 +186,7 @@ const LandingPage = () => {
     const renderer = new THREE.WebGLRenderer({
       canvas,
       alpha: true,
-      antialias: true
+      antialias: true,
     });
 
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -207,7 +208,7 @@ const LandingPage = () => {
       color: 0x8b5cf6,
       transparent: true,
       opacity: 0.8,
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
     });
 
     const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
@@ -239,7 +240,7 @@ const LandingPage = () => {
     const linesMaterial = new THREE.LineBasicMaterial({
       color: 0x3b82f6,
       transparent: true,
-      opacity: 0.2
+      opacity: 0.2,
     });
 
     const linesMesh = new THREE.LineSegments(linesGeometry, linesMaterial);
@@ -247,7 +248,8 @@ const LandingPage = () => {
 
     camera.position.z = 3;
 
-    let mouseX = 0, mouseY = 0;
+    let mouseX = 0,
+      mouseY = 0;
 
     const handleMouseMove = (e) => {
       mouseX = (e.clientX / window.innerWidth) * 2 - 1;
@@ -297,7 +299,7 @@ const LandingPage = () => {
     if (!isLoaded) return;
 
     // Section headers
-    gsap.utils.toArray('.section-header').forEach(header => {
+    gsap.utils.toArray('.section-header').forEach((header) => {
       gsap.from(header, {
         opacity: 0,
         y: 60,
@@ -306,8 +308,8 @@ const LandingPage = () => {
         scrollTrigger: {
           trigger: header,
           start: 'top 80%',
-          toggleActions: 'play none none reverse'
-        }
+          toggleActions: 'play none none reverse',
+        },
       });
     });
 
@@ -323,14 +325,14 @@ const LandingPage = () => {
         scrollTrigger: {
           trigger: card,
           start: 'top 85%',
-          toggleActions: 'play none none reverse'
-        }
+          toggleActions: 'play none none reverse',
+        },
       });
     });
 
     // Magnetic buttons
     const buttons = document.querySelectorAll('.magnetic-btn');
-    buttons.forEach(button => {
+    buttons.forEach((button) => {
       button.addEventListener('mousemove', (e) => {
         const rect = button.getBoundingClientRect();
         const x = e.clientX - rect.left - rect.width / 2;
@@ -340,7 +342,7 @@ const LandingPage = () => {
           x: x * 0.3,
           y: y * 0.3,
           duration: 0.3,
-          ease: 'power2.out'
+          ease: 'power2.out',
         });
       });
 
@@ -349,13 +351,13 @@ const LandingPage = () => {
           x: 0,
           y: 0,
           duration: 0.5,
-          ease: 'elastic.out(1, 0.3)'
+          ease: 'elastic.out(1, 0.3)',
         });
       });
     });
 
     return () => {
-      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
     };
   }, [isLoaded]);
 
@@ -373,14 +375,14 @@ const LandingPage = () => {
     .toLowerCase()
     .split('-')[0];
   const copy = landingPageContent[languageCode] || landingPageContent.en;
-  const legalLinkLabels = languageCode === 'fr'
-    ? { privacy: 'Politique de confidentialite', legal: 'Mentions legales' }
-    : languageCode === 'nl'
-      ? { privacy: 'Privacybeleid', legal: 'Juridische vermeldingen' }
-      : { privacy: 'Privacy policy', legal: 'Legal notice' };
+  const legalLinkLabels =
+    languageCode === 'fr'
+      ? { privacy: 'Politique de confidentialite', legal: 'Mentions legales' }
+      : languageCode === 'nl'
+        ? { privacy: 'Privacybeleid', legal: 'Juridische vermeldingen' }
+        : { privacy: 'Privacy policy', legal: 'Legal notice' };
 
   const handleNavigate = (path) => {
-    console.log(`Navigating to: ${path}`);
     navigate(path);
   };
 
@@ -391,7 +393,7 @@ const LandingPage = () => {
       const offsetTop = target.offsetTop - 80;
       window.scrollTo({
         top: offsetTop,
-        behavior: 'smooth'
+        behavior: 'smooth',
       });
     }
     closeMobileMenu();
@@ -504,8 +506,18 @@ const LandingPage = () => {
 
   const peppolCards = [
     { icon: Clock, iconStyle: undefined, tagClassName: 'peppol-card-tag tag-green', ...copy.peppol.cards[0] },
-    { icon: Rocket, iconStyle: { color: 'var(--accent-blue)' }, tagClassName: 'peppol-card-tag tag-blue', ...copy.peppol.cards[1] },
-    { icon: Download, iconStyle: { color: '#a78bfa' }, tagClassName: 'peppol-card-tag tag-purple', ...copy.peppol.cards[2] },
+    {
+      icon: Rocket,
+      iconStyle: { color: 'var(--accent-blue)' },
+      tagClassName: 'peppol-card-tag tag-blue',
+      ...copy.peppol.cards[1],
+    },
+    {
+      icon: Download,
+      iconStyle: { color: '#a78bfa' },
+      tagClassName: 'peppol-card-tag tag-purple',
+      ...copy.peppol.cards[2],
+    },
   ];
 
   const countryIds = ['france', 'belgium', 'ohada'];
@@ -513,11 +525,11 @@ const LandingPage = () => {
 
   return (
     <div id="top" className={`landing-page${demoBannerVisible ? ' has-demo-banner' : ''}`}>
-      <Helmet><title>CashPilot</title></Helmet>
+      <Helmet>
+        <title>CashPilot</title>
+      </Helmet>
       {/* Demo Banner */}
-      {demoBannerVisible && (
-        <DemoBanner onDismiss={() => setDemoBannerVisible(false)} />
-      )}
+      {demoBannerVisible && <DemoBanner onDismiss={() => setDemoBannerVisible(false)} />}
 
       {/* Preloader */}
       <div id="preloader" ref={preloaderRef}>
@@ -542,26 +554,71 @@ const LandingPage = () => {
         aria-label={copy.nav?.ariaLabel || 'Primary navigation'}
       >
         <div className="nav-container">
-          <a href="#" className="nav-logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+          <a
+            href="#"
+            className="nav-logo"
+            onClick={(e) => {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
             <Wallet className="logo-icon" />
             <span>CashPilot</span>
           </a>
           <div className="nav-links">
             {navLinks.map((item) => (
-              <a key={item.href} href={item.href} className="nav-prismatic" onClick={(e) => handleSmoothScroll(e, item.href)}>
+              <a
+                key={item.href}
+                href={item.href}
+                className="nav-prismatic"
+                onClick={(e) => handleSmoothScroll(e, item.href)}
+              >
                 {item.label}
               </a>
             ))}
-            <a href="/pricing" className="nav-prismatic" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>{copy.nav.pricing}</a>
-            <a href="/mcp-tools.html" className="nav-prismatic" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>{copy.nav.mcpTools}</a>
-            <a href="/guide/" className="nav-prismatic" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>{copy.nav.guide}</a>
+            <a
+              href="/pricing"
+              className="nav-prismatic"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigate('/pricing');
+              }}
+            >
+              {copy.nav.pricing}
+            </a>
+            <a
+              href="/mcp-tools.html"
+              className="nav-prismatic"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                e.preventDefault();
+                window.open('/mcp-tools.html', '_blank');
+              }}
+            >
+              {copy.nav.mcpTools}
+            </a>
+            <a
+              href="/guide/"
+              className="nav-prismatic"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                e.preventDefault();
+                window.open('/guide/', '_blank');
+              }}
+            >
+              {copy.nav.guide}
+            </a>
             <button className="nav-peppol-btn nav-prismatic" onClick={() => handleNavigate('/peppol-guide')}>
               <Globe /> {copy.nav.peppol}
             </button>
           </div>
           <div className="nav-actions">
             <LanguageSwitcher variant="segmented" />
-            <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>{copy.nav.login}</button>
+            <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>
+              {copy.nav.login}
+            </button>
             <button className="btn btn-primary nav-prismatic magnetic-btn" onClick={() => handleNavigate('/login')}>
               {copy.nav.start} <ArrowRight />
             </button>
@@ -576,20 +633,66 @@ const LandingPage = () => {
       <div id="mobile-menu" className={`mobile-menu ${mobileMenuActive ? 'active' : ''}`}>
         <div className="mobile-menu-content">
           {navLinks.map((item) => (
-            <a key={item.href} href={item.href} className="mobile-link" onClick={(e) => handleSmoothScroll(e, item.href)}>
+            <a
+              key={item.href}
+              href={item.href}
+              className="mobile-link"
+              onClick={(e) => handleSmoothScroll(e, item.href)}
+            >
               {item.label}
             </a>
           ))}
-          <a href="/pricing" className="mobile-link" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>{copy.nav.pricing}</a>
-          <a href="/mcp-tools.html" className="mobile-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/mcp-tools.html', '_blank'); }}>{copy.nav.mcpTools}</a>
-          <a href="/guide/" className="mobile-link" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); window.open('/guide/', '_blank'); }}>{copy.nav.guide}</a>
-          <button className="nav-peppol-btn nav-prismatic" onClick={() => { setMobileMenuActive(false); handleNavigate('/peppol-guide'); }}>
+          <a
+            href="/pricing"
+            className="mobile-link"
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavigate('/pricing');
+            }}
+          >
+            {copy.nav.pricing}
+          </a>
+          <a
+            href="/mcp-tools.html"
+            className="mobile-link"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              e.preventDefault();
+              window.open('/mcp-tools.html', '_blank');
+            }}
+          >
+            {copy.nav.mcpTools}
+          </a>
+          <a
+            href="/guide/"
+            className="mobile-link"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              e.preventDefault();
+              window.open('/guide/', '_blank');
+            }}
+          >
+            {copy.nav.guide}
+          </a>
+          <button
+            className="nav-peppol-btn nav-prismatic"
+            onClick={() => {
+              setMobileMenuActive(false);
+              handleNavigate('/peppol-guide');
+            }}
+          >
             <Globe /> {copy.nav.peppolGuide}
           </button>
           <LanguageSwitcher variant="segmented" />
           <div className="mobile-actions">
-            <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>{copy.nav.login}</button>
-            <button className="btn btn-primary nav-prismatic" onClick={() => handleNavigate('/login')}>{copy.nav.start}</button>
+            <button className="btn nav-prismatic" onClick={() => handleNavigate('/login')}>
+              {copy.nav.login}
+            </button>
+            <button className="btn btn-primary nav-prismatic" onClick={() => handleNavigate('/login')}>
+              {copy.nav.start}
+            </button>
           </div>
         </div>
       </div>
@@ -652,12 +755,16 @@ const LandingPage = () => {
             <div className="hero-cta animate-in" data-delay="500">
               <button className="btn btn-hero-primary magnetic-btn" onClick={() => handleNavigate('/login')}>
                 <span className="btn-text">{copy.hero.primaryCta}</span>
-                <span className="btn-icon"><ArrowRight /></span>
+                <span className="btn-icon">
+                  <ArrowRight />
+                </span>
                 <span className="btn-shine"></span>
               </button>
               <button className="btn btn-hero-secondary magnetic-btn" onClick={() => window.open('/guide/', '_blank')}>
                 <span className="btn-text">{copy.hero.secondaryCta}</span>
-                <span className="btn-play"><Play /></span>
+                <span className="btn-play">
+                  <Play />
+                </span>
               </button>
             </div>
 
@@ -943,7 +1050,9 @@ const LandingPage = () => {
           <div className="mcp-agents-grid">
             {mcpAgents.map((agent) => (
               <div key={agent.name} className="mcp-agent-badge">
-                <span className="mcp-agent-icon" style={agent.style}>{agent.iconText}</span>
+                <span className="mcp-agent-icon" style={agent.style}>
+                  {agent.iconText}
+                </span>
                 <span className="mcp-agent-name">{agent.name}</span>
                 <span className="mcp-agent-company">{agent.company}</span>
               </div>
@@ -1072,7 +1181,9 @@ const LandingPage = () => {
             <div className="cta-buttons">
               <button className="btn btn-cta-primary magnetic-btn" onClick={() => handleNavigate('/login')}>
                 <span className="btn-text">{copy.cta.primary}</span>
-                <span className="btn-icon"><ArrowRight /></span>
+                <span className="btn-icon">
+                  <ArrowRight />
+                </span>
                 <span className="btn-shine"></span>
               </button>
               <button className="btn btn-cta-secondary magnetic-btn" onClick={() => handleNavigate('/login')}>
@@ -1119,13 +1230,55 @@ const LandingPage = () => {
             <div className="footer-section">
               <h4>{copy.footer.linksTitle}</h4>
               <div className="footer-links">
-                <a href="#top" onClick={(e) => handleSmoothScroll(e, '#top')}>{copy.footer.links.about}</a>
+                <a href="#top" onClick={(e) => handleSmoothScroll(e, '#top')}>
+                  {copy.footer.links.about}
+                </a>
                 <a href="#features">{copy.footer.links.features}</a>
-                <a href="/pricing" onClick={(e) => { e.preventDefault(); handleNavigate('/pricing'); }}>{copy.footer.links.pricing}</a>
-                <a href="/peppol-guide" onClick={(e) => { e.preventDefault(); handleNavigate('/peppol-guide'); }}>{copy.footer.links.support}</a>
-                <a href="/privacy" onClick={(e) => { e.preventDefault(); handleNavigate('/privacy'); }}>{legalLinkLabels.privacy}</a>
-                <a href="/legal" onClick={(e) => { e.preventDefault(); handleNavigate('/legal'); }}>{legalLinkLabels.legal}</a>
-                <a href="#" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new Event('show-cookie-consent')); }}>{t('cookies.footerLink')}</a>
+                <a
+                  href="/pricing"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavigate('/pricing');
+                  }}
+                >
+                  {copy.footer.links.pricing}
+                </a>
+                <a
+                  href="/peppol-guide"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavigate('/peppol-guide');
+                  }}
+                >
+                  {copy.footer.links.support}
+                </a>
+                <a
+                  href="/privacy"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavigate('/privacy');
+                  }}
+                >
+                  {legalLinkLabels.privacy}
+                </a>
+                <a
+                  href="/legal"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavigate('/legal');
+                  }}
+                >
+                  {legalLinkLabels.legal}
+                </a>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.dispatchEvent(new Event('show-cookie-consent'));
+                  }}
+                >
+                  {t('cookies.footerLink')}
+                </a>
               </div>
             </div>
           </div>

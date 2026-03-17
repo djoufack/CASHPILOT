@@ -53,18 +53,31 @@ export function useQVT() {
       employeesQuery = applyCompanyScope(employeesQuery);
       departmentsQuery = applyCompanyScope(departmentsQuery);
 
-      const [surveysResult, surveyResponsesResult, riskAssessmentsResult, employeesResult, departmentsResult] =
-        await Promise.all([surveysQuery, surveyResponsesQuery, riskAssessmentsQuery, employeesQuery, departmentsQuery]);
+      const _results = await Promise.allSettled([
+        surveysQuery,
+        surveyResponsesQuery,
+        riskAssessmentsQuery,
+        employeesQuery,
+        departmentsQuery,
+      ]);
 
-      const firstError = [
-        surveysResult.error,
-        surveyResponsesResult.error,
-        riskAssessmentsResult.error,
-        employeesResult.error,
-        departmentsResult.error,
-      ].find(Boolean);
+      const _qvtLabels = ['surveys', 'surveyResponses', 'riskAssessments', 'employees', 'departments'];
+      _results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`QVT fetch "${_qvtLabels[i]}" failed:`, r.reason);
+      });
 
-      if (firstError) throw firstError;
+      const _v = (i) => (_results[i].status === 'fulfilled' ? _results[i].value : null) || { data: null, error: null };
+      const surveysResult = _v(0);
+      const surveyResponsesResult = _v(1);
+      const riskAssessmentsResult = _v(2);
+      const employeesResult = _v(3);
+      const departmentsResult = _v(4);
+
+      [surveysResult, surveyResponsesResult, riskAssessmentsResult, employeesResult, departmentsResult].forEach(
+        (res, i) => {
+          if (res.error) console.error(`QVT query "${_qvtLabels[i]}" error:`, res.error);
+        }
+      );
 
       setSurveys(surveysResult.data || []);
       setSurveyResponses(surveyResponsesResult.data || []);

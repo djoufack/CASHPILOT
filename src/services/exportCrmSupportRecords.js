@@ -1,19 +1,8 @@
-import DOMPurify from 'dompurify';
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
-import {
-  buildStandaloneTemplateHtml,
-  resolveInvoiceExportSettings,
-} from '@/services/invoiceTemplateExport';
+import { buildStandaloneTemplateHtml, resolveInvoiceExportSettings } from '@/services/invoiceTemplateExport';
 import { getTheme } from '@/config/invoiceThemes';
-
-const escapeHtml = (value) =>
-  String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+import { escapeHTML as escapeHtml, setSafeHtml } from '@/utils/sanitize';
 
 const toLabel = (value) => {
   const normalized = String(value || '').toLowerCase();
@@ -29,10 +18,6 @@ const formatDateTime = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
   return date.toLocaleString('fr-FR');
-};
-
-const setSafeHtml = (element, html) => {
-  element.innerHTML = DOMPurify.sanitize(String(html || ''));
 };
 
 const downloadHtmlFile = (html, filename) => {
@@ -144,9 +129,6 @@ export const exportCrmSupportTicketPDF = async (ticket, company, invoiceSettings
 export const exportCrmSupportTicketHTML = async (ticket, company, invoiceSettings = null) => {
   const { settings, theme } = await resolveSupportTheme(invoiceSettings);
   const filename = `CRM_Ticket_${ticket?.ticket_number || 'ticket'}_${formatDateInput()}`;
-  const html = buildStandaloneTemplateHtml(
-    'Ticket support CRM',
-    ticketContent(ticket, company, settings, theme),
-  );
+  const html = buildStandaloneTemplateHtml('Ticket support CRM', ticketContent(ticket, company, settings, theme));
   downloadHtmlFile(html, filename);
 };

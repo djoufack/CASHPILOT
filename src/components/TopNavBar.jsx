@@ -14,20 +14,30 @@ import NotificationCenterComponent from '@/components/NotificationCenter';
 import CompanySwitcher from '@/components/CompanySwitcher';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
-const TopNavBar = ({ isCollapsed }) => {
+const TopNavBar = ({ isCollapsed, mobileMenuOpen: externalMobileOpen, onMobileMenuClose }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { toast } = useToast();
   const { availableCredits, loading: creditsLoading, unlimitedAccess, unlimitedAccessLabel } = useCredits();
   const { companies, activeCompany, switchCompany } = useCompany();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [internalMobileOpen, setInternalMobileOpen] = useState(false);
   const mobileDialogRef = useRef(null);
   const mobileCloseButtonRef = useRef(null);
 
+  // Use external control if provided, otherwise internal state
+  const mobileMenuOpen = externalMobileOpen !== undefined ? externalMobileOpen : internalMobileOpen;
+  const setMobileMenuOpen = useCallback(
+    (val) => {
+      if (!val && onMobileMenuClose) onMobileMenuClose();
+      setInternalMobileOpen(val);
+    },
+    [onMobileMenuClose]
+  );
+
   const handleCloseMobileMenu = useCallback(() => {
     setMobileMenuOpen(false);
-  }, []);
+  }, [setMobileMenuOpen]);
 
   useFocusTrap({
     active: mobileMenuOpen,

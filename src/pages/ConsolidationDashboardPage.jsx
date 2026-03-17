@@ -119,8 +119,8 @@ export default function ConsolidationDashboardPage() {
     const { startDate, endDate } = currentPeriod;
     const prev = getPreviousPeriod(startDate, endDate);
 
-    // Load all data concurrently
-    const [_pnl, _balance, _cash, , prevPnlData, prevBalanceData, prevCashData] = await Promise.all([
+    // Load all data concurrently with partial failure tolerance
+    const _consolResults = await Promise.allSettled([
       fetchConsolidatedPnl(selectedPortfolioId, startDate, endDate),
       fetchConsolidatedBalance(selectedPortfolioId, endDate),
       fetchCashPosition(selectedPortfolioId),
@@ -129,6 +129,17 @@ export default function ConsolidationDashboardPage() {
       fetchConsolidatedBalance(selectedPortfolioId, prev.endDate),
       fetchCashPosition(selectedPortfolioId),
     ]);
+
+    const _consolLabels = ['pnl', 'balance', 'cash', 'intercompany', 'prevPnl', 'prevBalance', 'prevCash'];
+    _consolResults.forEach((r, i) => {
+      if (r.status === 'rejected')
+        console.error(`ConsolidationDashboard fetch "${_consolLabels[i]}" failed:`, r.reason);
+    });
+
+    const _cv = (i) => (_consolResults[i].status === 'fulfilled' ? _consolResults[i].value : null);
+    const prevPnlData = _cv(4);
+    const prevBalanceData = _cv(5);
+    const prevCashData = _cv(6);
 
     setPreviousPnl(prevPnlData);
     setPreviousBalance(prevBalanceData);

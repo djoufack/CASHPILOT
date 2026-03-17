@@ -235,7 +235,13 @@ export const useReconIA = () => {
   useEffect(() => {
     if (user && activeCompanyId) {
       setLoading(true);
-      Promise.all([fetchRules(), fetchHistory(), computeStats()]).finally(() => setLoading(false));
+      Promise.allSettled([fetchRules(), fetchHistory(), computeStats()])
+        .then((results) => {
+          results.forEach((r, i) => {
+            if (r.status === 'rejected') console.error(`ReconIA initial fetch ${i} failed:`, r.reason);
+          });
+        })
+        .finally(() => setLoading(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, activeCompanyId]);

@@ -58,7 +58,7 @@ export function usePerformance() {
       employeesQuery = applyCompanyScope(employeesQuery);
       departmentsQuery = applyCompanyScope(departmentsQuery);
 
-      const [reviewsResult, successionResult, budgetsResult, employeesResult, departmentsResult] = await Promise.all([
+      const _results = await Promise.allSettled([
         reviewsQuery,
         successionQuery,
         budgetsQuery,
@@ -66,15 +66,21 @@ export function usePerformance() {
         departmentsQuery,
       ]);
 
-      const firstError = [
-        reviewsResult.error,
-        successionResult.error,
-        budgetsResult.error,
-        employeesResult.error,
-        departmentsResult.error,
-      ].find(Boolean);
+      const _perfLabels = ['reviews', 'succession', 'budgets', 'employees', 'departments'];
+      _results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`Performance fetch "${_perfLabels[i]}" failed:`, r.reason);
+      });
 
-      if (firstError) throw firstError;
+      const _v = (i) => (_results[i].status === 'fulfilled' ? _results[i].value : null) || { data: null, error: null };
+      const reviewsResult = _v(0);
+      const successionResult = _v(1);
+      const budgetsResult = _v(2);
+      const employeesResult = _v(3);
+      const departmentsResult = _v(4);
+
+      [reviewsResult, successionResult, budgetsResult, employeesResult, departmentsResult].forEach((res, i) => {
+        if (res.error) console.error(`Performance query "${_perfLabels[i]}" error:`, res.error);
+      });
 
       setReviews(reviewsResult.data || []);
       setSuccessionPlans(successionResult.data || []);

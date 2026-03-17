@@ -5,9 +5,10 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+import { getAllowedOrigin } from '../_shared/cors.ts';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': getAllowedOrigin(),
   'Access-Control-Allow-Headers': 'content-type, x-webhook-signature',
   ...SECURITY_HEADERS,
 };

@@ -6,11 +6,12 @@
 
 import { resolveInvoiceCurrency } from '@/utils/invoiceCurrency';
 import { uploadDocument } from '@/services/documentStorage';
+import { escapeXML as escapeXml } from '@/utils/sanitize';
 
 const FACTURX_PROFILES = {
   MINIMUM: 'urn:factur-x.eu:1p0:minimum',
   BASIC: 'urn:factur-x.eu:1p0:basic',
-  EN16931: 'urn:cen.eu:en16931:2017'
+  EN16931: 'urn:cen.eu:en16931:2017',
 };
 
 const DOCUMENT_TYPES = {
@@ -19,20 +20,7 @@ const DOCUMENT_TYPES = {
   DEBIT_NOTE: '383',
   CORRECTED_INVOICE: '384',
   PREPAYMENT_INVOICE: '386',
-  SELF_BILLED_INVOICE: '389'
-};
-
-/**
- * Escape XML special characters
- */
-const escapeXml = (str) => {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+  SELF_BILLED_INVOICE: '389',
 };
 
 const REQUIRED_FACTURX_TAGS = [
@@ -41,7 +29,7 @@ const REQUIRED_FACTURX_TAGS = [
   'rsm:ExchangedDocument',
   'rsm:SupplyChainTradeTransaction',
   'ram:ApplicableHeaderTradeAgreement',
-  'ram:ApplicableHeaderTradeSettlement'
+  'ram:ApplicableHeaderTradeSettlement',
 ];
 
 export const validateFacturXXmlStructure = (xml) => {
@@ -71,7 +59,7 @@ export const validateFacturXXmlStructure = (xml) => {
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -99,7 +87,7 @@ const formatAmount = (amount) => {
 /**
  * Generate CII XML header
  */
-const generateHeader = (invoice, profile) => {
+const generateHeader = (_invoice, _profile) => {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rsm:CrossIndustryInvoice
   xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
@@ -133,9 +121,13 @@ const generateExchangedDocument = (invoice) => {
     <ram:IssueDateTime>
       <udt:DateTimeString format="102">${formatDate(invoice.invoice_date)}</udt:DateTimeString>
     </ram:IssueDateTime>
-    ${invoice.notes ? `<ram:IncludedNote>
+    ${
+      invoice.notes
+        ? `<ram:IncludedNote>
       <ram:Content>${escapeXml(invoice.notes)}</ram:Content>
-    </ram:IncludedNote>` : ''}
+    </ram:IncludedNote>`
+        : ''
+    }
   </rsm:ExchangedDocument>`;
 };
 
@@ -155,9 +147,13 @@ const generateTradeHeader = (invoice, seller, buyer) => {
           <ram:CityName>${escapeXml(seller.city || '')}</ram:CityName>
           <ram:CountryID>${escapeXml(seller.country || 'FR')}</ram:CountryID>
         </ram:PostalTradeAddress>
-        ${seller.vat_number ? `<ram:SpecifiedTaxRegistration>
+        ${
+          seller.vat_number
+            ? `<ram:SpecifiedTaxRegistration>
           <ram:ID schemeID="VA">${escapeXml(seller.vat_number)}</ram:ID>
-        </ram:SpecifiedTaxRegistration>` : ''}
+        </ram:SpecifiedTaxRegistration>`
+            : ''
+        }
       </ram:SellerTradeParty>
       <ram:BuyerTradeParty>
         <ram:Name>${escapeXml(buyer.name)}</ram:Name>
@@ -168,9 +164,13 @@ const generateTradeHeader = (invoice, seller, buyer) => {
           <ram:CityName>${escapeXml(buyer.city || '')}</ram:CityName>
           <ram:CountryID>${escapeXml(buyer.country || 'FR')}</ram:CountryID>
         </ram:PostalTradeAddress>
-        ${buyer.vat_number ? `<ram:SpecifiedTaxRegistration>
+        ${
+          buyer.vat_number
+            ? `<ram:SpecifiedTaxRegistration>
           <ram:ID schemeID="VA">${escapeXml(buyer.vat_number)}</ram:ID>
-        </ram:SpecifiedTaxRegistration>` : ''}
+        </ram:SpecifiedTaxRegistration>`
+            : ''
+        }
       </ram:BuyerTradeParty>
     </ram:ApplicableHeaderTradeAgreement>`;
 };
@@ -195,16 +195,17 @@ const deriveTaxCategoryCode = (rate, explicitCategory) => {
 const generateLineItems = (items) => {
   if (!items || items.length === 0) return '';
 
-  return items.map((item, index) => {
-    const lineId = index + 1;
-    const quantity = item.quantity || 1;
-    const unitPrice = item.unit_price ?? item.price ?? 0;
-    const lineTotal = item.total ?? (quantity * unitPrice);
-    const vatRate = item.vat_rate ?? item.tax_rate ?? 20;
-    const categoryCode = deriveTaxCategoryCode(vatRate, item.tax_category);
-    const unitCode = item.unit_code || 'C62';
+  return items
+    .map((item, index) => {
+      const lineId = index + 1;
+      const quantity = item.quantity || 1;
+      const unitPrice = item.unit_price ?? item.price ?? 0;
+      const lineTotal = item.total ?? quantity * unitPrice;
+      const vatRate = item.vat_rate ?? item.tax_rate ?? 20;
+      const categoryCode = deriveTaxCategoryCode(vatRate, item.tax_category);
+      const unitCode = item.unit_code || 'C62';
 
-    return `
+      return `
     <ram:IncludedSupplyChainTradeLineItem>
       <ram:AssociatedDocumentLineDocument>
         <ram:LineID>${lineId}</ram:LineID>
@@ -231,7 +232,8 @@ const generateLineItems = (items) => {
         </ram:SpecifiedTradeSettlementLineMonetarySummation>
       </ram:SpecifiedLineTradeSettlement>
     </ram:IncludedSupplyChainTradeLineItem>`;
-  }).join('');
+    })
+    .join('');
 };
 
 /**
@@ -267,19 +269,23 @@ const generateTaxBreakdown = (invoice, items) => {
     }
     const quantity = item.quantity || 1;
     const unitPrice = item.unit_price ?? item.price ?? 0;
-    const lineTotal = item.total ?? (quantity * unitPrice);
+    const lineTotal = item.total ?? quantity * unitPrice;
     taxGroups[key].basisAmount += lineTotal;
     taxGroups[key].taxAmount += lineTotal * (Number(rate) / 100);
   }
 
-  return Object.values(taxGroups).map(group => `
+  return Object.values(taxGroups)
+    .map(
+      (group) => `
       <ram:ApplicableTradeTax>
         <ram:CalculatedAmount>${formatAmount(group.taxAmount)}</ram:CalculatedAmount>
         <ram:TypeCode>VAT</ram:TypeCode>
         <ram:BasisAmount>${formatAmount(group.basisAmount)}</ram:BasisAmount>
         <ram:CategoryCode>${group.categoryCode}</ram:CategoryCode>
         <ram:RateApplicablePercent>${formatAmount(group.rate)}</ram:RateApplicablePercent>
-      </ram:ApplicableTradeTax>`).join('');
+      </ram:ApplicableTradeTax>`
+    )
+    .join('');
 };
 
 /**
@@ -305,15 +311,23 @@ const generateTradeSettlement = (invoice, seller, currency, items) => {
   return `
     <ram:ApplicableHeaderTradeSettlement>
       <ram:InvoiceCurrencyCode>${currency}</ram:InvoiceCurrencyCode>
-      ${seller.iban ? `<ram:SpecifiedTradeSettlementPaymentMeans>
+      ${
+        seller.iban
+          ? `<ram:SpecifiedTradeSettlementPaymentMeans>
         <ram:TypeCode>58</ram:TypeCode>
         <ram:PayeePartyCreditorFinancialAccount>
           <ram:IBANID>${escapeXml(seller.iban)}</ram:IBANID>
         </ram:PayeePartyCreditorFinancialAccount>
-        ${seller.bic ? `<ram:PayeeSpecifiedCreditorFinancialInstitution>
+        ${
+          seller.bic
+            ? `<ram:PayeeSpecifiedCreditorFinancialInstitution>
           <ram:BICID>${escapeXml(seller.bic)}</ram:BICID>
-        </ram:PayeeSpecifiedCreditorFinancialInstitution>` : ''}
-      </ram:SpecifiedTradeSettlementPaymentMeans>` : ''}${generateTaxBreakdown(invoice, items)}
+        </ram:PayeeSpecifiedCreditorFinancialInstitution>`
+            : ''
+        }
+      </ram:SpecifiedTradeSettlementPaymentMeans>`
+          : ''
+      }${generateTaxBreakdown(invoice, items)}
       <ram:SpecifiedTradePaymentTerms>
         <ram:DueDateDateTime>
           <udt:DateTimeString format="102">${formatDate(dueDate)}</udt:DateTimeString>
@@ -348,7 +362,7 @@ export const generateFacturXXml = (invoice, seller, buyer, profile = 'BASIC', it
     generateTradeHeader(invoice, seller, buyer),
     generateLineItems(items),
     generateTradeDelivery(invoice),
-    generateTradeSettlement(invoice, seller, currency, items)
+    generateTradeSettlement(invoice, seller, currency, items),
   ].join('');
 
   return xml;
@@ -383,15 +397,15 @@ export const exportFacturX = async (invoice, seller, buyer, profile = 'BASIC', i
       userId: invoice.user_id,
       fileName: `facturx/${filename}`,
       fileData: blob,
-      contentType: 'application/xml;charset=utf-8'
-    }).catch(err => console.warn('Factur-X upload failed:', err));
+      contentType: 'application/xml;charset=utf-8',
+    }).catch((err) => console.warn('Factur-X upload failed:', err));
   }
 
   return {
     blob,
     filename,
     profile,
-    xml
+    xml,
   };
 };
 
@@ -409,7 +423,7 @@ export const validateForFacturX = (invoice, seller, buyer) => {
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -434,15 +448,11 @@ export const exportFacturXPdf = async (pdfBytes, invoice, seller, buyer, profile
 
   const pdfDoc = await PDFDocument.load(pdfBytes);
 
-  await pdfDoc.attach(
-    new TextEncoder().encode(xml),
-    'factur-x.xml',
-    {
-      mimeType: 'text/xml',
-      description: `Factur-X ${profile} invoice data`,
-      afRelationship: AFRelationship.Alternative,
-    }
-  );
+  await pdfDoc.attach(new TextEncoder().encode(xml), 'factur-x.xml', {
+    mimeType: 'text/xml',
+    description: `Factur-X ${profile} invoice data`,
+    afRelationship: AFRelationship.Alternative,
+  });
 
   pdfDoc.setTitle(`Invoice ${invoice.invoice_number || ''}`);
   pdfDoc.setSubject('Factur-X Invoice');
@@ -459,8 +469,8 @@ export const exportFacturXPdf = async (pdfBytes, invoice, seller, buyer, profile
       userId: invoice.user_id,
       fileName: `facturx/${pdfFilename}`,
       fileData: pdfBlob,
-      contentType: 'application/pdf'
-    }).catch(err => console.warn('Factur-X PDF upload failed:', err));
+      contentType: 'application/pdf',
+    }).catch((err) => console.warn('Factur-X PDF upload failed:', err));
   }
 
   return {
@@ -479,5 +489,5 @@ export default {
   validateFacturXXmlStructure,
   deriveTaxCategoryCode,
   FACTURX_PROFILES,
-  DOCUMENT_TYPES
+  DOCUMENT_TYPES,
 };

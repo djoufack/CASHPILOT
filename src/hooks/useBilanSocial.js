@@ -34,12 +34,21 @@ export function useBilanSocial() {
         .eq('status', 'active')
         .order('hire_date', { ascending: false });
 
-      const [bilanResult, employeesResult] = await Promise.all([
+      const _results = await Promise.allSettled([
         supabase.rpc('fn_bilan_social', { p_company_id: activeCompanyId }),
         applyCompanyScope(employeesQuery, { includeUnassigned: false }),
       ]);
-      if (bilanResult.error) throw bilanResult.error;
-      if (employeesResult.error) throw employeesResult.error;
+
+      _results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`BilanSocial fetch ${i} failed:`, r.reason);
+      });
+
+      const bilanResult = _results[0].status === 'fulfilled' ? _results[0].value : { data: null, error: null };
+      const employeesResult = _results[1].status === 'fulfilled' ? _results[1].value : { data: null, error: null };
+
+      if (bilanResult.error) console.error('BilanSocial bilan query error:', bilanResult.error);
+      if (employeesResult.error) console.error('BilanSocial employees query error:', employeesResult.error);
+
       setBilanData(bilanResult.data);
       setActiveEmployees(employeesResult.data || []);
     } catch (err) {

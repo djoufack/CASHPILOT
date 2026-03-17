@@ -7,7 +7,7 @@ try {
     Object.defineProperty(globalThis.navigator, 'locks', { value: undefined, configurable: true, writable: true });
   }
 } catch (_e) {
-  // navigator.locks may be non-configurable in some browsers (Edge/Opera) — ignore
+  // Intentionally empty: navigator.locks may be non-configurable in some browsers (Edge/Opera) — safe to ignore
 }
 
 const normalizeEnv = (value) => {
@@ -18,15 +18,8 @@ const normalizeEnv = (value) => {
 const supabaseUrl = normalizeEnv(import.meta.env.VITE_SUPABASE_URL);
 const supabaseAnonKey = normalizeEnv(import.meta.env.VITE_SUPABASE_ANON_KEY);
 
-const customSupabaseClient = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+const customSupabaseClient = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 export default customSupabaseClient;
 
-export {
-    customSupabaseClient,
-    customSupabaseClient as supabase,
-    supabaseUrl,
-    supabaseAnonKey,
-};
+export { customSupabaseClient, customSupabaseClient as supabase, supabaseUrl, supabaseAnonKey };

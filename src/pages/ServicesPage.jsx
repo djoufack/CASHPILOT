@@ -1,5 +1,4 @@
-
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +23,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Search, Plus, Trash2, Edit2, Download, Briefcase, Clock, DollarSign, Tag, AlertTriangle, Eye, FolderKanban, Receipt, Loader2 } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Trash2,
+  Edit2,
+  Download,
+  Briefcase,
+  Clock,
+  DollarSign,
+  Tag,
+  AlertTriangle,
+  Eye,
+  FolderKanban,
+  Receipt,
+  Loader2,
+} from 'lucide-react';
 
 const ServicesPage = () => {
   const { t } = useTranslation();
@@ -66,18 +80,18 @@ const ServicesPage = () => {
   const [formData, setFormData] = useState(emptyService);
 
   // Filter services
-  const filteredServices = services.filter(s => {
+  const filteredServices = services.filter((s) => {
     if (!searchTerm) return true;
     return s.service_name?.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   // Stats
   const totalServices = services.length;
-  const activeServices = services.filter(s => s.is_active).length;
+  const activeServices = services.filter((s) => s.is_active).length;
   const byType = {
-    hourly: services.filter(s => s.pricing_type === 'hourly').length,
-    fixed: services.filter(s => s.pricing_type === 'fixed').length,
-    per_unit: services.filter(s => s.pricing_type === 'per_unit').length,
+    hourly: services.filter((s) => s.pricing_type === 'hourly').length,
+    fixed: services.filter((s) => s.pricing_type === 'fixed').length,
+    per_unit: services.filter((s) => s.pricing_type === 'per_unit').length,
   };
 
   const qualitySnapshot = useMemo(() => {
@@ -88,7 +102,7 @@ const ServicesPage = () => {
       if (!service?.updated_at) return true;
       const updatedAtMs = new Date(service.updated_at).getTime();
       if (!Number.isFinite(updatedAtMs)) return true;
-      return (nowMs - updatedAtMs) > reviewThresholdMs;
+      return nowMs - updatedAtMs > reviewThresholdMs;
     }).length;
 
     const genericNames = services.filter((service) => isGenericServiceName(service?.service_name)).length;
@@ -167,32 +181,46 @@ const ServicesPage = () => {
     setServiceInsightsLoading(true);
     setServiceInsights(null);
 
-    const [tasksData, timesheetsData, invoiceItemsData] = await Promise.all([
+    const _svcResults = await Promise.allSettled([
       safeQuery(() =>
         supabase
           .from('tasks')
-          .select('id,title,name,status,estimated_hours,due_date,updated_at,project_id,project:projects(id,name,status)')
+          .select(
+            'id,title,name,status,estimated_hours,due_date,updated_at,project_id,project:projects(id,name,status)'
+          )
           .eq('service_id', service.id)
           .order('updated_at', { ascending: false })
-          .limit(25),
+          .limit(25)
       ),
       safeQuery(() =>
         supabase
           .from('timesheets')
-          .select('id,date,duration_minutes,billable,status,invoice_id,hourly_rate,project_id,project:projects(id,name)')
+          .select(
+            'id,date,duration_minutes,billable,status,invoice_id,hourly_rate,project_id,project:projects(id,name)'
+          )
           .eq('service_id', service.id)
           .order('date', { ascending: false })
-          .limit(50),
+          .limit(50)
       ),
       safeQuery(() =>
         supabase
           .from('invoice_items')
-          .select('id,invoice_id,description,quantity,unit_price,total,item_type,created_at,invoice:invoices(id,invoice_number,date,payment_status,currency)')
+          .select(
+            'id,invoice_id,description,quantity,unit_price,total,item_type,created_at,invoice:invoices(id,invoice_number,date,payment_status,currency)'
+          )
           .eq('service_id', service.id)
           .order('created_at', { ascending: false })
-          .limit(50),
+          .limit(50)
       ),
     ]);
+
+    _svcResults.forEach((r, i) => {
+      if (r.status === 'rejected') console.error(`ServicesPage insight fetch ${i} failed:`, r.reason);
+    });
+
+    const tasksData = _svcResults[0].status === 'fulfilled' ? _svcResults[0].value : [];
+    const timesheetsData = _svcResults[1].status === 'fulfilled' ? _svcResults[1].value : [];
+    const invoiceItemsData = _svcResults[2].status === 'fulfilled' ? _svcResults[2].value : [];
 
     const projectMap = new Map();
     [...tasksData, ...timesheetsData].forEach((entry) => {
@@ -201,19 +229,24 @@ const ServicesPage = () => {
         projectMap.set(project.id, project);
       }
     });
-    const linkedProjects = Array.from(projectMap.values()).sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    const linkedProjects = Array.from(projectMap.values()).sort((a, b) =>
+      String(a.name || '').localeCompare(String(b.name || ''))
+    );
 
-    const completedTaskCount = tasksData.filter((task) => ['done', 'completed', 'closed'].includes(String(task?.status || '').toLowerCase())).length;
-    const totalHours = timesheetsData.reduce((sum, row) => sum + (Number(row?.duration_minutes || 0) / 60), 0);
+    const completedTaskCount = tasksData.filter((task) =>
+      ['done', 'completed', 'closed'].includes(String(task?.status || '').toLowerCase())
+    ).length;
+    const totalHours = timesheetsData.reduce((sum, row) => sum + Number(row?.duration_minutes || 0) / 60, 0);
     const billableHours = timesheetsData
       .filter((row) => row?.billable !== false)
-      .reduce((sum, row) => sum + (Number(row?.duration_minutes || 0) / 60), 0);
+      .reduce((sum, row) => sum + Number(row?.duration_minutes || 0) / 60, 0);
     const invoiceIds = new Set(invoiceItemsData.map((line) => line?.invoice_id).filter(Boolean));
     const billedAmount = invoiceItemsData.reduce((sum, line) => sum + getMoneyFromLine(line), 0);
-    const latestInvoiceDate = invoiceItemsData
-      .map((line) => line?.invoice?.date || line?.created_at)
-      .filter(Boolean)
-      .sort((a, b) => new Date(b) - new Date(a))[0] || null;
+    const latestInvoiceDate =
+      invoiceItemsData
+        .map((line) => line?.invoice?.date || line?.created_at)
+        .filter(Boolean)
+        .sort((a, b) => new Date(b) - new Date(a))[0] || null;
 
     setServiceInsights({
       tasks: tasksData,
@@ -267,7 +300,10 @@ const ServicesPage = () => {
 
   const handleDeleteService = async (service) => {
     const confirmed = window.confirm(
-      t('services.confirmDelete', 'Supprimer cette prestation client ? Cette action desactive la prestation dans le catalogue.'),
+      t(
+        'services.confirmDelete',
+        'Supprimer cette prestation client ? Cette action desactive la prestation dans le catalogue.'
+      )
     );
     if (!confirmed) return;
     await deleteService(service.id);
@@ -319,7 +355,8 @@ const ServicesPage = () => {
       setEditingService(null);
       setFormData(emptyService);
     } catch (err) {
-      // Error handled by hook toast
+      // Error toast handled by useServices hook; log for debugging
+      console.error('Failed to save service:', err);
     }
   };
 
@@ -330,14 +367,15 @@ const ServicesPage = () => {
       await createCategory(newCategoryName.trim());
       setNewCategoryName('');
     } catch (err) {
-      // Error handled by hook toast
+      // Error toast handled by useServices hook; log for debugging
+      console.error('Failed to create category:', err);
     }
   };
 
   // Export
   const handleExportList = (format) => {
     if (!filteredServices || filteredServices.length === 0) return;
-    const exportData = filteredServices.map(s => ({
+    const exportData = filteredServices.map((s) => ({
       [t('services.serviceName')]: s.service_name || '',
       [t('services.categories')]: s.category?.name || '',
       [t('services.pricingType')]: s.pricing_type || '',
@@ -345,7 +383,7 @@ const ServicesPage = () => {
       [t('services.fixedPrice')]: s.fixed_price || '',
       [t('services.unitPrice')]: s.unit_price || '',
       [t('services.unit')]: s.unit || '',
-      'Status': s.is_active ? t('services.active') : t('services.inactive'),
+      Status: s.is_active ? t('services.active') : t('services.inactive'),
     }));
     if (format === 'csv') {
       exportToCSV(exportData, 'services');
@@ -356,13 +394,17 @@ const ServicesPage = () => {
 
   return (
     <div className="p-8 min-h-screen bg-gray-950 text-white space-y-6">
-      <Helmet><title>{clientServicesTitle} | CashPilot</title></Helmet>
+      <Helmet>
+        <title>{clientServicesTitle} | CashPilot</title>
+      </Helmet>
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gradient">{clientServicesTitle}</h1>
           <p className="text-gray-400">{clientServicesSubtitle}</p>
-          <p className="text-gray-500 text-sm mt-1">{t('services.totalServices')}: {totalServices}</p>
+          <p className="text-gray-500 text-sm mt-1">
+            {t('services.totalServices')}: {totalServices}
+          </p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {filteredServices.length > 0 && (
@@ -419,9 +461,18 @@ const ServicesPage = () => {
           </CardHeader>
           <CardContent>
             <div className="flex gap-3 text-sm">
-              <span className="text-blue-400"><Clock className="inline w-3 h-3 mr-1" />{byType.hourly}</span>
-              <span className="text-purple-400"><DollarSign className="inline w-3 h-3 mr-1" />{byType.fixed}</span>
-              <span className="text-teal-400"><Tag className="inline w-3 h-3 mr-1" />{byType.per_unit}</span>
+              <span className="text-blue-400">
+                <Clock className="inline w-3 h-3 mr-1" />
+                {byType.hourly}
+              </span>
+              <span className="text-purple-400">
+                <DollarSign className="inline w-3 h-3 mr-1" />
+                {byType.fixed}
+              </span>
+              <span className="text-teal-400">
+                <Tag className="inline w-3 h-3 mr-1" />
+                {byType.per_unit}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -439,19 +490,38 @@ const ServicesPage = () => {
             Verifiez regulierement vos services pour limiter les erreurs de facturation et proteger la marge.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Badge className={qualitySnapshot.uncategorized > 0 ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-green-500/20 text-green-300 border-green-500/30'}>
+            <Badge
+              className={
+                qualitySnapshot.uncategorized > 0
+                  ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                  : 'bg-green-500/20 text-green-300 border-green-500/30'
+              }
+            >
               Categories manquantes: {qualitySnapshot.uncategorized}
             </Badge>
-            <Badge className={qualitySnapshot.genericNames > 0 ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-green-500/20 text-green-300 border-green-500/30'}>
+            <Badge
+              className={
+                qualitySnapshot.genericNames > 0
+                  ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                  : 'bg-green-500/20 text-green-300 border-green-500/30'
+              }
+            >
               Noms trop generiques: {qualitySnapshot.genericNames}
             </Badge>
-            <Badge className={qualitySnapshot.stalePrices > 0 ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' : 'bg-green-500/20 text-green-300 border-green-500/30'}>
+            <Badge
+              className={
+                qualitySnapshot.stalePrices > 0
+                  ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+                  : 'bg-green-500/20 text-green-300 border-green-500/30'
+              }
+            >
               Prix a revoir (+90j): {qualitySnapshot.stalePrices}
             </Badge>
           </div>
           {qualitySnapshot.hasAlerts ? (
             <p className="text-orange-300">
-              Action recommandee: corriger les services en anomalie et verifier les ecritures dans Finance &gt; Comptabilite.
+              Action recommandee: corriger les services en anomalie et verifier les ecritures dans Finance &gt;
+              Comptabilite.
             </p>
           ) : (
             <p className="text-green-300">Aucune anomalie detectee sur les controles de base.</p>
@@ -500,17 +570,22 @@ const ServicesPage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredServices.map(service => (
+                    {filteredServices.map((service) => (
                       <TableRow key={service.id} className="border-gray-800">
                         <TableCell className="font-medium">{service.service_name}</TableCell>
                         <TableCell className="text-gray-400">{service.category?.name || '—'}</TableCell>
                         <TableCell>{getPricingTypeBadge(service.pricing_type)}</TableCell>
                         <TableCell className="text-right">{getRate(service)}</TableCell>
                         <TableCell>
-                          {service.is_active
-                            ? <Badge className="bg-green-500/20 text-green-400 border-green-500/30">{t('services.active')}</Badge>
-                            : <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{t('services.inactive')}</Badge>
-                          }
+                          {service.is_active ? (
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                              {t('services.active')}
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+                              {t('services.inactive')}
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
@@ -524,14 +599,20 @@ const ServicesPage = () => {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white"
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-gray-400 hover:text-white"
                               onClick={() => handleEdit(service)}
                               title={t('common.edit', 'Modifier')}
                               aria-label={t('common.edit', 'Modifier')}
                             >
                               <Edit2 className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300"
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-400 hover:text-red-300"
                               onClick={() => handleDeleteService(service)}
                               title={t('common.delete', 'Supprimer')}
                               aria-label={t('common.delete', 'Supprimer')}
@@ -564,8 +645,11 @@ const ServicesPage = () => {
                   className="bg-gray-800 border-gray-700 text-white"
                   onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
                 />
-                <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleAddCategory}
-                  disabled={!newCategoryName.trim()}>
+                <Button
+                  className="bg-orange-500 hover:bg-orange-600"
+                  onClick={handleAddCategory}
+                  disabled={!newCategoryName.trim()}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -574,11 +658,15 @@ const ServicesPage = () => {
                 <p className="text-gray-500 text-sm text-center py-4">{t('services.noServices')}</p>
               ) : (
                 <div className="space-y-2">
-                  {categories.map(cat => (
+                  {categories.map((cat) => (
                     <div key={cat.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-2">
                       <span className="text-gray-200">{cat.name}</span>
-                      <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300"
-                        onClick={() => deleteCategory(cat.id)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-400 hover:text-red-300"
+                        onClick={() => deleteCategory(cat.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -594,39 +682,53 @@ const ServicesPage = () => {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              {editingService ? t('services.editService') : t('services.addService')}
-            </DialogTitle>
+            <DialogTitle>{editingService ? t('services.editService') : t('services.addService')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>{t('services.serviceName')} *</Label>
-              <Input className="bg-gray-800 border-gray-700" value={formData.service_name}
-                onChange={e => setFormData(p => ({ ...p, service_name: e.target.value }))} />
+              <Input
+                className="bg-gray-800 border-gray-700"
+                value={formData.service_name}
+                onChange={(e) => setFormData((p) => ({ ...p, service_name: e.target.value }))}
+              />
             </div>
 
             <div className="space-y-2">
               <Label>{t('services.description')}</Label>
-              <Textarea className="bg-gray-800 border-gray-700" value={formData.description}
-                onChange={e => setFormData(p => ({ ...p, description: e.target.value }))} />
+              <Textarea
+                className="bg-gray-800 border-gray-700"
+                value={formData.description}
+                onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t('services.categories')}</Label>
-                <Select value={formData.category_id} onValueChange={v => setFormData(p => ({ ...p, category_id: v }))}>
+                <Select
+                  value={formData.category_id}
+                  onValueChange={(v) => setFormData((p) => ({ ...p, category_id: v }))}
+                >
                   <SelectTrigger className="bg-gray-800 border-gray-700">
                     <SelectValue placeholder="—" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <Label>{t('services.pricingType')}</Label>
-                <Select value={formData.pricing_type} onValueChange={v => setFormData(p => ({ ...p, pricing_type: v }))}>
+                <Select
+                  value={formData.pricing_type}
+                  onValueChange={(v) => setFormData((p) => ({ ...p, pricing_type: v }))}
+                >
                   <SelectTrigger className="bg-gray-800 border-gray-700">
                     <SelectValue />
                   </SelectTrigger>
@@ -641,31 +743,52 @@ const ServicesPage = () => {
 
             {formData.pricing_type === 'hourly' && (
               <div className="space-y-2">
-                <Label>{t('services.hourlyRate')} ({currencySymbol})</Label>
-                <Input type="number" className="bg-gray-800 border-gray-700" value={formData.hourly_rate}
-                  onChange={e => setFormData(p => ({ ...p, hourly_rate: e.target.value }))} />
+                <Label>
+                  {t('services.hourlyRate')} ({currencySymbol})
+                </Label>
+                <Input
+                  type="number"
+                  className="bg-gray-800 border-gray-700"
+                  value={formData.hourly_rate}
+                  onChange={(e) => setFormData((p) => ({ ...p, hourly_rate: e.target.value }))}
+                />
               </div>
             )}
 
             {formData.pricing_type === 'fixed' && (
               <div className="space-y-2">
-                <Label>{t('services.fixedPrice')} ({currencySymbol})</Label>
-                <Input type="number" className="bg-gray-800 border-gray-700" value={formData.fixed_price}
-                  onChange={e => setFormData(p => ({ ...p, fixed_price: e.target.value }))} />
+                <Label>
+                  {t('services.fixedPrice')} ({currencySymbol})
+                </Label>
+                <Input
+                  type="number"
+                  className="bg-gray-800 border-gray-700"
+                  value={formData.fixed_price}
+                  onChange={(e) => setFormData((p) => ({ ...p, fixed_price: e.target.value }))}
+                />
               </div>
             )}
 
             {formData.pricing_type === 'per_unit' && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>{t('services.unitPrice')} ({currencySymbol})</Label>
-                  <Input type="number" className="bg-gray-800 border-gray-700" value={formData.unit_price}
-                    onChange={e => setFormData(p => ({ ...p, unit_price: e.target.value }))} />
+                  <Label>
+                    {t('services.unitPrice')} ({currencySymbol})
+                  </Label>
+                  <Input
+                    type="number"
+                    className="bg-gray-800 border-gray-700"
+                    value={formData.unit_price}
+                    onChange={(e) => setFormData((p) => ({ ...p, unit_price: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>{t('services.unit')}</Label>
-                  <Input className="bg-gray-800 border-gray-700" value={formData.unit}
-                    onChange={e => setFormData(p => ({ ...p, unit: e.target.value }))} />
+                  <Input
+                    className="bg-gray-800 border-gray-700"
+                    value={formData.unit}
+                    onChange={(e) => setFormData((p) => ({ ...p, unit: e.target.value }))}
+                  />
                 </div>
               </div>
             )}
@@ -673,23 +796,31 @@ const ServicesPage = () => {
             {formData.pricing_type !== 'per_unit' && (
               <div className="space-y-2">
                 <Label>{t('services.unit')}</Label>
-                <Input className="bg-gray-800 border-gray-700" value={formData.unit}
-                  onChange={e => setFormData(p => ({ ...p, unit: e.target.value }))} />
+                <Input
+                  className="bg-gray-800 border-gray-700"
+                  value={formData.unit}
+                  onChange={(e) => setFormData((p) => ({ ...p, unit: e.target.value }))}
+                />
               </div>
             )}
 
             <div className="flex items-center justify-between">
               <Label>{t('services.active')}</Label>
-              <Switch checked={formData.is_active}
-                onCheckedChange={v => setFormData(p => ({ ...p, is_active: v }))} />
+              <Switch
+                checked={formData.is_active}
+                onCheckedChange={(v) => setFormData((p) => ({ ...p, is_active: v }))}
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setShowAddDialog(false)}>
               {t('buttons.cancel')}
             </Button>
-            <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleSubmit}
-              disabled={!formData.service_name || loading}>
+            <Button
+              className="bg-orange-500 hover:bg-orange-600"
+              onClick={handleSubmit}
+              disabled={!formData.service_name || loading}
+            >
               {editingService ? t('buttons.save') : t('services.addService')}
             </Button>
           </DialogFooter>
@@ -697,13 +828,16 @@ const ServicesPage = () => {
       </Dialog>
 
       {/* View Service Dialog */}
-      <Dialog open={!!viewingService} onOpenChange={(open) => {
-        if (!open) {
-          setViewingService(null);
-          setServiceInsights(null);
-          setServiceInsightsLoading(false);
-        }
-      }}>
+      <Dialog
+        open={!!viewingService}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingService(null);
+            setServiceInsights(null);
+            setServiceInsightsLoading(false);
+          }
+        }}
+      >
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-4xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -749,7 +883,11 @@ const ServicesPage = () => {
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400">Type de tarification</span>
                         <span className="font-medium text-right">
-                          {viewingService?.pricing_type === 'hourly' ? 'Horaire' : viewingService?.pricing_type === 'fixed' ? 'Forfaitaire' : "A l'unite"}
+                          {viewingService?.pricing_type === 'hourly'
+                            ? 'Horaire'
+                            : viewingService?.pricing_type === 'fixed'
+                              ? 'Forfaitaire'
+                              : "A l'unite"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -759,9 +897,11 @@ const ServicesPage = () => {
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400">Statut</span>
                         <span>
-                          {viewingService?.is_active
-                            ? <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Actif</Badge>
-                            : <Badge className="bg-red-500/20 text-red-300 border-red-500/30">Inactif</Badge>}
+                          {viewingService?.is_active ? (
+                            <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Actif</Badge>
+                          ) : (
+                            <Badge className="bg-red-500/20 text-red-300 border-red-500/30">Inactif</Badge>
+                          )}
                         </span>
                       </div>
                     </CardContent>
@@ -782,11 +922,15 @@ const ServicesPage = () => {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400">Projets lies</span>
-                        <span className="font-medium text-right">{serviceInsights?.summary?.linkedProjectsCount || 0}</span>
+                        <span className="font-medium text-right">
+                          {serviceInsights?.summary?.linkedProjectsCount || 0}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400">Lignes facture</span>
-                        <span className="font-medium text-right">{serviceInsights?.summary?.invoiceLinesCount || 0}</span>
+                        <span className="font-medium text-right">
+                          {serviceInsights?.summary?.invoiceLinesCount || 0}
+                        </span>
                       </div>
                     </CardContent>
                   </Card>
@@ -807,21 +951,31 @@ const ServicesPage = () => {
                   <Card className="bg-gray-950 border-gray-800">
                     <CardContent className="py-4">
                       <p className="text-xs text-gray-400 uppercase">Projets associes</p>
-                      <p className="text-2xl font-bold text-blue-300 mt-1">{serviceInsights?.summary?.linkedProjectsCount || 0}</p>
+                      <p className="text-2xl font-bold text-blue-300 mt-1">
+                        {serviceInsights?.summary?.linkedProjectsCount || 0}
+                      </p>
                     </CardContent>
                   </Card>
                   <Card className="bg-gray-950 border-gray-800">
                     <CardContent className="py-4">
                       <p className="text-xs text-gray-400 uppercase">Taches associees</p>
-                      <p className="text-2xl font-bold text-orange-300 mt-1">{serviceInsights?.summary?.tasksCount || 0}</p>
-                      <p className="text-xs text-gray-400 mt-1">Terminees: {serviceInsights?.summary?.completedTaskCount || 0}</p>
+                      <p className="text-2xl font-bold text-orange-300 mt-1">
+                        {serviceInsights?.summary?.tasksCount || 0}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Terminees: {serviceInsights?.summary?.completedTaskCount || 0}
+                      </p>
                     </CardContent>
                   </Card>
                   <Card className="bg-gray-950 border-gray-800">
                     <CardContent className="py-4">
                       <p className="text-xs text-gray-400 uppercase">Feuilles de temps</p>
-                      <p className="text-2xl font-bold text-green-300 mt-1">{formatNumber(serviceInsights?.summary?.totalHours || 0)} h</p>
-                      <p className="text-xs text-gray-400 mt-1">Facturables: {formatNumber(serviceInsights?.summary?.billableHours || 0)} h</p>
+                      <p className="text-2xl font-bold text-green-300 mt-1">
+                        {formatNumber(serviceInsights?.summary?.totalHours || 0)} h
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Facturables: {formatNumber(serviceInsights?.summary?.billableHours || 0)} h
+                      </p>
                     </CardContent>
                   </Card>
                 </div>
@@ -862,7 +1016,10 @@ const ServicesPage = () => {
                       <p className="text-sm text-gray-500">Aucune tache reliee a cette prestation.</p>
                     ) : (
                       serviceInsights.tasks.slice(0, 5).map((task) => (
-                        <div key={task.id} className="rounded border border-gray-800 bg-gray-900/60 px-3 py-2 text-sm flex items-center justify-between gap-3">
+                        <div
+                          key={task.id}
+                          className="rounded border border-gray-800 bg-gray-900/60 px-3 py-2 text-sm flex items-center justify-between gap-3"
+                        >
                           <div>
                             <p className="font-medium text-gray-100">{getTaskLabel(task)}</p>
                             <p className="text-xs text-gray-400">
@@ -896,13 +1053,17 @@ const ServicesPage = () => {
                   <Card className="bg-gray-950 border-gray-800">
                     <CardContent className="py-4">
                       <p className="text-xs text-gray-400 uppercase">Factures impactees</p>
-                      <p className="text-2xl font-bold text-purple-300 mt-1">{serviceInsights?.summary?.invoicesCount || 0}</p>
+                      <p className="text-2xl font-bold text-purple-300 mt-1">
+                        {serviceInsights?.summary?.invoicesCount || 0}
+                      </p>
                     </CardContent>
                   </Card>
                   <Card className="bg-gray-950 border-gray-800">
                     <CardContent className="py-4">
                       <p className="text-xs text-gray-400 uppercase">Lignes facture</p>
-                      <p className="text-2xl font-bold text-orange-300 mt-1">{serviceInsights?.summary?.invoiceLinesCount || 0}</p>
+                      <p className="text-2xl font-bold text-orange-300 mt-1">
+                        {serviceInsights?.summary?.invoiceLinesCount || 0}
+                      </p>
                     </CardContent>
                   </Card>
                   <Card className="bg-gray-950 border-gray-800 md:col-span-2">
@@ -927,15 +1088,23 @@ const ServicesPage = () => {
                       <p className="text-sm text-gray-500">Aucune ligne de facture client reliee a cette prestation.</p>
                     ) : (
                       serviceInsights.invoiceItems.slice(0, 6).map((line) => (
-                        <div key={line.id} className="rounded border border-gray-800 bg-gray-900/60 px-3 py-2 text-sm flex items-center justify-between gap-3">
+                        <div
+                          key={line.id}
+                          className="rounded border border-gray-800 bg-gray-900/60 px-3 py-2 text-sm flex items-center justify-between gap-3"
+                        >
                           <div>
-                            <p className="font-medium text-gray-100">{line.description || viewingService?.service_name || 'Ligne service'}</p>
+                            <p className="font-medium text-gray-100">
+                              {line.description || viewingService?.service_name || 'Ligne service'}
+                            </p>
                             <p className="text-xs text-gray-400">
-                              Facture: {line?.invoice?.invoice_number || '—'} • Date: {formatDateTime(line?.invoice?.date || line?.created_at)}
+                              Facture: {line?.invoice?.invoice_number || '—'} • Date:{' '}
+                              {formatDateTime(line?.invoice?.date || line?.created_at)}
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold text-green-300">{formatNumber(getMoneyFromLine(line))} {currencySymbol}</p>
+                            <p className="font-semibold text-green-300">
+                              {formatNumber(getMoneyFromLine(line))} {currencySymbol}
+                            </p>
                             <p className="text-xs text-gray-400">Qté {formatNumber(line?.quantity || 0)}</p>
                           </div>
                         </div>

@@ -8,23 +8,9 @@
 import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { uploadDocument } from '@/services/documentStorage';
+import { escapeXML as escapeXml } from '@/utils/sanitize';
 
 // ========== UTILITY FUNCTIONS ==========
-
-/**
- * Escape special XML characters to prevent malformed XML
- * @param {string} str - String to escape
- * @returns {string} - Escaped string safe for XML
- */
-const escapeXml = (str) => {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-};
 
 /**
  * Format date to ISO 8601 format (YYYY-MM-DD)
@@ -99,18 +85,26 @@ const generateHeader = (companyInfo = {}, period = {}) => {
           <PostalCode>${escapeXml(companyInfo.postalCode || companyInfo.zipCode || '')}</PostalCode>
           <Country>${escapeXml(companyInfo.country || 'FR')}</Country>
         </Address>
-        ${companyInfo.vatNumber ? `<TaxRegistration>
+        ${
+          companyInfo.vatNumber
+            ? `<TaxRegistration>
           <TaxRegistrationNumber>${escapeXml(companyInfo.vatNumber)}</TaxRegistrationNumber>
           <TaxType>TVA</TaxType>
-        </TaxRegistration>` : ''}
-        ${companyInfo.email ? `<Contact>
+        </TaxRegistration>`
+            : ''
+        }
+        ${
+          companyInfo.email
+            ? `<Contact>
           <ContactPerson>
             <FirstName>${escapeXml(companyInfo.contactFirstName || '')}</FirstName>
             <LastName>${escapeXml(companyInfo.contactLastName || companyInfo.name || '')}</LastName>
           </ContactPerson>
           <Email>${escapeXml(companyInfo.email)}</Email>
           ${companyInfo.phone ? `<Telephone>${escapeXml(companyInfo.phone)}</Telephone>` : ''}
-        </Contact>` : ''}
+        </Contact>`
+            : ''
+        }
       </Company>
       <DefaultCurrencyCode>${escapeXml(resolveAccountingCurrency(companyInfo))}</DefaultCurrencyCode>
       <SelectionCriteria>
@@ -134,12 +128,13 @@ const generateAccounts = (accounts = []) => {
     return '';
   }
 
-  const accountsXml = accounts.map(account => {
-    const accountType = determineAccountType(account.code || account.accountCode || '');
-    const openingBalance = formatAmount(account.openingBalance || account.opening_balance || 0);
-    const closingBalance = formatAmount(account.closingBalance || account.closing_balance || account.balance || 0);
+  const accountsXml = accounts
+    .map((account) => {
+      const accountType = determineAccountType(account.code || account.accountCode || '');
+      const openingBalance = formatAmount(account.openingBalance || account.opening_balance || 0);
+      const closingBalance = formatAmount(account.closingBalance || account.closing_balance || account.balance || 0);
 
-    return `
+      return `
       <Account>
         <AccountID>${escapeXml(account.id || account.accountId || '')}</AccountID>
         <AccountDescription>${escapeXml(account.name || account.description || account.accountName || '')}</AccountDescription>
@@ -150,7 +145,8 @@ const generateAccounts = (accounts = []) => {
         <ClosingDebitBalance>${parseFloat(closingBalance) >= 0 ? closingBalance : '0.00'}</ClosingDebitBalance>
         <ClosingCreditBalance>${parseFloat(closingBalance) < 0 ? formatAmount(Math.abs(closingBalance)) : '0.00'}</ClosingCreditBalance>
       </Account>`;
-  }).join('');
+    })
+    .join('');
 
   return `
     <GeneralLedgerAccounts>
@@ -170,14 +166,22 @@ const determineAccountType = (code) => {
   const firstChar = String(code).charAt(0);
 
   switch (firstChar) {
-    case '1': return 'Equity'; // Capitaux
-    case '2': return 'Assets'; // Immobilisations
-    case '3': return 'Assets'; // Stocks
-    case '4': return 'Liabilities'; // Tiers (clients/fournisseurs)
-    case '5': return 'Assets'; // Financier
-    case '6': return 'Expense'; // Charges
-    case '7': return 'Income'; // Produits
-    default: return 'GL';
+    case '1':
+      return 'Equity'; // Capitaux
+    case '2':
+      return 'Assets'; // Immobilisations
+    case '3':
+      return 'Assets'; // Stocks
+    case '4':
+      return 'Liabilities'; // Tiers (clients/fournisseurs)
+    case '5':
+      return 'Assets'; // Financier
+    case '6':
+      return 'Expense'; // Charges
+    case '7':
+      return 'Income'; // Produits
+    default:
+      return 'GL';
   }
 };
 
@@ -193,8 +197,9 @@ const generateCustomers = (customers = []) => {
     return '';
   }
 
-  const customersXml = customers.map(customer => {
-    return `
+  const customersXml = customers
+    .map((customer) => {
+      return `
       <Customer>
         <CustomerID>${escapeXml(customer.id || customer.customerId || '')}</CustomerID>
         <AccountID>${escapeXml(customer.accountId || customer.account_id || '411000')}</AccountID>
@@ -212,7 +217,8 @@ const generateCustomers = (customers = []) => {
         <OpenItemsDebit>${formatAmount(customer.debitBalance || customer.debit_balance || 0)}</OpenItemsDebit>
         <OpenItemsCredit>${formatAmount(customer.creditBalance || customer.credit_balance || 0)}</OpenItemsCredit>
       </Customer>`;
-  }).join('');
+    })
+    .join('');
 
   return `
     <Customers>
@@ -232,8 +238,9 @@ const generateSuppliers = (suppliers = []) => {
     return '';
   }
 
-  const suppliersXml = suppliers.map(supplier => {
-    return `
+  const suppliersXml = suppliers
+    .map((supplier) => {
+      return `
       <Supplier>
         <SupplierID>${escapeXml(supplier.id || supplier.supplierId || '')}</SupplierID>
         <AccountID>${escapeXml(supplier.accountId || supplier.account_id || '401000')}</AccountID>
@@ -251,7 +258,8 @@ const generateSuppliers = (suppliers = []) => {
         <OpenItemsDebit>${formatAmount(supplier.debitBalance || supplier.debit_balance || 0)}</OpenItemsDebit>
         <OpenItemsCredit>${formatAmount(supplier.creditBalance || supplier.credit_balance || 0)}</OpenItemsCredit>
       </Supplier>`;
-  }).join('');
+    })
+    .join('');
 
   return `
     <Suppliers>
@@ -277,12 +285,20 @@ const generateTransactionLine = (line, lineNumber) => {
           <SourceDocumentID>${escapeXml(line.documentId || line.document_id || line.reference || '')}</SourceDocumentID>
           <SystemEntryDate>${formatDateISO(line.systemDate || line.created_at || new Date())}</SystemEntryDate>
           <Description>${escapeXml(line.description || line.label || '')}</Description>
-          ${parseFloat(debit) > 0 ? `<DebitAmount>
+          ${
+            parseFloat(debit) > 0
+              ? `<DebitAmount>
             <Amount>${debit}</Amount>
-          </DebitAmount>` : ''}
-          ${parseFloat(credit) > 0 ? `<CreditAmount>
+          </DebitAmount>`
+              : ''
+          }
+          ${
+            parseFloat(credit) > 0
+              ? `<CreditAmount>
             <Amount>${credit}</Amount>
-          </CreditAmount>` : ''}
+          </CreditAmount>`
+              : ''
+          }
           ${line.customerId || line.customer_id ? `<CustomerID>${escapeXml(line.customerId || line.customer_id)}</CustomerID>` : ''}
           ${line.supplierId || line.supplier_id ? `<SupplierID>${escapeXml(line.supplierId || line.supplier_id)}</SupplierID>` : ''}
         </TransactionLine>`;
@@ -320,8 +336,8 @@ const generateTransaction = (entry) => {
  * @returns {string} - XML Journal element
  */
 const generateJournal = (journal, entries = []) => {
-  const journalEntries = entries.filter(e =>
-    (e.journalId || e.journal_id || e.journal) === (journal.id || journal.journalId || journal.code)
+  const journalEntries = entries.filter(
+    (e) => (e.journalId || e.journal_id || e.journal) === (journal.id || journal.journalId || journal.code)
   );
 
   if (journalEntries.length === 0 && entries.length > 0 && !journal.id) {
@@ -329,19 +345,17 @@ const generateJournal = (journal, entries = []) => {
     journalEntries.push(...entries);
   }
 
-  const totalDebit = journalEntries.reduce((sum, entry) => {
+  const _totalDebit = journalEntries.reduce((sum, entry) => {
     const lines = entry.lines || entry.items || entry.transactions || [];
-    return sum + lines.reduce((lineSum, line) =>
-      lineSum + parseFloat(line.debit || line.debitAmount || 0), 0);
+    return sum + lines.reduce((lineSum, line) => lineSum + parseFloat(line.debit || line.debitAmount || 0), 0);
   }, 0);
 
-  const totalCredit = journalEntries.reduce((sum, entry) => {
+  const _totalCredit = journalEntries.reduce((sum, entry) => {
     const lines = entry.lines || entry.items || entry.transactions || [];
-    return sum + lines.reduce((lineSum, line) =>
-      lineSum + parseFloat(line.credit || line.creditAmount || 0), 0);
+    return sum + lines.reduce((lineSum, line) => lineSum + parseFloat(line.credit || line.creditAmount || 0), 0);
   }, 0);
 
-  const transactionsXml = journalEntries.map(entry => generateTransaction(entry)).join('');
+  const transactionsXml = journalEntries.map((entry) => generateTransaction(entry)).join('');
 
   return `
     <Journal>
@@ -402,9 +416,9 @@ const generateEntries = (entries = [], journals = []) => {
   let totalDebit = 0;
   let totalCredit = 0;
 
-  entries.forEach(entry => {
+  entries.forEach((entry) => {
     const lines = entry.lines || entry.items || entry.transactions || [];
-    lines.forEach(line => {
+    lines.forEach((line) => {
       totalDebit += parseFloat(line.debit || line.debitAmount || 0);
       totalCredit += parseFloat(line.credit || line.creditAmount || 0);
     });
@@ -413,7 +427,7 @@ const generateEntries = (entries = [], journals = []) => {
   // Group entries by journal
   const journalGroups = new Map();
 
-  entries.forEach(entry => {
+  entries.forEach((entry) => {
     const journalKey = entry.journalId || entry.journal_id || entry.journal || 'GEN';
     if (!journalGroups.has(journalKey)) {
       journalGroups.set(journalKey, []);
@@ -431,7 +445,7 @@ const generateEntries = (entries = [], journals = []) => {
         id: journalKey,
         code: journalKey,
         name: `Journal ${journalKey}`,
-        type: determineJournalType(journalKey)
+        type: determineJournalType(journalKey),
       });
     });
   }
@@ -442,21 +456,23 @@ const generateEntries = (entries = [], journals = []) => {
       id: 'GEN',
       code: 'GEN',
       name: 'General Journal',
-      type: 'General'
+      type: 'General',
     });
   }
 
-  const journalsXml = journalsToUse.map(journal => {
-    const journalKey = journal.id || journal.journalId || journal.code;
-    const journalEntries = journalGroups.get(journalKey) || [];
+  const journalsXml = journalsToUse
+    .map((journal) => {
+      const journalKey = journal.id || journal.journalId || journal.code;
+      const journalEntries = journalGroups.get(journalKey) || [];
 
-    // If this is a default journal and there are ungrouped entries, include them
-    if (journalEntries.length === 0 && journalsToUse.length === 1) {
-      return generateJournal(journal, entries);
-    }
+      // If this is a default journal and there are ungrouped entries, include them
+      if (journalEntries.length === 0 && journalsToUse.length === 1) {
+        return generateJournal(journal, entries);
+      }
 
-    return generateJournal(journal, journalEntries);
-  }).join('');
+      return generateJournal(journal, journalEntries);
+    })
+    .join('');
 
   return `
     <GeneralLedgerEntries>
@@ -484,13 +500,7 @@ const generateEntries = (entries = [], journals = []) => {
  * @returns {string} - Complete SAF-T XML document
  */
 export const exportSAFT = (data = {}, companyInfo = {}, period = {}) => {
-  const {
-    accounts = [],
-    customers = [],
-    suppliers = [],
-    entries = [],
-    journals = []
-  } = data;
+  const { accounts = [], customers = [], suppliers = [], entries = [], journals = [] } = data;
 
   const header = generateHeader(companyInfo, period);
   const accountsXml = generateAccounts(accounts);
@@ -500,12 +510,14 @@ export const exportSAFT = (data = {}, companyInfo = {}, period = {}) => {
 
   // Build MasterFiles section (only if there's content)
   const hasMasterFiles = accountsXml || customersXml || suppliersXml;
-  const masterFilesXml = hasMasterFiles ? `
+  const masterFilesXml = hasMasterFiles
+    ? `
     <MasterFiles>
       ${accountsXml}
       ${customersXml}
       ${suppliersXml}
-    </MasterFiles>` : '';
+    </MasterFiles>`
+    : '';
 
   // Assemble complete SAF-T document
   const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
@@ -530,9 +542,7 @@ export const generateSAFTFilename = (companyInfo = {}, period = {}) => {
     .replace(/[^a-zA-Z0-9]/g, '_')
     .substring(0, 20);
 
-  const siret = (companyInfo.siret || companyInfo.registrationNumber || '')
-    .replace(/\s/g, '')
-    .substring(0, 14);
+  const siret = (companyInfo.siret || companyInfo.registrationNumber || '').replace(/\s/g, '').substring(0, 14);
 
   const startDate = period.startDate
     ? formatDateISO(period.startDate).replace(/-/g, '')
@@ -542,12 +552,7 @@ export const generateSAFTFilename = (companyInfo = {}, period = {}) => {
     ? formatDateISO(period.endDate).replace(/-/g, '')
     : formatDateISO(new Date()).replace(/-/g, '');
 
-  const timestamp = new Date()
-    .toISOString()
-    .replaceAll('-', '')
-    .replaceAll(':', '')
-    .replace('T', '')
-    .substring(0, 14);
+  const timestamp = new Date().toISOString().replaceAll('-', '').replaceAll(':', '').replace('T', '').substring(0, 14);
 
   return `SAFT_${companyName}${siret ? '_' + siret : ''}_${startDate}_${endDate}_${timestamp}.xml`;
 };
@@ -581,8 +586,8 @@ export const downloadSAFT = (data = {}, companyInfo = {}, period = {}, userId) =
       userId,
       fileName: `saft/${filename}`,
       fileData: blob,
-      contentType: 'application/xml;charset=utf-8'
-    }).catch(err => console.warn('SAF-T upload failed:', err));
+      contentType: 'application/xml;charset=utf-8',
+    }).catch((err) => console.warn('SAF-T upload failed:', err));
   }
 
   return { filename, success: true };
@@ -612,7 +617,9 @@ export const validateSAFTData = (data = {}, companyInfo = {}) => {
     const totalCredit = lines.reduce((sum, l) => sum + parseFloat(l.credit || l.creditAmount || 0), 0);
 
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      errors.push(`Entry ${index + 1} (${entry.id || entry.reference || 'unknown'}): Debits (${totalDebit.toFixed(2)}) do not equal credits (${totalCredit.toFixed(2)})`);
+      errors.push(
+        `Entry ${index + 1} (${entry.id || entry.reference || 'unknown'}): Debits (${totalDebit.toFixed(2)}) do not equal credits (${totalCredit.toFixed(2)})`
+      );
     }
   });
 
@@ -626,7 +633,7 @@ export const validateSAFTData = (data = {}, companyInfo = {}) => {
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -634,5 +641,5 @@ export default {
   exportSAFT,
   generateSAFTFilename,
   downloadSAFT,
-  validateSAFTData
+  validateSAFTData,
 };
