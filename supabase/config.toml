@@ -108,7 +108,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.quote-sign-request]
-verify_jwt = true
+verify_jwt = false
 
 [functions.quote-sign-submit]
 verify_jwt = false
@@ -120,7 +120,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.stripe-invoice-link]
-verify_jwt = true
+verify_jwt = false
 
 [functions.stripe-subscription-checkout]
 verify_jwt = true
@@ -129,12 +129,78 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.supplier-approval-notifications]
-verify_jwt = true
+verify_jwt = false
 
 [functions.webhooks]
 verify_jwt = true
 
 [functions.peppol-save-credentials]
 verify_jwt = false
+
+[functions.accountant-accept]
+verify_jwt = true
+
+[functions.accountant-invite]
+verify_jwt = true
+
+[functions.ai-hr-analytics]
+verify_jwt = true
+
+[functions.ai-hr-chatbot]
+verify_jwt = true
+
+[functions.api-gateway]
+verify_jwt = false
+
+[functions.bank-connect]
+verify_jwt = true
+
+[functions.bank-sync]
+verify_jwt = true
+
+[functions.bank-transfer]
+verify_jwt = true
+
+[functions.cashflow-forecast]
+verify_jwt = true
+
+[functions.cfo-agent]
+verify_jwt = true
+
+[functions.cfo-alerts]
+verify_jwt = true
+
+[functions.chorus-pro-submit]
+verify_jwt = true
+
+[functions.dunning-execute]
+verify_jwt = true
+
+[functions.employee-portal-auth]
+verify_jwt = false
+
+[functions.hr-recruitment-ai]
+verify_jwt = true
+
+[functions.intercompany-sync]
+verify_jwt = true
+
+[functions.mobile-money-payment]
+verify_jwt = true
+
+[functions.mobile-money-webhook]
+verify_jwt = false
+
+[functions.recon-learn]
+verify_jwt = true
+
+[functions.regulatory-scan]
+verify_jwt = true
+
+[functions.tax-submit]
+verify_jwt = true
+
+[functions.whatsapp-send-invoice]
+verify_jwt = true
 
 

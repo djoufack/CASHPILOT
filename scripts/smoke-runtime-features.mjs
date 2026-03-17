@@ -36,6 +36,30 @@ function assert(condition, message) {
   }
 }
 
+function describeUnknownError(error) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object') {
+    const fields = ['code', 'message', 'details', 'hint'];
+    const compact = {};
+    for (const field of fields) {
+      if (error[field] != null) compact[field] = error[field];
+    }
+    if (Object.keys(compact).length > 0) {
+      try {
+        return JSON.stringify(compact);
+      } catch {
+        return String(error);
+      }
+    }
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error);
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -582,8 +606,15 @@ async function main() {
     assert(activeCompanyAfterInit === companyA.id, 'Active company was not persisted after initial switch.');
 
     const clientA = await createBusinessClient(authClient, user.id, companyA.id, runId, 'a');
+    await setActiveCompany(authClient, user.id, companyB.id);
+    const activeCompanyBeforeClientB = await readActiveCompany(authClient, user.id);
+    assert(activeCompanyBeforeClientB === companyB.id, 'Active company was not persisted before creating Company B data.');
     const clientB = await createBusinessClient(authClient, user.id, companyB.id, runId, 'b');
+    await setActiveCompany(authClient, user.id, companyA.id);
+    const activeCompanyAfterClientBootstrap = await readActiveCompany(authClient, user.id);
+    assert(activeCompanyAfterClientBootstrap === companyA.id, 'Active company was not restored to Company A after bootstrap.');
 
+    await setActiveCompany(authClient, user.id, companyA.id);
     const quote = await createQuote(authClient, user.id, companyA.id, clientA.id, runId);
     const quoteRequest = await invokeFunctionWithClient(authClient, 'quote-sign-request', {
       quoteId: quote.id,
@@ -622,19 +653,13 @@ async function main() {
 
     assert(signatureToken, 'Unable to resolve a signature token for the public signature smoke test.');
 
-    const publicQuoteFetch = await anonClient
-      .from('quotes')
-      .select('id, quote_number, signature_status, signature_token_expires_at, clients(company_name, contact_name, email)')
-      .eq('signature_token', signatureToken)
-      .eq('signature_status', 'pending')
-      .gt('signature_token_expires_at', new Date().toISOString())
-      .maybeSingle();
-
-    if (publicQuoteFetch.error) {
-      throw publicQuoteFetch.error;
-    }
-
-    assert(publicQuoteFetch.data?.id === quote.id, 'Public quote fetch did not return the pending quote by token.');
+    const publicQuoteFetch = await invokeFunction(supabaseUrl, anonKey, 'quote-sign-get', {
+      body: {
+        token: signatureToken,
+      },
+    });
+    assert(publicQuoteFetch.ok, `quote-sign-get failed with ${publicQuoteFetch.status}: ${publicQuoteFetch.text}`);
+    assert(publicQuoteFetch.data?.quote?.id === quote.id, 'Public quote fetch did not return the pending quote by token.');
 
     const signaturePage = await fetchPage(signatureUrl);
     assert(signaturePage.status >= 200 && signaturePage.status < 400, `Signature page returned ${signaturePage.status}.`);
@@ -690,6 +715,7 @@ async function main() {
       requestFallbackUsed: !quoteRequest.ok,
     };
 
+    await setActiveCompany(authClient, user.id, companyA.id);
     const openInvoiceArtifacts = await createInvoice(authClient, user.id, companyA.id, clientA.id, runId, 'open', {
       status: 'sent',
       paymentStatus: 'partial',
@@ -708,6 +734,7 @@ async function main() {
       taxRate: 21,
     });
 
+    await setActiveCompany(authClient, user.id, companyB.id);
     const companyBInvoiceArtifacts = await createInvoice(authClient, user.id, companyB.id, clientB.id, runId, 'beta', {
       status: 'sent',
       paymentStatus: 'unpaid',
@@ -716,6 +743,7 @@ async function main() {
       balanceDue: 60.5,
       taxRate: 21,
     });
+    await setActiveCompany(authClient, user.id, companyA.id);
 
     const stripeOpen = stripeMode === 'full'
       ? await invokeFunctionWithClient(authClient, 'stripe-invoice-link', {
@@ -885,7 +913,7 @@ async function main() {
 
     await authClient.auth.signOut();
   } catch (error) {
-    failures.push(error instanceof Error ? error.message : String(error));
+    failures.push(describeUnknownError(error));
   } finally {
     if (cleanupEnabled) {
       if (cleanupState.signatureStoragePath) {
