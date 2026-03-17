@@ -47,6 +47,57 @@ function assertCondition(condition, message, details = {}) {
   throw error;
 }
 
+async function invokeSupplierApprovalNotifications({
+  supabaseUrl,
+  anonKey,
+  accessToken,
+  invoiceId,
+  retries = 3,
+}) {
+  let last = null;
+
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    const response = await fetch(`${supabaseUrl}/functions/v1/supplier-approval-notifications`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        apikey: anonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ invoiceId, action: 'pending_created' }),
+    });
+
+    const bodyText = await response.text();
+    let body = null;
+    try {
+      body = bodyText ? JSON.parse(bodyText) : null;
+    } catch {
+      body = { raw: bodyText };
+    }
+
+    last = {
+      status: response.status,
+      ok: response.ok,
+      body,
+      attempt,
+    };
+
+    if (response.ok) {
+      return last;
+    }
+
+    const message = String(body?.message || body?.error || '').toLowerCase();
+    const isInvalidJwt = response.status === 401 && message.includes('invalid jwt');
+    if (!isInvalidJwt || attempt === retries) {
+      return last;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+  }
+
+  return last;
+}
+
 async function main() {
   const supabaseUrl = requireEnv('SUPABASE_URL');
   const serviceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
@@ -245,33 +296,24 @@ async function main() {
     summary.details.firstInvoiceCheck = invoiceCheck;
 
     const notificationCheckStart = new Date().toISOString();
-    const notifyResponse = await fetch(`${supabaseUrl}/functions/v1/supplier-approval-notifications`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        apikey: anonKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ invoiceId: firstInvoiceId, action: 'pending_created' }),
+    const notifyInvoke = await invokeSupplierApprovalNotifications({
+      supabaseUrl,
+      anonKey,
+      accessToken,
+      invoiceId: firstInvoiceId,
+      retries: 4,
     });
 
-    const notifyBodyText = await notifyResponse.text();
-    let notifyBody = null;
-    try {
-      notifyBody = notifyBodyText ? JSON.parse(notifyBodyText) : null;
-    } catch {
-      notifyBody = { raw: notifyBodyText };
-    }
-
     summary.details.notificationInvokeHttp = {
-      status: notifyResponse.status,
-      ok: notifyResponse.ok,
-      body: notifyBody,
+      status: notifyInvoke.status,
+      ok: notifyInvoke.ok,
+      body: notifyInvoke.body,
+      attempt: notifyInvoke.attempt,
     };
 
-    if (!notifyResponse.ok) {
-      const error = new Error(`supplier-approval-notifications failed with status ${notifyResponse.status}`);
-      error.details = notifyBody;
+    if (!notifyInvoke.ok) {
+      const error = new Error(`supplier-approval-notifications failed with status ${notifyInvoke.status}`);
+      error.details = notifyInvoke.body;
       throw error;
     }
 
