@@ -623,9 +623,20 @@ const LandingPage = () => {
               {copy.nav.start} <ArrowRight />
             </button>
           </div>
-          <button className="mobile-menu-btn" onClick={toggleMobileMenu}>
-            <Menu />
-          </button>
+          <div className="mobile-nav-actions">
+            <button className="nav-prismatic mobile-login-btn" onClick={() => handleNavigate('/login')}>
+              {copy.nav.login}
+            </button>
+            <button
+              className="mobile-menu-btn"
+              onClick={toggleMobileMenu}
+              aria-label={copy.nav?.openMenu || 'Open navigation menu'}
+              aria-expanded={mobileMenuActive}
+              aria-controls="mobile-menu"
+            >
+              <Menu />
+            </button>
+          </div>
         </div>
       </nav>
 

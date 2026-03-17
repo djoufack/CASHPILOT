@@ -192,29 +192,80 @@ async function selectTargetCompany(page, account) {
 
   const targetName = account.targetCompany.company_name;
   const targetFragment = shortCompanyFragment(targetName);
-  const trigger = page.getByRole('banner').getByRole('button').first();
+  const companyNameFragments = [targetName, ...(account.companyNames || [])]
+    .map((name) => shortCompanyFragment(name))
+    .filter(Boolean);
 
+  const triggerPattern =
+    companyNameFragments.length > 0
+      ? new RegExp(companyNameFragments.map((fragment) => escapeRegex(fragment)).join('|'), 'i')
+      : /Portfolio|CashPilot|SAS|SRL|SARL|BV/i;
+
+  const resolveCompanySwitcherTrigger = async () => {
+    const directSwitcher = page.locator('header button[class*="bg-white/5"][class*="border-white/10"]').first();
+    if (await directSwitcher.isVisible().catch(() => false)) {
+      return directSwitcher;
+    }
+    return page.getByRole('banner').locator('button').filter({ hasText: triggerPattern }).first();
+  };
+  const isTargetText = (text) => text.includes(targetName) || text.includes(targetFragment);
+
+  let trigger = await resolveCompanySwitcherTrigger();
   await trigger.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
-  const currentText = ((await trigger.textContent()) || '').trim();
+  let currentText = ((await trigger.textContent()) || '').trim();
 
-  if (!currentText.includes(targetName)) {
-    await trigger.click();
-    await page.waitForTimeout(200);
+  if (!isTargetText(currentText)) {
+    await page.evaluate((companyId) => {
+      window.localStorage.setItem('cashpilot.activeCompanyId', companyId);
+      window.dispatchEvent(new CustomEvent('cashpilot:active-company-changed', { detail: companyId }));
+    }, account.targetCompany.id);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {});
+    await dismissInterferingOverlays(page);
 
-    const target = page.locator('button').filter({ hasText: new RegExp(escapeRegex(targetName), 'i') }).last();
-    await target.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
-    await target.click();
+    trigger = await resolveCompanySwitcherTrigger();
+    await trigger.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
+    currentText = ((await trigger.textContent()) || '').trim();
   }
 
-  await page.waitForFunction(
-    (fragment) => Array.from(document.querySelectorAll('button')).some((button) => {
-      const text = button.textContent || '';
-      const rects = button.getClientRects();
-      return rects.length > 0 && text.includes(fragment);
-    }),
-    targetFragment,
-    { timeout: DEFAULT_TIMEOUT },
-  );
+  if (!isTargetText(currentText)) {
+    await trigger.click({ force: true });
+    await page.waitForTimeout(250);
+    const companyDropdown = page.locator('div.absolute.left-0.mt-1.w-56');
+    await companyDropdown.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
+
+    const targetByName = companyDropdown.locator('button').filter({ hasText: new RegExp(escapeRegex(targetName), 'i') }).first();
+    const fallbackTarget = companyDropdown.locator('button').filter({ hasText: /Portfolio/i }).first();
+    const addCompanyButton = companyDropdown.locator('button').filter({ hasText: /Ajouter|Add/i }).first();
+
+    let target = null;
+    if (await targetByName.isVisible().catch(() => false)) {
+      target = targetByName;
+    } else if (await fallbackTarget.isVisible().catch(() => false)) {
+      target = fallbackTarget;
+    } else {
+      const firstSelectable = companyDropdown.locator('button').first();
+      const firstText = ((await firstSelectable.textContent()) || '').trim();
+      const addText = ((await addCompanyButton.textContent()) || '').trim();
+      if (await firstSelectable.isVisible().catch(() => false) && firstText && firstText !== addText) {
+        target = firstSelectable;
+      }
+    }
+
+    if (!target) {
+      throw new Error(`Unable to find a company option for ${account.key}.`);
+    }
+
+    await target.click({ force: true });
+    await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {});
+    await dismissInterferingOverlays(page);
+    trigger = await resolveCompanySwitcherTrigger();
+    currentText = ((await trigger.textContent()) || '').trim();
+  }
+
+  if (!isTargetText(currentText)) {
+    throw new Error(`Company switch did not land on target company for ${account.key}. Current: "${currentText}"`);
+  }
 
   await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {});
 }
@@ -382,7 +433,20 @@ async function buildRuntimeAccounts() {
         .order('company_name', { ascending: true }),
       `company rows for ${template.email}`,
     );
-    const targetCompany = companies.find((company) => /Portfolio/i.test(company.company_name || '')) || companies[0] || null;
+    const { data: preferenceData, error: preferenceError } = await serviceClient
+      .from('user_company_preferences')
+      .select('active_company_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (preferenceError && preferenceError.code !== 'PGRST116') {
+      throw new Error(`user_company_preferences for ${template.email}: ${preferenceError.message}`);
+    }
+
+    const preferredCompanyId = preferenceData?.active_company_id || null;
+    const targetCompany = companies.find((company) => company.id === preferredCompanyId)
+      || companies.find((company) => /Portfolio/i.test(company.company_name || ''))
+      || companies[0]
+      || null;
 
     if (!targetCompany) {
       throw new Error(`Need at least 1 company for ${template.email} to run the smoke test`);
@@ -392,6 +456,7 @@ async function buildRuntimeAccounts() {
       key: template.key,
       email: template.email,
       password: requireEnv(template.passwordEnv),
+      companyNames: companies.map((company) => company.company_name).filter(Boolean),
       targetCompany,
       expectations: await loadExpectations(serviceClient, user.id, targetCompany),
     });
