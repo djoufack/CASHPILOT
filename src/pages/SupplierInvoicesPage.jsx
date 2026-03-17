@@ -626,7 +626,7 @@ const SupplierInvoicesPage = () => {
           </div>
           <Button variant="upload3d" onClick={handleNewInvoice} className="w-full md:w-auto font-semibold">
             <Plus className="mr-2 h-4 w-4" />
-            {t('supplierInvoices.newInvoice', 'Nouvelle facture')}
+            {t('supplierInvoices.uploadInvoice', 'Televerser une facture')}
           </Button>
         </div>
 
@@ -788,7 +788,7 @@ const SupplierInvoicesPage = () => {
             </p>
             <Button onClick={handleNewInvoice} variant="upload3d" className="font-semibold">
               <Plus className="w-4 h-4 mr-2" />
-              {t('supplierInvoices.newInvoice', 'Nouvelle facture')}
+              {t('supplierInvoices.uploadInvoice', 'Televerser une facture')}
             </Button>
           </motion.div>
         ) : (
