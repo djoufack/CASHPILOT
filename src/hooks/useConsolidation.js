@@ -4,6 +4,44 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 
+function toSafeNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeConsolidatedPnlPayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return payload;
+  }
+
+  const adjustedRevenue =
+    payload.adjusted_revenue != null ? toSafeNumber(payload.adjusted_revenue) : toSafeNumber(payload.total_revenue);
+  const totalRevenue = toSafeNumber(payload.total_revenue);
+  const totalExpenses = Math.abs(toSafeNumber(payload.total_expenses));
+  const byCompany = Array.isArray(payload.by_company)
+    ? payload.by_company.map((company) => {
+        const revenue = toSafeNumber(company?.revenue);
+        const expenses = Math.abs(toSafeNumber(company?.expenses));
+        return {
+          ...company,
+          revenue,
+          expenses,
+          net_income: revenue - expenses,
+        };
+      })
+    : [];
+
+  return {
+    ...payload,
+    total_revenue: totalRevenue,
+    adjusted_revenue: adjustedRevenue,
+    total_expenses: totalExpenses,
+    net_income: adjustedRevenue - totalExpenses,
+    adjusted_net_income: adjustedRevenue - totalExpenses,
+    by_company: byCompany,
+  };
+}
+
 export function useConsolidation() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -56,8 +94,9 @@ export function useConsolidation() {
         if (rpcError) throw rpcError;
         if (data?.error) throw new Error(data.error);
 
-        setConsolidatedPnl(data);
-        return data;
+        const normalized = normalizeConsolidatedPnlPayload(data);
+        setConsolidatedPnl(normalized);
+        return normalized;
       } catch (err) {
         setError(err.message);
         toast({ variant: 'destructive', title: t('common.error'), description: err.message });
