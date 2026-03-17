@@ -143,6 +143,13 @@ const MobileMenu = ({ isOpen, onClose }) => {
         ],
       },
       {
+        id: 'ged-hub',
+        label: t('nav.gedHub', 'GED HUB'),
+        icon: FileText,
+        type: 'direct',
+        path: '/app/ged-hub',
+      },
+      {
         id: 'sales',
         label: t('nav.sales', 'Ventes'),
         icon: FileText,
