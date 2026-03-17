@@ -30,6 +30,7 @@ const formatDate = (v) => {
 };
 const empName = (e) => e?.full_name || `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || '-';
 const STATUS = ABSENCE_STATUSES;
+const isPendingLeaveStatus = (status) => status === 'submitted' || status === 'pending' || status === 'draft';
 const LT_COLORS = [
   'bg-orange-400',
   'bg-blue-400',
@@ -44,7 +45,7 @@ const daysIn = (y, m) => new Date(y, m + 1, 0).getDate();
 const diffDays = (a, b) => Math.max(1, Math.round((new Date(b) - new Date(a)) / 86400000) + 1);
 
 function StatusBadge({ status }) {
-  const c = STATUS[status] || STATUS.pending;
+  const c = STATUS[status] || STATUS.submitted || STATUS.pending;
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${c.bg} ${c.text}`}
@@ -61,7 +62,12 @@ function DemandesTab({ leaveRequests, employees, approveLeaveRequest, rejectLeav
   const [empF, setEmpF] = useState('all');
   const rows = useMemo(() => {
     let l = leaveRequests || [];
-    if (statusF !== 'all') l = l.filter((r) => r.status === statusF);
+    if (statusF !== 'all') {
+      l =
+        statusF === 'pending_like'
+          ? l.filter((r) => isPendingLeaveStatus(r.status))
+          : l.filter((r) => r.status === statusF);
+    }
     if (empF !== 'all') l = l.filter((r) => r.employee_id === empF);
     return l;
   }, [leaveRequests, statusF, empF]);
@@ -77,7 +83,7 @@ function DemandesTab({ leaveRequests, employees, approveLeaveRequest, rejectLeav
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les statuts</SelectItem>
-              <SelectItem value="pending">En attente</SelectItem>
+              <SelectItem value="pending_like">En attente</SelectItem>
               <SelectItem value="approved">Approuvé</SelectItem>
               <SelectItem value="rejected">Refusé</SelectItem>
               <SelectItem value="cancelled">Annulé</SelectItem>
@@ -134,7 +140,7 @@ function DemandesTab({ leaveRequests, employees, approveLeaveRequest, rejectLeav
                     </td>
                     <td className="px-4 py-3 text-gray-400 max-w-[200px] truncate">{r.reason || '-'}</td>
                     <td className="px-4 py-3 text-right">
-                      {r.status === 'pending' && (
+                      {isPendingLeaveStatus(r.status) && (
                         <div className="flex gap-1 justify-end">
                           <Button
                             size="sm"
@@ -194,7 +200,7 @@ function CalendrierTab({ leaveRequests, leaveTypes, employees }) {
       m[e.id] = {};
     });
     (leaveRequests || []).forEach((r) => {
-      if (r.status !== 'approved' && r.status !== 'pending') return;
+      if (r.status !== 'approved' && !isPendingLeaveStatus(r.status)) return;
       if (!m[r.employee_id]) return;
       const s = new Date(r.start_date),
         e = new Date(r.end_date),
@@ -288,7 +294,7 @@ function CalendrierTab({ leaveRequests, leaveTypes, employees }) {
                       <td key={d} className={`px-0 py-1.5 text-center ${we ? 'bg-white/[0.02]' : ''}`}>
                         {cell && (
                           <span
-                            className={`block mx-auto h-4 w-4 rounded-sm ${col} ${cell.st === 'pending' ? 'opacity-40 border border-dashed border-white/40' : ''}`}
+                            className={`block mx-auto h-4 w-4 rounded-sm ${col} ${isPendingLeaveStatus(cell.st) ? 'opacity-40 border border-dashed border-white/40' : ''}`}
                           />
                         )}
                       </td>
@@ -511,7 +517,7 @@ export default function AbsencesPage() {
   const stats = useMemo(() => {
     const lr = leaveRequests || [];
     return {
-      pending: lr.filter((r) => r.status === 'pending').length,
+      pending: lr.filter((r) => isPendingLeaveStatus(r.status)).length,
       approved: lr.filter((r) => r.status === 'approved').length,
       totalDays: lr.filter((r) => r.status === 'approved').reduce((s, r) => s + (r.total_days || 0), 0),
     };

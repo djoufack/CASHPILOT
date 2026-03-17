@@ -170,7 +170,7 @@ export function useTraining() {
         training_id: payload.training_id,
         employee_id: payload.employee_id,
         training_plan_id: payload.training_plan_id || null,
-        status: payload.status || 'enrolled',
+        status: payload.status || 'registered',
         planned_start_date: payload.planned_start_date || null,
         planned_end_date: payload.planned_end_date || null,
       });

@@ -354,7 +354,7 @@ export default function PeopleReviewPage() {
               <Card className="bg-white/5 border-white/10">
                 <CardContent className="py-4 text-center">
                   <p className="text-2xl font-bold text-blue-400">
-                    {reviews.filter((r) => r.status === 'signed').length}
+                    {reviews.filter((r) => r.status === 'completed').length}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">Entretiens signes</p>
                 </CardContent>
@@ -362,7 +362,7 @@ export default function PeopleReviewPage() {
               <Card className="bg-white/5 border-white/10">
                 <CardContent className="py-4 text-center">
                   <p className="text-2xl font-bold text-amber-400">
-                    {reviews.filter((r) => r.status !== 'signed').length}
+                    {reviews.filter((r) => r.status !== 'completed').length}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">En cours</p>
                 </CardContent>

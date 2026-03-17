@@ -49,6 +49,18 @@ export const PAYROLL_STATUSES = {
 // Absence / leave-request statuses
 // ---------------------------------------------------------------------------
 export const ABSENCE_STATUSES = {
+  draft: {
+    label: 'Brouillon',
+    dot: 'bg-gray-400',
+    text: 'text-gray-300',
+    bg: 'bg-gray-400/10 border-gray-400/30',
+  },
+  submitted: {
+    label: 'En attente',
+    dot: 'bg-yellow-400',
+    text: 'text-yellow-300',
+    bg: 'bg-yellow-400/10 border-yellow-400/30',
+  },
   pending: {
     label: 'En attente',
     dot: 'bg-yellow-400',

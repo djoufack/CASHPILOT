@@ -102,7 +102,7 @@ export function useAbsences() {
         start_date: payload.start_date,
         end_date: payload.end_date,
         total_days: Number(payload.total_days || payload.days_count || 0),
-        status: 'pending',
+        status: 'submitted',
         reason: payload.reason || null,
       });
 

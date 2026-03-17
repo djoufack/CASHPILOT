@@ -25,9 +25,11 @@ import { useToast } from '@/components/ui/use-toast';
 
 /* ── status config ───────────────────────────────────────────── */
 const STATUS_MAP = {
-  enrolled: { label: 'Inscrit', cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  planned: { label: 'Planifie', cls: 'bg-slate-500/20 text-slate-300 border-slate-500/30' },
+  registered: { label: 'Inscrit', cls: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
   in_progress: { label: 'En cours', cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
   completed: { label: 'Terminé', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  failed: { label: 'Echec', cls: 'bg-rose-500/20 text-rose-400 border-rose-500/30' },
   cancelled: { label: 'Annulé', cls: 'bg-red-500/20 text-red-400 border-red-500/30' },
 };
 
@@ -292,7 +294,7 @@ const TrainingPage = () => {
                     </thead>
                     <tbody>
                       {selectedEnrollments.map((en) => {
-                        const st = STATUS_MAP[en.status] || STATUS_MAP.enrolled;
+                        const st = STATUS_MAP[en.status] || STATUS_MAP.registered;
                         return (
                           <tr key={en.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                             <td className="px-6 py-3 text-gray-200">{empName(en.hr_employees)}</td>
@@ -301,7 +303,9 @@ const TrainingPage = () => {
                                 {st.label}
                               </Badge>
                             </td>
-                            <td className="px-6 py-3 text-gray-400">{fmtDate(en.enrolled_at)}</td>
+                            <td className="px-6 py-3 text-gray-400">
+                              {fmtDate(en.created_at || en.planned_start_date)}
+                            </td>
                             <td className="px-6 py-3 text-gray-300">{en.score != null ? en.score : '-'}</td>
                           </tr>
                         );
@@ -484,7 +488,7 @@ const TrainingPage = () => {
                       </tr>
                     ) : (
                       enrollments.map((en) => {
-                        const st = STATUS_MAP[en.status] || STATUS_MAP.enrolled;
+                        const st = STATUS_MAP[en.status] || STATUS_MAP.registered;
                         return (
                           <tr key={en.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                             <td className="px-6 py-3 text-gray-200">{empName(en.hr_employees)}</td>
@@ -494,12 +498,14 @@ const TrainingPage = () => {
                                 {st.label}
                               </Badge>
                             </td>
-                            <td className="px-6 py-3 text-gray-400">{fmtDate(en.enrolled_at)}</td>
-                            <td className="px-6 py-3 text-gray-400">{fmtDate(en.completed_at)}</td>
+                            <td className="px-6 py-3 text-gray-400">
+                              {fmtDate(en.created_at || en.planned_start_date)}
+                            </td>
+                            <td className="px-6 py-3 text-gray-400">{fmtDate(en.actual_end_date)}</td>
                             <td className="px-6 py-3 text-gray-300">{en.score != null ? en.score : '-'}</td>
                             <td className="px-6 py-3">
                               <div className="flex gap-1">
-                                {en.status !== 'completed' && (
+                                {!['completed', 'cancelled', 'failed'].includes(en.status) && (
                                   <Button
                                     size="sm"
                                     variant="ghost"
@@ -508,7 +514,7 @@ const TrainingPage = () => {
                                       try {
                                         await updateEnrollment(en.id, {
                                           status: 'completed',
-                                          completed_at: new Date().toISOString(),
+                                          actual_end_date: new Date().toISOString().slice(0, 10),
                                         });
                                         toast({ title: 'Marque comme termine' });
                                       } catch (err) {
