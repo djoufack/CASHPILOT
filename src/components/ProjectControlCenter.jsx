@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +44,8 @@ const monthKey = (value) => {
 const computeMilestoneAdjustment = (milestone) => {
   const plannedDate = milestone?.planned_date ? new Date(milestone.planned_date) : null;
   const actualDate = milestone?.actual_date ? new Date(milestone.actual_date) : null;
-  if (!plannedDate || !actualDate || Number.isNaN(plannedDate.getTime()) || Number.isNaN(actualDate.getTime())) return 0;
+  if (!plannedDate || !actualDate || Number.isNaN(plannedDate.getTime()) || Number.isNaN(actualDate.getTime()))
+    return 0;
 
   const dayDiff = Math.round((actualDate.getTime() - plannedDate.getTime()) / (1000 * 60 * 60 * 24));
   const base = toNumber(milestone?.planned_amount);
@@ -61,7 +62,7 @@ const computeMilestoneAdjustment = (milestone) => {
   const type = milestone?.malus_rule_type || 'none';
   const value = toNumber(milestone?.malus_rule_value);
   if (type === 'fixed') return -value;
-  if (type === 'percentage') return -(base * value / 100);
+  if (type === 'percentage') return -((base * value) / 100);
   if (type === 'day') return -(dayDiff * value);
   return 0;
 };
@@ -103,6 +104,8 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
   const currency = project?.client?.preferred_currency || 'EUR';
   const { toast } = useToast();
   const { members } = useTeamSettings();
+  const [periodFrom, setPeriodFrom] = useState('');
+  const [periodTo, setPeriodTo] = useState('');
   const {
     loading,
     baselines,
@@ -110,6 +113,9 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
     milestones,
     resources,
     compensations,
+    timesheetOutputs,
+    periodFrom: effectivePeriodFrom,
+    periodTo: effectivePeriodTo,
     financialCurve,
     createBaseline,
     setBaselineActive,
@@ -119,7 +125,7 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
     createResource,
     deleteResource,
     markCompensationPaid,
-  } = useProjectControl(project?.id);
+  } = useProjectControl(project?.id, { periodFrom, periodTo });
 
   const [baselineDialogOpen, setBaselineDialogOpen] = useState(false);
   const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false);
@@ -128,6 +134,15 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
   const [baselineForm, setBaselineForm] = useState(createDefaultBaselineForm());
   const [milestoneForm, setMilestoneForm] = useState(createDefaultMilestoneForm());
   const [resourceForm, setResourceForm] = useState(createDefaultResourceForm());
+
+  useEffect(() => {
+    if (!periodFrom && project?.start_date) {
+      setPeriodFrom(toIsoDate(project.start_date) || '');
+    }
+    if (!periodTo) {
+      setPeriodTo(toIsoDate(new Date()) || '');
+    }
+  }, [periodFrom, periodTo, project?.start_date]);
 
   const taskCurve = useMemo(() => {
     const monthSet = new Set();
@@ -155,10 +170,14 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
     });
   }, [tasks]);
 
-  const milestoneRows = useMemo(() => milestones.map((milestone) => {
-    const adjustment = computeMilestoneAdjustment(milestone);
-    return { ...milestone, adjustment, net_amount: toNumber(milestone?.planned_amount) + adjustment };
-  }), [milestones]);
+  const milestoneRows = useMemo(
+    () =>
+      milestones.map((milestone) => {
+        const adjustment = computeMilestoneAdjustment(milestone);
+        return { ...milestone, adjustment, net_amount: toNumber(milestone?.planned_amount) + adjustment };
+      }),
+    [milestones]
+  );
 
   const taskCompletionRate = useMemo(() => {
     if (!tasks.length) return 0;
@@ -195,21 +214,41 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
     };
   }, [financialCurve, milestoneRows, taskCompletionRate]);
 
-  const reportPayload = useMemo(() => ({
-    project: {
-      name: project?.name || 'Projet',
-      client_name: project?.client?.company_name || 'Client non defini',
-    },
-    currency,
-    kpi,
-    baselines,
-    milestones: milestoneRows,
-    resources: resources.map((resource) => ({
-      ...resource,
-      display_name: resource?.team_member?.name || resource.resource_name || 'Ressource',
-    })),
-    financialCurve,
-  }), [baselines, currency, financialCurve, kpi, milestoneRows, project?.client?.company_name, project?.name, resources]);
+  const reportPayload = useMemo(
+    () => ({
+      project: {
+        name: project?.name || 'Projet',
+        client_name: project?.client?.company_name || 'Client non defini',
+      },
+      currency,
+      period: {
+        from: effectivePeriodFrom || null,
+        to: effectivePeriodTo || null,
+      },
+      kpi,
+      baselines,
+      milestones: milestoneRows,
+      resources: resources.map((resource) => ({
+        ...resource,
+        display_name: resource?.team_member?.name || resource.resource_name || 'Ressource',
+      })),
+      timesheetOutputs,
+      financialCurve,
+    }),
+    [
+      baselines,
+      currency,
+      effectivePeriodFrom,
+      effectivePeriodTo,
+      financialCurve,
+      kpi,
+      milestoneRows,
+      project?.client?.company_name,
+      project?.name,
+      resources,
+      timesheetOutputs,
+    ]
+  );
 
   const handleCreateBaseline = async () => {
     try {
@@ -294,6 +333,34 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
         </div>
       </div>
 
+      <Card className="bg-white/5 border-white/10">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="project-control-from">Période du</Label>
+              <Input
+                id="project-control-from"
+                type="date"
+                value={periodFrom}
+                onChange={(event) => setPeriodFrom(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="project-control-to">Au</Label>
+              <Input
+                id="project-control-to"
+                type="date"
+                value={periodTo}
+                onChange={(event) => setPeriodTo(event.target.value)}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 mt-3">
+            Sortie timesheets filtrée du {effectivePeriodFrom || 'début'} au {effectivePeriodTo || 'fin'}.
+          </p>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-white/5 border-white/10">
           <CardHeader className="pb-2">
@@ -310,7 +377,9 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
             <CardTitle className="text-sm text-gray-400">Jalons</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-white">{kpi.milestonesAchieved}/{kpi.totalMilestones}</p>
+            <p className="text-3xl font-bold text-white">
+              {kpi.milestonesAchieved}/{kpi.totalMilestones}
+            </p>
             <p className="text-xs text-gray-400 mt-1">{kpi.overdueMilestones} en retard</p>
           </CardContent>
         </Card>
@@ -329,6 +398,46 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="bg-white/5 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white">Timesheets par ressource humaine</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-sm text-gray-400">Chargement des sorties timesheets...</p>
+          ) : timesheetOutputs.length === 0 ? (
+            <p className="text-sm text-gray-500">Aucune feuille de temps sur la période sélectionnée.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-400 border-b border-slate-800">
+                    <th className="py-2 pr-3">Ressource</th>
+                    <th className="py-2 pr-3">Timesheets</th>
+                    <th className="py-2 pr-3">Heures</th>
+                    <th className="py-2 pr-3">Coût</th>
+                    <th className="py-2 pr-3">Première date</th>
+                    <th className="py-2">Dernière date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {timesheetOutputs.map((row) => (
+                    <tr key={row.memberId} className="border-b border-slate-900/70 text-gray-200">
+                      <td className="py-2 pr-3">{row.memberName}</td>
+                      <td className="py-2 pr-3">{row.timesheets}</td>
+                      <td className="py-2 pr-3">{row.hours}</td>
+                      <td className="py-2 pr-3">{formatCurrency(row.cost, currency)}</td>
+                      <td className="py-2 pr-3">{formatDate(row.firstDate)}</td>
+                      <td className="py-2">{formatDate(row.lastDate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card className="bg-white/5 border-white/10">
@@ -362,7 +471,9 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
           </CardHeader>
           <CardContent className="h-[280px]">
             {financialCurve.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-gray-500">Aucune donnée financière projet</div>
+              <div className="h-full flex items-center justify-center text-gray-500">
+                Aucune donnée financière projet
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={financialCurve}>
@@ -393,7 +504,9 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
             <div className="p-3 rounded border border-slate-700 bg-slate-900/40">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-white font-semibold">{activeBaseline.baseline_label} (v{activeBaseline.version})</p>
+                  <p className="text-white font-semibold">
+                    {activeBaseline.baseline_label} (v{activeBaseline.version})
+                  </p>
                   <p className="text-xs text-gray-400">
                     {formatDate(activeBaseline.planned_start_date)} → {formatDate(activeBaseline.planned_end_date)}
                   </p>
@@ -410,13 +523,22 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
 
           <div className="space-y-2">
             {baselines.map((baseline) => (
-              <div key={baseline.id} className="flex flex-wrap items-center justify-between gap-2 p-2 rounded bg-slate-900/30 border border-slate-800">
+              <div
+                key={baseline.id}
+                className="flex flex-wrap items-center justify-between gap-2 p-2 rounded bg-slate-900/30 border border-slate-800"
+              >
                 <div>
-                  <p className="text-sm text-white">{baseline.baseline_label} (v{baseline.version})</p>
-                  <p className="text-xs text-gray-400">{formatDate(baseline.planned_start_date)} → {formatDate(baseline.planned_end_date)}</p>
+                  <p className="text-sm text-white">
+                    {baseline.baseline_label} (v{baseline.version})
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {formatDate(baseline.planned_start_date)} → {formatDate(baseline.planned_end_date)}
+                  </p>
                 </div>
                 {!baseline.is_active && (
-                  <Button size="sm" variant="outline" onClick={() => setBaselineActive(baseline.id)}>Activer</Button>
+                  <Button size="sm" variant="outline" onClick={() => setBaselineActive(baseline.id)}>
+                    Activer
+                  </Button>
                 )}
               </div>
             ))}
@@ -446,7 +568,9 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
               <tbody>
                 {milestoneRows.length === 0 && (
                   <tr>
-                    <td className="py-3 text-gray-500" colSpan={8}>Aucun jalon défini.</td>
+                    <td className="py-3 text-gray-500" colSpan={8}>
+                      Aucun jalon défini.
+                    </td>
                   </tr>
                 )}
                 {milestoneRows.map((milestone) => (
@@ -454,7 +578,9 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
                     <td className="py-2 text-white">{milestone.title}</td>
                     <td className="py-2 text-gray-300">{formatDate(milestone.planned_date)}</td>
                     <td className="py-2 text-gray-300">{formatDate(milestone.actual_date)}</td>
-                    <td className="py-2"><Badge variant="outline">{milestone.status}</Badge></td>
+                    <td className="py-2">
+                      <Badge variant="outline">{milestone.status}</Badge>
+                    </td>
                     <td className="py-2 text-gray-300">{formatCurrency(milestone.planned_amount, currency)}</td>
                     <td className={`py-2 ${milestone.adjustment >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {formatCurrency(milestone.adjustment, currency)}
@@ -483,7 +609,12 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
                         >
                           Éditer
                         </Button>
-                        <Button size="sm" variant="ghost" className="text-red-400" onClick={() => deleteMilestone(milestone.id)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-400"
+                          onClick={() => deleteMilestone(milestone.id)}
+                        >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -499,18 +630,24 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card className="bg-white/5 border-white/10">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2"><Users className="w-4 h-4" /> Ressources</CardTitle>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Users className="w-4 h-4" /> Ressources
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {resources.length === 0 && <p className="text-sm text-gray-500">Aucune ressource allouée.</p>}
             {resources.map((resource) => (
-              <div key={resource.id} className="p-2 border border-slate-800 rounded bg-slate-900/30 flex items-center justify-between gap-2">
+              <div
+                key={resource.id}
+                className="p-2 border border-slate-800 rounded bg-slate-900/30 flex items-center justify-between gap-2"
+              >
                 <div>
                   <p className="text-white text-sm">
                     {resource.team_member?.name || resource.resource_name || 'Ressource'} ({resource.resource_type})
                   </p>
                   <p className="text-xs text-gray-400">
-                    Planifié {resource.planned_quantity} {resource.unit} / Réel {resource.actual_quantity} {resource.unit}
+                    Planifié {resource.planned_quantity} {resource.unit} / Réel {resource.actual_quantity}{' '}
+                    {resource.unit}
                   </p>
                   <p className="text-xs text-gray-500">
                     Coût {formatCurrency(resource.actual_cost, currency)} ({resource.status})
@@ -526,12 +663,17 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
 
         <Card className="bg-white/5 border-white/10">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2"><Wrench className="w-4 h-4" /> Paiements exécution (équipe)</CardTitle>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Wrench className="w-4 h-4" /> Paiements exécution (équipe)
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {compensations.length === 0 && <p className="text-sm text-gray-500">Aucune compensation enregistrée.</p>}
             {compensations.slice(0, 8).map((compensation) => (
-              <div key={compensation.id} className="p-2 border border-slate-800 rounded bg-slate-900/30 flex items-center justify-between gap-2">
+              <div
+                key={compensation.id}
+                className="p-2 border border-slate-800 rounded bg-slate-900/30 flex items-center justify-between gap-2"
+              >
                 <div>
                   <p className="text-white text-sm">{compensation.team_member?.name || 'Membre'}</p>
                   <p className="text-xs text-gray-400">
@@ -558,44 +700,72 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
           <div className="space-y-3">
             <div>
               <Label>Nom baseline</Label>
-              <Input value={baselineForm.baseline_label} onChange={(e) => setBaselineForm((prev) => ({ ...prev, baseline_label: e.target.value }))} />
+              <Input
+                value={baselineForm.baseline_label}
+                onChange={(e) => setBaselineForm((prev) => ({ ...prev, baseline_label: e.target.value }))}
+              />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Début prévu</Label>
-                <Input type="date" value={baselineForm.planned_start_date} onChange={(e) => setBaselineForm((prev) => ({ ...prev, planned_start_date: e.target.value }))} />
+                <Input
+                  type="date"
+                  value={baselineForm.planned_start_date}
+                  onChange={(e) => setBaselineForm((prev) => ({ ...prev, planned_start_date: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>Fin prévue</Label>
-                <Input type="date" value={baselineForm.planned_end_date} onChange={(e) => setBaselineForm((prev) => ({ ...prev, planned_end_date: e.target.value }))} />
+                <Input
+                  type="date"
+                  value={baselineForm.planned_end_date}
+                  onChange={(e) => setBaselineForm((prev) => ({ ...prev, planned_end_date: e.target.value }))}
+                />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <Label>Heures prévues</Label>
-                <Input type="number" value={baselineForm.planned_budget_hours} onChange={(e) => setBaselineForm((prev) => ({ ...prev, planned_budget_hours: e.target.value }))} />
+                <Input
+                  type="number"
+                  value={baselineForm.planned_budget_hours}
+                  onChange={(e) => setBaselineForm((prev) => ({ ...prev, planned_budget_hours: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>Budget prévu</Label>
-                <Input type="number" value={baselineForm.planned_budget_amount} onChange={(e) => setBaselineForm((prev) => ({ ...prev, planned_budget_amount: e.target.value }))} />
+                <Input
+                  type="number"
+                  value={baselineForm.planned_budget_amount}
+                  onChange={(e) => setBaselineForm((prev) => ({ ...prev, planned_budget_amount: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>Tâches prévues</Label>
-                <Input type="number" value={baselineForm.planned_tasks_count} onChange={(e) => setBaselineForm((prev) => ({ ...prev, planned_tasks_count: e.target.value }))} />
+                <Input
+                  type="number"
+                  value={baselineForm.planned_tasks_count}
+                  onChange={(e) => setBaselineForm((prev) => ({ ...prev, planned_tasks_count: e.target.value }))}
+                />
               </div>
             </div>
-            <Button className="w-full bg-orange-500 hover:bg-orange-600" onClick={handleCreateBaseline}>Enregistrer baseline</Button>
+            <Button className="w-full bg-orange-500 hover:bg-orange-600" onClick={handleCreateBaseline}>
+              Enregistrer baseline
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={milestoneDialogOpen} onOpenChange={(open) => {
-        setMilestoneDialogOpen(open);
-        if (!open) {
-          setEditingMilestone(null);
-          setMilestoneForm(createDefaultMilestoneForm());
-        }
-      }}>
+      <Dialog
+        open={milestoneDialogOpen}
+        onOpenChange={(open) => {
+          setMilestoneDialogOpen(open);
+          if (!open) {
+            setEditingMilestone(null);
+            setMilestoneForm(createDefaultMilestoneForm());
+          }
+        }}
+      >
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingMilestone ? 'Éditer jalon' : 'Nouveau jalon'}</DialogTitle>
@@ -603,13 +773,21 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
           <div className="space-y-3">
             <div>
               <Label>Titre</Label>
-              <Input value={milestoneForm.title} onChange={(e) => setMilestoneForm((prev) => ({ ...prev, title: e.target.value }))} />
+              <Input
+                value={milestoneForm.title}
+                onChange={(e) => setMilestoneForm((prev) => ({ ...prev, title: e.target.value }))}
+              />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <Label>Statut</Label>
-                <Select value={milestoneForm.status} onValueChange={(value) => setMilestoneForm((prev) => ({ ...prev, status: value }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={milestoneForm.status}
+                  onValueChange={(value) => setMilestoneForm((prev) => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="planned">Planned</SelectItem>
                     <SelectItem value="in_progress">In progress</SelectItem>
@@ -621,22 +799,39 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
               </div>
               <div>
                 <Label>Date prévue</Label>
-                <Input type="date" value={milestoneForm.planned_date} onChange={(e) => setMilestoneForm((prev) => ({ ...prev, planned_date: e.target.value }))} />
+                <Input
+                  type="date"
+                  value={milestoneForm.planned_date}
+                  onChange={(e) => setMilestoneForm((prev) => ({ ...prev, planned_date: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>Date réelle</Label>
-                <Input type="date" value={milestoneForm.actual_date} onChange={(e) => setMilestoneForm((prev) => ({ ...prev, actual_date: e.target.value }))} />
+                <Input
+                  type="date"
+                  value={milestoneForm.actual_date}
+                  onChange={(e) => setMilestoneForm((prev) => ({ ...prev, actual_date: e.target.value }))}
+                />
               </div>
             </div>
             <div>
               <Label>Montant de base</Label>
-              <Input type="number" value={milestoneForm.planned_amount} onChange={(e) => setMilestoneForm((prev) => ({ ...prev, planned_amount: e.target.value }))} />
+              <Input
+                type="number"
+                value={milestoneForm.planned_amount}
+                onChange={(e) => setMilestoneForm((prev) => ({ ...prev, planned_amount: e.target.value }))}
+              />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>Règle bonus</Label>
-                <Select value={milestoneForm.bonus_rule_type} onValueChange={(value) => setMilestoneForm((prev) => ({ ...prev, bonus_rule_type: value }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={milestoneForm.bonus_rule_type}
+                  onValueChange={(value) => setMilestoneForm((prev) => ({ ...prev, bonus_rule_type: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Aucun</SelectItem>
                     <SelectItem value="fixed">Fixe</SelectItem>
@@ -644,12 +839,21 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
                     <SelectItem value="day">Par jour</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input type="number" value={milestoneForm.bonus_rule_value} onChange={(e) => setMilestoneForm((prev) => ({ ...prev, bonus_rule_value: e.target.value }))} />
+                <Input
+                  type="number"
+                  value={milestoneForm.bonus_rule_value}
+                  onChange={(e) => setMilestoneForm((prev) => ({ ...prev, bonus_rule_value: e.target.value }))}
+                />
               </div>
               <div className="space-y-1">
                 <Label>Règle malus</Label>
-                <Select value={milestoneForm.malus_rule_type} onValueChange={(value) => setMilestoneForm((prev) => ({ ...prev, malus_rule_type: value }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={milestoneForm.malus_rule_type}
+                  onValueChange={(value) => setMilestoneForm((prev) => ({ ...prev, malus_rule_type: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Aucun</SelectItem>
                     <SelectItem value="fixed">Fixe</SelectItem>
@@ -657,7 +861,11 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
                     <SelectItem value="day">Par jour</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input type="number" value={milestoneForm.malus_rule_value} onChange={(e) => setMilestoneForm((prev) => ({ ...prev, malus_rule_value: e.target.value }))} />
+                <Input
+                  type="number"
+                  value={milestoneForm.malus_rule_value}
+                  onChange={(e) => setMilestoneForm((prev) => ({ ...prev, malus_rule_value: e.target.value }))}
+                />
               </div>
             </div>
             <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleSaveMilestone}>
@@ -675,8 +883,13 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
           <div className="space-y-3">
             <div>
               <Label>Type</Label>
-              <Select value={resourceForm.resource_type} onValueChange={(value) => setResourceForm((prev) => ({ ...prev, resource_type: value }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={resourceForm.resource_type}
+                onValueChange={(value) => setResourceForm((prev) => ({ ...prev, resource_type: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="human">Humaine</SelectItem>
                   <SelectItem value="material">Matérielle</SelectItem>
@@ -686,11 +899,18 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
             {resourceForm.resource_type === 'human' ? (
               <div>
                 <Label>Membre</Label>
-                <Select value={resourceForm.team_member_id} onValueChange={(value) => setResourceForm((prev) => ({ ...prev, team_member_id: value }))}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionner membre" /></SelectTrigger>
+                <Select
+                  value={resourceForm.team_member_id}
+                  onValueChange={(value) => setResourceForm((prev) => ({ ...prev, team_member_id: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner membre" />
+                  </SelectTrigger>
                   <SelectContent>
                     {members.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>{member.name} ({member.role})</SelectItem>
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.name} ({member.role})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -698,27 +918,46 @@ const ProjectControlCenter = ({ project, tasks = [] }) => {
             ) : (
               <div>
                 <Label>Ressource matérielle</Label>
-                <Input value={resourceForm.resource_name} onChange={(e) => setResourceForm((prev) => ({ ...prev, resource_name: e.target.value }))} />
+                <Input
+                  value={resourceForm.resource_name}
+                  onChange={(e) => setResourceForm((prev) => ({ ...prev, resource_name: e.target.value }))}
+                />
               </div>
             )}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Quantité planifiée</Label>
-                <Input type="number" value={resourceForm.planned_quantity} onChange={(e) => setResourceForm((prev) => ({ ...prev, planned_quantity: e.target.value }))} />
+                <Input
+                  type="number"
+                  value={resourceForm.planned_quantity}
+                  onChange={(e) => setResourceForm((prev) => ({ ...prev, planned_quantity: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>Quantité réelle</Label>
-                <Input type="number" value={resourceForm.actual_quantity} onChange={(e) => setResourceForm((prev) => ({ ...prev, actual_quantity: e.target.value }))} />
+                <Input
+                  type="number"
+                  value={resourceForm.actual_quantity}
+                  onChange={(e) => setResourceForm((prev) => ({ ...prev, actual_quantity: e.target.value }))}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Coût planifié</Label>
-                <Input type="number" value={resourceForm.planned_cost} onChange={(e) => setResourceForm((prev) => ({ ...prev, planned_cost: e.target.value }))} />
+                <Input
+                  type="number"
+                  value={resourceForm.planned_cost}
+                  onChange={(e) => setResourceForm((prev) => ({ ...prev, planned_cost: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>Coût réel</Label>
-                <Input type="number" value={resourceForm.actual_cost} onChange={(e) => setResourceForm((prev) => ({ ...prev, actual_cost: e.target.value }))} />
+                <Input
+                  type="number"
+                  value={resourceForm.actual_cost}
+                  onChange={(e) => setResourceForm((prev) => ({ ...prev, actual_cost: e.target.value }))}
+                />
               </div>
             </div>
             <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={handleCreateResource}>
