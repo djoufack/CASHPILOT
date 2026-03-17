@@ -46,59 +46,124 @@ import {
   Bot,
   Globe,
   Cable,
+  Code2,
   Shield,
   Settings,
   LogOut,
   User,
+  Sparkles,
+  Landmark,
+  FileCheck,
+  ArrowLeftRight,
+  Bell,
+  Zap,
+  LineChart,
+  BookOpen,
+  Gavel,
+  Smartphone,
+  Database,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/hooks/useCompany';
+import { useUserRole } from '@/hooks/useUserRole';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import CompanySwitcher from '@/components/CompanySwitcher';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { ENTITLEMENT_KEYS, filterCategorizedNavigation } from '@/utils/subscriptionEntitlements';
+
+const OHADA_COUNTRIES = new Set([
+  'BJ',
+  'BF',
+  'CM',
+  'CF',
+  'TD',
+  'KM',
+  'CG',
+  'CD',
+  'GQ',
+  'GA',
+  'GN',
+  'GW',
+  'CI',
+  'ML',
+  'NE',
+  'SN',
+  'TG',
+]);
 
 const MobileMenu = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
   const { logout } = useAuth();
+  const { isAdmin } = useUserRole();
+  const { hasEntitlement } = useEntitlements();
   const location = useLocation();
   const navigate = useNavigate();
   const { companies, activeCompany, switchCompany } = useCompany();
+  const isOhadaZone = OHADA_COUNTRIES.has((activeCompany?.country || '').toUpperCase());
   const menuPanelRef = useRef(null);
   const closeButtonRef = useRef(null);
 
-  const categories = useMemo(
-    () => [
+  const categories = useMemo(() => {
+    const rawCategories = [
       {
-        id: 'main',
+        id: 'dashboard',
+        label: t('common.dashboard'),
+        icon: Home,
+        type: 'direct',
+        path: '/app',
+      },
+      {
+        id: 'pilotage',
+        label: t('nav.pilotage'),
+        icon: BarChart3,
+        type: 'direct',
+        path: '/app/pilotage',
+      },
+      {
+        id: 'cfo-agent',
+        label: t('nav.cfoAgent', 'CFO Agent IA'),
+        icon: Sparkles,
+        type: 'direct',
+        path: '/app/cfo-agent',
+      },
+      {
+        id: 'company',
+        label: t('nav.myCompany', 'Mon Entreprise'),
+        icon: Building2,
+        type: 'category',
         items: [
-          { path: '/app', label: t('common.dashboard'), icon: Home },
-          { path: '/app/pilotage', label: t('nav.pilotage'), icon: BarChart3 },
+          { path: '/app/portfolio', label: t('nav.companyPortfolio', 'Portfolio sociétés'), icon: Building2 },
+          { path: '/app/peppol', label: t('nav.peppolEInvoicing'), icon: Globe },
+          { path: '/app/pdp-compliance', label: t('nav.pdpCompliance', 'PDP / Certification'), icon: FileCheck },
+          { path: '/app/inter-company', label: t('nav.interCompany', 'Inter-Sociétés'), icon: ArrowLeftRight },
+          { path: '/app/consolidation', label: t('nav.consolidation', 'Consolidation'), icon: Landmark },
+          { path: '/app/regulatory-intel', label: t('nav.regulatoryIntel', 'Veille réglementaire'), icon: Bell },
         ],
       },
       {
         id: 'sales',
         label: t('nav.sales', 'Ventes'),
         icon: FileText,
+        type: 'category',
         items: [
           { path: '/app/clients', label: t('common.clients'), icon: Users },
           { path: '/app/quotes', label: t('common.quotes'), icon: FileSignature },
           { path: '/app/invoices', label: t('common.invoices'), icon: FileText },
-          { path: '/app/credit-notes', label: t('creditNotes.title', 'Avoirs'), icon: FileMinus },
-          {
-            path: '/app/recurring-invoices',
-            label: t('recurringInvoices.title', 'Factures récurrentes'),
-            icon: RefreshCw,
-          },
-          { path: '/app/delivery-notes', label: t('deliveryNotes.title', 'Bons de livraison'), icon: PackageCheck },
+          { path: '/app/credit-notes', label: t('creditNotes.title'), icon: FileMinus },
+          { path: '/app/recurring-invoices', label: t('recurringInvoices.title'), icon: RefreshCw },
+          { path: '/app/delivery-notes', label: t('deliveryNotes.title'), icon: PackageCheck },
+          { path: '/app/smart-dunning', label: t('nav.smartDunning', 'Relances IA'), icon: Zap },
         ],
       },
       {
         id: 'purchases',
         label: t('nav.purchasesExpenses', 'Achats & Dépenses'),
         icon: ShoppingCart,
+        type: 'category',
         items: [
-          { path: '/app/suppliers', label: t('common.suppliers', 'Fournisseurs'), icon: Truck },
+          { path: '/app/suppliers', label: t('common.suppliers'), icon: Truck },
           {
             path: '/app/purchase-orders',
             label: t('nav.purchaseOrders', 'Commandes fournisseurs'),
@@ -118,89 +183,138 @@ const MobileMenu = ({ isOpen, onClose }) => {
         id: 'finance',
         label: t('nav.treasuryAccounting', 'Trésorerie & Comptabilité'),
         icon: TrendingUp,
+        type: 'category',
         items: [
           { path: '/app/cash-flow', label: t('nav.treasury', 'Trésorerie'), icon: TrendingUp },
+          { path: '/app/cash-flow-forecast', label: t('nav.cashFlowForecast', 'Prévisions IA'), icon: LineChart },
           { path: '/app/debt-manager', label: t('nav.collection', 'Recouvrement'), icon: Wallet },
           { path: '/app/bank-connections', label: t('nav.bankConnections', 'Connexions bancaires'), icon: Building2 },
+          { path: '/app/embedded-banking', label: t('nav.embeddedBanking', 'Banking intégré'), icon: Landmark },
+          { path: '/app/recon-ia', label: t('nav.reconIA', 'Rapprochement IA'), icon: Sparkles },
           {
             path: '/app/financial-instruments',
             label: t('nav.financialInstruments', 'Instruments financiers'),
             icon: CreditCard,
           },
-          { path: '/app/suppliers/accounting', label: t('common.accounting', 'Comptabilité'), icon: Calculator },
-          { path: '/app/audit-comptable', label: t('nav.auditComptable', 'Audit comptable'), icon: ShieldCheck },
+          { path: '/app/suppliers/accounting', label: t('common.accounting'), icon: Calculator },
+          ...(isOhadaZone
+            ? [
+                {
+                  path: '/app/syscohada/balance-sheet',
+                  label: t('nav.sycohadaBalance', 'Bilan SYSCOHADA'),
+                  icon: BookOpen,
+                },
+                {
+                  path: '/app/syscohada/income-statement',
+                  label: t('nav.sycohadaIncome', 'Résultat SYSCOHADA'),
+                  icon: BookOpen,
+                },
+                { path: '/app/tafire', label: t('nav.tafire', 'TAFIRE'), icon: BookOpen },
+              ]
+            : []),
+          { path: '/app/tax-filing', label: t('nav.taxFiling', 'Télédéclaration'), icon: Gavel },
+          { path: '/app/audit-comptable', label: t('nav.auditComptable'), icon: ShieldCheck },
+          {
+            path: '/app/scenarios',
+            label: t('nav.scenarios', 'Scénarios'),
+            icon: BarChart3,
+            featureKey: ENTITLEMENT_KEYS.SCENARIOS_FINANCIAL,
+          },
         ],
       },
       {
         id: 'catalog',
         label: t('nav.catalog', 'Catalogue'),
         icon: Package,
+        type: 'category',
         items: [
           { path: '/app/stock', label: t('nav.productsStock', 'Produits & Stock'), icon: Package },
-          { path: '/app/services', label: t('nav.clientServices', 'Services'), icon: Wrench },
+          { path: '/app/services', label: t('nav.clientServices', 'Prestations clients'), icon: Wrench },
           { path: '/app/categories', label: t('nav.categories', 'Catégories'), icon: Tag },
-          { path: '/app/products/barcode', label: t('nav.scanner', 'Scanner'), icon: QrCode },
+          { path: '/app/products/barcode', label: t('nav.scanner'), icon: QrCode },
         ],
       },
       {
         id: 'projects',
         label: t('nav.projectsCRM', 'Projets & CRM'),
         icon: Briefcase,
+        type: 'category',
         items: [
-          { path: '/app/projects', label: t('common.projects', 'Projets'), icon: Briefcase },
+          { path: '/app/projects', label: t('common.projects'), icon: Briefcase },
           { path: '/app/crm', label: t('nav.crm', 'CRM'), icon: Target },
-          { path: '/app/timesheets', label: t('common.timesheets', 'Timesheets'), icon: Clock },
+          { path: '/app/timesheets', label: t('common.timesheets'), icon: Clock },
           { path: '/app/hr-material', label: t('nav.projectResources', 'Ressources'), icon: Users },
-          { path: '/app/reports/generator', label: t('nav.reports', 'Rapports'), icon: FileBarChart },
+          { path: '/app/reports/generator', label: t('nav.reports'), icon: FileBarChart },
         ],
       },
       {
-        id: 'hr',
+        id: 'drh',
         label: t('nav.humanResources', 'Ressources Humaines'),
         icon: UserCheck,
+        type: 'category',
         items: [
+          { type: 'subgroup', label: t('nav.hrAdministration', 'Administration') },
           { path: '/app/rh/employes', label: t('nav.employees', 'Employés'), icon: UserCheck },
           { path: '/app/rh/paie', label: t('nav.payroll', 'Paie'), icon: Banknote },
           { path: '/app/rh/absences', label: t('nav.absences', 'Absences & Congés'), icon: CalendarOff },
+          { type: 'subgroup', label: t('nav.hrTalents', 'Talents') },
           { path: '/app/rh/recrutement', label: t('nav.recruitment', 'Recrutement'), icon: Search },
           { path: '/app/rh/onboarding', label: t('nav.onboardingHR', 'Onboarding'), icon: UserCheck },
           { path: '/app/rh/formation', label: t('nav.training', 'Formation'), icon: GraduationCap },
           { path: '/app/rh/competences', label: t('nav.skills', 'Compétences'), icon: Brain },
-          { path: '/app/rh/qvt', label: t('nav.qvt', 'QVT & Risques'), icon: HeartPulse },
+          { type: 'subgroup', label: t('nav.hrPerformance', 'Performance') },
           { path: '/app/rh/entretiens', label: t('nav.performanceReview', 'Entretiens'), icon: ClipboardCheck },
           { path: '/app/rh/people-review', label: t('nav.peopleReview', 'People Review'), icon: BarChart2 },
+          { path: '/app/rh/qvt', label: t('nav.qvt', 'QVT & Risques'), icon: HeartPulse },
           { path: '/app/rh/bilan-social', label: t('nav.bilanSocial', 'Bilan Social'), icon: PieChart },
           { path: '/app/rh/analytics', label: t('nav.peopleAnalytics', 'Analytics RH'), icon: Bot },
-        ],
-      },
-      {
-        id: 'company',
-        label: t('nav.myCompany', 'Mon Entreprise'),
-        icon: Building2,
-        items: [
-          { path: '/app/portfolio', label: t('nav.companyPortfolio', 'Portfolio sociétés'), icon: Building2 },
-          { path: '/app/peppol', label: t('nav.peppolEInvoicing', 'Peppol'), icon: Globe },
+          { type: 'subgroup', label: t('nav.hrSelfService', 'Self-Service') },
+          { path: '/app/employee-portal', label: t('nav.employeePortal', 'Portail employé'), icon: UserCheck },
         ],
       },
       {
         id: 'settings',
         label: t('common.settings', 'Paramètres'),
         icon: Settings,
+        type: 'category',
         items: [
           { path: '/app/integrations', label: t('nav.integrations', 'Intégrations'), icon: Cable },
+          {
+            path: '/app/api-mcp',
+            label: 'API-Webhook-MCP',
+            icon: Cable,
+            featureKey: ENTITLEMENT_KEYS.DEVELOPER_WEBHOOKS,
+          },
+          { path: '/app/open-api', label: t('nav.openApi', 'Open API & Marketplace'), icon: Code2 },
+          { path: '/app/mobile-money', label: t('nav.mobileMoney', 'Mobile Money'), icon: Smartphone },
+          { path: '/app/accountant-portal', label: t('nav.accountantPortal', 'Portail comptable'), icon: BookOpen },
           { path: '/app/security', label: t('nav.security', 'Sécurité'), icon: Shield },
           { path: '/app/settings', label: t('nav.generalSettings', 'Paramètres généraux'), icon: Settings },
         ],
       },
-    ],
-    [t]
-  );
+    ];
+
+    if (isAdmin) {
+      rawCategories.push({
+        id: 'admin',
+        label: t('common.admin'),
+        icon: Shield,
+        type: 'category',
+        items: [
+          { path: '/admin', label: t('common.admin'), icon: Shield },
+          { path: '/admin/seed-data', label: t('nav.seedData'), icon: Database },
+        ],
+      });
+    }
+
+    return filterCategorizedNavigation(rawCategories, hasEntitlement);
+  }, [hasEntitlement, isAdmin, isOhadaZone, t]);
 
   // Determine which category contains the current active path, to auto-expand it
   const activeCategoryId = useMemo(() => {
     for (const cat of categories) {
-      if (cat.id === 'main') continue;
-      if (cat.items.some((item) => location.pathname === item.path)) {
+      if (cat.type !== 'category') continue;
+      if (cat.items?.filter((item) => item.type !== 'subgroup').some((item) => location.pathname === item.path)) {
         return cat.id;
       }
     }
@@ -236,8 +350,8 @@ const MobileMenu = ({ isOpen, onClose }) => {
     restoreFocus: true,
   });
 
-  const mainCategory = categories.find((c) => c.id === 'main');
-  const expandableCategories = categories.filter((c) => c.id !== 'main');
+  const directLinks = categories.filter((c) => c.type === 'direct');
+  const expandableCategories = categories.filter((c) => c.type === 'category');
 
   return (
     <AnimatePresence>
@@ -337,8 +451,8 @@ const MobileMenu = ({ isOpen, onClose }) => {
                 <LanguageSwitcher variant="segmented" fullWidth />
               </div>
 
-              {/* Direct links: Dashboard, Pilotage */}
-              {mainCategory?.items.map((item) => {
+              {/* Direct links: Dashboard, Pilotage, CFO Agent */}
+              {directLinks.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
                   <Link
@@ -361,7 +475,9 @@ const MobileMenu = ({ isOpen, onClose }) => {
               {/* Expandable category sections */}
               <div className="space-y-1 pt-2">
                 {expandableCategories.map((cat) => {
-                  const categoryHasActive = cat.items.some((item) => location.pathname === item.path);
+                  const categoryHasActive = cat.items
+                    .filter((item) => item.type !== 'subgroup')
+                    .some((item) => location.pathname === item.path);
                   const isExpanded = expanded[cat.id] || false;
                   const CategoryIcon = cat.icon;
 
@@ -390,6 +506,17 @@ const MobileMenu = ({ isOpen, onClose }) => {
                       {isExpanded && (
                         <div className="ml-4 pl-3 border-l border-gray-800 space-y-0.5 mt-1 mb-2">
                           {cat.items.map((item) => {
+                            if (item.type === 'subgroup') {
+                              return (
+                                <div
+                                  key={`${cat.id}:${item.label}`}
+                                  className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500"
+                                >
+                                  {item.label}
+                                </div>
+                              );
+                            }
+
                             const isActive = location.pathname === item.path;
                             const ItemIcon = item.icon;
                             return (
