@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
@@ -24,28 +24,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,7 +59,7 @@ const SupplierInvoicesPage = () => {
   const { user } = useAuth();
   const { company } = useCompany();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
-  const { guardedAction, modalProps } = useCreditsGuard();
+  const { modalProps } = useCreditsGuard();
   const { toast } = useToast();
 
   // Data state
@@ -118,10 +99,12 @@ const SupplierInvoicesPage = () => {
     try {
       let query = supabase
         .from('supplier_invoices')
-        .select(`
+        .select(
+          `
           *,
           supplier:suppliers!supplier_invoices_supplier_id_fkey(id, company_name)
-        `)
+        `
+        )
         .order('created_at', { ascending: false });
 
       query = applyCompanyScope(query);
@@ -144,10 +127,7 @@ const SupplierInvoicesPage = () => {
   const fetchSuppliers = useCallback(async () => {
     if (!user) return;
     try {
-      let query = supabase
-        .from('suppliers')
-        .select('id, company_name')
-        .order('company_name');
+      let query = supabase.from('suppliers').select('id, company_name').order('company_name');
 
       query = applyCompanyScope(query);
 
@@ -177,15 +157,12 @@ const SupplierInvoicesPage = () => {
       (inv.supplier?.company_name || '').toLowerCase().includes(term) ||
       (inv.supplier_name_extracted || '').toLowerCase().includes(term);
 
-    const matchesStatus =
-      statusFilter === 'all' || inv.payment_status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || inv.payment_status === statusFilter;
 
-    const matchesSupplier =
-      supplierFilter === 'all' || inv.supplier_id === supplierFilter;
+    const matchesSupplier = supplierFilter === 'all' || inv.supplier_id === supplierFilter;
 
     const currentApproval = inv.approval_status || 'pending';
-    const matchesApproval =
-      approvalFilter === 'all' || currentApproval === approvalFilter;
+    const matchesApproval = approvalFilter === 'all' || currentApproval === approvalFilter;
 
     return matchesSearch && matchesStatus && matchesSupplier && matchesApproval;
   });
@@ -195,21 +172,15 @@ const SupplierInvoicesPage = () => {
     pagination.setTotalCount(filteredInvoices.length);
   }, [filteredInvoices.length, pagination]);
 
-  const paginatedInvoices = filteredInvoices.slice(
-    pagination.from,
-    pagination.to + 1
-  );
+  const paginatedInvoices = filteredInvoices.slice(pagination.from, pagination.to + 1);
 
   useEffect(() => {
-    setSelectedInvoiceIds((prev) =>
-      prev.filter((id) => filteredInvoices.some((invoice) => invoice.id === id))
-    );
+    setSelectedInvoiceIds((prev) => prev.filter((id) => filteredInvoices.some((invoice) => invoice.id === id)));
   }, [filteredInvoices]);
 
   const selectedIdSet = useMemo(() => new Set(selectedInvoiceIds), [selectedInvoiceIds]);
   const allPageSelected =
-    paginatedInvoices.length > 0
-    && paginatedInvoices.every((invoice) => selectedIdSet.has(invoice.id));
+    paginatedInvoices.length > 0 && paginatedInvoices.every((invoice) => selectedIdSet.has(invoice.id));
 
   const toggleInvoiceSelection = useCallback((invoiceId, checked) => {
     setSelectedInvoiceIds((prev) => {
@@ -220,19 +191,22 @@ const SupplierInvoicesPage = () => {
     });
   }, []);
 
-  const toggleSelectAllPage = useCallback((checked) => {
-    setSelectedInvoiceIds((prev) => {
-      if (!checked) {
-        return prev.filter((id) => !paginatedInvoices.some((invoice) => invoice.id === id));
-      }
+  const toggleSelectAllPage = useCallback(
+    (checked) => {
+      setSelectedInvoiceIds((prev) => {
+        if (!checked) {
+          return prev.filter((id) => !paginatedInvoices.some((invoice) => invoice.id === id));
+        }
 
-      const next = new Set(prev);
-      for (const invoice of paginatedInvoices) {
-        next.add(invoice.id);
-      }
-      return Array.from(next);
-    });
-  }, [paginatedInvoices]);
+        const next = new Set(prev);
+        for (const invoice of paginatedInvoices) {
+          next.add(invoice.id);
+        }
+        return Array.from(next);
+      });
+    },
+    [paginatedInvoices]
+  );
 
   // ---------- KPI CALCULATIONS ----------
 
@@ -266,11 +240,7 @@ const SupplierInvoicesPage = () => {
 
       if (error) throw error;
 
-      setInvoices((prev) =>
-        prev.map((inv) =>
-          inv.id === invoiceId ? { ...inv, payment_status: newStatus } : inv
-        )
-      );
+      setInvoices((prev) => prev.map((inv) => (inv.id === invoiceId ? { ...inv, payment_status: newStatus } : inv)));
       toast({
         title: t('supplierInvoices.statusUpdated', 'Statut mis a jour'),
         className: 'bg-green-600 border-none text-white',
@@ -319,20 +289,11 @@ const SupplierInvoicesPage = () => {
     try {
       const payload = buildApprovalPayload(approvalStatus, rejectedReasonValue);
 
-      const { error } = await supabase
-        .from('supplier_invoices')
-        .update(payload)
-        .eq('id', invoiceId);
+      const { error } = await supabase.from('supplier_invoices').update(payload).eq('id', invoiceId);
 
       if (error) throw error;
 
-      setInvoices((prev) =>
-        prev.map((inv) =>
-          inv.id === invoiceId
-            ? { ...inv, ...payload }
-            : inv
-        )
-      );
+      setInvoices((prev) => prev.map((inv) => (inv.id === invoiceId ? { ...inv, ...payload } : inv)));
 
       toast({
         title: t('supplierInvoices.approvalUpdated', 'Approbation mise a jour'),
@@ -362,26 +323,17 @@ const SupplierInvoicesPage = () => {
 
     const payload = buildApprovalPayload(approvalStatus);
     try {
-      const { error } = await supabase
-        .from('supplier_invoices')
-        .update(payload)
-        .in('id', selectedInvoiceIds);
+      const { error } = await supabase.from('supplier_invoices').update(payload).in('id', selectedInvoiceIds);
 
       if (error) throw error;
 
       const selectedSet = new Set(selectedInvoiceIds);
       setInvoices((prev) =>
-        prev.map((invoice) => (
-          selectedSet.has(invoice.id)
-            ? { ...invoice, ...payload }
-            : invoice
-        ))
+        prev.map((invoice) => (selectedSet.has(invoice.id) ? { ...invoice, ...payload } : invoice))
       );
 
       if (approvalStatus === 'pending') {
-        await Promise.allSettled(
-          selectedInvoiceIds.map((id) => notifyPendingApproval(id, 'pending_bulk'))
-        );
+        await Promise.allSettled(selectedInvoiceIds.map((id) => notifyPendingApproval(id, 'pending_bulk')));
       }
 
       toast({
@@ -421,10 +373,7 @@ const SupplierInvoicesPage = () => {
   const handleDelete = async () => {
     if (!deleteTargetId) return;
     try {
-      const { error } = await supabase
-        .from('supplier_invoices')
-        .delete()
-        .eq('id', deleteTargetId);
+      const { error } = await supabase.from('supplier_invoices').delete().eq('id', deleteTargetId);
 
       if (error) throw error;
 
@@ -451,9 +400,7 @@ const SupplierInvoicesPage = () => {
         window.open(fileUrl, '_blank');
         return;
       }
-      const { data, error } = await supabase.storage
-        .from('supplier-invoices')
-        .createSignedUrl(fileUrl, 3600);
+      const { data, error } = await supabase.storage.from('supplier-invoices').createSignedUrl(fileUrl, 3600);
 
       if (error) throw error;
       if (data?.signedUrl) {
@@ -504,6 +451,7 @@ const SupplierInvoicesPage = () => {
         invoice_number: formData.invoice_number,
         invoice_date: formData.invoice_date,
         due_date: formData.due_date || null,
+        status: formData.status || 'received',
         total_amount: parseFloat(formData.total_amount) || 0,
         vat_amount: formData.total_tva ? parseFloat(formData.total_tva) : null,
         vat_rate: parseFloat(formData.vat_rate) || 0,
@@ -528,10 +476,12 @@ const SupplierInvoicesPage = () => {
       const { data: newInvoice, error } = await supabase
         .from('supplier_invoices')
         .insert([withCompanyScope(invoiceData)])
-        .select(`
+        .select(
+          `
           *,
           supplier:suppliers!supplier_invoices_supplier_id_fkey(id, company_name)
-        `)
+        `
+        )
         .single();
 
       if (error) throw error;
@@ -592,7 +542,7 @@ const SupplierInvoicesPage = () => {
     const config = {
       pending: {
         className: 'bg-amber-500/20 text-amber-300 border-0',
-        label: t('supplierInvoices.approvalPending', 'En attente d\'approbation'),
+        label: t('supplierInvoices.approvalPending', "En attente d'approbation"),
       },
       approved: {
         className: 'bg-emerald-500/20 text-emerald-300 border-0',
@@ -674,10 +624,7 @@ const SupplierInvoicesPage = () => {
               </p>
             </div>
           </div>
-          <Button
-            onClick={handleNewInvoice}
-            className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white"
-          >
+          <Button onClick={handleNewInvoice} className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white">
             <Plus className="mr-2 h-4 w-4" />
             {t('supplierInvoices.newInvoice', 'Nouvelle facture')}
           </Button>
@@ -690,18 +637,13 @@ const SupplierInvoicesPage = () => {
           className="grid grid-cols-2 md:grid-cols-5 gap-4"
         >
           {kpiCards.map((kpi, idx) => (
-            <div
-              key={idx}
-              className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-4"
-            >
+            <div key={idx} className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-4">
               <div className="flex items-center gap-3 mb-2">
                 <div className={`p-2 rounded-lg ${kpi.bg}`}>{kpi.icon}</div>
               </div>
               <p className="text-2xl font-bold text-white">{kpi.value}</p>
               <p className="text-xs text-gray-400 mt-1">{kpi.label}</p>
-              {kpi.sub && (
-                <p className="text-sm text-gray-300 mt-1 font-medium">{kpi.sub}</p>
-              )}
+              {kpi.sub && <p className="text-sm text-gray-300 mt-1 font-medium">{kpi.sub}</p>}
             </div>
           ))}
         </motion.div>
@@ -751,11 +693,7 @@ const SupplierInvoicesPage = () => {
                   {t('supplierInvoices.allSuppliers', 'Tous les fournisseurs')}
                 </SelectItem>
                 {suppliers.map((s) => (
-                  <SelectItem
-                    key={s.id}
-                    value={s.id}
-                    className="text-white hover:bg-gray-800"
-                  >
+                  <SelectItem key={s.id} value={s.id} className="text-white hover:bg-gray-800">
                     {s.company_name}
                   </SelectItem>
                 ))}
@@ -770,7 +708,7 @@ const SupplierInvoicesPage = () => {
                   {t('supplierInvoices.allApprovals', 'Toutes les approbations')}
                 </SelectItem>
                 <SelectItem value="pending" className="text-white hover:bg-gray-800">
-                  {t('supplierInvoices.approvalPending', 'En attente d\'approbation')}
+                  {t('supplierInvoices.approvalPending', "En attente d'approbation")}
                 </SelectItem>
                 <SelectItem value="approved" className="text-white hover:bg-gray-800">
                   {t('supplierInvoices.approvalApproved', 'Approuvee')}
@@ -875,18 +813,12 @@ const SupplierInvoicesPage = () => {
                         aria-label={t('supplierInvoices.bulk.selectPage', 'Sélectionner la page')}
                       />
                     </TableHead>
-                    <TableHead className="text-gray-400">
-                      {t('supplierInvoices.colSupplier', 'Fournisseur')}
-                    </TableHead>
+                    <TableHead className="text-gray-400">{t('supplierInvoices.colSupplier', 'Fournisseur')}</TableHead>
                     <TableHead className="text-gray-400">
                       {t('supplierInvoices.colInvoiceNumber', 'N deg Facture')}
                     </TableHead>
-                    <TableHead className="text-gray-400">
-                      {t('supplierInvoices.colDate', 'Date')}
-                    </TableHead>
-                    <TableHead className="text-gray-400">
-                      {t('supplierInvoices.colDueDate', 'Echeance')}
-                    </TableHead>
+                    <TableHead className="text-gray-400">{t('supplierInvoices.colDate', 'Date')}</TableHead>
+                    <TableHead className="text-gray-400">{t('supplierInvoices.colDueDate', 'Echeance')}</TableHead>
                     <TableHead className="text-gray-400 text-right">
                       {t('supplierInvoices.colAmount', 'Montant TTC')}
                     </TableHead>
@@ -899,26 +831,16 @@ const SupplierInvoicesPage = () => {
                     <TableHead className="text-gray-400 text-center">
                       {t('supplierInvoices.colSource', 'Source')}
                     </TableHead>
-                    <TableHead className="text-gray-400 text-center">
-                      {t('supplierInvoices.colDoc', 'Doc')}
-                    </TableHead>
-                    <TableHead className="text-gray-400 text-right">
-                      {t('common.actions', 'Actions')}
-                    </TableHead>
+                    <TableHead className="text-gray-400 text-center">{t('supplierInvoices.colDoc', 'Doc')}</TableHead>
+                    <TableHead className="text-gray-400 text-right">{t('common.actions', 'Actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedInvoices.map((inv) => {
-                    const amount =
-                      parseFloat(inv.total_amount) ||
-                      parseFloat(inv.total_ttc) ||
-                      0;
+                    const amount = parseFloat(inv.total_amount) || parseFloat(inv.total_ttc) || 0;
 
                     return (
-                      <TableRow
-                        key={inv.id}
-                        className="border-white/5 hover:bg-white/5"
-                      >
+                      <TableRow key={inv.id} className="border-white/5 hover:bg-white/5">
                         <TableCell className="text-center">
                           <Checkbox
                             checked={selectedIdSet.has(inv.id)}
@@ -937,29 +859,21 @@ const SupplierInvoicesPage = () => {
                               {inv.supplier.company_name}
                             </Link>
                           ) : (
-                            <span className="text-gray-500">
-                              {inv.supplier_name_extracted || '—'}
-                            </span>
+                            <span className="text-gray-500">{inv.supplier_name_extracted || '—'}</span>
                           )}
                         </TableCell>
 
                         {/* Invoice Number */}
-                        <TableCell className="font-medium text-gradient">
-                          {inv.invoice_number || '—'}
-                        </TableCell>
+                        <TableCell className="font-medium text-gradient">{inv.invoice_number || '—'}</TableCell>
 
                         {/* Date */}
                         <TableCell className="text-gray-400">
-                          {inv.invoice_date
-                            ? new Date(inv.invoice_date).toLocaleDateString('fr-FR')
-                            : '—'}
+                          {inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('fr-FR') : '—'}
                         </TableCell>
 
                         {/* Due Date */}
                         <TableCell className="text-gray-400">
-                          {inv.due_date
-                            ? new Date(inv.due_date).toLocaleDateString('fr-FR')
-                            : '—'}
+                          {inv.due_date ? new Date(inv.due_date).toLocaleDateString('fr-FR') : '—'}
                         </TableCell>
 
                         {/* Amount */}
@@ -971,9 +885,7 @@ const SupplierInvoicesPage = () => {
                         <TableCell className="text-center">
                           <Select
                             value={inv.payment_status || 'pending'}
-                            onValueChange={(val) =>
-                              handleUpdateStatus(inv.id, val)
-                            }
+                            onValueChange={(val) => handleUpdateStatus(inv.id, val)}
                           >
                             <SelectTrigger className="h-7 w-28 bg-transparent border-gray-700 text-xs mx-auto">
                               <SelectValue />
@@ -982,9 +894,7 @@ const SupplierInvoicesPage = () => {
                               <SelectItem value="pending">
                                 {t('supplierInvoices.statusPending', 'En attente')}
                               </SelectItem>
-                              <SelectItem value="paid">
-                                {t('supplierInvoices.statusPaid', 'Payee')}
-                              </SelectItem>
+                              <SelectItem value="paid">{t('supplierInvoices.statusPaid', 'Payee')}</SelectItem>
                               <SelectItem value="overdue">
                                 {t('supplierInvoices.statusOverdue', 'En retard')}
                               </SelectItem>
@@ -1004,7 +914,7 @@ const SupplierInvoicesPage = () => {
                               </SelectTrigger>
                               <SelectContent className="bg-gray-800 border-gray-700 text-white">
                                 <SelectItem value="pending">
-                                  {t('supplierInvoices.approvalPending', 'En attente d\'approbation')}
+                                  {t('supplierInvoices.approvalPending', "En attente d'approbation")}
                                 </SelectItem>
                                 <SelectItem value="approved">
                                   {t('supplierInvoices.approvalApproved', 'Approuvee')}
@@ -1040,9 +950,7 @@ const SupplierInvoicesPage = () => {
                               AI
                             </Badge>
                           ) : (
-                            <span className="text-gray-600 text-xs">
-                              {t('supplierInvoices.manual', 'Manuel')}
-                            </span>
+                            <span className="text-gray-600 text-xs">{t('supplierInvoices.manual', 'Manuel')}</span>
                           )}
                         </TableCell>
 
@@ -1111,24 +1019,15 @@ const SupplierInvoicesPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-gray-400">
-              {t(
-                'supplierInvoices.selectSupplierDesc',
-                'Choisissez le fournisseur a qui appartient cette facture.'
-              )}
+              {t('supplierInvoices.selectSupplierDesc', 'Choisissez le fournisseur a qui appartient cette facture.')}
             </p>
             <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
               <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                <SelectValue
-                  placeholder={t('supplierInvoices.chooseSupplier', 'Choisir un fournisseur...')}
-                />
+                <SelectValue placeholder={t('supplierInvoices.chooseSupplier', 'Choisir un fournisseur...')} />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700">
                 {suppliers.map((s) => (
-                  <SelectItem
-                    key={s.id}
-                    value={s.id}
-                    className="text-white hover:bg-gray-700"
-                  >
+                  <SelectItem key={s.id} value={s.id} className="text-white hover:bg-gray-700">
                     {s.company_name}
                   </SelectItem>
                 ))}
@@ -1138,7 +1037,7 @@ const SupplierInvoicesPage = () => {
               <p className="text-xs text-gray-500">
                 {t(
                   'supplierInvoices.noSuppliersYet',
-                  'Aucun fournisseur. Ajoutez-en un d\'abord dans la section Fournisseurs.'
+                  "Aucun fournisseur. Ajoutez-en un d'abord dans la section Fournisseurs."
                 )}
               </p>
             )}
@@ -1187,10 +1086,7 @@ const SupplierInvoicesPage = () => {
       />
 
       {/* Delete Confirmation */}
-      <AlertDialog
-        open={!!deleteTargetId}
-        onOpenChange={(open) => !open && setDeleteTargetId(null)}
-      >
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
         <AlertDialogContent className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-700/40 text-white shadow-[0_16px_64px_rgba(0,0,0,0.5)] backdrop-blur-xl rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl flex items-center gap-2">
@@ -1208,10 +1104,7 @@ const SupplierInvoicesPage = () => {
             <AlertDialogCancel className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent">
               {t('common.cancel', 'Annuler')}
             </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">
               <Trash2 className="w-4 h-4 mr-2" />
               {t('common.delete', 'Supprimer')}
             </AlertDialogAction>
@@ -1221,7 +1114,9 @@ const SupplierInvoicesPage = () => {
 
       <ApprovalHistoryDialog
         open={!!historyInvoice}
-        onOpenChange={(open) => { if (!open) setHistoryInvoice(null); }}
+        onOpenChange={(open) => {
+          if (!open) setHistoryInvoice(null);
+        }}
         invoice={historyInvoice}
       />
     </>

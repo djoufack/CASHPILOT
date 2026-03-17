@@ -26,6 +26,7 @@ import { resolveInvoiceTaxAmount } from '@/utils/invoiceTax';
 import { usePagination } from '@/hooks/usePagination';
 import { supabase } from '@/lib/supabase';
 import { captureError } from '@/services/errorTracking';
+import { useGedHub } from '@/hooks/useGedHub';
 
 import InvoiceListTable from '@/components/invoices/InvoiceListTable';
 import InvoiceGalleryView from '@/components/invoices/InvoiceGalleryView';
@@ -55,6 +56,7 @@ const InvoicesPage = () => {
   const { settings: invoiceSettings } = useInvoiceSettings();
   const { guardedAction, modalProps } = useCreditsGuard();
   const { sendInvoiceEmail, sending: emailSending } = useEmailService();
+  const { uploadDocumentFile, mutating: uploadingDocument } = useGedHub({ disableAutoFetch: true });
   const { toast } = useToast();
   const [showGenerator, setShowGenerator] = useState(false);
   const [quickMode, setQuickMode] = useState(() => localStorage.getItem('invoiceQuickMode') === 'true');
@@ -217,6 +219,43 @@ const InvoicesPage = () => {
   const handleRecordPayment = (invoice) => openDialog('payment', invoice);
 
   const handleLumpSumPayment = () => openDialog('lumpSum', null, { lumpSumClientId: null });
+
+  const handleUploadInvoiceDocument = (invoice) => {
+    const input = window.document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf,.png,.jpg,.jpeg,.webp';
+    input.onchange = async () => {
+      const [file] = input.files || [];
+      if (!file) return;
+      try {
+        await uploadDocumentFile(
+          {
+            sourceTable: 'invoices',
+            sourceId: invoice.id,
+            raw: { company_id: invoice.company_id },
+          },
+          file,
+          { skipRefresh: true }
+        );
+        await fetchInvoices();
+        toast({
+          title: t('common.success', 'Succes'),
+          description: 'Scan IA termine. La facture est integree et journalisee automatiquement.',
+        });
+      } catch (error) {
+        captureError(error, {
+          tags: { scope: 'invoices', action: 'upload_document' },
+          extra: { invoiceId: invoice.id },
+        });
+        toast({
+          title: t('common.error'),
+          description: error?.message || t('common.unexpectedError', 'An unexpected error occurred.'),
+          variant: 'destructive',
+        });
+      }
+    };
+    input.click();
+  };
 
   const handleExportInvoicePDF = (invoice) => {
     guardedAction(CREDIT_COSTS.PDF_INVOICE, t('credits.costs.pdfInvoice'), async () => {
@@ -475,10 +514,12 @@ const InvoicesPage = () => {
       onOpenEmailModal: handleOpenEmailModal,
       onGeneratePaymentLink: handleGeneratePaymentLink,
       onCopyPaymentLink: handleCopyPaymentLink,
+      onUploadDocument: handleUploadInvoiceDocument,
     },
     ui: {
       emailSending,
       paymentLinkLoading,
+      uploadingDocument,
       getStatusColor,
       getPaymentStatusBadge,
       INVOICE_STATUS_COLORS,
