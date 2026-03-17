@@ -1,12 +1,15 @@
 import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const sourceDir = resolve('docs/guide');
+const sourceCandidates = [resolve('docs/guide'), resolve('public/guide')];
+const sourceDir = sourceCandidates.find((candidate) => existsSync(candidate));
 const distDir = resolve('dist');
 const targetDir = resolve('dist/guide');
 
-if (!existsSync(sourceDir)) {
-  console.warn(`[vercel-copy-guide] Source not found: ${sourceDir}. Skipping copy.`);
+if (!sourceDir) {
+  console.warn(
+    `[vercel-copy-guide] Source not found: ${sourceCandidates.join(' or ')}. Skipping copy.`,
+  );
   process.exit(0);
 }
 
