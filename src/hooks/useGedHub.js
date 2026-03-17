@@ -96,16 +96,29 @@ const mapRowsToDocuments = (sourceTable, rows) =>
 
 export const useGedHub = () => {
   const { toast } = useToast();
-  const { applyCompanyScope, withCompanyScope, activeCompanyId } = useCompanyScope();
+  const { activeCompanyId } = useCompanyScope();
   const { activeCompany } = useCompany();
   const { settings: invoiceSettings } = useInvoiceSettings();
+  const effectiveCompanyId = activeCompany?.id || activeCompanyId;
 
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [generatingKey, setGeneratingKey] = useState(null);
 
+  const applyEffectiveCompanyScope = useCallback(
+    (query, options = {}) => {
+      const { column = 'company_id', includeUnassigned = false } = options;
+      if (!effectiveCompanyId) return query;
+      if (includeUnassigned) {
+        return query.or(`${column}.is.null,${column}.eq.${effectiveCompanyId}`);
+      }
+      return query.eq(column, effectiveCompanyId);
+    },
+    [effectiveCompanyId]
+  );
+
   const fetchDocuments = useCallback(async () => {
-    if (!activeCompanyId) {
+    if (!effectiveCompanyId) {
       setDocuments([]);
       return;
     }
@@ -113,25 +126,25 @@ export const useGedHub = () => {
     setLoading(true);
     try {
       let invoicesQuery = supabase.from('invoices').select('*').order('created_at', { ascending: false });
-      invoicesQuery = applyCompanyScope(invoicesQuery);
+      invoicesQuery = applyEffectiveCompanyScope(invoicesQuery);
 
       let quotesQuery = supabase.from('quotes').select('*').order('created_at', { ascending: false });
-      quotesQuery = applyCompanyScope(quotesQuery);
+      quotesQuery = applyEffectiveCompanyScope(quotesQuery);
 
       let creditNotesQuery = supabase.from('credit_notes').select('*').order('created_at', { ascending: false });
-      creditNotesQuery = applyCompanyScope(creditNotesQuery);
+      creditNotesQuery = applyEffectiveCompanyScope(creditNotesQuery);
 
       let deliveryNotesQuery = supabase.from('delivery_notes').select('*').order('created_at', { ascending: false });
-      deliveryNotesQuery = applyCompanyScope(deliveryNotesQuery);
+      deliveryNotesQuery = applyEffectiveCompanyScope(deliveryNotesQuery);
 
       let purchaseOrdersQuery = supabase.from('purchase_orders').select('*').order('created_at', { ascending: false });
-      purchaseOrdersQuery = applyCompanyScope(purchaseOrdersQuery, { includeUnassigned: true });
+      purchaseOrdersQuery = applyEffectiveCompanyScope(purchaseOrdersQuery, { includeUnassigned: true });
 
       let supplierInvoicesQuery = supabase
         .from('supplier_invoices')
         .select('*')
         .order('created_at', { ascending: false });
-      supplierInvoicesQuery = applyCompanyScope(supplierInvoicesQuery);
+      supplierInvoicesQuery = applyEffectiveCompanyScope(supplierInvoicesQuery);
 
       const [
         { data: invoices, error: invoicesError },
@@ -152,7 +165,7 @@ export const useGedHub = () => {
       let metadataRows = [];
       let metadataError = null;
       let metadataQuery = supabase.from('document_hub_metadata').select('*');
-      metadataQuery = applyCompanyScope(metadataQuery);
+      metadataQuery = applyEffectiveCompanyScope(metadataQuery);
       const metadataResult = await metadataQuery;
       if (metadataResult.error?.code === 'PGRST205') {
         metadataRows = [];
@@ -212,10 +225,16 @@ export const useGedHub = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeCompanyId, applyCompanyScope, toast]);
+  }, [effectiveCompanyId, applyEffectiveCompanyScope, toast]);
 
   const upsertMetadata = async (document, patch) => {
-    const payload = withCompanyScope({
+    const resolvedCompanyId = document?.raw?.company_id || document?.company_id || effectiveCompanyId;
+    if (!resolvedCompanyId) {
+      throw new Error('Aucune societe active detectee pour la mise a jour des metadonnees.');
+    }
+
+    const payload = {
+      company_id: resolvedCompanyId,
       source_table: document.sourceTable,
       source_id: document.sourceId,
       doc_category: patch.doc_category ?? document.docCategory ?? 'general',
@@ -224,7 +243,7 @@ export const useGedHub = () => {
       retention_until: patch.retention_until ?? document.retentionUntil ?? null,
       is_starred: patch.is_starred ?? document.isStarred ?? false,
       notes: patch.notes ?? document.notes ?? null,
-    });
+    };
 
     const { error } = await supabase.from('document_hub_metadata').upsert(payload, {
       onConflict: 'company_id,source_table,source_id',

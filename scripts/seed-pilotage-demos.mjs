@@ -5298,6 +5298,34 @@ async function runHrBackfillForDatasets(datasets) {
   });
 }
 
+async function runGedBackfillForDatasets(datasets) {
+  const scopedEmails = (datasets || [])
+    .map((dataset) => String(dataset?.config?.email || '').trim().toLowerCase())
+    .filter(Boolean);
+  if (!scopedEmails.length) return;
+
+  await new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      ['scripts/backfill-portfolio-ged-documents.mjs', `--emails=${scopedEmails.join(',')}`],
+      {
+        cwd: process.cwd(),
+        env: process.env,
+        stdio: 'inherit',
+      }
+    );
+
+    child.on('error', (error) => reject(error));
+    child.on('exit', (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(new Error(`GED backfill script exited with code ${code}`));
+    });
+  });
+}
+
 async function main() {
   const options = parseArguments(process.argv.slice(2));
   const configs = buildDemoConfigs();
@@ -5364,6 +5392,7 @@ async function main() {
     });
   }
 
+  await runGedBackfillForDatasets(selectedDatasets);
   await runHrBackfillForDatasets(selectedDatasets);
 
   console.log(JSON.stringify({ mode: 'apply', year: CURRENT_YEAR, datasets: applied }, null, 2));
