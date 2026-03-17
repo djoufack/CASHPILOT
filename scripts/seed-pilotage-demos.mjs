@@ -1438,6 +1438,7 @@ function buildDataset(config) {
     config,
     userSeed,
     userId,
+    primaryCompanyId: companyId,
     clientRows,
     invoiceRows,
     paymentRows,
@@ -2984,6 +2985,7 @@ function buildEnhancedDataset(config) {
   ].map(([axisType, axisCode, axisName, color], index) => ({
     id: uuidFromSeed(`${userSeed}:analytical-axis:${axisType}:${axisCode}`),
     user_id: base.userId,
+    company_id: primaryCompanyId,
     axis_type: axisType,
     axis_code: axisCode,
     axis_name: axisName,
@@ -3293,11 +3295,123 @@ function buildEnhancedDataset(config) {
     ...fixedAssetEntries,
   ].map((entry) => withAnalyticalDimensions(entry, primaryCompanyId, portfolioCompanyIds, config.accounts.revenue));
 
+  const allClientRows = [
+    ...primaryClientRows,
+    secondaryClientRow,
+    ...portfolioCompanyDatasets.map((dataset) => dataset.clientRow),
+    ...clonedCompanyDatasets.flatMap((dataset) => dataset.clientRows),
+  ];
+  const allProjectRows = [
+    ...primaryProjectRows,
+    secondaryProjectRow,
+    ...portfolioCompanyDatasets.map((dataset) => dataset.projectRow),
+    ...clonedCompanyDatasets.flatMap((dataset) => dataset.projectRows),
+  ];
+
+  const crmSupportSlaPolicyRows = companyRows.flatMap((companyRow, companyIndex) => {
+    const code = String(companyIndex + 1).padStart(2, '0');
+    return [
+      {
+        id: uuidFromSeed(`${userSeed}:crm-sla:${companyRow.id}:critical`),
+        user_id: base.userId,
+        company_id: companyRow.id,
+        policy_name: `SLA Critical ${config.country}-${code}`,
+        priority: 'critical',
+        target_first_response_minutes: 15,
+        target_resolution_minutes: 240,
+        is_default: false,
+        is_active: true,
+        created_at: isoTimestamp(isoDate(CURRENT_YEAR, 1, 6), 9, 10 + companyIndex),
+        updated_at: isoTimestamp(isoDate(CURRENT_YEAR, 1, 6), 9, 10 + companyIndex),
+      },
+      {
+        id: uuidFromSeed(`${userSeed}:crm-sla:${companyRow.id}:high`),
+        user_id: base.userId,
+        company_id: companyRow.id,
+        policy_name: `SLA High ${config.country}-${code}`,
+        priority: 'high',
+        target_first_response_minutes: 60,
+        target_resolution_minutes: 720,
+        is_default: false,
+        is_active: true,
+        created_at: isoTimestamp(isoDate(CURRENT_YEAR, 1, 6), 9, 20 + companyIndex),
+        updated_at: isoTimestamp(isoDate(CURRENT_YEAR, 1, 6), 9, 20 + companyIndex),
+      },
+      {
+        id: uuidFromSeed(`${userSeed}:crm-sla:${companyRow.id}:medium`),
+        user_id: base.userId,
+        company_id: companyRow.id,
+        policy_name: `SLA Medium ${config.country}-${code}`,
+        priority: 'medium',
+        target_first_response_minutes: 120,
+        target_resolution_minutes: 1440,
+        is_default: true,
+        is_active: true,
+        created_at: isoTimestamp(isoDate(CURRENT_YEAR, 1, 6), 9, 30 + companyIndex),
+        updated_at: isoTimestamp(isoDate(CURRENT_YEAR, 1, 6), 9, 30 + companyIndex),
+      },
+      {
+        id: uuidFromSeed(`${userSeed}:crm-sla:${companyRow.id}:low`),
+        user_id: base.userId,
+        company_id: companyRow.id,
+        policy_name: `SLA Low ${config.country}-${code}`,
+        priority: 'low',
+        target_first_response_minutes: 240,
+        target_resolution_minutes: 4320,
+        is_default: false,
+        is_active: true,
+        created_at: isoTimestamp(isoDate(CURRENT_YEAR, 1, 6), 9, 40 + companyIndex),
+        updated_at: isoTimestamp(isoDate(CURRENT_YEAR, 1, 6), 9, 40 + companyIndex),
+      },
+    ];
+  });
+
+  const crmSupportTicketRows = companyRows.flatMap((companyRow, companyIndex) => {
+    const companyClients = allClientRows.filter((client) => client.company_id === companyRow.id);
+    if (!companyClients.length) {
+      return [];
+    }
+    const companyProjects = allProjectRows.filter((project) => project.company_id === companyRow.id);
+
+    return [0, 1].map((ticketIndex) => {
+      const client = companyClients[ticketIndex % companyClients.length];
+      const project =
+        companyProjects.find((candidate) => candidate.client_id === client.id) ||
+        companyProjects[ticketIndex % Math.max(companyProjects.length, 1)] ||
+        null;
+      const numberCode = String(ticketIndex + 1).padStart(3, '0');
+      const companyCode = String(companyIndex + 1).padStart(2, '0');
+      const createdDate = isoDate(CURRENT_YEAR, 2 + ticketIndex, 10 + companyIndex);
+      const dueDate = addDays(createdDate, 3 + ticketIndex);
+      const isFirst = ticketIndex === 0;
+
+      return {
+        id: uuidFromSeed(`${userSeed}:crm-ticket:${companyRow.id}:${numberCode}`),
+        user_id: base.userId,
+        company_id: companyRow.id,
+        client_id: client.id,
+        project_id: project?.id || null,
+        ticket_number: `TCK-${config.country}-${companyCode}-${numberCode}`,
+        title: `${config.label} support ticket ${companyCode}-${numberCode}`,
+        description: `Seed ticket ${config.label} for company scope validation.`,
+        priority: isFirst ? 'high' : 'medium',
+        status: isFirst ? 'open' : 'in_progress',
+        sla_level: isFirst ? 'critical' : 'premium',
+        due_at: isoTimestamp(dueDate, 17, 15),
+        first_response_at: isoTimestamp(createdDate, 11, 0),
+        resolved_at: null,
+        closed_at: null,
+        created_at: isoTimestamp(createdDate, 9, 30),
+        updated_at: isoTimestamp(createdDate, 10, 45),
+      };
+    });
+  });
+
   return {
     ...base,
     companyRows,
     userCompanyPreferenceRow,
-    clientRows: [...primaryClientRows, secondaryClientRow, ...portfolioCompanyDatasets.map((dataset) => dataset.clientRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.clientRows)],
+    clientRows: allClientRows,
     invoiceRows: [...primaryInvoiceRows, secondaryInvoiceRow, ...portfolioCompanyDatasets.map((dataset) => dataset.invoiceRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.invoiceRows)],
     paymentRows: [...primaryPaymentRows, secondaryPaymentRow, ...portfolioCompanyDatasets.map((dataset) => dataset.paymentRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.paymentRows)],
     expenseRows: [...primaryExpenseRows, secondaryExpenseRow, ...portfolioCompanyDatasets.map((dataset) => dataset.expenseRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.expenseRows)],
@@ -3322,7 +3436,7 @@ function buildEnhancedDataset(config) {
     supplierOrderItemRows: [...base.supplierOrderItemRows, secondarySupplierOrderItemRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierOrderItemRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierOrderItemRows)],
     supplierInvoiceRows: [...primarySupplierInvoiceRows, secondarySupplierInvoiceRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierInvoiceRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierInvoiceRows)],
     supplierInvoiceLineItemRows: [...base.supplierInvoiceLineItemRows, secondarySupplierInvoiceLineItemRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierInvoiceLineItemRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierInvoiceLineItemRows)],
-    projectRows: [...primaryProjectRows, secondaryProjectRow, ...portfolioCompanyDatasets.map((dataset) => dataset.projectRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.projectRows)],
+    projectRows: allProjectRows,
     taskRows: [...primaryTaskRows, ...secondaryTaskRows, ...portfolioCompanyDatasets.flatMap((dataset) => dataset.taskRows), ...clonedCompanyDatasets.flatMap((dataset) => dataset.taskRows)],
     subtaskRows: [...base.subtaskRows, ...secondarySubtaskRows, ...portfolioCompanyDatasets.flatMap((dataset) => dataset.subtaskRows), ...clonedCompanyDatasets.flatMap((dataset) => dataset.subtaskRows)],
     timesheetRows: [...primaryTimesheetRows, secondaryTimesheetRow, ...portfolioCompanyDatasets.map((dataset) => dataset.timesheetRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.timesheetRows)],
@@ -3343,6 +3457,8 @@ function buildEnhancedDataset(config) {
     depreciationScheduleRows: [...depreciationScheduleRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.depreciationScheduleRows)],
     analyticalAxisRows,
     dashboardSnapshotRows: [...dashboardSnapshotRows, ...portfolioCompanyDatasets.map((dataset) => dataset.snapshotRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.dashboardSnapshotRows)],
+    crmSupportSlaPolicyRows,
+    crmSupportTicketRows,
   };
 }
 
@@ -3417,9 +3533,22 @@ async function ensureAuthUser(adminClient, dataset, options) {
   };
 }
 
-async function deleteRows(client, table, filterColumn, value) {
+function isMissingTableError(message, table) {
+  if (!message) return false;
+  return message.includes(`Could not find the table 'public.${table}'`) || message.includes(`relation "public.${table}" does not exist`);
+}
+
+async function deleteRows(client, table, filterColumn, value, options = {}) {
+  const { allowMissingColumn = false, allowMissingTable = false } = options;
   const { error } = await client.from(table).delete().eq(filterColumn, value);
   if (error) {
+    const message = String(error.message || '');
+    if (allowMissingColumn && isMissingColumnError(message, filterColumn)) {
+      return;
+    }
+    if (allowMissingTable && isMissingTableError(message, table)) {
+      return;
+    }
     throw new Error(`Failed to cleanup ${table}: ${error.message}`);
   }
 }
@@ -3644,6 +3773,11 @@ async function cleanupDemoDataset(client, dataset) {
   await deleteRows(client, 'receivables', 'user_id', dataset.userId);
   await deleteRows(client, 'payables', 'user_id', dataset.userId);
   await deleteRows(client, 'debt_payments', 'user_id', dataset.userId);
+  await deleteRows(client, 'crm_activities', 'user_id', dataset.userId, { allowMissingTable: true });
+  await deleteRows(client, 'crm_support_tickets', 'user_id', dataset.userId, { allowMissingTable: true });
+  await deleteRows(client, 'crm_support_sla_policies', 'user_id', dataset.userId, { allowMissingTable: true });
+  await deleteRows(client, 'crm_opportunities', 'user_id', dataset.userId, { allowMissingTable: true });
+  await deleteRows(client, 'crm_contacts', 'user_id', dataset.userId, { allowMissingTable: true });
   await deleteRows(client, 'team_members', 'user_id', dataset.userId);
   await deleteRows(client, 'notification_preferences', 'user_id', dataset.userId);
   await deleteRows(client, 'billing_info', 'user_id', dataset.userId);
@@ -3985,6 +4119,122 @@ async function adaptDatasetForExistingCompanies(client, dataset) {
   return remapCompanyScopedDataset(dataset, companyIdMap, existingCompanyRows, activeCompanyId);
 }
 
+async function ensureCompanyThresholdRows(client, dataset, minimum = 7) {
+  const userId = dataset.userId;
+  const companies = (dataset.companyRows || [dataset.companyRow]).filter((row) => row?.id);
+
+  for (const company of companies) {
+    const companyId = company.id;
+
+    const { data: paymentRows, error: paymentError } = await client
+      .from('payments')
+      .select('id, invoice_id, client_id, amount, payment_method, payment_date, notes, is_lump_sum, created_at')
+      .eq('user_id', userId)
+      .eq('company_id', companyId)
+      .order('payment_date', { ascending: true });
+    if (paymentError) {
+      throw new Error(`Failed to read payments for threshold top-up: ${paymentError.message}`);
+    }
+
+    const existingPayments = paymentRows || [];
+    let paymentTemplate = existingPayments[0] || null;
+    if (!paymentTemplate) {
+      const { data: invoiceTemplateRows, error: invoiceTemplateError } = await client
+        .from('invoices')
+        .select('id, client_id, date')
+        .eq('user_id', userId)
+        .eq('company_id', companyId)
+        .limit(1);
+      if (invoiceTemplateError) {
+        throw new Error(`Failed to read invoice template for payment top-up: ${invoiceTemplateError.message}`);
+      }
+
+      const invoiceTemplate = invoiceTemplateRows?.[0] || null;
+      paymentTemplate = {
+        invoice_id: invoiceTemplate?.id || null,
+        client_id: invoiceTemplate?.client_id || null,
+        amount: 0,
+        payment_method: 'bank_transfer',
+        payment_date: invoiceTemplate?.date || isoDate(CURRENT_YEAR, 1, 15),
+        notes: 'Seed threshold top-up',
+        is_lump_sum: false,
+        created_at: `${invoiceTemplate?.date || isoDate(CURRENT_YEAR, 1, 15)}T15:30:00Z`,
+      };
+    }
+
+    if (existingPayments.length < minimum) {
+      const topUpPayments = [];
+      for (let index = existingPayments.length; index < minimum; index += 1) {
+        const month = (index % 7) + 1;
+        const day = 14 + (index % 10);
+        const paymentDate = isoDate(CURRENT_YEAR, month, Math.min(day, 28));
+        const code = String(index + 1).padStart(3, '0');
+
+        topUpPayments.push({
+          id: uuidFromSeed(`${dataset.userSeed}:threshold:payment:${companyId}:${code}`),
+          user_id: userId,
+          company_id: companyId,
+          invoice_id: paymentTemplate.invoice_id || null,
+          client_id: paymentTemplate.client_id || null,
+          amount: Number(paymentTemplate.amount || 0),
+          payment_method: paymentTemplate.payment_method || 'bank_transfer',
+          payment_date: paymentDate,
+          reference: `TOPUP-${companyId.slice(0, 8)}-${code}`,
+          receipt_number: `TOPUP-REC-${companyId.slice(0, 6)}-${code}`,
+          notes: 'Seed threshold top-up',
+          is_lump_sum: Boolean(paymentTemplate.is_lump_sum),
+          created_at: `${paymentDate}T15:30:00Z`,
+        });
+      }
+
+      await upsertRows(client, 'payments', topUpPayments, 'id');
+    }
+
+    const { data: snapshotRows, error: snapshotError } = await client
+      .from('dashboard_snapshots')
+      .select('id, snapshot_type, title, snapshot_data, share_token')
+      .eq('user_id', userId)
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: true });
+    if (snapshotError) {
+      throw new Error(`Failed to read dashboard_snapshots for threshold top-up: ${snapshotError.message}`);
+    }
+
+    const existingSnapshots = snapshotRows || [];
+    const snapshotTemplate = existingSnapshots[0] || {
+      snapshot_type: 'dashboard',
+      title: `${company.company_name || 'CashPilot'} Dashboard`,
+      snapshot_data: { source: 'seed-threshold-top-up' },
+      share_token: null,
+    };
+
+    if (existingSnapshots.length < minimum) {
+      const topUpSnapshots = [];
+      for (let index = existingSnapshots.length; index < minimum; index += 1) {
+        const code = String(index + 1).padStart(3, '0');
+        const month = (index % 7) + 1;
+        const day = 8 + (index % 12);
+        const createdAt = `${isoDate(CURRENT_YEAR, month, Math.min(day, 28))}T09:10:00Z`;
+
+        topUpSnapshots.push({
+          id: uuidFromSeed(`${dataset.userSeed}:threshold:snapshot:${companyId}:${code}`),
+          user_id: userId,
+          company_id: companyId,
+          snapshot_type: snapshotTemplate.snapshot_type || 'dashboard',
+          title: `${snapshotTemplate.title || 'Dashboard Snapshot'} ${code}`,
+          snapshot_data: snapshotTemplate.snapshot_data || { source: 'seed-threshold-top-up' },
+          share_token: uuidFromSeed(`${dataset.userSeed}:threshold:share:${companyId}:${code}`).replace(/-/g, '').slice(0, 24),
+          created_at: createdAt,
+          expires_at: null,
+          is_active: true,
+        });
+      }
+
+      await upsertRows(client, 'dashboard_snapshots', topUpSnapshots, 'id');
+    }
+  }
+}
+
 async function applyDataset(client, dataset, options) {
   const authSummary = await ensureAuthUser(client, dataset, options);
   const companyScopedDataset = options.preserveCompanies
@@ -4024,7 +4274,14 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'quotes', effectiveDataset.quoteRows, 'id');
   await upsertRows(client, 'purchase_orders', effectiveDataset.purchaseOrderRows, 'id');
   await upsertRows(client, 'projects', effectiveDataset.projectRows, 'id');
-  await upsertRows(client, 'team_members', effectiveDataset.teamMemberRows, 'id');
+  await upsertRows(client, 'crm_support_sla_policies', effectiveDataset.crmSupportSlaPolicyRows || [], 'id');
+  await upsertRows(client, 'crm_support_tickets', effectiveDataset.crmSupportTicketRows || [], 'id');
+  const fallbackTeamCompanyId = effectiveDataset.userCompanyPreferenceRow?.active_company_id || effectiveDataset.companyRow?.id || null;
+  const normalizedTeamMemberRows = (effectiveDataset.teamMemberRows || []).map((row) => ({
+    ...row,
+    company_id: row.company_id || fallbackTeamCompanyId,
+  }));
+  await upsertRows(client, 'team_members', normalizedTeamMemberRows, 'id');
   await upsertRows(client, 'invoices', effectiveDataset.invoiceRows, 'id');
   await upsertRows(client, 'invoice_items', effectiveDataset.invoiceItemRows, 'id');
   await upsertRows(
@@ -4051,7 +4308,27 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'delivery_note_items', effectiveDataset.deliveryNoteItemRows, 'id');
   await upsertRows(client, 'receivables', effectiveDataset.receivableRows, 'id');
   await upsertRows(client, 'payables', effectiveDataset.payableRows, 'id');
-  await upsertRows(client, 'debt_payments', effectiveDataset.debtPaymentRows, 'id');
+  const normalizedDebtPaymentRows = (effectiveDataset.debtPaymentRows || []).map((row) => {
+    const normalized = { ...row };
+
+    if (!normalized.receivable_id && !normalized.payable_id) {
+      if (normalized.record_type === 'receivable') {
+        normalized.receivable_id = normalized.record_id;
+      } else if (normalized.record_type === 'payable') {
+        normalized.payable_id = normalized.record_id;
+      }
+    }
+
+    if (normalized.receivable_id) {
+      normalized.payable_id = null;
+    }
+    if (normalized.payable_id) {
+      normalized.receivable_id = null;
+    }
+
+    return normalized;
+  });
+  await upsertRows(client, 'debt_payments', normalizedDebtPaymentRows, 'id');
   await upsertRows(client, 'product_stock_history', effectiveDataset.productStockHistoryRows, 'id');
   await upsertRows(client, 'stock_alerts', effectiveDataset.stockAlertRows, 'id');
   await upsertRows(client, 'notification_preferences', [effectiveDataset.notificationPreferencesRow], 'id');
@@ -4076,6 +4353,7 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'financial_scenarios', scenarioSeed.scenarioRows, 'id');
   await upsertRows(client, 'scenario_assumptions', scenarioSeed.scenarioAssumptionRows, 'id');
   await upsertRows(client, 'scenario_results', scenarioSeed.scenarioResultRows, 'scenario_id,calculation_date');
+  await ensureCompanyThresholdRows(client, effectiveDataset, 7);
 
   const preferencePayload = {
     user_id: effectiveDataset.userId,

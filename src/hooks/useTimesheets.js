@@ -1,5 +1,4 @@
-
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +14,16 @@ export const useTimesheets = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const toastRef = useRef(toast);
+  const tRef = useRef(t);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
+
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   const calculateDuration = (startTime, endTime) => {
     if (!startTime || !endTime) return 0;
@@ -25,73 +34,77 @@ export const useTimesheets = () => {
     return Math.max(0, end - start);
   };
 
-  const fetchTimesheets = useCallback(async (filters = {}) => {
-    if (!user) return;
-    if (!supabase) {
-      console.warn("Supabase not configured");
-      return;
-    }
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('timesheets')
-        .select(`
+  const fetchTimesheets = useCallback(
+    async (filters = {}) => {
+      if (!user) return;
+      if (!supabase) {
+        console.warn('Supabase not configured');
+        return;
+      }
+      setLoading(true);
+      try {
+        let query = supabase
+          .from('timesheets')
+          .select(
+            `
           *,
           client:clients(company_name),
           project:projects(name, hourly_rate),
           task:tasks(name),
           service:services(id, service_name, hourly_rate, pricing_type, fixed_price, unit_price),
           executed_by_member:team_members(id, name, email, role)
-        `)
-        .order('date', { ascending: false });
+        `
+          )
+          .order('date', { ascending: false });
 
-      query = applyCompanyScope(query);
-      if (filters.startDate) query = query.gte('date', filters.startDate);
-      if (filters.endDate) query = query.lte('date', filters.endDate);
-      if (filters.projectId) query = query.eq('project_id', filters.projectId);
-      if (filters.clientId) query = query.eq('client_id', filters.clientId);
-      if (filters.executedByMemberId) query = query.eq('executed_by_member_id', filters.executedByMemberId);
+        query = applyCompanyScope(query);
+        if (filters.startDate) query = query.gte('date', filters.startDate);
+        if (filters.endDate) query = query.lte('date', filters.endDate);
+        if (filters.projectId) query = query.eq('project_id', filters.projectId);
+        if (filters.clientId) query = query.eq('client_id', filters.clientId);
+        if (filters.executedByMemberId) query = query.eq('executed_by_member_id', filters.executedByMemberId);
 
-      const { data, error } = await query;
+        const { data, error } = await query;
 
-      if (error) throw error;
-      setTimesheets(data || []);
-    } catch (err) {
-      // Handle RLS recursion (42P17) or permission (42501) errors gracefully
-      if (err.code === '42P17' || err.code === '42501') {
-        console.warn('RLS policy error fetching timesheets:', err.message);
-        setTimesheets([]);
-        return;
+        if (error) throw error;
+        setTimesheets(data || []);
+      } catch (err) {
+        // Handle RLS recursion (42P17) or permission (42501) errors gracefully
+        if (err.code === '42P17' || err.code === '42501') {
+          console.warn('RLS policy error fetching timesheets:', err.message);
+          setTimesheets([]);
+          return;
+        }
+
+        setError(err.message);
+        toastRef.current({
+          title: tRef.current('messages.error.timesheetFetchFailed', 'Erreur de chargement'),
+          description: tRef.current(
+            'messages.error.timesheetFetchDescription',
+            'Impossible de charger les feuilles de temps. Veuillez réessayer.'
+          ),
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
       }
-
-      setError(err.message);
-      toast({
-        title: t('messages.error.timesheetFetchFailed', 'Erreur de chargement'),
-        description: t('messages.error.timesheetFetchDescription', 'Impossible de charger les feuilles de temps. Veuillez réessayer.'),
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [applyCompanyScope, t, toast, user]);
+    },
+    [applyCompanyScope, user]
+  );
 
   const createTimesheet = async (timesheetData) => {
     if (!user) return;
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       const duration = calculateDuration(timesheetData.start_time, timesheetData.end_time);
       const payload = {
         ...withCompanyScope(timesheetData),
         user_id: user.id,
-        duration_minutes: duration
+        duration_minutes: duration,
       };
 
-      const { data, error } = await supabase
-        .from('timesheets')
-        .insert([payload])
-        .select()
-        .single();
+      const { data, error } = await supabase.from('timesheets').insert([payload]).select().single();
 
       if (error) throw error;
 
@@ -105,16 +118,19 @@ export const useTimesheets = () => {
         duration_minutes: data.duration_minutes,
       });
       toast({
-        title: "Success",
-        description: t('messages.success.timesheetAdded')
+        title: 'Success',
+        description: t('messages.success.timesheetAdded'),
       });
       return data;
     } catch (err) {
       setError(err.message);
       toast({
         title: t('messages.error.timesheetCreateFailed', 'Erreur lors de la création'),
-        description: t('messages.error.timesheetCreateDescription', 'Veuillez vérifier que tous les champs obligatoires sont correctement remplis.'),
-        variant: "destructive"
+        description: t(
+          'messages.error.timesheetCreateDescription',
+          'Veuillez vérifier que tous les champs obligatoires sont correctement remplis.'
+        ),
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -123,7 +139,7 @@ export const useTimesheets = () => {
   };
 
   const updateTimesheet = async (id, timesheetData) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
       // Recalculate duration if time changes
@@ -141,18 +157,21 @@ export const useTimesheets = () => {
 
       if (error) throw error;
 
-      setTimesheets(timesheets.map(t => t.id === id ? data : t));
+      setTimesheets(timesheets.map((t) => (t.id === id ? data : t)));
       toast({
-        title: "Success",
-        description: t('messages.success.timesheetUpdated')
+        title: 'Success',
+        description: t('messages.success.timesheetUpdated'),
       });
       return data;
     } catch (err) {
       setError(err.message);
       toast({
         title: t('messages.error.timesheetUpdateFailed', 'Erreur de mise à jour'),
-        description: t('messages.error.timesheetUpdateDescription', 'Impossible de mettre à jour la feuille de temps. Veuillez réessayer.'),
-        variant: "destructive"
+        description: t(
+          'messages.error.timesheetUpdateDescription',
+          'Impossible de mettre à jour la feuille de temps. Veuillez réessayer.'
+        ),
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -161,27 +180,27 @@ export const useTimesheets = () => {
   };
 
   const deleteTimesheet = async (id) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('timesheets')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('timesheets').delete().eq('id', id);
 
       if (error) throw error;
 
-      setTimesheets(timesheets.filter(t => t.id !== id));
+      setTimesheets(timesheets.filter((t) => t.id !== id));
       toast({
-        title: "Success",
-        description: t('messages.success.timesheetDeleted')
+        title: 'Success',
+        description: t('messages.success.timesheetDeleted'),
       });
     } catch (err) {
       setError(err.message);
       toast({
         title: t('messages.error.timesheetDeleteFailed', 'Erreur de suppression'),
-        description: t('messages.error.timesheetDeleteDescription', 'Impossible de supprimer la feuille de temps. Veuillez réessayer.'),
-        variant: "destructive"
+        description: t(
+          'messages.error.timesheetDeleteDescription',
+          'Impossible de supprimer la feuille de temps. Veuillez réessayer.'
+        ),
+        variant: 'destructive',
       });
       throw err;
     } finally {
@@ -218,7 +237,9 @@ export const useTimesheets = () => {
     try {
       let query = supabase
         .from('timesheets')
-        .select(`*, client:clients(company_name), project:projects(name, hourly_rate), task:tasks(name), service:services(id, service_name, hourly_rate)`)
+        .select(
+          `*, client:clients(company_name), project:projects(name, hourly_rate), task:tasks(name), service:services(id, service_name, hourly_rate)`
+        )
         .eq('user_id', user.id)
         .eq('project_id', projectId)
         .eq('billable', true)
@@ -243,7 +264,7 @@ export const useTimesheets = () => {
         .update({
           invoice_id: invoiceId,
           billed_at: new Date().toISOString(),
-          status: 'invoiced'
+          status: 'invoiced',
         })
         .in('id', timesheetIds);
 
@@ -255,13 +276,16 @@ export const useTimesheets = () => {
       });
       toast({
         title: t('messages.success.timesheetInvoiced', 'Timesheets facturées'),
-        description: `${timesheetIds.length} entrée(s) marquée(s) comme facturée(s).`
+        description: `${timesheetIds.length} entrée(s) marquée(s) comme facturée(s).`,
       });
     } catch (err) {
       toast({
         title: t('messages.error.timesheetInvoiceFailed', 'Erreur de facturation'),
-        description: t('messages.error.timesheetInvoiceDescription', 'Impossible de marquer les feuilles de temps comme facturées.'),
-        variant: "destructive"
+        description: t(
+          'messages.error.timesheetInvoiceDescription',
+          'Impossible de marquer les feuilles de temps comme facturées.'
+        ),
+        variant: 'destructive',
       });
     }
   };
@@ -269,13 +293,10 @@ export const useTimesheets = () => {
   const toggleBillable = async (id, billable) => {
     if (!supabase) return;
     try {
-      const { error } = await supabase
-        .from('timesheets')
-        .update({ billable })
-        .eq('id', id);
+      const { error } = await supabase.from('timesheets').update({ billable }).eq('id', id);
 
       if (error) throw error;
-      setTimesheets(prev => prev.map(t => t.id === id ? { ...t, billable } : t));
+      setTimesheets((prev) => prev.map((t) => (t.id === id ? { ...t, billable } : t)));
     } catch (err) {
       console.error('Error toggling billable:', err);
     }
@@ -297,6 +318,6 @@ export const useTimesheets = () => {
     fetchBillableTimesheets,
     fetchBillableTimesheetsForProject,
     markAsInvoiced,
-    toggleBillable
+    toggleBillable,
   };
 };
