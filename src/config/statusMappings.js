@@ -56,7 +56,7 @@ export const ABSENCE_STATUSES = {
     bg: 'bg-gray-400/10 border-gray-400/30',
   },
   submitted: {
-    label: 'En attente',
+    label: 'Soumis',
     dot: 'bg-yellow-400',
     text: 'text-yellow-300',
     bg: 'bg-yellow-400/10 border-yellow-400/30',
