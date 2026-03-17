@@ -7,8 +7,8 @@ node_modules/
 .npm/
 
 # Build artifacts (Vercel builds fresh)
-dist/
-coverage/
+/dist/
+/coverage/
 .cache/
 .vite/
 
@@ -26,8 +26,8 @@ coverage/
 !.env.example
 
 # Temp files
-artifacts/
-tmp_generated_tool_names.txt
+/artifacts/
+/tmp_generated_tool_names.txt
 *.log
 *.tmp
 AGENTS.md
@@ -60,12 +60,13 @@ AGENTS.md
 /docs/
 
 # ---- Backend / SQL (deployed separately via Supabase) ----
-mcp-server/
-migrations/
-supabase/
+/mcp-server/
+/migrations/
+/supabase/
 
 # ---- Other non-runtime directories ----
-api/
-n8n-workflows/
-skills/
-stripe/
+# Anchored with / to avoid matching src/components/api/ etc.
+/api/
+/n8n-workflows/
+/skills/
+/stripe/
