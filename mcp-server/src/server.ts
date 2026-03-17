@@ -14,6 +14,7 @@ import { registerReportingTools } from './tools/reporting.js';
 import { registerDocumentTools } from './tools/documents.js';
 import { registerCompanyFinanceTools } from './tools/company-finance.js';
 import { registerFinancialInstrumentTools } from './tools/financial-instruments.js';
+import { registerCrmTools } from './tools/crm.js';
 import { registerHrCrudTools } from './tools/generated_crud_hr.js';
 import { registerProjectCrmCrudTools } from './tools/generated_crud_projects.js';
 import { registerCfoTools } from './tools/cfo.js';
@@ -84,6 +85,7 @@ export function createServer(): McpServer {
   registerDocumentTools(server);
   registerCompanyFinanceTools(server);
   registerFinancialInstrumentTools(server);
+  registerCrmTools(server);
   registerHrCrudTools(server);
   registerProjectCrmCrudTools(server);
   registerCfoTools(server);

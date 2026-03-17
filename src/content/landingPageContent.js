@@ -20,14 +20,14 @@ export const landingPageContent = {
       descriptionBody:
         "Gestion financière, RH, projets, CRM et matériel 100% automatisés pour la France, la Belgique et l'Afrique (OHADA).",
       mcpBanner:
-        "Révolutionnaire dans le monde de la gestion d'entreprise : CashPilot est aussi un serveur MCP, qui offre 449 outils à tout client MCP (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), couvrant la finance, les projets, le CRM (leads/tickets/SLA), les ressources humaines (DRH), le matériel et l'extraction IA de factures fournisseurs (PDF/image), pour une conversation en temps réel ou pour son intégration dans vos workflows d'automatisation (n8n, Zapier, Rube.app).",
+        "Révolutionnaire dans le monde de la gestion d'entreprise : CashPilot est aussi un serveur MCP, qui offre 460 outils à tout client MCP (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), couvrant la finance, les projets, le CRM (leads/tickets/SLA), les ressources humaines (DRH), le matériel et l'extraction IA de factures fournisseurs (PDF/image), pour une conversation en temps réel ou pour son intégration dans vos workflows d'automatisation (n8n, Zapier, Rube.app).",
       tags: {
         realtime: 'Temps réel (< 1 seconde)',
         regions: 'France • Belgique • OHADA',
         whatIf: 'Simulations What-If',
         reverseAccounting: 'Reverse Accounting',
         automated: '100% automatisé',
-        mcp: 'Serveur MCP • 449 outils IA',
+        mcp: 'Serveur MCP • 460 outils IA',
         projectsCrm: 'Nouveau : RH + Projets + CRM + Matériel',
         security: 'MFA & GDPR',
       },
@@ -190,7 +190,7 @@ export const landingPageContent = {
         {
           title: 'Serveur MCP & API',
           description:
-            '449 outils MCP (finance + projets + CRM + RH + matériel + extraction IA factures) + API REST pour agents IA et automations',
+            '460 outils MCP (finance + projets + CRM + RH + matériel + extraction IA factures) + API REST pour agents IA et automations',
         },
         {
           title: 'MFA / 2FA (TOTP)',
@@ -267,7 +267,7 @@ export const landingPageContent = {
       badge: 'Serveur MCP natif',
       title: 'Connecté à tous vos agents IA',
       description:
-        "CashPilot est un serveur MCP (Model Context Protocol) avec 449 outils intégrés couvrant la finance, les projets, le CRM (leads/tickets/SLA), les ressources humaines (DRH), le matériel et l'extraction IA de factures fournisseurs. Pilotez toute votre gestion d'entreprise par la voix ou le texte, depuis n'importe quel agent IA.",
+        "CashPilot est un serveur MCP (Model Context Protocol) avec 460 outils intégrés couvrant la finance, les projets, le CRM (leads/tickets/SLA), les ressources humaines (DRH), le matériel et l'extraction IA de factures fournisseurs. Pilotez toute votre gestion d'entreprise par la voix ou le texte, depuis n'importe quel agent IA.",
       agents: [
         { name: 'Claude', company: 'Anthropic' },
         { name: 'ChatGPT', company: 'OpenAI' },
@@ -290,9 +290,9 @@ export const landingPageContent = {
             'Créez et suivez des projets, tâches, leads, tickets SLA, employés, contrats, paie, congés, équipements et maintenance directement depuis vos agents IA, en scope société strict.',
         },
         {
-          title: '449 outils MCP',
+          title: '460 outils MCP',
           description:
-            'Finance, projets, CRM, ressources humaines, matériel, extraction IA de factures fournisseurs — 449 outils accessibles via le protocole MCP standard.',
+            'Finance, projets, CRM, ressources humaines, matériel, extraction IA de factures fournisseurs — 460 outils accessibles via le protocole MCP standard.',
         },
         {
           title: "Brique d'automatisation",
@@ -342,7 +342,7 @@ export const landingPageContent = {
         'Génération instantanée des écritures comptables (< 1 seconde)',
         'Reverse accounting : annulations et corrections automatiques',
         'Tout-en-un : gestion, facturation, comptabilité, RH, matériel, simulations',
-        'Serveur MCP : 449 outils (finance, projets, CRM, RH, matériel) dont extraction IA de factures, depuis ChatGPT, Claude, Gemini, Mistral',
+        'Serveur MCP : 460 outils (finance, projets, CRM, RH, matériel) dont extraction IA de factures, depuis ChatGPT, Claude, Gemini, Mistral',
         'Sécurité renforcée : MFA/2FA, RGPD, 244 tests automatisés',
         'IA intégrée : extraction factures fournisseurs par Gemini 2.0 Flash',
         'Banque connectée : 3000+ banques, rapprochement auto, taux de change BCE',
@@ -391,14 +391,14 @@ export const landingPageContent = {
       descriptionBody:
         '100% automated finance, HR, projects, CRM, and equipment management for France, Belgium, and OHADA Africa.',
       mcpBanner:
-        'A breakthrough for business management: CashPilot is also an MCP server that exposes 449 tools to any MCP client (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), covering finance, projects, CRM (leads/tickets/SLA), human resources (HR), equipment, and AI supplier-invoice extraction (PDF/image), for real-time conversations or integration into your automation workflows (n8n, Zapier, Rube.app).',
+        'A breakthrough for business management: CashPilot is also an MCP server that exposes 460 tools to any MCP client (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), covering finance, projects, CRM (leads/tickets/SLA), human resources (HR), equipment, and AI supplier-invoice extraction (PDF/image), for real-time conversations or integration into your automation workflows (n8n, Zapier, Rube.app).',
       tags: {
         realtime: 'Real time (< 1 second)',
         regions: 'France • Belgium • OHADA',
         whatIf: 'What-if simulations',
         reverseAccounting: 'Reverse accounting',
         automated: '100% automated',
-        mcp: 'MCP server • 449 AI tools',
+        mcp: 'MCP server • 460 AI tools',
         projectsCrm: 'New: HR + Projects + CRM + Equipment',
         security: 'MFA & GDPR',
       },
@@ -557,7 +557,7 @@ export const landingPageContent = {
         {
           title: 'MCP server & API',
           description:
-            '449 MCP tools (finance + projects + CRM + HR + equipment + AI invoice extraction) + REST API for AI agents and automations',
+            '460 MCP tools (finance + projects + CRM + HR + equipment + AI invoice extraction) + REST API for AI agents and automations',
         },
         { title: 'MFA / 2FA (TOTP)', description: 'Two-factor authentication with Google Authenticator or Authy' },
         { title: 'GDPR compliance', description: 'Cookie consent, data export, and right to be forgotten' },
@@ -630,7 +630,7 @@ export const landingPageContent = {
       badge: 'Native MCP server',
       title: 'Connected to all your AI agents',
       description:
-        'CashPilot is an MCP (Model Context Protocol) server with 449 built-in tools covering finance, projects, CRM (leads/tickets/SLA), human resources (HR), equipment, and AI supplier-invoice extraction. Run your entire business by voice or text from any AI agent.',
+        'CashPilot is an MCP (Model Context Protocol) server with 460 built-in tools covering finance, projects, CRM (leads/tickets/SLA), human resources (HR), equipment, and AI supplier-invoice extraction. Run your entire business by voice or text from any AI agent.',
       agents: [
         { name: 'Claude', company: 'Anthropic' },
         { name: 'ChatGPT', company: 'OpenAI' },
@@ -653,9 +653,9 @@ export const landingPageContent = {
             'Create and track projects, tasks, leads, SLA tickets, employees, contracts, payroll, leave, equipment, and maintenance directly from AI agents with strict company scope.',
         },
         {
-          title: '449 MCP tools',
+          title: '460 MCP tools',
           description:
-            'Finance, projects, CRM, human resources, equipment, AI supplier-invoice extraction — 449 tools available through the standard MCP protocol.',
+            'Finance, projects, CRM, human resources, equipment, AI supplier-invoice extraction — 460 tools available through the standard MCP protocol.',
         },
         {
           title: 'Automation building block',
@@ -705,7 +705,7 @@ export const landingPageContent = {
         'Instant journal-entry generation (< 1 second)',
         'Reverse accounting: automatic cancellations and corrections',
         'All-in-one: operations, invoicing, accounting, HR, equipment, simulations',
-        'MCP server: 449 tools (finance, projects, CRM, HR, equipment) including AI invoice extraction from ChatGPT, Claude, Gemini, and Mistral',
+        'MCP server: 460 tools (finance, projects, CRM, HR, equipment) including AI invoice extraction from ChatGPT, Claude, Gemini, and Mistral',
         'Stronger security: MFA/2FA, GDPR, 244 automated tests',
         'Built-in AI: supplier-invoice extraction with Gemini 2.0 Flash',
         'Connected banking: 3000+ banks, automatic matching, ECB exchange rates',
@@ -754,14 +754,14 @@ export const landingPageContent = {
       descriptionBody:
         '100% geautomatiseerde financiële opvolging, HR, projectbeheer, CRM en materieelbeheer voor Frankrijk, België en OHADA-Afrika.',
       mcpBanner:
-        'Een doorbraak in bedrijfsbeheer: CashPilot is ook een MCP-server die 449 tools aanbiedt aan elke MCP-client (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), voor finance, projecten, CRM (leads/tickets/SLA), human resources (HR), materieel en AI-extractie van leveranciersfacturen (pdf/afbeelding), voor realtime gesprekken of integratie in uw automatiseringsworkflows (n8n, Zapier, Rube.app).',
+        'Een doorbraak in bedrijfsbeheer: CashPilot is ook een MCP-server die 460 tools aanbiedt aan elke MCP-client (ChatGPT, Claude, Gemini, Mistral, n8n, Gumloop), voor finance, projecten, CRM (leads/tickets/SLA), human resources (HR), materieel en AI-extractie van leveranciersfacturen (pdf/afbeelding), voor realtime gesprekken of integratie in uw automatiseringsworkflows (n8n, Zapier, Rube.app).',
       tags: {
         realtime: 'Realtime (< 1 seconde)',
         regions: 'Frankrijk • België • OHADA',
         whatIf: 'What-if-simulaties',
         reverseAccounting: 'Reverse accounting',
         automated: '100% geautomatiseerd',
-        mcp: 'MCP-server • 449 AI-tools',
+        mcp: 'MCP-server • 460 AI-tools',
         projectsCrm: 'Nieuw: HR + Projecten + CRM + Materieel',
         security: 'MFA & GDPR',
       },
@@ -926,7 +926,7 @@ export const landingPageContent = {
         {
           title: 'MCP-server & API',
           description:
-            '449 MCP-tools (finance + projecten + CRM + HR + materieel + AI-factuurextractie) + REST API voor AI-agents en automatiseringen',
+            '460 MCP-tools (finance + projecten + CRM + HR + materieel + AI-factuurextractie) + REST API voor AI-agents en automatiseringen',
         },
         { title: 'MFA / 2FA (TOTP)', description: 'Twee-factor-authenticatie via Google Authenticator of Authy' },
         { title: 'GDPR-compliance', description: 'Cookieconsent, data-export en recht op vergetelheid' },
@@ -1002,7 +1002,7 @@ export const landingPageContent = {
       badge: 'Native MCP-server',
       title: 'Verbonden met al uw AI-agents',
       description:
-        'CashPilot is een MCP-server (Model Context Protocol) met 449 ingebouwde tools voor finance, projecten, CRM (leads/tickets/SLA), human resources (HR), materieel en AI-extractie van leveranciersfacturen. Bestuur uw volledige bedrijf via stem of tekst vanuit eender welke AI-agent.',
+        'CashPilot is een MCP-server (Model Context Protocol) met 460 ingebouwde tools voor finance, projecten, CRM (leads/tickets/SLA), human resources (HR), materieel en AI-extractie van leveranciersfacturen. Bestuur uw volledige bedrijf via stem of tekst vanuit eender welke AI-agent.',
       agents: [
         { name: 'Claude', company: 'Anthropic' },
         { name: 'ChatGPT', company: 'OpenAI' },
@@ -1025,9 +1025,9 @@ export const landingPageContent = {
             'Maak en volg projecten, taken, leads, SLA-tickets, medewerkers, contracten, loonbeheer, verlof, materieel en onderhoud rechtstreeks vanuit AI-agents met strikte company-scope.',
         },
         {
-          title: '449 MCP-tools',
+          title: '460 MCP-tools',
           description:
-            'Finance, projecten, CRM, human resources, materieel, AI-extractie van leveranciersfacturen — 449 tools toegankelijk via het standaard MCP-protocol.',
+            'Finance, projecten, CRM, human resources, materieel, AI-extractie van leveranciersfacturen — 460 tools toegankelijk via het standaard MCP-protocol.',
         },
         {
           title: 'Automatiseringsbouwsteen',
@@ -1078,7 +1078,7 @@ export const landingPageContent = {
         'Onmiddellijke generatie van boekingen (< 1 seconde)',
         'Reverse accounting: automatische annulaties en correcties',
         'Alles-in-één: beheer, facturatie, boekhouding, HR, materieel, simulaties',
-        'MCP-server: 449 tools (finance, projecten, CRM, HR, materieel) waaronder AI-factuurextractie vanuit ChatGPT, Claude, Gemini en Mistral',
+        'MCP-server: 460 tools (finance, projecten, CRM, HR, materieel) waaronder AI-factuurextractie vanuit ChatGPT, Claude, Gemini en Mistral',
         'Sterkere beveiliging: MFA/2FA, GDPR, 244 geautomatiseerde tests',
         'Ingebouwde AI: leveranciersfactuurextractie met Gemini 2.0 Flash',
         'Verbonden bankieren: 3000+ banken, automatische matching, ECB-koersen',

@@ -2,9 +2,9 @@
 
 Serveur MCP (Model Context Protocol) **unifie** pour CashPilot. Source unique de tous les outils de gestion financiere accessibles depuis Claude Code.
 
-- **82 outils hand-written** (facturation, comptabilite, analytics, exports, extraction IA, rapprochement bancaire, documents, instruments financiers, finance multi-societes)
+- **85 outils hand-written** (facturation, comptabilite, analytics, exports, extraction IA, rapprochement bancaire, documents, instruments financiers, finance multi-societes, CRM, mobile money, CFO, SYSCOHADA)
 - **375 outils CRUD générés** (acces aux 75 tables Supabase : 35 core + 28 RH + 12 CRM/projets/materiel)
-- **Total : 449 outils**
+- **Total : 460 outils**
 
 > **IMPORTANT** : Ce serveur remplace tout serveur MCP tiers de comptabilite/facturation.
 > Ne pas utiliser d'autres serveurs MCP pour les operations CashPilot afin d'eviter les conflits de noms d'outils.
@@ -58,7 +58,7 @@ Avant d'utiliser un outil, l'utilisateur doit se connecter :
 3. Appeler `whoami` pour verifier le statut de connexion
 4. Appeler `logout` pour se deconnecter
 
-## Outils hand-written (82)
+## Outils hand-written (85)
 
 ### Authentification (3) — server.ts
 
@@ -80,6 +80,13 @@ Avant d'utiliser un outil, l'utilisateur doit se connecter :
 | `restore_client`        | Restaurer un client archive            |
 | `list_archived_clients` | Lister les clients archives            |
 | `get_client_balance`    | Solde client : facture, paye, reste du |
+
+### CRM (2) — crm.ts
+
+| Outil                      | Description                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| `list_crm_leads`           | Lister les leads CRM (clients sans devis/facture), avec recherche et pagination |
+| `get_crm_pipeline_summary` | Resume pipeline CRM : leads, conversion, backlog support, projets et commerce   |
 
 ### Factures (8) — invoices.ts
 
@@ -295,14 +302,18 @@ mcp-server/
       analytics.ts              # 3 outils analyse
       bank-reconciliation.ts    # 7 outils rapprochement bancaire
       clients.ts                # 8 outils clients
+      crm.ts                    # 2 outils CRM pipeline/leads
       company-finance.ts        # 7 outils finance multi-societes
+      cfo.ts                    # 3 outils CFO (sante, risques, recommandations)
       documents.ts              # 5 outils documents (devis, avoirs, depenses)
       exports.ts                # 5 outils exports (FEC, SAF-T, Factur-X, UBL)
       financial-instruments.ts  # 10 outils instruments financiers
       invoices.ts               # 8 outils factures
+      mobile_money.ts           # 3 outils Mobile Money + WhatsApp
       payments.ts               # 4 outils paiements
       reporting.ts              # 3 outils rapports (P&L, bilan, balance agee)
       supplier-invoices.ts      # 5 outils factures fournisseurs
+      syscohada.ts              # 3 outils conformite SYSCOHADA
       generated_crud.ts         # 175 outils CRUD (35 tables core)
       generated_crud_hr.ts      # 140 outils CRUD (28 tables RH)
       generated_crud_projects.ts # 60 outils CRUD (12 tables CRM/projets/materiel)

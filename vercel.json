@@ -14,73 +14,60 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(self), payment=()" },
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://flagcdn.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com https://api.stripe.com https://api.exchangerate.host https://api.frankfurter.app https://*.ingest.sentry.io https://*.ingest.de.sentry.io; object-src 'none'; frame-src 'self' https://js.stripe.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';" }
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://flagcdn.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com https://api.stripe.com https://api.exchangerate.host https://api.frankfurter.app https://*.ingest.sentry.io https://*.ingest.de.sentry.io; object-src 'none'; frame-src 'self' https://js.stripe.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+        }
       ]
     },
     {
       "source": "/assets/:path*",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
       "source": "/index.html",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
     {
       "source": "/sw.js",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
     {
       "source": "/:path*.woff",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
       "source": "/:path*.woff2",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
       "source": "/:path*.png",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
       "source": "/:path*.jpg",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
       "source": "/:path*.svg",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
       "source": "/:path*.ico",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
       "source": "/:path*.webp",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     }
   ],
   "rewrites": [
-    { "source": "/api/v1/:path*", "destination": "https://rfzvrezrcigzmldgvntz.supabase.co/functions/v1/api-v1/:path*" },
+    {
+      "source": "/api/v1/:path*",
+      "destination": "https://rfzvrezrcigzmldgvntz.supabase.co/functions/v1/api-v1/:path*"
+    },
     { "source": "/mcp", "destination": "/api/mcp" },
+    { "source": "/guide", "destination": "/guide/index.html" },
     { "source": "/guide/:path*", "destination": "/guide/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]

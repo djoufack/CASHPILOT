@@ -212,7 +212,7 @@ export function registerCfoTools(server: McpServer) {
         }))
         .sort((a, b) => b.days_overdue - a.days_overdue);
 
-      const risks = [];
+      const risks: Array<{ type: string; severity: string; message: string }> = [];
       if (sortedClients.length > 0 && sortedClients[0].share > 50) {
         risks.push({
           type: 'client_concentration',
@@ -302,7 +302,7 @@ export function registerCfoTools(server: McpServer) {
       const margin = totalRevenue > 0 ? ((totalRevenue - totalExpenses) / totalRevenue) * 100 : 0;
       const collectionRate = totalRevenue > 0 ? (totalPaid / totalRevenue) * 100 : 0;
 
-      const recommendations = [];
+      const recommendations: Array<{ priority: string; category: string; title: string; detail: string }> = [];
 
       if (overdueCount > 0) {
         recommendations.push({

@@ -143,7 +143,7 @@ export function registerSycohadaTools(server: McpServer) {
       entry_ids: z.array(z.string().uuid()).describe('Array of accounting entry UUIDs to validate'),
     },
     async ({ entry_ids }) => {
-      const results = [];
+      const results: Array<any> = [];
 
       for (const entryId of entry_ids) {
         const { data, error } = await supabase.rpc('validate_syscohada_entry', {
