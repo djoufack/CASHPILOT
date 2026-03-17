@@ -1,29 +1,33 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import TopNavBar from './TopNavBar';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import MobileMenu from './MobileMenu';
 import OnboardingBanner from './onboarding/OnboardingBanner';
 import { useTranslation } from 'react-i18next';
 import { useObligationNotifications } from '@/hooks/useObligationNotifications';
+import { useNotifications } from '@/hooks/useNotifications';
 import BottomNavBar from './BottomNavBar';
 import QuickCreateButton from './QuickCreateButton';
-import { Menu } from 'lucide-react';
+import { Menu, User, Bell } from 'lucide-react';
 
 const MainLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const { t } = useTranslation();
+  const navigate = useNavigate();
   useObligationNotifications();
+  const { unreadCount } = useNotifications();
 
   useEffect(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
     if (saved !== null) {
       setIsCollapsed(JSON.parse(saved));
     } else {
-      if (window.innerWidth >= 768 && window.innerWidth < 1024) {
+      if (window.innerWidth >= 768 && window.innerWidth < 1280) {
         setIsCollapsed(true);
       } else {
         setIsCollapsed(false);
@@ -50,13 +54,17 @@ const MainLayout = () => {
       </a>
 
       {/* Mobile Header */}
-      <div className="md:hidden bg-gray-950 border-b border-gray-800/50 p-4 flex items-center justify-between sticky top-0 z-30">
+      <div
+        className="md:hidden bg-gray-950 border-b border-gray-800/50 p-4 flex items-center justify-between sticky top-0 z-30"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsMobileMenuOpen(true)}
             aria-label={t('common.openNavigation', 'Ouvrir la navigation')}
+            className="min-h-[44px] min-w-[44px]"
           >
             <Menu className="h-6 w-6 text-white" />
           </Button>
@@ -64,6 +72,35 @@ const MainLayout = () => {
             <span className="text-orange-400">Cash</span>
             <span className="text-white">Pilot</span>
           </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {/* Notification bell */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/app/notifications')}
+            aria-label={t('topNav.notifications', 'Notifications')}
+            className="relative min-h-[44px] min-w-[44px] text-gray-400 hover:text-white"
+          >
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </Button>
+          {/* Profile / Account button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsProfileMenuOpen(true)}
+            aria-label={t('topNav.myProfile', 'Mon profil')}
+            className="min-h-[44px] min-w-[44px]"
+          >
+            <div className="w-8 h-8 rounded-full border-2 border-orange-500 flex items-center justify-center bg-orange-500/10">
+              <User className="h-4 w-4 text-orange-400" />
+            </div>
+          </Button>
         </div>
       </div>
 
@@ -73,7 +110,11 @@ const MainLayout = () => {
       </div>
 
       {/* Desktop Top Navigation Bar */}
-      <TopNavBar isCollapsed={isCollapsed} />
+      <TopNavBar
+        isCollapsed={isCollapsed}
+        mobileMenuOpen={isProfileMenuOpen}
+        onMobileMenuClose={() => setIsProfileMenuOpen(false)}
+      />
 
       {/* Mobile Menu Overlay */}
       <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />

@@ -1,4 +1,3 @@
-import DOMPurify from 'dompurify';
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { supabase } from '@/lib/supabase';
@@ -8,14 +7,7 @@ import {
   resolveInvoiceExportSettings,
 } from '@/services/invoiceTemplateExport';
 import { getTheme } from '@/config/invoiceThemes';
-
-const escapeHtml = (value) =>
-  String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+import { escapeHTML as escapeHtml, setSafeHtml } from '@/utils/sanitize';
 
 const formatMoney = (value, currency = 'EUR') => {
   const amount = Number(value || 0);
@@ -25,10 +17,6 @@ const formatMoney = (value, currency = 'EUR') => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(Number.isFinite(amount) ? amount : 0);
-};
-
-const setSafeHtml = (element, html) => {
-  element.innerHTML = DOMPurify.sanitize(String(html || ''));
 };
 
 const downloadHtmlFile = (html, filename) => {
@@ -129,9 +117,10 @@ const resolveSupplierRecordTheme = async (settingsOverride = null) => {
 
 const serviceContent = (service, supplier, company, settings, theme) => {
   const currency = supplier?.currency || company?.accounting_currency || 'EUR';
-  const priceValue = service?.pricing_type === 'fixed'
-    ? formatMoney(service?.fixed_price, currency)
-    : `${formatMoney(service?.hourly_rate, currency)} / h`;
+  const priceValue =
+    service?.pricing_type === 'fixed'
+      ? formatMoney(service?.fixed_price, currency)
+      : `${formatMoney(service?.hourly_rate, currency)} / h`;
 
   const companyName = escapeHtml(company?.company_name || company?.name || 'CashPilot');
   const supplierName = escapeHtml(supplier?.company_name || 'Fournisseur');

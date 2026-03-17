@@ -1,12 +1,13 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+import { getAllowedOrigin } from '../_shared/cors.ts';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': getAllowedOrigin(),
   'Access-Control-Allow-Headers': 'authorization, x-api-key, content-type',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   ...SECURITY_HEADERS,
@@ -133,9 +134,9 @@ async function handleClients(
 
   const { data, error } = await supabase
     .from('clients')
-    .select('id, name, email, phone, city, country, created_at')
+    .select('id, company_name, email, phone, city, country, created_at')
     .eq('company_id', apiKey.company_id)
-    .order('name')
+    .order('company_name')
     .limit(100);
 
   if (error) return jsonResponse({ error: error.message }, 500);

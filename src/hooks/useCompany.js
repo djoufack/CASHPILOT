@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,22 +7,14 @@ import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
 
 const resolveCompanyAccountingCurrency = (companyData = {}, currentCompany = null) => {
   const rawValue =
-    companyData.accounting_currency ||
-    companyData.currency ||
-    currentCompany?.accounting_currency ||
-    'EUR';
+    companyData.accounting_currency || companyData.currency || currentCompany?.accounting_currency || 'EUR';
 
   return String(rawValue).trim().toUpperCase() || 'EUR';
 };
 
 const sanitizeCompanyRecord = (companyRecord = {}) => {
-  const {
-    scrada_api_key,
-    scrada_password,
-    scrada_api_key_encrypted,
-    scrada_password_encrypted,
-    ...rest
-  } = companyRecord;
+  const { scrada_api_key, _scrada_password, scrada_api_key_encrypted, _scrada_password_encrypted, ...rest } =
+    companyRecord;
 
   return {
     ...rest,
@@ -103,9 +94,7 @@ export const useCompany = () => {
       }
 
       const preferredId = normalizeCompanyId(prefData?.active_company_id);
-      const preferred = allCompanies.find(
-        (company) => normalizeCompanyId(company.id) === preferredId,
-      );
+      const preferred = allCompanies.find((company) => normalizeCompanyId(company.id) === preferredId);
       // Read the latest value directly from storage to avoid stale closure races.
       const latestStoredCompanyId = getStoredActiveCompanyId();
       const effectiveStoredCompanyId = normalizeCompanyId(latestStoredCompanyId);
@@ -146,9 +135,7 @@ export const useCompany = () => {
     if (normalizeCompanyId(activeCompany?.id) === normalizeCompanyId(storedActiveCompanyId)) return;
 
     const normalizedStoredCompanyId = normalizeCompanyId(storedActiveCompanyId);
-    const storedCompany = companies.find(
-      (company) => normalizeCompanyId(company.id) === normalizedStoredCompanyId,
-    );
+    const storedCompany = companies.find((company) => normalizeCompanyId(company.id) === normalizedStoredCompanyId);
     if (storedCompany) {
       setActiveCompany(storedCompany);
     }
@@ -161,9 +148,7 @@ export const useCompany = () => {
     if (!user || !supabase) return;
 
     const normalizedRequestedCompanyId = normalizeCompanyId(companyId);
-    const target = companies.find(
-      (company) => normalizeCompanyId(company.id) === normalizedRequestedCompanyId,
-    );
+    const target = companies.find((company) => normalizeCompanyId(company.id) === normalizedRequestedCompanyId);
     if (!target) return;
 
     setActiveCompany(target);
@@ -189,8 +174,6 @@ export const useCompany = () => {
       setSaving(true);
       setError(null);
 
-      console.log('🔍 saveCompany received data:', companyData);
-      console.log('🔍 Currency from companyData:', companyData.currency);
       const accountingCurrency = resolveCompanyAccountingCurrency(companyData, activeCompany);
 
       // Explicit field whitelist — only send columns that exist in the DB
@@ -215,7 +198,7 @@ export const useCompany = () => {
         peppol_scheme_id: companyData.peppol_scheme_id || '0208',
         peppol_ap_provider: companyData.peppol_ap_provider || 'scrada',
         scrada_company_id: companyData.scrada_company_id || null,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
       const companyFieldsWithAccountingCurrency = {
         ...companyFields,
@@ -226,9 +209,6 @@ export const useCompany = () => {
       if (!['freelance', 'company'].includes(companyFields.company_type)) {
         companyFields.company_type = 'freelance';
       }
-
-      console.log('📤 Prepared companyFields for DB:', companyFields);
-      console.log('📤 Currency being sent to DB:', companyFields.currency);
 
       let result;
 
@@ -243,8 +223,6 @@ export const useCompany = () => {
 
         if (response.error) throw response.error;
         result = response.data;
-        console.log('✅ DB Update result:', result);
-        console.log('✅ Accounting currency in result:', result?.accounting_currency);
       } else {
         // Create new
         const baseInsertFields = {
@@ -260,17 +238,15 @@ export const useCompany = () => {
 
         if (response.error) throw response.error;
         result = response.data;
-        console.log('✅ DB Insert result:', result);
-        console.log('✅ Accounting currency in result:', result?.accounting_currency);
       }
 
       const sanitizedResult = sanitizeCompanyRecord(result);
 
       // Update companies list and active company
-      setCompanies(prev => {
-        const exists = prev.find(c => c.id === sanitizedResult.id);
+      setCompanies((prev) => {
+        const exists = prev.find((c) => c.id === sanitizedResult.id);
         if (exists) {
-          return prev.map(c => c.id === sanitizedResult.id ? sanitizedResult : c);
+          return prev.map((c) => (c.id === sanitizedResult.id ? sanitizedResult : c));
         }
         return [...prev, sanitizedResult];
       });
@@ -279,9 +255,9 @@ export const useCompany = () => {
 
       if (!silent) {
         toast({
-          title: "Succès",
-          description: "Informations de la société enregistrées.",
-          className: "bg-green-600 border-none text-white"
+          title: 'Succès',
+          description: 'Informations de la société enregistrées.',
+          className: 'bg-green-600 border-none text-white',
         });
       }
       return true;
@@ -290,9 +266,9 @@ export const useCompany = () => {
       setError(err.message);
       if (!silent) {
         toast({
-          title: "Erreur",
+          title: 'Erreur',
           description: err.message,
-          variant: "destructive"
+          variant: 'destructive',
         });
       }
       return false;
@@ -308,10 +284,10 @@ export const useCompany = () => {
     try {
       // Validate file
       const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) throw new Error("Fichier trop volumineux (max 5MB)");
+      if (file.size > maxSize) throw new Error('Fichier trop volumineux (max 5MB)');
 
       const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-      if (!validTypes.includes(file.type)) throw new Error("Format non supporté. Utilisez JPG, PNG, GIF, WebP ou SVG.");
+      if (!validTypes.includes(file.type)) throw new Error('Format non supporté. Utilisez JPG, PNG, GIF, WebP ou SVG.');
 
       // Upload to storage
       const fileExt = file.name.split('.').pop();
@@ -325,9 +301,7 @@ export const useCompany = () => {
       if (uploadError) throw uploadError;
 
       // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('logos')
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from('logos').getPublicUrl(filePath);
 
       if (!urlData?.publicUrl) throw new Error("Impossible de générer l'URL du logo");
 
@@ -341,23 +315,23 @@ export const useCompany = () => {
           .eq('id', activeCompany.id);
 
         if (dbError) throw dbError;
-        setActiveCompany(prev => ({ ...prev, logo_url: logoUrl }));
-        setCompanies(prev => prev.map(c => c.id === activeCompany.id ? { ...c, logo_url: logoUrl } : c));
+        setActiveCompany((prev) => ({ ...prev, logo_url: logoUrl }));
+        setCompanies((prev) => prev.map((c) => (c.id === activeCompany.id ? { ...c, logo_url: logoUrl } : c)));
       }
 
       toast({
-        title: "Succès",
-        description: "Logo mis à jour.",
-        className: "bg-green-600 border-none text-white"
+        title: 'Succès',
+        description: 'Logo mis à jour.',
+        className: 'bg-green-600 border-none text-white',
       });
 
       return logoUrl;
     } catch (err) {
       console.error('Error uploading logo:', err);
       toast({
-        title: "Erreur upload",
+        title: 'Erreur upload',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       return null;
     } finally {
@@ -377,11 +351,11 @@ export const useCompany = () => {
 
       if (error) throw error;
 
-      setActiveCompany(prev => ({ ...prev, logo_url: null }));
-      setCompanies(prev => prev.map(c => c.id === activeCompany.id ? { ...c, logo_url: null } : c));
-      toast({ title: "Logo supprimé", description: "Le logo a été retiré." });
+      setActiveCompany((prev) => ({ ...prev, logo_url: null }));
+      setCompanies((prev) => prev.map((c) => (c.id === activeCompany.id ? { ...c, logo_url: null } : c)));
+      toast({ title: 'Logo supprimé', description: 'Le logo a été retiré.' });
     } catch (err) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
     } finally {
       setUploading(false);
     }
@@ -401,9 +375,6 @@ export const useCompany = () => {
     fetchCompany,
     saveCompany,
     uploadLogo,
-    deleteLogo
+    deleteLogo,
   };
 };
-
-
-

@@ -1,25 +1,20 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useReferenceData } from '@/contexts/ReferenceDataContext';
 import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
-import { Loader2, Upload, Trash2, Camera, Building2, MapPin, FileText, CreditCard, Globe, DollarSign } from 'lucide-react';
+import { Loader2, Upload, Trash2, Camera, Building2, MapPin, CreditCard } from 'lucide-react';
 
 const CompanySettings = () => {
   const { t } = useTranslation();
-  const {
-    company, loading, saving, uploading,
-    saveCompany, uploadLogo, deleteLogo
-  } = useCompany();
+  const { company, loading, saving, uploading, saveCompany, uploadLogo, deleteLogo } = useCompany();
   const { countryOptions, currencyOptions, loading: referenceLoading } = useReferenceData();
 
   const logoInputRef = useRef(null);
@@ -41,7 +36,7 @@ const CompanySettings = () => {
     bank_name: '',
     bank_account: '',
     iban: '',
-    swift: ''
+    swift: '',
   });
 
   useEffect(() => {
@@ -62,7 +57,7 @@ const CompanySettings = () => {
         bank_name: company.bank_name || '',
         bank_account: company.bank_account || '',
         iban: company.iban || '',
-        swift: company.swift || ''
+        swift: company.swift || '',
       });
     }
   }, [company, createNewMode]);
@@ -85,28 +80,21 @@ const CompanySettings = () => {
       bank_name: '',
       bank_account: '',
       iban: '',
-      swift: ''
+      swift: '',
     });
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (name, value) => {
-    console.log(`🔧 handleSelectChange called: ${name} = ${value}`);
-    setFormData(prev => {
-      const updated = { ...prev, [name]: value };
-      console.log('📊 Updated formData:', updated);
-      return updated;
-    });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('💾 Submitting company data:', formData);
-    console.log('💰 Currency value:', formData.currency);
     const success = await saveCompany(formData, { forceCreate: createNewMode });
     if (success) {
       setCreateNewMode(false);
@@ -192,7 +180,9 @@ const CompanySettings = () => {
             <div className="flex-1 space-y-4">
               <div>
                 <h3 className="text-lg font-medium text-gradient mb-1">Logo de l'entreprise</h3>
-                <p className="text-sm text-gray-400">Ce logo apparaîtra sur vos factures et devis. JPG, PNG, SVG. Max 5MB.</p>
+                <p className="text-sm text-gray-400">
+                  Ce logo apparaîtra sur vos factures et devis. JPG, PNG, SVG. Max 5MB.
+                </p>
               </div>
               <div className="flex gap-4">
                 <Button
@@ -201,13 +191,23 @@ const CompanySettings = () => {
                   disabled={uploading}
                   className="bg-orange-500 hover:bg-orange-600 text-white"
                 >
-                  {uploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Upload...</> : <><Upload className="w-4 h-4 mr-2" /> Upload Logo</>}
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Upload...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" /> Upload Logo
+                    </>
+                  )}
                 </Button>
                 {company?.logo_url && (
                   <Button
                     type="button"
                     variant="destructive"
-                    onClick={() => { if (window.confirm("Supprimer le logo ?")) deleteLogo(); }}
+                    onClick={() => {
+                      if (window.confirm('Supprimer le logo ?')) deleteLogo();
+                    }}
                     disabled={uploading}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -233,7 +233,15 @@ const CompanySettings = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="company_name">Nom de la société *</Label>
-                <Input id="company_name" name="company_name" value={formData.company_name} onChange={handleChange} required placeholder="Ma Société SAS" className="bg-gray-800 border-gray-700 text-white" />
+                <Input
+                  id="company_name"
+                  name="company_name"
+                  value={formData.company_name}
+                  onChange={handleChange}
+                  required
+                  placeholder="Ma Société SAS"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="company_type">Type de structure</Label>
@@ -258,29 +266,63 @@ const CompanySettings = () => {
                   emptyMessage="Aucune devise trouvée"
                   className="bg-gray-800 border-gray-700 text-white"
                 />
-                <p className="text-xs text-gray-500">
-                  {t('profileSettings.accountingCurrencyHelp')}
-                </p>
+                <p className="text-xs text-gray-500">{t('profileSettings.accountingCurrencyHelp')}</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="registration_number">SIRET / N° d'enregistrement</Label>
-                <Input id="registration_number" name="registration_number" value={formData.registration_number} onChange={handleChange} placeholder="123 456 789 00012" className="bg-gray-800 border-gray-700 text-white" />
+                <Input
+                  id="registration_number"
+                  name="registration_number"
+                  value={formData.registration_number}
+                  onChange={handleChange}
+                  placeholder="123 456 789 00012"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tax_id">N° de TVA intracommunautaire</Label>
-                <Input id="tax_id" name="tax_id" value={formData.tax_id} onChange={handleChange} placeholder="FR 12 345678901" className="bg-gray-800 border-gray-700 text-white" />
+                <Input
+                  id="tax_id"
+                  name="tax_id"
+                  value={formData.tax_id}
+                  onChange={handleChange}
+                  placeholder="FR 12 345678901"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="comp_email">Email de la société</Label>
-                <Input id="comp_email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="contact@masociete.fr" className="bg-gray-800 border-gray-700 text-white" />
+                <Input
+                  id="comp_email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="contact@masociete.fr"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="comp_phone">Téléphone</Label>
-                <Input id="comp_phone" name="phone" value={formData.phone} onChange={handleChange} placeholder="+33 1 23 45 67 89" className="bg-gray-800 border-gray-700 text-white" />
+                <Input
+                  id="comp_phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="+33 1 23 45 67 89"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="website">Site web</Label>
-                <Input id="website" name="website" value={formData.website} onChange={handleChange} placeholder="https://www.masociete.fr" className="bg-gray-800 border-gray-700 text-white" />
+                <Input
+                  id="website"
+                  name="website"
+                  value={formData.website}
+                  onChange={handleChange}
+                  placeholder="https://www.masociete.fr"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
               </div>
             </div>
           </div>
@@ -293,15 +335,36 @@ const CompanySettings = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="comp_address">Adresse</Label>
-                <Input id="comp_address" name="address" value={formData.address} onChange={handleChange} placeholder="123 Rue de la République" className="bg-gray-800 border-gray-700 text-white" />
+                <Input
+                  id="comp_address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="123 Rue de la République"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="comp_city">Ville</Label>
-                <Input id="comp_city" name="city" value={formData.city} onChange={handleChange} placeholder="Paris" className="bg-gray-800 border-gray-700 text-white" />
+                <Input
+                  id="comp_city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  placeholder="Paris"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="comp_postal_code">Code postal</Label>
-                <Input id="comp_postal_code" name="postal_code" value={formData.postal_code} onChange={handleChange} placeholder="75001" className="bg-gray-800 border-gray-700 text-white" />
+                <Input
+                  id="comp_postal_code"
+                  name="postal_code"
+                  value={formData.postal_code}
+                  onChange={handleChange}
+                  placeholder="75001"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="comp_country">Pays</Label>
@@ -311,7 +374,9 @@ const CompanySettings = () => {
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
                     {countryOptions.map((country) => (
-                      <SelectItem key={country.value} value={country.value}>{country.label}</SelectItem>
+                      <SelectItem key={country.value} value={country.value}>
+                        {country.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -324,23 +389,53 @@ const CompanySettings = () => {
             <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wider mb-4 flex items-center gap-2">
               <CreditCard className="h-4 w-4" /> Coordonnées bancaires
             </h3>
-            <p className="text-xs text-gray-500 mb-4">Ces informations apparaîtront au bas de vos factures pour faciliter les paiements.</p>
+            <p className="text-xs text-gray-500 mb-4">
+              Ces informations apparaîtront au bas de vos factures pour faciliter les paiements.
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="bank_name">Nom de la banque</Label>
-                <Input id="bank_name" name="bank_name" value={formData.bank_name} onChange={handleChange} placeholder="BNP Paribas" className="bg-gray-800 border-gray-700 text-white" />
+                <Input
+                  id="bank_name"
+                  name="bank_name"
+                  value={formData.bank_name}
+                  onChange={handleChange}
+                  placeholder="BNP Paribas"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bank_account">N° de compte</Label>
-                <Input id="bank_account" name="bank_account" value={formData.bank_account} onChange={handleChange} placeholder="00012345678" className="bg-gray-800 border-gray-700 text-white" />
+                <Input
+                  id="bank_account"
+                  name="bank_account"
+                  value={formData.bank_account}
+                  onChange={handleChange}
+                  placeholder="00012345678"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="iban">IBAN</Label>
-                <Input id="iban" name="iban" value={formData.iban} onChange={handleChange} placeholder="FR76 1234 5678 9012 3456 7890 123" className="bg-gray-800 border-gray-700 text-white font-mono" />
+                <Input
+                  id="iban"
+                  name="iban"
+                  value={formData.iban}
+                  onChange={handleChange}
+                  placeholder="FR76 1234 5678 9012 3456 7890 123"
+                  className="bg-gray-800 border-gray-700 text-white font-mono"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="swift">BIC / SWIFT</Label>
-                <Input id="swift" name="swift" value={formData.swift} onChange={handleChange} placeholder="BNPAFRPP" className="bg-gray-800 border-gray-700 text-white font-mono" />
+                <Input
+                  id="swift"
+                  name="swift"
+                  value={formData.swift}
+                  onChange={handleChange}
+                  placeholder="BNPAFRPP"
+                  className="bg-gray-800 border-gray-700 text-white font-mono"
+                />
               </div>
             </div>
           </div>
@@ -353,9 +448,13 @@ const CompanySettings = () => {
             className="bg-orange-500 hover:bg-orange-600 text-white min-w-[180px] shadow-lg shadow-orange-900/20"
           >
             {saving ? (
-              <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Enregistrement...</>
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" /> Enregistrement...
+              </>
+            ) : createNewMode ? (
+              'Creer la societe'
             ) : (
-              createNewMode ? 'Creer la societe' : 'Enregistrer la societe'
+              'Enregistrer la societe'
             )}
           </Button>
         </CardFooter>

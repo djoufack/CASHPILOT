@@ -17,7 +17,10 @@ const EMPTY_REFERENCE_DATA = Object.freeze({
 let referenceSnapshot = { ...EMPTY_REFERENCE_DATA };
 let inFlightReferenceLoad = null;
 
-const normalizeCode = (value) => String(value || '').trim().toUpperCase();
+const normalizeCode = (value) =>
+  String(value || '')
+    .trim()
+    .toUpperCase();
 
 const sortByText = (key) => (left, right) =>
   String(left?.[key] || '').localeCompare(String(right?.[key] || ''), undefined, { sensitivity: 'base' });
@@ -54,9 +57,7 @@ function buildCountryState(rows) {
       return orderDiff || sortByText('label')(left, right);
     });
 
-  const countriesByCode = Object.fromEntries(
-    countries.map((country) => [country.code, country])
-  );
+  const countriesByCode = Object.fromEntries(countries.map((country) => [country.code, country]));
 
   return { countries, countriesByCode };
 }
@@ -75,9 +76,7 @@ function buildCurrencyState(rows) {
       return orderDiff || sortByText('code')(left, right);
     });
 
-  const currenciesByCode = Object.fromEntries(
-    currencies.map((currency) => [currency.code, currency])
-  );
+  const currenciesByCode = Object.fromEntries(currencies.map((currency) => [currency.code, currency]));
 
   return { currencies, currenciesByCode };
 }
@@ -182,7 +181,15 @@ function buildRegionWaccState(rows) {
 }
 
 function normalizeReferenceData(payload) {
-  const { countries, currencies, taxJurisdictions, taxJurisdictionVatRates, sectorBenchmarks, sectorMultiples, regionWacc } = payload;
+  const {
+    countries,
+    currencies,
+    taxJurisdictions,
+    taxJurisdictionVatRates,
+    sectorBenchmarks,
+    sectorMultiples,
+    regionWacc,
+  } = payload;
   const countryState = buildCountryState(countries);
   const currencyState = buildCurrencyState(currencies);
   const taxJurisdictionState = buildTaxJurisdictionState(taxJurisdictions, taxJurisdictionVatRates);
@@ -213,15 +220,7 @@ export async function loadReferenceData({ force = false } = {}) {
   }
 
   inFlightReferenceLoad = (async () => {
-    const [
-      countries,
-      currencies,
-      taxJurisdictions,
-      taxJurisdictionVatRates,
-      sectorBenchmarks,
-      sectorMultiples,
-      regionWacc,
-    ] = await Promise.all([
+    const _refResults = await Promise.allSettled([
       selectAll('reference_countries', [{ column: 'sort_order' }, { column: 'label' }]),
       selectAll('reference_currencies', [{ column: 'sort_order' }, { column: 'code' }]),
       selectAll('reference_tax_jurisdictions', [{ column: 'code' }]),
@@ -230,6 +229,27 @@ export async function loadReferenceData({ force = false } = {}) {
       selectAll('reference_sector_multiples', [{ column: 'sector' }, { column: 'region' }]),
       selectAll('reference_region_wacc', [{ column: 'region' }]),
     ]);
+
+    const _refLabels = [
+      'countries',
+      'currencies',
+      'taxJurisdictions',
+      'taxJurisdictionVatRates',
+      'sectorBenchmarks',
+      'sectorMultiples',
+      'regionWacc',
+    ];
+    _refResults.forEach((r, i) => {
+      if (r.status === 'rejected') console.error(`ReferenceData fetch "${_refLabels[i]}" failed:`, r.reason);
+    });
+
+    const countries = _refResults[0].status === 'fulfilled' ? _refResults[0].value : [];
+    const currencies = _refResults[1].status === 'fulfilled' ? _refResults[1].value : [];
+    const taxJurisdictions = _refResults[2].status === 'fulfilled' ? _refResults[2].value : [];
+    const taxJurisdictionVatRates = _refResults[3].status === 'fulfilled' ? _refResults[3].value : [];
+    const sectorBenchmarks = _refResults[4].status === 'fulfilled' ? _refResults[4].value : [];
+    const sectorMultiples = _refResults[5].status === 'fulfilled' ? _refResults[5].value : [];
+    const regionWacc = _refResults[6].status === 'fulfilled' ? _refResults[6].value : [];
 
     referenceSnapshot = normalizeReferenceData({
       countries,
@@ -262,9 +282,7 @@ export function getCountryMetadata(countryCode) {
 export function getTaxJurisdictionMetadata(jurisdictionCode) {
   const normalizedCode = normalizeCode(jurisdictionCode) || 'FR';
   return (
-    referenceSnapshot.taxJurisdictionsByCode[normalizedCode] ||
-    referenceSnapshot.taxJurisdictionsByCode.FR ||
-    null
+    referenceSnapshot.taxJurisdictionsByCode[normalizedCode] || referenceSnapshot.taxJurisdictionsByCode.FR || null
   );
 }
 
@@ -278,9 +296,7 @@ export function getSectorBenchmarksMetadata(sector) {
 
 export function getSectorMultiplesMetadata(sector, region) {
   const sectorData =
-    referenceSnapshot.sectorMultiplesBySector[sector] ||
-    referenceSnapshot.sectorMultiplesBySector.b2b_services ||
-    null;
+    referenceSnapshot.sectorMultiplesBySector[sector] || referenceSnapshot.sectorMultiplesBySector.b2b_services || null;
 
   if (!sectorData) {
     return null;
@@ -290,11 +306,7 @@ export function getSectorMultiplesMetadata(sector, region) {
 }
 
 export function getRegionWaccMetadata(region) {
-  return (
-    referenceSnapshot.regionWaccByRegion[region] ||
-    referenceSnapshot.regionWaccByRegion.france ||
-    null
-  );
+  return referenceSnapshot.regionWaccByRegion[region] || referenceSnapshot.regionWaccByRegion.france || null;
 }
 
 export async function getGlobalAccountingPlan(countryCode) {

@@ -154,7 +154,8 @@ export const useAuthSource = () => {
         }
       }
     } catch (err) {
-      // Local cleanup will proceed regardless
+      // Intentionally swallowed: logout must always clear local state even if Supabase signOut fails
+      console.error('Supabase signOut threw during logout (cleanup will proceed):', err);
     } finally {
       // Clear only auth-related storage, preserve UI preferences (language, sidebar, etc.)
       Object.keys(localStorage).forEach((key) => {
@@ -264,10 +265,6 @@ export const useAuthSource = () => {
 
     if (error) {
       throw error;
-    }
-
-    if (data?.claimed) {
-      console.log(`Claimed pending subscription ${data.plan_slug} for user ${data.credits_per_month} credits/month`);
     }
 
     return data;

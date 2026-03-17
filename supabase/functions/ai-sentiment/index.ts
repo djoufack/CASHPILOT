@@ -1,5 +1,11 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { consumeCredits, createServiceClient, HttpError, refundCredits, requireAuthenticatedUser } from '../_shared/billing.ts';
+import {
+  consumeCredits,
+  createServiceClient,
+  HttpError,
+  refundCredits,
+  requireAuthenticatedUser,
+} from '../_shared/billing.ts';
 
 import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimiter.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -42,7 +48,7 @@ serve(async (req) => {
     if (clientId) {
       const { data, error } = await supabase
         .from('clients')
-        .select('name, email')
+        .select('company_name, email')
         .eq('id', clientId)
         .eq('user_id', resolvedUserId)
         .maybeSingle();
@@ -56,7 +62,7 @@ serve(async (req) => {
 
     creditConsumption = await consumeCredits(supabase, resolvedUserId, CREDIT_COST, 'AI Sentiment Analysis');
 
-    const prompt = `Analyse le sentiment de ces communications ${clientData ? `avec le client ${clientData.name}` : ''}:
+    const prompt = `Analyse le sentiment de ces communications ${clientData ? `avec le client ${clientData.company_name}` : ''}:
 
 TEXTES A ANALYSER:
 ${JSON.stringify(texts)}

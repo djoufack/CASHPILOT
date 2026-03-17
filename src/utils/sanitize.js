@@ -1,5 +1,9 @@
 import DOMPurify from 'dompurify';
 
+// ============================================================================
+// DOMPurify-based sanitization
+// ============================================================================
+
 /**
  * Sanitize HTML string — removes XSS attack vectors
  * Use for any user-generated HTML content before rendering
@@ -44,8 +48,30 @@ export const sanitizeObject = (obj) => {
 };
 
 /**
- * Escape special characters for safe display in HTML context
- * Lighter alternative when DOMPurify is overkill
+ * Sanitize full HTML (all tags allowed) via DOMPurify then assign to element.innerHTML.
+ * Use this instead of raw `element.innerHTML = ...` to prevent XSS.
+ */
+export const setSafeHtml = (element, html) => {
+  element.innerHTML = DOMPurify.sanitize(String(html || ''));
+};
+
+/**
+ * Sanitize full HTML via DOMPurify (returns the sanitized string).
+ * Use when you need the sanitized HTML as a string, e.g. for dangerouslySetInnerHTML
+ * or for assigning to innerHTML directly.
+ */
+export const purifyHTML = (html) => {
+  return DOMPurify.sanitize(String(html || ''));
+};
+
+// ============================================================================
+// Character escaping (no DOMPurify — lightweight string transforms)
+// ============================================================================
+
+/**
+ * Escape special characters for safe display in HTML context.
+ * Uses &#039; for single quotes (HTML entity).
+ * Lighter alternative when DOMPurify is overkill.
  */
 export const escapeHTML = (str) => {
   if (!str) return '';
@@ -59,9 +85,27 @@ export const escapeHTML = (str) => {
   return String(str).replace(/[&<>"']/g, (char) => map[char]);
 };
 
+/**
+ * Escape special characters for safe embedding in XML content.
+ * Uses &apos; for single quotes (XML standard).
+ * Use for UBL, Factur-X, SAF-T, and other XML export formats.
+ */
+export const escapeXML = (str) => {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+};
+
 export default {
   sanitizeHTML,
   sanitizeText,
   sanitizeObject,
+  setSafeHtml,
+  purifyHTML,
   escapeHTML,
+  escapeXML,
 };

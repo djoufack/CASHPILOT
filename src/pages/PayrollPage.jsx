@@ -31,6 +31,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { PAYROLL_STATUSES } from '@/config/statusMappings';
 
 /* ---- Helpers ---- */
 
@@ -51,36 +52,7 @@ const fmtMonth = (v) => {
 
 const empLabel = (e) => e?.full_name || `${e?.first_name || ''} ${e?.last_name || ''}`.trim() || e?.id || '-';
 
-const STATUS = {
-  draft: {
-    label: 'Brouillon',
-    bg: 'bg-gray-500/20',
-    text: 'text-gray-300',
-    border: 'border-gray-500/30',
-    dot: 'bg-gray-400',
-  },
-  calculated: {
-    label: 'Calcule',
-    bg: 'bg-blue-500/20',
-    text: 'text-blue-300',
-    border: 'border-blue-500/30',
-    dot: 'bg-blue-400',
-  },
-  validated: {
-    label: 'Valide',
-    bg: 'bg-emerald-500/20',
-    text: 'text-emerald-300',
-    border: 'border-emerald-500/30',
-    dot: 'bg-emerald-400',
-  },
-  exported: {
-    label: 'Exporte',
-    bg: 'bg-purple-500/20',
-    text: 'text-purple-300',
-    border: 'border-purple-500/30',
-    dot: 'bg-purple-400',
-  },
-};
+const STATUS = PAYROLL_STATUSES;
 
 const SEVERITY = {
   error: { label: 'Erreur', icon: AlertCircle, bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/30' },
@@ -322,7 +294,8 @@ const CalculTab = ({
     setCalcBusy(true);
     try {
       await onCalculate(selectedPeriod.id);
-    } catch {
+    } catch (err) {
+      console.error('Payroll calculation failed:', err);
     } finally {
       setCalcBusy(false);
     }
@@ -331,7 +304,8 @@ const CalculTab = ({
     setValBusy(true);
     try {
       await onValidate(selectedPeriod.id);
-    } catch {
+    } catch (err) {
+      console.error('Payroll validation failed:', err);
     } finally {
       setValBusy(false);
     }
@@ -347,7 +321,9 @@ const CalculTab = ({
       });
       setShowAdd(false);
       setItemForm({ employee_id: '', item_type: 'bonus', label: '', amount: '', quantity: '1' });
-    } catch {}
+    } catch (err) {
+      console.error('Failed to add payroll variable item:', err);
+    }
   };
 
   if (!selectedPeriod)
@@ -815,12 +791,7 @@ const HistoriqueTab = ({ periods, employees, currency }) => {
   }, [periods, employees]);
 
   const maxVal = Math.max(...chartData.map((d) => d.value), 1);
-  const fillMap = {
-    draft: 'rgba(156,163,175,0.5)',
-    calculated: 'rgba(96,165,250,0.6)',
-    validated: 'rgba(52,211,153,0.6)',
-    exported: 'rgba(168,85,247,0.6)',
-  };
+  const fillMap = Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [k, v.chartFill]));
 
   if (chartData.length === 0)
     return (

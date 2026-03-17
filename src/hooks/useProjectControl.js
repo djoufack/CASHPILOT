@@ -28,7 +28,11 @@ const sortMonthKeys = (monthKeys) => [...monthKeys].sort((a, b) => a.localeCompa
 const isMissingProjectIdOnInvoices = (error) => {
   const message = String(error?.message || '').toLowerCase();
   const details = String(error?.details || '').toLowerCase();
-  return message.includes('invoices.project_id') || message.includes('column project_id') || details.includes('invoices.project_id');
+  return (
+    message.includes('invoices.project_id') ||
+    message.includes('column project_id') ||
+    details.includes('invoices.project_id')
+  );
 };
 
 export function useProjectControl(projectId) {
@@ -58,29 +62,35 @@ export function useProjectControl(projectId) {
 
       let milestonesQuery = supabase
         .from('project_milestones')
-        .select(`
+        .select(
+          `
           *,
           linked_invoice:invoices(id, invoice_number, total_ttc, status, payment_status),
           linked_payment:payments(id, amount, payment_date, payment_method)
-        `)
+        `
+        )
         .eq('project_id', projectId)
         .order('planned_date', { ascending: true, nullsFirst: false });
 
       let resourcesQuery = supabase
         .from('project_resource_allocations')
-        .select(`
+        .select(
+          `
           *,
           team_member:team_members(id, name, email, role)
-        `)
+        `
+        )
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
       let compensationsQuery = supabase
         .from('team_member_compensations')
-        .select(`
+        .select(
+          `
           *,
           team_member:team_members!team_member_compensations_team_member_id_fkey(id, name, email, role)
-        `)
+        `
+        )
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
@@ -96,13 +106,7 @@ export function useProjectControl(projectId) {
       compensationsQuery = applyCompanyScope(compensationsQuery);
       timesheetsQuery = applyCompanyScope(timesheetsQuery);
 
-      const [
-        baselinesResult,
-        milestonesResult,
-        resourcesResult,
-        compensationsResult,
-        timesheetsResult,
-      ] = await Promise.all([
+      const _results = await Promise.allSettled([
         baselinesQuery,
         milestonesQuery,
         resourcesQuery,
@@ -110,15 +114,21 @@ export function useProjectControl(projectId) {
         timesheetsQuery,
       ]);
 
-      const firstError = [
-        baselinesResult.error,
-        milestonesResult.error,
-        resourcesResult.error,
-        compensationsResult.error,
-        timesheetsResult.error,
-      ].find(Boolean);
+      const _pcLabels = ['baselines', 'milestones', 'resources', 'compensations', 'timesheets'];
+      _results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`ProjectControl fetch "${_pcLabels[i]}" failed:`, r.reason);
+      });
 
-      if (firstError) throw firstError;
+      const _v = (i) => (_results[i].status === 'fulfilled' ? _results[i].value : null) || { data: null, error: null };
+      const baselinesResult = _v(0);
+      const milestonesResult = _v(1);
+      const resourcesResult = _v(2);
+      const compensationsResult = _v(3);
+      const timesheetsResult = _v(4);
+
+      [baselinesResult, milestonesResult, resourcesResult, compensationsResult, timesheetsResult].forEach((res, i) => {
+        if (res.error) console.error(`ProjectControl query "${_pcLabels[i]}" error:`, res.error);
+      });
 
       let invoicesResult = { data: [], error: null };
       let byProjectInvoicesQuery = supabase
@@ -175,171 +185,183 @@ export function useProjectControl(projectId) {
     }
   }, [applyCompanyScope, projectId, toast, user]);
 
-  const createBaseline = useCallback(async (payload) => {
-    if (!user || !projectId || !supabase || !isObject(payload)) return null;
+  const createBaseline = useCallback(
+    async (payload) => {
+      if (!user || !projectId || !supabase || !isObject(payload)) return null;
 
-    const maxVersion = baselines.reduce((max, baseline) => Math.max(max, Number(baseline.version) || 0), 0);
-    const preparedPayload = withCompanyScope({
-      user_id: user.id,
-      project_id: projectId,
-      version: maxVersion + 1,
-      baseline_label: payload.baseline_label || `Baseline v${maxVersion + 1}`,
-      planned_start_date: payload.planned_start_date || null,
-      planned_end_date: payload.planned_end_date || null,
-      planned_budget_hours: payload.planned_budget_hours ?? null,
-      planned_budget_amount: payload.planned_budget_amount ?? null,
-      planned_tasks_count: payload.planned_tasks_count ?? 0,
-      notes: payload.notes || null,
-      is_active: Boolean(payload.is_active),
-    });
+      const maxVersion = baselines.reduce((max, baseline) => Math.max(max, Number(baseline.version) || 0), 0);
+      const preparedPayload = withCompanyScope({
+        user_id: user.id,
+        project_id: projectId,
+        version: maxVersion + 1,
+        baseline_label: payload.baseline_label || `Baseline v${maxVersion + 1}`,
+        planned_start_date: payload.planned_start_date || null,
+        planned_end_date: payload.planned_end_date || null,
+        planned_budget_hours: payload.planned_budget_hours ?? null,
+        planned_budget_amount: payload.planned_budget_amount ?? null,
+        planned_tasks_count: payload.planned_tasks_count ?? 0,
+        notes: payload.notes || null,
+        is_active: Boolean(payload.is_active),
+      });
 
-    const { data, error: insertError } = await supabase
-      .from('project_baselines')
-      .insert([preparedPayload])
-      .select('*')
-      .single();
-
-    if (insertError) throw insertError;
-
-    if (data?.is_active) {
-      await supabase
+      const { data, error: insertError } = await supabase
         .from('project_baselines')
-        .update({ is_active: false })
-        .eq('project_id', projectId)
-        .neq('id', data.id);
-    }
+        .insert([preparedPayload])
+        .select('*')
+        .single();
 
-    await fetchProjectControlData();
-    return data;
-  }, [baselines, fetchProjectControlData, projectId, supabase, user, withCompanyScope]);
+      if (insertError) throw insertError;
 
-  const setBaselineActive = useCallback(async (baselineId) => {
-    if (!baselineId || !projectId || !supabase) return;
-    await supabase
-      .from('project_baselines')
-      .update({ is_active: false })
-      .eq('project_id', projectId);
+      if (data?.is_active) {
+        await supabase
+          .from('project_baselines')
+          .update({ is_active: false })
+          .eq('project_id', projectId)
+          .neq('id', data.id);
+      }
 
-    await supabase
-      .from('project_baselines')
-      .update({ is_active: true })
-      .eq('id', baselineId);
+      await fetchProjectControlData();
+      return data;
+    },
+    [baselines, fetchProjectControlData, projectId, user, withCompanyScope]
+  );
 
-    await fetchProjectControlData();
-  }, [fetchProjectControlData, projectId, supabase]);
+  const setBaselineActive = useCallback(
+    async (baselineId) => {
+      if (!baselineId || !projectId || !supabase) return;
+      await supabase.from('project_baselines').update({ is_active: false }).eq('project_id', projectId);
 
-  const createMilestone = useCallback(async (payload) => {
-    if (!user || !projectId || !supabase || !isObject(payload)) return null;
+      await supabase.from('project_baselines').update({ is_active: true }).eq('id', baselineId);
 
-    const preparedPayload = withCompanyScope({
-      user_id: user.id,
-      project_id: projectId,
-      title: payload.title,
-      description: payload.description || null,
-      status: payload.status || 'planned',
-      planned_date: payload.planned_date || null,
-      actual_date: payload.actual_date || null,
-      planned_amount: payload.planned_amount ?? 0,
-      bonus_rule_type: payload.bonus_rule_type || 'none',
-      bonus_rule_value: payload.bonus_rule_value ?? 0,
-      malus_rule_type: payload.malus_rule_type || 'none',
-      malus_rule_value: payload.malus_rule_value ?? 0,
-      settled_amount: payload.settled_amount ?? 0,
-      notes: payload.notes || null,
-    });
+      await fetchProjectControlData();
+    },
+    [fetchProjectControlData, projectId]
+  );
 
-    const { data, error: insertError } = await supabase
-      .from('project_milestones')
-      .insert([preparedPayload])
-      .select('*')
-      .single();
+  const createMilestone = useCallback(
+    async (payload) => {
+      if (!user || !projectId || !supabase || !isObject(payload)) return null;
 
-    if (insertError) throw insertError;
-    await fetchProjectControlData();
-    return data;
-  }, [fetchProjectControlData, projectId, supabase, user, withCompanyScope]);
+      const preparedPayload = withCompanyScope({
+        user_id: user.id,
+        project_id: projectId,
+        title: payload.title,
+        description: payload.description || null,
+        status: payload.status || 'planned',
+        planned_date: payload.planned_date || null,
+        actual_date: payload.actual_date || null,
+        planned_amount: payload.planned_amount ?? 0,
+        bonus_rule_type: payload.bonus_rule_type || 'none',
+        bonus_rule_value: payload.bonus_rule_value ?? 0,
+        malus_rule_type: payload.malus_rule_type || 'none',
+        malus_rule_value: payload.malus_rule_value ?? 0,
+        settled_amount: payload.settled_amount ?? 0,
+        notes: payload.notes || null,
+      });
 
-  const updateMilestone = useCallback(async (milestoneId, payload) => {
-    if (!milestoneId || !isObject(payload) || !supabase) return null;
+      const { data, error: insertError } = await supabase
+        .from('project_milestones')
+        .insert([preparedPayload])
+        .select('*')
+        .single();
 
-    const { data, error: updateError } = await supabase
-      .from('project_milestones')
-      .update(withCompanyScope(payload))
-      .eq('id', milestoneId)
-      .select('*')
-      .single();
+      if (insertError) throw insertError;
+      await fetchProjectControlData();
+      return data;
+    },
+    [fetchProjectControlData, projectId, user, withCompanyScope]
+  );
 
-    if (updateError) throw updateError;
-    await fetchProjectControlData();
-    return data;
-  }, [fetchProjectControlData, supabase, withCompanyScope]);
+  const updateMilestone = useCallback(
+    async (milestoneId, payload) => {
+      if (!milestoneId || !isObject(payload) || !supabase) return null;
 
-  const deleteMilestone = useCallback(async (milestoneId) => {
-    if (!milestoneId || !supabase) return;
+      const { data, error: updateError } = await supabase
+        .from('project_milestones')
+        .update(withCompanyScope(payload))
+        .eq('id', milestoneId)
+        .select('*')
+        .single();
 
-    const { error: deleteError } = await supabase
-      .from('project_milestones')
-      .delete()
-      .eq('id', milestoneId);
+      if (updateError) throw updateError;
+      await fetchProjectControlData();
+      return data;
+    },
+    [fetchProjectControlData, withCompanyScope]
+  );
 
-    if (deleteError) throw deleteError;
-    await fetchProjectControlData();
-  }, [fetchProjectControlData, supabase]);
+  const deleteMilestone = useCallback(
+    async (milestoneId) => {
+      if (!milestoneId || !supabase) return;
 
-  const createResource = useCallback(async (payload) => {
-    if (!user || !projectId || !supabase || !isObject(payload)) return null;
-    const preparedPayload = withCompanyScope({
-      user_id: user.id,
-      project_id: projectId,
-      resource_type: payload.resource_type,
-      team_member_id: payload.team_member_id || null,
-      resource_name: payload.resource_name || null,
-      unit: payload.unit || 'hour',
-      planned_quantity: payload.planned_quantity ?? 0,
-      actual_quantity: payload.actual_quantity ?? 0,
-      planned_cost: payload.planned_cost ?? 0,
-      actual_cost: payload.actual_cost ?? 0,
-      start_date: payload.start_date || null,
-      end_date: payload.end_date || null,
-      status: payload.status || 'planned',
-      notes: payload.notes || null,
-    });
+      const { error: deleteError } = await supabase.from('project_milestones').delete().eq('id', milestoneId);
 
-    const { data, error: insertError } = await supabase
-      .from('project_resource_allocations')
-      .insert([preparedPayload])
-      .select('*')
-      .single();
+      if (deleteError) throw deleteError;
+      await fetchProjectControlData();
+    },
+    [fetchProjectControlData]
+  );
 
-    if (insertError) throw insertError;
-    await fetchProjectControlData();
-    return data;
-  }, [fetchProjectControlData, projectId, supabase, user, withCompanyScope]);
+  const createResource = useCallback(
+    async (payload) => {
+      if (!user || !projectId || !supabase || !isObject(payload)) return null;
+      const preparedPayload = withCompanyScope({
+        user_id: user.id,
+        project_id: projectId,
+        resource_type: payload.resource_type,
+        team_member_id: payload.team_member_id || null,
+        resource_name: payload.resource_name || null,
+        unit: payload.unit || 'hour',
+        planned_quantity: payload.planned_quantity ?? 0,
+        actual_quantity: payload.actual_quantity ?? 0,
+        planned_cost: payload.planned_cost ?? 0,
+        actual_cost: payload.actual_cost ?? 0,
+        start_date: payload.start_date || null,
+        end_date: payload.end_date || null,
+        status: payload.status || 'planned',
+        notes: payload.notes || null,
+      });
 
-  const deleteResource = useCallback(async (resourceId) => {
-    if (!resourceId || !supabase) return;
-    const { error: deleteError } = await supabase
-      .from('project_resource_allocations')
-      .delete()
-      .eq('id', resourceId);
-    if (deleteError) throw deleteError;
-    await fetchProjectControlData();
-  }, [fetchProjectControlData, supabase]);
+      const { data, error: insertError } = await supabase
+        .from('project_resource_allocations')
+        .insert([preparedPayload])
+        .select('*')
+        .single();
 
-  const markCompensationPaid = useCallback(async (compensationId, paymentReference = null) => {
-    if (!compensationId || !supabase) return;
-    const { error: updateError } = await supabase
-      .from('team_member_compensations')
-      .update({
-        payment_status: 'paid',
-        paid_at: new Date().toISOString(),
-        payment_reference: paymentReference || null,
-      })
-      .eq('id', compensationId);
+      if (insertError) throw insertError;
+      await fetchProjectControlData();
+      return data;
+    },
+    [fetchProjectControlData, projectId, user, withCompanyScope]
+  );
 
-    if (updateError) throw updateError;
-    await fetchProjectControlData();
-  }, [fetchProjectControlData, supabase]);
+  const deleteResource = useCallback(
+    async (resourceId) => {
+      if (!resourceId || !supabase) return;
+      const { error: deleteError } = await supabase.from('project_resource_allocations').delete().eq('id', resourceId);
+      if (deleteError) throw deleteError;
+      await fetchProjectControlData();
+    },
+    [fetchProjectControlData]
+  );
+
+  const markCompensationPaid = useCallback(
+    async (compensationId, paymentReference = null) => {
+      if (!compensationId || !supabase) return;
+      const { error: updateError } = await supabase
+        .from('team_member_compensations')
+        .update({
+          payment_status: 'paid',
+          paid_at: new Date().toISOString(),
+          payment_reference: paymentReference || null,
+        })
+        .eq('id', compensationId);
+
+      if (updateError) throw updateError;
+      await fetchProjectControlData();
+    },
+    [fetchProjectControlData]
+  );
 
   useEffect(() => {
     fetchProjectControlData();
@@ -347,7 +369,7 @@ export function useProjectControl(projectId) {
 
   const activeBaseline = useMemo(
     () => baselines.find((baseline) => baseline.is_active) || baselines[0] || null,
-    [baselines],
+    [baselines]
   );
 
   const financialCurve = useMemo(() => {
@@ -372,7 +394,7 @@ export function useProjectControl(projectId) {
       if (!monthKey) continue;
       monthKeys.add(monthKey);
       const hours = toNumber(timesheet.duration_minutes) / 60;
-      costByMonth[monthKey] = (costByMonth[monthKey] || 0) + (hours * toNumber(timesheet.hourly_rate));
+      costByMonth[monthKey] = (costByMonth[monthKey] || 0) + hours * toNumber(timesheet.hourly_rate);
     }
 
     for (const compensation of compensationRows) {

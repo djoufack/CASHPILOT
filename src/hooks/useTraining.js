@@ -51,21 +51,27 @@ export function useTraining() {
       skillAssessmentsQuery = applyCompanyScope(skillAssessmentsQuery);
       employeesQuery = applyCompanyScope(employeesQuery);
 
-      const [trainingsResult, enrollmentsResult, skillAssessmentsResult, employeesResult] = await Promise.all([
+      const _results = await Promise.allSettled([
         trainingsQuery,
         enrollmentsQuery,
         skillAssessmentsQuery,
         employeesQuery,
       ]);
 
-      const firstError = [
-        trainingsResult.error,
-        enrollmentsResult.error,
-        skillAssessmentsResult.error,
-        employeesResult.error,
-      ].find(Boolean);
+      const _trLabels = ['trainings', 'enrollments', 'skillAssessments', 'employees'];
+      _results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`Training fetch "${_trLabels[i]}" failed:`, r.reason);
+      });
 
-      if (firstError) throw firstError;
+      const _v = (i) => (_results[i].status === 'fulfilled' ? _results[i].value : null) || { data: null, error: null };
+      const trainingsResult = _v(0);
+      const enrollmentsResult = _v(1);
+      const skillAssessmentsResult = _v(2);
+      const employeesResult = _v(3);
+
+      [trainingsResult, enrollmentsResult, skillAssessmentsResult, employeesResult].forEach((res, i) => {
+        if (res.error) console.error(`Training query "${_trLabels[i]}" error:`, res.error);
+      });
 
       setTrainings(trainingsResult.data || []);
       setEnrollments(enrollmentsResult.data || []);

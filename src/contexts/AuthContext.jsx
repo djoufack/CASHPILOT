@@ -1,80 +1,65 @@
+import { createContext, useContext, useMemo } from 'react';
+import { AuthStateProvider, AuthStateContext } from '@/contexts/AuthStateContext';
+import { UserMetadataProvider, UserMetadataContext } from '@/contexts/UserMetadataContext';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuthSource } from '@/hooks/useAuth';
-import { checkSupabaseConnection, validateSupabaseConfig } from '@/lib/supabase';
-
+/**
+ * AuthContext — backwards-compatible barrel context.
+ *
+ * Internally composes AuthStateProvider (core auth) and UserMetadataProvider
+ * (connection status, role helpers).  The exported `useAuth()` hook merges
+ * both contexts so every existing consumer keeps working without changes.
+ *
+ * For future optimisation, components can import the granular hooks instead:
+ *   - useAuthState()    — from AuthStateContext   (session, user, loading, signIn, signOut, MFA)
+ *   - useUserMetadata() — from UserMetadataContext (connectionStatus, checkConnection, hasRole)
+ */
 const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
-  const auth = useAuthSource();
-  const [connectionStatus, setConnectionStatus] = useState({
-    connected: false,
-    checking: true,
-    error: null
-  });
+/**
+ * Inner provider that reads from both split contexts and merges their values
+ * into a single AuthContext for backwards compatibility.
+ */
+const AuthContextBridge = ({ children }) => {
+  const authState = useContext(AuthStateContext);
+  const metadata = useContext(UserMetadataContext);
 
-  const performConnectionCheck = async () => {
-    setConnectionStatus(prev => ({ ...prev, checking: true, error: null }));
-    
-    // First check static config
-    const config = validateSupabaseConfig();
-    if (!config.valid) {
-      setConnectionStatus({
-        connected: false,
-        checking: false,
-        error: `Configuration missing: ${config.missing}`
-      });
-      return;
-    }
-
-    // Then check actual connection
-    const result = await checkSupabaseConnection();
-    setConnectionStatus({
-      connected: result.connected,
-      checking: false,
-      error: result.error
-    });
-  };
-
-  useEffect(() => {
-    performConnectionCheck();
-  }, []);
-
-  // Safe auth object fallback
-  const safeAuth = auth || {
-    user: null,
-    session: null,
-    loading: true,
-    isAuthenticated: false,
-    signIn: async () => { throw new Error("Auth not initialized"); },
-    signUp: async () => { throw new Error("Auth not initialized"); },
-    logout: async () => { },
-    getMFAStatus: async () => ({ enabled: false, factors: [] }),
-    enrollMFA: async () => { throw new Error("Auth not initialized"); },
-    verifyMFA: async () => { throw new Error("Auth not initialized"); },
-    unenrollMFA: async () => { throw new Error("Auth not initialized"); },
-  };
-
-  const contextValue = {
-    ...safeAuth,
-    connectionStatus,
-    checkConnection: performConnectionCheck,
-    hasRole: (allowedRoles) => {
-        if (!safeAuth.user) return false;
-        // Default to 'user' if role is missing, ensuring consistency with useUserRole hook
-        const userRole = safeAuth.user.role || 'user';
-        if (Array.isArray(allowedRoles)) return allowedRoles.includes(userRole);
-        return allowedRoles === userRole;
-    }
-  };
-
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+  const merged = useMemo(
+    () => ({
+      // Core auth state
+      ...authState,
+      // User metadata
+      ...metadata,
+    }),
+    [authState, metadata]
   );
+
+  return <AuthContext.Provider value={merged}>{children}</AuthContext.Provider>;
 };
 
+/**
+ * AuthProvider — drop-in replacement.
+ *
+ * Wrap your app exactly as before:
+ *   <AuthProvider><App /></AuthProvider>
+ */
+export const AuthProvider = ({ children }) => (
+  <AuthStateProvider>
+    <UserMetadataProvider>
+      <AuthContextBridge>{children}</AuthContextBridge>
+    </UserMetadataProvider>
+  </AuthStateProvider>
+);
+
+/**
+ * useAuth — backwards-compatible hook.
+ *
+ * Returns the merged object containing every field that the old single-context
+ * AuthProvider used to supply:
+ *   user, session, loading, error, isAuthenticated,
+ *   signIn, signUp, logout, updateProfile,
+ *   getMFAStatus, enrollMFA, verifyMFA, unenrollMFA,
+ *   connectionStatus, checkConnection, hasRole
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -82,3 +67,7 @@ export const useAuth = () => {
   }
   return context;
 };
+
+// Re-export granular hooks for consumers that want to opt-in to finer updates
+export { useAuthState } from '@/contexts/AuthStateContext';
+export { useUserMetadata } from '@/contexts/UserMetadataContext';

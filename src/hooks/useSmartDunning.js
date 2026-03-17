@@ -368,7 +368,13 @@ export const useSmartDunning = () => {
   useEffect(() => {
     if (user && activeCompanyId) {
       setLoading(true);
-      Promise.all([fetchCampaigns(), fetchExecutions(), fetchClientScores()]).finally(() => setLoading(false));
+      Promise.allSettled([fetchCampaigns(), fetchExecutions(), fetchClientScores()])
+        .then((results) => {
+          results.forEach((r, i) => {
+            if (r.status === 'rejected') console.error(`SmartDunning initial fetch ${i} failed:`, r.reason);
+          });
+        })
+        .finally(() => setLoading(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, activeCompanyId]);

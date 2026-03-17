@@ -1,40 +1,27 @@
 import { supabase } from '@/lib/supabase';
 import { supabaseUrl } from '@/lib/customSupabaseClient';
 import { resolveInvoiceCurrency } from '@/utils/invoiceCurrency';
-
-/**
- * Escape HTML special characters to prevent XSS in email templates.
- */
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
+import { escapeHTML as escapeHtml } from '@/utils/sanitize';
 
 /**
  * Base function to call the send-email Edge Function.
  */
 const callSendEmail = async (payload) => {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session?.access_token) {
     throw new Error('Not authenticated');
   }
 
-  const response = await fetch(
-    `${supabaseUrl}/functions/v1/send-email`,
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    }
-  );
+  const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({ error: 'Failed to send email' }));
@@ -54,7 +41,14 @@ const callSendEmail = async (payload) => {
  * @param {Object} params.client - The client object
  * @param {string} params.companyName - The sender company name
  */
-export const sendInvoiceEmail = async ({ invoiceId, recipientEmail, pdfBase64, invoice, client, companyName }) => {
+export const sendInvoiceEmail = async ({
+  invoiceId: _invoiceId,
+  recipientEmail,
+  pdfBase64,
+  invoice,
+  client,
+  companyName,
+}) => {
   const clientName = client?.company_name || client?.contact_name || client?.name || '';
   const invoiceNumber = invoice?.invoice_number || invoice?.invoiceNumber || '';
   const totalTTC = Number(invoice?.total_ttc || invoice?.total || 0);
@@ -108,7 +102,7 @@ export const sendInvoiceEmail = async ({ invoiceId, recipientEmail, pdfBase64, i
  * @param {Object} params.client - The client object
  * @param {string} params.companyName - The sender company name
  */
-export const sendPaymentReminder = async ({ invoiceId, recipientEmail, invoice, client, companyName }) => {
+export const sendPaymentReminder = async ({ invoiceId: _invoiceId, recipientEmail, invoice, client, companyName }) => {
   const clientName = client?.company_name || client?.contact_name || client?.name || '';
   const invoiceNumber = invoice?.invoice_number || invoice?.invoiceNumber || '';
   const totalTTC = Number(invoice?.total_ttc || invoice?.total || 0);

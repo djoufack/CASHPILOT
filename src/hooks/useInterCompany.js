@@ -58,15 +58,22 @@ export function useInterCompany() {
       rulesQuery = applyCompanyScope(rulesQuery);
       eliminationsQuery = applyCompanyScope(eliminationsQuery);
 
-      const [linksRes, txRes, rulesRes, elimRes] = await Promise.all([
-        linksQuery,
-        transactionsQuery,
-        rulesQuery,
-        eliminationsQuery,
-      ]);
+      const _results = await Promise.allSettled([linksQuery, transactionsQuery, rulesQuery, eliminationsQuery]);
 
-      const firstError = [linksRes.error, txRes.error, rulesRes.error, elimRes.error].find(Boolean);
-      if (firstError) throw firstError;
+      const _icLabels = ['links', 'transactions', 'rules', 'eliminations'];
+      _results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`InterCompany fetch "${_icLabels[i]}" failed:`, r.reason);
+      });
+
+      const _v = (i) => (_results[i].status === 'fulfilled' ? _results[i].value : null) || { data: null, error: null };
+      const linksRes = _v(0);
+      const txRes = _v(1);
+      const rulesRes = _v(2);
+      const elimRes = _v(3);
+
+      [linksRes, txRes, rulesRes, elimRes].forEach((res, i) => {
+        if (res.error) console.error(`InterCompany query "${_icLabels[i]}" error:`, res.error);
+      });
 
       // Enrich links with company names
       const companyIds = new Set();

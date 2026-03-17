@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAccounting } from '@/hooks/useAccounting';
 import { useAccountingInit } from '@/hooks/useAccountingInit';
@@ -21,18 +21,14 @@ const EMPTY_FORM = {
   description: '',
 };
 
-const normalizeCountryCode = (countryCode) => String(countryCode || '').trim().toUpperCase();
+const normalizeCountryCode = (countryCode) =>
+  String(countryCode || '')
+    .trim()
+    .toUpperCase();
 
 const AccountingMappings = () => {
-  const {
-    accounts,
-    mappings,
-    fetchAccounts,
-    fetchMappings,
-    createMapping,
-    deleteMapping,
-    bulkCreateMappings,
-  } = useAccounting();
+  const { accounts, mappings, fetchAccounts, fetchMappings, createMapping, deleteMapping, bulkCreateMappings } =
+    useAccounting();
   const { country } = useAccountingInit();
   const { toast } = useToast();
 
@@ -51,44 +47,48 @@ const AccountingMappings = () => {
 
   const sourceTypesByCode = useMemo(
     () => Object.fromEntries(sourceTypes.map((item) => [item.code, item])),
-    [sourceTypes],
+    [sourceTypes]
   );
 
   const categoriesByType = useMemo(
-    () => sourceCategories.reduce((accumulator, category) => {
-      if (!accumulator[category.source_type]) {
-        accumulator[category.source_type] = [];
-      }
-      accumulator[category.source_type].push(category);
-      return accumulator;
-    }, {}),
-    [sourceCategories],
+    () =>
+      sourceCategories.reduce((accumulator, category) => {
+        if (!accumulator[category.source_type]) {
+          accumulator[category.source_type] = [];
+        }
+        accumulator[category.source_type].push(category);
+        return accumulator;
+      }, {}),
+    [sourceCategories]
   );
 
-  const loadCountryTemplates = useCallback(async (countryCode, { force = false } = {}) => {
-    const normalizedCode = normalizeCountryCode(countryCode);
-    if (!normalizedCode) return [];
+  const loadCountryTemplates = useCallback(
+    async (countryCode, { force = false } = {}) => {
+      const normalizedCode = normalizeCountryCode(countryCode);
+      if (!normalizedCode) return [];
 
-    if (!force && templateMappingsByCountry[normalizedCode]) {
-      return templateMappingsByCountry[normalizedCode];
-    }
+      if (!force && templateMappingsByCountry[normalizedCode]) {
+        return templateMappingsByCountry[normalizedCode];
+      }
 
-    const templates = await getAccountingMappingTemplates(normalizedCode);
-    const normalizedTemplates = (templates || []).map((template) => ({
-      source_type: template.source_type,
-      source_category: template.source_category,
-      debit_account_code: template.debit_account_code,
-      credit_account_code: template.credit_account_code,
-      description: template.description || '',
-    }));
+      const templates = await getAccountingMappingTemplates(normalizedCode);
+      const normalizedTemplates = (templates || []).map((template) => ({
+        source_type: template.source_type,
+        source_category: template.source_category,
+        debit_account_code: template.debit_account_code,
+        credit_account_code: template.credit_account_code,
+        description: template.description || '',
+      }));
 
-    setTemplateMappingsByCountry((prev) => ({
-      ...prev,
-      [normalizedCode]: normalizedTemplates,
-    }));
+      setTemplateMappingsByCountry((prev) => ({
+        ...prev,
+        [normalizedCode]: normalizedTemplates,
+      }));
 
-    return normalizedTemplates;
-  }, [templateMappingsByCountry]);
+      return normalizedTemplates;
+    },
+    [templateMappingsByCountry]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -100,7 +100,7 @@ const AccountingMappings = () => {
       if (!supabase) return;
 
       try {
-        const [sourceTypesRes, sourceCategoriesRes, templateCountriesRes] = await Promise.all([
+        const _mapResults = await Promise.allSettled([
           supabase
             .from('reference_accounting_source_types')
             .select('code, label, sort_order')
@@ -112,14 +112,26 @@ const AccountingMappings = () => {
             .eq('is_active', true)
             .order('source_type', { ascending: true })
             .order('sort_order', { ascending: true }),
-          supabase
-            .from('accounting_mapping_templates')
-            .select('country_code'),
+          supabase.from('accounting_mapping_templates').select('country_code'),
         ]);
 
-        if (sourceTypesRes.error) throw sourceTypesRes.error;
-        if (sourceCategoriesRes.error) throw sourceCategoriesRes.error;
-        if (templateCountriesRes.error) throw templateCountriesRes.error;
+        const _mapLabels = ['sourceTypes', 'sourceCategories', 'templateCountries'];
+        _mapResults.forEach((r, i) => {
+          if (r.status === 'rejected') console.error(`AccountingMappings fetch "${_mapLabels[i]}" failed:`, r.reason);
+        });
+
+        const sourceTypesRes =
+          _mapResults[0].status === 'fulfilled' ? _mapResults[0].value : { data: null, error: null };
+        const sourceCategoriesRes =
+          _mapResults[1].status === 'fulfilled' ? _mapResults[1].value : { data: null, error: null };
+        const templateCountriesRes =
+          _mapResults[2].status === 'fulfilled' ? _mapResults[2].value : { data: null, error: null };
+
+        if (sourceTypesRes.error) console.error('AccountingMappings sourceTypes error:', sourceTypesRes.error);
+        if (sourceCategoriesRes.error)
+          console.error('AccountingMappings sourceCategories error:', sourceCategoriesRes.error);
+        if (templateCountriesRes.error)
+          console.error('AccountingMappings templateCountries error:', templateCountriesRes.error);
 
         if (!mounted) return;
 
@@ -127,7 +139,9 @@ const AccountingMappings = () => {
         setSourceCategories(sourceCategoriesRes.data || []);
 
         const distinctCountryCodes = Array.from(
-          new Set((templateCountriesRes.data || []).map((row) => normalizeCountryCode(row.country_code)).filter(Boolean)),
+          new Set(
+            (templateCountriesRes.data || []).map((row) => normalizeCountryCode(row.country_code)).filter(Boolean)
+          )
         ).sort((a, b) => a.localeCompare(b));
 
         setPresetCountryCodes(distinctCountryCodes);
@@ -161,15 +175,19 @@ const AccountingMappings = () => {
     });
   }, [presetCountryCode, loadCountryTemplates]);
 
-  const getSuggestedMapping = useCallback((sourceType, sourceCategory, countryCode) => {
-    const normalizedCode = normalizeCountryCode(countryCode);
-    if (!sourceType || !sourceCategory || !normalizedCode) return null;
+  const getSuggestedMapping = useCallback(
+    (sourceType, sourceCategory, countryCode) => {
+      const normalizedCode = normalizeCountryCode(countryCode);
+      if (!sourceType || !sourceCategory || !normalizedCode) return null;
 
-    const templates = templateMappingsByCountry[normalizedCode] || [];
-    return templates.find(
-      (mapping) => mapping.source_type === sourceType && mapping.source_category === sourceCategory,
-    ) || null;
-  }, [templateMappingsByCountry]);
+      const templates = templateMappingsByCountry[normalizedCode] || [];
+      return (
+        templates.find((mapping) => mapping.source_type === sourceType && mapping.source_category === sourceCategory) ||
+        null
+      );
+    },
+    [templateMappingsByCountry]
+  );
 
   useEffect(() => {
     if (!form.source_type || !form.source_category) return;
@@ -186,21 +204,17 @@ const AccountingMappings = () => {
     }
   }, [activeCountryCode, form.source_category, form.source_type, getSuggestedMapping]);
 
-  const getCategoriesForType = useCallback(
-    (type) => categoriesByType[type] || [],
-    [categoriesByType],
-  );
+  const getCategoriesForType = useCallback((type) => categoriesByType[type] || [], [categoriesByType]);
 
   const getSourceLabel = useCallback(
     (sourceType) => sourceTypesByCode[sourceType]?.label || sourceType,
-    [sourceTypesByCode],
+    [sourceTypesByCode]
   );
 
   const getCategoryLabel = useCallback(
-    (sourceType, categoryCode) => (
-      (categoriesByType[sourceType] || []).find((category) => category.code === categoryCode)?.label || categoryCode
-    ),
-    [categoriesByType],
+    (sourceType, categoryCode) =>
+      (categoriesByType[sourceType] || []).find((category) => category.code === categoryCode)?.label || categoryCode,
+    [categoriesByType]
   );
 
   const handleCreate = async () => {
@@ -257,13 +271,14 @@ const AccountingMappings = () => {
       .map((category) => ({ type: category.source_type, category: category.code }));
   }, [mappings, sourceCategories]);
 
-  const selectedPresetTemplates = presetCountryCode
-    ? (templateMappingsByCountry[normalizeCountryCode(presetCountryCode)] || [])
-    : [];
+  const selectedPresetTemplates = useMemo(
+    () => (presetCountryCode ? templateMappingsByCountry[normalizeCountryCode(presetCountryCode)] || [] : []),
+    [presetCountryCode, templateMappingsByCountry]
+  );
 
   const selectedPresetTypes = useMemo(
     () => Array.from(new Set(selectedPresetTemplates.map((template) => template.source_type))),
-    [selectedPresetTemplates],
+    [selectedPresetTemplates]
   );
 
   return (
@@ -285,7 +300,9 @@ const AccountingMappings = () => {
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <h3 className="text-lg font-bold text-white">Mappings comptables</h3>
-          <p className="text-sm text-gray-400">Associez chaque categorie de transaction a un compte du plan comptable.</p>
+          <p className="text-sm text-gray-400">
+            Associez chaque categorie de transaction a un compte du plan comptable.
+          </p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {presetCountryCodes.map((countryCode) => (
@@ -308,7 +325,9 @@ const AccountingMappings = () => {
         <div className="text-center py-12 bg-gray-900/50 border border-gray-800 rounded-lg">
           <Settings className="w-12 h-12 mx-auto mb-4 opacity-30 text-gray-500" />
           <p className="text-gray-400">Aucun mapping configure</p>
-          <p className="text-xs text-gray-600 mt-1">Creez des mappings pour associer vos transactions aux comptes comptables.</p>
+          <p className="text-xs text-gray-600 mt-1">
+            Creez des mappings pour associer vos transactions aux comptes comptables.
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -316,9 +335,7 @@ const AccountingMappings = () => {
             <Card key={mapping.id} className="bg-gray-900 border-gray-800">
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="flex-1 flex items-center gap-3 flex-wrap">
-                  <Badge className="bg-blue-500/20 text-blue-400 text-xs">
-                    {getSourceLabel(mapping.source_type)}
-                  </Badge>
+                  <Badge className="bg-blue-500/20 text-blue-400 text-xs">{getSourceLabel(mapping.source_type)}</Badge>
                   <Badge className="bg-gray-700 text-gray-300 text-xs">
                     {getCategoryLabel(mapping.source_type, mapping.source_category)}
                   </Badge>
@@ -328,11 +345,14 @@ const AccountingMappings = () => {
                     <span className="text-gray-600 mx-2">/</span>
                     <span className="text-red-400 font-mono">{mapping.credit_account_code}</span>
                   </div>
-                  {mapping.description && (
-                    <span className="text-xs text-gray-500">- {mapping.description}</span>
-                  )}
+                  {mapping.description && <span className="text-xs text-gray-500">- {mapping.description}</span>}
                 </div>
-                <Button variant="ghost" size="icon" aria-label="Delete mapping" onClick={() => deleteMapping(mapping.id)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Delete mapping"
+                  onClick={() => deleteMapping(mapping.id)}
+                >
                   <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-400" />
                 </Button>
               </CardContent>
@@ -349,14 +369,21 @@ const AccountingMappings = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Type de source</Label>
-              <Select value={form.source_type} onValueChange={(value) => {
-                setForm((prev) => ({ ...prev, source_type: value, source_category: '' }));
-                setIsSuggested(false);
-              }}>
-                <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Selectionner" /></SelectTrigger>
+              <Select
+                value={form.source_type}
+                onValueChange={(value) => {
+                  setForm((prev) => ({ ...prev, source_type: value, source_category: '' }));
+                  setIsSuggested(false);
+                }}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-700">
+                  <SelectValue placeholder="Selectionner" />
+                </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700 text-white">
                   {sourceTypes.map((sourceType) => (
-                    <SelectItem key={sourceType.code} value={sourceType.code}>{sourceType.label}</SelectItem>
+                    <SelectItem key={sourceType.code} value={sourceType.code}>
+                      {sourceType.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -365,14 +392,21 @@ const AccountingMappings = () => {
             {form.source_type && (
               <div className="space-y-2">
                 <Label>Categorie</Label>
-                <Select value={form.source_category} onValueChange={(value) => {
-                  setForm((prev) => ({ ...prev, source_category: value }));
-                  setIsSuggested(false);
-                }}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Selectionner" /></SelectTrigger>
+                <Select
+                  value={form.source_category}
+                  onValueChange={(value) => {
+                    setForm((prev) => ({ ...prev, source_category: value }));
+                    setIsSuggested(false);
+                  }}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700">
+                    <SelectValue placeholder="Selectionner" />
+                  </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[200px]">
                     {getCategoriesForType(form.source_type).map((category) => (
-                      <SelectItem key={category.code} value={category.code}>{category.label}</SelectItem>
+                      <SelectItem key={category.code} value={category.code}>
+                        {category.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -385,7 +419,8 @@ const AccountingMappings = () => {
                 <div className="text-xs">
                   <p className="text-blue-400 font-medium">Suggestion automatique</p>
                   <p className="text-gray-400 mt-0.5">
-                    Comptes suggeres depuis les templates de reference pour {activeCountryCode}. Vous pouvez les modifier si necessaire.
+                    Comptes suggeres depuis les templates de reference pour {activeCountryCode}. Vous pouvez les
+                    modifier si necessaire.
                   </p>
                 </div>
               </div>
@@ -394,11 +429,16 @@ const AccountingMappings = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Compte debit</Label>
-                <Select value={form.debit_account_code} onValueChange={(value) => {
-                  setForm((prev) => ({ ...prev, debit_account_code: value }));
-                  setIsSuggested(false);
-                }}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Debit" /></SelectTrigger>
+                <Select
+                  value={form.debit_account_code}
+                  onValueChange={(value) => {
+                    setForm((prev) => ({ ...prev, debit_account_code: value }));
+                    setIsSuggested(false);
+                  }}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700">
+                    <SelectValue placeholder="Debit" />
+                  </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[200px]">
                     {accounts.map((account) => (
                       <SelectItem key={account.id} value={account.account_code}>
@@ -410,11 +450,16 @@ const AccountingMappings = () => {
               </div>
               <div className="space-y-2">
                 <Label>Compte credit</Label>
-                <Select value={form.credit_account_code} onValueChange={(value) => {
-                  setForm((prev) => ({ ...prev, credit_account_code: value }));
-                  setIsSuggested(false);
-                }}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700"><SelectValue placeholder="Credit" /></SelectTrigger>
+                <Select
+                  value={form.credit_account_code}
+                  onValueChange={(value) => {
+                    setForm((prev) => ({ ...prev, credit_account_code: value }));
+                    setIsSuggested(false);
+                  }}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700">
+                    <SelectValue placeholder="Credit" />
+                  </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[200px]">
                     {accounts.map((account) => (
                       <SelectItem key={account.id} value={account.account_code}>
@@ -437,11 +482,15 @@ const AccountingMappings = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => handleDialogClose(false)} className="border-gray-700">Annuler</Button>
+            <Button variant="outline" onClick={() => handleDialogClose(false)} className="border-gray-700">
+              Annuler
+            </Button>
             <Button
               onClick={handleCreate}
               className="bg-orange-500 hover:bg-orange-600"
-              disabled={!form.source_type || !form.source_category || !form.debit_account_code || !form.credit_account_code}
+              disabled={
+                !form.source_type || !form.source_category || !form.debit_account_code || !form.credit_account_code
+              }
             >
               Creer le mapping
             </Button>
@@ -449,7 +498,12 @@ const AccountingMappings = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!presetCountryCode} onOpenChange={(open) => { if (!open) setPresetCountryCode(null); }}>
+      <Dialog
+        open={!!presetCountryCode}
+        onOpenChange={(open) => {
+          if (!open) setPresetCountryCode(null);
+        }}
+      >
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-gradient flex items-center gap-2">
@@ -459,7 +513,8 @@ const AccountingMappings = () => {
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <p className="text-gray-300 text-sm">
-              Chargement de <strong>{selectedPresetTemplates.length}</strong> mappings pre-configures depuis la base de reference.
+              Chargement de <strong>{selectedPresetTemplates.length}</strong> mappings pre-configures depuis la base de
+              reference.
             </p>
 
             {selectedPresetTypes.length > 0 && (

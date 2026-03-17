@@ -42,7 +42,7 @@ const SupplierStats = React.memo(() => {
 
     const fetchStats = async () => {
       try {
-        const [suppliers, products, supplierOrders, supplierInvoices] = await Promise.all([
+        const _statsResults = await Promise.allSettled([
           safeQuery(
             applyCompanyScope(supabase.from('suppliers').select('id, status'), { includeUnassigned: true }),
             'suppliers'
@@ -68,6 +68,15 @@ const SupplierStats = React.memo(() => {
             'supplier_invoices'
           ),
         ]);
+
+        _statsResults.forEach((r, i) => {
+          if (r.status === 'rejected') console.error(`SupplierStats fetch ${i} failed:`, r.reason);
+        });
+
+        const suppliers = _statsResults[0].status === 'fulfilled' ? _statsResults[0].value : [];
+        const products = _statsResults[1].status === 'fulfilled' ? _statsResults[1].value : [];
+        const supplierOrders = _statsResults[2].status === 'fulfilled' ? _statsResults[2].value : [];
+        const supplierInvoices = _statsResults[3].status === 'fulfilled' ? _statsResults[3].value : [];
 
         const snapshot = buildCanonicalOperationsSnapshot({
           suppliers,

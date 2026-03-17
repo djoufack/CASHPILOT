@@ -13,8 +13,10 @@ const SECURITY_HEADERS: Record<string, string> = {
   'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
 };
 
+import { getAllowedOrigin } from '../_shared/cors.ts';
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': getAllowedOrigin(),
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   ...SECURITY_HEADERS,
@@ -590,14 +592,12 @@ serve(async (req) => {
           : "Verifier si l'exoneration de TVA est justifiee (export, autoliquidation, franchise). Ajouter la mention legale correspondante.",
         items: pass
           ? undefined
-          : suspicious
-              .slice(0, 10)
-              .map((inv: any) => ({
-                id: inv.id,
-                invoice_number: inv.invoice_number,
-                total_ttc: inv.total_ttc,
-                total_ht: inv.total_ht,
-              })),
+          : suspicious.slice(0, 10).map((inv: any) => ({
+              id: inv.id,
+              invoice_number: inv.invoice_number,
+              total_ttc: inv.total_ttc,
+              total_ht: inv.total_ht,
+            })),
       };
     }
 
@@ -707,13 +707,11 @@ serve(async (req) => {
           ? 'Un taux eleve de montants ronds (> 15%) peut indiquer des estimations plutot que des montants reels. Verifier les justificatifs.'
           : null,
         items: suspicious
-          ? roundEntries
-              .slice(0, 10)
-              .map((e: any) => ({
-                id: e.id,
-                account_code: e.account_code,
-                amount: Math.max(num(e.debit), num(e.credit)),
-              }))
+          ? roundEntries.slice(0, 10).map((e: any) => ({
+              id: e.id,
+              account_code: e.account_code,
+              amount: Math.max(num(e.debit), num(e.credit)),
+            }))
           : undefined,
       };
     }

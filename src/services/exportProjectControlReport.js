@@ -1,13 +1,6 @@
-import DOMPurify from 'dompurify';
 import { saveElementAsPdf } from '@/services/pdfExportRuntime';
 import { formatDateInput } from '@/utils/dateFormatting';
-
-const escapeHtml = (value) => String(value ?? '')
-  .replaceAll('&', '&amp;')
-  .replaceAll('<', '&lt;')
-  .replaceAll('>', '&gt;')
-  .replaceAll('"', '&quot;')
-  .replaceAll("'", '&#39;');
+import { escapeHTML as escapeHtml, setSafeHtml } from '@/utils/sanitize';
 
 const formatCurrency = (value, currency = 'EUR') => {
   const amount = Number(value) || 0;
@@ -30,7 +23,9 @@ const buildReportContent = (payload) => {
   const baselines = payload?.baselines || [];
   const financialCurve = payload?.financialCurve || [];
 
-  const baselineRows = baselines.map((baseline) => `
+  const baselineRows = baselines
+    .map(
+      (baseline) => `
     <tr>
       <td>${escapeHtml(baseline.baseline_label || `Baseline v${baseline.version || ''}`)}</td>
       <td>${baseline.version || '—'}</td>
@@ -40,9 +35,13 @@ const buildReportContent = (payload) => {
       <td>${formatCurrency(baseline.planned_budget_amount, currency)}</td>
       <td>${baseline.is_active ? 'Active' : 'Archive'}</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 
-  const milestoneRows = milestones.map((milestone) => `
+  const milestoneRows = milestones
+    .map(
+      (milestone) => `
     <tr>
       <td>${escapeHtml(milestone.title || '—')}</td>
       <td>${formatDate(milestone.planned_date)}</td>
@@ -52,9 +51,13 @@ const buildReportContent = (payload) => {
       <td>${formatCurrency(milestone.adjustment, currency)}</td>
       <td>${formatCurrency(milestone.net_amount, currency)}</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 
-  const resourceRows = resources.map((resource) => `
+  const resourceRows = resources
+    .map(
+      (resource) => `
     <tr>
       <td>${escapeHtml(resource.resource_type || 'human')}</td>
       <td>${escapeHtml(resource.display_name || resource.resource_name || '—')}</td>
@@ -64,9 +67,13 @@ const buildReportContent = (payload) => {
       <td>${formatCurrency(resource.actual_cost, currency)}</td>
       <td>${escapeHtml(resource.status || 'planned')}</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 
-  const financeRows = financialCurve.map((row) => `
+  const financeRows = financialCurve
+    .map(
+      (row) => `
     <tr>
       <td>${escapeHtml(row.period)}</td>
       <td>${formatCurrency(row.monthRevenue, currency)}</td>
@@ -76,7 +83,9 @@ const buildReportContent = (payload) => {
       <td>${formatCurrency(row.cost, currency)}</td>
       <td>${formatCurrency(row.margin, currency)}</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 
   return `
     <div class="cp-report">
@@ -240,7 +249,7 @@ export const exportProjectControlPDF = async (payload) => {
   temp.style.color = '#e2e8f0';
   temp.style.padding = '16px';
   temp.style.width = '1100px';
-  temp.innerHTML = DOMPurify.sanitize(content);
+  setSafeHtml(temp, content);
   document.body.appendChild(temp);
 
   try {

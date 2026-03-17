@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { endOfDay, isValid, parseISO } from 'date-fns';
@@ -74,31 +74,18 @@ const AnalyticsPage = () => {
   const locale = i18n.resolvedLanguage || i18n.language || 'en';
   const todayCutoff = useMemo(() => endOfDay(new Date()), []);
 
-  const {
-    invoices,
-    fetchInvoices,
-    loading: loadingInvoices
-  } = useInvoices();
+  const { invoices, fetchInvoices, loading: loadingInvoices } = useInvoices();
 
-  const {
-    timesheets,
-    fetchTimesheets,
-    loading: loadingTimesheets
-  } = useTimesheets();
+  const { timesheets, fetchTimesheets, loading: loadingTimesheets } = useTimesheets();
 
-  const {
-    expenses,
-    fetchExpenses,
-    loading: loadingExpenses
-  } = useExpenses();
+  const { expenses, fetchExpenses, loading: loadingExpenses } = useExpenses();
 
   const handleRefresh = useCallback(async () => {
     try {
-      await Promise.all([
-        fetchInvoices(),
-        fetchTimesheets(),
-        fetchExpenses()
-      ]);
+      const _analyticsResults = await Promise.allSettled([fetchInvoices(), fetchTimesheets(), fetchExpenses()]);
+      _analyticsResults.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`AnalyticsPage refresh ${i} failed:`, r.reason);
+      });
       toast({
         title: t('common.success'),
         description: t('analyticsPage.toasts.refreshSuccess'),
@@ -107,7 +94,7 @@ const AnalyticsPage = () => {
       toast({
         title: t('common.error'),
         description: t('analyticsPage.toasts.refreshError'),
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   }, [fetchExpenses, fetchInvoices, fetchTimesheets, t, toast]);
@@ -118,44 +105,56 @@ const AnalyticsPage = () => {
     }
   }, [handleRefresh, user]);
 
-  const formatMonthKey = useCallback((monthKey) => {
-    if (!monthKey) {
-      return monthKey;
-    }
+  const formatMonthKey = useCallback(
+    (monthKey) => {
+      if (!monthKey) {
+        return monthKey;
+      }
 
-    const [year, month] = String(monthKey).split('-');
-    const parsed = new Date(Number(year), Number(month) - 1, 1);
-    if (Number.isNaN(parsed.getTime())) {
-      return monthKey;
-    }
+      const [year, month] = String(monthKey).split('-');
+      const parsed = new Date(Number(year), Number(month) - 1, 1);
+      if (Number.isNaN(parsed.getTime())) {
+        return monthKey;
+      }
 
-    return new Intl.DateTimeFormat(locale, {
-      month: 'short',
-      year: 'numeric',
-    }).format(parsed);
-  }, [locale]);
+      return new Intl.DateTimeFormat(locale, {
+        month: 'short',
+        year: 'numeric',
+      }).format(parsed);
+    },
+    [locale]
+  );
 
-  const localizeClientName = useCallback((name) => {
-    if (['Unknown Client', 'Client inconnu'].includes(name)) {
-      return t('analyticsPage.fallbacks.unknownClient');
-    }
+  const localizeClientName = useCallback(
+    (name) => {
+      if (['Unknown Client', 'Client inconnu'].includes(name)) {
+        return t('analyticsPage.fallbacks.unknownClient');
+      }
 
-    return name;
-  }, [t]);
+      return name;
+    },
+    [t]
+  );
 
-  const localizeProjectName = useCallback((name) => {
-    if (['Unassigned', 'Non assigné'].includes(name)) {
-      return t('analyticsPage.fallbacks.unassignedProject');
-    }
+  const localizeProjectName = useCallback(
+    (name) => {
+      if (['Unassigned', 'Non assigné'].includes(name)) {
+        return t('analyticsPage.fallbacks.unassignedProject');
+      }
 
-    return name;
-  }, [t]);
+      return name;
+    },
+    [t]
+  );
 
-  const isOnOrBeforeToday = useCallback((value) => {
-    if (!value) return false;
-    const parsed = parseISO(String(value));
-    return isValid(parsed) && parsed <= todayCutoff;
-  }, [todayCutoff]);
+  const isOnOrBeforeToday = useCallback(
+    (value) => {
+      if (!value) return false;
+      const parsed = parseISO(String(value));
+      return isValid(parsed) && parsed <= todayCutoff;
+    },
+    [todayCutoff]
+  );
 
   const chartInvoices = useMemo(() => {
     if (revenueExpenseMode === 'forecast') {
@@ -172,9 +171,7 @@ const AnalyticsPage = () => {
       return expenses;
     }
 
-    return expenses.filter((expense) =>
-      isOnOrBeforeToday(expense?.expense_date || expense?.created_at)
-    );
+    return expenses.filter((expense) => isOnOrBeforeToday(expense?.expense_date || expense?.created_at));
   }, [expenses, isOnOrBeforeToday, revenueExpenseMode]);
 
   const chartData = useMemo(() => {
@@ -185,59 +182,58 @@ const AnalyticsPage = () => {
       name: formatMonthKey(point.key),
     }));
   }, [chartExpenses, chartInvoices, formatMonthKey]);
-  const continuousChartData = useMemo(
-    () => buildContinuousSeries(chartData, ['revenue', 'expenses'], 28),
-    [chartData]
-  );
-  const continuousChartTicks = useMemo(
-    () => buildContinuousAxisTicks(chartData),
-    [chartData]
-  );
-  const continuousChartDomainMax = useMemo(
-    () => Math.max(chartData.length - 1, 1),
-    [chartData.length]
-  );
+  const continuousChartData = useMemo(() => buildContinuousSeries(chartData, ['revenue', 'expenses'], 28), [chartData]);
+  const continuousChartTicks = useMemo(() => buildContinuousAxisTicks(chartData), [chartData]);
+  const continuousChartDomainMax = useMemo(() => Math.max(chartData.length - 1, 1), [chartData.length]);
 
   const clientRevenueData = useMemo(
-    () => aggregateRevenueByClient(invoices).map((item) => ({
-      ...item,
-      name: localizeClientName(item.name),
-    })),
+    () =>
+      aggregateRevenueByClient(invoices).map((item) => ({
+        ...item,
+        name: localizeClientName(item.name),
+      })),
     [invoices, localizeClientName]
   );
   const projectPerformanceData = useMemo(
-    () => aggregateProjectPerformance(timesheets, invoices).map((item) => ({
-      ...item,
-      name: localizeProjectName(item.name),
-    })),
+    () =>
+      aggregateProjectPerformance(timesheets, invoices).map((item) => ({
+        ...item,
+        name: localizeProjectName(item.name),
+      })),
     [invoices, localizeProjectName, timesheets]
   );
-  const executiveMetrics = useMemo(() => computeExecutiveMetrics(invoices, expenses, timesheets), [expenses, invoices, timesheets]);
+  const executiveMetrics = useMemo(
+    () => computeExecutiveMetrics(invoices, expenses, timesheets),
+    [expenses, invoices, timesheets]
+  );
   const receivablesAging = useMemo(
-    () => aggregateReceivablesAging(invoices).map((bucket) => ({
-      ...bucket,
-      name: t(`analyticsPage.aging.buckets.${bucket.key}`),
-    })),
+    () =>
+      aggregateReceivablesAging(invoices).map((bucket) => ({
+        ...bucket,
+        name: t(`analyticsPage.aging.buckets.${bucket.key}`),
+      })),
     [invoices, t]
   );
   const receivablesWatchlist = useMemo(
-    () => aggregateReceivablesWatchlist(invoices).map((item) => ({
-      ...item,
-      clientName: localizeClientName(item.clientName),
-    })),
+    () =>
+      aggregateReceivablesWatchlist(invoices).map((item) => ({
+        ...item,
+        clientName: localizeClientName(item.clientName),
+      })),
     [invoices, localizeClientName]
   );
   const clientConcentration = useMemo(
-    () => aggregateClientConcentration(invoices).map((item) => ({
-      ...item,
-      name: localizeClientName(item.name),
-    })),
+    () =>
+      aggregateClientConcentration(invoices).map((item) => ({
+        ...item,
+        name: localizeClientName(item.name),
+      })),
     [invoices, localizeClientName]
   );
 
   const topProjects = useMemo(() => {
     return [...projectPerformanceData]
-      .map(project => ({
+      .map((project) => ({
         ...project,
         revenuePerHour: project.hours > 0 ? project.revenue / project.hours : 0,
       }))
@@ -253,116 +249,126 @@ const AnalyticsPage = () => {
 
   const handleExportPDF = () => {
     guardedAction(CREDIT_COSTS.PDF_ANALYTICS, t('analyticsPage.creditLabels.pdf'), async () => {
-      await exportAnalyticsPDF({
-        totalRevenue: executiveMetrics.collectedRevenue,
-        totalExpenses: executiveMetrics.totalExpenses,
-        outstandingReceivables: executiveMetrics.outstandingReceivables,
-      }, company);
+      await exportAnalyticsPDF(
+        {
+          totalRevenue: executiveMetrics.collectedRevenue,
+          totalExpenses: executiveMetrics.totalExpenses,
+          outstandingReceivables: executiveMetrics.outstandingReceivables,
+        },
+        company
+      );
     });
   };
 
   const handleExportHTML = () => {
     guardedAction(CREDIT_COSTS.EXPORT_HTML, t('analyticsPage.creditLabels.html'), () => {
-      exportAnalyticsHTML({
-        totalRevenue: executiveMetrics.collectedRevenue,
-        totalExpenses: executiveMetrics.totalExpenses,
-        outstandingReceivables: executiveMetrics.outstandingReceivables,
-      }, company);
+      exportAnalyticsHTML(
+        {
+          totalRevenue: executiveMetrics.collectedRevenue,
+          totalExpenses: executiveMetrics.totalExpenses,
+          outstandingReceivables: executiveMetrics.outstandingReceivables,
+        },
+        company
+      );
     });
   };
 
-  const kpiCards = [
-    {
-      title: t('analyticsPage.kpis.collectedRevenue.title'),
-      value: formatCurrency(executiveMetrics.collectedRevenue, companyCurrency),
-      hint: t('analyticsPage.kpis.collectedRevenue.hint', { value: executiveMetrics.collectionRate }),
-      icon: Wallet,
-      tone: 'text-emerald-400',
-    },
-    {
-      title: t('analyticsPage.kpis.bookedRevenue.title'),
-      value: formatCurrency(executiveMetrics.bookedRevenue, companyCurrency),
-      hint: t('analyticsPage.kpis.bookedRevenue.hint'),
-      icon: TrendingUp,
-      tone: 'text-blue-400',
-    },
-    {
-      title: t('analyticsPage.kpis.outstandingReceivables.title'),
-      value: formatCurrency(executiveMetrics.outstandingReceivables, companyCurrency),
-      hint: t('analyticsPage.kpis.outstandingReceivables.hint', {
-        value: formatCurrency(executiveMetrics.overdueReceivables, companyCurrency),
-      }),
-      icon: AlertTriangle,
-      tone: 'text-orange-400',
-    },
-    {
-      title: t('analyticsPage.kpis.expenses.title'),
-      value: formatCurrency(executiveMetrics.totalExpenses, companyCurrency),
-      hint: t('analyticsPage.kpis.expenses.hint', { value: executiveMetrics.grossMarginPct }),
-      icon: BarChart3,
-      tone: 'text-red-400',
-    },
-    {
-      title: t('analyticsPage.kpis.billableHours.title'),
-      value: `${executiveMetrics.billableHours} h`,
-      hint: t('analyticsPage.kpis.billableHours.hint', { value: executiveMetrics.billableUtilization }),
-      icon: Clock3,
-      tone: 'text-violet-400',
-    },
-    {
-      title: t('analyticsPage.kpis.invoicingCoverage.title'),
-      value: `${executiveMetrics.invoicingCoverage}%`,
-      hint: t('analyticsPage.kpis.invoicingCoverage.hint', {
-        value: formatCurrency(executiveMetrics.averageBillableRate, companyCurrency),
-      }),
-      icon: Target,
-      tone: 'text-cyan-400',
-    },
-  ];
+  const kpiCards = useMemo(
+    () => [
+      {
+        title: t('analyticsPage.kpis.collectedRevenue.title'),
+        value: formatCurrency(executiveMetrics.collectedRevenue, companyCurrency),
+        hint: t('analyticsPage.kpis.collectedRevenue.hint', { value: executiveMetrics.collectionRate }),
+        icon: Wallet,
+        tone: 'text-emerald-400',
+      },
+      {
+        title: t('analyticsPage.kpis.bookedRevenue.title'),
+        value: formatCurrency(executiveMetrics.bookedRevenue, companyCurrency),
+        hint: t('analyticsPage.kpis.bookedRevenue.hint'),
+        icon: TrendingUp,
+        tone: 'text-blue-400',
+      },
+      {
+        title: t('analyticsPage.kpis.outstandingReceivables.title'),
+        value: formatCurrency(executiveMetrics.outstandingReceivables, companyCurrency),
+        hint: t('analyticsPage.kpis.outstandingReceivables.hint', {
+          value: formatCurrency(executiveMetrics.overdueReceivables, companyCurrency),
+        }),
+        icon: AlertTriangle,
+        tone: 'text-orange-400',
+      },
+      {
+        title: t('analyticsPage.kpis.expenses.title'),
+        value: formatCurrency(executiveMetrics.totalExpenses, companyCurrency),
+        hint: t('analyticsPage.kpis.expenses.hint', { value: executiveMetrics.grossMarginPct }),
+        icon: BarChart3,
+        tone: 'text-red-400',
+      },
+      {
+        title: t('analyticsPage.kpis.billableHours.title'),
+        value: `${executiveMetrics.billableHours} h`,
+        hint: t('analyticsPage.kpis.billableHours.hint', { value: executiveMetrics.billableUtilization }),
+        icon: Clock3,
+        tone: 'text-violet-400',
+      },
+      {
+        title: t('analyticsPage.kpis.invoicingCoverage.title'),
+        value: `${executiveMetrics.invoicingCoverage}%`,
+        hint: t('analyticsPage.kpis.invoicingCoverage.hint', {
+          value: formatCurrency(executiveMetrics.averageBillableRate, companyCurrency),
+        }),
+        icon: Target,
+        tone: 'text-cyan-400',
+      },
+    ],
+    [t, executiveMetrics, companyCurrency]
+  );
 
-  const analyticsSnapshotData = useMemo(() => ({
-    companyName: company?.company_name || t('app.name'),
-    currency: companyCurrency,
-    generatedAt: new Date().toISOString(),
-    summaryCards: kpiCards.map((card) => ({
-      label: card.title,
-      value: card.value,
-      hint: card.hint,
-      accentClass: card.tone,
-    })),
-    revenueExpensesData: chartData,
-    receivablesAging,
-    receivablesWatchlist,
-    clientConcentration,
-    topProjects,
-  }), [
-    chartData,
-    clientConcentration,
-    company?.company_name,
-    companyCurrency,
-    kpiCards,
-    receivablesAging,
-    receivablesWatchlist,
-    t,
-    topProjects,
-  ]);
+  const analyticsSnapshotData = useMemo(
+    () => ({
+      companyName: company?.company_name || t('app.name'),
+      currency: companyCurrency,
+      generatedAt: new Date().toISOString(),
+      summaryCards: kpiCards.map((card) => ({
+        label: card.title,
+        value: card.value,
+        hint: card.hint,
+        accentClass: card.tone,
+      })),
+      revenueExpensesData: chartData,
+      receivablesAging,
+      receivablesWatchlist,
+      clientConcentration,
+      topProjects,
+    }),
+    [
+      chartData,
+      clientConcentration,
+      company?.company_name,
+      companyCurrency,
+      kpiCards,
+      receivablesAging,
+      receivablesWatchlist,
+      t,
+      topProjects,
+    ]
+  );
 
   return (
     <>
       <Helmet>
-        <title>{t('analyticsPage.pageTitle')} - {t('app.name')}</title>
+        <title>
+          {t('analyticsPage.pageTitle')} - {t('app.name')}
+        </title>
       </Helmet>
       <CreditsGuardModal {...modalProps} />
 
       <div className="container mx-auto space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">
-              {t('analyticsPage.title')}
-            </h1>
-            <p className="text-gray-400 text-sm md:text-base">
-              {t('analyticsPage.subtitle')}
-            </p>
+            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">{t('analyticsPage.title')}</h1>
+            <p className="text-gray-400 text-sm md:text-base">{t('analyticsPage.subtitle')}</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button
@@ -391,7 +397,7 @@ const AnalyticsPage = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {kpiCards.map(card => {
+          {kpiCards.map((card) => {
             const Icon = card.icon;
             return (
               <Card key={card.title} className="bg-gray-900 border-gray-800">
@@ -490,7 +496,7 @@ const AnalyticsPage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="h-[240px]">
-                {receivablesAging.some(bucket => bucket.value > 0) ? (
+                {receivablesAging.some((bucket) => bucket.value > 0) ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={receivablesAging}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -501,7 +507,7 @@ const AnalyticsPage = () => {
                         formatter={(value) => formatCurrency(value, companyCurrency)}
                       />
                       <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                        {receivablesAging.map(bucket => (
+                        {receivablesAging.map((bucket) => (
                           <Cell key={bucket.name} fill={bucket.tone} />
                         ))}
                       </Bar>
@@ -515,7 +521,7 @@ const AnalyticsPage = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {receivablesAging.map(bucket => (
+                {receivablesAging.map((bucket) => (
                   <div key={bucket.name} className="rounded-lg border border-gray-800 bg-gray-950/40 p-3">
                     <p className="text-xs text-gray-500 uppercase tracking-wider">{bucket.name}</p>
                     <p className="text-sm font-semibold text-white mt-1">
@@ -539,25 +545,27 @@ const AnalyticsPage = () => {
             <CardContent className="space-y-4">
               {clientConcentration.length === 0 ? (
                 <p className="text-gray-500">{t('analyticsPage.concentration.empty')}</p>
-              ) : clientConcentration.map(client => (
-                <div key={client.name}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <div className="min-w-0">
-                      <p className="text-white font-medium truncate">{client.name}</p>
-                      <p className="text-xs text-gray-500">{formatCurrency(client.value, companyCurrency)}</p>
+              ) : (
+                clientConcentration.map((client) => (
+                  <div key={client.name}>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <div className="min-w-0">
+                        <p className="text-white font-medium truncate">{client.name}</p>
+                        <p className="text-xs text-gray-500">{formatCurrency(client.value, companyCurrency)}</p>
+                      </div>
+                      <Badge variant="outline" className="border-gray-700 text-gray-300">
+                        {client.share}%
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="border-gray-700 text-gray-300">
-                      {client.share}%
-                    </Badge>
+                    <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-blue-400"
+                        style={{ width: `${Math.min(100, client.share)}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-blue-400"
-                      style={{ width: `${Math.min(100, client.share)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -571,28 +579,32 @@ const AnalyticsPage = () => {
             <CardContent className="space-y-3">
               {receivablesWatchlist.length === 0 ? (
                 <p className="text-gray-500">{t('analyticsPage.watchlist.empty')}</p>
-              ) : receivablesWatchlist.map(item => (
-                <div key={item.id} className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-white">{item.clientName}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {t('analyticsPage.watchlist.dueDate', {
-                          invoiceNumber: item.invoiceNumber,
-                          dueDate: item.dueDate,
-                        })}
-                      </p>
+              ) : (
+                receivablesWatchlist.map((item) => (
+                  <div key={item.id} className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-white">{item.clientName}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {t('analyticsPage.watchlist.dueDate', {
+                            invoiceNumber: item.invoiceNumber,
+                            dueDate: item.dueDate,
+                          })}
+                        </p>
+                      </div>
+                      <Badge className="bg-red-500/10 text-red-300 border border-red-500/20">
+                        {t('analyticsPage.watchlist.daysOverdue', { count: item.daysOverdue })}
+                      </Badge>
                     </div>
-                    <Badge className="bg-red-500/10 text-red-300 border border-red-500/20">
-                      {t('analyticsPage.watchlist.daysOverdue', { count: item.daysOverdue })}
-                    </Badge>
+                    <div className="mt-3 flex items-center justify-between text-sm">
+                      <span className="text-gray-400">{t('analyticsPage.watchlist.outstandingLabel')}</span>
+                      <span className="font-semibold text-orange-400">
+                        {formatCurrency(item.amount, companyCurrency)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="mt-3 flex items-center justify-between text-sm">
-                    <span className="text-gray-400">{t('analyticsPage.watchlist.outstandingLabel')}</span>
-                    <span className="font-semibold text-orange-400">{formatCurrency(item.amount, companyCurrency)}</span>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
@@ -645,15 +657,21 @@ const AnalyticsPage = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">{t('analyticsPage.efficiency.totalHours')}</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider">
+                    {t('analyticsPage.efficiency.totalHours')}
+                  </p>
                   <p className="text-xl font-semibold text-white mt-1">{executiveMetrics.totalHours} h</p>
                 </div>
                 <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">{t('analyticsPage.efficiency.billable')}</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider">
+                    {t('analyticsPage.efficiency.billable')}
+                  </p>
                   <p className="text-xl font-semibold text-violet-400 mt-1">{executiveMetrics.billableUtilization}%</p>
                 </div>
                 <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">{t('analyticsPage.efficiency.invoicedHours')}</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider">
+                    {t('analyticsPage.efficiency.invoicedHours')}
+                  </p>
                   <p className="text-xl font-semibold text-cyan-400 mt-1">{executiveMetrics.invoicingCoverage}%</p>
                 </div>
               </div>
@@ -661,26 +679,30 @@ const AnalyticsPage = () => {
               <div className="space-y-3">
                 {topProjects.length === 0 ? (
                   <p className="text-gray-500">{t('analyticsPage.efficiency.empty')}</p>
-                ) : topProjects.map(project => (
-                  <div key={project.name} className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-white">{project.name}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {t('analyticsPage.efficiency.hoursWorked', { value: project.hours.toFixed(1) })}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-emerald-400">{formatCurrency(project.revenue, companyCurrency)}</p>
-                        <p className="text-xs text-gray-500">
-                          {project.revenuePerHour > 0
-                            ? `${formatCurrency(project.revenuePerHour, companyCurrency)}/h`
-                            : t('analyticsPage.efficiency.noRevenueLinked')}
-                        </p>
+                ) : (
+                  topProjects.map((project) => (
+                    <div key={project.name} className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-white">{project.name}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {t('analyticsPage.efficiency.hoursWorked', { value: project.hours.toFixed(1) })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-emerald-400">
+                            {formatCurrency(project.revenue, companyCurrency)}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {project.revenuePerHour > 0
+                              ? `${formatCurrency(project.revenuePerHour, companyCurrency)}/h`
+                              : t('analyticsPage.efficiency.noRevenueLinked')}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

@@ -16,10 +16,7 @@ export const useRealtimeCollaboration = (documentType, documentId) => {
 
   // Generate a color for user
   const getUserColor = useCallback((userId) => {
-    const colors = [
-      '#f97316', '#22c55e', '#3b82f6', '#a855f7',
-      '#ec4899', '#14b8a6', '#eab308', '#ef4444'
-    ];
+    const colors = ['#f97316', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#14b8a6', '#eab308', '#ef4444'];
     const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[hash % colors.length];
   }, []);
@@ -32,28 +29,27 @@ export const useRealtimeCollaboration = (documentType, documentId) => {
     const channel = supabase.channel(channelName, {
       config: {
         presence: { key: user.id },
-        broadcast: { self: false }
-      }
+        broadcast: { self: false },
+      },
     });
 
     // Handle presence sync
     channel.on('presence', { event: 'sync' }, () => {
       const state = channel.presenceState();
-      const users = Object.values(state).flat().map((presence) => ({
-        ...presence,
-        color: getUserColor(presence.user_id)
-      }));
+      const users = Object.values(state)
+        .flat()
+        .map((presence) => ({
+          ...presence,
+          color: getUserColor(presence.user_id),
+        }));
       setCollaborators(users);
     });
 
     // Handle presence join
-    channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
-      console.log('User joined:', key, newPresences);
-    });
+    channel.on('presence', { event: 'join' }, () => {});
 
     // Handle presence leave
-    channel.on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-      console.log('User left:', key, leftPresences);
+    channel.on('presence', { event: 'leave' }, ({ key }) => {
       // Clean up cursor and selection
       setCursors((prev) => {
         const updated = { ...prev };
@@ -76,8 +72,8 @@ export const useRealtimeCollaboration = (documentType, documentId) => {
           y: payload.y,
           color: getUserColor(payload.userId),
           name: payload.userName,
-          timestamp: Date.now()
-        }
+          timestamp: Date.now(),
+        },
       }));
     });
 
@@ -90,15 +86,14 @@ export const useRealtimeCollaboration = (documentType, documentId) => {
           range: payload.range,
           color: getUserColor(payload.userId),
           name: payload.userName,
-          timestamp: Date.now()
-        }
+          timestamp: Date.now(),
+        },
       }));
     });
 
     // Handle document changes
-    channel.on('broadcast', { event: 'change' }, ({ payload }) => {
+    channel.on('broadcast', { event: 'change' }, () => {
       // This can be handled by parent component
-      console.log('Document change:', payload);
     });
 
     // Subscribe and track presence
@@ -110,7 +105,7 @@ export const useRealtimeCollaboration = (documentType, documentId) => {
           user_name: user.user_metadata?.full_name || user.email,
           user_email: user.email,
           joined_at: new Date().toISOString(),
-          color: getUserColor(user.id)
+          color: getUserColor(user.id),
         });
       } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
         setIsConnected(false);
@@ -148,57 +143,66 @@ export const useRealtimeCollaboration = (documentType, documentId) => {
   /**
    * Broadcast cursor position
    */
-  const broadcastCursor = useCallback((x, y) => {
-    if (!channelRef.current || !user) return;
+  const broadcastCursor = useCallback(
+    (x, y) => {
+      if (!channelRef.current || !user) return;
 
-    channelRef.current.send({
-      type: 'broadcast',
-      event: 'cursor',
-      payload: {
-        userId: user.id,
-        userName: user.user_metadata?.full_name || user.email,
-        x,
-        y
-      }
-    });
-  }, [user]);
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'cursor',
+        payload: {
+          userId: user.id,
+          userName: user.user_metadata?.full_name || user.email,
+          x,
+          y,
+        },
+      });
+    },
+    [user]
+  );
 
   /**
    * Broadcast selection
    */
-  const broadcastSelection = useCallback((field, range = null) => {
-    if (!channelRef.current || !user) return;
+  const broadcastSelection = useCallback(
+    (field, range = null) => {
+      if (!channelRef.current || !user) return;
 
-    channelRef.current.send({
-      type: 'broadcast',
-      event: 'selection',
-      payload: {
-        userId: user.id,
-        userName: user.user_metadata?.full_name || user.email,
-        field,
-        range
-      }
-    });
-  }, [user]);
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'selection',
+        payload: {
+          userId: user.id,
+          userName: user.user_metadata?.full_name || user.email,
+          field,
+          range,
+        },
+      });
+    },
+    [user]
+  );
 
   /**
    * Broadcast document change
    */
-  const broadcastChange = useCallback((changeType, data) => {
-    if (!channelRef.current || !user) return;
+  const broadcastChange = useCallback(
+    (changeType, data) => {
+      if (!channelRef.current || !user) return;
 
-    channelRef.current.send({
-      type: 'broadcast',
-      event: 'change',
-      payload: {
-        userId: user.id,
-        userName: user.user_metadata?.full_name || user.email,
-        changeType,
-        data,
-        timestamp: new Date().toISOString()
-      }
-    });
-  }, [user]);
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'change',
+        payload: {
+          userId: user.id,
+          userName: user.user_metadata?.full_name || user.email,
+          changeType,
+          data,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    },
+    [user]
+  );
 
   /**
    * Clear own selection
@@ -223,7 +227,7 @@ export const useRealtimeCollaboration = (documentType, documentId) => {
 
     // Helpers
     getUserColor,
-    isCollaborating: collaborators.length > 1
+    isCollaborating: collaborators.length > 1,
   };
 };
 
@@ -240,7 +244,7 @@ export const CollaboratorCursors = ({ cursors }) => {
           style={{
             left: cursor.x,
             top: cursor.y,
-            transform: 'translate(-2px, -2px)'
+            transform: 'translate(-2px, -2px)',
           }}
         >
           {/* Cursor pointer */}

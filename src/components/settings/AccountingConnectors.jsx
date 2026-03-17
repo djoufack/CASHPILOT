@@ -77,17 +77,21 @@ const AccountingConnectors = () => {
 
   useEffect(() => {
     const onOAuthCallback = (event) => {
+      if (event.origin !== window.location.origin) return;
       const data = event?.data;
       if (!data || data.type !== 'cashpilot:accounting-oauth') return;
       fetchIntegrations();
       toast({
-        title: data.status === 'success'
-          ? t('integrationsHub.accountingConnectors.toasts.oauthCompletedTitle', 'OAuth completed')
-          : t('integrationsHub.accountingConnectors.toasts.oauthFailedTitle', 'OAuth failed'),
-        description: data.message || t(
-          'integrationsHub.accountingConnectors.toasts.oauthCompletedDescription',
-          'Connector status has been refreshed.',
-        ),
+        title:
+          data.status === 'success'
+            ? t('integrationsHub.accountingConnectors.toasts.oauthCompletedTitle', 'OAuth completed')
+            : t('integrationsHub.accountingConnectors.toasts.oauthFailedTitle', 'OAuth failed'),
+        description:
+          data.message ||
+          t(
+            'integrationsHub.accountingConnectors.toasts.oauthCompletedDescription',
+            'Connector status has been refreshed.'
+          ),
         variant: data.status === 'success' ? 'default' : 'destructive',
       });
     };
@@ -97,7 +101,10 @@ const AccountingConnectors = () => {
   }, [fetchIntegrations, t, toast]);
 
   const companyName = useMemo(
-    () => company?.company_name || company?.name || t('integrationsHub.accountingConnectors.currentCompany', 'Current company'),
+    () =>
+      company?.company_name ||
+      company?.name ||
+      t('integrationsHub.accountingConnectors.currentCompany', 'Current company'),
     [company, t]
   );
 
@@ -138,7 +145,7 @@ const AccountingConnectors = () => {
       const popup = window.open(
         authorizationUrl,
         `cashpilot-oauth-${provider}`,
-        'width=720,height=820,menubar=no,toolbar=no,status=no',
+        'width=720,height=820,menubar=no,toolbar=no,status=no'
       );
 
       if (!popup) {
@@ -222,16 +229,16 @@ const AccountingConnectors = () => {
 
       <CardContent className="space-y-4">
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-            <p className="text-sm font-semibold text-amber-200">
-              {t('integrationsHub.accountingConnectors.liveOauthTitle', 'Live OAuth')}
-            </p>
-            <p className="text-xs text-amber-100/90 mt-1">
-              {t(
-                'integrationsHub.accountingConnectors.liveOauthDescription',
-                'OAuth callback and sync probes are active. Configure provider credentials in Edge Function environment variables before production rollout.'
-              )}
-            </p>
-          </div>
+          <p className="text-sm font-semibold text-amber-200">
+            {t('integrationsHub.accountingConnectors.liveOauthTitle', 'Live OAuth')}
+          </p>
+          <p className="text-xs text-amber-100/90 mt-1">
+            {t(
+              'integrationsHub.accountingConnectors.liveOauthDescription',
+              'OAuth callback and sync probes are active. Configure provider credentials in Edge Function environment variables before production rollout.'
+            )}
+          </p>
+        </div>
 
         {PROVIDERS.map((provider) => {
           const state = providerState[provider.id];
@@ -300,7 +307,8 @@ const AccountingConnectors = () => {
 
               {state?.last_sync_at ? (
                 <p className="text-xs text-gray-500">
-                  {t('integrationsHub.accountingConnectors.lastSync', 'Last sync')}: {new Date(state.last_sync_at).toLocaleString()}
+                  {t('integrationsHub.accountingConnectors.lastSync', 'Last sync')}:{' '}
+                  {new Date(state.last_sync_at).toLocaleString()}
                 </p>
               ) : null}
               {state?.last_error ? (

@@ -36,7 +36,8 @@ export const usePaymentReminders = () => {
     try {
       let query = supabase
         .from('payment_reminder_logs')
-        .select(`
+        .select(
+          `
           *,
           invoice:invoices(
             id,
@@ -46,7 +47,8 @@ export const usePaymentReminders = () => {
             client:clients!fk_invoices_client_scope(id, company_name, contact_name, email, preferred_currency)
           ),
           rule:payment_reminder_rules(id, name)
-        `)
+        `
+        )
         .eq('user_id', user.id)
         .order('sent_at', { ascending: false })
         .limit(100);
@@ -66,7 +68,10 @@ export const usePaymentReminders = () => {
     if (!user) return;
     setLoading(true);
     setError(null);
-    await Promise.all([fetchRules(), fetchReminderLogs()]);
+    const _results = await Promise.allSettled([fetchRules(), fetchReminderLogs()]);
+    _results.forEach((r, i) => {
+      if (r.status === 'rejected') console.error(`PaymentReminders fetch ${i} failed:`, r.reason);
+    });
     setLoading(false);
   }, [user, fetchRules, fetchReminderLogs]);
 

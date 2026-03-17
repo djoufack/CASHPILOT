@@ -68,7 +68,7 @@ export function usePayroll() {
       exportsQuery = applyCompanyScope(exportsQuery);
       employeesQuery = applyCompanyScope(employeesQuery);
 
-      const [periodsResult, variableItemsResult, anomaliesResult, exportsResult, employeesResult] = await Promise.all([
+      const _results = await Promise.allSettled([
         periodsQuery,
         variableItemsQuery,
         anomaliesQuery,
@@ -76,15 +76,21 @@ export function usePayroll() {
         employeesQuery,
       ]);
 
-      const firstError = [
-        periodsResult.error,
-        variableItemsResult.error,
-        anomaliesResult.error,
-        exportsResult.error,
-        employeesResult.error,
-      ].find(Boolean);
+      const _payLabels = ['periods', 'variableItems', 'anomalies', 'exports', 'employees'];
+      _results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`Payroll fetch "${_payLabels[i]}" failed:`, r.reason);
+      });
 
-      if (firstError) throw firstError;
+      const _v = (i) => (_results[i].status === 'fulfilled' ? _results[i].value : null) || { data: null, error: null };
+      const periodsResult = _v(0);
+      const variableItemsResult = _v(1);
+      const anomaliesResult = _v(2);
+      const exportsResult = _v(3);
+      const employeesResult = _v(4);
+
+      [periodsResult, variableItemsResult, anomaliesResult, exportsResult, employeesResult].forEach((res, i) => {
+        if (res.error) console.error(`Payroll query "${_payLabels[i]}" error:`, res.error);
+      });
 
       setPeriods(periodsResult.data || []);
       setVariableItems(variableItemsResult.data || []);

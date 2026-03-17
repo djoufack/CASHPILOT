@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
@@ -12,10 +12,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Plus, Search, Trash2, ArrowDownCircle, ArrowUpCircle, Wallet,
-  AlertTriangle, CheckCircle2, Clock,
-  Phone, Mail, CreditCard, DollarSign, Calendar, Eye,
-  CalendarDays, CalendarClock, Download, FileText, Kanban
+  Plus,
+  Search,
+  Trash2,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Wallet,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Phone,
+  Mail,
+  CreditCard,
+  DollarSign,
+  Calendar,
+  Eye,
+  CalendarDays,
+  CalendarClock,
+  Download,
+  FileText,
+  Kanban,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -29,28 +45,52 @@ import { exportDebtListPDF, exportDebtListHTML } from '@/services/exportListsPDF
 import { formatDateInput } from '@/utils/dateFormatting';
 
 const createEmptyReceivableForm = (defaultCategory = '') => ({
-  debtor_name: '', debtor_phone: '', debtor_email: '', description: '',
-  amount: '', currency: 'EUR', date_lent: formatDateInput(),
-  due_date: '', category: defaultCategory, notes: '',
+  debtor_name: '',
+  debtor_phone: '',
+  debtor_email: '',
+  description: '',
+  amount: '',
+  currency: 'EUR',
+  date_lent: formatDateInput(),
+  due_date: '',
+  category: defaultCategory,
+  notes: '',
 });
 
 const createEmptyPayableForm = (defaultCategory = '') => ({
-  creditor_name: '', creditor_phone: '', creditor_email: '', description: '',
-  amount: '', currency: 'EUR', date_borrowed: formatDateInput(),
-  due_date: '', category: defaultCategory, notes: '',
+  creditor_name: '',
+  creditor_phone: '',
+  creditor_email: '',
+  description: '',
+  amount: '',
+  currency: 'EUR',
+  date_borrowed: formatDateInput(),
+  due_date: '',
+  category: defaultCategory,
+  notes: '',
 });
 
 const DebtManagerPage = () => {
   const { t } = useTranslation();
   const {
-    receivables, loading: rLoading, stats: rStats,
-    createReceivable, updateReceivable, deleteReceivable,
-    addPayment: addReceivablePayment, fetchPayments: fetchReceivablePayments,
+    receivables,
+    loading: rLoading,
+    stats: rStats,
+    createReceivable,
+    updateReceivable,
+    deleteReceivable,
+    addPayment: addReceivablePayment,
+    fetchPayments: fetchReceivablePayments,
   } = useReceivables();
   const {
-    payables, loading: pLoading, stats: pStats,
-    createPayable, updatePayable, deletePayable,
-    addPayment: addPayablePayment, fetchPayments: fetchPayablePayments,
+    payables,
+    loading: pLoading,
+    stats: pStats,
+    createPayable,
+    updatePayable,
+    deletePayable,
+    addPayment: addPayablePayment,
+    fetchPayments: fetchPayablePayments,
   } = usePayables();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
@@ -74,11 +114,14 @@ const DebtManagerPage = () => {
 
   const netBalance = rStats.totalPending - pStats.totalOwed;
 
-  const resetPaymentForm = useCallback(() => ({
-    amount: '',
-    payment_method: defaultPaymentMethod,
-    notes: '',
-  }), [defaultPaymentMethod]);
+  const resetPaymentForm = useCallback(
+    () => ({
+      amount: '',
+      payment_method: defaultPaymentMethod,
+      notes: '',
+    }),
+    [defaultPaymentMethod]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -86,7 +129,7 @@ const DebtManagerPage = () => {
     const fetchDebtReferences = async () => {
       if (!supabase) return;
       try {
-        const [statusesRes, categoriesRes, paymentMethodsRes] = await Promise.all([
+        const _debtResults = await Promise.allSettled([
           supabase
             .from('reference_debt_statuses')
             .select('code, label_key, display_color, display_bg, is_open, is_terminal, sort_order')
@@ -104,9 +147,21 @@ const DebtManagerPage = () => {
             .order('sort_order', { ascending: true }),
         ]);
 
-        if (statusesRes.error) throw statusesRes.error;
-        if (categoriesRes.error) throw categoriesRes.error;
-        if (paymentMethodsRes.error) throw paymentMethodsRes.error;
+        const _debtLabels = ['statuses', 'categories', 'paymentMethods'];
+        _debtResults.forEach((r, i) => {
+          if (r.status === 'rejected') console.error(`DebtManager ref fetch "${_debtLabels[i]}" failed:`, r.reason);
+        });
+
+        const statusesRes =
+          _debtResults[0].status === 'fulfilled' ? _debtResults[0].value : { data: null, error: null };
+        const categoriesRes =
+          _debtResults[1].status === 'fulfilled' ? _debtResults[1].value : { data: null, error: null };
+        const paymentMethodsRes =
+          _debtResults[2].status === 'fulfilled' ? _debtResults[2].value : { data: null, error: null };
+
+        [statusesRes, categoriesRes, paymentMethodsRes].forEach((res, i) => {
+          if (res.error) console.error(`DebtManager ref query "${_debtLabels[i]}" error:`, res.error);
+        });
 
         if (!mounted) return;
         setDebtStatuses(statusesRes.data || []);
@@ -118,95 +173,111 @@ const DebtManagerPage = () => {
     };
 
     fetchDebtReferences();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
     if (defaultDebtCategory) {
-      setReceivableForm((prev) => prev.category ? prev : { ...prev, category: defaultDebtCategory });
-      setPayableForm((prev) => prev.category ? prev : { ...prev, category: defaultDebtCategory });
+      setReceivableForm((prev) => (prev.category ? prev : { ...prev, category: defaultDebtCategory }));
+      setPayableForm((prev) => (prev.category ? prev : { ...prev, category: defaultDebtCategory }));
     }
     if (defaultPaymentMethod) {
-      setPaymentForm((prev) => prev.payment_method ? prev : { ...prev, payment_method: defaultPaymentMethod });
+      setPaymentForm((prev) => (prev.payment_method ? prev : { ...prev, payment_method: defaultPaymentMethod }));
     }
   }, [defaultDebtCategory, defaultPaymentMethod]);
 
   const statusByCode = useMemo(
     () => Object.fromEntries(debtStatuses.map((status) => [status.code, status])),
-    [debtStatuses],
+    [debtStatuses]
   );
   const categoryByCode = useMemo(
     () => Object.fromEntries(debtCategories.map((category) => [category.code, category])),
-    [debtCategories],
+    [debtCategories]
   );
   const paymentMethodByCode = useMemo(
     () => Object.fromEntries(debtPaymentMethods.map((method) => [method.code, method])),
-    [debtPaymentMethods],
+    [debtPaymentMethods]
   );
   const statusColors = useMemo(
-    () => Object.fromEntries(
-      debtStatuses.map((status) => [
-        status.code,
-        `${status.display_bg || 'bg-gray-500/20'} ${status.display_color || 'text-gray-400'}`.trim(),
-      ]),
-    ),
-    [debtStatuses],
+    () =>
+      Object.fromEntries(
+        debtStatuses.map((status) => [
+          status.code,
+          `${status.display_bg || 'bg-gray-500/20'} ${status.display_color || 'text-gray-400'}`.trim(),
+        ])
+      ),
+    [debtStatuses]
   );
 
-  const translateOrFallback = useCallback((translationKey, fallback) => {
-    if (!translationKey) return fallback;
-    const translated = t(translationKey);
-    return translated === translationKey ? fallback : translated;
-  }, [t]);
+  const translateOrFallback = useCallback(
+    (translationKey, fallback) => {
+      if (!translationKey) return fallback;
+      const translated = t(translationKey);
+      return translated === translationKey ? fallback : translated;
+    },
+    [t]
+  );
 
-  const getStatusLabel = useCallback((statusCode) => {
-    const status = statusByCode[statusCode];
-    if (!statusCode) return '-';
-    return translateOrFallback(status?.label_key || `debtManager.status.${statusCode}`, statusCode);
-  }, [statusByCode, translateOrFallback]);
+  const getStatusLabel = useCallback(
+    (statusCode) => {
+      const status = statusByCode[statusCode];
+      if (!statusCode) return '-';
+      return translateOrFallback(status?.label_key || `debtManager.status.${statusCode}`, statusCode);
+    },
+    [statusByCode, translateOrFallback]
+  );
 
-  const getCategoryLabel = useCallback((categoryCode) => {
-    const category = categoryByCode[categoryCode];
-    if (!categoryCode) return '-';
-    return translateOrFallback(category?.label_key || `debtManager.categories.${categoryCode}`, categoryCode);
-  }, [categoryByCode, translateOrFallback]);
+  const getCategoryLabel = useCallback(
+    (categoryCode) => {
+      const category = categoryByCode[categoryCode];
+      if (!categoryCode) return '-';
+      return translateOrFallback(category?.label_key || `debtManager.categories.${categoryCode}`, categoryCode);
+    },
+    [categoryByCode, translateOrFallback]
+  );
 
-  const getPaymentMethodLabel = useCallback((methodCode) => {
-    const method = paymentMethodByCode[methodCode];
-    if (!methodCode) return '-';
-    return translateOrFallback(method?.label_key || `debtManager.methods.${methodCode}`, methodCode);
-  }, [paymentMethodByCode, translateOrFallback]);
+  const getPaymentMethodLabel = useCallback(
+    (methodCode) => {
+      const method = paymentMethodByCode[methodCode];
+      if (!methodCode) return '-';
+      return translateOrFallback(method?.label_key || `debtManager.methods.${methodCode}`, methodCode);
+    },
+    [paymentMethodByCode, translateOrFallback]
+  );
 
-  const canRecordPayment = useCallback((record) => {
-    const total = parseFloat(record?.amount || 0);
-    const paid = parseFloat(record?.amount_paid || 0);
-    const hasBalance = paid < total;
-    const status = statusByCode[record?.status];
-    if (status) {
-      return !status.is_terminal && hasBalance;
-    }
-    return hasBalance;
-  }, [statusByCode]);
+  const canRecordPayment = useCallback(
+    (record) => {
+      const total = parseFloat(record?.amount || 0);
+      const paid = parseFloat(record?.amount_paid || 0);
+      const hasBalance = paid < total;
+      const status = statusByCode[record?.status];
+      if (status) {
+        return !status.is_terminal && hasBalance;
+      }
+      return hasBalance;
+    },
+    [statusByCode]
+  );
 
   const openStatusCodes = useMemo(
     () => debtStatuses.filter((status) => status.is_open).map((status) => status.code),
-    [debtStatuses],
+    [debtStatuses]
   );
   const receivablesInFollowUp = useMemo(
-    () => (
+    () =>
       openStatusCodes.length > 0
         ? receivables.filter((record) => openStatusCodes.includes(record.status))
-        : receivables.filter(canRecordPayment)
-    ),
-    [canRecordPayment, openStatusCodes, receivables],
+        : receivables.filter(canRecordPayment),
+    [canRecordPayment, openStatusCodes, receivables]
   );
   const payablesInFollowUp = useMemo(
-    () => (
+    () =>
       openStatusCodes.length > 0
         ? payables.filter((record) => openStatusCodes.includes(record.status))
-        : payables.filter(canRecordPayment)
-    ),
-    [canRecordPayment, openStatusCodes, payables],
+        : payables.filter(canRecordPayment),
+    [canRecordPayment, openStatusCodes, payables]
   );
 
   // ─── KANBAN CONFIG ─────────────────────────
@@ -220,7 +291,7 @@ const DebtManagerPage = () => {
     }
 
     const inferredStatuses = Array.from(
-      new Set([...receivables, ...payables].map((record) => record.status).filter(Boolean)),
+      new Set([...receivables, ...payables].map((record) => record.status).filter(Boolean))
     );
     return inferredStatuses.map((statusCode) => ({
       id: statusCode,
@@ -229,7 +300,7 @@ const DebtManagerPage = () => {
     }));
   }, [debtStatuses, getStatusLabel, payables, receivables, statusColors]);
 
-  const receivableKanbanItems = receivables.map(r => ({
+  const receivableKanbanItems = receivables.map((r) => ({
     id: r.id,
     title: r.debtor_name || r.description,
     subtitle: r.description || r.category || '',
@@ -237,10 +308,10 @@ const DebtManagerPage = () => {
     status: r.status || debtKanbanColumns[0]?.id || '',
     statusLabel: getStatusLabel(r.status),
     statusColor: statusColors[r.status] || 'bg-gray-500/20 text-gray-400',
-    amount: `${(parseFloat(r.amount || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${r.currency || 'EUR'}`,
+    amount: `${parseFloat(r.amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${r.currency || 'EUR'}`,
   }));
 
-  const payableKanbanItems = payables.map(p => ({
+  const payableKanbanItems = payables.map((p) => ({
     id: p.id,
     title: p.creditor_name || p.description,
     subtitle: p.description || p.category || '',
@@ -248,7 +319,7 @@ const DebtManagerPage = () => {
     status: p.status || debtKanbanColumns[0]?.id || '',
     statusLabel: getStatusLabel(p.status),
     statusColor: statusColors[p.status] || 'bg-gray-500/20 text-gray-400',
-    amount: `${(parseFloat(p.amount || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${p.currency || 'EUR'}`,
+    amount: `${parseFloat(p.amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${p.currency || 'EUR'}`,
   }));
 
   // Handlers
@@ -281,66 +352,53 @@ const DebtManagerPage = () => {
   };
 
   const handleViewPayments = async (type, record) => {
-    const payments = type === 'receivable'
-      ? await fetchReceivablePayments(record.id)
-      : await fetchPayablePayments(record.id);
+    const payments =
+      type === 'receivable' ? await fetchReceivablePayments(record.id) : await fetchPayablePayments(record.id);
     setPaymentHistory(payments);
     setShowPayments({ type, record });
   };
 
   const handleExportReceivablesPDF = () => {
-    guardedAction(
-      CREDIT_COSTS.PDF_REPORT,
-      'Receivables List PDF',
-      async () => {
-        await exportDebtListPDF(receivables, company, 'receivables');
-      }
-    );
+    guardedAction(CREDIT_COSTS.PDF_REPORT, 'Receivables List PDF', async () => {
+      await exportDebtListPDF(receivables, company, 'receivables');
+    });
   };
 
   const handleExportReceivablesHTML = () => {
-    guardedAction(
-      CREDIT_COSTS.EXPORT_HTML,
-      'Receivables List HTML',
-      () => {
-        exportDebtListHTML(receivables, company, 'receivables');
-      }
-    );
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Receivables List HTML', () => {
+      exportDebtListHTML(receivables, company, 'receivables');
+    });
   };
 
   const handleExportPayablesPDF = () => {
-    guardedAction(
-      CREDIT_COSTS.PDF_REPORT,
-      'Payables List PDF',
-      async () => {
-        await exportDebtListPDF(payables, company, 'payables');
-      }
-    );
+    guardedAction(CREDIT_COSTS.PDF_REPORT, 'Payables List PDF', async () => {
+      await exportDebtListPDF(payables, company, 'payables');
+    });
   };
 
   const handleExportPayablesHTML = () => {
-    guardedAction(
-      CREDIT_COSTS.EXPORT_HTML,
-      'Payables List HTML',
-      () => {
-        exportDebtListHTML(payables, company, 'payables');
-      }
-    );
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Payables List HTML', () => {
+      exportDebtListHTML(payables, company, 'payables');
+    });
   };
 
   const filterList = (list, nameField) => {
     if (!search) return list;
     const s = search.toLowerCase();
-    return list.filter(item =>
-      item[nameField]?.toLowerCase().includes(s) ||
-      item.description?.toLowerCase().includes(s) ||
-      item.category?.toLowerCase().includes(s)
+    return list.filter(
+      (item) =>
+        item[nameField]?.toLowerCase().includes(s) ||
+        item.description?.toLowerCase().includes(s) ||
+        item.category?.toLowerCase().includes(s)
     );
   };
 
   const formatAmount = (amount, currency = 'EUR') => {
     const symbols = { EUR: '\u20ac', USD: '$', GBP: '\u00a3', XAF: 'FCFA', XOF: 'FCFA' };
-    const formatted = (parseFloat(amount || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formatted = parseFloat(amount || 0).toLocaleString('fr-FR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
     return `${formatted} ${symbols[currency] || currency}`;
   };
 
@@ -348,23 +406,46 @@ const DebtManagerPage = () => {
   const DashboardTab = () => (
     <div className="space-y-6">
       {/* Net Balance */}
-      <div className={`p-6 rounded-xl border ${netBalance >= 0 ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'}`}>
+      <div
+        className={`p-6 rounded-xl border ${netBalance >= 0 ? 'bg-green-500/5 border-green-500/30' : 'bg-red-500/5 border-red-500/30'}`}
+      >
         <div className="flex items-center gap-3 mb-2">
           <Wallet className={`w-6 h-6 ${netBalance >= 0 ? 'text-green-400' : 'text-red-400'}`} />
           <span className="text-gray-400 text-sm">{t('debtManager.netBalance')}</span>
         </div>
         <p className={`text-3xl font-bold ${netBalance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-          {netBalance >= 0 ? '+' : ''}{formatAmount(netBalance)}
+          {netBalance >= 0 ? '+' : ''}
+          {formatAmount(netBalance)}
         </p>
         <p className="text-gray-500 text-xs mt-1">{t('debtManager.netBalanceDesc')}</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={ArrowDownCircle} color="green" label={t('debtManager.totalReceivable')} value={formatAmount(rStats.totalReceivable)} />
-        <StatCard icon={CheckCircle2} color="green" label={t('debtManager.totalCollected')} value={formatAmount(rStats.totalCollected)} />
-        <StatCard icon={ArrowUpCircle} color="red" label={t('debtManager.totalPayable')} value={formatAmount(pStats.totalPayable)} />
-        <StatCard icon={CreditCard} color="blue" label={t('debtManager.totalRepaid')} value={formatAmount(pStats.totalRepaid)} />
+        <StatCard
+          icon={ArrowDownCircle}
+          color="green"
+          label={t('debtManager.totalReceivable')}
+          value={formatAmount(rStats.totalReceivable)}
+        />
+        <StatCard
+          icon={CheckCircle2}
+          color="green"
+          label={t('debtManager.totalCollected')}
+          value={formatAmount(rStats.totalCollected)}
+        />
+        <StatCard
+          icon={ArrowUpCircle}
+          color="red"
+          label={t('debtManager.totalPayable')}
+          value={formatAmount(pStats.totalPayable)}
+        />
+        <StatCard
+          icon={CreditCard}
+          color="blue"
+          label={t('debtManager.totalRepaid')}
+          value={formatAmount(pStats.totalRepaid)}
+        />
       </div>
 
       {/* Alerts */}
@@ -373,17 +454,26 @@ const DebtManagerPage = () => {
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-4 h-4 text-yellow-400" />
             <span className="text-sm font-medium text-white">{t('debtManager.pendingReceivables')}</span>
-            <span className="ml-auto bg-yellow-500/20 text-yellow-400 text-xs px-2 py-0.5 rounded-full">{receivablesInFollowUp.length}</span>
+            <span className="ml-auto bg-yellow-500/20 text-yellow-400 text-xs px-2 py-0.5 rounded-full">
+              {receivablesInFollowUp.length}
+            </span>
           </div>
-          {receivablesInFollowUp.slice(0, 5).map(r => (
-            <div key={r.id} className="flex items-center justify-between py-2 border-b border-gray-700/50 last:border-0">
+          {receivablesInFollowUp.slice(0, 5).map((r) => (
+            <div
+              key={r.id}
+              className="flex items-center justify-between py-2 border-b border-gray-700/50 last:border-0"
+            >
               <div>
                 <span className="text-sm text-white">{r.debtor_name}</span>
-                <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${statusColors[r.status] || 'bg-gray-500/20 text-gray-400'}`}>
+                <span
+                  className={`ml-2 text-xs px-1.5 py-0.5 rounded ${statusColors[r.status] || 'bg-gray-500/20 text-gray-400'}`}
+                >
                   {getStatusLabel(r.status)}
                 </span>
               </div>
-              <span className="text-sm text-green-400">{formatAmount(parseFloat(r.amount) - parseFloat(r.amount_paid), r.currency)}</span>
+              <span className="text-sm text-green-400">
+                {formatAmount(parseFloat(r.amount) - parseFloat(r.amount_paid), r.currency)}
+              </span>
             </div>
           ))}
           {receivablesInFollowUp.length === 0 && <p className="text-gray-500 text-sm">{t('debtManager.noItems')}</p>}
@@ -393,17 +483,26 @@ const DebtManagerPage = () => {
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-4 h-4 text-red-400" />
             <span className="text-sm font-medium text-white">{t('debtManager.pendingPayables')}</span>
-            <span className="ml-auto bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full">{payablesInFollowUp.length}</span>
+            <span className="ml-auto bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full">
+              {payablesInFollowUp.length}
+            </span>
           </div>
-          {payablesInFollowUp.slice(0, 5).map(p => (
-            <div key={p.id} className="flex items-center justify-between py-2 border-b border-gray-700/50 last:border-0">
+          {payablesInFollowUp.slice(0, 5).map((p) => (
+            <div
+              key={p.id}
+              className="flex items-center justify-between py-2 border-b border-gray-700/50 last:border-0"
+            >
               <div>
                 <span className="text-sm text-white">{p.creditor_name}</span>
-                <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${statusColors[p.status] || 'bg-gray-500/20 text-gray-400'}`}>
+                <span
+                  className={`ml-2 text-xs px-1.5 py-0.5 rounded ${statusColors[p.status] || 'bg-gray-500/20 text-gray-400'}`}
+                >
                   {getStatusLabel(p.status)}
                 </span>
               </div>
-              <span className="text-sm text-red-400">{formatAmount(parseFloat(p.amount) - parseFloat(p.amount_paid), p.currency)}</span>
+              <span className="text-sm text-red-400">
+                {formatAmount(parseFloat(p.amount) - parseFloat(p.amount_paid), p.currency)}
+              </span>
             </div>
           ))}
           {payablesInFollowUp.length === 0 && <p className="text-gray-500 text-sm">{t('debtManager.noItems')}</p>}
@@ -418,10 +517,14 @@ const DebtManagerPage = () => {
             <span className="text-red-400 font-medium">{t('debtManager.overdueAlert')}</span>
           </div>
           {rStats.countOverdue > 0 && (
-            <p className="text-sm text-gray-300">{rStats.countOverdue} {t('debtManager.overdueReceivables')}</p>
+            <p className="text-sm text-gray-300">
+              {rStats.countOverdue} {t('debtManager.overdueReceivables')}
+            </p>
           )}
           {pStats.countOverdue > 0 && (
-            <p className="text-sm text-gray-300">{pStats.countOverdue} {t('debtManager.overduePayables')}</p>
+            <p className="text-sm text-gray-300">
+              {pStats.countOverdue} {t('debtManager.overduePayables')}
+            </p>
           )}
         </div>
       )}
@@ -440,22 +543,37 @@ const DebtManagerPage = () => {
       >
         <td className="p-4">
           <div className="font-medium text-white">{record[nameField]}</div>
-          {record.description && <div className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{record.description}</div>}
+          {record.description && (
+            <div className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{record.description}</div>
+          )}
         </td>
         <td className="p-4 hidden md:table-cell">
-          <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">{getCategoryLabel(record.category)}</span>
+          <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
+            {getCategoryLabel(record.category)}
+          </span>
         </td>
-        <td className="p-4 text-sm hidden md:table-cell">{record[dateField] ? format(new Date(record[dateField]), 'dd/MM/yyyy') : '-'}</td>
-        <td className="p-4 text-sm hidden md:table-cell">{record.due_date ? format(new Date(record.due_date), 'dd/MM/yyyy') : '-'}</td>
+        <td className="p-4 text-sm hidden md:table-cell">
+          {record[dateField] ? format(new Date(record[dateField]), 'dd/MM/yyyy') : '-'}
+        </td>
+        <td className="p-4 text-sm hidden md:table-cell">
+          {record.due_date ? format(new Date(record.due_date), 'dd/MM/yyyy') : '-'}
+        </td>
         <td className="p-4">
           <div className="text-sm font-medium text-white">{formatAmount(record.amount, record.currency)}</div>
           <div className="w-full bg-gray-700 rounded-full h-1.5 mt-1">
-            <div className={`h-1.5 rounded-full ${type === 'receivable' ? 'bg-green-500' : 'bg-orange-500'}`} style={{ width: `${Math.min(progress, 100)}%` }} />
+            <div
+              className={`h-1.5 rounded-full ${type === 'receivable' ? 'bg-green-500' : 'bg-orange-500'}`}
+              style={{ width: `${Math.min(progress, 100)}%` }}
+            />
           </div>
-          <div className="text-xs text-gray-400 mt-0.5">{formatAmount(record.amount_paid, record.currency)} / {formatAmount(record.amount, record.currency)}</div>
+          <div className="text-xs text-gray-400 mt-0.5">
+            {formatAmount(record.amount_paid, record.currency)} / {formatAmount(record.amount, record.currency)}
+          </div>
         </td>
         <td className="p-4">
-          <span className={`text-xs px-2 py-1 rounded-full ${statusColors[record.status] || 'bg-gray-500/20 text-gray-400'}`}>
+          <span
+            className={`text-xs px-2 py-1 rounded-full ${statusColors[record.status] || 'bg-gray-500/20 text-gray-400'}`}
+          >
             {getStatusLabel(record.status)}
           </span>
         </td>
@@ -466,7 +584,10 @@ const DebtManagerPage = () => {
                 size="sm"
                 variant="ghost"
                 className="text-green-400 hover:text-green-300 hover:bg-green-500/10 h-8 px-2"
-                onClick={() => { setShowPayment({ type, record }); setPaymentForm(resetPaymentForm()); }}
+                onClick={() => {
+                  setShowPayment({ type, record });
+                  setPaymentForm(resetPaymentForm());
+                }}
               >
                 <DollarSign className="w-3.5 h-3.5" />
               </Button>
@@ -483,7 +604,7 @@ const DebtManagerPage = () => {
               size="sm"
               variant="ghost"
               className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 px-2"
-              onClick={() => type === 'receivable' ? deleteReceivable(record.id) : deletePayable(record.id)}
+              onClick={() => (type === 'receivable' ? deleteReceivable(record.id) : deletePayable(record.id))}
             >
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
@@ -500,7 +621,9 @@ const DebtManagerPage = () => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-700 text-gray-400 text-xs uppercase">
-              <th className="text-left p-4">{type === 'receivable' ? t('debtManager.debtor') : t('debtManager.creditor')}</th>
+              <th className="text-left p-4">
+                {type === 'receivable' ? t('debtManager.debtor') : t('debtManager.creditor')}
+              </th>
               <th className="text-left p-4 hidden md:table-cell">{t('debtManager.category')}</th>
               <th className="text-left p-4 hidden md:table-cell">{t('debtManager.date')}</th>
               <th className="text-left p-4 hidden md:table-cell">{t('debtManager.dueDate')}</th>
@@ -511,12 +634,22 @@ const DebtManagerPage = () => {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={7} className="text-center p-8 text-gray-400">{t('common.loading')}...</td></tr>
+              <tr>
+                <td colSpan={7} className="text-center p-8 text-gray-400">
+                  {t('common.loading')}...
+                </td>
+              </tr>
             ) : data.length === 0 ? (
-              <tr><td colSpan={7} className="text-center p-8 text-gray-400">{t('debtManager.noItems')}</td></tr>
-            ) : data.map(record => (
-              <RecordRow key={record.id} record={record} type={type} nameField={nameField} dateField={dateField} />
-            ))}
+              <tr>
+                <td colSpan={7} className="text-center p-8 text-gray-400">
+                  {t('debtManager.noItems')}
+                </td>
+              </tr>
+            ) : (
+              data.map((record) => (
+                <RecordRow key={record.id} record={record} type={type} nameField={nameField} dateField={dateField} />
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -534,17 +667,27 @@ const DebtManagerPage = () => {
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label className="text-gray-300">{type === 'receivable' ? t('debtManager.debtorName') : t('debtManager.creditorName')} *</Label>
-            <Input value={form[nameField]} onChange={e => setForm({ ...form, [nameField]: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white" placeholder={type === 'receivable' ? 'Jean Dupont' : 'Banque XYZ'} />
+            <Label className="text-gray-300">
+              {type === 'receivable' ? t('debtManager.debtorName') : t('debtManager.creditorName')} *
+            </Label>
+            <Input
+              value={form[nameField]}
+              onChange={(e) => setForm({ ...form, [nameField]: e.target.value })}
+              className="bg-gray-700 border-gray-600 text-white"
+              placeholder={type === 'receivable' ? 'Jean Dupont' : 'Banque XYZ'}
+            />
           </div>
           <div>
             <Label className="text-gray-300">{t('debtManager.category')}</Label>
-            <Select value={form.category} onValueChange={v => setForm({ ...form, category: v })}>
-              <SelectTrigger className="bg-gray-700 border-gray-600 text-white"><SelectValue placeholder={t('common.select', 'Select')} /></SelectTrigger>
+            <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectValue placeholder={t('common.select', 'Select')} />
+              </SelectTrigger>
               <SelectContent className="bg-gray-700 border-gray-600">
-                {debtCategories.map(category => (
-                  <SelectItem key={category.code} value={category.code} className="text-white">{getCategoryLabel(category.code)}</SelectItem>
+                {debtCategories.map((category) => (
+                  <SelectItem key={category.code} value={category.code} className="text-white">
+                    {getCategoryLabel(category.code)}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -553,63 +696,115 @@ const DebtManagerPage = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label className="text-gray-300"><Phone className="w-3 h-3 inline mr-1" />{t('debtManager.phone')}</Label>
-            <Input value={form[phoneField]} onChange={e => setForm({ ...form, [phoneField]: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white" placeholder="+32 xxx" />
+            <Label className="text-gray-300">
+              <Phone className="w-3 h-3 inline mr-1" />
+              {t('debtManager.phone')}
+            </Label>
+            <Input
+              value={form[phoneField]}
+              onChange={(e) => setForm({ ...form, [phoneField]: e.target.value })}
+              className="bg-gray-700 border-gray-600 text-white"
+              placeholder="+32 xxx"
+            />
           </div>
           <div>
-            <Label className="text-gray-300"><Mail className="w-3 h-3 inline mr-1" />{t('debtManager.email')}</Label>
-            <Input type="email" value={form[emailField]} onChange={e => setForm({ ...form, [emailField]: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white" placeholder="email@example.com" />
+            <Label className="text-gray-300">
+              <Mail className="w-3 h-3 inline mr-1" />
+              {t('debtManager.email')}
+            </Label>
+            <Input
+              type="email"
+              value={form[emailField]}
+              onChange={(e) => setForm({ ...form, [emailField]: e.target.value })}
+              className="bg-gray-700 border-gray-600 text-white"
+              placeholder="email@example.com"
+            />
           </div>
         </div>
 
         <div>
           <Label className="text-gray-300">{t('debtManager.description')}</Label>
-          <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-            className="bg-gray-700 border-gray-600 text-white" placeholder={t('debtManager.descriptionPlaceholder')} />
+          <Input
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            className="bg-gray-700 border-gray-600 text-white"
+            placeholder={t('debtManager.descriptionPlaceholder')}
+          />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <Label className="text-gray-300">{t('debtManager.amount')} *</Label>
-            <Input type="number" step="0.01" min="0" value={form.amount}
-              onChange={e => setForm({ ...form, amount: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white" placeholder="0.00" />
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              className="bg-gray-700 border-gray-600 text-white"
+              placeholder="0.00"
+            />
           </div>
           <div>
             <Label className="text-gray-300">{t('debtManager.currency')}</Label>
-            <Select value={form.currency} onValueChange={v => setForm({ ...form, currency: v })}>
-              <SelectTrigger className="bg-gray-700 border-gray-600 text-white"><SelectValue /></SelectTrigger>
+            <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
+              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent className="bg-gray-700 border-gray-600">
-                {['EUR', 'USD', 'GBP', 'XAF', 'XOF'].map(c => (
-                  <SelectItem key={c} value={c} className="text-white">{c}</SelectItem>
+                {['EUR', 'USD', 'GBP', 'XAF', 'XOF'].map((c) => (
+                  <SelectItem key={c} value={c} className="text-white">
+                    {c}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label className="text-gray-300"><Calendar className="w-3 h-3 inline mr-1" />{type === 'receivable' ? t('debtManager.dateLent') : t('debtManager.dateBorrowed')}</Label>
-            <Input type="date" value={form[dateField]} onChange={e => setForm({ ...form, [dateField]: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white" />
+            <Label className="text-gray-300">
+              <Calendar className="w-3 h-3 inline mr-1" />
+              {type === 'receivable' ? t('debtManager.dateLent') : t('debtManager.dateBorrowed')}
+            </Label>
+            <Input
+              type="date"
+              value={form[dateField]}
+              onChange={(e) => setForm({ ...form, [dateField]: e.target.value })}
+              className="bg-gray-700 border-gray-600 text-white"
+            />
           </div>
         </div>
 
         <div>
-          <Label className="text-gray-300"><Calendar className="w-3 h-3 inline mr-1" />{t('debtManager.dueDate')}</Label>
-          <Input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })}
-            className="bg-gray-700 border-gray-600 text-white" />
+          <Label className="text-gray-300">
+            <Calendar className="w-3 h-3 inline mr-1" />
+            {t('debtManager.dueDate')}
+          </Label>
+          <Input
+            type="date"
+            value={form.due_date}
+            onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+            className="bg-gray-700 border-gray-600 text-white"
+          />
         </div>
 
         <div>
           <Label className="text-gray-300">{t('debtManager.notes')}</Label>
-          <Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
-            className="bg-gray-700 border-gray-600 text-white" rows={2} placeholder={t('debtManager.notesPlaceholder')} />
+          <Textarea
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            className="bg-gray-700 border-gray-600 text-white"
+            rows={2}
+            placeholder={t('debtManager.notesPlaceholder')}
+          />
         </div>
 
-        <Button onClick={onSubmit} disabled={!form[nameField] || !form.amount}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-          <Plus className="w-4 h-4 mr-2" />{type === 'receivable' ? t('debtManager.createReceivable') : t('debtManager.createPayable')}
+        <Button
+          onClick={onSubmit}
+          disabled={!form[nameField] || !form.amount}
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          {type === 'receivable' ? t('debtManager.createReceivable') : t('debtManager.createPayable')}
         </Button>
       </div>
     );
@@ -617,7 +812,9 @@ const DebtManagerPage = () => {
 
   return (
     <>
-      <Helmet><title>{t('pages.debtManager', 'Debt Manager')} | CashPilot</title></Helmet>
+      <Helmet>
+        <title>{t('pages.debtManager', 'Debt Manager')} | CashPilot</title>
+      </Helmet>
       <CreditsGuardModal {...modalProps} />
       <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
         {/* Header */}
@@ -631,23 +828,47 @@ const DebtManagerPage = () => {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="bg-gray-900 border-gray-800 w-full justify-start overflow-x-auto flex-wrap h-auto gap-1 p-1">
-            <TabsTrigger value="dashboard" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
-              <Wallet className="w-4 h-4 mr-2" />{t('debtManager.dashboard')}
+            <TabsTrigger
+              value="dashboard"
+              className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
+            >
+              <Wallet className="w-4 h-4 mr-2" />
+              {t('debtManager.dashboard')}
             </TabsTrigger>
-            <TabsTrigger value="receivables" className="data-[state=active]:bg-green-500/10 data-[state=active]:text-green-400">
-              <ArrowDownCircle className="w-4 h-4 mr-2" />{t('debtManager.receivables')} ({receivables.length})
+            <TabsTrigger
+              value="receivables"
+              className="data-[state=active]:bg-green-500/10 data-[state=active]:text-green-400"
+            >
+              <ArrowDownCircle className="w-4 h-4 mr-2" />
+              {t('debtManager.receivables')} ({receivables.length})
             </TabsTrigger>
-            <TabsTrigger value="payables" className="data-[state=active]:bg-red-500/10 data-[state=active]:text-red-400">
-              <ArrowUpCircle className="w-4 h-4 mr-2" />{t('debtManager.payables')} ({payables.length})
+            <TabsTrigger
+              value="payables"
+              className="data-[state=active]:bg-red-500/10 data-[state=active]:text-red-400"
+            >
+              <ArrowUpCircle className="w-4 h-4 mr-2" />
+              {t('debtManager.payables')} ({payables.length})
             </TabsTrigger>
-            <TabsTrigger value="calendar" className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400">
-              <CalendarDays className="w-4 h-4 mr-2" />{t('debtManager.calendar')}
+            <TabsTrigger
+              value="calendar"
+              className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400"
+            >
+              <CalendarDays className="w-4 h-4 mr-2" />
+              {t('debtManager.calendar')}
             </TabsTrigger>
-            <TabsTrigger value="agenda" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400">
-              <CalendarClock className="w-4 h-4 mr-2" />{t('debtManager.agenda')}
+            <TabsTrigger
+              value="agenda"
+              className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400"
+            >
+              <CalendarClock className="w-4 h-4 mr-2" />
+              {t('debtManager.agenda')}
             </TabsTrigger>
-            <TabsTrigger value="kanban" className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400 text-gray-500">
-              <Kanban className="w-4 h-4 mr-1" />{t('common.kanban') || 'Kanban'}
+            <TabsTrigger
+              value="kanban"
+              className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400 text-gray-500"
+            >
+              <Kanban className="w-4 h-4 mr-1" />
+              {t('common.kanban') || 'Kanban'}
             </TabsTrigger>
           </TabsList>
 
@@ -661,8 +882,12 @@ const DebtManagerPage = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input value={search} onChange={e => setSearch(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white pl-10" placeholder={t('common.search')} />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white pl-10"
+                  placeholder={t('common.search')}
+                />
               </div>
               <div className="flex gap-2">
                 <Button
@@ -685,13 +910,25 @@ const DebtManagerPage = () => {
                   <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
                   <span className="sm:hidden">HTML</span>
                 </Button>
-                <Button onClick={() => { setReceivableForm(createEmptyReceivableForm(defaultDebtCategory)); setShowCreateReceivable(true); }}
-                  className="bg-green-600 hover:bg-green-700 text-white">
-                  <Plus className="w-4 h-4 mr-2" />{t('debtManager.newReceivable')}
+                <Button
+                  onClick={() => {
+                    setReceivableForm(createEmptyReceivableForm(defaultDebtCategory));
+                    setShowCreateReceivable(true);
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('debtManager.newReceivable')}
                 </Button>
               </div>
             </div>
-            <RecordTable data={filterList(receivables, 'debtor_name')} type="receivable" nameField="debtor_name" dateField="date_lent" loading={rLoading} />
+            <RecordTable
+              data={filterList(receivables, 'debtor_name')}
+              type="receivable"
+              nameField="debtor_name"
+              dateField="date_lent"
+              loading={rLoading}
+            />
           </TabsContent>
 
           {/* Payables */}
@@ -699,8 +936,12 @@ const DebtManagerPage = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input value={search} onChange={e => setSearch(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white pl-10" placeholder={t('common.search')} />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white pl-10"
+                  placeholder={t('common.search')}
+                />
               </div>
               <div className="flex gap-2">
                 <Button
@@ -723,13 +964,25 @@ const DebtManagerPage = () => {
                   <span className="hidden sm:inline">HTML ({CREDIT_COSTS.EXPORT_HTML})</span>
                   <span className="sm:hidden">HTML</span>
                 </Button>
-                <Button onClick={() => { setPayableForm(createEmptyPayableForm(defaultDebtCategory)); setShowCreatePayable(true); }}
-                  className="bg-red-600 hover:bg-red-700 text-white">
-                  <Plus className="w-4 h-4 mr-2" />{t('debtManager.newPayable')}
+                <Button
+                  onClick={() => {
+                    setPayableForm(createEmptyPayableForm(defaultDebtCategory));
+                    setShowCreatePayable(true);
+                  }}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('debtManager.newPayable')}
                 </Button>
               </div>
             </div>
-            <RecordTable data={filterList(payables, 'creditor_name')} type="payable" nameField="creditor_name" dateField="date_borrowed" loading={pLoading} />
+            <RecordTable
+              data={filterList(payables, 'creditor_name')}
+              type="payable"
+              nameField="creditor_name"
+              dateField="date_borrowed"
+              loading={pLoading}
+            />
           </TabsContent>
 
           {/* Calendar */}
@@ -762,7 +1015,9 @@ const DebtManagerPage = () => {
                 setPaymentForm(resetPaymentForm());
               }}
               onView={(type, record) => handleViewPayments(type, record)}
-              onDelete={(type, record) => type === 'receivable' ? deleteReceivable(record.id) : deletePayable(record.id)}
+              onDelete={(type, record) =>
+                type === 'receivable' ? deleteReceivable(record.id) : deletePayable(record.id)
+              }
             />
           </TabsContent>
 
@@ -792,7 +1047,8 @@ const DebtManagerPage = () => {
           <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-sm">
             <DialogHeader>
               <DialogTitle className="text-orange-400 flex items-center gap-2">
-                <CalendarDays className="w-5 h-5" />{t('debtManager.createOnDate')} {showTypeChooser}
+                <CalendarDays className="w-5 h-5" />
+                {t('debtManager.createOnDate')} {showTypeChooser}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
@@ -804,7 +1060,8 @@ const DebtManagerPage = () => {
                   setShowTypeChooser(null);
                 }}
               >
-                <ArrowDownCircle className="w-4 h-4 mr-2" />{t('debtManager.chooseReceivable')}
+                <ArrowDownCircle className="w-4 h-4 mr-2" />
+                {t('debtManager.chooseReceivable')}
               </Button>
               <Button
                 className="w-full bg-red-600 hover:bg-red-700 text-white justify-start"
@@ -814,7 +1071,8 @@ const DebtManagerPage = () => {
                   setShowTypeChooser(null);
                 }}
               >
-                <ArrowUpCircle className="w-4 h-4 mr-2" />{t('debtManager.choosePayable')}
+                <ArrowUpCircle className="w-4 h-4 mr-2" />
+                {t('debtManager.choosePayable')}
               </Button>
             </div>
           </DialogContent>
@@ -825,10 +1083,16 @@ const DebtManagerPage = () => {
           <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-green-400 flex items-center gap-2">
-                <ArrowDownCircle className="w-5 h-5" />{t('debtManager.newReceivable')}
+                <ArrowDownCircle className="w-5 h-5" />
+                {t('debtManager.newReceivable')}
               </DialogTitle>
             </DialogHeader>
-            <CreateForm form={receivableForm} setForm={setReceivableForm} onSubmit={handleCreateReceivable} type="receivable" />
+            <CreateForm
+              form={receivableForm}
+              setForm={setReceivableForm}
+              onSubmit={handleCreateReceivable}
+              type="receivable"
+            />
           </DialogContent>
         </Dialog>
 
@@ -837,7 +1101,8 @@ const DebtManagerPage = () => {
           <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-red-400 flex items-center gap-2">
-                <ArrowUpCircle className="w-5 h-5" />{t('debtManager.newPayable')}
+                <ArrowUpCircle className="w-5 h-5" />
+                {t('debtManager.newPayable')}
               </DialogTitle>
             </DialogHeader>
             <CreateForm form={payableForm} setForm={setPayableForm} onSubmit={handleCreatePayable} type="payable" />
@@ -849,44 +1114,74 @@ const DebtManagerPage = () => {
           <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-md">
             <DialogHeader>
               <DialogTitle className="text-orange-400 flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />{t('debtManager.recordPayment')}
+                <DollarSign className="w-5 h-5" />
+                {t('debtManager.recordPayment')}
               </DialogTitle>
             </DialogHeader>
             {showPayment && (
               <div className="space-y-4">
                 <div className="bg-gray-700/50 p-3 rounded-lg text-sm">
-                  <p className="text-gray-400">{showPayment.type === 'receivable' ? t('debtManager.debtor') : t('debtManager.creditor')}</p>
-                  <p className="text-white font-medium">{showPayment.record[showPayment.type === 'receivable' ? 'debtor_name' : 'creditor_name']}</p>
+                  <p className="text-gray-400">
+                    {showPayment.type === 'receivable' ? t('debtManager.debtor') : t('debtManager.creditor')}
+                  </p>
+                  <p className="text-white font-medium">
+                    {showPayment.record[showPayment.type === 'receivable' ? 'debtor_name' : 'creditor_name']}
+                  </p>
                   <p className="text-gray-400 mt-1">{t('debtManager.remaining')}</p>
-                  <p className="text-orange-400 font-medium">{formatAmount(parseFloat(showPayment.record.amount) - parseFloat(showPayment.record.amount_paid), showPayment.record.currency)}</p>
+                  <p className="text-orange-400 font-medium">
+                    {formatAmount(
+                      parseFloat(showPayment.record.amount) - parseFloat(showPayment.record.amount_paid),
+                      showPayment.record.currency
+                    )}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-gray-300">{t('debtManager.paymentAmount')} *</Label>
-                  <Input type="number" step="0.01" min="0"
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
                     max={parseFloat(showPayment.record.amount) - parseFloat(showPayment.record.amount_paid)}
                     value={paymentForm.amount}
-                    onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                    className="bg-gray-700 border-gray-600 text-white" placeholder="0.00" />
+                    onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                    className="bg-gray-700 border-gray-600 text-white"
+                    placeholder="0.00"
+                  />
                 </div>
                 <div>
                   <Label className="text-gray-300">{t('debtManager.paymentMethod')}</Label>
-                  <Select value={paymentForm.payment_method} onValueChange={v => setPaymentForm({ ...paymentForm, payment_method: v })}>
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white"><SelectValue placeholder={t('common.select', 'Select')} /></SelectTrigger>
+                  <Select
+                    value={paymentForm.payment_method}
+                    onValueChange={(v) => setPaymentForm({ ...paymentForm, payment_method: v })}
+                  >
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectValue placeholder={t('common.select', 'Select')} />
+                    </SelectTrigger>
                     <SelectContent className="bg-gray-700 border-gray-600">
                       {debtPaymentMethods.map((method) => (
-                        <SelectItem key={method.code} value={method.code} className="text-white">{getPaymentMethodLabel(method.code)}</SelectItem>
+                        <SelectItem key={method.code} value={method.code} className="text-white">
+                          {getPaymentMethodLabel(method.code)}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label className="text-gray-300">{t('debtManager.notes')}</Label>
-                  <Input value={paymentForm.notes} onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                    className="bg-gray-700 border-gray-600 text-white" placeholder={t('debtManager.notesPlaceholder')} />
+                  <Input
+                    value={paymentForm.notes}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                    className="bg-gray-700 border-gray-600 text-white"
+                    placeholder={t('debtManager.notesPlaceholder')}
+                  />
                 </div>
-                <Button onClick={handleAddPayment} disabled={!paymentForm.amount || !paymentForm.payment_method}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-                  <CheckCircle2 className="w-4 h-4 mr-2" />{t('debtManager.confirmPayment')}
+                <Button
+                  onClick={handleAddPayment}
+                  disabled={!paymentForm.amount || !paymentForm.payment_method}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  {t('debtManager.confirmPayment')}
                 </Button>
               </div>
             )}
@@ -898,27 +1193,34 @@ const DebtManagerPage = () => {
           <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-blue-400 flex items-center gap-2">
-                <Clock className="w-5 h-5" />{t('debtManager.paymentHistory')}
+                <Clock className="w-5 h-5" />
+                {t('debtManager.paymentHistory')}
               </DialogTitle>
             </DialogHeader>
             {showPayments && (
               <div className="space-y-3">
                 <div className="bg-gray-700/50 p-3 rounded-lg text-sm">
-                  <p className="text-white font-medium">{showPayments.record[showPayments.type === 'receivable' ? 'debtor_name' : 'creditor_name']}</p>
-                  <p className="text-gray-400">{formatAmount(showPayments.record.amount, showPayments.record.currency)}</p>
+                  <p className="text-white font-medium">
+                    {showPayments.record[showPayments.type === 'receivable' ? 'debtor_name' : 'creditor_name']}
+                  </p>
+                  <p className="text-gray-400">
+                    {formatAmount(showPayments.record.amount, showPayments.record.currency)}
+                  </p>
                 </div>
                 {paymentHistory.length === 0 ? (
                   <p className="text-gray-500 text-sm text-center py-4">{t('debtManager.noPayments')}</p>
-                ) : paymentHistory.map(p => (
-                  <div key={p.id} className="flex items-center justify-between bg-gray-700/30 p-3 rounded-lg">
-                    <div>
-                      <p className="text-sm text-white">{formatAmount(p.amount)}</p>
-                      <p className="text-xs text-gray-400">{getPaymentMethodLabel(p.payment_method)}</p>
-                      {p.notes && <p className="text-xs text-gray-500 mt-0.5">{p.notes}</p>}
+                ) : (
+                  paymentHistory.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between bg-gray-700/30 p-3 rounded-lg">
+                      <div>
+                        <p className="text-sm text-white">{formatAmount(p.amount)}</p>
+                        <p className="text-xs text-gray-400">{getPaymentMethodLabel(p.payment_method)}</p>
+                        {p.notes && <p className="text-xs text-gray-500 mt-0.5">{p.notes}</p>}
+                      </div>
+                      <span className="text-xs text-gray-400">{format(new Date(p.payment_date), 'dd/MM/yyyy')}</span>
                     </div>
-                    <span className="text-xs text-gray-400">{format(new Date(p.payment_date), 'dd/MM/yyyy')}</span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             )}
           </DialogContent>

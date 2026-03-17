@@ -304,9 +304,13 @@ export const useRegulatoryIntel = () => {
   useEffect(() => {
     if (user && activeCompanyId) {
       setLoading(true);
-      Promise.all([fetchUpdates(), fetchChecklists(), fetchSubscriptions(), fetchAvailableCountries()]).finally(() =>
-        setLoading(false)
-      );
+      Promise.allSettled([fetchUpdates(), fetchChecklists(), fetchSubscriptions(), fetchAvailableCountries()])
+        .then((results) => {
+          results.forEach((r, i) => {
+            if (r.status === 'rejected') console.error(`RegulatoryIntel initial fetch ${i} failed:`, r.reason);
+          });
+        })
+        .finally(() => setLoading(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, activeCompanyId]);

@@ -46,11 +46,17 @@ export function useEmployees() {
       employeesQuery = applyCompanyScope(employeesQuery);
       departmentsQuery = applyCompanyScope(departmentsQuery);
 
-      const [employeesResult, departmentsResult] = await Promise.all([employeesQuery, departmentsQuery]);
+      const _results = await Promise.allSettled([employeesQuery, departmentsQuery]);
 
-      const firstError = [employeesResult.error, departmentsResult.error].find(Boolean);
+      _results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`Employees fetch ${i} failed:`, r.reason);
+      });
 
-      if (firstError) throw firstError;
+      const employeesResult = _results[0].status === 'fulfilled' ? _results[0].value : { data: null, error: null };
+      const departmentsResult = _results[1].status === 'fulfilled' ? _results[1].value : { data: null, error: null };
+
+      if (employeesResult.error) console.error('Employees query error:', employeesResult.error);
+      if (departmentsResult.error) console.error('Departments query error:', departmentsResult.error);
 
       setEmployees(employeesResult.data || []);
       setDepartments(departmentsResult.data || []);

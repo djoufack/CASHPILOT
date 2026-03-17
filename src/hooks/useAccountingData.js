@@ -105,26 +105,7 @@ export const useAccountingData = (startDate, endDate) => {
         p_end_date: period.endDate,
       };
 
-      const [
-        invRes,
-        expRes,
-        supRes,
-        accRes,
-        mapRes,
-        taxRes,
-        entRes,
-        settingsRes,
-        tbRes,
-        cumTbRes,
-        isRes,
-        bsRes,
-        diagRes,
-        vatSumRes,
-        vatBkRes,
-        monthlyRes,
-        ledgerRes,
-        journalRes,
-      ] = await Promise.all([
+      const results = await Promise.allSettled([
         invoicesQuery,
         expensesQuery,
         (async () => {
@@ -168,6 +149,51 @@ export const useAccountingData = (startDate, endDate) => {
         supabase.rpc('f_general_ledger', rpcParams),
         supabase.rpc('f_journal_book', rpcParams),
       ]);
+
+      const queryLabels = [
+        'invoices',
+        'expenses',
+        'supplierInvoices',
+        'accounts',
+        'mappings',
+        'taxRates',
+        'entries',
+        'settings',
+        'trialBalance',
+        'cumulativeTrialBalance',
+        'incomeStatement',
+        'balanceSheet',
+        'diagnostic',
+        'vatSummary',
+        'vatBreakdown',
+        'monthlyData',
+        'generalLedger',
+        'journalBook',
+      ];
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`Accounting fetch "${queryLabels[i]}" failed:`, r.reason);
+      });
+
+      const val = (i) => (results[i].status === 'fulfilled' ? results[i].value : null);
+
+      const invRes = val(0);
+      const expRes = val(1);
+      const supRes = val(2);
+      const accRes = val(3);
+      const mapRes = val(4);
+      const taxRes = val(5);
+      const entRes = val(6);
+      const settingsRes = val(7);
+      const tbRes = val(8);
+      const cumTbRes = val(9);
+      const isRes = val(10);
+      const bsRes = val(11);
+      const diagRes = val(12);
+      const vatSumRes = val(13);
+      const vatBkRes = val(14);
+      const monthlyRes = val(15);
+      const ledgerRes = val(16);
+      const journalRes = val(17);
 
       setInvoices(invRes?.data ?? []);
       setExpenses(expRes?.data ?? []);
