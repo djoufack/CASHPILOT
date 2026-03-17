@@ -77,6 +77,172 @@ function addDays(dateString, days) {
   return value.toISOString().slice(0, 10);
 }
 
+function normalizeDateOnly(value) {
+  if (!value) return null;
+  return String(value).slice(0, 10);
+}
+
+function normalizeMemberName(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function buildProjectResourceAllocationRows({
+  userSeed,
+  userId,
+  teamMemberRows,
+  projectRows,
+  taskRows,
+  timesheetRows,
+}) {
+  const projectsById = new Map((projectRows || []).map((project) => [project.id, project]));
+  const membersById = new Map((teamMemberRows || []).map((member) => [member.id, member]));
+  const memberIdsByName = new Map();
+
+  for (const member of teamMemberRows || []) {
+    if (!member?.id) continue;
+    const normalizedName = normalizeMemberName(member.name);
+    if (!normalizedName) continue;
+    if (!memberIdsByName.has(normalizedName)) {
+      memberIdsByName.set(normalizedName, []);
+    }
+    memberIdsByName.get(normalizedName).push(member.id);
+  }
+
+  const taskById = new Map((taskRows || []).map((task) => [task.id, task]));
+  const allocationsByKey = new Map();
+
+  const ensureAggregate = (projectId, memberId) => {
+    if (!projectId || !memberId) return null;
+    const project = projectsById.get(projectId);
+    if (!project) return null;
+    const member = membersById.get(memberId);
+    const projectCompanyId = project.company_id || null;
+    const memberCompanyId = member?.company_id || null;
+    if (projectCompanyId && memberCompanyId && projectCompanyId !== memberCompanyId) {
+      return null;
+    }
+    const key = `${projectId}|${memberId}`;
+    if (!allocationsByKey.has(key)) {
+      allocationsByKey.set(key, {
+        projectId,
+        memberId,
+        companyId: projectCompanyId || memberCompanyId || null,
+        plannedHours: 0,
+        actualHours: 0,
+        hourlyRateTotal: 0,
+        hourlyRateCount: 0,
+        statuses: new Set(),
+        startDates: [],
+        endDates: [],
+      });
+    }
+    return allocationsByKey.get(key);
+  };
+
+  for (const task of taskRows || []) {
+    if (!task?.project_id) continue;
+    let memberId = task.assigned_member_id || null;
+    if (!memberId && task.assigned_to) {
+      const candidates = memberIdsByName.get(normalizeMemberName(task.assigned_to)) || [];
+      memberId = candidates[0] || null;
+    }
+    if (!memberId) continue;
+
+    const aggregate = ensureAggregate(task.project_id, memberId);
+    if (!aggregate) continue;
+
+    aggregate.plannedHours += Number(task.estimated_hours || 0);
+    if (task.status) {
+      aggregate.statuses.add(String(task.status));
+    }
+
+    const startDate = normalizeDateOnly(task.start_date || task.started_at);
+    const endDate = normalizeDateOnly(task.end_date || task.completed_at || task.due_date);
+    if (startDate) aggregate.startDates.push(startDate);
+    if (endDate) aggregate.endDates.push(endDate);
+  }
+
+  for (const timesheet of timesheetRows || []) {
+    if (!timesheet?.project_id) continue;
+    let memberId = timesheet.executed_by_member_id || null;
+    if (!memberId && timesheet.task_id) {
+      const linkedTask = taskById.get(timesheet.task_id);
+      memberId = linkedTask?.assigned_member_id || null;
+    }
+    if (!memberId) continue;
+
+    const aggregate = ensureAggregate(timesheet.project_id, memberId);
+    if (!aggregate) continue;
+
+    aggregate.actualHours += Number(timesheet.duration_minutes || 0) / 60;
+    if (Number(timesheet.hourly_rate || 0) > 0) {
+      aggregate.hourlyRateTotal += Number(timesheet.hourly_rate);
+      aggregate.hourlyRateCount += 1;
+    }
+    if (timesheet.status) {
+      aggregate.statuses.add(String(timesheet.status));
+    }
+
+    const day = normalizeDateOnly(timesheet.date);
+    if (day) {
+      aggregate.startDates.push(day);
+      aggregate.endDates.push(day);
+    }
+  }
+
+  const rows = [];
+  for (const aggregate of allocationsByKey.values()) {
+    if (!aggregate.companyId) continue;
+    const plannedQuantity = roundAmount(Math.max(aggregate.plannedHours, aggregate.actualHours));
+    const actualQuantity = roundAmount(aggregate.actualHours);
+    const averageRate = aggregate.hourlyRateCount > 0
+      ? (aggregate.hourlyRateTotal / aggregate.hourlyRateCount)
+      : 120;
+    const plannedCost = roundAmount(plannedQuantity * averageRate);
+    const actualCost = roundAmount(actualQuantity * averageRate);
+
+    let status = 'planned';
+    if (actualQuantity > 0) {
+      const hasInProgress = aggregate.statuses.has('in_progress') || aggregate.statuses.has('submitted');
+      const hasPending = aggregate.statuses.has('pending') || aggregate.statuses.has('on_hold');
+      status = hasInProgress || hasPending ? 'active' : 'completed';
+    }
+
+    const startDate = aggregate.startDates.length
+      ? [...aggregate.startDates].sort()[0]
+      : null;
+    const endDate = aggregate.endDates.length
+      ? [...aggregate.endDates].sort().slice(-1)[0]
+      : null;
+    const member = membersById.get(aggregate.memberId);
+
+    rows.push({
+      id: uuidFromSeed(`${userSeed}:project-resource-allocation:${aggregate.projectId}:${aggregate.memberId}`),
+      user_id: userId,
+      company_id: aggregate.companyId,
+      project_id: aggregate.projectId,
+      resource_type: 'human',
+      resource_origin: 'internal',
+      team_member_id: aggregate.memberId,
+      supplier_id: null,
+      resource_name: member?.name || `Ressource ${String(aggregate.memberId).slice(0, 8)}`,
+      unit: 'hour',
+      planned_quantity: plannedQuantity,
+      actual_quantity: actualQuantity,
+      planned_cost: plannedCost,
+      actual_cost: actualCost,
+      start_date: startDate,
+      end_date: endDate,
+      status,
+      notes: 'Seeded automatically from project tasks and timesheets',
+      created_at: `${startDate || isoDate(CURRENT_YEAR, 1, 10)}T09:00:00Z`,
+      updated_at: `${endDate || startDate || isoDate(CURRENT_YEAR, 1, 10)}T09:05:00Z`,
+    });
+  }
+
+  return rows;
+}
+
 function ensureMinimumConfigRecords(config, minimum = 7) {
   const nextConfig = {
     ...config,
@@ -1595,6 +1761,7 @@ function buildDataset(config) {
     productStockHistoryRows: extendedDataset.productStockHistoryRows,
     stockAlertRows: extendedDataset.stockAlertRows,
     teamMemberRows: extendedDataset.teamMemberRows,
+    projectResourceAllocationRows: extendedDataset.projectResourceAllocationRows || [],
     notificationPreferencesRow: extendedDataset.notificationPreferencesRow,
     notificationRows: extendedDataset.notificationRows,
     webhookRows: extendedDataset.webhookRows,
@@ -1699,6 +1866,31 @@ function buildEnhancedDataset(config) {
     start_date: row.start_date || isoDate(CURRENT_YEAR, 1 + index, 8),
     end_date: row.end_date || addDays(isoDate(CURRENT_YEAR, 1 + index, 8), index === 0 ? 68 : 54),
   }));
+  const primaryTeamMemberRows = (base.teamMemberRows || []).map((row) => ({
+    ...row,
+    company_id: primaryCompanyId,
+  }));
+  const teamMemberIdsByName = new Map();
+  for (const member of primaryTeamMemberRows) {
+    if (!member?.id) continue;
+    const normalizedName = normalizeMemberName(member.name);
+    if (!normalizedName) continue;
+    if (!teamMemberIdsByName.has(normalizedName)) {
+      teamMemberIdsByName.set(normalizedName, []);
+    }
+    teamMemberIdsByName.get(normalizedName).push(member.id);
+  }
+  const fallbackTeamMemberIds = primaryTeamMemberRows.map((member) => member.id).filter(Boolean);
+  const resolveTeamMemberId = (assignedTo, index = 0) => {
+    const candidateIds = teamMemberIdsByName.get(normalizeMemberName(assignedTo)) || [];
+    if (candidateIds.length > 0) {
+      return candidateIds[index % candidateIds.length];
+    }
+    if (fallbackTeamMemberIds.length > 0) {
+      return fallbackTeamMemberIds[index % fallbackTeamMemberIds.length];
+    }
+    return null;
+  };
 
   const primaryTaskRowsBase = base.taskRows.map((row, index) => {
     const projectIndex = index < 2 ? 0 : 1;
@@ -1708,6 +1900,7 @@ function buildEnhancedDataset(config) {
     return {
       ...row,
       company_id: primaryCompanyId,
+      assigned_member_id: row.assigned_member_id || resolveTeamMemberId(row.assigned_to, index),
       start_date: startDate,
       end_date: endDate,
       depends_on: [],
@@ -1725,10 +1918,15 @@ function buildEnhancedDataset(config) {
 
     return row;
   });
+  const primaryTaskMemberByTaskId = new Map(primaryTaskRows.map((task) => [task.id, task.assigned_member_id || null]));
 
-  const primaryTimesheetRows = base.timesheetRows.map((row) => ({
+  const primaryTimesheetRows = base.timesheetRows.map((row, index) => ({
     ...row,
     company_id: primaryCompanyId,
+    executed_by_member_id:
+      row.executed_by_member_id
+      || primaryTaskMemberByTaskId.get(row.task_id)
+      || resolveTeamMemberId(null, index),
   }));
   const primaryPurchaseOrderRows = base.purchaseOrderRows.map((row) => ({
     ...row,
@@ -2161,6 +2359,7 @@ function buildEnhancedDataset(config) {
       service_id: null,
       company_id: secondaryCompanyId,
       assigned_to: base.teamMemberRows[0]?.name || 'CashPilot Demo Ops',
+      assigned_member_id: resolveTeamMemberId(base.teamMemberRows[0]?.name || 'CashPilot Demo Ops', 0),
       name: 'Preparer la consolidation multi-societes',
       title: 'Preparer la consolidation multi-societes',
       description: 'Task demo for company portfolio coverage',
@@ -2187,6 +2386,7 @@ function buildEnhancedDataset(config) {
       service_id: null,
       company_id: secondaryCompanyId,
       assigned_to: base.teamMemberRows[1]?.name || 'CashPilot Demo Finance',
+      assigned_member_id: resolveTeamMemberId(base.teamMemberRows[1]?.name || 'CashPilot Demo Finance', 1),
       name: 'Valider le reporting portefeuille',
       title: 'Valider le reporting portefeuille',
       description: 'Second gantt task for multi-company demo',
@@ -2233,6 +2433,7 @@ function buildEnhancedDataset(config) {
     client_id: secondaryClientRow.id,
     project_id: secondaryProjectRow.id,
     task_id: secondaryTaskRows[0].id,
+    executed_by_member_id: secondaryTaskRows[0].assigned_member_id || resolveTeamMemberId(secondaryTaskRows[0].assigned_to, 0),
     service_id: null,
     invoice_id: secondaryInvoiceRow.id,
     date: isoDate(CURRENT_YEAR, 2, 18),
@@ -2711,6 +2912,7 @@ function buildEnhancedDataset(config) {
         service_id: null,
         company_id: companyRow.id,
         assigned_to: base.teamMemberRows[0]?.name || 'CashPilot Demo Ops',
+        assigned_member_id: resolveTeamMemberId(base.teamMemberRows[0]?.name || 'CashPilot Demo Ops', index),
         name: `Préparer la consolidation ${index + 2}`,
         title: `Préparer la consolidation ${index + 2}`,
         description: `Task demo portfolio ${index + 2}`,
@@ -2737,6 +2939,7 @@ function buildEnhancedDataset(config) {
         service_id: null,
         company_id: companyRow.id,
         assigned_to: base.teamMemberRows[1]?.name || 'CashPilot Demo Finance',
+        assigned_member_id: resolveTeamMemberId(base.teamMemberRows[1]?.name || 'CashPilot Demo Finance', index + 1),
         name: `Valider le reporting ${index + 2}`,
         title: `Valider le reporting ${index + 2}`,
         description: `Second gantt task portfolio ${index + 2}`,
@@ -2783,6 +2986,7 @@ function buildEnhancedDataset(config) {
       client_id: clientRow.id,
       project_id: projectRow.id,
       task_id: taskRows[0].id,
+      executed_by_member_id: taskRows[0].assigned_member_id || resolveTeamMemberId(taskRows[0].assigned_to, index),
       service_id: null,
       invoice_id: invoiceRow.id,
       date: addDays(invoiceDate, 4),
@@ -3407,6 +3611,27 @@ function buildEnhancedDataset(config) {
     });
   });
 
+  const allTaskRows = [
+    ...primaryTaskRows,
+    ...secondaryTaskRows,
+    ...portfolioCompanyDatasets.flatMap((dataset) => dataset.taskRows),
+    ...clonedCompanyDatasets.flatMap((dataset) => dataset.taskRows),
+  ];
+  const allTimesheetRows = [
+    ...primaryTimesheetRows,
+    secondaryTimesheetRow,
+    ...portfolioCompanyDatasets.map((dataset) => dataset.timesheetRow),
+    ...clonedCompanyDatasets.flatMap((dataset) => dataset.timesheetRows),
+  ];
+  const projectResourceAllocationRows = buildProjectResourceAllocationRows({
+    userSeed,
+    userId: base.userId,
+    teamMemberRows: primaryTeamMemberRows,
+    projectRows: allProjectRows,
+    taskRows: allTaskRows,
+    timesheetRows: allTimesheetRows,
+  });
+
   return {
     ...base,
     companyRows,
@@ -3437,9 +3662,11 @@ function buildEnhancedDataset(config) {
     supplierInvoiceRows: [...primarySupplierInvoiceRows, secondarySupplierInvoiceRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierInvoiceRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierInvoiceRows)],
     supplierInvoiceLineItemRows: [...base.supplierInvoiceLineItemRows, secondarySupplierInvoiceLineItemRow, ...portfolioCompanyDatasets.map((dataset) => dataset.supplierInvoiceLineItemRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.supplierInvoiceLineItemRows)],
     projectRows: allProjectRows,
-    taskRows: [...primaryTaskRows, ...secondaryTaskRows, ...portfolioCompanyDatasets.flatMap((dataset) => dataset.taskRows), ...clonedCompanyDatasets.flatMap((dataset) => dataset.taskRows)],
+    taskRows: allTaskRows,
     subtaskRows: [...base.subtaskRows, ...secondarySubtaskRows, ...portfolioCompanyDatasets.flatMap((dataset) => dataset.subtaskRows), ...clonedCompanyDatasets.flatMap((dataset) => dataset.subtaskRows)],
-    timesheetRows: [...primaryTimesheetRows, secondaryTimesheetRow, ...portfolioCompanyDatasets.map((dataset) => dataset.timesheetRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.timesheetRows)],
+    timesheetRows: allTimesheetRows,
+    teamMemberRows: primaryTeamMemberRows,
+    projectResourceAllocationRows,
     creditNoteRows: [...primaryCreditNoteRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.creditNoteRows)],
     creditNoteItemRows: [...base.creditNoteItemRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.creditNoteItemRows)],
     deliveryNoteRows: [...primaryDeliveryNoteRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.deliveryNoteRows)],
@@ -3742,6 +3969,8 @@ async function cleanupDemoDataset(client, dataset) {
   await deleteRowsByValues(client, 'payment_allocations', 'invoice_id', invoiceIds);
   await deleteRowsByValues(client, 'invoice_items', 'invoice_id', invoiceIds);
   await deleteRowsByValues(client, 'subtasks', 'task_id', taskIds);
+  await deleteRows(client, 'team_member_compensations', 'user_id', dataset.userId, { allowMissingTable: true });
+  await deleteRows(client, 'project_resource_allocations', 'user_id', dataset.userId, { allowMissingTable: true });
   await deleteRows(client, 'payments', 'user_id', dataset.userId);
   await deleteRows(client, 'timesheets', 'user_id', dataset.userId);
   await deleteRowsByValues(client, 'tasks', 'id', taskIds);
@@ -3833,6 +4062,8 @@ async function cleanupDemoDataset(client, dataset) {
     'accounting_depreciation_schedule',
     'accounting_fixed_assets',
     'accounting_entries',
+    'project_resource_allocations',
+    'team_member_compensations',
     'dashboard_snapshots',
     'financial_scenarios',
     'scenario_comparisons',
@@ -4119,6 +4350,98 @@ async function adaptDatasetForExistingCompanies(client, dataset) {
   return remapCompanyScopedDataset(dataset, companyIdMap, existingCompanyRows, activeCompanyId);
 }
 
+async function ensureDefaultPortfolioMembership(client, dataset) {
+  const userId = dataset?.userId;
+  const companies = (dataset?.companyRows || [dataset?.companyRow]).filter((row) => row?.id);
+  if (!userId || !companies.length) {
+    return null;
+  }
+
+  const companyIds = toUniqueIds(companies.map((row) => row.id));
+  const fallbackCurrency = String(companies[0]?.currency || 'EUR').toUpperCase().slice(0, 3) || 'EUR';
+
+  const { data: defaultPortfolioRows, error: defaultPortfolioError } = await client
+    .from('company_portfolios')
+    .select('id, is_active')
+    .eq('user_id', userId)
+    .eq('is_default', true)
+    .order('created_at', { ascending: true })
+    .limit(1);
+
+  if (defaultPortfolioError) {
+    const message = String(defaultPortfolioError.message || '');
+    if (isMissingTableError(message, 'company_portfolios')) {
+      return null;
+    }
+    throw new Error(`Failed to load default portfolio: ${defaultPortfolioError.message}`);
+  }
+
+  let defaultPortfolio = defaultPortfolioRows?.[0] || null;
+  if (!defaultPortfolio) {
+    const { data: createdPortfolio, error: createPortfolioError } = await client
+      .from('company_portfolios')
+      .insert({
+        user_id: userId,
+        portfolio_name: 'Portfolio principal',
+        description: 'Portefeuille genere automatiquement',
+        base_currency: fallbackCurrency,
+        is_default: true,
+        is_active: true,
+      })
+      .select('id, is_active')
+      .single();
+
+    if (createPortfolioError) {
+      throw new Error(`Failed to create default portfolio: ${createPortfolioError.message}`);
+    }
+    defaultPortfolio = createdPortfolio;
+  }
+
+  if (defaultPortfolio?.id && defaultPortfolio?.is_active === false) {
+    const { error: activatePortfolioError } = await client
+      .from('company_portfolios')
+      .update({ is_active: true })
+      .eq('id', defaultPortfolio.id);
+    if (activatePortfolioError) {
+      throw new Error(`Failed to activate default portfolio: ${activatePortfolioError.message}`);
+    }
+  }
+
+  if (!defaultPortfolio?.id) {
+    return null;
+  }
+
+  const { error: companyLinkError } = await client
+    .from('company')
+    .update({ portfolio_id: defaultPortfolio.id })
+    .eq('user_id', userId)
+    .in('id', companyIds);
+  if (companyLinkError) {
+    const message = String(companyLinkError.message || '');
+    if (!isMissingColumnError(message, 'portfolio_id')) {
+      throw new Error(`Failed to assign portfolio_id on company rows: ${companyLinkError.message}`);
+    }
+  }
+
+  const memberRows = companyIds.map((companyId, index) => ({
+    id: uuidFromSeed(`${dataset.userSeed}:portfolio-member:${defaultPortfolio.id}:${companyId}:${String(index + 1).padStart(3, '0')}`),
+    portfolio_id: defaultPortfolio.id,
+    company_id: companyId,
+    user_id: userId,
+  }));
+
+  try {
+    await upsertRows(client, 'company_portfolio_members', memberRows, 'portfolio_id,company_id');
+  } catch (error) {
+    const message = String(error?.message || '');
+    if (!isMissingTableError(message, 'company_portfolio_members')) {
+      throw error;
+    }
+  }
+
+  return defaultPortfolio.id;
+}
+
 async function ensureCompanyThresholdRows(client, dataset, minimum = 7) {
   const userId = dataset.userId;
   const companies = (dataset.companyRows || [dataset.companyRow]).filter((row) => row?.id);
@@ -4251,6 +4574,7 @@ async function applyDataset(client, dataset, options) {
   if (!options.preserveCompanies) {
     await upsertRows(client, 'company', effectiveDataset.companyRows || [effectiveDataset.companyRow], 'id');
   }
+  await ensureDefaultPortfolioMembership(client, effectiveDataset);
   await upsertRows(client, 'user_company_preferences', [effectiveDataset.userCompanyPreferenceRow], 'user_id');
   await upsertRows(client, 'user_roles', [effectiveDataset.userRoleRow], 'user_id');
   await upsertRows(client, 'user_accounting_settings', [effectiveDataset.settingsRow], 'user_id');
@@ -4281,6 +4605,41 @@ async function applyDataset(client, dataset, options) {
     ...row,
     company_id: row.company_id || fallbackTeamCompanyId,
   }));
+  const memberCompanyById = new Map(normalizedTeamMemberRows.map((row) => [row.id, row.company_id || null]));
+  const projectCompanyById = new Map((effectiveDataset.projectRows || []).map((project) => [project.id, project.company_id || null]));
+  const normalizedTaskRows = (effectiveDataset.taskRows || []).map((row) => {
+    const candidateMemberId = row.assigned_member_id || null;
+    const memberCompanyId = candidateMemberId ? memberCompanyById.get(candidateMemberId) : null;
+    const taskCompanyId = row.company_id || projectCompanyById.get(row.project_id) || null;
+    const canAssignMember = !candidateMemberId || !memberCompanyId || !taskCompanyId || memberCompanyId === taskCompanyId;
+
+    return {
+      ...row,
+      assigned_member_id: canAssignMember ? candidateMemberId : null,
+    };
+  });
+  const taskMemberById = new Map(normalizedTaskRows.map((row) => [row.id, row.assigned_member_id || null]));
+  const normalizedTimesheetRows = (effectiveDataset.timesheetRows || []).map((row, index) => {
+    const rawMemberId =
+      row.executed_by_member_id
+      || taskMemberById.get(row.task_id)
+      || normalizedTeamMemberRows[index % Math.max(normalizedTeamMemberRows.length, 1)]?.id
+      || null;
+    const memberCompanyId = rawMemberId ? memberCompanyById.get(rawMemberId) : null;
+    const timesheetCompanyId = row.company_id || projectCompanyById.get(row.project_id) || null;
+    const canAssignMember = !rawMemberId || !memberCompanyId || !timesheetCompanyId || memberCompanyId === timesheetCompanyId;
+
+    return {
+      ...row,
+      executed_by_member_id: canAssignMember ? rawMemberId : null,
+    };
+  });
+  const normalizedProjectResourceAllocationRows = (effectiveDataset.projectResourceAllocationRows || []).map((row) => ({
+    ...row,
+    user_id: row.user_id || effectiveDataset.userId,
+    company_id: row.company_id || projectCompanyById.get(row.project_id) || fallbackTeamCompanyId,
+    resource_origin: row.resource_origin || 'internal',
+  })).filter((row) => row.company_id && row.project_id);
   await upsertRows(client, 'team_members', normalizedTeamMemberRows, 'id');
   await upsertRows(client, 'invoices', effectiveDataset.invoiceRows, 'id');
   await upsertRows(client, 'invoice_items', effectiveDataset.invoiceItemRows, 'id');
@@ -4299,9 +4658,19 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'supplier_order_items', effectiveDataset.supplierOrderItemRows, 'id');
   await upsertRows(client, 'supplier_invoices', effectiveDataset.supplierInvoiceRows, 'id');
   await upsertRows(client, 'supplier_invoice_line_items', effectiveDataset.supplierInvoiceLineItemRows, 'id');
-  await upsertRows(client, 'tasks', effectiveDataset.taskRows, 'id');
+  await upsertRows(client, 'tasks', normalizedTaskRows, 'id');
   await upsertRows(client, 'subtasks', effectiveDataset.subtaskRows, 'id');
-  await upsertRows(client, 'timesheets', effectiveDataset.timesheetRows, 'id');
+  await upsertRows(client, 'timesheets', normalizedTimesheetRows, 'id');
+  if (normalizedProjectResourceAllocationRows.length) {
+    try {
+      await upsertRows(client, 'project_resource_allocations', normalizedProjectResourceAllocationRows, 'id');
+    } catch (error) {
+      const message = String(error?.message || '');
+      if (!isMissingTableError(message, 'project_resource_allocations')) {
+        throw error;
+      }
+    }
+  }
   await upsertRows(client, 'credit_notes', effectiveDataset.creditNoteRows, 'id');
   await upsertRows(client, 'credit_note_items', effectiveDataset.creditNoteItemRows, 'id');
   await upsertRows(client, 'delivery_notes', effectiveDataset.deliveryNoteRows, 'id');
