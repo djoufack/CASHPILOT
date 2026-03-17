@@ -33,28 +33,31 @@ tmp_generated_tool_names.txt
 AGENTS.md
 
 # ---- Non-runtime directories (docs, plans, archives) ----
-Agents SaaS/
-Analyse Comptable Et Financière/
-Audit/
-Bank Connection/
-CashPilot Presentation/
-Context/
-Demo/
-Exigences CashPilot/
-Fonctionnalités/
-Gestion Ressources Humaines Et Matérielles/
-KIMI K2.5 - CASHPILOT/
-Landing Page Infos/
-Payments/
-Peppol/
-Plans-Implémentation/
-Plugin CashPilot/
-Pricing/
-System-State/
-task-to-do/
-Tests/
-Updates/
-Vérification Implémentations/
+# Anchored with / to avoid matching src/components/peppol/ etc.
+/Agents SaaS/
+/Analyse Comptable Et Financière/
+/Analyse Stratégique/
+/Audit/
+/Bank Connection/
+/CashPilot Presentation/
+/Context/
+/Demo/
+/Exigences CashPilot/
+/Fonctionnalités/
+/Gestion Ressources Humaines Et Matérielles/
+/KIMI K2.5 - CASHPILOT/
+/Landing Page Infos/
+/Payments/
+/Peppol/
+/Plans-Implémentation/
+/Plugin CashPilot/
+/Pricing/
+/System-State/
+/task-to-do/
+/Tests/
+/Updates/
+/Vérification Implémentations/
+/docs/
 
 # ---- Backend / SQL (deployed separately via Supabase) ----
 mcp-server/
