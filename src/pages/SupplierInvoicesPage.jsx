@@ -624,7 +624,7 @@ const SupplierInvoicesPage = () => {
               </p>
             </div>
           </div>
-          <Button onClick={handleNewInvoice} className="w-full md:w-auto bg-orange-500 hover:bg-orange-600 text-white">
+          <Button variant="upload3d" onClick={handleNewInvoice} className="w-full md:w-auto font-semibold">
             <Plus className="mr-2 h-4 w-4" />
             {t('supplierInvoices.newInvoice', 'Nouvelle facture')}
           </Button>
@@ -786,11 +786,7 @@ const SupplierInvoicesPage = () => {
                 'Ajoutez votre premiere facture fournisseur pour commencer le suivi.'
               )}
             </p>
-            <Button
-              onClick={handleNewInvoice}
-              variant="outline"
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
-            >
+            <Button onClick={handleNewInvoice} variant="upload3d" className="font-semibold">
               <Plus className="w-4 h-4 mr-2" />
               {t('supplierInvoices.newInvoice', 'Nouvelle facture')}
             </Button>

@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useInvoiceUpload } from '@/hooks/useInvoiceUpload';
 import { useInvoiceExtraction } from '@/hooks/useInvoiceExtraction';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
@@ -17,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { formatDateInput } from '@/utils/dateFormatting';
 
-const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) => {
+const UploadInvoiceModal = ({ isOpen, onClose, supplierId: _supplierId, onUploadSuccess }) => {
   const { loading, progress, error } = useInvoiceUpload();
   const { extractInvoice, extracting, extractedData, clearExtraction } = useInvoiceExtraction();
   const { guardedAction } = useCreditsGuard();
@@ -32,11 +31,16 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
     due_date: '',
     total_amount: '',
     vat_rate: '20',
-    payment_status: 'pending'
+    payment_status: 'pending',
   });
   const [advancedData, setAdvancedData] = useState({
-    total_ht: '', total_tva: '', currency: 'EUR',
-    supplier_vat_number: '', payment_terms: '', iban: '', bic: ''
+    total_ht: '',
+    total_tva: '',
+    currency: 'EUR',
+    supplier_vat_number: '',
+    payment_terms: '',
+    iban: '',
+    bic: '',
   });
   const [lineItems, setLineItems] = useState([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -91,37 +95,33 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
       if (uploadError) throw uploadError;
       setUploadedFilePath(filePath);
 
-      await guardedAction(
-        CREDIT_COSTS.AI_INVOICE_EXTRACTION,
-        t('invoiceExtraction.extractWithAI'),
-        async () => {
-          const accessToken = session?.access_token;
-          const data = await extractInvoice(filePath, file.type, user.id, accessToken);
-          if (data) {
-            setFormData({
-              invoice_number: data.invoice_number || '',
-              invoice_date: data.invoice_date || formatDateInput(),
-              due_date: data.due_date || '',
-              total_amount: data.total_ttc?.toString() || '',
-              vat_rate: data.tva_rate?.toString() || '20',
-              payment_status: 'pending',
-            });
-            setAdvancedData({
-              total_ht: data.total_ht?.toString() || '',
-              total_tva: data.total_tva?.toString() || '',
-              currency: data.currency || 'EUR',
-              supplier_vat_number: data.supplier_vat_number || '',
-              payment_terms: data.payment_terms || '',
-              iban: data.iban || '',
-              bic: data.bic || '',
-            });
-            if (data.line_items?.length) {
-              setLineItems(data.line_items);
-              setShowAdvanced(true);
-            }
+      await guardedAction(CREDIT_COSTS.AI_INVOICE_EXTRACTION, t('invoiceExtraction.extractWithAI'), async () => {
+        const accessToken = session?.access_token;
+        const data = await extractInvoice(filePath, file.type, user.id, accessToken);
+        if (data) {
+          setFormData({
+            invoice_number: data.invoice_number || '',
+            invoice_date: data.invoice_date || formatDateInput(),
+            due_date: data.due_date || '',
+            total_amount: data.total_ttc?.toString() || '',
+            vat_rate: data.tva_rate?.toString() || '20',
+            payment_status: 'pending',
+          });
+          setAdvancedData({
+            total_ht: data.total_ht?.toString() || '',
+            total_tva: data.total_tva?.toString() || '',
+            currency: data.currency || 'EUR',
+            supplier_vat_number: data.supplier_vat_number || '',
+            payment_terms: data.payment_terms || '',
+            iban: data.iban || '',
+            bic: data.bic || '',
+          });
+          if (data.line_items?.length) {
+            setLineItems(data.line_items);
+            setShowAdvanced(true);
           }
         }
-      );
+      });
     } catch (err) {
       console.error('Extract error:', err);
     }
@@ -135,13 +135,14 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
     if (!file) missingFields.push(t('invoices.file', 'Fichier'));
     if (!formData.invoice_number?.trim()) missingFields.push(t('invoices.number', 'Numéro de facture'));
     if (!formData.invoice_date) missingFields.push(t('invoices.date', 'Date de facture'));
-    if (!formData.total_amount || Number(formData.total_amount) <= 0) missingFields.push(t('invoices.totalAmount', 'Montant total'));
+    if (!formData.total_amount || Number(formData.total_amount) <= 0)
+      missingFields.push(t('invoices.totalAmount', 'Montant total'));
 
     if (missingFields.length > 0) {
       toast({
         title: t('validation.missingFields', 'Champs obligatoires manquants'),
         description: `${t('validation.pleaseComplete', 'Veuillez remplir')} : ${missingFields.join(', ')}`,
-        variant: "destructive"
+        variant: 'destructive',
       });
       return;
     }
@@ -190,11 +191,16 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
       due_date: '',
       total_amount: '',
       vat_rate: '20',
-      payment_status: 'pending'
+      payment_status: 'pending',
     });
     setAdvancedData({
-      total_ht: '', total_tva: '', currency: 'EUR',
-      supplier_vat_number: '', payment_terms: '', iban: '', bic: ''
+      total_ht: '',
+      total_tva: '',
+      currency: 'EUR',
+      supplier_vat_number: '',
+      payment_terms: '',
+      iban: '',
+      bic: '',
     });
     setLineItems([]);
     setShowAdvanced(false);
@@ -222,14 +228,27 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
             {file ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {isImage ? <Image className="h-8 w-8 text-green-500" /> : <FileText className="h-8 w-8 text-green-500" />}
+                  {isImage ? (
+                    <Image className="h-8 w-8 text-green-500" />
+                  ) : (
+                    <FileText className="h-8 w-8 text-green-500" />
+                  )}
                   <div className="text-left">
                     <p className="font-medium text-white">{file.name}</p>
                     <p className="text-xs text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                   </div>
                 </div>
-                <Button type="button" variant="ghost" size="sm" onClick={() => { setFile(null); clearExtraction(); setLineItems([]); }}
-                  className="text-gray-400 hover:text-red-400">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setFile(null);
+                    clearExtraction();
+                    setLineItems([]);
+                  }}
+                  className="text-gray-400 hover:text-red-400"
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -239,8 +258,15 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
                 <p className="text-sm text-gray-300">{t('invoiceExtraction.dropzone')}</p>
                 <p className="text-xs text-gray-500">{t('common.or')}</p>
                 <label className="cursor-pointer">
-                  <span className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700 transition">{t('invoiceExtraction.browseFiles')}</span>
-                  <input type="file" className="hidden" accept="application/pdf,image/jpeg,image/png" onChange={handleFileChange} />
+                  <span className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700 transition">
+                    {t('invoiceExtraction.browseFiles')}
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="application/pdf,image/jpeg,image/png"
+                    onChange={handleFileChange}
+                  />
                 </label>
                 <p className="text-xs text-gray-500 mt-2">{t('invoiceExtraction.supportedFormats')}</p>
               </div>
@@ -252,7 +278,9 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
             <Button type="button" onClick={handleExtract} className="w-full bg-purple-600 hover:bg-purple-700">
               <Sparkles className="h-4 w-4 mr-2" />
               {t('invoiceExtraction.extractWithAI')}
-              <span className="ml-2 text-xs opacity-70">({CREDIT_COSTS.AI_INVOICE_EXTRACTION} {t('invoiceExtraction.creditsCost')})</span>
+              <span className="ml-2 text-xs opacity-70">
+                ({CREDIT_COSTS.AI_INVOICE_EXTRACTION} {t('invoiceExtraction.creditsCost')})
+              </span>
             </Button>
           )}
 
@@ -268,7 +296,11 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
           {extractedData && (
             <div className="flex items-center gap-2 text-sm">
               <Badge className={confidence > 0.8 ? 'bg-green-600' : confidence > 0.5 ? 'bg-yellow-600' : 'bg-red-600'}>
-                {confidence > 0.8 ? t('invoiceExtraction.confidenceHigh') : confidence > 0.5 ? t('invoiceExtraction.confidenceMedium') : t('invoiceExtraction.confidenceLow')}
+                {confidence > 0.8
+                  ? t('invoiceExtraction.confidenceHigh')
+                  : confidence > 0.5
+                    ? t('invoiceExtraction.confidenceMedium')
+                    : t('invoiceExtraction.confidenceLow')}
               </Badge>
               <span className="text-gray-400 text-xs">{t('invoiceExtraction.reviewData')}</span>
             </div>
@@ -278,13 +310,22 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{t('supplierInvoices.invoiceNumber')}</Label>
-              <Input value={formData.invoice_number} onChange={(e) => setFormData({...formData, invoice_number: e.target.value})}
-                required className={`bg-gray-700 border-gray-600 ${extractedData ? 'border-purple-500/50' : ''}`} />
+              <Input
+                value={formData.invoice_number}
+                onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
+                required
+                className={`bg-gray-700 border-gray-600 ${extractedData ? 'border-purple-500/50' : ''}`}
+              />
             </div>
             <div className="space-y-2">
               <Label>{t('supplierInvoices.status')}</Label>
-              <Select value={formData.payment_status} onValueChange={(val) => setFormData({...formData, payment_status: val})}>
-                <SelectTrigger className="bg-gray-700 border-gray-600"><SelectValue /></SelectTrigger>
+              <Select
+                value={formData.payment_status}
+                onValueChange={(val) => setFormData({ ...formData, payment_status: val })}
+              >
+                <SelectTrigger className="bg-gray-700 border-gray-600">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700 text-white">
                   <SelectItem value="pending">{t('supplierInvoices.statusPending')}</SelectItem>
                   <SelectItem value="paid">{t('supplierInvoices.statusPaid')}</SelectItem>
@@ -297,24 +338,42 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>{t('supplierInvoices.date')}</Label>
-              <Input type="date" value={formData.invoice_date} onChange={(e) => setFormData({...formData, invoice_date: e.target.value})}
-                required className={`bg-gray-700 border-gray-600 ${extractedData ? 'border-purple-500/50' : ''}`} />
+              <Input
+                type="date"
+                value={formData.invoice_date}
+                onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
+                required
+                className={`bg-gray-700 border-gray-600 ${extractedData ? 'border-purple-500/50' : ''}`}
+              />
             </div>
             <div className="space-y-2">
               <Label>{t('supplierInvoices.dueDate')}</Label>
-              <Input type="date" value={formData.due_date} onChange={(e) => setFormData({...formData, due_date: e.target.value})}
-                className={`bg-gray-700 border-gray-600 ${extractedData ? 'border-purple-500/50' : ''}`} />
+              <Input
+                type="date"
+                value={formData.due_date}
+                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                className={`bg-gray-700 border-gray-600 ${extractedData ? 'border-purple-500/50' : ''}`}
+              />
             </div>
             <div className="space-y-2">
               <Label>{t('supplierInvoices.totalAmount')}</Label>
-              <Input type="number" step="0.01" value={formData.total_amount} onChange={(e) => setFormData({...formData, total_amount: e.target.value})}
-                required className={`bg-gray-700 border-gray-600 ${extractedData ? 'border-purple-500/50' : ''}`} />
+              <Input
+                type="number"
+                step="0.01"
+                value={formData.total_amount}
+                onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
+                required
+                className={`bg-gray-700 border-gray-600 ${extractedData ? 'border-purple-500/50' : ''}`}
+              />
             </div>
           </div>
 
           {/* Advanced Details Toggle */}
-          <button type="button" onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition"
+          >
             {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             {t('invoiceExtraction.advancedDetails')}
           </button>
@@ -324,46 +383,67 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>{t('invoiceExtraction.preTaxAmount')}</Label>
-                  <Input type="number" step="0.01" value={advancedData.total_ht}
-                    onChange={(e) => setAdvancedData({...advancedData, total_ht: e.target.value})}
-                    className="bg-gray-700 border-gray-600" />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={advancedData.total_ht}
+                    onChange={(e) => setAdvancedData({ ...advancedData, total_ht: e.target.value })}
+                    className="bg-gray-700 border-gray-600"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>{t('invoiceExtraction.taxAmount')}</Label>
-                  <Input type="number" step="0.01" value={advancedData.total_tva}
-                    onChange={(e) => setAdvancedData({...advancedData, total_tva: e.target.value})}
-                    className="bg-gray-700 border-gray-600" />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={advancedData.total_tva}
+                    onChange={(e) => setAdvancedData({ ...advancedData, total_tva: e.target.value })}
+                    className="bg-gray-700 border-gray-600"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>{t('invoiceExtraction.currency')}</Label>
-                  <Input value={advancedData.currency} onChange={(e) => setAdvancedData({...advancedData, currency: e.target.value})}
-                    className="bg-gray-700 border-gray-600" />
+                  <Input
+                    value={advancedData.currency}
+                    onChange={(e) => setAdvancedData({ ...advancedData, currency: e.target.value })}
+                    className="bg-gray-700 border-gray-600"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{t('invoiceExtraction.supplierVatNumber')}</Label>
-                  <Input value={advancedData.supplier_vat_number}
-                    onChange={(e) => setAdvancedData({...advancedData, supplier_vat_number: e.target.value})}
-                    className="bg-gray-700 border-gray-600" />
+                  <Input
+                    value={advancedData.supplier_vat_number}
+                    onChange={(e) => setAdvancedData({ ...advancedData, supplier_vat_number: e.target.value })}
+                    className="bg-gray-700 border-gray-600"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>{t('invoiceExtraction.paymentTerms')}</Label>
-                  <Input value={advancedData.payment_terms}
-                    onChange={(e) => setAdvancedData({...advancedData, payment_terms: e.target.value})}
-                    className="bg-gray-700 border-gray-600" />
+                  <Input
+                    value={advancedData.payment_terms}
+                    onChange={(e) => setAdvancedData({ ...advancedData, payment_terms: e.target.value })}
+                    className="bg-gray-700 border-gray-600"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{t('invoiceExtraction.ibanLabel')}</Label>
-                  <Input value={advancedData.iban} onChange={(e) => setAdvancedData({...advancedData, iban: e.target.value})}
-                    className="bg-gray-700 border-gray-600" />
+                  <Input
+                    value={advancedData.iban}
+                    onChange={(e) => setAdvancedData({ ...advancedData, iban: e.target.value })}
+                    className="bg-gray-700 border-gray-600"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>{t('invoiceExtraction.bicLabel')}</Label>
-                  <Input value={advancedData.bic} onChange={(e) => setAdvancedData({...advancedData, bic: e.target.value})}
-                    className="bg-gray-700 border-gray-600" />
+                  <Input
+                    value={advancedData.bic}
+                    onChange={(e) => setAdvancedData({ ...advancedData, bic: e.target.value })}
+                    className="bg-gray-700 border-gray-600"
+                  />
                 </div>
               </div>
             </div>
@@ -372,7 +452,9 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
           {/* Line Items Table */}
           {lineItems.length > 0 && (
             <div className="space-y-2">
-              <Label className="text-sm">{t('invoiceExtraction.lineItems')} ({lineItems.length})</Label>
+              <Label className="text-sm">
+                {t('invoiceExtraction.lineItems')} ({lineItems.length})
+              </Label>
               <div className="overflow-x-auto border border-gray-700 rounded-lg">
                 <table className="w-full text-xs">
                   <thead>
@@ -388,8 +470,22 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
                       <tr key={i} className="border-b border-gray-800">
                         <td className="py-1.5 px-3 text-gray-300">{item.description}</td>
                         <td className="py-1.5 px-3 text-right text-gray-300">{item.quantity}</td>
-                        <td className="py-1.5 px-3 text-right text-gray-300">{item.unit_price != null ? Number(item.unit_price).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}</td>
-                        <td className="py-1.5 px-3 text-right text-white">{item.total != null ? Number(item.total).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''}</td>
+                        <td className="py-1.5 px-3 text-right text-gray-300">
+                          {item.unit_price != null
+                            ? Number(item.unit_price).toLocaleString('fr-FR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : ''}
+                        </td>
+                        <td className="py-1.5 px-3 text-right text-white">
+                          {item.total != null
+                            ? Number(item.total).toLocaleString('fr-FR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : ''}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -411,10 +507,20 @@ const UploadInvoiceModal = ({ isOpen, onClose, supplierId, onUploadSuccess }) =>
           {error && <p className="text-sm text-red-400">{error}</p>}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} className="border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              className="border-gray-600 text-gray-400 hover:bg-gray-700 hover:text-white"
+            >
               {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={!file || loading || extracting} className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              type="submit"
+              variant="upload3d"
+              disabled={!file || loading || extracting}
+              className="font-semibold"
+            >
               {loading ? t('invoiceExtraction.uploading') : t('common.save')}
             </Button>
           </DialogFooter>

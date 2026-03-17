@@ -142,10 +142,10 @@ const InvoiceListTable = ({ data, actions, ui }) => {
                         </span>
                       </Button>
                       <Button
-                        variant="outline"
+                        variant="upload3d"
                         size="sm"
                         onClick={() => onUploadDocument(invoice)}
-                        className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/20 h-8 px-2"
+                        className="h-8 px-2 font-semibold"
                         title="Televerser + scanner le document"
                         disabled={uploadingDocument}
                       >
