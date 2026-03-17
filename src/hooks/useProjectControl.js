@@ -25,6 +25,14 @@ const toMonthKey = (value) => {
 
 const sortMonthKeys = (monthKeys) => [...monthKeys].sort((a, b) => a.localeCompare(b));
 
+const isDateWithinRange = (value, from, to) => {
+  const iso = toIsoDate(value);
+  if (!iso) return false;
+  if (from && iso < from) return false;
+  if (to && iso > to) return false;
+  return true;
+};
+
 const isMissingProjectIdOnInvoices = (error) => {
   const message = String(error?.message || '').toLowerCase();
   const details = String(error?.details || '').toLowerCase();
@@ -35,10 +43,12 @@ const isMissingProjectIdOnInvoices = (error) => {
   );
 };
 
-export function useProjectControl(projectId) {
+export function useProjectControl(projectId, options = {}) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const periodFrom = toIsoDate(options?.periodFrom || null);
+  const periodTo = toIsoDate(options?.periodTo || null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -96,9 +106,16 @@ export function useProjectControl(projectId) {
 
       let timesheetsQuery = supabase
         .from('timesheets')
-        .select('id, date, duration_minutes, hourly_rate, invoice_id')
+        .select('id, date, duration_minutes, hourly_rate, invoice_id, executed_by_member_id')
         .eq('project_id', projectId)
         .order('date', { ascending: true });
+
+      if (periodFrom) {
+        timesheetsQuery = timesheetsQuery.gte('date', periodFrom);
+      }
+      if (periodTo) {
+        timesheetsQuery = timesheetsQuery.lte('date', periodTo);
+      }
 
       baselinesQuery = applyCompanyScope(baselinesQuery);
       milestonesQuery = applyCompanyScope(milestonesQuery);
@@ -136,6 +153,12 @@ export function useProjectControl(projectId) {
         .select('id, date, total_ttc, status, payment_status')
         .eq('project_id', projectId)
         .order('date', { ascending: true });
+      if (periodFrom) {
+        byProjectInvoicesQuery = byProjectInvoicesQuery.gte('date', periodFrom);
+      }
+      if (periodTo) {
+        byProjectInvoicesQuery = byProjectInvoicesQuery.lte('date', periodTo);
+      }
       byProjectInvoicesQuery = applyCompanyScope(byProjectInvoicesQuery);
       invoicesResult = await byProjectInvoicesQuery;
 
@@ -156,6 +179,12 @@ export function useProjectControl(projectId) {
             .select('id, date, total_ttc, status, payment_status')
             .in('id', invoiceIds)
             .order('date', { ascending: true });
+          if (periodFrom) {
+            fallbackInvoicesQuery = fallbackInvoicesQuery.gte('date', periodFrom);
+          }
+          if (periodTo) {
+            fallbackInvoicesQuery = fallbackInvoicesQuery.lte('date', periodTo);
+          }
           fallbackInvoicesQuery = applyCompanyScope(fallbackInvoicesQuery);
           invoicesResult = await fallbackInvoicesQuery;
         } else {
@@ -183,7 +212,7 @@ export function useProjectControl(projectId) {
     } finally {
       setLoading(false);
     }
-  }, [applyCompanyScope, projectId, toast, user]);
+  }, [applyCompanyScope, periodFrom, periodTo, projectId, toast, user]);
 
   const createBaseline = useCallback(
     async (payload) => {
@@ -372,10 +401,63 @@ export function useProjectControl(projectId) {
     [baselines]
   );
 
+  const timesheetOutputs = useMemo(() => {
+    const memberNamesById = new Map();
+    for (const compensation of compensations || []) {
+      const memberId = compensation?.team_member_id;
+      const memberName = compensation?.team_member?.name;
+      if (memberId && memberName && !memberNamesById.has(memberId)) {
+        memberNamesById.set(memberId, memberName);
+      }
+    }
+    for (const resource of resources || []) {
+      const memberId = resource?.team_member_id;
+      const memberName = resource?.team_member?.name;
+      if (memberId && memberName && !memberNamesById.has(memberId)) {
+        memberNamesById.set(memberId, memberName);
+      }
+    }
+
+    const byMember = new Map();
+    for (const timesheet of financeEvents.timesheets || []) {
+      const memberId = timesheet.executed_by_member_id || '__unassigned__';
+      if (!byMember.has(memberId)) {
+        byMember.set(memberId, {
+          memberId,
+          memberName: memberNamesById.get(memberId) || (memberId === '__unassigned__' ? 'Non assigne' : memberId),
+          timesheets: 0,
+          hours: 0,
+          cost: 0,
+          firstDate: null,
+          lastDate: null,
+        });
+      }
+      const aggregate = byMember.get(memberId);
+      const isoDate = toIsoDate(timesheet.date);
+      aggregate.timesheets += 1;
+      aggregate.hours += toNumber(timesheet.duration_minutes) / 60;
+      aggregate.cost += (toNumber(timesheet.duration_minutes) / 60) * toNumber(timesheet.hourly_rate);
+      if (isoDate) {
+        aggregate.firstDate = aggregate.firstDate ? [aggregate.firstDate, isoDate].sort()[0] : isoDate;
+        aggregate.lastDate = aggregate.lastDate ? [aggregate.lastDate, isoDate].sort().slice(-1)[0] : isoDate;
+      }
+    }
+
+    return [...byMember.values()]
+      .map((row) => ({
+        ...row,
+        hours: Number(row.hours.toFixed(2)),
+        cost: Number(row.cost.toFixed(2)),
+      }))
+      .sort((a, b) => a.memberName.localeCompare(b.memberName));
+  }, [compensations, financeEvents.timesheets, resources]);
+
   const financialCurve = useMemo(() => {
     const invoiceRows = financeEvents.invoices || [];
     const timesheetRows = financeEvents.timesheets || [];
-    const compensationRows = compensations || [];
+    const compensationRows = (compensations || []).filter((row) =>
+      isDateWithinRange(row.paid_at || row.planned_payment_date, periodFrom, periodTo)
+    );
 
     const monthKeys = new Set();
 
@@ -423,7 +505,7 @@ export function useProjectControl(projectId) {
         margin: Number((cumulativeRevenue - cumulativeCost).toFixed(2)),
       };
     });
-  }, [compensations, financeEvents.invoices, financeEvents.timesheets]);
+  }, [compensations, financeEvents.invoices, financeEvents.timesheets, periodFrom, periodTo]);
 
   return {
     loading,
@@ -433,8 +515,11 @@ export function useProjectControl(projectId) {
     milestones,
     resources,
     compensations,
+    timesheetOutputs,
     financeEvents,
     financialCurve,
+    periodFrom,
+    periodTo,
     fetchProjectControlData,
     createBaseline,
     setBaselineActive,

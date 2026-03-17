@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
+import { spawn } from 'node:child_process';
 import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 import { buildFullDemoDataset } from './lib/buildFullDemoDataset.mjs';
@@ -86,6 +87,77 @@ function normalizeMemberName(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+const DEMO_MEMBER_FIRST_NAMES = [
+  'Alex',
+  'Sophie',
+  'Nora',
+  'Lucas',
+  'Ines',
+  'Martin',
+  'Camille',
+  'Sarah',
+  'Yanis',
+  'Lea',
+  'Hugo',
+  'Maya',
+  'Rayan',
+  'Emma',
+  'Noah',
+  'Jade',
+  'Lina',
+  'Mehdi',
+  'Nina',
+  'Liam',
+  'Mila',
+  'Elias',
+  'Zoey',
+  'Aylan',
+];
+
+const DEMO_MEMBER_LAST_NAMES = [
+  'Martin',
+  'Bernard',
+  'Dumont',
+  'Laurent',
+  'Rousseau',
+  'Mercier',
+  'Dupuis',
+  'Lambert',
+  'Garcia',
+  'Lefevre',
+  'Petit',
+  'Renaud',
+  'Moreau',
+  'Gauthier',
+  'Dupont',
+  'Meyer',
+  'Henry',
+  'Dubois',
+  'Robin',
+  'Brun',
+  'Chevalier',
+  'Marchand',
+  'Pierre',
+  'Colin',
+];
+
+function buildScopedTeamMemberIdentity(companyIndex, memberIndex) {
+  const globalIndex = companyIndex * 7 + memberIndex;
+  const firstName = DEMO_MEMBER_FIRST_NAMES[globalIndex % DEMO_MEMBER_FIRST_NAMES.length];
+  const lastName = DEMO_MEMBER_LAST_NAMES[
+    Math.floor(globalIndex / DEMO_MEMBER_FIRST_NAMES.length) % DEMO_MEMBER_LAST_NAMES.length
+  ];
+  const name = `${firstName} ${lastName}`;
+  const slug = `${firstName}.${lastName}`.toLowerCase().replace(/[^a-z0-9.]+/g, '');
+  const companySuffix = String(companyIndex + 1).padStart(2, '0');
+  const memberSuffix = String(memberIndex + 1).padStart(2, '0');
+
+  return {
+    name,
+    email: `${slug}.${companySuffix}${memberSuffix}@cashpilot.demo`,
+  };
+}
+
 function buildProjectResourceAllocationRows({
   userSeed,
   userId,
@@ -109,6 +181,8 @@ function buildProjectResourceAllocationRows({
   }
 
   const taskById = new Map((taskRows || []).map((task) => [task.id, task]));
+  const tasksByProject = new Map();
+  const timesheetsByProject = new Map();
   const allocationsByKey = new Map();
 
   const ensureAggregate = (projectId, memberId) => {
@@ -141,6 +215,10 @@ function buildProjectResourceAllocationRows({
 
   for (const task of taskRows || []) {
     if (!task?.project_id) continue;
+    if (!tasksByProject.has(task.project_id)) {
+      tasksByProject.set(task.project_id, []);
+    }
+    tasksByProject.get(task.project_id).push(task);
     let memberId = task.assigned_member_id || null;
     if (!memberId && task.assigned_to) {
       const candidates = memberIdsByName.get(normalizeMemberName(task.assigned_to)) || [];
@@ -164,6 +242,10 @@ function buildProjectResourceAllocationRows({
 
   for (const timesheet of timesheetRows || []) {
     if (!timesheet?.project_id) continue;
+    if (!timesheetsByProject.has(timesheet.project_id)) {
+      timesheetsByProject.set(timesheet.project_id, []);
+    }
+    timesheetsByProject.get(timesheet.project_id).push(timesheet);
     let memberId = timesheet.executed_by_member_id || null;
     if (!memberId && timesheet.task_id) {
       const linkedTask = taskById.get(timesheet.task_id);
@@ -240,7 +322,223 @@ function buildProjectResourceAllocationRows({
     });
   }
 
+  const materialResourceCatalog = [
+    { name: 'Kit outillage operationnel', unit: 'day' },
+    { name: 'Poste de travail projet', unit: 'day' },
+    { name: 'Materiel logistique terrain', unit: 'day' },
+  ];
+
+  (projectRows || []).forEach((project, projectIndex) => {
+    if (!project?.id || !project?.company_id) return;
+    const projectTasks = tasksByProject.get(project.id) || [];
+    const projectTimesheets = timesheetsByProject.get(project.id) || [];
+    const estimatedHours = projectTasks.reduce((sum, task) => sum + Number(task?.estimated_hours || 0), 0);
+    const actualHours = projectTimesheets.reduce(
+      (sum, timesheet) => sum + (Number(timesheet?.duration_minutes || 0) / 60),
+      0
+    );
+    const plannedQuantity = roundAmount(Math.max(2, Math.ceil(Math.max(estimatedHours, actualHours, 12) / 18)));
+    const actualQuantity = roundAmount(Math.max(1, Math.min(plannedQuantity, Math.max(actualHours, 6) / 18)));
+    const baseUnitCost = Number(project.hourly_rate || 120) * 0.85;
+    const plannedCost = roundAmount(plannedQuantity * Math.max(baseUnitCost, 95));
+    const actualCost = roundAmount(actualQuantity * Math.max(baseUnitCost * 0.92, 88));
+    const startDate = normalizeDateOnly(project.start_date) || isoDate(CURRENT_YEAR, 1, 8);
+    const endDate = normalizeDateOnly(project.end_date) || addDays(startDate, 32);
+    const materialTemplate = materialResourceCatalog[projectIndex % materialResourceCatalog.length];
+    const status = actualQuantity >= plannedQuantity ? 'completed' : (actualQuantity > 0 ? 'active' : 'planned');
+
+    rows.push({
+      id: uuidFromSeed(`${userSeed}:project-resource-material:${project.id}`),
+      user_id: userId,
+      company_id: project.company_id,
+      project_id: project.id,
+      resource_type: 'material',
+      resource_origin: 'internal',
+      team_member_id: null,
+      supplier_id: null,
+      resource_name: `${materialTemplate.name} - ${String(project.name || 'Projet').slice(0, 28)}`,
+      unit: materialTemplate.unit,
+      planned_quantity: plannedQuantity,
+      actual_quantity: actualQuantity,
+      planned_cost: plannedCost,
+      actual_cost: actualCost,
+      start_date: startDate,
+      end_date: endDate,
+      status,
+      notes: 'Seeded material allocation for project cost tracking',
+      created_at: `${startDate}T09:30:00Z`,
+      updated_at: `${endDate}T09:35:00Z`,
+    });
+  });
+
   return rows;
+}
+
+function buildProjectControlSeedRows({
+  userSeed,
+  userId,
+  projectRows,
+  taskRows,
+  timesheetRows,
+}) {
+  const tasksByProject = new Map();
+  const timesheetsByProject = new Map();
+  const projectBaselineRows = [];
+  const projectMilestoneRows = [];
+
+  for (const task of taskRows || []) {
+    if (!task?.project_id) continue;
+    if (!tasksByProject.has(task.project_id)) {
+      tasksByProject.set(task.project_id, []);
+    }
+    tasksByProject.get(task.project_id).push(task);
+  }
+
+  for (const timesheet of timesheetRows || []) {
+    if (!timesheet?.project_id) continue;
+    if (!timesheetsByProject.has(timesheet.project_id)) {
+      timesheetsByProject.set(timesheet.project_id, []);
+    }
+    timesheetsByProject.get(timesheet.project_id).push(timesheet);
+  }
+
+  const sortedDate = (values, mode) => {
+    const normalized = (values || []).map((value) => normalizeDateOnly(value)).filter(Boolean).sort();
+    if (!normalized.length) return null;
+    return mode === 'max' ? normalized[normalized.length - 1] : normalized[0];
+  };
+
+  (projectRows || []).forEach((project, projectIndex) => {
+    if (!project?.id || !project?.company_id) return;
+
+    const projectTasks = tasksByProject.get(project.id) || [];
+    const projectTimesheets = timesheetsByProject.get(project.id) || [];
+    const estimatedHours = roundAmount(projectTasks.reduce((sum, task) => sum + Number(task?.estimated_hours || 0), 0));
+    const actualHours = roundAmount(
+      projectTimesheets.reduce((sum, timesheet) => sum + (Number(timesheet?.duration_minutes || 0) / 60), 0)
+    );
+    const projectBudgetHours = Number(project.budget_hours || 0);
+    const plannedBudgetHours = roundAmount(Math.max(estimatedHours, actualHours, projectBudgetHours, 24));
+
+    const explicitRate = Number(project.hourly_rate || 0);
+    const timesheetRates = projectTimesheets
+      .map((timesheet) => Number(timesheet?.hourly_rate || 0))
+      .filter((rate) => rate > 0);
+    const averageTimesheetRate = timesheetRates.length
+      ? (timesheetRates.reduce((sum, rate) => sum + rate, 0) / timesheetRates.length)
+      : 0;
+    const rate = explicitRate > 0 ? explicitRate : (averageTimesheetRate > 0 ? averageTimesheetRate : 120);
+    const plannedBudgetAmount = roundAmount(plannedBudgetHours * rate);
+
+    const startDateCandidates = [
+      project.start_date,
+      ...projectTasks.map((task) => task.start_date || task.started_at),
+      ...projectTimesheets.map((timesheet) => timesheet.date),
+    ];
+    const endDateCandidates = [
+      project.end_date,
+      ...projectTasks.map((task) => task.end_date || task.completed_at || task.due_date),
+      ...projectTimesheets.map((timesheet) => timesheet.date),
+    ];
+
+    const fallbackStartDate = isoDate(CURRENT_YEAR, ((projectIndex % 9) + 1), 8 + (projectIndex % 6));
+    const plannedStartDate = sortedDate(startDateCandidates, 'min') || fallbackStartDate;
+    const plannedEndDate = sortedDate(endDateCandidates, 'max') || addDays(plannedStartDate, 45);
+    const milestoneAnchorDate = addDays(plannedStartDate, 14);
+    const milestoneClosureDate = addDays(plannedStartDate, 30);
+
+    projectBaselineRows.push({
+      id: uuidFromSeed(`${userSeed}:project-baseline:${project.id}:1`),
+      user_id: userId,
+      company_id: project.company_id,
+      project_id: project.id,
+      version: 1,
+      baseline_label: 'Baseline initiale',
+      planned_start_date: addDays(plannedStartDate, -2),
+      planned_end_date: addDays(plannedEndDate, -2),
+      planned_budget_hours: roundAmount(plannedBudgetHours * 0.94),
+      planned_budget_amount: roundAmount(plannedBudgetAmount * 0.94),
+      planned_tasks_count: Math.max(projectTasks.length, 1),
+      notes: 'Seed demo: engagement initial du projet',
+      is_active: false,
+      created_at: `${plannedStartDate}T08:40:00Z`,
+      updated_at: `${plannedStartDate}T08:45:00Z`,
+    });
+
+    projectBaselineRows.push({
+      id: uuidFromSeed(`${userSeed}:project-baseline:${project.id}:2`),
+      user_id: userId,
+      company_id: project.company_id,
+      project_id: project.id,
+      version: 2,
+      baseline_label: 'Baseline operationnelle',
+      planned_start_date: plannedStartDate,
+      planned_end_date: plannedEndDate,
+      planned_budget_hours: plannedBudgetHours,
+      planned_budget_amount: plannedBudgetAmount,
+      planned_tasks_count: Math.max(projectTasks.length, 1),
+      notes: 'Seed demo: baseline active pour pilotage',
+      is_active: true,
+      created_at: `${plannedStartDate}T09:00:00Z`,
+      updated_at: `${plannedStartDate}T09:10:00Z`,
+    });
+
+    const settledAmountPhase1 = roundAmount(Math.max(plannedBudgetAmount * 0.28, rate * 4));
+    const settledAmountPhase2 = roundAmount(Math.max(plannedBudgetAmount * 0.18, rate * 3));
+
+    projectMilestoneRows.push({
+      id: uuidFromSeed(`${userSeed}:project-milestone:${project.id}:1`),
+      user_id: userId,
+      company_id: project.company_id,
+      project_id: project.id,
+      title: 'Jalon 1 - Livraison intermediaire',
+      description: 'Seed demo: jalon intermediaire pour pilotage et journalisation',
+      status: 'achieved',
+      planned_date: milestoneAnchorDate,
+      actual_date: addDays(milestoneAnchorDate, -1),
+      planned_amount: roundAmount(plannedBudgetAmount * 0.45),
+      bonus_rule_type: 'percentage',
+      bonus_rule_value: 2,
+      malus_rule_type: 'none',
+      malus_rule_value: 0,
+      settled_amount: settledAmountPhase1,
+      settled_at: `${addDays(milestoneAnchorDate, 1)}T16:20:00Z`,
+      linked_invoice_id: null,
+      linked_payment_id: null,
+      notes: 'Seed demo: jalon atteint (bonus simule)',
+      created_at: `${milestoneAnchorDate}T09:30:00Z`,
+      updated_at: `${addDays(milestoneAnchorDate, 1)}T16:20:00Z`,
+    });
+
+    projectMilestoneRows.push({
+      id: uuidFromSeed(`${userSeed}:project-milestone:${project.id}:2`),
+      user_id: userId,
+      company_id: project.company_id,
+      project_id: project.id,
+      title: 'Jalon 2 - Cloture',
+      description: 'Seed demo: jalon de cloture avec controle malus',
+      status: 'overdue',
+      planned_date: milestoneClosureDate,
+      actual_date: addDays(milestoneClosureDate, 4),
+      planned_amount: roundAmount(plannedBudgetAmount * 0.55),
+      bonus_rule_type: 'none',
+      bonus_rule_value: 0,
+      malus_rule_type: 'day',
+      malus_rule_value: roundAmount(Math.max(rate * 0.12, 5)),
+      settled_amount: settledAmountPhase2,
+      settled_at: `${addDays(milestoneClosureDate, 5)}T17:05:00Z`,
+      linked_invoice_id: null,
+      linked_payment_id: null,
+      notes: 'Seed demo: jalon en retard (malus simule)',
+      created_at: `${milestoneClosureDate}T10:00:00Z`,
+      updated_at: `${addDays(milestoneClosureDate, 5)}T17:05:00Z`,
+    });
+  });
+
+  return {
+    projectBaselineRows,
+    projectMilestoneRows,
+  };
 }
 
 function ensureMinimumConfigRecords(config, minimum = 7) {
@@ -3631,14 +3929,33 @@ function buildEnhancedDataset(config) {
     taskRows: allTaskRows,
     timesheetRows: allTimesheetRows,
   });
+  const allInvoiceRows = [
+    ...primaryInvoiceRows,
+    secondaryInvoiceRow,
+    ...portfolioCompanyDatasets.map((dataset) => dataset.invoiceRow),
+    ...clonedCompanyDatasets.flatMap((dataset) => dataset.invoiceRows),
+  ];
+  const allPaymentRows = [
+    ...primaryPaymentRows,
+    secondaryPaymentRow,
+    ...portfolioCompanyDatasets.map((dataset) => dataset.paymentRow),
+    ...clonedCompanyDatasets.flatMap((dataset) => dataset.paymentRows),
+  ];
+  const { projectBaselineRows, projectMilestoneRows } = buildProjectControlSeedRows({
+    userSeed,
+    userId: base.userId,
+    projectRows: allProjectRows,
+    taskRows: allTaskRows,
+    timesheetRows: allTimesheetRows,
+  });
 
   return {
     ...base,
     companyRows,
     userCompanyPreferenceRow,
     clientRows: allClientRows,
-    invoiceRows: [...primaryInvoiceRows, secondaryInvoiceRow, ...portfolioCompanyDatasets.map((dataset) => dataset.invoiceRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.invoiceRows)],
-    paymentRows: [...primaryPaymentRows, secondaryPaymentRow, ...portfolioCompanyDatasets.map((dataset) => dataset.paymentRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.paymentRows)],
+    invoiceRows: allInvoiceRows,
+    paymentRows: allPaymentRows,
     expenseRows: [...primaryExpenseRows, secondaryExpenseRow, ...portfolioCompanyDatasets.map((dataset) => dataset.expenseRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.expenseRows)],
     accountingEntries,
     productCategoryRows: [...primaryProductCategoryRows, secondaryProductCategoryRow, ...portfolioCompanyDatasets.map((dataset) => dataset.productCategoryRow), ...clonedCompanyDatasets.flatMap((dataset) => dataset.productCategoryRows)],
@@ -3667,6 +3984,8 @@ function buildEnhancedDataset(config) {
     timesheetRows: allTimesheetRows,
     teamMemberRows: primaryTeamMemberRows,
     projectResourceAllocationRows,
+    projectBaselineRows,
+    projectMilestoneRows,
     creditNoteRows: [...primaryCreditNoteRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.creditNoteRows)],
     creditNoteItemRows: [...base.creditNoteItemRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.creditNoteItemRows)],
     deliveryNoteRows: [...primaryDeliveryNoteRows, ...clonedCompanyDatasets.flatMap((dataset) => dataset.deliveryNoteRows)],
@@ -3969,6 +4288,8 @@ async function cleanupDemoDataset(client, dataset) {
   await deleteRowsByValues(client, 'payment_allocations', 'invoice_id', invoiceIds);
   await deleteRowsByValues(client, 'invoice_items', 'invoice_id', invoiceIds);
   await deleteRowsByValues(client, 'subtasks', 'task_id', taskIds);
+  await deleteRows(client, 'project_milestones', 'user_id', dataset.userId, { allowMissingTable: true });
+  await deleteRows(client, 'project_baselines', 'user_id', dataset.userId, { allowMissingTable: true });
   await deleteRows(client, 'team_member_compensations', 'user_id', dataset.userId, { allowMissingTable: true });
   await deleteRows(client, 'project_resource_allocations', 'user_id', dataset.userId, { allowMissingTable: true });
   await deleteRows(client, 'payments', 'user_id', dataset.userId);
@@ -4062,6 +4383,8 @@ async function cleanupDemoDataset(client, dataset) {
     'accounting_depreciation_schedule',
     'accounting_fixed_assets',
     'accounting_entries',
+    'project_baselines',
+    'project_milestones',
     'project_resource_allocations',
     'team_member_compensations',
     'dashboard_snapshots',
@@ -4598,49 +4921,198 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'quotes', effectiveDataset.quoteRows, 'id');
   await upsertRows(client, 'purchase_orders', effectiveDataset.purchaseOrderRows, 'id');
   await upsertRows(client, 'projects', effectiveDataset.projectRows, 'id');
+  if ((effectiveDataset.projectBaselineRows || []).length) {
+    try {
+      await upsertRows(client, 'project_baselines', effectiveDataset.projectBaselineRows, 'id');
+    } catch (error) {
+      const message = String(error?.message || '');
+      if (!isMissingTableError(message, 'project_baselines')) {
+        throw error;
+      }
+    }
+  }
+  if ((effectiveDataset.projectMilestoneRows || []).length) {
+    try {
+      await upsertRows(client, 'project_milestones', effectiveDataset.projectMilestoneRows, 'id');
+    } catch (error) {
+      const message = String(error?.message || '');
+      if (!isMissingTableError(message, 'project_milestones')) {
+        throw error;
+      }
+    }
+  }
   await upsertRows(client, 'crm_support_sla_policies', effectiveDataset.crmSupportSlaPolicyRows || [], 'id');
   await upsertRows(client, 'crm_support_tickets', effectiveDataset.crmSupportTicketRows || [], 'id');
   const fallbackTeamCompanyId = effectiveDataset.userCompanyPreferenceRow?.active_company_id || effectiveDataset.companyRow?.id || null;
-  const normalizedTeamMemberRows = (effectiveDataset.teamMemberRows || []).map((row) => ({
-    ...row,
-    company_id: row.company_id || fallbackTeamCompanyId,
-  }));
+  const seedScopePrefix = effectiveDataset.userSeed || `seed:${effectiveDataset.userId}`;
+  const companyIdsInScope = toUniqueIds([
+    fallbackTeamCompanyId,
+    ...((effectiveDataset.companyRows || []).map((row) => row.id)),
+    ...((effectiveDataset.projectRows || []).map((row) => row.company_id)),
+    ...((effectiveDataset.taskRows || []).map((row) => row.company_id)),
+    ...((effectiveDataset.timesheetRows || []).map((row) => row.company_id)),
+  ]);
+  const normalizedTeamMemberRows = [];
+  const seenTeamMemberIds = new Set();
+  const memberIdsByCompanyAndName = new Map();
+  const memberIdsByCompany = new Map();
+  const registerTeamMemberRow = (row) => {
+    if (!row?.id || seenTeamMemberIds.has(row.id)) return;
+    seenTeamMemberIds.add(row.id);
+    normalizedTeamMemberRows.push(row);
+
+    if (!memberIdsByCompany.has(row.company_id)) {
+      memberIdsByCompany.set(row.company_id, []);
+    }
+    memberIdsByCompany.get(row.company_id).push(row.id);
+
+    const normalizedMemberName = normalizeMemberName(row.name);
+    if (!normalizedMemberName) return;
+    const key = `${row.company_id}:${normalizedMemberName}`;
+    if (!memberIdsByCompanyAndName.has(key)) {
+      memberIdsByCompanyAndName.set(key, []);
+    }
+    memberIdsByCompanyAndName.get(key).push(row.id);
+  };
+
+  for (const row of effectiveDataset.teamMemberRows || []) {
+    registerTeamMemberRow({
+      ...row,
+      company_id: row.company_id || fallbackTeamCompanyId,
+    });
+  }
+
+  const templateTeamMemberRows = (normalizedTeamMemberRows || []).filter(
+    (row) => row.company_id === fallbackTeamCompanyId
+  );
+  const teamMemberTemplates = templateTeamMemberRows.length ? templateTeamMemberRows : normalizedTeamMemberRows;
+
+  companyIdsInScope.forEach((companyId, companyIndex) => {
+    const companySuffix = String(companyIndex + 1).padStart(2, '0');
+    teamMemberTemplates.forEach((templateRow, templateIndex) => {
+      const normalizedMemberName = normalizeMemberName(templateRow.name);
+      const memberKey = normalizedMemberName ? `${companyId}:${normalizedMemberName}` : null;
+      if (memberKey && memberIdsByCompanyAndName.has(memberKey)) {
+        return;
+      }
+
+      const email = templateRow.email
+        ? String(templateRow.email).replace('@', `+${companySuffix}${String(templateIndex + 1).padStart(2, '0')}@`)
+        : `${normalizedMemberName || 'member'}.${companySuffix}${String(templateIndex + 1).padStart(2, '0')}@cashpilot.demo`;
+
+      registerTeamMemberRow({
+        ...templateRow,
+        id: uuidFromSeed(`${seedScopePrefix}:team-member:${companyId}:${templateIndex}:${normalizedMemberName || 'member'}`),
+        company_id: companyId,
+        email,
+      });
+    });
+  });
+
+  const resolveMemberIdForCompany = (companyId, assignedTo, index = 0) => {
+    if (!companyId) return null;
+    const normalizedAssignedName = normalizeMemberName(assignedTo);
+    if (normalizedAssignedName) {
+      const matchedIds = memberIdsByCompanyAndName.get(`${companyId}:${normalizedAssignedName}`) || [];
+      if (matchedIds.length) {
+        return matchedIds[index % matchedIds.length];
+      }
+    }
+    const fallbackIds = memberIdsByCompany.get(companyId) || [];
+    if (fallbackIds.length) {
+      return fallbackIds[index % fallbackIds.length];
+    }
+    return null;
+  };
+
   const memberCompanyById = new Map(normalizedTeamMemberRows.map((row) => [row.id, row.company_id || null]));
   const projectCompanyById = new Map((effectiveDataset.projectRows || []).map((project) => [project.id, project.company_id || null]));
-  const normalizedTaskRows = (effectiveDataset.taskRows || []).map((row) => {
-    const candidateMemberId = row.assigned_member_id || null;
-    const memberCompanyId = candidateMemberId ? memberCompanyById.get(candidateMemberId) : null;
+  const normalizedTaskRows = (effectiveDataset.taskRows || []).map((row, index) => {
     const taskCompanyId = row.company_id || projectCompanyById.get(row.project_id) || null;
-    const canAssignMember = !candidateMemberId || !memberCompanyId || !taskCompanyId || memberCompanyId === taskCompanyId;
+    let candidateMemberId = row.assigned_member_id || null;
+    if (candidateMemberId) {
+      const memberCompanyId = memberCompanyById.get(candidateMemberId) || null;
+      if (memberCompanyId && taskCompanyId && memberCompanyId !== taskCompanyId) {
+        candidateMemberId = null;
+      }
+    }
+    if (!candidateMemberId) {
+      candidateMemberId = resolveMemberIdForCompany(taskCompanyId, row.assigned_to, index);
+    }
 
     return {
       ...row,
-      assigned_member_id: canAssignMember ? candidateMemberId : null,
+      assigned_member_id: candidateMemberId,
     };
   });
+  const taskById = new Map(normalizedTaskRows.map((row) => [row.id, row]));
   const taskMemberById = new Map(normalizedTaskRows.map((row) => [row.id, row.assigned_member_id || null]));
   const normalizedTimesheetRows = (effectiveDataset.timesheetRows || []).map((row, index) => {
-    const rawMemberId =
-      row.executed_by_member_id
-      || taskMemberById.get(row.task_id)
-      || normalizedTeamMemberRows[index % Math.max(normalizedTeamMemberRows.length, 1)]?.id
-      || null;
-    const memberCompanyId = rawMemberId ? memberCompanyById.get(rawMemberId) : null;
     const timesheetCompanyId = row.company_id || projectCompanyById.get(row.project_id) || null;
-    const canAssignMember = !rawMemberId || !memberCompanyId || !timesheetCompanyId || memberCompanyId === timesheetCompanyId;
+    let rawMemberId = row.executed_by_member_id || taskMemberById.get(row.task_id) || null;
+    if (rawMemberId) {
+      const memberCompanyId = memberCompanyById.get(rawMemberId) || null;
+      if (memberCompanyId && timesheetCompanyId && memberCompanyId !== timesheetCompanyId) {
+        rawMemberId = null;
+      }
+    }
+    if (!rawMemberId) {
+      const linkedTask = taskById.get(row.task_id);
+      rawMemberId = resolveMemberIdForCompany(timesheetCompanyId, linkedTask?.assigned_to, index);
+    }
 
     return {
       ...row,
-      executed_by_member_id: canAssignMember ? rawMemberId : null,
+      executed_by_member_id: rawMemberId,
     };
   });
+  const teamMemberEmployeeIdByTeamId = new Map();
+  const hrEmployeeRows = normalizedTeamMemberRows.map((row, index) => {
+    const employeeId = row.employee_id || uuidFromSeed(`${seedScopePrefix}:hr-employee:${row.id}`);
+    const fullName = String(row.name || '').trim();
+    const [firstNameCandidate, ...lastNameParts] = fullName.split(/\s+/).filter(Boolean);
+    const firstName = firstNameCandidate || 'Employe';
+    const lastName = lastNameParts.join(' ') || 'Demo';
+    teamMemberEmployeeIdByTeamId.set(row.id, employeeId);
+
+    return {
+      id: employeeId,
+      company_id: row.company_id,
+      user_id: row.user_id || effectiveDataset.userId,
+      employee_number: null,
+      first_name: firstName,
+      last_name: lastName,
+      full_name: fullName || `${firstName} ${lastName}`,
+      work_email: row.email || null,
+      status: 'active',
+      hire_date: row.joined_at || null,
+      phone: null,
+      job_title: row.role ? String(row.role).replace(/[_-]+/g, ' ') : null,
+      created_at: row.created_at || new Date().toISOString(),
+      updated_at: row.updated_at || row.created_at || new Date().toISOString(),
+    };
+  });
+  const normalizedTeamMemberRowsWithEmployeeId = normalizedTeamMemberRows.map((row) => ({
+    ...row,
+    employee_id: row.employee_id || teamMemberEmployeeIdByTeamId.get(row.id) || null,
+  }));
   const normalizedProjectResourceAllocationRows = (effectiveDataset.projectResourceAllocationRows || []).map((row) => ({
     ...row,
     user_id: row.user_id || effectiveDataset.userId,
     company_id: row.company_id || projectCompanyById.get(row.project_id) || fallbackTeamCompanyId,
     resource_origin: row.resource_origin || 'internal',
   })).filter((row) => row.company_id && row.project_id);
-  await upsertRows(client, 'team_members', normalizedTeamMemberRows, 'id');
+  if (hrEmployeeRows.length) {
+    try {
+      await upsertRows(client, 'hr_employees', hrEmployeeRows, 'id');
+    } catch (error) {
+      const message = String(error?.message || '');
+      if (!isMissingTableError(message, 'hr_employees')) {
+        throw error;
+      }
+    }
+  }
+  await upsertRows(client, 'team_members', normalizedTeamMemberRowsWithEmployeeId, 'id');
   await upsertRows(client, 'invoices', effectiveDataset.invoiceRows, 'id');
   await upsertRows(client, 'invoice_items', effectiveDataset.invoiceItemRows, 'id');
   await upsertRows(
@@ -4760,6 +5232,9 @@ async function applyDataset(client, dataset, options) {
     quotes: effectiveDataset.quoteRows.length,
     recurringInvoices: effectiveDataset.recurringInvoiceRows.length,
     projects: effectiveDataset.projectRows.length,
+    projectBaselines: (effectiveDataset.projectBaselineRows || []).length,
+    projectMilestones: (effectiveDataset.projectMilestoneRows || []).length,
+    projectResourceAllocations: (effectiveDataset.projectResourceAllocationRows || []).length,
     scenarios: scenarioSeed.scenarioRows.length,
     companies: (effectiveDataset.companyRows || [effectiveDataset.companyRow]).length,
     fixedAssets: (effectiveDataset.fixedAssetRows || []).length,
@@ -4785,11 +5260,42 @@ function buildSummary(datasets) {
     quotes: dataset.quoteRows.length,
     recurringInvoices: dataset.recurringInvoiceRows.length,
     projects: dataset.projectRows.length,
+    projectBaselines: (dataset.projectBaselineRows || []).length,
+    projectMilestones: (dataset.projectMilestoneRows || []).length,
+    projectResourceAllocations: (dataset.projectResourceAllocationRows || []).length,
     companies: (dataset.companyRows || [dataset.companyRow]).length,
     fixedAssets: (dataset.fixedAssetRows || []).length,
     analyticalAxes: (dataset.analyticalAxisRows || []).length,
     sharedSnapshots: (dataset.dashboardSnapshotRows || []).length,
   }));
+}
+
+async function runHrBackfillForDatasets(datasets) {
+  const scopedEmails = (datasets || [])
+    .map((dataset) => String(dataset?.config?.email || '').trim().toLowerCase())
+    .filter(Boolean);
+  if (!scopedEmails.length) return;
+
+  await new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      ['scripts/backfill-hr-demo-data.mjs', `--emails=${scopedEmails.join(',')}`],
+      {
+        cwd: process.cwd(),
+        env: process.env,
+        stdio: 'inherit',
+      }
+    );
+
+    child.on('error', (error) => reject(error));
+    child.on('exit', (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(new Error(`HR backfill script exited with code ${code}`));
+    });
+  });
 }
 
 async function main() {
@@ -4847,6 +5353,9 @@ async function main() {
         quotes: result.quotes,
         recurringInvoices: result.recurringInvoices,
         projects: result.projects,
+        projectBaselines: result.projectBaselines,
+        projectMilestones: result.projectMilestones,
+        projectResourceAllocations: result.projectResourceAllocations,
         companies: result.companies,
         fixedAssets: result.fixedAssets,
         analyticalAxes: result.analyticalAxes,
@@ -4854,6 +5363,8 @@ async function main() {
       },
     });
   }
+
+  await runHrBackfillForDatasets(selectedDatasets);
 
   console.log(JSON.stringify({ mode: 'apply', year: CURRENT_YEAR, datasets: applied }, null, 2));
 }
