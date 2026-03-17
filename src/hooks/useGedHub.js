@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useCompany } from '@/hooks/useCompany';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
+import { setStoredActiveCompanyId } from '@/utils/activeCompanyStorage';
 import {
   exportCreditNotePDF,
   exportDeliveryNotePDF,
@@ -47,6 +48,10 @@ const SOURCE_CONFIG = {
 };
 
 const makeMetadataKey = (sourceTable, sourceId) => `${sourceTable}:${sourceId}`;
+const normalizeCompanyId = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase();
 
 const mapRowsToDocuments = (sourceTable, rows) =>
   (rows || []).map((row) => {
@@ -100,6 +105,7 @@ export const useGedHub = () => {
   const { activeCompany } = useCompany();
   const { settings: invoiceSettings } = useInvoiceSettings();
   const effectiveCompanyId = activeCompany?.id || activeCompanyId;
+  const scopeRecoveryAttemptsRef = useRef(new Set());
 
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -116,6 +122,27 @@ export const useGedHub = () => {
     },
     [effectiveCompanyId]
   );
+
+  const detectReadableCompanyId = useCallback(async () => {
+    const probeTables = [
+      'invoices',
+      'quotes',
+      'supplier_invoices',
+      'purchase_orders',
+      'credit_notes',
+      'delivery_notes',
+    ];
+    for (const table of probeTables) {
+      const { data, error } = await supabase.from(table).select('company_id').not('company_id', 'is', null).limit(1);
+      if (error) continue;
+      const companyId = data?.[0]?.company_id;
+      if (companyId) {
+        return companyId;
+      }
+    }
+
+    return null;
+  }, []);
 
   const fetchDocuments = useCallback(async () => {
     if (!effectiveCompanyId) {
@@ -187,6 +214,28 @@ export const useGedHub = () => {
         throw firstError;
       }
 
+      const hasScopedRows =
+        (invoices?.length || 0) +
+          (quotes?.length || 0) +
+          (creditNotes?.length || 0) +
+          (deliveryNotes?.length || 0) +
+          (purchaseOrders?.length || 0) +
+          (supplierInvoices?.length || 0) >
+        0;
+
+      const normalizedEffectiveCompanyId = normalizeCompanyId(effectiveCompanyId);
+      if (!hasScopedRows && normalizedEffectiveCompanyId) {
+        const attemptedForCurrentScope = scopeRecoveryAttemptsRef.current.has(normalizedEffectiveCompanyId);
+        if (!attemptedForCurrentScope) {
+          scopeRecoveryAttemptsRef.current.add(normalizedEffectiveCompanyId);
+          const detectedCompanyId = await detectReadableCompanyId();
+          if (detectedCompanyId && normalizeCompanyId(detectedCompanyId) !== normalizedEffectiveCompanyId) {
+            setStoredActiveCompanyId(detectedCompanyId);
+            return;
+          }
+        }
+      }
+
       const metadataMap = new Map(
         (metadataRows || []).map((row) => [makeMetadataKey(row.source_table, row.source_id), row])
       );
@@ -225,7 +274,7 @@ export const useGedHub = () => {
     } finally {
       setLoading(false);
     }
-  }, [effectiveCompanyId, applyEffectiveCompanyScope, toast]);
+  }, [effectiveCompanyId, applyEffectiveCompanyScope, detectReadableCompanyId, toast]);
 
   const upsertMetadata = async (document, patch) => {
     const resolvedCompanyId = document?.raw?.company_id || document?.company_id || effectiveCompanyId;
