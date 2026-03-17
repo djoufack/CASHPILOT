@@ -35,20 +35,20 @@ import {
 
 /* ---------- constants ---------- */
 
-const STATUS_FLOW = ['draft', 'self_assessment_done', 'manager_review_done', 'signed'];
+const STATUS_FLOW = ['employee_draft', 'manager_review', 'hr_review', 'completed'];
 
 const STATUS_LABELS = {
-  draft: 'Brouillon',
-  self_assessment_done: 'Auto-eval.',
-  manager_review_done: 'Manager OK',
-  signed: 'Signe',
+  employee_draft: 'Brouillon',
+  manager_review: 'Manager',
+  hr_review: 'RH',
+  completed: 'Termine',
 };
 
 const STATUS_COLORS = {
-  draft: 'bg-white/10 text-gray-300 border-white/10',
-  self_assessment_done: 'bg-blue-500/20 text-blue-300 border-blue-400/30',
-  manager_review_done: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
-  signed: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+  employee_draft: 'bg-white/10 text-gray-300 border-white/10',
+  manager_review: 'bg-blue-500/20 text-blue-300 border-blue-400/30',
+  hr_review: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
+  completed: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
 };
 
 const _PERFORMANCE_LABELS = ['Insuffisant', 'A ameliorer', 'Conforme', 'Superieur', 'Exceptionnel'];
@@ -58,7 +58,8 @@ const REVIEW_TYPES = [
   { value: 'annual', label: 'Annuel' },
   { value: 'mid_year', label: 'Mi-annee' },
   { value: 'probation', label: 'Periode essai' },
-  { value: 'project', label: 'Projet' },
+  { value: 'one_on_one', label: '1:1' },
+  { value: '360', label: 'Evaluation 360' },
 ];
 
 const emptyObjective = () => ({
@@ -94,7 +95,7 @@ const formatDate = (v) => {
 function StatusBadge({ status }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STATUS_COLORS[status] || STATUS_COLORS.draft}`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STATUS_COLORS[status] || STATUS_COLORS.employee_draft}`}
     >
       {STATUS_LABELS[status] || status}
     </span>
@@ -788,7 +789,7 @@ export default function PerformanceReviewPage() {
                   <Edit3 className="h-4 w-4 mr-1" />
                   Modifier
                 </Button>
-                {detailReview.status !== 'signed' && (
+                {detailReview.status !== 'completed' && (
                   <Button
                     size="sm"
                     onClick={() => handleSign(detailReview.id)}

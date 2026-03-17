@@ -110,7 +110,7 @@ export function usePerformance() {
         period_year: payload.period_year ?? new Date().getFullYear(),
         period_label: payload.period_label || null,
         review_type: payload.review_type || 'annual',
-        status: 'draft',
+        status: 'employee_draft',
         objectives: payload.objectives || [],
         competencies: payload.competencies || [],
         overall_score: null,
@@ -162,7 +162,7 @@ export function usePerformance() {
           employee_comment: payload.employee_comment || null,
           objectives: payload.objectives || undefined,
           competencies: payload.competencies || undefined,
-          status: 'self_assessment_done',
+          status: 'manager_review',
         })
         .eq('id', reviewId)
         .select('*')
@@ -189,7 +189,7 @@ export function usePerformance() {
           development_plan: payload.development_plan || null,
           objectives: payload.objectives || undefined,
           competencies: payload.competencies || undefined,
-          status: 'manager_review_done',
+          status: 'hr_review',
         })
         .eq('id', reviewId)
         .select('*')
@@ -208,7 +208,7 @@ export function usePerformance() {
       const { data, error: updateError } = await supabase
         .from('hr_performance_reviews')
         .update({
-          status: 'signed',
+          status: 'completed',
           employee_signed_at: new Date().toISOString(),
         })
         .eq('id', reviewId)
