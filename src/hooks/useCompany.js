@@ -103,6 +103,29 @@ export const useCompany = () => {
         : null;
       // Prioritize local active-company storage to stay in sync with scoped data.
       const resolvedCompany = storedPreferred || preferred || allCompanies[0];
+      const shouldSyncPreference = resolvedCompany?.id && normalizeCompanyId(resolvedCompany.id) !== preferredId;
+
+      // Keep DB preference aligned with the resolved active company.
+      // Without this, RLS company_scope_guard can still target an old company
+      // while the UI shows another one from local storage.
+      if (shouldSyncPreference) {
+        try {
+          await supabase.from('user_company_preferences').upsert(
+            {
+              user_id: user.id,
+              active_company_id: resolvedCompany.id,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id' }
+          );
+        } catch (syncError) {
+          console.warn(
+            'Could not sync active company preference with resolved company:',
+            syncError?.message || syncError
+          );
+        }
+      }
+
       setActiveCompany(resolvedCompany);
       setStoredActiveCompanyId(resolvedCompany?.id || null);
     } catch (err) {
