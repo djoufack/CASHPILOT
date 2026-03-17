@@ -1,14 +1,21 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2, FileText, DollarSign, History, Download, FileArchive, Mail, Loader2, Link, Copy } from 'lucide-react';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Eye,
+  Trash2,
+  FileText,
+  FileUp,
+  DollarSign,
+  History,
+  Download,
+  FileArchive,
+  Mail,
+  Loader2,
+  Link,
+  Copy,
+} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/utils/calculations';
@@ -17,11 +24,20 @@ import PaginationControls from '@/components/PaginationControls';
 const InvoiceListTable = ({ data, actions, ui }) => {
   const { invoices, paginatedInvoices, clients, pagination } = data;
   const {
-    onViewInvoice, onDeleteClick, onExportPDF, onExportHTML, onExportFacturX,
-    onStatusChange, onRecordPayment, onOpenHistory, onOpenEmailModal,
-    onGeneratePaymentLink, onCopyPaymentLink,
+    onViewInvoice,
+    onDeleteClick,
+    onExportPDF,
+    onExportHTML,
+    onExportFacturX,
+    onStatusChange,
+    onRecordPayment,
+    onOpenHistory,
+    onOpenEmailModal,
+    onGeneratePaymentLink,
+    onCopyPaymentLink,
+    onUploadDocument,
   } = actions;
-  const { emailSending, paymentLinkLoading, getStatusColor, getPaymentStatusBadge, INVOICE_STATUS_COLORS } = ui;
+  const { emailSending, paymentLinkLoading, uploadingDocument, getStatusColor, getPaymentStatusBadge } = ui;
   const { t } = useTranslation();
 
   if (invoices.length === 0) {
@@ -31,9 +47,7 @@ const InvoiceListTable = ({ data, actions, ui }) => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-gray-800 rounded-lg border border-gray-700 shadow-xl overflow-hidden"
       >
-        <div className="text-center py-12 text-gray-400">
-          {t('invoices.noInvoices')}
-        </div>
+        <div className="text-center py-12 text-gray-400">{t('invoices.noInvoices')}</div>
       </motion.div>
     );
   }
@@ -79,7 +93,7 @@ const InvoiceListTable = ({ data, actions, ui }) => {
           </thead>
           <tbody className="divide-y divide-gray-700">
             {paginatedInvoices.map((invoice) => {
-              const client = clients.find(c => c.id === (invoice.client_id || invoice.clientId));
+              const client = clients.find((c) => c.id === (invoice.client_id || invoice.clientId));
               const currency = client?.preferred_currency || client?.preferredCurrency || 'EUR';
               return (
                 <tr key={invoice.id} className="hover:bg-gray-700/50 transition-colors">
@@ -123,7 +137,20 @@ const InvoiceListTable = ({ data, actions, ui }) => {
                         title={`${t('invoices.exportFacturXXml', 'Export XML (Factur-X)')} (2 ${t('credits.creditsLabel')})`}
                       >
                         <FileArchive className="w-4 h-4" />
-                        <span className="hidden xl:inline ml-1">{t('invoices.exportFacturXXml', 'Export XML (Factur-X)')}</span>
+                        <span className="hidden xl:inline ml-1">
+                          {t('invoices.exportFacturXXml', 'Export XML (Factur-X)')}
+                        </span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onUploadDocument(invoice)}
+                        className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/20 h-8 px-2"
+                        title="Televerser + scanner le document"
+                        disabled={uploadingDocument}
+                      >
+                        <FileUp className="w-4 h-4" />
+                        <span className="hidden xl:inline ml-1">Upload</span>
                       </Button>
                     </div>
                   </td>
@@ -134,23 +161,28 @@ const InvoiceListTable = ({ data, actions, ui }) => {
                     {client?.company_name || client?.companyName || 'Unknown'}
                   </td>
                   <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
-                    {(invoice.date || invoice.issueDate) ? format(new Date(invoice.date || invoice.issueDate), 'MMM dd, yyyy') : '-'}
+                    {invoice.date || invoice.issueDate
+                      ? format(new Date(invoice.date || invoice.issueDate), 'MMM dd, yyyy')
+                      : '-'}
                   </td>
                   <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                     {formatCurrency(Number(invoice.total_ttc || invoice.total || 0), currency)}
                   </td>
                   <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm hidden lg:table-cell">
-                    <span className={Number(invoice.balance_due || 0) > 0 ? 'text-orange-400 font-medium' : 'text-green-400'}>
+                    <span
+                      className={
+                        Number(invoice.balance_due || 0) > 0 ? 'text-orange-400 font-medium' : 'text-green-400'
+                      }
+                    >
                       {formatCurrency(Number(invoice.balance_due || invoice.total_ttc || 0), currency)}
                     </span>
                   </td>
                   <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex flex-col gap-1">
-                      <Select
-                        value={invoice.status}
-                        onValueChange={(value) => onStatusChange(invoice.id, value)}
-                      >
-                        <SelectTrigger className={`w-28 md:w-32 ${getStatusColor(invoice.status)} text-white border-none h-8`}>
+                      <Select value={invoice.status} onValueChange={(value) => onStatusChange(invoice.id, value)}>
+                        <SelectTrigger
+                          className={`w-28 md:w-32 ${getStatusColor(invoice.status)} text-white border-none h-8`}
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-gray-700 border-gray-600 text-white">
@@ -196,8 +228,8 @@ const InvoiceListTable = ({ data, actions, ui }) => {
                       >
                         <Mail className="w-4 h-4" />
                       </Button>
-                      {invoice.status !== 'paid' && (
-                        invoice.stripe_payment_link_url ? (
+                      {invoice.status !== 'paid' &&
+                        (invoice.stripe_payment_link_url ? (
                           <>
                             <Button
                               variant="ghost"
@@ -233,8 +265,7 @@ const InvoiceListTable = ({ data, actions, ui }) => {
                               <Link className="w-4 h-4" />
                             )}
                           </Button>
-                        )
-                      )}
+                        ))}
                       <Button
                         variant="ghost"
                         size="sm"

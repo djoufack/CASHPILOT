@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
@@ -32,9 +31,9 @@ export const useSupplierInvoices = (supplierId) => {
       setInvoices(data || []);
     } catch (err) {
       toast({
-        title: "Error fetching invoices",
+        title: 'Error fetching invoices',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -65,9 +64,7 @@ export const useSupplierInvoices = (supplierId) => {
     if (!fileUrl) return null;
     // If it's already a full URL (legacy data), return as-is
     if (fileUrl.startsWith('http')) return fileUrl;
-    const { data, error } = await supabase.storage
-      .from('supplier-invoices')
-      .createSignedUrl(fileUrl, 3600); // 1 hour
+    const { data, error } = await supabase.storage.from('supplier-invoices').createSignedUrl(fileUrl, 3600); // 1 hour
     if (error) {
       console.error('Error generating signed URL:', error);
       return null;
@@ -85,19 +82,22 @@ export const useSupplierInvoices = (supplierId) => {
 
       const { data, error } = await supabase
         .from('supplier_invoices')
-        .insert([{
-          ...withCompanyScope(invoiceData),
-          file_url: fileUrl,
-          supplier_id: supplierId,
-          approval_status: invoiceData.approval_status || 'pending',
-        }])
+        .insert([
+          {
+            ...withCompanyScope(invoiceData),
+            file_url: fileUrl,
+            supplier_id: supplierId,
+            status: invoiceData.status || 'received',
+            approval_status: invoiceData.approval_status || 'pending',
+          },
+        ])
         .select()
         .single();
 
       if (error) throw error;
-      
+
       setInvoices([data, ...invoices]);
-      toast({ title: "Success", description: "Invoice recorded successfully" });
+      toast({ title: 'Success', description: 'Invoice recorded successfully' });
 
       if ((data?.approval_status || 'pending') === 'pending') {
         notifyPendingSupplierApproval({ invoiceId: data.id, action: 'pending_created' }).catch((notifyError) => {
@@ -107,7 +107,7 @@ export const useSupplierInvoices = (supplierId) => {
 
       return data;
     } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
       throw err;
     } finally {
       setLoading(false);
@@ -118,10 +118,10 @@ export const useSupplierInvoices = (supplierId) => {
     try {
       const { error } = await supabase.from('supplier_invoices').delete().eq('id', id);
       if (error) throw error;
-      setInvoices(invoices.filter(i => i.id !== id));
-      toast({ title: "Success", description: "Invoice deleted" });
+      setInvoices(invoices.filter((i) => i.id !== id));
+      toast({ title: 'Success', description: 'Invoice deleted' });
     } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
   };
 
@@ -146,21 +146,21 @@ export const useSupplierInvoices = (supplierId) => {
   };
 
   const updateStatus = async (id, status) => {
-      try {
-          const { data, error } = await supabase
-            .from('supplier_invoices')
-            .update({ payment_status: status })
-            .eq('id', id)
-            .select()
-            .single();
-            
-          if(error) throw error;
-          
-          setInvoices(invoices.map(i => i.id === id ? { ...i, payment_status: status } : i));
-          toast({ title: "Updated", description: "Payment status updated" });
-      } catch (err) {
-           toast({ title: "Error", description: err.message, variant: "destructive" });
-      }
+    try {
+      const { error } = await supabase
+        .from('supplier_invoices')
+        .update({ payment_status: status })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setInvoices(invoices.map((i) => (i.id === id ? { ...i, payment_status: status } : i)));
+      toast({ title: 'Updated', description: 'Payment status updated' });
+    } catch (err) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
   };
 
   const updateApprovalStatus = async (id, approvalStatus, rejectedReason = null) => {
@@ -181,20 +181,11 @@ export const useSupplierInvoices = (supplierId) => {
         payload.approved_by = null;
       }
 
-      const { error } = await supabase
-        .from('supplier_invoices')
-        .update(payload)
-        .eq('id', id);
+      const { error } = await supabase.from('supplier_invoices').update(payload).eq('id', id);
 
       if (error) throw error;
 
-      setInvoices((prev) =>
-        prev.map((invoice) =>
-          invoice.id === id
-            ? { ...invoice, ...payload }
-            : invoice
-        )
-      );
+      setInvoices((prev) => prev.map((invoice) => (invoice.id === id ? { ...invoice, ...payload } : invoice)));
       toast({ title: 'Updated', description: 'Approval status updated' });
 
       if (approvalStatus === 'pending') {
@@ -238,9 +229,7 @@ export const useSupplierInvoices = (supplierId) => {
         sort_order: index,
       }));
 
-      const { error } = await supabase
-        .from('supplier_invoice_line_items')
-        .insert(lineItems);
+      const { error } = await supabase.from('supplier_invoice_line_items').insert(lineItems);
 
       if (error) throw error;
     } catch (err) {
@@ -262,6 +251,6 @@ export const useSupplierInvoices = (supplierId) => {
     deleteInvoice,
     updateStatus,
     updateApprovalStatus,
-    getSignedUrl
+    getSignedUrl,
   };
 };

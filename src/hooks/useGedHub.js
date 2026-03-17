@@ -13,6 +13,8 @@ import {
   exportQuotePDF,
 } from '@/services/exportDocuments';
 import { exportSupplierInvoicePDF } from '@/services/exportSupplierRecords';
+import { extractInvoiceData } from '@/services/invoiceExtractionService';
+import { linkLineItemsToProducts } from '@/services/supplierInvoiceLineItemLinking';
 
 const SOURCE_CONFIG = {
   invoices: {
@@ -52,6 +54,49 @@ const normalizeCompanyId = (value) =>
   String(value || '')
     .trim()
     .toLowerCase();
+const ACCOUNTING_SOURCE_TABLES = new Set(['invoices', 'supplier_invoices']);
+const SCANNABLE_ACCOUNTING_MIME_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']);
+const sanitizeFileName = (value) =>
+  String(value || 'document')
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/_+/g, '_');
+const addDays = (dateString, days) => {
+  const value = new Date(`${dateString}T00:00:00.000Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+};
+const formatSequenceDate = (value) => value.replace(/-/g, '');
+const isValidIsoDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '').trim());
+const normalizeIsoDate = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (isValidIsoDate(raw)) return raw;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 10);
+};
+const toFiniteNumberOrNull = (value) => {
+  if (value == null || value === '') return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Number(numeric.toFixed(2)) : null;
+};
+const toFiniteNumberOrDefault = (value, fallback = 0) => {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) return Number(numeric.toFixed(2));
+  return Number(fallback || 0);
+};
+const generateDocumentNumber = (sourceTable, dateString) => {
+  const stamp = formatSequenceDate(dateString);
+  const seq = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+
+  if (sourceTable === 'invoices') return `INV-${stamp}-${seq}`;
+  if (sourceTable === 'quotes') return `QT-${stamp}-${seq}`;
+  if (sourceTable === 'credit_notes') return `AV-${stamp}-${seq}`;
+  if (sourceTable === 'delivery_notes') return `BL-${stamp}-${seq}`;
+  if (sourceTable === 'purchase_orders') return `PO-${stamp}-${seq}`;
+  if (sourceTable === 'supplier_invoices') return `SUP-${stamp}-${seq}`;
+  return `DOC-${stamp}-${seq}`;
+};
 
 const mapRowsToDocuments = (sourceTable, rows) =>
   (rows || []).map((row) => {
@@ -99,7 +144,8 @@ const mapRowsToDocuments = (sourceTable, rows) =>
     };
   });
 
-export const useGedHub = () => {
+export const useGedHub = (options = {}) => {
+  const { disableAutoFetch = false } = options;
   const { toast } = useToast();
   const { activeCompanyId } = useCompanyScope();
   const { activeCompany } = useCompany();
@@ -110,6 +156,10 @@ export const useGedHub = () => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [generatingKey, setGeneratingKey] = useState(null);
+  const [mutating, setMutating] = useState(false);
+  const [clients, setClients] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [counterpartiesLoading, setCounterpartiesLoading] = useState(false);
 
   const applyEffectiveCompanyScope = useCallback(
     (query, options = {}) => {
@@ -143,6 +193,44 @@ export const useGedHub = () => {
 
     return null;
   }, []);
+
+  const fetchCounterparties = useCallback(async () => {
+    if (!effectiveCompanyId) {
+      setClients([]);
+      setSuppliers([]);
+      return;
+    }
+
+    setCounterpartiesLoading(true);
+    try {
+      let clientsQuery = supabase.from('clients').select('id, company_name').order('company_name', { ascending: true });
+      clientsQuery = applyEffectiveCompanyScope(clientsQuery);
+
+      let suppliersQuery = supabase
+        .from('suppliers')
+        .select('id, company_name')
+        .order('company_name', { ascending: true });
+      suppliersQuery = applyEffectiveCompanyScope(suppliersQuery);
+
+      const [{ data: clientsRows, error: clientsError }, { data: suppliersRows, error: suppliersError }] =
+        await Promise.all([clientsQuery, suppliersQuery]);
+
+      if (clientsError) throw clientsError;
+      if (suppliersError) throw suppliersError;
+
+      setClients(clientsRows || []);
+      setSuppliers(suppliersRows || []);
+    } catch (error) {
+      console.error('GED HUB counterparties fetch error', error);
+      toast({
+        title: 'Erreur GED HUB',
+        description: error?.message || 'Impossible de charger les tiers.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCounterpartiesLoading(false);
+    }
+  }, [applyEffectiveCompanyScope, effectiveCompanyId, toast]);
 
   const fetchDocuments = useCallback(async () => {
     if (!effectiveCompanyId) {
@@ -275,6 +363,482 @@ export const useGedHub = () => {
       setLoading(false);
     }
   }, [effectiveCompanyId, applyEffectiveCompanyScope, detectReadableCompanyId, toast]);
+
+  const createDocumentDraft = async (payload = {}, options = {}) => {
+    const { skipRefresh = false } = options;
+    const sourceTable = payload.sourceTable;
+    const companyId = effectiveCompanyId;
+
+    if (!sourceTable || !SOURCE_CONFIG[sourceTable]) {
+      throw new Error('Type de document invalide.');
+    }
+    if (!companyId) {
+      throw new Error('Aucune societe active detectee.');
+    }
+
+    if (sourceTable === 'supplier_invoices' && !payload.supplierId) {
+      throw new Error('Veuillez selectionner un fournisseur.');
+    }
+    if (sourceTable !== 'supplier_invoices' && !payload.clientId) {
+      throw new Error('Veuillez selectionner un client.');
+    }
+
+    setMutating(true);
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user?.id) throw new Error('Session utilisateur introuvable.');
+
+      const baseDate = payload.date || new Date().toISOString().slice(0, 10);
+      const dueDate = payload.dueDate || addDays(baseDate, 30);
+      const amount = Number(payload.amount);
+      const safeAmount = Number.isFinite(amount) ? Number(amount.toFixed(2)) : 0;
+      const currency = String(
+        payload.currency || activeCompany?.accounting_currency || activeCompany?.currency || 'EUR'
+      ).toUpperCase();
+      const number = payload.number || generateDocumentNumber(sourceTable, baseDate);
+
+      let insertPayload = {};
+      if (sourceTable === 'invoices') {
+        insertPayload = {
+          user_id: user.id,
+          company_id: companyId,
+          client_id: payload.clientId,
+          invoice_number: number,
+          status: 'draft',
+          payment_status: 'unpaid',
+          date: baseDate,
+          due_date: dueDate,
+          total_ht: safeAmount,
+          total_ttc: safeAmount,
+          tax_rate: 0,
+          amount_paid: 0,
+          balance_due: safeAmount,
+          currency,
+          notes: payload.notes || null,
+          file_url: null,
+        };
+      } else if (sourceTable === 'quotes') {
+        insertPayload = {
+          user_id: user.id,
+          company_id: companyId,
+          client_id: payload.clientId,
+          quote_number: number,
+          status: 'draft',
+          date: baseDate,
+          total_ht: safeAmount,
+          total_ttc: safeAmount,
+          tax_rate: 0,
+          currency,
+          notes: payload.notes || null,
+          file_url: null,
+        };
+      } else if (sourceTable === 'credit_notes') {
+        insertPayload = {
+          user_id: user.id,
+          company_id: companyId,
+          client_id: payload.clientId,
+          credit_note_number: number,
+          status: 'draft',
+          date: baseDate,
+          total_ht: safeAmount,
+          total_ttc: safeAmount,
+          notes: payload.notes || null,
+          file_url: null,
+        };
+      } else if (sourceTable === 'delivery_notes') {
+        insertPayload = {
+          user_id: user.id,
+          company_id: companyId,
+          client_id: payload.clientId,
+          delivery_note_number: number,
+          status: 'draft',
+          date: baseDate,
+          notes: payload.notes || null,
+          file_url: null,
+        };
+      } else if (sourceTable === 'purchase_orders') {
+        insertPayload = {
+          user_id: user.id,
+          company_id: companyId,
+          client_id: payload.clientId,
+          po_number: number,
+          status: 'draft',
+          date: baseDate,
+          due_date: dueDate,
+          total: safeAmount,
+          notes: payload.notes || null,
+          file_url: null,
+        };
+      } else if (sourceTable === 'supplier_invoices') {
+        const safeVatRate = 0;
+        const safeVatAmount = 0;
+        insertPayload = {
+          user_id: user.id,
+          company_id: companyId,
+          supplier_id: payload.supplierId,
+          invoice_number: number,
+          invoice_date: baseDate,
+          due_date: dueDate,
+          total_ht: safeAmount,
+          vat_rate: safeVatRate,
+          vat_amount: safeVatAmount,
+          total_amount: safeAmount,
+          total_ttc: safeAmount,
+          payment_status: 'pending',
+          approval_status: 'pending',
+          notes: payload.notes || null,
+          file_url: null,
+        };
+      }
+
+      const { data: createdRecord, error: createError } = await supabase
+        .from(sourceTable)
+        .insert(insertPayload)
+        .select('*')
+        .single();
+
+      if (createError) throw createError;
+
+      if (!skipRefresh) {
+        await fetchDocuments();
+      }
+
+      return createdRecord;
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const persistDocumentFileUrl = useCallback(async (document, companyId, storagePath) => {
+    let { error: updateError } = await supabase
+      .from(document.sourceTable)
+      .update({
+        file_url: storagePath,
+        file_generated_at: new Date().toISOString(),
+      })
+      .eq('id', document.sourceId)
+      .eq('company_id', companyId);
+
+    if (updateError && String(updateError?.message || '').includes('file_generated_at')) {
+      const retry = await supabase
+        .from(document.sourceTable)
+        .update({ file_url: storagePath })
+        .eq('id', document.sourceId)
+        .eq('company_id', companyId);
+      updateError = retry.error;
+    }
+
+    if (updateError) {
+      throw updateError;
+    }
+  }, []);
+
+  const extractAccountingPayload = useCallback(async ({ file, userId, accessToken, sourceTable, storagePath }) => {
+    if (!SCANNABLE_ACCOUNTING_MIME_TYPES.has(file.type)) {
+      throw new Error(
+        'Pour les documents comptables, utilisez un fichier PDF ou image (jpg, png, webp) afin de declencher le scan IA et la journalisation automatique.'
+      );
+    }
+
+    let extractionPath = storagePath;
+    if (sourceTable !== 'supplier_invoices') {
+      const extension =
+        String(file.name || '')
+          .split('.')
+          .pop() || 'pdf';
+      const fileName = sanitizeFileName(`${Date.now()}-scan-${extension}`);
+      extractionPath = `${userId}/ged-hub-extract/${fileName}`;
+      const { error: extractionUploadError } = await supabase.storage
+        .from('supplier-invoices')
+        .upload(extractionPath, file, {
+          upsert: true,
+          contentType: file.type || undefined,
+        });
+      if (extractionUploadError) throw extractionUploadError;
+    }
+
+    const extracted = await extractInvoiceData({
+      filePath: extractionPath,
+      fileType: file.type,
+      userId,
+      accessToken,
+    });
+    if (!extracted) {
+      throw new Error('Extraction IA impossible sur ce document comptable.');
+    }
+    return extracted;
+  }, []);
+
+  const applySupplierInvoiceExtraction = useCallback(
+    async ({ document, companyId, extracted }) => {
+      const { data: currentInvoice, error: currentInvoiceError } = await supabase
+        .from('supplier_invoices')
+        .select('*')
+        .eq('id', document.sourceId)
+        .eq('company_id', companyId)
+        .single();
+      if (currentInvoiceError) throw currentInvoiceError;
+
+      const invoiceDate =
+        normalizeIsoDate(extracted?.invoice_date) ||
+        currentInvoice.invoice_date ||
+        new Date().toISOString().slice(0, 10);
+      const dueDate = normalizeIsoDate(extracted?.due_date) || currentInvoice.due_date || addDays(invoiceDate, 30);
+      const totalHT = toFiniteNumberOrDefault(extracted?.total_ht, currentInvoice.total_ht);
+      const vatAmount = toFiniteNumberOrDefault(
+        extracted?.total_tva ?? extracted?.vat_amount,
+        currentInvoice.vat_amount
+      );
+      let totalTTC = toFiniteNumberOrNull(extracted?.total_ttc ?? extracted?.total_amount);
+      if (totalTTC == null || totalTTC <= 0) {
+        totalTTC = Number((totalHT + vatAmount).toFixed(2));
+      }
+      const vatRate = toFiniteNumberOrNull(extracted?.tva_rate ?? extracted?.vat_rate);
+      const extractedNumber = String(extracted?.invoice_number || '').trim();
+      const nextStatus =
+        !currentInvoice.status || currentInvoice.status === 'draft' || currentInvoice.status === 'pending'
+          ? 'received'
+          : currentInvoice.status;
+
+      const updatePayload = {
+        invoice_number: extractedNumber || currentInvoice.invoice_number,
+        invoice_date: invoiceDate,
+        due_date: dueDate,
+        total_ht: totalHT,
+        vat_amount: vatAmount,
+        vat_rate: vatRate ?? currentInvoice.vat_rate ?? 0,
+        total_amount: totalTTC,
+        total_ttc: totalTTC,
+        supplier_name_extracted: extracted?.supplier_name || currentInvoice.supplier_name_extracted || null,
+        supplier_address_extracted: extracted?.supplier_address || currentInvoice.supplier_address_extracted || null,
+        supplier_vat_number: extracted?.supplier_vat_number || currentInvoice.supplier_vat_number || null,
+        payment_terms: extracted?.payment_terms || currentInvoice.payment_terms || null,
+        iban: extracted?.iban || currentInvoice.iban || null,
+        bic: extracted?.bic || currentInvoice.bic || null,
+        ai_extracted: true,
+        ai_confidence: toFiniteNumberOrNull(extracted?.confidence),
+        ai_raw_response: extracted,
+        ai_extracted_at: new Date().toISOString(),
+        status: nextStatus,
+        payment_status: currentInvoice.payment_status || 'pending',
+        approval_status: currentInvoice.approval_status || 'pending',
+      };
+
+      const { error: updateError } = await supabase
+        .from('supplier_invoices')
+        .update(updatePayload)
+        .eq('id', document.sourceId)
+        .eq('company_id', companyId);
+      if (updateError) throw updateError;
+
+      const lineItems = Array.isArray(extracted?.line_items) ? extracted.line_items : [];
+      if (lineItems.length === 0) return;
+
+      const { count: existingLineItemsCount, error: existingLineItemsError } = await supabase
+        .from('supplier_invoice_line_items')
+        .select('id', { count: 'exact', head: true })
+        .eq('invoice_id', document.sourceId);
+      if (existingLineItemsError) throw existingLineItemsError;
+      if ((existingLineItemsCount || 0) > 0) return;
+
+      let mappedLineItems = lineItems;
+      if (currentInvoice.supplier_id) {
+        let productsQuery = supabase
+          .from('products')
+          .select('id, product_name, sku, supplier_id, is_active')
+          .eq('supplier_id', currentInvoice.supplier_id)
+          .eq('is_active', true);
+        productsQuery = applyEffectiveCompanyScope(productsQuery);
+        const { data: supplierProducts, error: supplierProductsError } = await productsQuery;
+        if (supplierProductsError) throw supplierProductsError;
+        mappedLineItems = linkLineItemsToProducts(mappedLineItems, supplierProducts || []);
+      }
+
+      const insertLineItems = mappedLineItems.map((item, index) => ({
+        invoice_id: document.sourceId,
+        description: String(item?.description || '').trim(),
+        quantity: toFiniteNumberOrDefault(item?.quantity, 1),
+        unit_price: toFiniteNumberOrDefault(item?.unit_price, 0),
+        total: toFiniteNumberOrDefault(item?.total, 0),
+        vat_rate: toFiniteNumberOrNull(item?.vat_rate),
+        user_product_id: item?.user_product_id || null,
+        sort_order: index,
+      }));
+
+      const { error: lineItemsInsertError } = await supabase
+        .from('supplier_invoice_line_items')
+        .insert(insertLineItems);
+      if (lineItemsInsertError) throw lineItemsInsertError;
+    },
+    [applyEffectiveCompanyScope]
+  );
+
+  const applySalesInvoiceExtraction = useCallback(async ({ document, companyId, extracted }) => {
+    const { data: currentInvoice, error: currentInvoiceError } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('id', document.sourceId)
+      .eq('company_id', companyId)
+      .single();
+    if (currentInvoiceError) throw currentInvoiceError;
+
+    const invoiceDate =
+      normalizeIsoDate(extracted?.invoice_date) || currentInvoice.date || new Date().toISOString().slice(0, 10);
+    const dueDate = normalizeIsoDate(extracted?.due_date) || currentInvoice.due_date || addDays(invoiceDate, 30);
+    const totalHT = toFiniteNumberOrDefault(extracted?.total_ht, currentInvoice.total_ht);
+    const vatAmount = toFiniteNumberOrNull(extracted?.total_tva);
+    let totalTTC = toFiniteNumberOrNull(extracted?.total_ttc);
+    if (totalTTC == null || totalTTC <= 0) {
+      const fallbackVat = vatAmount ?? Math.max(0, toFiniteNumberOrDefault(currentInvoice.total_ttc, 0) - totalHT);
+      totalTTC = Number((totalHT + fallbackVat).toFixed(2));
+    }
+    const taxAmount = vatAmount ?? Number(Math.max(0, totalTTC - totalHT).toFixed(2));
+    const taxRate = toFiniteNumberOrNull(extracted?.tva_rate ?? extracted?.vat_rate) ?? currentInvoice.tax_rate ?? 0;
+    const extractedNumber = String(extracted?.invoice_number || '').trim();
+    const nextStatus = !currentInvoice.status || currentInvoice.status === 'draft' ? 'sent' : currentInvoice.status;
+
+    const { error: updateError } = await supabase
+      .from('invoices')
+      .update({
+        invoice_number: extractedNumber || currentInvoice.invoice_number,
+        date: invoiceDate,
+        due_date: dueDate,
+        total_ht: totalHT,
+        tax_rate: taxRate,
+        tax_amount: taxAmount,
+        total_ttc: totalTTC,
+        balance_due: currentInvoice.payment_status === 'paid' ? 0 : totalTTC,
+        status: nextStatus,
+        payment_status: currentInvoice.payment_status || 'unpaid',
+      })
+      .eq('id', document.sourceId)
+      .eq('company_id', companyId);
+    if (updateError) throw updateError;
+
+    const lineItems = Array.isArray(extracted?.line_items) ? extracted.line_items : [];
+    if (lineItems.length === 0) return;
+
+    const { count: existingLineItemsCount, error: existingLineItemsError } = await supabase
+      .from('invoice_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('invoice_id', document.sourceId);
+    if (existingLineItemsError) throw existingLineItemsError;
+    if ((existingLineItemsCount || 0) > 0) return;
+
+    const invoiceLineItems = lineItems.map((item) => ({
+      invoice_id: document.sourceId,
+      description: String(item?.description || '').trim(),
+      quantity: toFiniteNumberOrDefault(item?.quantity, 1),
+      unit_price: toFiniteNumberOrDefault(item?.unit_price, 0),
+      total: toFiniteNumberOrDefault(item?.total, 0),
+      item_type: 'manual',
+    }));
+
+    const { error: lineItemsInsertError } = await supabase.from('invoice_items').insert(invoiceLineItems);
+    if (lineItemsInsertError) throw lineItemsInsertError;
+  }, []);
+
+  const processAccountingDocumentUpload = useCallback(
+    async ({ document, file, companyId, storagePath, userId, accessToken }) => {
+      if (!ACCOUNTING_SOURCE_TABLES.has(document.sourceTable)) return null;
+      const extracted = await extractAccountingPayload({
+        file,
+        userId,
+        accessToken,
+        sourceTable: document.sourceTable,
+        storagePath,
+      });
+
+      if (document.sourceTable === 'supplier_invoices') {
+        await applySupplierInvoiceExtraction({ document, companyId, extracted });
+      } else if (document.sourceTable === 'invoices') {
+        await applySalesInvoiceExtraction({ document, companyId, extracted });
+      }
+
+      return extracted;
+    },
+    [applySalesInvoiceExtraction, applySupplierInvoiceExtraction, extractAccountingPayload]
+  );
+
+  const uploadDocumentFile = async (document, file, options = {}) => {
+    const { skipRefresh = false } = options;
+    if (!document?.sourceTable || !document?.sourceId) {
+      throw new Error('Document invalide pour le televersement.');
+    }
+    if (!file) {
+      throw new Error('Aucun fichier selectionne.');
+    }
+
+    const bucket = SOURCE_CONFIG[document.sourceTable]?.bucket;
+    if (!bucket) {
+      throw new Error('Bucket de stockage introuvable pour ce type de document.');
+    }
+
+    const companyId = document?.raw?.company_id || effectiveCompanyId;
+    if (!companyId) {
+      throw new Error('Aucune societe active detectee.');
+    }
+
+    setMutating(true);
+    try {
+      const { data: sessionResult, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      const userId = sessionResult?.session?.user?.id;
+      const accessToken = sessionResult?.session?.access_token || null;
+      if (!userId) {
+        throw new Error('Session utilisateur introuvable.');
+      }
+
+      const extension =
+        String(file.name || '')
+          .split('.')
+          .pop() || 'pdf';
+      const baseName = sanitizeFileName(String(file.name || `document.${extension}`));
+      const storagePath = `${userId}/${document.sourceTable}/${document.sourceId}/${Date.now()}-${baseName}`;
+
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(storagePath, file, {
+        upsert: true,
+        contentType: file.type || undefined,
+      });
+      if (uploadError) throw uploadError;
+
+      const extractionResult = await processAccountingDocumentUpload({
+        document,
+        file,
+        companyId,
+        storagePath,
+        userId,
+        accessToken,
+      });
+      await persistDocumentFileUrl(document, companyId, storagePath);
+
+      if (!skipRefresh) {
+        await fetchDocuments();
+      }
+
+      return {
+        storagePath,
+        accountingExtraction: extractionResult,
+      };
+    } finally {
+      setMutating(false);
+    }
+  };
+
+  const createAndUploadDocument = async (payload = {}, file) => {
+    const createdRecord = await createDocumentDraft(payload, { skipRefresh: true });
+    const createdDocument = {
+      ...mapRowsToDocuments(payload.sourceTable, [createdRecord])[0],
+      raw: createdRecord,
+    };
+    await uploadDocumentFile(createdDocument, file, { skipRefresh: true });
+    await fetchDocuments();
+    return createdRecord;
+  };
 
   const upsertMetadata = async (document, patch) => {
     const resolvedCompanyId = document?.raw?.company_id || document?.company_id || effectiveCompanyId;
@@ -438,16 +1002,32 @@ export const useGedHub = () => {
   };
 
   useEffect(() => {
+    if (disableAutoFetch) return undefined;
     void fetchDocuments();
-  }, [fetchDocuments]);
+    return undefined;
+  }, [disableAutoFetch, fetchDocuments]);
+
+  useEffect(() => {
+    if (disableAutoFetch) return undefined;
+    void fetchCounterparties();
+    return undefined;
+  }, [disableAutoFetch, fetchCounterparties]);
 
   return {
     documents,
     loading,
     generatingKey,
+    mutating,
+    clients,
+    suppliers,
+    counterpartiesLoading,
     fetchDocuments,
+    createDocumentDraft,
+    createAndUploadDocument,
+    uploadDocumentFile,
     upsertMetadata,
     getDocumentAccessUrl,
     generatePdf,
+    sourceConfig: SOURCE_CONFIG,
   };
 };

@@ -1,7 +1,18 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowUpRight, Download, FileText, RefreshCw, Search, ShieldCheck, Star, Tags } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Download,
+  FileText,
+  FileUp,
+  Plus,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Star,
+  Tags,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +32,7 @@ const SOURCE_FILTERS = [
   { value: 'purchase_orders', label: 'Bons de commande' },
   { value: 'supplier_invoices', label: 'Factures fournisseurs' },
 ];
+const CREATE_SOURCE_OPTIONS = SOURCE_FILTERS.filter((entry) => entry.value !== 'all');
 
 const CONFIDENTIALITY_OPTIONS = [
   { value: 'public', label: 'Public' },
@@ -47,25 +59,54 @@ const toDate = (value) => {
   if (Number.isNaN(date.getTime())) return '-';
   return date.toLocaleDateString('fr-FR');
 };
+const isSupplierDocumentType = (value) => value === 'supplier_invoices';
+const isAccountingDocumentType = (value) => value === 'invoices' || value === 'supplier_invoices';
+const ACCOUNTING_UPLOAD_ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp';
+const GENERIC_UPLOAD_ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.csv,.xml,.txt';
 
 const GedHubPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { documents, loading, generatingKey, fetchDocuments, upsertMetadata, getDocumentAccessUrl, generatePdf } =
-    useGedHub();
+  const {
+    documents,
+    loading,
+    generatingKey,
+    mutating,
+    clients,
+    suppliers,
+    counterpartiesLoading,
+    fetchDocuments,
+    createDocumentDraft,
+    createAndUploadDocument,
+    uploadDocumentFile,
+    upsertMetadata,
+    getDocumentAccessUrl,
+    generatePdf,
+    sourceConfig,
+  } = useGedHub();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [fileFilter, setFileFilter] = useState('all');
   const [editingDocument, setEditingDocument] = useState(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [metadataForm, setMetadataForm] = useState({
     doc_category: 'general',
     confidentiality_level: 'internal',
     tagsText: '',
     retention_until: '',
     notes: '',
+  });
+  const [createForm, setCreateForm] = useState({
+    mode: 'draft',
+    sourceTable: 'invoices',
+    clientId: '',
+    supplierId: '',
+    amount: '',
+    notes: '',
+    file: null,
   });
 
   const filteredDocuments = useMemo(() => {
@@ -188,6 +229,86 @@ const GedHubPage = () => {
     }
   };
 
+  const resetCreateForm = () => {
+    setCreateForm({
+      mode: 'draft',
+      sourceTable: 'invoices',
+      clientId: '',
+      supplierId: '',
+      amount: '',
+      notes: '',
+      file: null,
+    });
+  };
+
+  const handleUploadForDocument = async (doc) => {
+    const accountingDocument = isAccountingDocumentType(doc.sourceTable);
+    const input = window.document.createElement('input');
+    input.type = 'file';
+    input.accept = accountingDocument ? ACCOUNTING_UPLOAD_ACCEPT : GENERIC_UPLOAD_ACCEPT;
+    input.onchange = async () => {
+      const [file] = input.files || [];
+      if (!file) return;
+      try {
+        const result = await uploadDocumentFile(doc, file);
+        toast({
+          title: 'Fichier televerse',
+          description:
+            accountingDocument && result?.accountingExtraction
+              ? 'Scan IA termine. Donnees comptables injectees et journalisation declenchee.'
+              : 'Le document est maintenant disponible dans le HUB et son module.',
+        });
+      } catch (error) {
+        toast({
+          title: 'Erreur televersement',
+          description: error?.message || 'Televersement impossible.',
+          variant: 'destructive',
+        });
+      }
+    };
+    input.click();
+  };
+
+  const handleCreateOrUpload = async () => {
+    try {
+      const payload = {
+        sourceTable: createForm.sourceTable,
+        clientId: createForm.clientId || null,
+        supplierId: createForm.supplierId || null,
+        amount: createForm.amount ? Number(createForm.amount) : 0,
+        notes: createForm.notes || null,
+      };
+
+      if (createForm.mode === 'upload') {
+        if (!createForm.file) {
+          throw new Error('Veuillez choisir un fichier a televerser.');
+        }
+        const created = await createAndUploadDocument(payload, createForm.file);
+        toast({
+          title: 'Document cree et televerse',
+          description: isAccountingDocumentType(createForm.sourceTable)
+            ? 'Document comptable scanne, donnees injectees, journalisation activee.'
+            : `${sourceConfig[createForm.sourceTable]?.label || 'Document'} ${created?.id ? 'enregistre' : ''}.`,
+        });
+      } else {
+        await createDocumentDraft(payload);
+        toast({
+          title: 'Brouillon cree',
+          description: 'Le document est disponible dans le GED HUB et le module cible.',
+        });
+      }
+
+      setShowCreateDialog(false);
+      resetCreateForm();
+    } catch (error) {
+      toast({
+        title: 'Erreur creation',
+        description: error?.message || 'Creation impossible.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -198,10 +319,24 @@ const GedHubPage = () => {
           </p>
         </div>
 
-        <Button onClick={() => fetchDocuments()} className="bg-orange-500 hover:bg-orange-600 text-white">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Actualiser
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowCreateDialog(true)}
+            className="border-gray-700 text-gray-100 hover:bg-gray-800"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nouveau / Televerser
+          </Button>
+          <Button
+            onClick={() => fetchDocuments()}
+            className="bg-orange-500 hover:bg-orange-600 text-white"
+            disabled={loading || mutating}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Actualiser
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -386,6 +521,16 @@ const GedHubPage = () => {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => handleUploadForDocument(doc)}
+                            className="text-emerald-400 hover:text-emerald-300 h-8 w-8 p-0"
+                            title="Televerser un fichier"
+                            disabled={mutating}
+                          >
+                            <FileUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => openMetadataDialog(doc)}
                             className="text-orange-400 hover:text-orange-300 h-8 w-8 p-0"
                             title="Metadata GED"
@@ -410,6 +555,193 @@ const GedHubPage = () => {
 
         {loading && <div className="py-10 text-center text-gray-400">Chargement GED HUB...</div>}
       </div>
+
+      <Dialog
+        open={showCreateDialog}
+        onOpenChange={(open) => {
+          setShowCreateDialog(open);
+          if (!open) {
+            resetCreateForm();
+          }
+        }}
+      >
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Creer ou televerser un document</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Mode</Label>
+              <Select
+                value={createForm.mode}
+                onValueChange={(value) => setCreateForm((prev) => ({ ...prev, mode: value, file: null }))}
+              >
+                <SelectTrigger className="bg-gray-950/70 border-gray-700 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                  <SelectItem value="draft">Creer un brouillon</SelectItem>
+                  <SelectItem value="upload">Creer + televerser un fichier</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Type de document</Label>
+              <Select
+                value={createForm.sourceTable}
+                onValueChange={(value) =>
+                  setCreateForm((prev) => ({
+                    ...prev,
+                    sourceTable: value,
+                    clientId: '',
+                    supplierId: '',
+                  }))
+                }
+              >
+                <SelectTrigger className="bg-gray-950/70 border-gray-700 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                  {CREATE_SOURCE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {isSupplierDocumentType(createForm.sourceTable) ? (
+              <div className="space-y-2">
+                <Label>Fournisseur</Label>
+                <Select
+                  value={createForm.supplierId}
+                  onValueChange={(value) => setCreateForm((prev) => ({ ...prev, supplierId: value }))}
+                >
+                  <SelectTrigger className="bg-gray-950/70 border-gray-700 text-white">
+                    <SelectValue
+                      placeholder={counterpartiesLoading ? 'Chargement fournisseurs...' : 'Selectionner un fournisseur'}
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                    {(suppliers || []).map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.company_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Client</Label>
+                <Select
+                  value={createForm.clientId}
+                  onValueChange={(value) => setCreateForm((prev) => ({ ...prev, clientId: value }))}
+                >
+                  <SelectTrigger className="bg-gray-950/70 border-gray-700 text-white">
+                    <SelectValue
+                      placeholder={counterpartiesLoading ? 'Chargement clients...' : 'Selectionner un client'}
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                    {(clients || []).map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.company_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Montant (optionnel)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={createForm.amount}
+                onChange={(event) => setCreateForm((prev) => ({ ...prev, amount: event.target.value }))}
+                className="bg-gray-950/70 border-gray-700 text-white"
+              />
+            </div>
+
+            {createForm.mode === 'upload' && (
+              <div className="space-y-2 md:col-span-2">
+                <Label>Fichier</Label>
+                <Input
+                  type="file"
+                  accept={
+                    isAccountingDocumentType(createForm.sourceTable) ? ACCOUNTING_UPLOAD_ACCEPT : GENERIC_UPLOAD_ACCEPT
+                  }
+                  onChange={(event) =>
+                    setCreateForm((prev) => ({
+                      ...prev,
+                      file: event.target.files?.[0] || null,
+                    }))
+                  }
+                  className="bg-gray-950/70 border-gray-700 text-white file:text-gray-300"
+                />
+                {createForm.file && <p className="text-xs text-gray-400">{createForm.file.name}</p>}
+                {isAccountingDocumentType(createForm.sourceTable) && (
+                  <p className="text-xs text-amber-300">
+                    Document comptable: scan IA immediate + integration comptable (formats PDF/JPG/PNG/WEBP).
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2 md:col-span-2">
+              <Label>Notes (optionnel)</Label>
+              <Textarea
+                value={createForm.notes}
+                onChange={(event) => setCreateForm((prev) => ({ ...prev, notes: event.target.value }))}
+                rows={3}
+                className="bg-gray-950/70 border-gray-700 text-white"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-gray-500">
+              Le document sera visible dans GED HUB et dans le module cible (
+              {sourceConfig[createForm.sourceTable]?.label}).
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="border-gray-700 text-gray-300"
+                onClick={() => {
+                  setShowCreateDialog(false);
+                  resetCreateForm();
+                }}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handleCreateOrUpload}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+                disabled={mutating || counterpartiesLoading}
+              >
+                {createForm.mode === 'upload' ? (
+                  <>
+                    <FileUp className="h-4 w-4 mr-2" />
+                    Creer et televerser
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Creer le brouillon
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editingDocument} onOpenChange={(open) => !open && setEditingDocument(null)}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
