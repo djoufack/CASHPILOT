@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const ONE_PIXEL_PNG_DATA_URL =
@@ -87,6 +88,12 @@ function buildClient(url, key) {
   });
 }
 
+function buildStripeWebhookSignature(payload, secret, timestamp = Math.floor(Date.now() / 1000)) {
+  const signedPayload = `${timestamp}.${payload}`;
+  const digest = createHmac('sha256', secret).update(signedPayload, 'utf8').digest('hex');
+  return `t=${timestamp},v1=${digest}`;
+}
+
 async function signInWithRetry(url, anonKey, email, password, attempts = 8) {
   let lastError = null;
 
@@ -157,6 +164,97 @@ async function invokeFunction(supabaseUrl, anonKey, functionName, options = {}) 
     data,
     text,
     headers: Object.fromEntries(response.headers.entries()),
+  };
+}
+
+async function invokeStripeWebhook(supabaseUrl, anonKey, body, signature, headers = {}) {
+  const response = await fetch(`${supabaseUrl}/functions/v1/stripe-webhook`, {
+    method: 'POST',
+    headers: {
+      apikey: anonKey,
+      'x-client-info': 'smoke-runtime-features',
+      'Content-Type': 'application/json',
+      'Stripe-Signature': signature,
+      ...headers,
+    },
+    body,
+  });
+
+  const text = await response.text();
+  let data = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    data,
+    text,
+    headers: Object.fromEntries(response.headers.entries()),
+  };
+}
+
+async function invokeCorsPreflight(supabaseUrl, anonKey, functionName, origin, requestHeaders) {
+  return invokeFunction(supabaseUrl, anonKey, functionName, {
+    method: 'OPTIONS',
+    headers: {
+      origin,
+      'access-control-request-method': 'POST',
+      'access-control-request-headers': requestHeaders,
+    },
+  });
+}
+
+function assertCorsResponse(response, expectedOrigin, expectedAllowHeaders, label) {
+  if (!response.ok) {
+    return `failed:${response.status ?? 'unknown'}:${response.text || 'no-body'}`;
+  }
+
+  const allowOrigin = response.headers['access-control-allow-origin'] || response.headers['Access-Control-Allow-Origin'] || null;
+  const allowHeaders = String(response.headers['access-control-allow-headers'] || response.headers['Access-Control-Allow-Headers'] || '').toLowerCase();
+  const missingHeaders = expectedAllowHeaders.filter((header) => !allowHeaders.includes(header.toLowerCase()));
+
+  if (allowOrigin !== expectedOrigin) {
+    return `origin:${allowOrigin || 'missing'}!=${expectedOrigin}`;
+  }
+
+  if (missingHeaders.length > 0) {
+    return `headers-missing:${missingHeaders.join(',')}`;
+  }
+
+  return null;
+}
+
+async function readStripeWebhookState(serviceClient, invoiceId, sessionId) {
+  const [invoiceResult, paymentsResult] = await Promise.all([
+    serviceClient
+      .from('invoices')
+      .select('id, company_id, amount_paid, balance_due, payment_status, status, stripe_payment_intent_id')
+      .eq('id', invoiceId)
+      .single(),
+    serviceClient
+      .from('payments')
+      .select('id, invoice_id, company_id, reference, amount, payment_method')
+      .eq('invoice_id', invoiceId)
+      .eq('reference', sessionId)
+      .order('created_at', { ascending: true }),
+  ]);
+
+  if (invoiceResult.error) {
+    throw invoiceResult.error;
+  }
+
+  if (paymentsResult.error) {
+    throw paymentsResult.error;
+  }
+
+  return {
+    invoice: invoiceResult.data,
+    payments: paymentsResult.data || [],
   };
 }
 
@@ -763,6 +861,146 @@ async function main() {
     const paymentSuccessPage = await fetchPage(`${appUrl}/payment-success?invoice=${openInvoiceArtifacts.invoice.id}`);
     assert(paymentSuccessPage.status >= 200 && paymentSuccessPage.status < 400, `Payment success page returned ${paymentSuccessPage.status}.`);
 
+    const corsOrigin = new URL(appUrl).origin;
+    const corsChecks = {
+      invoiceLink: await invokeCorsPreflight(supabaseUrl, anonKey, 'stripe-invoice-link', corsOrigin, 'authorization,x-client-info,apikey,content-type'),
+      checkout: await invokeCorsPreflight(supabaseUrl, anonKey, 'stripe-checkout', corsOrigin, 'authorization,x-client-info,apikey,content-type'),
+      subscriptionCheckout: await invokeCorsPreflight(supabaseUrl, anonKey, 'stripe-subscription-checkout', corsOrigin, 'authorization,x-client-info,apikey,content-type'),
+      webhook: await invokeCorsPreflight(supabaseUrl, anonKey, 'stripe-webhook', corsOrigin, 'stripe-signature,content-type'),
+    };
+
+    const corsFailures = [];
+    const corsExpectations = [
+      ['stripe-invoice-link', corsChecks.invoiceLink, ['authorization', 'x-client-info', 'apikey', 'content-type']],
+      ['stripe-checkout', corsChecks.checkout, ['authorization', 'x-client-info', 'apikey', 'content-type']],
+      ['stripe-subscription-checkout', corsChecks.subscriptionCheckout, ['authorization', 'x-client-info', 'apikey', 'content-type']],
+      ['stripe-webhook', corsChecks.webhook, ['authorization', 'x-client-info', 'apikey', 'content-type', 'stripe-signature']],
+    ];
+
+    for (const [label, response, expectedAllowHeaders] of corsExpectations) {
+      const failure = assertCorsResponse(response, corsOrigin, expectedAllowHeaders, label);
+      if (failure) {
+        corsFailures.push(`${label}:${failure}`);
+      }
+    }
+
+    if (corsFailures.length > 0) {
+      failures.push(...corsFailures);
+    }
+
+    const webhookInvoiceArtifacts = await createInvoice(authClient, user.id, companyA.id, clientA.id, runId, 'webhook', {
+      status: 'sent',
+      paymentStatus: 'partial',
+      totalHt: 16.94,
+      totalTtc: 20.5,
+      balanceDue: 20.5,
+      taxRate: 21,
+    });
+
+    const webhookInvoiceId = webhookInvoiceArtifacts.invoice.id;
+    const webhookSessionId = `cs_smoke_${runId}_webhook`;
+    const webhookPaymentIntentId = `pi_smoke_${runId}_webhook`;
+    const webhookPayload = JSON.stringify({
+      id: `evt_smoke_${runId}_webhook`,
+      object: 'event',
+      api_version: '2023-10-16',
+      created: Math.floor(Date.now() / 1000),
+      livemode: false,
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: webhookSessionId,
+          object: 'checkout.session',
+          mode: 'payment',
+          payment_intent: webhookPaymentIntentId,
+          amount_total: Math.round(Number(webhookInvoiceArtifacts.invoice.balance_due || 0) * 100),
+          metadata: {
+            invoice_id: webhookInvoiceId,
+            user_id: user.id,
+          },
+        },
+      },
+    });
+    const webhookSignatureSecret = requireEnv('STRIPE_WEBHOOK_SECRET');
+    const webhookSignature = buildStripeWebhookSignature(webhookPayload, webhookSignatureSecret);
+
+    const webhookMissingSignature = await invokeFunction(supabaseUrl, anonKey, 'stripe-webhook', {
+      method: 'POST',
+    });
+    if (webhookMissingSignature.status !== 400 || !String(webhookMissingSignature.data?.error || webhookMissingSignature.text || '').toLowerCase().includes('missing stripe-signature')) {
+      failures.push(`stripe-webhook-missing-signature:${webhookMissingSignature.status ?? 'unknown'}:${webhookMissingSignature.text || 'no-body'}`);
+    }
+
+    const stripeInvoiceLinkMissingInvoiceId = await invokeFunctionWithClient(authClient, 'stripe-invoice-link', {});
+    if (stripeInvoiceLinkMissingInvoiceId.status !== 400 || !String(stripeInvoiceLinkMissingInvoiceId.text || stripeInvoiceLinkMissingInvoiceId.data?.error || '').toLowerCase().includes('invoiceid required')) {
+      failures.push(`stripe-invoice-link-missing-invoiceId:${stripeInvoiceLinkMissingInvoiceId.status ?? 'unknown'}:${stripeInvoiceLinkMissingInvoiceId.text || 'no-body'}`);
+    }
+
+    const stripeCheckoutMissingCredits = await invokeFunctionWithClient(authClient, 'stripe-checkout', {
+      userId: user.id,
+    });
+    if (stripeCheckoutMissingCredits.status !== 400 || !String(stripeCheckoutMissingCredits.text || stripeCheckoutMissingCredits.data?.error || '').toLowerCase().includes('missing required credits or priceid')) {
+      failures.push(`stripe-checkout-missing-credits-or-priceId:${stripeCheckoutMissingCredits.status ?? 'unknown'}:${stripeCheckoutMissingCredits.text || 'no-body'}`);
+    }
+
+    const stripeSubscriptionMissingPlan = await invokeFunctionWithClient(authClient, 'stripe-subscription-checkout', {
+      userId: user.id,
+    });
+    if (stripeSubscriptionMissingPlan.status !== 400 || !String(stripeSubscriptionMissingPlan.text || stripeSubscriptionMissingPlan.data?.error || '').toLowerCase().includes('missing required field: planslug')) {
+      failures.push(`stripe-subscription-checkout-missing-planSlug:${stripeSubscriptionMissingPlan.status ?? 'unknown'}:${stripeSubscriptionMissingPlan.text || 'no-body'}`);
+    }
+
+    const webhookFirst = await invokeStripeWebhook(supabaseUrl, anonKey, webhookPayload, webhookSignature);
+    const webhookFirstState = await readStripeWebhookState(serviceClient, webhookInvoiceId, webhookSessionId);
+    const webhookSecond = await invokeStripeWebhook(supabaseUrl, anonKey, webhookPayload, webhookSignature);
+    const webhookSecondState = await readStripeWebhookState(serviceClient, webhookInvoiceId, webhookSessionId);
+
+    const expectedPaidAmount = Number(webhookInvoiceArtifacts.invoice.balance_due || 0);
+    const firstPaymentCount = webhookFirstState.payments.length;
+    const secondPaymentCount = webhookSecondState.payments.length;
+    const firstPaymentRow = webhookFirstState.payments[0] || null;
+    const secondPaymentRow = webhookSecondState.payments[0] || null;
+
+    if (!webhookFirst.ok || !webhookSecond.ok) {
+      failures.push(`stripe-webhook-idempotence-response:${webhookFirst.status ?? 'unknown'}:${webhookSecond.status ?? 'unknown'}`);
+    }
+
+    if (firstPaymentCount !== 1) {
+      failures.push(`stripe-webhook-idempotence-first-count:${firstPaymentCount}`);
+    }
+
+    if (secondPaymentCount !== 1) {
+      failures.push(`stripe-webhook-idempotence-second-count:${secondPaymentCount}`);
+    }
+
+    if (Number(webhookFirstState.invoice.amount_paid || 0) !== expectedPaidAmount) {
+      failures.push(`stripe-webhook-amount-paid-first:${webhookFirstState.invoice.amount_paid ?? 'null'}!=${expectedPaidAmount}`);
+    }
+
+    if (Number(webhookSecondState.invoice.amount_paid || 0) !== expectedPaidAmount) {
+      failures.push(`stripe-webhook-amount-paid-second:${webhookSecondState.invoice.amount_paid ?? 'null'}!=${expectedPaidAmount}`);
+    }
+
+    if (Number(webhookSecondState.invoice.balance_due || 0) !== 0) {
+      failures.push(`stripe-webhook-balance-due:${webhookSecondState.invoice.balance_due ?? 'null'}!=0`);
+    }
+
+    if (webhookSecondState.invoice.status !== 'paid' || webhookSecondState.invoice.payment_status !== 'paid') {
+      failures.push(`stripe-webhook-paid-state:${webhookSecondState.invoice.status || 'null'}:${webhookSecondState.invoice.payment_status || 'null'}`);
+    }
+
+    if (!firstPaymentRow || firstPaymentRow.reference !== webhookSessionId) {
+      failures.push(`stripe-webhook-reference-first:${firstPaymentRow?.reference || 'missing'}`);
+    }
+
+    if (!secondPaymentRow || secondPaymentRow.reference !== webhookSessionId) {
+      failures.push(`stripe-webhook-reference-second:${secondPaymentRow?.reference || 'missing'}`);
+    }
+
+    if (secondPaymentRow && secondPaymentRow.company_id !== webhookInvoiceArtifacts.invoice.company_id) {
+      failures.push(`stripe-webhook-company-id:${secondPaymentRow.company_id || 'missing'}!=${webhookInvoiceArtifacts.invoice.company_id}`);
+    }
+
     let stripeOpenFetch = null;
     let storedStripeLink = null;
 
@@ -817,6 +1055,45 @@ async function main() {
       persistedOnInvoice: Boolean(storedStripeLink?.data?.stripe_payment_link_url),
       settledInvoiceRejectedStatus: stripeSettled.status,
       paymentSuccessPageStatus: paymentSuccessPage.status,
+      cors: {
+        origin: corsOrigin,
+        invoiceLink: {
+          status: corsChecks.invoiceLink.status,
+          allowOrigin: corsChecks.invoiceLink.headers['access-control-allow-origin'] || null,
+        },
+        checkout: {
+          status: corsChecks.checkout.status,
+          allowOrigin: corsChecks.checkout.headers['access-control-allow-origin'] || null,
+        },
+        subscriptionCheckout: {
+          status: corsChecks.subscriptionCheckout.status,
+          allowOrigin: corsChecks.subscriptionCheckout.headers['access-control-allow-origin'] || null,
+        },
+        webhook: {
+          status: corsChecks.webhook.status,
+          allowOrigin: corsChecks.webhook.headers['access-control-allow-origin'] || null,
+          allowHeaders: corsChecks.webhook.headers['access-control-allow-headers'] || null,
+        },
+      },
+      webhookIdempotence: {
+        invoiceId: webhookInvoiceId,
+        sessionId: webhookSessionId,
+        firstStatus: webhookFirst.status,
+        secondStatus: webhookSecond.status,
+        firstPaymentCount,
+        secondPaymentCount,
+        firstAmountPaid: webhookFirstState.invoice.amount_paid ?? null,
+        secondAmountPaid: webhookSecondState.invoice.amount_paid ?? null,
+        expectedPaidAmount,
+        companyId: webhookSecondState.invoice.company_id ?? null,
+        companyIdMatches: secondPaymentRow ? secondPaymentRow.company_id === webhookSecondState.invoice.company_id : false,
+      },
+      missingPreconditionErrors: {
+        webhook: webhookMissingSignature.status,
+        invoiceLink: stripeInvoiceLinkMissingInvoiceId.status,
+        checkout: stripeCheckoutMissingCredits.status,
+        subscriptionCheckout: stripeSubscriptionMissingPlan.status,
+      },
     };
 
     const companyAEntryRef = `SMOKE-MC-A-${runId.toUpperCase()}`;

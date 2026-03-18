@@ -28,18 +28,24 @@ const ensureUserCreditsRow = async (supabase: ReturnType<typeof createClient>, u
     return;
   }
 
-  const { error: insertCreditsError } = await supabase
-    .from('user_credits')
-    .insert({
-      user_id: userId,
-      free_credits: 10,
-      paid_credits: 0,
-      updated_at: new Date().toISOString(),
-    });
+  const { error: insertCreditsError } = await supabase.from('user_credits').insert({
+    user_id: userId,
+    free_credits: 10,
+    paid_credits: 0,
+    updated_at: new Date().toISOString(),
+  });
 
   if (insertCreditsError) {
     throw insertCreditsError;
   }
+};
+
+const getCheckoutPaymentIntentId = (session: Stripe.Checkout.Session) => {
+  if (typeof session.payment_intent === 'string') {
+    return session.payment_intent;
+  }
+
+  return session.payment_intent?.id ?? null;
 };
 
 serve(async (req) => {
@@ -64,10 +70,10 @@ serve(async (req) => {
     const signature = req.headers.get('stripe-signature');
 
     if (!signature) {
-      return new Response(
-        JSON.stringify({ error: 'Missing stripe-signature header' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Missing stripe-signature header' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     let event: Stripe.Event;
@@ -75,10 +81,10 @@ serve(async (req) => {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err) {
       console.error('Webhook signature verification failed:', err.message);
-      return new Response(
-        JSON.stringify({ error: 'Invalid signature' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // ========================================
@@ -98,10 +104,10 @@ serve(async (req) => {
 
         if (!planSlug) {
           console.error('Missing plan_slug in metadata', session.metadata);
-          return new Response(
-            JSON.stringify({ error: 'Missing plan_slug metadata' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return new Response(JSON.stringify({ error: 'Missing plan_slug metadata' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
 
         // Retrieve subscription to get current_period_end
@@ -111,11 +117,10 @@ serve(async (req) => {
           // --- Guest checkout: store as pending subscription ---
           const customerEmail = session.customer_details?.email || session.customer_email || '';
 
-          const { error: pendingError } = await supabase
-            .from('pending_subscriptions')
-            .upsert({
+          const { error: pendingError } = await supabase.from('pending_subscriptions').upsert(
+            {
               stripe_customer_email: customerEmail,
-              stripe_customer_id: session.customer as string || null,
+              stripe_customer_id: (session.customer as string) || null,
               stripe_subscription_id: subscriptionId,
               plan_slug: planSlug,
               plan_id: planId,
@@ -123,7 +128,9 @@ serve(async (req) => {
               billing_interval: session.metadata?.billing_interval || 'monthly',
               current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
               stripe_session_id: session.id,
-            }, { onConflict: 'stripe_session_id' });
+            },
+            { onConflict: 'stripe_session_id' }
+          );
 
           if (pendingError) {
             console.error('Failed to store pending subscription:', pendingError);
@@ -145,10 +152,9 @@ serve(async (req) => {
 
           if (existingSubscriptionTx) {
             console.log('Subscription session already processed:', session.id);
-            return new Response(
-              JSON.stringify({ received: true, status: 'already_processed' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
+            return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
           }
 
           await ensureUserCreditsRow(supabase, userId);
@@ -183,74 +189,174 @@ serve(async (req) => {
           console.log(`Subscription ${planSlug} activated for user ${userId} (${creditsPerMonth} credits)`);
         }
 
-      // --- Invoice payment via Stripe Payment Link ---
+        // --- Invoice payment via Stripe Payment Link ---
       } else if (session.metadata?.invoice_id) {
         const invoiceId = session.metadata.invoice_id;
+        const paymentIntentId = getCheckoutPaymentIntentId(session);
         const amountPaid = session.amount_total ? session.amount_total / 100 : 0;
-        const invoiceUserId = session.metadata.user_id;
-        const { data: existingInvoice } = await supabase
+        const { data: existingInvoice, error: existingInvoiceError } = await supabase
           .from('invoices')
-          .select('invoice_number, client_id, company_id, amount_paid')
+          .select(
+            'invoice_number, client_id, company_id, user_id, amount_paid, payment_status, status, stripe_payment_intent_id'
+          )
           .eq('id', invoiceId)
           .maybeSingle();
 
-        const newAmountPaid = Number(existingInvoice?.amount_paid || 0) + amountPaid;
+        if (existingInvoiceError) {
+          throw existingInvoiceError;
+        }
 
-        await supabase
-          .from('invoices')
-          .update({
-            payment_status: 'paid',
-            status: 'paid',
-            amount_paid: newAmountPaid,
-            balance_due: 0,
-            stripe_payment_intent_id: session.payment_intent as string,
-          })
-          .eq('id', invoiceId);
+        if (!existingInvoice) {
+          console.error(`Invoice not found for Stripe checkout session ${session.id}: ${invoiceId}`);
+          return new Response(JSON.stringify({ error: 'Invoice not found' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const invoiceUserId = existingInvoice.user_id || userId;
+
+        if (!invoiceUserId) {
+          console.error(`Missing user_id for invoice ${invoiceId}`);
+          return new Response(JSON.stringify({ error: 'Missing invoice user_id' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (!existingInvoice.company_id) {
+          console.error(`Missing company_id for invoice ${invoiceId}`);
+          return new Response(JSON.stringify({ error: 'Missing invoice company_id' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (!paymentIntentId) {
+          console.error(`Missing payment_intent for Stripe checkout session ${session.id}`);
+          return new Response(JSON.stringify({ error: 'Missing payment_intent' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const { data: existingPayment, error: existingPaymentError } = await supabase
+          .from('payments')
+          .select('id')
+          .eq('invoice_id', invoiceId)
+          .eq('reference', session.id)
+          .maybeSingle();
+
+        if (existingPaymentError) {
+          throw existingPaymentError;
+        }
+
+        if (existingPayment) {
+          console.log(`Invoice ${invoiceId} already processed for Stripe checkout session ${session.id}`);
+          return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const invoiceAlreadyApplied = existingInvoice.stripe_payment_intent_id === paymentIntentId;
+
+        if (!invoiceAlreadyApplied) {
+          const newAmountPaid = Number(existingInvoice.amount_paid || 0) + amountPaid;
+          const { error: updateError } = await supabase
+            .from('invoices')
+            .update({
+              payment_status: 'paid',
+              status: 'paid',
+              amount_paid: newAmountPaid,
+              balance_due: 0,
+              stripe_payment_intent_id: paymentIntentId,
+            })
+            .eq('id', invoiceId);
+
+          if (updateError) {
+            console.error(
+              `Failed to update invoice ${invoiceId} from Stripe checkout session ${session.id}:`,
+              updateError
+            );
+            throw updateError;
+          }
+        } else {
+          console.log(`Invoice ${invoiceId} already marked with Stripe payment intent ${paymentIntentId}`);
+        }
 
         // Create payment record
-        if (invoiceUserId) {
-          await supabase.from('payments').insert({
-            user_id: invoiceUserId,
+        const { error: paymentInsertError } = await supabase.from('payments').insert({
+          user_id: invoiceUserId,
+          company_id: existingInvoice.company_id,
+          invoice_id: invoiceId,
+          payment_date: new Date().toISOString().split('T')[0],
+          amount: amountPaid,
+          payment_method: 'card',
+          reference: session.id,
+          notes: 'Paiement en ligne via Stripe Payment Link',
+        });
+
+        if (paymentInsertError) {
+          const { data: duplicatePayment, error: duplicatePaymentError } = await supabase
+            .from('payments')
+            .select('id')
+            .eq('invoice_id', invoiceId)
+            .eq('reference', session.id)
+            .maybeSingle();
+
+          if (duplicatePaymentError) {
+            throw duplicatePaymentError;
+          }
+
+          if (duplicatePayment) {
+            console.log(`Payment already exists for invoice ${invoiceId} and session ${session.id}`);
+            return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          console.error(
+            `Failed to create payment for invoice ${invoiceId} from Stripe checkout session ${session.id}:`,
+            paymentInsertError
+          );
+          throw paymentInsertError;
+        }
+
+        const newAmountPaid = invoiceAlreadyApplied
+          ? Number(existingInvoice.amount_paid || 0)
+          : Number(existingInvoice.amount_paid || 0) + amountPaid;
+
+        await Promise.all([
+          deliverWebhookEvent(supabase, invoiceUserId, 'invoice.paid', {
+            id: invoiceId,
+            invoice_number: existingInvoice.invoice_number,
+            client_id: existingInvoice.client_id,
+            company_id: existingInvoice.company_id,
+            status: 'paid',
+            payment_status: 'paid',
+            amount_paid: newAmountPaid,
+          }),
+          deliverWebhookEvent(supabase, invoiceUserId, 'payment.received', {
             invoice_id: invoiceId,
-            payment_date: new Date().toISOString().split('T')[0],
             amount: amountPaid,
             payment_method: 'card',
             reference: session.id,
-            notes: 'Paiement en ligne via Stripe Payment Link',
-          });
-
-          await Promise.all([
-            deliverWebhookEvent(supabase, invoiceUserId, 'invoice.paid', {
-              id: invoiceId,
-              invoice_number: existingInvoice?.invoice_number,
-              client_id: existingInvoice?.client_id,
-              company_id: existingInvoice?.company_id,
-              status: 'paid',
-              payment_status: 'paid',
-              amount_paid: newAmountPaid,
-            }),
-            deliverWebhookEvent(supabase, invoiceUserId, 'payment.received', {
-              invoice_id: invoiceId,
-              amount: amountPaid,
-              payment_method: 'card',
-              reference: session.id,
-              company_id: existingInvoice?.company_id,
-            }),
-          ]);
-        }
+            company_id: existingInvoice.company_id,
+          }),
+        ]);
 
         console.log(`Invoice ${invoiceId} marked as paid via Stripe Payment Link (session: ${session.id})`);
 
-      // --- One-time credit purchase ---
+        // --- One-time credit purchase ---
       } else {
         const credits = parseInt(session.metadata?.credits || '0', 10);
 
         if (!userId || !credits) {
           console.error('Missing metadata: user_id or credits', session.metadata);
-          return new Response(
-            JSON.stringify({ error: 'Missing metadata' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return new Response(JSON.stringify({ error: 'Missing metadata' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
 
         // Idempotency check
@@ -262,17 +368,18 @@ serve(async (req) => {
 
         if (existingTx) {
           console.log('Session already processed:', session.id);
-          return new Response(
-            JSON.stringify({ received: true, status: 'already_processed' }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
 
         // Add credits
         await ensureUserCreditsRow(supabase, userId);
 
-        const { error: updateError } = await supabase
-          .rpc('increment_paid_credits', { p_user_id: userId, p_amount: credits });
+        const { error: updateError } = await supabase.rpc('increment_paid_credits', {
+          p_user_id: userId,
+          p_amount: credits,
+        });
 
         if (updateError) {
           console.error('Failed to update credits:', updateError);
@@ -301,10 +408,9 @@ serve(async (req) => {
 
       // Skip if not a subscription invoice or first invoice (handled by checkout)
       if (!subscriptionId || invoice.billing_reason === 'subscription_create') {
-        return new Response(
-          JSON.stringify({ received: true, status: 'skipped' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ received: true, status: 'skipped' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       // Find user by stripe_subscription_id
@@ -316,10 +422,9 @@ serve(async (req) => {
 
       if (!userCredits) {
         console.error('No user found for subscription:', subscriptionId);
-        return new Response(
-          JSON.stringify({ received: true, status: 'user_not_found' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ received: true, status: 'user_not_found' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       // Get plan credits
@@ -331,10 +436,9 @@ serve(async (req) => {
 
       if (!plan) {
         console.error('Plan not found:', userCredits.subscription_plan_id);
-        return new Response(
-          JSON.stringify({ received: true, status: 'plan_not_found' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ received: true, status: 'plan_not_found' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       // Retrieve subscription for period end
@@ -375,10 +479,9 @@ serve(async (req) => {
 
       if (!userId) {
         console.log('No user_id in subscription metadata, skipping');
-        return new Response(
-          JSON.stringify({ received: true, status: 'no_metadata' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ received: true, status: 'no_metadata' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       const planSlug = subscription.metadata?.plan_slug;
@@ -396,10 +499,7 @@ serve(async (req) => {
         updateData.subscription_credits = creditsPerMonth;
       }
 
-      await supabase
-        .from('user_credits')
-        .update(updateData)
-        .eq('user_id', userId);
+      await supabase.from('user_credits').update(updateData).eq('user_id', userId);
 
       console.log(`Subscription updated for user ${userId}: status=${subscription.status}, plan=${planSlug}`);
     }
@@ -465,15 +565,14 @@ serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({ received: true }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ received: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Webhook error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Webhook processing error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Webhook processing error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
