@@ -7,12 +7,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { HttpError, requireAuthenticatedUser } from '../_shared/billing.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  ...SECURITY_HEADERS,
-};
-
 const PRODUCTION_ORIGIN = 'https://cashpilot.tech';
 const LOCAL_ORIGINS = new Set(['http://localhost:3000', 'http://localhost:5173']);
 
@@ -29,9 +23,15 @@ const isAllowedOrigin = (origin: string | null | undefined) => {
   }
 };
 
-const resolveOrigin = (originHeader: string | null) => (
-  isAllowedOrigin(originHeader) ? originHeader! : PRODUCTION_ORIGIN
-);
+const resolveOrigin = (originHeader: string | null) =>
+  isAllowedOrigin(originHeader) ? originHeader! : PRODUCTION_ORIGIN;
+
+const buildCorsHeaders = (origin: string) => ({
+  'Access-Control-Allow-Origin': origin,
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...SECURITY_HEADERS,
+});
 
 const normalizeReturnUrl = (candidate: string | undefined, fallbackPath: string, origin: string) => {
   if (candidate) {
@@ -49,6 +49,9 @@ const normalizeReturnUrl = (candidate: string | undefined, fallbackPath: string,
 };
 
 serve(async (req) => {
+  const origin = resolveOrigin(req.headers.get('origin'));
+  const corsHeaders = buildCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -107,17 +110,8 @@ serve(async (req) => {
       throw new HttpError(400, 'Invalid credit package');
     }
 
-    const origin = resolveOrigin(req.headers.get('origin'));
-    const resolvedSuccessUrl = normalizeReturnUrl(
-      successUrl,
-      '/settings?tab=credits&status=success',
-      origin,
-    );
-    const resolvedCancelUrl = normalizeReturnUrl(
-      cancelUrl,
-      '/settings?tab=credits&status=cancelled',
-      origin,
-    );
+    const resolvedSuccessUrl = normalizeReturnUrl(successUrl, '/settings?tab=credits&status=success', origin);
+    const resolvedCancelUrl = normalizeReturnUrl(cancelUrl, '/settings?tab=credits&status=cancelled', origin);
 
     const resolvedCredits = Number(creditPackage.credits || 0);
     if (!Number.isFinite(resolvedCredits) || resolvedCredits <= 0) {
@@ -150,33 +144,31 @@ serve(async (req) => {
         throw new HttpError(400, 'Invalid package price configuration');
       }
 
-      sessionConfig.line_items = [{
-        price_data: {
-          currency: String(creditPackage.currency || 'EUR').toLowerCase(),
-          product_data: {
-            name: `CashPilot — ${resolvedCredits} Credits`,
-            description: `Pack de ${resolvedCredits} credits pour CashPilot`,
+      sessionConfig.line_items = [
+        {
+          price_data: {
+            currency: String(creditPackage.currency || 'EUR').toLowerCase(),
+            product_data: {
+              name: `CashPilot — ${resolvedCredits} Credits`,
+              description: `Pack de ${resolvedCredits} credits pour CashPilot`,
+            },
+            unit_amount: priceCents,
           },
-          unit_amount: priceCents,
+          quantity: 1,
         },
-        quantity: 1,
-      }];
+      ];
     }
 
     const session = await stripe.checkout.sessions.create(sessionConfig as Stripe.Checkout.SessionCreateParams);
 
-    return new Response(
-      JSON.stringify({ url: session.url, sessionId: session.id }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Stripe checkout error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: error instanceof HttpError ? error.status : 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: error instanceof HttpError ? error.status : 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
