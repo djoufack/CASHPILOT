@@ -516,11 +516,11 @@
       </p>
       <div class="hero-stats">
         <div class="stat">
-          <div class="stat-number">460+</div>
+          <div class="stat-number">461+</div>
           <div class="stat-label">Outils au total</div>
         </div>
         <div class="stat">
-          <div class="stat-number">85+</div>
+          <div class="stat-number">86+</div>
           <div class="stat-label">Outils metier</div>
         </div>
         <div class="stat">
@@ -834,8 +834,8 @@
         <div class="category-header">
           <div class="category-icon" style="background: rgba(244, 114, 182, 0.15)">&#128221;</div>
           <h2 class="category-title">Documents commerciaux</h2>
-          <span class="category-count">5 outils</span>
-          <span class="category-desc">Devis, avoirs, depenses et soldes fournisseurs</span>
+          <span class="category-count">6 outils</span>
+          <span class="category-desc">Upload GED, devis, avoirs, depenses et soldes fournisseurs</span>
         </div>
         <div class="tools-grid">
           <div class="tool-card" data-search="create_quote creer devis lignes calcul automatique">
@@ -887,6 +887,22 @@
               <span class="param-tag optional">expense_date</span>
               <span class="param-tag optional">client_id</span>
               <span class="param-tag optional">refacturable</span>
+            </div>
+          </div>
+          <div class="tool-card" data-search="upload_ged_document upload televersement ged hub fichier invoices quotes credit_notes delivery_notes purchase_orders supplier_invoices">
+            <span class="badge badge-auto">GED HUB</span>
+            <div class="tool-name">upload_ged_document</div>
+            <div class="tool-desc">
+              Televerser un fichier dans GED HUB et le lier a un document existant (facture, devis, avoir, bon de livraison, bon de commande, facture fournisseur).
+              Met a jour file_url et peut enrichir les metadonnees GED.
+            </div>
+            <div class="tool-params">
+              <span class="param-tag">source_table</span>
+              <span class="param-tag">source_id</span>
+              <span class="param-tag">file_data (base64)</span>
+              <span class="param-tag">file_name</span>
+              <span class="param-tag optional">file_type</span>
+              <span class="param-tag optional">upsert_metadata</span>
             </div>
           </div>
           <div class="tool-card" data-search="get_supplier_balance solde fournisseur impaye">
@@ -2400,7 +2416,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <p><strong>CashPilot MCP</strong> &mdash; 460+ outils | 22 cat&eacute;gories | Mis a jour le 18 mars 2026</p>
+      <p><strong>CashPilot MCP</strong> &mdash; 461+ outils | 22 cat&eacute;gories | Mis a jour le 18 mars 2026</p>
       <p style="margin-top: 0.5rem">
         Documentation a destination des utilisateurs du serveur MCP CashPilot. Les outils CRUD sont generes
         automatiquement a partir du schema de base de donnees Supabase.
