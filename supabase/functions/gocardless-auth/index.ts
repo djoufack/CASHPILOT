@@ -134,7 +134,11 @@ async function fetchGoCardless(accessToken: string, path: string, options: Reque
 }
 
 function normalizeCountryCode(value: unknown) {
-  return String(value || 'BE').trim().toUpperCase() || 'BE';
+  return (
+    String(value || 'BE')
+      .trim()
+      .toUpperCase() || 'BE'
+  );
 }
 
 function resolveRequisitionStatus(status: string) {
@@ -166,7 +170,7 @@ function resolveBalance(balancePayload: any) {
 async function resolveTargetCompanyId(
   supabase: ReturnType<typeof createClient>,
   userId: string,
-  requestedCompanyId?: string | null,
+  requestedCompanyId?: string | null
 ) {
   if (requestedCompanyId) {
     const { data: selectedCompany } = await supabase
@@ -275,9 +279,8 @@ async function syncConnectionTransactions(
 
       const amount = Number.parseFloat(transaction.transactionAmount?.amount || '0') || 0;
 
-      const { error: upsertError } = await supabase
-        .from('bank_transactions')
-        .upsert({
+      const { error: upsertError } = await supabase.from('bank_transactions').upsert(
+        {
           user_id: userId,
           company_id: connection.company_id || null,
           bank_connection_id: connection.id,
@@ -295,10 +298,12 @@ async function syncConnectionTransactions(
           raw_data: transaction,
           reconciliation_status: 'unreconciled',
           updated_at: new Date().toISOString(),
-        }, {
+        },
+        {
           onConflict: 'bank_connection_id,external_id',
           ignoreDuplicates: false,
-        });
+        }
+      );
 
       if (!upsertError) {
         syncedCount += 1;
@@ -333,9 +338,8 @@ async function syncConnectionTransactions(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown sync error';
-    const errorStatus = typeof error === 'object' && error && 'status' in error
-      ? Number((error as { status?: number }).status || 0)
-      : 0;
+    const errorStatus =
+      typeof error === 'object' && error && 'status' in error ? Number((error as { status?: number }).status || 0) : 0;
 
     await supabase
       .from('bank_connections')
@@ -368,9 +372,6 @@ serve(async (req) => {
   try {
     const secretId = Deno.env.get('GOCARDLESS_SECRET_ID');
     const secretKey = Deno.env.get('GOCARDLESS_SECRET_KEY');
-    if (!secretId || !secretKey) {
-      throw new HttpError(500, 'GoCardless credentials not configured');
-    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -395,17 +396,48 @@ serve(async (req) => {
       return jsonResponse({ error: 'Invalid or expired token' }, 401);
     }
 
+    const body = await req.json().catch(() => ({}));
     const verifiedUserId = authUser.id;
-    const {
-      action,
-      companyId,
-      institutionId,
-      institutionName,
-      redirectUrl,
-      requisitionId,
-      connectionId,
-      country,
-    } = await req.json();
+    const { action, companyId, institutionId, institutionName, redirectUrl, requisitionId, connectionId, country } =
+      body;
+
+    if (action === 'health') {
+      const credentialsConfigured = Boolean(secretId && secretKey);
+      if (!credentialsConfigured) {
+        return jsonResponse({
+          success: true,
+          ready: false,
+          credentialsConfigured: false,
+          providerReachable: false,
+          message: 'GoCardless credentials not configured',
+          checkedAt: new Date().toISOString(),
+        });
+      }
+
+      try {
+        await fetchGoCardlessToken(secretId as string, secretKey as string);
+        return jsonResponse({
+          success: true,
+          ready: true,
+          credentialsConfigured: true,
+          providerReachable: true,
+          checkedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        return jsonResponse({
+          success: true,
+          ready: false,
+          credentialsConfigured: true,
+          providerReachable: false,
+          message: error instanceof Error ? error.message : 'GoCardless health check failed',
+          checkedAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    if (!secretId || !secretKey) {
+      throw new HttpError(500, 'GoCardless credentials not configured');
+    }
 
     const accessToken = await fetchGoCardlessToken(secretId, secretKey);
 
@@ -433,7 +465,9 @@ serve(async (req) => {
           return jsonResponse({ error: 'No company configured for this user' }, 422);
         }
 
-        const institutionDetails = await fetchGoCardless(accessToken, `/institutions/${institutionId}/`).catch(() => null);
+        const institutionDetails = await fetchGoCardless(accessToken, `/institutions/${institutionId}/`).catch(
+          () => null
+        );
         const agreement = await fetchGoCardless(accessToken, '/agreements/enduser/', {
           method: 'POST',
           body: JSON.stringify({
@@ -496,17 +530,17 @@ serve(async (req) => {
         }
         const { data: existingConnections } = await existingConnectionsQuery;
         const resolvedCompanyId =
-          existingConnections?.[0]?.company_id ||
-          (await resolveTargetCompanyId(supabase, verifiedUserId, companyId));
+          existingConnections?.[0]?.company_id || (await resolveTargetCompanyId(supabase, verifiedUserId, companyId));
 
         if (mappedStatus !== 'active') {
           let statusUpdate = supabase
             .from('bank_connections')
             .update({
               status: mappedStatus,
-              sync_error: mappedStatus === 'expired'
-                ? 'Le consentement bancaire a expiré avant la finalisation.'
-                : 'L’autorisation bancaire n’est pas encore finalisée.',
+              sync_error:
+                mappedStatus === 'expired'
+                  ? 'Le consentement bancaire a expiré avant la finalisation.'
+                  : 'L’autorisation bancaire n’est pas encore finalisée.',
               updated_at: nowIso,
             })
             .eq('user_id', verifiedUserId)
@@ -516,12 +550,16 @@ serve(async (req) => {
           }
           await statusUpdate;
 
-          return jsonResponse({
-            error: mappedStatus === 'expired'
-              ? 'Bank authorization expired before completion'
-              : 'Requisition not linked yet',
-            status: requisition.status,
-          }, mappedStatus === 'expired' ? 410 : 409);
+          return jsonResponse(
+            {
+              error:
+                mappedStatus === 'expired'
+                  ? 'Bank authorization expired before completion'
+                  : 'Requisition not linked yet',
+              status: requisition.status,
+            },
+            mappedStatus === 'expired' ? 410 : 409
+          );
         }
 
         const accounts = requisition.accounts || [];
@@ -585,7 +623,8 @@ serve(async (req) => {
             updated_at: nowIso,
           };
 
-          const existingAccountConnection = availableConnections.find((connection) => connection.account_id === accountId) || null;
+          const existingAccountConnection =
+            availableConnections.find((connection) => connection.account_id === accountId) || null;
           let persistedConnection = existingAccountConnection;
 
           if (existingAccountConnection) {
@@ -681,13 +720,11 @@ serve(async (req) => {
         return jsonResponse({ error: `Unknown action: ${action}` }, 400);
     }
   } catch (error) {
-    const status = typeof error === 'object' && error && 'status' in error
-      ? Number((error as { status?: number }).status || 500)
-      : 500;
+    const status =
+      typeof error === 'object' && error && 'status' in error
+        ? Number((error as { status?: number }).status || 500)
+        : 500;
 
-    return jsonResponse(
-      { error: error instanceof Error ? error.message : 'Unexpected error' },
-      status
-    );
+    return jsonResponse({ error: error instanceof Error ? error.message : 'Unexpected error' }, status);
   }
 });

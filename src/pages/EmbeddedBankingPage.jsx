@@ -22,6 +22,10 @@ const EmbeddedBankingPage = () => {
     initiateTransfer,
     disconnectAccount,
     fetchConnections,
+    bankTransfersEnabled,
+    integrationHealth,
+    integrationHealthLoading,
+    refreshIntegrationHealth,
   } = useEmbeddedBanking();
 
   const [connectDialogOpen, setConnectDialogOpen] = useState(false);
@@ -68,6 +72,10 @@ const EmbeddedBankingPage = () => {
     setSyncingAll(false);
   };
 
+  const handleRefresh = async () => {
+    await Promise.allSettled([fetchConnections(), refreshIntegrationHealth()]);
+  };
+
   const transferStatusConfig = useMemo(
     () => ({
       pending: { color: 'text-yellow-400', label: t('banking.transferPending') },
@@ -95,8 +103,8 @@ const EmbeddedBankingPage = () => {
           <p className="mt-1 text-sm text-gray-400">{t('banking.pageSubtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="ghost" onClick={() => fetchConnections()} className="text-gray-300 hover:text-white">
-            <RefreshCw className="mr-2 h-4 w-4" />
+          <Button variant="ghost" onClick={handleRefresh} className="text-gray-300 hover:text-white">
+            <RefreshCw className={`mr-2 h-4 w-4 ${integrationHealthLoading ? 'animate-spin' : ''}`} />
             {t('banking.refresh')}
           </Button>
           <Button
@@ -111,17 +119,42 @@ const EmbeddedBankingPage = () => {
           <Button
             variant="outline"
             onClick={() => setTransferDialogOpen(true)}
-            disabled={activeConnections.length === 0}
+            disabled={!bankTransfersEnabled || activeConnections.length === 0}
             className="border-blue-700 bg-blue-900/30 text-blue-300 hover:bg-blue-800/40"
           >
             <Send className="mr-2 h-4 w-4" />
             {t('banking.newTransfer')}
           </Button>
-          <Button onClick={() => setConnectDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Button
+            onClick={() => setConnectDialogOpen(true)}
+            disabled={!integrationHealth.ready}
+            className="bg-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
             <Plus className="mr-2 h-4 w-4" />
             {t('banking.connectAccount')}
           </Button>
         </div>
+      </div>
+
+      <div
+        className={`rounded-xl border p-4 ${
+          integrationHealth.ready ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-red-500/30 bg-red-500/10'
+        }`}
+      >
+        <p className="text-sm font-medium text-white">
+          {integrationHealth.ready
+            ? t('banking.integrationReady', 'Connecteur bancaire opérationnel')
+            : t('banking.integrationNotReady', 'Connecteur bancaire non prêt')}
+        </p>
+        <p className="mt-1 text-xs text-gray-300">
+          {integrationHealth.ready
+            ? t('banking.integrationReadyHint', 'GoCardless est disponible pour synchroniser les comptes.')
+            : integrationHealth.message ||
+              t(
+                'banking.integrationNotReadyHint',
+                'Configuration GoCardless incomplète. Le bouton de connexion est temporairement désactivé.'
+              )}
+        </p>
       </div>
 
       {/* Summary cards */}
@@ -170,6 +203,13 @@ const EmbeddedBankingPage = () => {
               <p className="text-xs text-gray-500">{t('banking.completedTransfers')}</p>
             </div>
           </div>
+          {!bankTransfersEnabled && (
+            <p className="mt-3 text-xs text-amber-300">
+              {t('banking.transfersUnavailable', {
+                defaultValue: 'Les virements bancaires directs sont temporairement indisponibles sur ce connecteur.',
+              })}
+            </p>
+          )}
         </div>
       </div>
 
@@ -189,7 +229,11 @@ const EmbeddedBankingPage = () => {
             <Landmark className="mx-auto mb-4 h-16 w-16 text-gray-700" />
             <p className="text-lg text-white">{t('banking.noAccountsTitle')}</p>
             <p className="mt-1 text-sm">{t('banking.noAccountsDescription')}</p>
-            <Button onClick={() => setConnectDialogOpen(true)} className="mt-4 bg-blue-600 hover:bg-blue-700">
+            <Button
+              onClick={() => setConnectDialogOpen(true)}
+              disabled={!integrationHealth.ready}
+              className="mt-4 bg-blue-600 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
               <Plus className="mr-2 h-4 w-4" />
               {t('banking.connectFirstAccount')}
             </Button>
