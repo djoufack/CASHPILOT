@@ -310,6 +310,11 @@ const TOOL_CATEGORIES = [
       { name: 'convert_quote_to_invoice', desc: 'Convertir un devis accepté en facture', type: 'write' },
       { name: 'create_credit_note', desc: 'Créer un avoir lié à une facture (partiel ou total)', type: 'write' },
       { name: 'create_expense', desc: 'Enregistrer une dépense — calcul auto HT/TVA depuis TTC', type: 'write' },
+      {
+        name: 'upload_ged_document',
+        desc: 'Téléverser un fichier GED HUB et le lier à un document source (facture, devis, avoir, BL, BC, facture fournisseur)',
+        type: 'write',
+      },
       { name: 'list_quotes', desc: 'Lister les devis', type: 'read' },
       { name: 'get_quotes', desc: "Détails d'un devis", type: 'read' },
       { name: 'create_quotes', desc: 'Créer un devis (CRUD)', type: 'write' },

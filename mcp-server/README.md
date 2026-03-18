@@ -2,9 +2,9 @@
 
 Serveur MCP (Model Context Protocol) **unifie** pour CashPilot. Source unique de tous les outils de gestion financiere accessibles depuis Claude Code.
 
-- **85 outils hand-written** (facturation, comptabilite, analytics, exports, extraction IA, rapprochement bancaire, documents, instruments financiers, finance multi-societes, CRM, mobile money, CFO, SYSCOHADA)
+- **86 outils hand-written** (facturation, comptabilite, analytics, exports, extraction IA, rapprochement bancaire, documents, instruments financiers, finance multi-societes, CRM, mobile money, CFO, SYSCOHADA)
 - **375 outils CRUD générés** (acces aux 75 tables Supabase : 35 core + 28 RH + 12 CRM/projets/materiel)
-- **Total : 460 outils**
+- **Total : 461 outils**
 
 > **IMPORTANT** : Ce serveur remplace tout serveur MCP tiers de comptabilite/facturation.
 > Ne pas utiliser d'autres serveurs MCP pour les operations CashPilot afin d'eviter les conflits de noms d'outils.
@@ -58,7 +58,7 @@ Avant d'utiliser un outil, l'utilisateur doit se connecter :
 3. Appeler `whoami` pour verifier le statut de connexion
 4. Appeler `logout` pour se deconnecter
 
-## Outils hand-written (85)
+## Outils hand-written (86)
 
 ### Authentification (3) — server.ts
 
@@ -137,10 +137,11 @@ Avant d'utiliser un outil, l'utilisateur doit se connecter :
 | `get_balance_sheet`   | Bilan global (actif, passif, capitaux propres)                 |
 | `get_aging_report`    | Balance agee (creances/dettes par tranche 30/60/90/120+ jours) |
 
-### Documents (5) — documents.ts
+### Documents (6) — documents.ts
 
 | Outil                      | Description                                                |
 | -------------------------- | ---------------------------------------------------------- |
+| `upload_ged_document`      | Televerser un fichier GED HUB et lier au document source   |
 | `create_quote`             | Creer un devis avec lignes + auto-calcul totaux et TVA     |
 | `convert_quote_to_invoice` | Convertir un devis accepte en facture                      |
 | `create_credit_note`       | Creer un avoir lie a une facture (partiel ou total)        |
@@ -305,7 +306,7 @@ mcp-server/
       crm.ts                    # 2 outils CRM pipeline/leads
       company-finance.ts        # 7 outils finance multi-societes
       cfo.ts                    # 3 outils CFO (sante, risques, recommandations)
-      documents.ts              # 5 outils documents (devis, avoirs, depenses)
+      documents.ts              # 6 outils documents (upload GED, devis, avoirs, depenses)
       exports.ts                # 5 outils exports (FEC, SAF-T, Factur-X, UBL)
       financial-instruments.ts  # 10 outils instruments financiers
       invoices.ts               # 8 outils factures
