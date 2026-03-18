@@ -90,6 +90,20 @@
       // Close all others
       sidebarSections.forEach((s) => s.classList.remove('open'));
       if (!wasOpen) section.classList.add('open');
+
+      // Top-level menus should also navigate directly to their section.
+      if (!isMobile()) {
+        const sectionId = section.getAttribute('data-section');
+        const target = sectionId ? document.getElementById(sectionId) : null;
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (history && typeof history.replaceState === 'function') {
+            history.replaceState(null, '', '#' + sectionId);
+          } else {
+            window.location.hash = sectionId;
+          }
+        }
+      }
     });
   });
 
