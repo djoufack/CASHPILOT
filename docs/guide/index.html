@@ -1051,12 +1051,12 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
     <div class="sidebar-section" data-section="pilotage">
       <div class="sidebar-section-header"><span class="sidebar-section-num">13</span><span class="sidebar-section-label">Pilotage Strat&eacute;gique</span><svg class="sidebar-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
       <div class="sidebar-sub-list">
-        <a href="#pilotage" class="sidebar-sub-link">Vue d'ensemble</a>
-        <a href="#pilotage" class="sidebar-sub-link">Analyse Comptable</a>
-        <a href="#pilotage" class="sidebar-sub-link">Analyse Financi&egrave;re</a>
-        <a href="#pilotage" class="sidebar-sub-link">Fiscalit&eacute; &amp; Valorisation</a>
-        <a href="#pilotage" class="sidebar-sub-link">Simulateur</a>
-        <a href="#pilotage" class="sidebar-sub-link">Audit IA</a>
+        <a href="#pilotage-overview" class="sidebar-sub-link">Vue d'ensemble</a>
+        <a href="#pilotage-comptable" class="sidebar-sub-link">Analyse Comptable</a>
+        <a href="#pilotage-financier" class="sidebar-sub-link">Analyse Financi&egrave;re</a>
+        <a href="#pilotage-fiscal" class="sidebar-sub-link">Fiscalit&eacute; &amp; Valorisation</a>
+        <a href="#pilotage-simulateur" class="sidebar-sub-link">Simulateur</a>
+        <a href="#pilotage-audit" class="sidebar-sub-link">Audit IA</a>
       </div>
     </div>
     <!-- 14 Nouveaut&eacute;s v2.0 -->
@@ -3594,16 +3594,7 @@ body.sidebar-collapsed { padding-left: var(--sidebar-collapsed-width); }
     if (lang && lang !== currentLang) applyLanguage(lang);
   });
 
-  // Show real guide content immediately when landing on /guide without anchor.
-  (function openGuideContentByDefault() {
-    if (window.location.hash) return;
-    var toc = document.getElementById('toc');
-    if (!toc) return;
-    window.requestAnimationFrame(function() {
-      var y = toc.getBoundingClientRect().top + window.scrollY - 12;
-      window.scrollTo({ top: Math.max(0, y), behavior: 'auto' });
-    });
-  })();
+
 
   // === Auto-detect language ===
   (function() {
