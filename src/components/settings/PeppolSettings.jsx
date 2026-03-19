@@ -26,13 +26,16 @@ const withTimeout = async (factory, timeoutMs = 30000, message = null) => {
   }
 };
 
-const invokeFunctionWithTimeout = async (name, options, timeoutMs = 30000) => {
+const invokeFunctionWithTimeout = async (name, options, timeoutMs = 30000, timeoutMessage = null) => {
   return withTimeout(
     () => supabase.functions.invoke(name, options),
     timeoutMs,
-    `Le test Scrada a expiré après ${Math.round(timeoutMs / 1000)}s.`
+    timeoutMessage || `La requete ${name} a expire apres ${Math.round(timeoutMs / 1000)}s.`
   );
 };
+
+const PEPPOL_SAVE_TIMEOUT_MS = 45000;
+const PEPPOL_CONFIGURE_TIMEOUT_MS = 45000;
 
 const PeppolSettings = () => {
   const { t } = useTranslation();
@@ -49,6 +52,14 @@ const PeppolSettings = () => {
     scrada_api_key: '',
     scrada_password: '',
   });
+
+  const refreshCompanySilently = async () => {
+    try {
+      await withTimeout(() => fetchCompany(), 15000);
+    } catch (refreshError) {
+      console.warn('[PeppolSettings] company refresh skipped:', refreshError?.message || refreshError);
+    }
+  };
 
   useEffect(() => {
     if (company) {
@@ -75,12 +86,15 @@ const PeppolSettings = () => {
       scrada_company_id: String(form.scrada_company_id || '').trim() || null,
     };
 
-    const { error } = await supabase.functions.invoke('peppol-save-credentials', {
-      body: payload,
-    });
+    const { error } = await invokeFunctionWithTimeout(
+      'peppol-save-credentials',
+      { body: payload },
+      PEPPOL_SAVE_TIMEOUT_MS,
+      "L'enregistrement des parametres Peppol a expire."
+    );
     if (error) throw error;
 
-    await fetchCompany();
+    void refreshCompanySilently();
     return true;
   };
 
@@ -96,12 +110,15 @@ const PeppolSettings = () => {
       scrada_password: String(form.scrada_password || ''),
     };
 
-    const { error } = await supabase.functions.invoke('peppol-save-credentials', {
-      body: payload,
-    });
+    const { error } = await invokeFunctionWithTimeout(
+      'peppol-save-credentials',
+      { body: payload },
+      PEPPOL_SAVE_TIMEOUT_MS,
+      "L'enregistrement des identifiants Scrada a expire."
+    );
 
     if (error) throw error;
-    await fetchCompany();
+    void refreshCompanySilently();
   };
 
   const handleSave = async () => {
@@ -118,15 +135,11 @@ const PeppolSettings = () => {
 
     setSavingSettings(true);
     try {
-      const success = await withTimeout(
-        () => saveCompanyPeppolProfile(),
-        20000,
-        "L'enregistrement des paramètres Peppol a expiré."
-      );
+      const success = await saveCompanyPeppolProfile();
       if (!success) return;
 
       if (hasSecretInput) {
-        await withTimeout(() => saveScradaCredentials(), 20000, "L'enregistrement des identifiants Scrada a expiré.");
+        await saveScradaCredentials();
         setForm((prev) => ({ ...prev, scrada_api_key: '', scrada_password: '' }));
       }
 
@@ -168,18 +181,14 @@ const PeppolSettings = () => {
     setTestResult(null);
 
     try {
-      const saved = await withTimeout(
-        () => saveCompanyPeppolProfile(),
-        20000,
-        "L'enregistrement de la société a expiré."
-      );
+      const saved = await saveCompanyPeppolProfile();
       if (!saved) {
         setTestResult({ success: false });
         return;
       }
 
       if (hasSecretInput) {
-        await withTimeout(() => saveScradaCredentials(), 20000, "L'enregistrement des identifiants Scrada a expiré.");
+        await saveScradaCredentials();
         setForm((prev) => ({ ...prev, scrada_api_key: '', scrada_password: '' }));
       }
 
@@ -188,7 +197,8 @@ const PeppolSettings = () => {
         {
           body: { company_id: company?.id || null },
         },
-        30000
+        PEPPOL_CONFIGURE_TIMEOUT_MS,
+        'La validation Scrada a expire.'
       );
       if (error) throw error;
 
@@ -212,7 +222,7 @@ const PeppolSettings = () => {
         title: t('peppol.scradaConnectionFailed'),
         description: (() => {
           const message = (details?.error || err.message || '').toLowerCase();
-          if (message.includes('timed out')) {
+          if (message.includes('timed out') || message.includes('expir')) {
             return "Scrada ne répond pas à temps. Vérifiez l'état du compte Scrada (vérification en cours) ou réessayez.";
           }
           return details?.error || err.message;
