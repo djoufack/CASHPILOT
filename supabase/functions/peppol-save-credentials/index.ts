@@ -16,11 +16,26 @@ serve(async (req) => {
 
   try {
     const user = await requireAuthenticatedUser(req);
-    const { company_id, scrada_company_id, scrada_api_key, scrada_password } = await req.json();
+    const {
+      company_id,
+      scrada_company_id,
+      scrada_api_key,
+      scrada_password,
+      peppol_endpoint_id,
+      peppol_scheme_id,
+      peppol_ap_provider,
+    } = await req.json();
 
     if (!company_id) throw new HttpError(400, 'company_id is required');
-    if (!scrada_company_id || !scrada_api_key || !scrada_password) {
-      throw new HttpError(400, 'scrada_company_id, scrada_api_key and scrada_password are required');
+
+    const normalizedScradaCompanyId = String(scrada_company_id || '').trim();
+    const normalizedApiKey = String(scrada_api_key || '');
+    const normalizedPassword = String(scrada_password || '');
+    const hasCredentialSecretsInput = Boolean(normalizedApiKey || normalizedPassword);
+    const hasFullScradaCredentialInput = Boolean(normalizedScradaCompanyId && normalizedApiKey && normalizedPassword);
+
+    if (hasCredentialSecretsInput && !hasFullScradaCredentialInput) {
+      throw new HttpError(400, 'scrada_company_id, scrada_api_key and scrada_password must be provided together');
     }
 
     const supabase = createServiceClient();
@@ -36,25 +51,48 @@ serve(async (req) => {
       throw new HttpError(403, 'Forbidden');
     }
 
-    const encryptedApiKey = await encryptSecretValue(scrada_api_key);
-    const encryptedPassword = await encryptSecretValue(scrada_password);
+    const updatePayload: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (peppol_endpoint_id !== undefined) {
+      const endpoint = String(peppol_endpoint_id || '').trim();
+      updatePayload.peppol_endpoint_id = endpoint || null;
+    }
+
+    if (peppol_scheme_id !== undefined) {
+      const scheme = String(peppol_scheme_id || '').trim();
+      updatePayload.peppol_scheme_id = scheme || '0208';
+    }
+
+    if (peppol_ap_provider !== undefined) {
+      const provider = String(peppol_ap_provider || '').trim();
+      updatePayload.peppol_ap_provider = provider || 'scrada';
+    }
+
+    if (scrada_company_id !== undefined) {
+      updatePayload.scrada_company_id = normalizedScradaCompanyId || null;
+    }
+
+    if (hasFullScradaCredentialInput) {
+      const encryptedApiKey = await encryptSecretValue(normalizedApiKey);
+      const encryptedPassword = await encryptSecretValue(normalizedPassword);
+      updatePayload.scrada_company_id = normalizedScradaCompanyId;
+      updatePayload.scrada_api_key_encrypted = encryptedApiKey;
+      updatePayload.scrada_password_encrypted = encryptedPassword;
+      updatePayload.scrada_api_key = null;
+      updatePayload.scrada_password = null;
+    }
 
     const { error: updateError } = await supabase
       .from('company')
-      .update({
-        scrada_company_id,
-        scrada_api_key_encrypted: encryptedApiKey,
-        scrada_password_encrypted: encryptedPassword,
-        scrada_api_key: null,
-        scrada_password: null,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', company.id)
       .eq('user_id', user.id);
 
     if (updateError) throw updateError;
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, updated: Object.keys(updatePayload) }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

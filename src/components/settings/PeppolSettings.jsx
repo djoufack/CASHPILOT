@@ -36,7 +36,7 @@ const invokeFunctionWithTimeout = async (name, options, timeoutMs = 30000) => {
 
 const PeppolSettings = () => {
   const { t } = useTranslation();
-  const { company, saveCompany, loading } = useCompany();
+  const { company, fetchCompany, loading } = useCompany();
   const { toast } = useToast();
   const { openCreditsModal, modalProps } = useCreditsGuard();
   const [testing, setTesting] = useState(false);
@@ -62,17 +62,26 @@ const PeppolSettings = () => {
     }
   }, [company]);
 
-  const saveCompanyPeppolProfile = async (options = {}) => {
-    return await saveCompany(
-      {
-        ...company,
-        peppol_endpoint_id: form.peppol_endpoint_id,
-        peppol_scheme_id: form.peppol_scheme_id || '0208',
-        peppol_ap_provider: 'scrada',
-        scrada_company_id: form.scrada_company_id || null,
-      },
-      options
-    );
+  const saveCompanyPeppolProfile = async () => {
+    if (!company?.id) {
+      throw new Error('Company profile is required before saving Peppol settings.');
+    }
+
+    const payload = {
+      company_id: company.id,
+      peppol_endpoint_id: String(form.peppol_endpoint_id || '').trim(),
+      peppol_scheme_id: String(form.peppol_scheme_id || '0208').trim() || '0208',
+      peppol_ap_provider: 'scrada',
+      scrada_company_id: String(form.scrada_company_id || '').trim() || null,
+    };
+
+    const { error } = await supabase.functions.invoke('peppol-save-credentials', {
+      body: payload,
+    });
+    if (error) throw error;
+
+    await fetchCompany();
+    return true;
   };
 
   const saveScradaCredentials = async () => {
@@ -92,6 +101,7 @@ const PeppolSettings = () => {
     });
 
     if (error) throw error;
+    await fetchCompany();
   };
 
   const handleSave = async () => {
@@ -159,7 +169,7 @@ const PeppolSettings = () => {
 
     try {
       const saved = await withTimeout(
-        () => saveCompanyPeppolProfile({ silent: true }),
+        () => saveCompanyPeppolProfile(),
         20000,
         "L'enregistrement de la société a expiré."
       );
