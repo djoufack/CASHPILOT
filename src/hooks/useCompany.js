@@ -29,6 +29,22 @@ const normalizeCompanyId = (value) => {
   return String(value).trim().toLowerCase();
 };
 
+const withTimeout = async (factory, timeoutMs = 20000, message = null) => {
+  let timeoutId = null;
+  try {
+    return await Promise.race([
+      factory(),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(message || `La requete a expire apres ${Math.round(timeoutMs / 1000)}s.`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 export const useCompany = () => {
   const { user } = useAuth();
   const storedActiveCompanyId = useActiveCompanyId();
@@ -237,12 +253,17 @@ export const useCompany = () => {
 
       if (activeCompany?.id && !forceCreate) {
         // Update existing
-        const response = await supabase
-          .from('company')
-          .update(companyFieldsWithAccountingCurrency)
-          .eq('id', activeCompany.id)
-          .select()
-          .single();
+        const response = await withTimeout(
+          () =>
+            supabase
+              .from('company')
+              .update(companyFieldsWithAccountingCurrency)
+              .eq('id', activeCompany.id)
+              .select()
+              .single(),
+          20000,
+          "L'enregistrement de la societe a expire (update)."
+        );
 
         if (response.error) throw response.error;
         result = response.data;
@@ -253,11 +274,16 @@ export const useCompany = () => {
           user_id: user.id,
           created_at: new Date().toISOString(),
         };
-        const response = await supabase
-          .from('company')
-          .insert([{ ...baseInsertFields, accounting_currency: accountingCurrency }])
-          .select()
-          .single();
+        const response = await withTimeout(
+          () =>
+            supabase
+              .from('company')
+              .insert([{ ...baseInsertFields, accounting_currency: accountingCurrency }])
+              .select()
+              .single(),
+          20000,
+          'La creation de la societe a expire (insert).'
+        );
 
         if (response.error) throw response.error;
         result = response.data;

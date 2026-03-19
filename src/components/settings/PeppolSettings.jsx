@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,37 @@ import { useCreditsGuard, CREDIT_COSTS, CREDIT_COST_LABELS } from '@/hooks/useCr
 import { readFunctionErrorData } from '@/utils/supabaseFunctionErrors';
 import { Globe, Save, CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react';
 
+const withTimeout = async (factory, timeoutMs = 30000, message = null) => {
+  let timeoutId = null;
+  try {
+    return await Promise.race([
+      factory(),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(message || `La requête a expiré après ${Math.round(timeoutMs / 1000)}s.`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
+const invokeFunctionWithTimeout = async (name, options, timeoutMs = 30000) => {
+  return withTimeout(
+    () => supabase.functions.invoke(name, options),
+    timeoutMs,
+    `Le test Scrada a expiré après ${Math.round(timeoutMs / 1000)}s.`
+  );
+};
+
 const PeppolSettings = () => {
   const { t } = useTranslation();
   const { company, saveCompany, loading } = useCompany();
   const { toast } = useToast();
   const { openCreditsModal, modalProps } = useCreditsGuard();
   const [testing, setTesting] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [form, setForm] = useState({
     peppol_endpoint_id: '',
@@ -38,13 +63,16 @@ const PeppolSettings = () => {
   }, [company]);
 
   const saveCompanyPeppolProfile = async (options = {}) => {
-    return await saveCompany({
-      ...company,
-      peppol_endpoint_id: form.peppol_endpoint_id,
-      peppol_scheme_id: form.peppol_scheme_id || '0208',
-      peppol_ap_provider: 'scrada',
-      scrada_company_id: form.scrada_company_id || null,
-    }, options);
+    return await saveCompany(
+      {
+        ...company,
+        peppol_endpoint_id: form.peppol_endpoint_id,
+        peppol_scheme_id: form.peppol_scheme_id || '0208',
+        peppol_ap_provider: 'scrada',
+        scrada_company_id: form.scrada_company_id || null,
+      },
+      options
+    );
   };
 
   const saveScradaCredentials = async () => {
@@ -70,17 +98,26 @@ const PeppolSettings = () => {
     const hasSecretInput = Boolean(form.scrada_api_key || form.scrada_password);
 
     if (hasSecretInput && (!form.scrada_company_id || !form.scrada_api_key || !form.scrada_password)) {
-      toast({ title: t('peppol.scradaConnectionFailed'), description: 'Remplissez les 3 champs Scrada.', variant: 'destructive' });
+      toast({
+        title: t('peppol.scradaConnectionFailed'),
+        description: 'Remplissez les 3 champs Scrada.',
+        variant: 'destructive',
+      });
       return;
     }
 
+    setSavingSettings(true);
     try {
-      const success = await saveCompanyPeppolProfile();
+      const success = await withTimeout(
+        () => saveCompanyPeppolProfile(),
+        20000,
+        "L'enregistrement des paramètres Peppol a expiré."
+      );
       if (!success) return;
 
       if (hasSecretInput) {
-        await saveScradaCredentials();
-        setForm(prev => ({ ...prev, scrada_api_key: '', scrada_password: '' }));
+        await withTimeout(() => saveScradaCredentials(), 20000, "L'enregistrement des identifiants Scrada a expiré.");
+        setForm((prev) => ({ ...prev, scrada_api_key: '', scrada_password: '' }));
       }
 
       toast({ title: t('peppol.scradaConnectionOk'), description: t('messages.success.settingsSaved') });
@@ -91,6 +128,8 @@ const PeppolSettings = () => {
         description: details?.error || err.message,
         variant: 'destructive',
       });
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -98,12 +137,20 @@ const PeppolSettings = () => {
     const hasSecretInput = Boolean(form.scrada_api_key || form.scrada_password);
 
     if (hasSecretInput && (!form.scrada_company_id || !form.scrada_api_key || !form.scrada_password)) {
-      toast({ title: t('peppol.scradaConnectionFailed'), description: 'Remplissez les 3 champs Scrada.', variant: 'destructive' });
+      toast({
+        title: t('peppol.scradaConnectionFailed'),
+        description: 'Remplissez les 3 champs Scrada.',
+        variant: 'destructive',
+      });
       return;
     }
 
     if (!hasSecretInput && !company?.has_scrada_credentials) {
-      toast({ title: t('peppol.scradaConnectionFailed'), description: 'Ajoutez d abord vos identifiants Scrada.', variant: 'destructive' });
+      toast({
+        title: t('peppol.scradaConnectionFailed'),
+        description: 'Ajoutez d abord vos identifiants Scrada.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -111,18 +158,28 @@ const PeppolSettings = () => {
     setTestResult(null);
 
     try {
-      const saved = await saveCompanyPeppolProfile({ silent: true });
+      const saved = await withTimeout(
+        () => saveCompanyPeppolProfile({ silent: true }),
+        20000,
+        "L'enregistrement de la société a expiré."
+      );
       if (!saved) {
         setTestResult({ success: false });
         return;
       }
 
       if (hasSecretInput) {
-        await saveScradaCredentials();
-        setForm(prev => ({ ...prev, scrada_api_key: '', scrada_password: '' }));
+        await withTimeout(() => saveScradaCredentials(), 20000, "L'enregistrement des identifiants Scrada a expiré.");
+        setForm((prev) => ({ ...prev, scrada_api_key: '', scrada_password: '' }));
       }
 
-      const { data, error } = await supabase.functions.invoke('peppol-configure');
+      const { data, error } = await invokeFunctionWithTimeout(
+        'peppol-configure',
+        {
+          body: { company_id: company?.id || null },
+        },
+        30000
+      );
       if (error) throw error;
 
       setTestResult({ success: true });
@@ -137,16 +194,19 @@ const PeppolSettings = () => {
       const details = await readFunctionErrorData(err);
       setTestResult({ success: false });
       if (details?.error === 'insufficient_credits') {
-        openCreditsModal(
-          CREDIT_COSTS.PEPPOL_CONFIGURATION_OK,
-          t(CREDIT_COST_LABELS.PEPPOL_CONFIGURATION_OK),
-        );
+        openCreditsModal(CREDIT_COSTS.PEPPOL_CONFIGURATION_OK, t(CREDIT_COST_LABELS.PEPPOL_CONFIGURATION_OK));
         return;
       }
 
       toast({
         title: t('peppol.scradaConnectionFailed'),
-        description: details?.error || err.message,
+        description: (() => {
+          const message = (details?.error || err.message || '').toLowerCase();
+          if (message.includes('timed out')) {
+            return "Scrada ne répond pas à temps. Vérifiez l'état du compte Scrada (vérification en cours) ou réessayez.";
+          }
+          return details?.error || err.message;
+        })(),
         variant: 'destructive',
       });
     } finally {
@@ -174,9 +234,7 @@ const PeppolSettings = () => {
             placeholder="0123456789"
             className="bg-white/5 border-white/10 mt-1"
           />
-          <p className="text-xs text-white/40 mt-1">
-            Belgique : numéro d'entreprise BCE/KBO (10 chiffres)
-          </p>
+          <p className="text-xs text-white/40 mt-1">Belgique : numéro d'entreprise BCE/KBO (10 chiffres)</p>
         </div>
 
         <div>
@@ -207,9 +265,7 @@ const PeppolSettings = () => {
           </a>
         </div>
 
-        <p className="text-xs text-white/40">
-          {t('peppol.scradaHelp')}
-        </p>
+        <p className="text-xs text-white/40">{t('peppol.scradaHelp')}</p>
 
         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-1">
           <p className="text-xs text-emerald-300">
@@ -222,7 +278,7 @@ const PeppolSettings = () => {
           <p className="text-xs text-white/40">
             {t(
               'peppolPage.creditPolicy.settingsSavedFreeHint',
-              "L'enregistrement simple des champs ne consomme pas de credits.",
+              "L'enregistrement simple des champs ne consomme pas de credits."
             )}
           </p>
         </div>
@@ -275,18 +331,29 @@ const PeppolSettings = () => {
             })}
           </Button>
           {testResult && (
-            <span className={`flex items-center gap-1 text-xs ${testResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
-              {testResult.success
-                ? <><CheckCircle className="w-4 h-4" /> {t('peppol.scradaConnectionOk')}</>
-                : <><XCircle className="w-4 h-4" /> {t('peppol.scradaConnectionFailed')}</>
-              }
+            <span
+              className={`flex items-center gap-1 text-xs ${testResult.success ? 'text-emerald-400' : 'text-red-400'}`}
+            >
+              {testResult.success ? (
+                <>
+                  <CheckCircle className="w-4 h-4" /> {t('peppol.scradaConnectionOk')}
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4" /> {t('peppol.scradaConnectionFailed')}
+                </>
+              )}
             </span>
           )}
         </div>
       </div>
 
-      <Button onClick={handleSave} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
-        <Save className="w-4 h-4 mr-2" />
+      <Button
+        onClick={handleSave}
+        disabled={loading || savingSettings || testing}
+        className="bg-emerald-600 hover:bg-emerald-700"
+      >
+        {savingSettings ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
         {t('common.save')}
       </Button>
     </div>
@@ -294,4 +361,3 @@ const PeppolSettings = () => {
 };
 
 export default PeppolSettings;
-
