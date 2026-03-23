@@ -35,7 +35,7 @@ function createServiceClient() {
 // ---------------------------------------------------------------------------
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
-function checkRateLimit(apiKeyId: string, limit: number): { allowed: boolean; remaining: number; resetAt: number } {
+function consumeRateLimit(apiKeyId: string, limit: number): { allowed: boolean; remaining: number; resetAt: number } {
   const now = Date.now();
   const windowMs = 60_000; // 1 minute window
   let bucket = rateBuckets.get(apiKeyId);
@@ -54,6 +54,29 @@ function checkRateLimit(apiKeyId: string, limit: number): { allowed: boolean; re
   };
 }
 
+function getRateLimitState(apiKeyId: string, limit: number): { remaining: number; resetAt: number } {
+  const now = Date.now();
+  const windowMs = 60_000;
+  let bucket = rateBuckets.get(apiKeyId);
+
+  if (!bucket || now >= bucket.resetAt) {
+    bucket = { count: 0, resetAt: now + windowMs };
+    rateBuckets.set(apiKeyId, bucket);
+  }
+
+  return {
+    remaining: Math.max(0, limit - bucket.count),
+    resetAt: bucket.resetAt,
+  };
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 // ---------------------------------------------------------------------------
 // API key validation
 // ---------------------------------------------------------------------------
@@ -68,25 +91,51 @@ interface ApiKeyRecord {
 }
 
 async function validateApiKey(supabase: ReturnType<typeof createClient>, rawKey: string): Promise<ApiKeyRecord> {
+  const keyHash = await sha256Hex(rawKey);
+
   const { data, error } = await supabase
     .from('api_keys')
     .select('id, user_id, company_id, scopes, rate_limit, is_active, expires_at')
-    .eq('api_key', rawKey)
+    .eq('key_hash', keyHash)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
     throw { status: 401, message: 'Invalid API key' };
   }
 
-  if (!data.is_active) {
+  let resolved = data as (ApiKeyRecord & { superseded_at?: string | null; grace_period_days?: number | null }) | null;
+
+  if (!resolved) {
+    const { data: supersededKey, error: supersededError } = await supabase
+      .from('api_keys')
+      .select('id, user_id, company_id, scopes, rate_limit, is_active, expires_at, superseded_at, grace_period_days')
+      .eq('key_hash', keyHash)
+      .not('superseded_at', 'is', null)
+      .maybeSingle();
+
+    if (supersededError || !supersededKey) {
+      throw { status: 401, message: 'Invalid API key' };
+    }
+
+    const graceDays = supersededKey.grace_period_days ?? 7;
+    const supersededAt = new Date(String(supersededKey.superseded_at));
+    const graceEnd = new Date(supersededAt.getTime() + graceDays * 86_400_000);
+    if (new Date() > graceEnd) {
+      throw { status: 401, message: 'API key has been rotated and grace period expired' };
+    }
+
+    resolved = supersededKey;
+  }
+
+  if (!resolved.is_active) {
     throw { status: 403, message: 'API key is deactivated' };
   }
 
-  if (data.expires_at && new Date(data.expires_at) < new Date()) {
+  if (resolved.expires_at && new Date(resolved.expires_at) < new Date()) {
     throw { status: 403, message: 'API key has expired' };
   }
 
-  return data as ApiKeyRecord;
+  return resolved as ApiKeyRecord;
 }
 
 // ---------------------------------------------------------------------------
@@ -153,9 +202,9 @@ async function handleExpenses(
 
   const { data, error } = await supabase
     .from('expenses')
-    .select('id, description, amount, category, date, created_at')
+    .select('id, description, amount, category, expense_date, created_at')
     .eq('company_id', apiKey.company_id)
-    .order('date', { ascending: false })
+    .order('expense_date', { ascending: false })
     .limit(50);
 
   if (error) return jsonResponse({ error: error.message }, 500);
@@ -280,7 +329,7 @@ serve(async (req: Request) => {
     apiKeyRecord = await validateApiKey(supabase, rawKey);
 
     // Rate limit check
-    const rateResult = checkRateLimit(apiKeyRecord.id, apiKeyRecord.rate_limit);
+    const rateResult = consumeRateLimit(apiKeyRecord.id, apiKeyRecord.rate_limit);
     if (!rateResult.allowed) {
       const elapsed = Date.now() - startTime;
       await logUsage(supabase, apiKeyRecord.id, url.pathname, req.method, 429, elapsed, ipAddress);
@@ -302,7 +351,7 @@ serve(async (req: Request) => {
         endpoints: Object.keys(routes),
         scopes: apiKeyRecord.scopes,
         rate_limit: apiKeyRecord.rate_limit,
-        rate_remaining: checkRateLimit(apiKeyRecord.id, apiKeyRecord.rate_limit).remaining,
+        rate_remaining: rateResult.remaining,
       });
     }
 
@@ -322,9 +371,10 @@ serve(async (req: Request) => {
     await logUsage(supabase, apiKeyRecord.id, apiPath, req.method, response.status, elapsed, ipAddress);
 
     // Add rate limit headers to response
-    const rateInfo = checkRateLimit(apiKeyRecord.id, apiKeyRecord.rate_limit);
+    const rateInfo = getRateLimitState(apiKeyRecord.id, apiKeyRecord.rate_limit);
     response.headers.set('X-RateLimit-Limit', String(apiKeyRecord.rate_limit));
     response.headers.set('X-RateLimit-Remaining', String(rateInfo.remaining));
+    response.headers.set('X-RateLimit-Reset', String(rateInfo.resetAt));
     response.headers.set('X-Response-Time', `${elapsed}ms`);
 
     return response;
