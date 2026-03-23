@@ -124,6 +124,7 @@
     "companyPortfolio": "Portefeuille sociétés",
     "integrations": "Intégrations",
     "apiWebhooks": "API & Webhooks",
+    "cfoAgent": "CFO (Directeur Financier)",
     "logoutSuccess": "Déconnexion réussie",
     "logoutSuccessDescription": "Vous avez été déconnecté avec succès.",
     "logoutError": "Erreur",
@@ -3019,6 +3020,7 @@
     "subtitle": "Vue transverse des dossiers, encours clients, pipeline devis et activité projet sans changer de société à l’aveugle.",
     "refresh": "Actualiser",
     "manageCompanies": "Gérer les sociétés",
+    "createCompany": "+Nouvelle Société",
     "toastErrorTitle": "Erreur portfolio",
     "companyFallback": "Société sans nom",
     "companyGeneric": "Société",
@@ -3029,6 +3031,7 @@
     "lastActivity": "Dernière activité : {{date}}",
     "noActivity": "Aucune",
     "openCompany": "Ouvrir cette société",
+    "openCompanySettings": "Paramètres de la société",
     "watchlistNone": "Aucun retard client critique sur le portefeuille.",
     "daysOverdue": "{{count}} j",
     "health": {
@@ -3821,11 +3824,12 @@
   },
   "cfo": {
     "page": {
-      "title": "Agent CFO IA",
-      "description": "Votre directeur financier virtuel propulsé par l'IA"
+      "title": "Agent IA CFO (Directeur Financier)",
+      "description": "Votre directeur financier virtuel propulsé par l'IA",
+      "acronymDefinition": "CFO = Chief Financial Officer (Directeur Financier)"
     },
     "chat": {
-      "title": "Agent CFO IA",
+      "title": "Agent IA CFO (Directeur Financier)",
       "subtitle": "Votre directeur financier virtuel",
       "welcome": "Bienvenue",
       "welcomeMessage": "Posez vos questions sur la santé financière de votre entreprise.",
@@ -4151,6 +4155,7 @@
     "sync": "Synchroniser",
     "disconnect": "D\u00e9connecter",
     "statusActive": "Actif",
+    "statusPending": "En attente",
     "statusExpired": "Expir\u00e9",
     "statusError": "Erreur",
     "statusDisconnected": "D\u00e9connect\u00e9",
@@ -4166,6 +4171,7 @@
     "connectionInitiated": "Connexion bancaire initialis\u00e9e avec succ\u00e8s.",
     "syncCompleted": "{{count}} transaction(s) synchronis\u00e9e(s).",
     "disconnected": "Compte bancaire d\u00e9connect\u00e9.",
+    "transfersUnavailable": "Les virements bancaires directs sont temporairement indisponibles sur ce connecteur.",
     "transferCompleted": "Virement ex\u00e9cut\u00e9 avec succ\u00e8s.",
     "connectDialogTitle": "Connecter un compte bancaire",
     "connectDialogDescription": "S\u00e9lectionnez un fournisseur bancaire pour connecter votre compte via Open Banking (PSD2/PSD3).",

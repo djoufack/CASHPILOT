@@ -122,6 +122,7 @@
     "companyPortfolio": "Bedrijfsportefeuille",
     "integrations": "Integraties",
     "apiWebhooks": "API & webhooks",
+    "cfoAgent": "CFO (Financieel Directeur)",
     "gedHub": "GED HUB"
   },
   "dashboard": {
@@ -1883,6 +1884,7 @@
     "subtitle": "Dwarsdoorsnede van dossiers, openstaande klanten, offertepipeline en projectactiviteit zonder blind van bedrijf te wisselen.",
     "refresh": "Vernieuwen",
     "manageCompanies": "Bedrijven beheren",
+    "createCompany": "+Nieuw Bedrijf",
     "toastErrorTitle": "Portefeuillefout",
     "companyFallback": "Naamloos bedrijf",
     "companyGeneric": "Bedrijf",
@@ -1893,6 +1895,7 @@
     "lastActivity": "Laatste activiteit: {{date}}",
     "noActivity": "Geen",
     "openCompany": "Dit bedrijf openen",
+    "openCompanySettings": "Bedrijfsinstellingen",
     "watchlistNone": "Geen kritieke klantachterstanden in de portefeuille.",
     "daysOverdue": "{{count}} d",
     "health": {

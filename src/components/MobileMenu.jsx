@@ -123,7 +123,7 @@ const MobileMenu = ({ isOpen, onClose }) => {
       },
       {
         id: 'cfo-agent',
-        label: t('nav.cfoAgent', 'CFO Agent IA'),
+        label: t('nav.cfoAgent', 'CFO (Directeur Financier)'),
         icon: Sparkles,
         type: 'direct',
         path: '/app/cfo-agent',
