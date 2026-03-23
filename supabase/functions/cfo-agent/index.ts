@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createAuthClient, createServiceClient, HttpError, requireAuthenticatedUser } from '../_shared/billing.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+import { buildClientFinancialBreakdown, normalizeInvoiceClientView } from './financialContext.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
@@ -42,7 +43,7 @@ const gatherFinancialContext = async (supabase: ReturnType<typeof createAuthClie
   const [invoicesRes, expensesRes, paymentsRes, clientsRes, companyRes] = await Promise.all([
     supabase
       .from('invoices')
-      .select('id, invoice_number, total_ttc, total_ht, status, payment_status, balance_due, date, due_date')
+      .select('id, client_id, invoice_number, total_ttc, total_ht, status, payment_status, balance_due, date, due_date')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(50),
@@ -71,6 +72,8 @@ const gatherFinancialContext = async (supabase: ReturnType<typeof createAuthClie
   const expenses = expensesRes.data || [];
   const payments = paymentsRes.data || [];
   const clients = clientsRes.data || [];
+  const invoicesWithClient = normalizeInvoiceClientView(invoices, clients);
+  const clientBreakdown = buildClientFinancialBreakdown(invoicesWithClient);
 
   const totalRevenue = invoices
     .filter((i) => ['paid', 'sent', 'overdue'].includes(i.status || ''))
@@ -100,6 +103,9 @@ const gatherFinancialContext = async (supabase: ReturnType<typeof createAuthClie
     recentExpenses: expenses.slice(0, 10),
     overdueInvoices: overdueInvoices.slice(0, 10),
     topClients: clients.slice(0, 10),
+    invoicesWithClient: invoicesWithClient.slice(0, 20),
+    topClientsByRevenue: clientBreakdown.topClientsByRevenue.slice(0, 10),
+    unassignedInvoicesCount: clientBreakdown.unassignedInvoicesCount,
   };
 };
 
@@ -226,12 +232,23 @@ ${JSON.stringify(financialContext.recentInvoices.slice(0, 5), null, 2)}
 DEPENSES RECENTES:
 ${JSON.stringify(financialContext.recentExpenses.slice(0, 5), null, 2)}
 
+FACTURES AVEC CLIENT ASSOCIE:
+${JSON.stringify(financialContext.invoicesWithClient.slice(0, 10), null, 2)}
+
+TOP CLIENTS PAR CA FACTURE:
+${JSON.stringify(financialContext.topClientsByRevenue.slice(0, 10), null, 2)}
+
+FACTURES SANS CLIENT ASSOCIE:
+${financialContext.unassignedInvoicesCount}
+
 REGLES:
 - Utilise UNIQUEMENT les donnees ci-dessus, n'invente rien
 - Sois precis, cite tes sources de calcul
 - Donne des conseils concrets et actionnables
 - Structure tes reponses avec des sections claires
 - Si une donnee manque, dis-le explicitement
+- Pour "clients les plus rentables", utilise d'abord TOP CLIENTS PAR CA FACTURE.
+- Si les couts directs par client sont absents, precise que la rentabilite nette exacte par client n'est pas calculable.
 - Reponds en francais`;
 
     // Call Gemini for AI response
