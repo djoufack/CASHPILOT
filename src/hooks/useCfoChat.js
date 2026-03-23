@@ -4,6 +4,45 @@ import { supabaseAnonKey, supabaseUrl } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 
+const CFO_REQUEST_TIMEOUT_MS = 45_000;
+
+async function getFreshAccessToken() {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error) throw error;
+  if (session?.access_token) return session.access_token;
+
+  const { data, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) throw refreshError;
+  return data?.session?.access_token || null;
+}
+
+async function callCfoAgent(body, accessToken, timeoutMs = CFO_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(`${supabaseUrl}/functions/v1/cfo-agent`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        apikey: supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function isAbortError(error) {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
 export const useCfoChat = () => {
   const { user } = useAuth();
   const { activeCompanyId, applyCompanyScope } = useCompanyScope();
@@ -25,28 +64,50 @@ export const useCfoChat = () => {
       setLoading(true);
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        let accessToken = await getFreshAccessToken();
+        if (!accessToken) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: 'Session expirée. Veuillez vous reconnecter.',
+              timestamp: new Date().toISOString(),
+              isError: true,
+            },
+          ]);
+          return;
+        }
 
         const history = messages.slice(-10).map((m) => ({
           role: m.role,
           content: m.content,
         }));
 
-        const response = await fetch(`${supabaseUrl}/functions/v1/cfo-agent`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`,
-            apikey: supabaseAnonKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            question: text.trim(),
-            company_id: activeCompanyId,
-            history,
-          }),
-        });
+        const body = {
+          question: text.trim(),
+          company_id: activeCompanyId,
+          history,
+        };
+
+        let response = await callCfoAgent(body, accessToken);
+
+        // Recover seamlessly from expired JWT.
+        if (response.status === 401) {
+          accessToken = await getFreshAccessToken();
+          if (!accessToken) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: 'assistant',
+                content: 'Session expirée. Veuillez vous reconnecter.',
+                timestamp: new Date().toISOString(),
+                isError: true,
+              },
+            ]);
+            return;
+          }
+          response = await callCfoAgent(body, accessToken);
+        }
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -57,8 +118,8 @@ export const useCfoChat = () => {
               role: 'assistant',
               content:
                 response.status === 401
-                  ? 'Session expiree. Veuillez vous reconnecter.'
-                  : `Erreur serveur (${response.status}). Veuillez reessayer.`,
+                  ? 'Session expirée. Veuillez vous reconnecter.'
+                  : `Erreur serveur (${response.status}). Veuillez réessayer.`,
               timestamp: new Date().toISOString(),
               isError: true,
             },
@@ -101,11 +162,14 @@ export const useCfoChat = () => {
         }
       } catch (err) {
         console.error('CFO Chat error:', err);
+        const connectionErrorMessage = isAbortError(err)
+          ? `La requete CFO a expire apres ${Math.round(CFO_REQUEST_TIMEOUT_MS / 1000)}s. Veuillez reessayer.`
+          : 'Erreur de connexion au serveur. Veuillez réessayer.';
         setMessages((prev) => [
           ...prev,
           {
             role: 'assistant',
-            content: 'Erreur de connexion au serveur. Veuillez reessayer.',
+            content: connectionErrorMessage,
             timestamp: new Date().toISOString(),
             isError: true,
           },

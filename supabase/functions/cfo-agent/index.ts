@@ -10,6 +10,7 @@ const corsHeaders = {
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_HISTORY_MESSAGES = 20;
+const GEMINI_TIMEOUT_MS = 30_000;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const toNumber = (value: unknown) => {
@@ -256,18 +257,31 @@ REGLES:
       { role: 'user', parts: [{ text: question }] },
     ];
 
-    const geminiRes = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents,
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 2048,
-          topP: 0.9,
-        },
-      }),
-    });
+    const geminiController = new AbortController();
+    const geminiTimeout = setTimeout(() => geminiController.abort(), GEMINI_TIMEOUT_MS);
+    let geminiRes: Response;
+    try {
+      geminiRes = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents,
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 2048,
+            topP: 0.9,
+          },
+        }),
+        signal: geminiController.signal,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new HttpError(504, 'AI service timeout');
+      }
+      throw error;
+    } finally {
+      clearTimeout(geminiTimeout);
+    }
 
     if (!geminiRes.ok) {
       console.error('Gemini API error:', geminiRes.status, await geminiRes.text());
