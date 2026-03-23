@@ -124,6 +124,7 @@
     "companyPortfolio": "Company Portfolio",
     "integrations": "Integrations",
     "apiWebhooks": "API & Webhooks",
+    "cfoAgent": "CFO (Chief Financial Officer)",
     "logoutSuccess": "Logged out",
     "logoutSuccessDescription": "You have been successfully logged out.",
     "logoutError": "Error",
@@ -3032,6 +3033,7 @@
     "subtitle": "Cross-company view of engagements, receivables, quote pipeline, and project activity without switching companies blindly.",
     "refresh": "Refresh",
     "manageCompanies": "Manage companies",
+    "createCompany": "+New Company",
     "toastErrorTitle": "Portfolio error",
     "companyFallback": "Unnamed company",
     "companyGeneric": "Company",
@@ -3042,6 +3044,7 @@
     "lastActivity": "Last activity: {{date}}",
     "noActivity": "None",
     "openCompany": "Open this company",
+    "openCompanySettings": "Company settings",
     "watchlistNone": "No critical client overdue items in the portfolio.",
     "daysOverdue": "{{count}} d",
     "health": {
@@ -3834,11 +3837,12 @@
   },
   "cfo": {
     "page": {
-      "title": "AI CFO Agent",
-      "description": "Your AI-powered virtual Chief Financial Officer"
+      "title": "AI CFO Agent (Chief Financial Officer)",
+      "description": "Your AI-powered virtual Chief Financial Officer",
+      "acronymDefinition": "CFO = Chief Financial Officer"
     },
     "chat": {
-      "title": "AI CFO Agent",
+      "title": "AI CFO Agent (Chief Financial Officer)",
       "subtitle": "Your virtual financial director",
       "welcome": "Welcome",
       "welcomeMessage": "Ask questions about your company's financial health.",
@@ -4095,6 +4099,7 @@
     "sync": "Sync",
     "disconnect": "Disconnect",
     "statusActive": "Active",
+    "statusPending": "Pending",
     "statusExpired": "Expired",
     "statusError": "Error",
     "statusDisconnected": "Disconnected",
@@ -4110,6 +4115,7 @@
     "connectionInitiated": "Bank connection initiated successfully.",
     "syncCompleted": "{{count}} transaction(s) synchronized.",
     "disconnected": "Bank account disconnected.",
+    "transfersUnavailable": "Direct bank transfers are temporarily unavailable on this connector.",
     "transferCompleted": "Transfer completed successfully.",
     "connectDialogTitle": "Connect a Bank Account",
     "connectDialogDescription": "Select a banking provider to connect your account via Open Banking (PSD2/PSD3).",

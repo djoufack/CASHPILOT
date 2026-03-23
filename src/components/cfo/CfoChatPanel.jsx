@@ -50,7 +50,9 @@ const CfoChatPanel = () => {
             <Bot className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">{t('cfo.chat.title', 'Agent CFO IA')}</h3>
+            <h3 className="text-sm font-semibold text-white">
+              {t('cfo.chat.title', 'Agent IA CFO (Directeur Financier)')}
+            </h3>
             <p className="text-xs text-gray-400">{t('cfo.chat.subtitle', 'Votre directeur financier virtuel')}</p>
           </div>
         </div>
