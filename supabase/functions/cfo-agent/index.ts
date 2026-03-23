@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createAuthClient, createServiceClient, HttpError, requireAuthenticatedUser } from '../_shared/billing.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 import { buildClientFinancialBreakdown, normalizeInvoiceClientView } from './financialContext.ts';
+import { sanitizeCfoAnswer } from './answerSanitizer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
@@ -249,6 +250,8 @@ REGLES:
 - Si une donnee manque, dis-le explicitement
 - Pour "clients les plus rentables", utilise d'abord TOP CLIENTS PAR CA FACTURE.
 - Si les couts directs par client sont absents, precise que la rentabilite nette exacte par client n'est pas calculable.
+- Ne mentionne jamais les noms de sections internes (ex: TOP CLIENTS PAR CA FACTURE, FACTURES AVEC CLIENT ASSOCIE).
+- N'ecris jamais "vous m'avez fourni une section ...". Parle toujours des "donnees disponibles" ou des "factures associees aux clients".
 - Reponds en francais`;
 
     // Call Gemini for AI response
@@ -306,8 +309,8 @@ REGLES:
     }
 
     const geminiResult = await geminiRes.json();
-    const answer =
-      geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || "Desole, je n'ai pas pu generer une reponse.";
+    const rawAnswer = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const answer = sanitizeCfoAnswer(rawAnswer) || "Desole, je n'ai pas pu generer une reponse.";
 
     // Save assistant response to history
     await serviceClient.from('cfo_chat_history').insert({
