@@ -24,7 +24,6 @@ const OpenApiPage = () => {
     usageStats,
     loading: apiLoading,
     createKey,
-    revokeKey,
     deleteKey,
     toggleKey,
     fetchUsage,
@@ -38,7 +37,8 @@ const OpenApiPage = () => {
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyScopes, setNewKeyScopes] = useState(['read']);
   const [creating, setCreating] = useState(false);
-  const [copiedKey, setCopiedKey] = useState(null);
+  const [plainKeys, setPlainKeys] = useState({});
+  const [copiedKeyId, setCopiedKeyId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleRefresh = useCallback(async () => {
@@ -54,8 +54,11 @@ const OpenApiPage = () => {
         scopes: newKeyScopes,
         rateLimit: 100,
       });
-      if (result?.api_key) {
-        setCopiedKey(result.api_key);
+      if (result?.id && result?._plainKey) {
+        setPlainKeys((prev) => ({
+          ...prev,
+          [result.id]: result._plainKey,
+        }));
       }
       setNewKeyName('');
       setShowCreateDialog(false);
@@ -64,10 +67,11 @@ const OpenApiPage = () => {
     }
   }, [createKey, newKeyName, newKeyScopes]);
 
-  const handleCopyKey = useCallback((key) => {
-    navigator.clipboard.writeText(key);
-    setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 3000);
+  const handleCopyKey = useCallback((keyId, plainKey) => {
+    if (!plainKey) return;
+    navigator.clipboard.writeText(plainKey);
+    setCopiedKeyId(keyId);
+    setTimeout(() => setCopiedKeyId(null), 3000);
   }, []);
 
   const installedAppIds = new Set((installedApps || []).map((ia) => ia.app_id));
@@ -211,11 +215,10 @@ const OpenApiPage = () => {
                     <ApiKeyCard
                       key={key.id}
                       apiKey={key}
+                      plainKey={plainKeys[key.id]}
                       onToggle={(isActive) => toggleKey(key.id, isActive)}
                       onDelete={() => deleteKey(key.id)}
-                      onRevoke={() => revokeKey(key.id)}
-                      onCopy={() => handleCopyKey(key.api_key)}
-                      isCopied={copiedKey === key.api_key}
+                      onCopy={(plainKey) => handleCopyKey(key.id, plainKey)}
                     />
                   ))}
                 </div>
@@ -328,7 +331,7 @@ const OpenApiPage = () => {
         )}
 
         {/* Copied Key Toast */}
-        {copiedKey && (
+        {copiedKeyId && (
           <div className="fixed bottom-6 right-6 z-50 bg-emerald-500/20 border border-emerald-500/30 rounded-xl px-4 py-3 text-emerald-300 text-sm backdrop-blur-sm">
             {t('api.keyCopied', 'Clé copiée dans le presse-papiers !')}
           </div>

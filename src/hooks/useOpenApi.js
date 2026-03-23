@@ -10,6 +10,31 @@ export const useOpenApi = () => {
   const queryClient = useQueryClient();
   const userId = user?.id;
 
+  const normalizeApiKeyRecord = useCallback((row) => {
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      company_id: row.company_id,
+      name: row.name ?? row.key_name ?? 'API Key',
+      key_prefix: row.key_prefix ?? (typeof row.api_key === 'string' ? row.api_key.slice(0, 12) : null),
+      scopes: Array.isArray(row.scopes) ? row.scopes : ['read'],
+      rate_limit: Number(row.rate_limit ?? 100),
+      is_active: row.is_active !== false,
+      last_used_at: row.last_used_at ?? null,
+      expires_at: row.expires_at ?? null,
+      created_at: row.created_at ?? null,
+    };
+  }, []);
+
+  const hashApiKey = useCallback(async (rawKey) => {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawKey));
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }, []);
+
   // -----------------------------------------------------------------------
   // Fetch API keys for the current user + company
   // -----------------------------------------------------------------------
@@ -24,8 +49,8 @@ export const useOpenApi = () => {
 
     const { data, error } = await query;
     if (error) throw error;
-    return data || [];
-  }, [userId, activeCompanyId]);
+    return (data || []).map(normalizeApiKeyRecord);
+  }, [userId, activeCompanyId, normalizeApiKeyRecord]);
 
   const apiKeysQuery = useQuery({
     queryKey: ['api-keys', userId, activeCompanyId],
@@ -110,14 +135,13 @@ export const useOpenApi = () => {
     if (!userId || !activeCompanyId) throw new Error('User or company not available');
 
     const apiKey = generateApiKey();
-    // For secret_hash, we use a simple hash representation. In production you'd use crypto.subtle.
-    const secretHash = btoa(apiKey).slice(0, 64);
+    const keyHash = await hashApiKey(apiKey);
 
     const payload = withCompanyScope({
       user_id: userId,
-      key_name: keyName,
-      api_key: apiKey,
-      secret_hash: secretHash,
+      name: keyName,
+      key_hash: keyHash,
+      key_prefix: apiKey.slice(0, 12),
       scopes,
       rate_limit: rateLimit,
       is_active: true,
@@ -128,7 +152,7 @@ export const useOpenApi = () => {
 
     if (error) throw error;
     // Return the full key only once (it won't be shown again in full)
-    return { ...data, _plainKey: apiKey };
+    return { ...normalizeApiKeyRecord(data), _plainKey: apiKey };
   };
 
   // -----------------------------------------------------------------------
@@ -137,11 +161,13 @@ export const useOpenApi = () => {
   const revokeKey = async (keyId) => {
     if (!userId) return null;
 
-    const { error } = await supabase
-      .from('api_keys')
-      .update({ is_active: false })
-      .eq('id', keyId)
-      .eq('user_id', userId);
+    let query = supabase.from('api_keys').update({ is_active: false }).eq('id', keyId).eq('user_id', userId);
+
+    if (activeCompanyId) {
+      query = query.eq('company_id', activeCompanyId);
+    }
+
+    const { error } = await query;
 
     if (error) throw error;
     return true;
@@ -153,7 +179,13 @@ export const useOpenApi = () => {
   const deleteKey = async (keyId) => {
     if (!userId) return null;
 
-    const { error } = await supabase.from('api_keys').delete().eq('id', keyId).eq('user_id', userId);
+    let query = supabase.from('api_keys').delete().eq('id', keyId).eq('user_id', userId);
+
+    if (activeCompanyId) {
+      query = query.eq('company_id', activeCompanyId);
+    }
+
+    const { error } = await query;
 
     if (error) throw error;
     return true;
@@ -165,11 +197,13 @@ export const useOpenApi = () => {
   const toggleKey = async (keyId, isActive) => {
     if (!userId) return null;
 
-    const { error } = await supabase
-      .from('api_keys')
-      .update({ is_active: isActive })
-      .eq('id', keyId)
-      .eq('user_id', userId);
+    let query = supabase.from('api_keys').update({ is_active: isActive }).eq('id', keyId).eq('user_id', userId);
+
+    if (activeCompanyId) {
+      query = query.eq('company_id', activeCompanyId);
+    }
+
+    const { error } = await query;
 
     if (error) throw error;
     return true;

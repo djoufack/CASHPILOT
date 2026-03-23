@@ -4,20 +4,29 @@ import { Button } from '@/components/ui/button';
 import { Key, Copy, Eye, EyeOff, Trash2, Play, Pause, Clock, Shield } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
-const ApiKeyCard = ({ apiKey, onToggle, onDelete, onCopy, usageLast7Days = [] }) => {
+const ApiKeyCard = ({ apiKey, plainKey = null, onToggle, onDelete, onCopy, usageLast7Days = [] }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [showKey, setShowKey] = useState(false);
 
-  const maskedKey = apiKey.api_key
-    ? `${apiKey.api_key.slice(0, 8)}${'*'.repeat(24)}${apiKey.api_key.slice(-4)}`
-    : '****';
+  const canReveal = typeof plainKey === 'string' && plainKey.length > 0;
+  const maskedKey = apiKey.key_prefix ? `${apiKey.key_prefix}${'*'.repeat(24)}` : '****';
+  const displayKey = showKey && canReveal ? plainKey : maskedKey;
+  const displayName = apiKey.name || apiKey.key_name || 'API Key';
 
   const handleCopy = () => {
+    if (!canReveal) {
+      toast({
+        title: t('common.error'),
+        description: t('openApi.copyUnavailable', 'La clé complète n’est plus disponible. Regénérez une nouvelle clé.'),
+      });
+      return;
+    }
+
     if (onCopy) {
-      onCopy(apiKey.api_key);
+      onCopy(plainKey);
     } else {
-      navigator.clipboard.writeText(apiKey.api_key);
+      navigator.clipboard.writeText(plainKey);
     }
     toast({
       title: t('common.success'),
@@ -59,16 +68,17 @@ const ApiKeyCard = ({ apiKey, onToggle, onDelete, onCopy, usageLast7Days = [] })
                 apiKey.is_active ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
               }`}
             />
-            <h3 className="text-sm font-semibold text-white truncate">{apiKey.key_name}</h3>
+            <h3 className="text-sm font-semibold text-white truncate">{displayName}</h3>
           </div>
 
           {/* Masked key */}
           <div className="flex items-center gap-2 mt-1">
             <Key className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-            <code className="text-xs text-gray-400 font-mono">{showKey ? apiKey.api_key : maskedKey}</code>
+            <code className="text-xs text-gray-400 font-mono">{displayKey}</code>
             <button
-              onClick={() => setShowKey((v) => !v)}
+              onClick={() => canReveal && setShowKey((v) => !v)}
               className="text-gray-500 hover:text-gray-300 transition-colors"
+              disabled={!canReveal}
               title={showKey ? t('openApi.hideKey') : t('openApi.showKey')}
             >
               {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -76,6 +86,7 @@ const ApiKeyCard = ({ apiKey, onToggle, onDelete, onCopy, usageLast7Days = [] })
             <button
               onClick={handleCopy}
               className="text-gray-500 hover:text-gray-300 transition-colors"
+              disabled={!canReveal}
               title={t('common.copy')}
             >
               <Copy className="w-3.5 h-3.5" />
@@ -135,7 +146,7 @@ const ApiKeyCard = ({ apiKey, onToggle, onDelete, onCopy, usageLast7Days = [] })
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onToggle(apiKey.id, !apiKey.is_active)}
+              onClick={() => onToggle(!apiKey.is_active)}
               className="border-gray-700 text-gray-300 hover:bg-gray-800"
               title={apiKey.is_active ? t('openApi.deactivate') : t('openApi.activate')}
             >

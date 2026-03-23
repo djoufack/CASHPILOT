@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,12 +10,40 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
-  Loader2, Copy, Check, Plus, Trash2, Key, Terminal, Globe,
-  AlertTriangle, RefreshCw, Code2, MessageSquare, Zap, Cloud, Cpu
+  Loader2,
+  Copy,
+  Check,
+  Plus,
+  Trash2,
+  Key,
+  Terminal,
+  Globe,
+  AlertTriangle,
+  RefreshCw,
+  Code2,
+  MessageSquare,
+  Zap,
+  Cloud,
+  Cpu,
 } from 'lucide-react';
 
 const API_BASE_URL = 'https://cashpilot.tech/api/v1';
 const MCP_SERVER_URL = 'https://cashpilot.tech/mcp';
+
+function createRawApiKey() {
+  const randomBytes = new Uint8Array(24);
+  crypto.getRandomValues(randomBytes);
+  return `cpk_${Array.from(randomBytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')}`;
+}
+
+async function sha256Hex(value) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 // ---------------------------------------------------------------------------
 // Clipboard helper
@@ -45,7 +74,7 @@ function CopyButton({ text, label }) {
 // ---------------------------------------------------------------------------
 // Code block with copy
 // ---------------------------------------------------------------------------
-function CodeBlock({ code, language }) {
+function CodeBlock({ code }) {
   const { t } = useTranslation();
 
   return (
@@ -66,6 +95,7 @@ function CodeBlock({ code, language }) {
 function McpConfigSection({ onKeysChanged }) {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { activeCompanyId, withCompanyScope } = useCompanyScope();
   const { toast } = useToast();
   const [mcpUrl, setMcpUrl] = useState(null);
   const [generating, setGenerating] = useState(false);
@@ -74,30 +104,29 @@ function McpConfigSection({ onKeysChanged }) {
     setGenerating(true);
     try {
       if (!user?.id) throw new Error(t('connectionSettings.errors.notAuthenticated'));
+      if (!activeCompanyId) throw new Error('No active company selected');
 
-      const randomBytes = new Uint8Array(24);
-      crypto.getRandomValues(randomBytes);
-      const rawKey = 'cpk_' + Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      const rawKey = createRawApiKey();
+      const keyHash = await sha256Hex(rawKey);
 
-      const encoder = new TextEncoder();
-      const encoded = encoder.encode(rawKey);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
-      const keyHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-      const { error } = await supabase.from('api_keys').insert({
+      const payload = withCompanyScope({
         user_id: user.id,
         name: 'MCP Client (Auto-generated)',
         key_hash: keyHash,
         key_prefix: rawKey.slice(0, 12),
         scopes: ['read', 'write', 'delete'],
-        is_active: true
+        is_active: true,
       });
+      const { error } = await supabase.from('api_keys').insert(payload);
 
       if (error) throw error;
 
       setMcpUrl({ full: MCP_SERVER_URL, core: `${MCP_SERVER_URL}?tools=core`, apiKey: rawKey });
       if (onKeysChanged) onKeysChanged();
-      toast({ title: t('connectionSettings.mcp.urlGeneratedTitle'), description: t('connectionSettings.mcp.urlGeneratedDescription') });
+      toast({
+        title: t('connectionSettings.mcp.urlGeneratedTitle'),
+        description: t('connectionSettings.mcp.urlGeneratedDescription'),
+      });
     } catch (err) {
       toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     } finally {
@@ -114,9 +143,7 @@ function McpConfigSection({ onKeysChanged }) {
           </div>
           <div>
             <CardTitle className="text-lg">{t('connectionSettings.mcp.title')}</CardTitle>
-            <CardDescription className="text-gray-400">
-              {t('connectionSettings.mcp.description')}
-            </CardDescription>
+            <CardDescription className="text-gray-400">{t('connectionSettings.mcp.description')}</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -140,7 +167,9 @@ function McpConfigSection({ onKeysChanged }) {
             <div className="space-y-3">
               {/* Full URL — Claude, Cursor, VS Code (443+ tools) */}
               <div className="space-y-1">
-                <Label className="text-xs text-gray-500 uppercase tracking-wider">{t('connectionSettings.mcp.fullUrlLabel')}</Label>
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">
+                  {t('connectionSettings.mcp.fullUrlLabel')}
+                </Label>
                 <div className="flex items-center gap-2 bg-gray-950 rounded border border-blue-500/40 p-2">
                   <code className="text-sm text-blue-300 font-mono break-all flex-1 select-all">{mcpUrl.full}</code>
                   <CopyButton text={mcpUrl.full} label={t('connectionSettings.labels.fullUrl')} />
@@ -148,14 +177,18 @@ function McpConfigSection({ onKeysChanged }) {
               </div>
               {/* Core URL — ChatGPT, etc. (26 core tools) */}
               <div className="space-y-1">
-                <Label className="text-xs text-gray-500 uppercase tracking-wider">{t('connectionSettings.mcp.coreUrlLabel')}</Label>
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">
+                  {t('connectionSettings.mcp.coreUrlLabel')}
+                </Label>
                 <div className="flex items-center gap-2 bg-gray-950 rounded border border-green-500/40 p-2">
                   <code className="text-sm text-green-300 font-mono break-all flex-1 select-all">{mcpUrl.core}</code>
                   <CopyButton text={mcpUrl.core} label={t('connectionSettings.labels.chatgptUrl')} />
                 </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs text-gray-500 uppercase tracking-wider">{t('connectionSettings.labels.apiKey')}</Label>
+                <Label className="text-xs text-gray-500 uppercase tracking-wider">
+                  {t('connectionSettings.labels.apiKey')}
+                </Label>
                 <div className="flex items-center gap-2 bg-gray-950 rounded border border-yellow-500/40 p-2">
                   <code className="text-sm text-yellow-300 font-mono break-all flex-1 select-all">{mcpUrl.apiKey}</code>
                   <CopyButton text={mcpUrl.apiKey} label={t('connectionSettings.labels.apiKey')} />
@@ -169,15 +202,27 @@ function McpConfigSection({ onKeysChanged }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
           <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-white font-medium mb-1"><MessageSquare className="w-4 h-4" />{t('connectionSettings.mcp.cards.assistants.title')}</div>
-            <p className="text-xs text-gray-400">{t('connectionSettings.mcp.cards.assistants.description')} <strong>SSE</strong> {t('common.or')} <strong>URL</strong>.</p>
+            <div className="flex items-center gap-2 text-white font-medium mb-1">
+              <MessageSquare className="w-4 h-4" />
+              {t('connectionSettings.mcp.cards.assistants.title')}
+            </div>
+            <p className="text-xs text-gray-400">
+              {t('connectionSettings.mcp.cards.assistants.description')} <strong>SSE</strong> {t('common.or')}{' '}
+              <strong>URL</strong>.
+            </p>
           </div>
           <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-white font-medium mb-1"><Globe className="w-4 h-4" />ChatGPT</div>
+            <div className="flex items-center gap-2 text-white font-medium mb-1">
+              <Globe className="w-4 h-4" />
+              ChatGPT
+            </div>
             <p className="text-xs text-gray-400">{t('connectionSettings.mcp.cards.chatgpt.description')}</p>
           </div>
           <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-white font-medium mb-1"><AlertTriangle className="w-4 h-4 text-yellow-500" />{t('connectionSettings.mcp.cards.security.title')}</div>
+            <div className="flex items-center gap-2 text-white font-medium mb-1">
+              <AlertTriangle className="w-4 h-4 text-yellow-500" />
+              {t('connectionSettings.mcp.cards.security.title')}
+            </div>
             <p className="text-xs text-gray-400">{t('connectionSettings.mcp.cards.security.description')}</p>
           </div>
         </div>
@@ -251,9 +296,7 @@ print(response.content)`;
           </div>
           <div>
             <CardTitle className="text-lg">{t('connectionSettings.connector.title')}</CardTitle>
-            <CardDescription className="text-gray-400">
-              {t('connectionSettings.connector.description')}
-            </CardDescription>
+            <CardDescription className="text-gray-400">{t('connectionSettings.connector.description')}</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -274,14 +317,18 @@ print(response.content)`;
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-gray-800/50 rounded-lg p-3 space-y-1">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-gray-500 uppercase tracking-wider">{t('connectionSettings.connector.serverUrl')}</Label>
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">
+                {t('connectionSettings.connector.serverUrl')}
+              </Label>
               <CopyButton text={mcpServerUrl} />
             </div>
             <code className="text-sm text-purple-300 font-mono">{mcpServerUrl}</code>
           </div>
           <div className="bg-gray-800/50 rounded-lg p-3 space-y-1">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-gray-500 uppercase tracking-wider">{t('connectionSettings.connector.requiredBetaHeader')}</Label>
+              <Label className="text-xs text-gray-500 uppercase tracking-wider">
+                {t('connectionSettings.connector.requiredBetaHeader')}
+              </Label>
               <CopyButton text="mcp-client-2025-11-20" />
             </div>
             <code className="text-sm text-purple-300 font-mono">mcp-client-2025-11-20</code>
@@ -290,14 +337,15 @@ print(response.content)`;
 
         {/* Tab selector */}
         <div className="flex gap-2">
-          {tabs.map(t => (
+          {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${activeTab === t.id
-                ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
-                : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600'
-                }`}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                activeTab === t.id
+                  ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                  : 'bg-gray-800 text-gray-400 border border-gray-700 hover:border-gray-600'
+              }`}
             >
               {t.icon}
               {t.label}
@@ -312,19 +360,36 @@ print(response.content)`;
         {/* Use cases */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { icon: <Cpu className="w-4 h-4" />, label: t('connectionSettings.connector.cards.agents.title'), desc: t('connectionSettings.connector.cards.agents.description') },
-            { icon: <Code2 className="w-4 h-4" />, label: t('connectionSettings.connector.cards.saas.title'), desc: t('connectionSettings.connector.cards.saas.description') },
-            { icon: <Cloud className="w-4 h-4" />, label: t('connectionSettings.connector.cards.workflows.title'), desc: t('connectionSettings.connector.cards.workflows.description') },
-          ].map(ex => (
+            {
+              icon: <Cpu className="w-4 h-4" />,
+              label: t('connectionSettings.connector.cards.agents.title'),
+              desc: t('connectionSettings.connector.cards.agents.description'),
+            },
+            {
+              icon: <Code2 className="w-4 h-4" />,
+              label: t('connectionSettings.connector.cards.saas.title'),
+              desc: t('connectionSettings.connector.cards.saas.description'),
+            },
+            {
+              icon: <Cloud className="w-4 h-4" />,
+              label: t('connectionSettings.connector.cards.workflows.title'),
+              desc: t('connectionSettings.connector.cards.workflows.description'),
+            },
+          ].map((ex) => (
             <div key={ex.label} className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
-              <div className="flex items-center gap-2 text-white text-sm font-medium mb-1">{ex.icon}{ex.label}</div>
+              <div className="flex items-center gap-2 text-white text-sm font-medium mb-1">
+                {ex.icon}
+                {ex.label}
+              </div>
               <p className="text-xs text-gray-500">{ex.desc}</p>
             </div>
           ))}
         </div>
 
         <p className="text-xs text-gray-500">
-          {t('connectionSettings.connector.footer')} <code className="text-purple-400">anthropic-beta: mcp-client-2025-11-20</code>. {t('connectionSettings.connector.footerSuffix')}
+          {t('connectionSettings.connector.footer')}{' '}
+          <code className="text-purple-400">anthropic-beta: mcp-client-2025-11-20</code>.{' '}
+          {t('connectionSettings.connector.footerSuffix')}
         </p>
       </CardContent>
     </Card>
@@ -337,6 +402,7 @@ print(response.content)`;
 function CreateApiKeyForm({ onCreated }) {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { activeCompanyId, withCompanyScope } = useCompanyScope();
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [scopes, setScopes] = useState({ read: true, write: false, delete: false });
@@ -357,6 +423,11 @@ function CreateApiKeyForm({ onCreated }) {
       return;
     }
 
+    if (!activeCompanyId) {
+      setFormError('No active company selected');
+      return;
+    }
+
     if (!supabase) {
       setFormError(t('connectionSettings.apiKey.errors.supabaseUnavailable'));
       return;
@@ -364,27 +435,22 @@ function CreateApiKeyForm({ onCreated }) {
 
     setCreating(true);
     try {
-      // Generate random key: cpk_ + 48 random hex chars
-      const randomBytes = new Uint8Array(24);
-      crypto.getRandomValues(randomBytes);
-      const rawKey = 'cpk_' + Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      const rawKey = createRawApiKey();
+      const keyHash = await sha256Hex(rawKey);
 
-      // Hash with SHA-256 (same as Edge Function api-v1)
-      const encoder = new TextEncoder();
-      const encoded = encoder.encode(rawKey);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
-      const keyHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const selectedScopes = Object.entries(scopes)
+        .filter(([, v]) => v)
+        .map(([k]) => k);
 
-      const selectedScopes = Object.entries(scopes).filter(([, v]) => v).map(([k]) => k);
-
-      const { error } = await supabase.from('api_keys').insert({
+      const payload = withCompanyScope({
         user_id: user.id,
         name: name.trim(),
         key_hash: keyHash,
         key_prefix: rawKey.slice(0, 12),
         scopes: selectedScopes,
-        is_active: true
+        is_active: true,
       });
+      const { error } = await supabase.from('api_keys').insert(payload);
 
       if (error) throw error;
 
@@ -393,7 +459,10 @@ function CreateApiKeyForm({ onCreated }) {
       setScopes({ read: true, write: false, delete: false });
       onCreated();
 
-      toast({ title: t('connectionSettings.apiKey.createdTitle'), description: t('connectionSettings.apiKey.createdDescription') });
+      toast({
+        title: t('connectionSettings.apiKey.createdTitle'),
+        description: t('connectionSettings.apiKey.createdDescription'),
+      });
     } catch (err) {
       console.error('[CashPilot] API key generation error:', err);
       const msg = err?.message || String(err);
@@ -408,16 +477,20 @@ function CreateApiKeyForm({ onCreated }) {
   if (newKey) {
     const mcpUrl = MCP_SERVER_URL;
     const mcpUrlCore = `${MCP_SERVER_URL}?tools=core`;
-    const jsonConfig = JSON.stringify({
-      mcpServers: {
-        cashpilot: {
-          url: mcpUrl,
-          headers: {
-            'x-api-key': newKey
-          }
-        }
-      }
-    }, null, 2);
+    const jsonConfig = JSON.stringify(
+      {
+        mcpServers: {
+          cashpilot: {
+            url: mcpUrl,
+            headers: {
+              'x-api-key': newKey,
+            },
+          },
+        },
+      },
+      null,
+      2
+    );
 
     return (
       <div className="bg-green-500/5 border border-green-500/30 rounded-lg p-4 space-y-4">
@@ -428,7 +501,9 @@ function CreateApiKeyForm({ onCreated }) {
 
         {/* MCP URL — for Claude Desktop (full 169 tools) */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-gray-400 uppercase tracking-wider">{t('connectionSettings.apiKey.generatedFullUrl')}</Label>
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">
+            {t('connectionSettings.apiKey.generatedFullUrl')}
+          </Label>
           <div className="flex items-center gap-2 bg-gray-950 rounded-lg p-3 border border-blue-500/30">
             <code className="text-blue-300 font-mono text-sm flex-1 break-all select-all">{mcpUrl}</code>
             <CopyButton text={mcpUrl} label={t('connectionSettings.labels.mcpUrl')} />
@@ -437,7 +512,9 @@ function CreateApiKeyForm({ onCreated }) {
 
         {/* MCP URL — for ChatGPT (core 26 tools) */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-gray-400 uppercase tracking-wider">{t('connectionSettings.apiKey.generatedCoreUrl')}</Label>
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">
+            {t('connectionSettings.apiKey.generatedCoreUrl')}
+          </Label>
           <div className="flex items-center gap-2 bg-gray-950 rounded-lg p-3 border border-green-500/30">
             <code className="text-green-300 font-mono text-sm flex-1 break-all select-all">{mcpUrlCore}</code>
             <CopyButton text={mcpUrlCore} label={t('connectionSettings.labels.chatgptUrl')} />
@@ -446,13 +523,17 @@ function CreateApiKeyForm({ onCreated }) {
 
         {/* JSON config — for Claude Code / VS Code */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-gray-400 uppercase tracking-wider">{t('connectionSettings.apiKey.generatedJson')}</Label>
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">
+            {t('connectionSettings.apiKey.generatedJson')}
+          </Label>
           <CodeBlock code={jsonConfig} language="json" />
         </div>
 
         {/* Raw API key — for REST API / scripts */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-gray-400 uppercase tracking-wider">{t('connectionSettings.apiKey.generatedRawKey')}</Label>
+          <Label className="text-xs text-gray-400 uppercase tracking-wider">
+            {t('connectionSettings.apiKey.generatedRawKey')}
+          </Label>
           <div className="flex items-center gap-2 bg-gray-950 rounded-lg p-3 border border-gray-700">
             <code className="text-green-400 font-mono text-sm flex-1 break-all select-all">{newKey}</code>
             <CopyButton text={newKey} label={t('connectionSettings.labels.apiKey')} />
@@ -477,11 +558,13 @@ function CreateApiKeyForm({ onCreated }) {
   return (
     <div className="space-y-4 bg-gray-800/30 border border-gray-700/50 rounded-lg p-4">
       <div className="space-y-2">
-        <Label className="text-sm text-gray-300">{t('connectionSettings.apiKey.nameLabel')} <span className="text-red-400">*</span></Label>
+        <Label className="text-sm text-gray-300">
+          {t('connectionSettings.apiKey.nameLabel')} <span className="text-red-400">*</span>
+        </Label>
         <input
           type="text"
           value={name}
-          onChange={e => setName(e.target.value)}
+          onChange={(e) => setName(e.target.value)}
           placeholder={t('connectionSettings.apiKey.namePlaceholder')}
           className="flex h-10 w-full rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900"
         />
@@ -494,24 +577,38 @@ function CreateApiKeyForm({ onCreated }) {
           <div className="flex items-center gap-3 bg-gray-800 rounded-lg p-3 border border-blue-500/40 opacity-80">
             <Check className="w-5 h-5 text-blue-400 flex-shrink-0" />
             <div>
-              <p className="text-sm text-white font-medium">{t('connectionSettings.apiKey.readTitle')} <span className="text-xs text-gray-500 font-normal ml-1">({t('connectionSettings.apiKey.alwaysActive')})</span></p>
+              <p className="text-sm text-white font-medium">
+                {t('connectionSettings.apiKey.readTitle')}{' '}
+                <span className="text-xs text-gray-500 font-normal ml-1">
+                  ({t('connectionSettings.apiKey.alwaysActive')})
+                </span>
+              </p>
               <p className="text-xs text-gray-500">{t('connectionSettings.apiKey.readDescription')}</p>
             </div>
           </div>
           {/* Write & Delete — toggleable */}
           {[
-            { key: 'write', label: t('connectionSettings.apiKey.writeTitle'), desc: t('connectionSettings.apiKey.writeDescription') },
-            { key: 'delete', label: t('connectionSettings.apiKey.deleteTitle'), desc: t('connectionSettings.apiKey.deleteDescription') },
-          ].map(scope => (
+            {
+              key: 'write',
+              label: t('connectionSettings.apiKey.writeTitle'),
+              desc: t('connectionSettings.apiKey.writeDescription'),
+            },
+            {
+              key: 'delete',
+              label: t('connectionSettings.apiKey.deleteTitle'),
+              desc: t('connectionSettings.apiKey.deleteDescription'),
+            },
+          ].map((scope) => (
             <div
               key={scope.key}
-              onClick={() => setScopes(s => ({ ...s, [scope.key]: !s[scope.key] }))}
-              className={`flex items-center gap-3 bg-gray-800 rounded-lg p-3 cursor-pointer border transition-colors ${scopes[scope.key] ? scopeBorderColor[scope.key] : 'border-gray-700'
-                }`}
+              onClick={() => setScopes((s) => ({ ...s, [scope.key]: !s[scope.key] }))}
+              className={`flex items-center gap-3 bg-gray-800 rounded-lg p-3 cursor-pointer border transition-colors ${
+                scopes[scope.key] ? scopeBorderColor[scope.key] : 'border-gray-700'
+              }`}
             >
               <Switch
                 checked={scopes[scope.key]}
-                onCheckedChange={v => setScopes(s => ({ ...s, [scope.key]: v }))}
+                onCheckedChange={(v) => setScopes((s) => ({ ...s, [scope.key]: v }))}
               />
               <div>
                 <p className="text-sm text-white font-medium">{scope.label}</p>
@@ -567,11 +664,12 @@ function ApiKeysList({ keys, loading, onRevoke }) {
 
   return (
     <div className="space-y-2">
-      {keys.map(k => (
+      {keys.map((k) => (
         <div
           key={k.id}
-          className={`flex items-center justify-between bg-gray-800/50 border rounded-lg p-3 ${k.is_active ? 'border-gray-700' : 'border-red-900/30 opacity-50'
-            }`}
+          className={`flex items-center justify-between bg-gray-800/50 border rounded-lg p-3 ${
+            k.is_active ? 'border-gray-700' : 'border-red-900/30 opacity-50'
+          }`}
         >
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <Key className={`w-4 h-4 flex-shrink-0 ${k.is_active ? 'text-orange-400' : 'text-gray-600'}`} />
@@ -579,17 +677,31 @@ function ApiKeysList({ keys, loading, onRevoke }) {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium text-sm text-white truncate">{k.name}</span>
                 <code className="text-xs text-gray-500 font-mono">{k.key_prefix}...</code>
-                {!k.is_active && <Badge variant="destructive" className="text-xs">{t('connectionSettings.apiKey.revoked')}</Badge>}
+                {!k.is_active && (
+                  <Badge variant="destructive" className="text-xs">
+                    {t('connectionSettings.apiKey.revoked')}
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
                 <span>
-                  {k.scopes?.map(s => (
-                    <Badge key={s} variant="outline" className="text-[10px] mr-1 border-gray-600 text-gray-400">{s}</Badge>
+                  {k.scopes?.map((s) => (
+                    <Badge key={s} variant="outline" className="text-[10px] mr-1 border-gray-600 text-gray-400">
+                      {s}
+                    </Badge>
                   ))}
                 </span>
-                <span>{t('connectionSettings.apiKey.createdAt', { date: new Date(k.created_at).toLocaleDateString(locale) })}</span>
+                <span>
+                  {t('connectionSettings.apiKey.createdAt', {
+                    date: new Date(k.created_at).toLocaleDateString(locale),
+                  })}
+                </span>
                 {k.last_used_at && (
-                  <span>{t('connectionSettings.apiKey.lastUsedAt', { date: new Date(k.last_used_at).toLocaleDateString(locale) })}</span>
+                  <span>
+                    {t('connectionSettings.apiKey.lastUsedAt', {
+                      date: new Date(k.last_used_at).toLocaleDateString(locale),
+                    })}
+                  </span>
                 )}
               </div>
             </div>
@@ -616,18 +728,29 @@ function ApiKeysList({ keys, loading, onRevoke }) {
 // ---------------------------------------------------------------------------
 function RestApiSection({ keys, keysLoading, onKeysChanged }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const { activeCompanyId } = useCompanyScope();
   const { toast } = useToast();
 
   const handleRevoke = async (id, name) => {
-    const { error } = await supabase
-      .from('api_keys')
-      .update({ is_active: false })
-      .eq('id', id);
+    let query = supabase.from('api_keys').update({ is_active: false }).eq('id', id);
+
+    if (user?.id) {
+      query = query.eq('user_id', user.id);
+    }
+    if (activeCompanyId) {
+      query = query.eq('company_id', activeCompanyId);
+    }
+
+    const { error } = await query;
 
     if (error) {
       toast({ title: t('common.error'), description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: t('connectionSettings.apiKey.revokedTitle'), description: t('connectionSettings.apiKey.revokedDescription', { name }) });
+      toast({
+        title: t('connectionSettings.apiKey.revokedTitle'),
+        description: t('connectionSettings.apiKey.revokedDescription', { name }),
+      });
       onKeysChanged();
     }
   };
@@ -641,9 +764,7 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
           </div>
           <div>
             <CardTitle className="text-lg">{t('connectionSettings.rest.title')}</CardTitle>
-            <CardDescription className="text-gray-400">
-              {t('connectionSettings.rest.description')}
-            </CardDescription>
+            <CardDescription className="text-gray-400">{t('connectionSettings.rest.description')}</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -663,7 +784,9 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
         {/* API Base URL */}
         <div className="bg-gray-800/50 rounded-lg p-3">
           <div className="flex items-center justify-between mb-1">
-            <Label className="text-xs text-gray-500 uppercase tracking-wider">{t('connectionSettings.rest.baseUrl')}</Label>
+            <Label className="text-xs text-gray-500 uppercase tracking-wider">
+              {t('connectionSettings.rest.baseUrl')}
+            </Label>
             <CopyButton text={API_BASE_URL} />
           </div>
           <code className="text-sm text-orange-300 font-mono">{API_BASE_URL}</code>
@@ -672,12 +795,27 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
         {/* Quick examples */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { icon: <MessageSquare className="w-4 h-4" />, label: 'ChatGPT', desc: t('connectionSettings.rest.cards.chatgpt') },
-            { icon: <Zap className="w-4 h-4" />, label: 'Zapier / Make', desc: t('connectionSettings.rest.cards.zapier') },
-            { icon: <Code2 className="w-4 h-4" />, label: 'Python / Node.js', desc: t('connectionSettings.rest.cards.sdk') },
-          ].map(ex => (
+            {
+              icon: <MessageSquare className="w-4 h-4" />,
+              label: 'ChatGPT',
+              desc: t('connectionSettings.rest.cards.chatgpt'),
+            },
+            {
+              icon: <Zap className="w-4 h-4" />,
+              label: 'Zapier / Make',
+              desc: t('connectionSettings.rest.cards.zapier'),
+            },
+            {
+              icon: <Code2 className="w-4 h-4" />,
+              label: 'Python / Node.js',
+              desc: t('connectionSettings.rest.cards.sdk'),
+            },
+          ].map((ex) => (
             <div key={ex.label} className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3">
-              <div className="flex items-center gap-2 text-white text-sm font-medium mb-1">{ex.icon}{ex.label}</div>
+              <div className="flex items-center gap-2 text-white text-sm font-medium mb-1">
+                {ex.icon}
+                {ex.label}
+              </div>
               <p className="text-xs text-gray-500">{ex.desc}</p>
             </div>
           ))}
@@ -699,7 +837,9 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
 
         {/* cURL example */}
         <div>
-          <Label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">{t('connectionSettings.rest.curlExample')}</Label>
+          <Label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">
+            {t('connectionSettings.rest.curlExample')}
+          </Label>
           <CodeBlock code={`curl -H "X-API-Key: cpk_your_key_here" \\\n  "${API_BASE_URL}/analytics/kpis"`} />
         </div>
       </CardContent>
@@ -712,27 +852,42 @@ function RestApiSection({ keys, keysLoading, onKeysChanged }) {
 // ---------------------------------------------------------------------------
 const ConnectionSettings = ({ section }) => {
   const { user } = useAuth();
+  const { applyCompanyScope } = useCompanyScope();
   const [apiKeys, setApiKeys] = useState([]);
   const [keysLoading, setKeysLoading] = useState(true);
   const fetchKeys = useCallback(async () => {
-    if (!user) { setKeysLoading(false); return; }
+    if (!user) {
+      setKeysLoading(false);
+      return;
+    }
     setKeysLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('api_keys')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
       if (error) console.error('[CashPilot] fetchKeys error:', error);
-      setApiKeys(data || []);
+      setApiKeys(
+        (data || []).map((key) => ({
+          ...key,
+          name: key.name ?? key.key_name ?? 'API Key',
+        }))
+      );
     } catch (err) {
       console.error('[CashPilot] fetchKeys exception:', err);
     } finally {
       setKeysLoading(false);
     }
-  }, [user]);
+  }, [user, applyCompanyScope]);
 
-  useEffect(() => { fetchKeys(); }, [fetchKeys]);
+  useEffect(() => {
+    fetchKeys();
+  }, [fetchKeys]);
 
   const showApi = !section || section === 'api';
   const showMcp = !section || section === 'mcp';
@@ -747,8 +902,3 @@ const ConnectionSettings = ({ section }) => {
 };
 
 export default ConnectionSettings;
-
-
-
-
-

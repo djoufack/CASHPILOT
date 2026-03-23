@@ -12,7 +12,7 @@ function createRateLimiter() {
   const rateBuckets = new Map();
   const WINDOW_MS = 60_000; // 1 minute
 
-  function checkRateLimit(apiKeyId, limit) {
+  function consumeRateLimit(apiKeyId, limit) {
     const now = Date.now();
     let bucket = rateBuckets.get(apiKeyId);
 
@@ -30,11 +30,26 @@ function createRateLimiter() {
     };
   }
 
+  function getRateLimitState(apiKeyId, limit) {
+    const now = Date.now();
+    let bucket = rateBuckets.get(apiKeyId);
+
+    if (!bucket || now >= bucket.resetAt) {
+      bucket = { count: 0, resetAt: now + WINDOW_MS };
+      rateBuckets.set(apiKeyId, bucket);
+    }
+
+    return {
+      remaining: Math.max(0, limit - bucket.count),
+      resetAt: bucket.resetAt,
+    };
+  }
+
   function reset() {
     rateBuckets.clear();
   }
 
-  return { checkRateLimit, reset };
+  return { consumeRateLimit, getRateLimitState, reset };
 }
 
 // ---------- Scope validation (exact logic from edge function) ----------
@@ -104,53 +119,62 @@ describe('api-gateway: rate limiter', () => {
   });
 
   it('allows requests within the rate limit', () => {
-    const result = limiter.checkRateLimit('key-1', 100);
+    const result = limiter.consumeRateLimit('key-1', 100);
     expect(result.allowed).toBe(true);
     expect(result.remaining).toBe(99);
   });
 
   it('tracks remaining count correctly', () => {
     for (let i = 0; i < 5; i++) {
-      limiter.checkRateLimit('key-1', 100);
+      limiter.consumeRateLimit('key-1', 100);
     }
-    const result = limiter.checkRateLimit('key-1', 100);
+    const result = limiter.consumeRateLimit('key-1', 100);
     expect(result.remaining).toBe(94);
   });
 
   it('blocks when rate limit is exceeded', () => {
     for (let i = 0; i < 10; i++) {
-      limiter.checkRateLimit('key-1', 10);
+      limiter.consumeRateLimit('key-1', 10);
     }
-    const result = limiter.checkRateLimit('key-1', 10);
+    const result = limiter.consumeRateLimit('key-1', 10);
     expect(result.allowed).toBe(false);
     expect(result.remaining).toBe(0);
   });
 
   it('resets after the window expires', () => {
     for (let i = 0; i < 10; i++) {
-      limiter.checkRateLimit('key-1', 10);
+      limiter.consumeRateLimit('key-1', 10);
     }
     // Advance past the 1-minute window
     vi.advanceTimersByTime(61_000);
-    const result = limiter.checkRateLimit('key-1', 10);
+    const result = limiter.consumeRateLimit('key-1', 10);
     expect(result.allowed).toBe(true);
     expect(result.remaining).toBe(9);
   });
 
   it('tracks different API keys independently', () => {
     for (let i = 0; i < 5; i++) {
-      limiter.checkRateLimit('key-1', 5);
+      limiter.consumeRateLimit('key-1', 5);
     }
-    const result1 = limiter.checkRateLimit('key-1', 5);
-    const result2 = limiter.checkRateLimit('key-2', 5);
+    const result1 = limiter.consumeRateLimit('key-1', 5);
+    const result2 = limiter.consumeRateLimit('key-2', 5);
 
     expect(result1.allowed).toBe(false);
     expect(result2.allowed).toBe(true);
   });
 
   it('returns a resetAt timestamp in the future', () => {
-    const result = limiter.checkRateLimit('key-1', 10);
+    const result = limiter.consumeRateLimit('key-1', 10);
     expect(result.resetAt).toBeGreaterThan(Date.now());
+  });
+
+  it('does not consume quota when reading remaining state', () => {
+    limiter.consumeRateLimit('key-1', 10);
+    const snapshot1 = limiter.getRateLimitState('key-1', 10);
+    const snapshot2 = limiter.getRateLimitState('key-1', 10);
+
+    expect(snapshot1.remaining).toBe(9);
+    expect(snapshot2.remaining).toBe(9);
   });
 
   afterEach(() => {
