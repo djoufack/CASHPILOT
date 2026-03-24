@@ -3646,241 +3646,246 @@ export function registerGeneratedCrudTools(server: McpServer) {
     }
   );
 
-  // ── dunning_steps CRUD ──
+  // ── dunning_steps CRUD — REMOVED: tables dunning_steps and dunning_history no longer exist
+  // Replaced by dunning_campaigns, dunning_templates, dunning_executions
+  // See migration 20260324 for details
+  if (false) {
+    // eslint-disable-line -- dead code block for removed dunning_steps/dunning_history tools
 
-  server.tool(
-    'create_dunning_steps',
-    'Create a new dunning step (payment follow-up configuration)',
-    {
-      company_id: z.string().describe('Company UUID'),
-      name: z.string().describe('Step name (e.g. First reminder)'),
-      days_after_due: z.number().optional().describe('Days after due date to trigger (default 7)'),
-      email_subject: z.string().optional().describe('Email subject template'),
-      email_body: z.string().optional().describe('Email body template'),
-      is_active: z.boolean().optional().describe('Whether this step is active (default true)'),
-      step_order: z.number().optional().describe('Order of this step in the dunning sequence (default 1)'),
-    },
-    async (args) => {
-      const payload = { ...args } as Record<string, any>;
-      const dateErr = validateDatesInRecord(payload);
-      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
-      payload.user_id = getUserId();
-      payload.company_id = payload.company_id || (await getCompanyId());
-      const { data, error } = await supabase
-        .from('dunning_steps')
-        .insert([sanitizeRecord(payload)])
-        .select()
-        .single();
-      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create dunning step') }] };
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: 'Successfully created dunning_steps record:\n' + JSON.stringify(data, null, 2),
-          },
-        ],
-      };
-    }
-  );
+    server.tool(
+      'create_dunning_steps',
+      'Create a new dunning step (payment follow-up configuration)',
+      {
+        company_id: z.string().describe('Company UUID'),
+        name: z.string().describe('Step name (e.g. First reminder)'),
+        days_after_due: z.number().optional().describe('Days after due date to trigger (default 7)'),
+        email_subject: z.string().optional().describe('Email subject template'),
+        email_body: z.string().optional().describe('Email body template'),
+        is_active: z.boolean().optional().describe('Whether this step is active (default true)'),
+        step_order: z.number().optional().describe('Order of this step in the dunning sequence (default 1)'),
+      },
+      async (args) => {
+        const payload = { ...args } as Record<string, any>;
+        const dateErr = validateDatesInRecord(payload);
+        if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+        payload.user_id = getUserId();
+        payload.company_id = payload.company_id || (await getCompanyId());
+        const { data, error } = await supabase
+          .from('dunning_steps')
+          .insert([sanitizeRecord(payload)])
+          .select()
+          .single();
+        if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create dunning step') }] };
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Successfully created dunning_steps record:\n' + JSON.stringify(data, null, 2),
+            },
+          ],
+        };
+      }
+    );
 
-  server.tool(
-    'update_dunning_steps',
-    'Update an existing dunning step',
-    {
-      id: z.string().describe('Record UUID to update'),
-      name: z.string().optional(),
-      days_after_due: z.number().optional(),
-      email_subject: z.string().optional(),
-      email_body: z.string().optional(),
-      is_active: z.boolean().optional(),
-      step_order: z.number().optional(),
-    },
-    async (args) => {
-      const { id, ...updates } = args;
-      const dateErr = validateDatesInRecord(updates);
-      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
-      let query = supabase.from('dunning_steps').update(sanitizeRecord(updates)).eq('id', id);
-      query = query.eq('user_id', getUserId());
-      const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update dunning step') }] };
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: 'Successfully updated dunning_steps record:\n' + JSON.stringify(data, null, 2),
-          },
-        ],
-      };
-    }
-  );
+    server.tool(
+      'update_dunning_steps',
+      'Update an existing dunning step',
+      {
+        id: z.string().describe('Record UUID to update'),
+        name: z.string().optional(),
+        days_after_due: z.number().optional(),
+        email_subject: z.string().optional(),
+        email_body: z.string().optional(),
+        is_active: z.boolean().optional(),
+        step_order: z.number().optional(),
+      },
+      async (args) => {
+        const { id, ...updates } = args;
+        const dateErr = validateDatesInRecord(updates);
+        if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+        let query = supabase.from('dunning_steps').update(sanitizeRecord(updates)).eq('id', id);
+        query = query.eq('user_id', getUserId());
+        const { data, error } = await query.select().single();
+        if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update dunning step') }] };
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Successfully updated dunning_steps record:\n' + JSON.stringify(data, null, 2),
+            },
+          ],
+        };
+      }
+    );
 
-  server.tool(
-    'delete_dunning_steps',
-    'Delete a dunning step',
-    {
-      id: z.string().describe('Record UUID to delete'),
-    },
-    async ({ id }) => {
-      let query = supabase.from('dunning_steps').delete().eq('id', id);
-      query = query.eq('user_id', getUserId());
-      const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete dunning step') }] };
-      return {
-        content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from dunning_steps' }],
-      };
-    }
-  );
+    server.tool(
+      'delete_dunning_steps',
+      'Delete a dunning step',
+      {
+        id: z.string().describe('Record UUID to delete'),
+      },
+      async ({ id }) => {
+        let query = supabase.from('dunning_steps').delete().eq('id', id);
+        query = query.eq('user_id', getUserId());
+        const { error } = await query;
+        if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete dunning step') }] };
+        return {
+          content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from dunning_steps' }],
+        };
+      }
+    );
 
-  server.tool(
-    'get_dunning_steps',
-    'Get a single dunning step by ID',
-    {
-      id: z.string().describe('Record UUID to fetch'),
-    },
-    async ({ id }) => {
-      let query = supabase.from('dunning_steps').select('*').eq('id', id);
-      query = query.eq('user_id', getUserId());
-      const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get dunning step') }] };
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
-    }
-  );
+    server.tool(
+      'get_dunning_steps',
+      'Get a single dunning step by ID',
+      {
+        id: z.string().describe('Record UUID to fetch'),
+      },
+      async ({ id }) => {
+        let query = supabase.from('dunning_steps').select('*').eq('id', id);
+        query = query.eq('user_id', getUserId());
+        const { data, error } = await query.single();
+        if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get dunning step') }] };
+        return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+      }
+    );
 
-  server.tool(
-    'list_dunning_steps',
-    'List dunning steps with optional filters',
-    {
-      company_id: z.string().optional().describe('Filter by company UUID'),
-      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
-      offset: z.number().optional().describe('Number of records to skip (default 0)'),
-    },
-    async ({ company_id, limit = 50, offset = 0 }) => {
-      let query = supabase.from('dunning_steps').select('*');
-      query = query.eq('user_id', getUserId());
-      if (company_id) query = query.eq('company_id', company_id);
-      query = query.order('step_order', { ascending: true });
-      const { data, error } = await query.range(offset, offset + limit - 1);
-      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list dunning steps') }] };
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
-    }
-  );
+    server.tool(
+      'list_dunning_steps',
+      'List dunning steps with optional filters',
+      {
+        company_id: z.string().optional().describe('Filter by company UUID'),
+        limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+        offset: z.number().optional().describe('Number of records to skip (default 0)'),
+      },
+      async ({ company_id, limit = 50, offset = 0 }) => {
+        let query = supabase.from('dunning_steps').select('*');
+        query = query.eq('user_id', getUserId());
+        if (company_id) query = query.eq('company_id', company_id);
+        query = query.order('step_order', { ascending: true });
+        const { data, error } = await query.range(offset, offset + limit - 1);
+        if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list dunning steps') }] };
+        return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+      }
+    );
 
-  // ── dunning_history CRUD ──
+    // ── dunning_history CRUD ──
 
-  server.tool(
-    'create_dunning_history',
-    'Record a dunning action (payment follow-up sent to a client)',
-    {
-      invoice_id: z.string().describe('Invoice UUID'),
-      dunning_step_id: z.string().optional().describe('Dunning step UUID used'),
-      sent_at: z.string().optional().describe('When the dunning was sent (ISO timestamp, default now)'),
-      method: z.enum(['email', 'sms', 'letter']).optional().describe('Communication method (default email)'),
-      status: z.enum(['sent', 'delivered', 'failed', 'responded']).optional().describe('Status (default sent)'),
-      notes: z.string().optional().describe('Additional notes'),
-    },
-    async (args) => {
-      const payload = { ...args } as Record<string, any>;
-      const dateErr = validateDatesInRecord(payload);
-      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
-      payload.user_id = getUserId();
-      payload.company_id = payload.company_id || (await getCompanyId());
-      const { data, error } = await supabase
-        .from('dunning_history')
-        .insert([sanitizeRecord(payload)])
-        .select()
-        .single();
-      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create dunning history') }] };
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: 'Successfully created dunning_history record:\n' + JSON.stringify(data, null, 2),
-          },
-        ],
-      };
-    }
-  );
+    server.tool(
+      'create_dunning_history',
+      'Record a dunning action (payment follow-up sent to a client)',
+      {
+        invoice_id: z.string().describe('Invoice UUID'),
+        dunning_step_id: z.string().optional().describe('Dunning step UUID used'),
+        sent_at: z.string().optional().describe('When the dunning was sent (ISO timestamp, default now)'),
+        method: z.enum(['email', 'sms', 'letter']).optional().describe('Communication method (default email)'),
+        status: z.enum(['sent', 'delivered', 'failed', 'responded']).optional().describe('Status (default sent)'),
+        notes: z.string().optional().describe('Additional notes'),
+      },
+      async (args) => {
+        const payload = { ...args } as Record<string, any>;
+        const dateErr = validateDatesInRecord(payload);
+        if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+        payload.user_id = getUserId();
+        payload.company_id = payload.company_id || (await getCompanyId());
+        const { data, error } = await supabase
+          .from('dunning_history')
+          .insert([sanitizeRecord(payload)])
+          .select()
+          .single();
+        if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'create dunning history') }] };
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Successfully created dunning_history record:\n' + JSON.stringify(data, null, 2),
+            },
+          ],
+        };
+      }
+    );
 
-  server.tool(
-    'update_dunning_history',
-    'Update an existing dunning history record',
-    {
-      id: z.string().describe('Record UUID to update'),
-      status: z.enum(['sent', 'delivered', 'failed', 'responded']).optional(),
-      notes: z.string().optional(),
-    },
-    async (args) => {
-      const { id, ...updates } = args;
-      const dateErr = validateDatesInRecord(updates);
-      if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
-      let query = supabase.from('dunning_history').update(sanitizeRecord(updates)).eq('id', id);
-      query = query.eq('user_id', getUserId());
-      const { data, error } = await query.select().single();
-      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update dunning history') }] };
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: 'Successfully updated dunning_history record:\n' + JSON.stringify(data, null, 2),
-          },
-        ],
-      };
-    }
-  );
+    server.tool(
+      'update_dunning_history',
+      'Update an existing dunning history record',
+      {
+        id: z.string().describe('Record UUID to update'),
+        status: z.enum(['sent', 'delivered', 'failed', 'responded']).optional(),
+        notes: z.string().optional(),
+      },
+      async (args) => {
+        const { id, ...updates } = args;
+        const dateErr = validateDatesInRecord(updates);
+        if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+        let query = supabase.from('dunning_history').update(sanitizeRecord(updates)).eq('id', id);
+        query = query.eq('user_id', getUserId());
+        const { data, error } = await query.select().single();
+        if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'update dunning history') }] };
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Successfully updated dunning_history record:\n' + JSON.stringify(data, null, 2),
+            },
+          ],
+        };
+      }
+    );
 
-  server.tool(
-    'delete_dunning_history',
-    'Delete a dunning history record',
-    {
-      id: z.string().describe('Record UUID to delete'),
-    },
-    async ({ id }) => {
-      let query = supabase.from('dunning_history').delete().eq('id', id);
-      query = query.eq('user_id', getUserId());
-      const { error } = await query;
-      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete dunning history') }] };
-      return {
-        content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from dunning_history' }],
-      };
-    }
-  );
+    server.tool(
+      'delete_dunning_history',
+      'Delete a dunning history record',
+      {
+        id: z.string().describe('Record UUID to delete'),
+      },
+      async ({ id }) => {
+        let query = supabase.from('dunning_history').delete().eq('id', id);
+        query = query.eq('user_id', getUserId());
+        const { error } = await query;
+        if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'delete dunning history') }] };
+        return {
+          content: [{ type: 'text' as const, text: 'Successfully deleted record ' + id + ' from dunning_history' }],
+        };
+      }
+    );
 
-  server.tool(
-    'get_dunning_history',
-    'Get a single dunning history record by ID',
-    {
-      id: z.string().describe('Record UUID to fetch'),
-    },
-    async ({ id }) => {
-      let query = supabase
-        .from('dunning_history')
-        .select('*, dunning_step:dunning_steps(id, name, step_order)')
-        .eq('id', id);
-      query = query.eq('user_id', getUserId());
-      const { data, error } = await query.single();
-      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get dunning history') }] };
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
-    }
-  );
+    server.tool(
+      'get_dunning_history',
+      'Get a single dunning history record by ID',
+      {
+        id: z.string().describe('Record UUID to fetch'),
+      },
+      async ({ id }) => {
+        let query = supabase
+          .from('dunning_history')
+          .select('*, dunning_step:dunning_steps(id, name, step_order)')
+          .eq('id', id);
+        query = query.eq('user_id', getUserId());
+        const { data, error } = await query.single();
+        if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get dunning history') }] };
+        return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+      }
+    );
 
-  server.tool(
-    'list_dunning_history',
-    'List dunning history records with optional filters',
-    {
-      invoice_id: z.string().optional().describe('Filter by invoice UUID'),
-      limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
-      offset: z.number().optional().describe('Number of records to skip (default 0)'),
-    },
-    async ({ invoice_id, limit = 50, offset = 0 }) => {
-      let query = supabase.from('dunning_history').select('*, dunning_step:dunning_steps(id, name, step_order)');
-      query = query.eq('user_id', getUserId());
-      if (invoice_id) query = query.eq('invoice_id', invoice_id);
-      query = query.order('sent_at', { ascending: false });
-      const { data, error } = await query.range(offset, offset + limit - 1);
-      if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list dunning history') }] };
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
-    }
-  );
+    server.tool(
+      'list_dunning_history',
+      'List dunning history records with optional filters',
+      {
+        invoice_id: z.string().optional().describe('Filter by invoice UUID'),
+        limit: z.number().optional().describe('Maximum number of records to return (default 50)'),
+        offset: z.number().optional().describe('Number of records to skip (default 0)'),
+      },
+      async ({ invoice_id, limit = 50, offset = 0 }) => {
+        let query = supabase.from('dunning_history').select('*, dunning_step:dunning_steps(id, name, step_order)');
+        query = query.eq('user_id', getUserId());
+        if (invoice_id) query = query.eq('invoice_id', invoice_id);
+        query = query.order('sent_at', { ascending: false });
+        const { data, error } = await query.range(offset, offset + limit - 1);
+        if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list dunning history') }] };
+        return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+      }
+    );
+  } // end dead code block for removed dunning tools
 
   // ── company_portfolios CRUD ──
 
