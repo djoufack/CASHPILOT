@@ -167,13 +167,15 @@ export function registerCfoTools(server: McpServer) {
         return { content: [{ type: 'text' as const, text: 'No company found for current user.' }] };
       }
 
-      const [invoicesRes, clientsRes] = await Promise.all([
+      const [invoicesRes, clientsRes, companyRes] = await Promise.all([
         supabase
           .from('invoices')
           .select('total_ttc, status, payment_status, balance_due, due_date, client_id, client:clients(company_name)')
           .eq('company_id', resolvedCompanyId),
         supabase.from('clients').select('id, company_name').eq('company_id', resolvedCompanyId),
+        supabase.from('company').select('currency').eq('id', resolvedCompanyId).single(),
       ]);
+      const companyCurrency = companyRes.data?.currency || 'EUR';
 
       const invoices = invoicesRes.data || [];
       const totalRevenue = invoices
@@ -225,7 +227,7 @@ export function registerCfoTools(server: McpServer) {
         risks.push({
           type: 'overdue_invoices',
           severity: overdueInvoices.length >= 5 ? 'critical' : 'warning',
-          message: `${overdueInvoices.length} overdue invoice(s) totaling ${totalOverdue.toFixed(2)} EUR`,
+          message: `${overdueInvoices.length} overdue invoice(s) totaling ${totalOverdue.toFixed(2)} ${companyCurrency}`,
         });
       }
 

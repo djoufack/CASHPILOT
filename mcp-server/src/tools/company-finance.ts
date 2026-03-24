@@ -13,7 +13,6 @@ import { safeError } from '../utils/errors.js';
  * Each company has its own invoices, expenses, suppliers, etc.
  */
 export function registerCompanyFinanceTools(server: McpServer) {
-
   // ── 1. list_user_companies ──────────────────────────────────
   server.tool(
     'list_user_companies',
@@ -30,16 +29,25 @@ export function registerCompanyFinanceTools(server: McpServer) {
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list user companies') }] };
 
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify({
-          count: data?.length ?? 0,
-          companies: (data ?? []).map(c => ({
-            company_id: c.id,
-            name: c.company_name,
-            type: c.company_type,
-            country: c.country,
-            currency: c.currency,
-          }))
-        }, null, 2) }]
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              {
+                count: data?.length ?? 0,
+                companies: (data ?? []).map((c) => ({
+                  company_id: c.id,
+                  name: c.company_name,
+                  type: c.company_type,
+                  country: c.country,
+                  currency: c.currency,
+                })),
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
   );
@@ -49,7 +57,7 @@ export function registerCompanyFinanceTools(server: McpServer) {
     'get_company_kpis',
     'Get KPIs for a specific company (société): revenue, expenses, margin, pending invoices. Unlike get_dashboard_kpis which aggregates ALL companies, this returns data for ONE company.',
     {
-      company_id: z.string().uuid().describe('The company UUID (from list_user_companies)')
+      company_id: z.string().uuid().describe('The company UUID (from list_user_companies)'),
     },
     async ({ company_id }) => {
       const userId = getUserId();
@@ -58,18 +66,33 @@ export function registerCompanyFinanceTools(server: McpServer) {
       const today = now.toISOString().split('T')[0];
 
       const [invoicesRes, paidRes, expensesRes, pendingRes] = await Promise.all([
-        supabase.from('invoices').select('total_ttc')
-          .eq('user_id', userId).eq('company_id', company_id)
-          .gte('date', monthStart).lte('date', today),
-        supabase.from('invoices').select('total_ttc')
-          .eq('user_id', userId).eq('company_id', company_id)
-          .gte('date', monthStart).in('status', ['paid']),
-        supabase.from('expenses').select('amount')
-          .eq('user_id', userId).eq('company_id', company_id)
-          .gte('created_at', monthStart).lte('created_at', today),
-        supabase.from('invoices').select('total_ttc')
-          .eq('user_id', userId).eq('company_id', company_id)
-          .in('payment_status', ['unpaid', 'partial'])
+        supabase
+          .from('invoices')
+          .select('total_ttc')
+          .eq('user_id', userId)
+          .eq('company_id', company_id)
+          .gte('date', monthStart)
+          .lte('date', today),
+        supabase
+          .from('invoices')
+          .select('total_ttc')
+          .eq('user_id', userId)
+          .eq('company_id', company_id)
+          .gte('date', monthStart)
+          .in('status', ['paid']),
+        supabase
+          .from('expenses')
+          .select('amount')
+          .eq('user_id', userId)
+          .eq('company_id', company_id)
+          .gte('created_at', monthStart)
+          .lte('created_at', today),
+        supabase
+          .from('invoices')
+          .select('total_ttc')
+          .eq('user_id', userId)
+          .eq('company_id', company_id)
+          .in('payment_status', ['unpaid', 'partial']),
       ]);
 
       const sum = (rows: any[], field: string) =>
@@ -83,16 +106,25 @@ export function registerCompanyFinanceTools(server: McpServer) {
       const r = (n: number) => Math.round(n * 100) / 100;
 
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify({
-          company_id,
-          month: monthStart.substring(0, 7),
-          revenue_billed: r(totalBilled),
-          revenue_collected: r(totalPaid),
-          expenses: r(totalExpenses),
-          margin: r(totalPaid - totalExpenses),
-          total_pending_all_time: r(totalPending),
-          invoices_this_month: invoicesRes.data?.length ?? 0
-        }, null, 2) }]
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              {
+                company_id,
+                month: monthStart.substring(0, 7),
+                revenue_billed: r(totalBilled),
+                revenue_collected: r(totalPaid),
+                expenses: r(totalExpenses),
+                margin: r(totalPaid - totalExpenses),
+                total_pending_all_time: r(totalPending),
+                invoices_this_month: invoicesRes.data?.length ?? 0,
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
   );
@@ -103,7 +135,7 @@ export function registerCompanyFinanceTools(server: McpServer) {
     'Get monthly cash flow for a specific company (société): income, expenses, net per month.',
     {
       company_id: z.string().uuid().describe('The company UUID'),
-      months: z.number().optional().describe('Number of months to analyze (default 6)')
+      months: z.number().optional().describe('Number of months to analyze (default 6)'),
     },
     async ({ company_id, months }) => {
       const userId = getUserId();
@@ -113,12 +145,19 @@ export function registerCompanyFinanceTools(server: McpServer) {
       const startStr = startDate.toISOString().split('T')[0];
 
       const [invoicesRes, expensesRes] = await Promise.all([
-        supabase.from('invoices').select('total_ttc, date, status')
-          .eq('user_id', userId).eq('company_id', company_id)
-          .in('status', ['paid', 'sent']).gte('date', startStr),
-        supabase.from('expenses').select('amount, created_at')
-          .eq('user_id', userId).eq('company_id', company_id)
-          .gte('created_at', startStr)
+        supabase
+          .from('invoices')
+          .select('total_ttc, date, status')
+          .eq('user_id', userId)
+          .eq('company_id', company_id)
+          .in('status', ['paid', 'sent'])
+          .gte('date', startStr),
+        supabase
+          .from('expenses')
+          .select('amount, created_at')
+          .eq('user_id', userId)
+          .eq('company_id', company_id)
+          .gte('created_at', startStr),
       ]);
 
       const monthlyData: Record<string, { month: string; income: number; expenses: number; net: number }> = {};
@@ -139,26 +178,35 @@ export function registerCompanyFinanceTools(server: McpServer) {
         if (key && monthlyData[key]) monthlyData[key].expenses += parseFloat(exp.amount || '0');
       }
 
-      const data = Object.values(monthlyData).map(m => ({
+      const data = Object.values(monthlyData).map((m) => ({
         ...m,
         income: Math.round(m.income * 100) / 100,
         expenses: Math.round(m.expenses * 100) / 100,
-        net: Math.round((m.income - m.expenses) * 100) / 100
+        net: Math.round((m.income - m.expenses) * 100) / 100,
       }));
 
       const totalIn = data.reduce((s, m) => s + m.income, 0);
       const totalOut = data.reduce((s, m) => s + m.expenses, 0);
 
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify({
-          company_id,
-          monthly: data,
-          summary: {
-            total_income: Math.round(totalIn * 100) / 100,
-            total_expenses: Math.round(totalOut * 100) / 100,
-            net: Math.round((totalIn - totalOut) * 100) / 100
-          }
-        }, null, 2) }]
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              {
+                company_id,
+                monthly: data,
+                summary: {
+                  total_income: Math.round(totalIn * 100) / 100,
+                  total_expenses: Math.round(totalOut * 100) / 100,
+                  net: Math.round((totalIn - totalOut) * 100) / 100,
+                },
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
   );
@@ -168,26 +216,35 @@ export function registerCompanyFinanceTools(server: McpServer) {
     'get_company_financial_summary',
     'Get a full financial snapshot for a specific company: invoices breakdown, expenses by category, supplier invoices, receivables, payables.',
     {
-      company_id: z.string().uuid().describe('The company UUID')
+      company_id: z.string().uuid().describe('The company UUID'),
     },
     async ({ company_id }) => {
       const userId = getUserId();
 
       const [invRes, expRes, sinvRes, recRes, payRes, suppRes, clientRes] = await Promise.all([
-        supabase.from('invoices').select('id, total_ttc, status, payment_status')
-          .eq('user_id', userId).eq('company_id', company_id),
-        supabase.from('expenses').select('id, amount, category')
-          .eq('user_id', userId).eq('company_id', company_id),
-        supabase.from('supplier_invoices').select('id, total_ttc, payment_status')
-          .eq('user_id', userId).eq('company_id', company_id),
-        supabase.from('receivables').select('id, amount, amount_paid, status')
-          .eq('user_id', userId).eq('company_id', company_id),
-        supabase.from('payables').select('id, amount, amount_paid, status')
-          .eq('user_id', userId).eq('company_id', company_id),
-        supabase.from('suppliers').select('id')
-          .eq('user_id', userId).eq('company_id', company_id),
-        supabase.from('clients').select('id')
-          .eq('user_id', userId).eq('company_id', company_id)
+        supabase
+          .from('invoices')
+          .select('id, total_ttc, status, payment_status')
+          .eq('user_id', userId)
+          .eq('company_id', company_id),
+        supabase.from('expenses').select('id, amount, category').eq('user_id', userId).eq('company_id', company_id),
+        supabase
+          .from('supplier_invoices')
+          .select('id, total_ttc, payment_status')
+          .eq('user_id', userId)
+          .eq('company_id', company_id),
+        supabase
+          .from('receivables')
+          .select('id, amount, amount_paid, status')
+          .eq('user_id', userId)
+          .eq('company_id', company_id),
+        supabase
+          .from('payables')
+          .select('id, amount, amount_paid, status')
+          .eq('user_id', userId)
+          .eq('company_id', company_id),
+        supabase.from('suppliers').select('id').eq('user_id', userId).eq('company_id', company_id),
+        supabase.from('clients').select('id').eq('user_id', userId).eq('company_id', company_id),
       ]);
 
       const r = (n: number) => Math.round(n * 100) / 100;
@@ -227,25 +284,34 @@ export function registerCompanyFinanceTools(server: McpServer) {
       const payPaid = sumField(payables, 'amount_paid');
 
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify({
-          company_id,
-          counts: {
-            clients: clientRes.data?.length ?? 0,
-            suppliers: suppRes.data?.length ?? 0,
-            invoices: invoices.length,
-            expenses: expenses.length,
-            supplier_invoices: sinvRes.data?.length ?? 0,
-            receivables: receivables.length,
-            payables: payables.length,
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              {
+                company_id,
+                counts: {
+                  clients: clientRes.data?.length ?? 0,
+                  suppliers: suppRes.data?.length ?? 0,
+                  invoices: invoices.length,
+                  expenses: expenses.length,
+                  supplier_invoices: sinvRes.data?.length ?? 0,
+                  receivables: receivables.length,
+                  payables: payables.length,
+                },
+                invoices_breakdown: invByStatus,
+                total_invoiced: sumField(invoices, 'total_ttc'),
+                expenses_by_category: expByCat,
+                total_expenses: sumField(expenses, 'amount'),
+                supplier_invoices_total: sumField(sinvRes.data ?? [], 'total_ttc'),
+                receivables: { total: recTotal, collected: recPaid, outstanding: r(recTotal - recPaid) },
+                payables: { total: payTotal, paid: payPaid, outstanding: r(payTotal - payPaid) },
+              },
+              null,
+              2
+            ),
           },
-          invoices_breakdown: invByStatus,
-          total_invoiced: sumField(invoices, 'total_ttc'),
-          expenses_by_category: expByCat,
-          total_expenses: sumField(expenses, 'amount'),
-          supplier_invoices_total: sumField(sinvRes.data ?? [], 'total_ttc'),
-          receivables: { total: recTotal, collected: recPaid, outstanding: r(recTotal - recPaid) },
-          payables: { total: payTotal, paid: payPaid, outstanding: r(payTotal - payPaid) },
-        }, null, 2) }]
+        ],
       };
     }
   );
@@ -257,7 +323,7 @@ export function registerCompanyFinanceTools(server: McpServer) {
     {
       company_id: z.string().uuid().describe('The company UUID'),
       start_date: z.string().describe('Start date (YYYY-MM-DD)'),
-      end_date: z.string().describe('End date (YYYY-MM-DD)')
+      end_date: z.string().describe('End date (YYYY-MM-DD)'),
     },
     async ({ company_id, start_date, end_date }) => {
       const userId = getUserId();
@@ -284,28 +350,37 @@ export function registerCompanyFinanceTools(server: McpServer) {
 
       // Revenue: class 7 (credit - debit)
       const revenueAccounts = Object.values(accounts)
-        .filter(a => a.code.startsWith('7'))
-        .map(a => ({ code: a.code, name: a.name, amount: r(a.credit - a.debit) }))
+        .filter((a) => a.code.startsWith('7'))
+        .map((a) => ({ code: a.code, name: a.name, amount: r(a.credit - a.debit) }))
         .sort((a, b) => a.code.localeCompare(b.code));
 
       // Expenses: class 6 (debit - credit)
       const expenseAccounts = Object.values(accounts)
-        .filter(a => a.code.startsWith('6'))
-        .map(a => ({ code: a.code, name: a.name, amount: r(a.debit - a.credit) }))
+        .filter((a) => a.code.startsWith('6'))
+        .map((a) => ({ code: a.code, name: a.name, amount: r(a.debit - a.credit) }))
         .sort((a, b) => a.code.localeCompare(b.code));
 
       const totalRevenue = r(revenueAccounts.reduce((s, a) => s + a.amount, 0));
       const totalExpenses = r(expenseAccounts.reduce((s, a) => s + a.amount, 0));
 
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify({
-          company_id,
-          period: { start: start_date, end: end_date },
-          revenue: { accounts: revenueAccounts, total: totalRevenue },
-          expenses: { accounts: expenseAccounts, total: totalExpenses },
-          net_result: r(totalRevenue - totalExpenses),
-          profitable: totalRevenue > totalExpenses
-        }, null, 2) }]
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              {
+                company_id,
+                period: { start: start_date, end: end_date },
+                revenue: { accounts: revenueAccounts, total: totalRevenue },
+                expenses: { accounts: expenseAccounts, total: totalExpenses },
+                net_result: r(totalRevenue - totalExpenses),
+                profitable: totalRevenue > totalExpenses,
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
   );
@@ -316,7 +391,7 @@ export function registerCompanyFinanceTools(server: McpServer) {
     'Balance sheet (bilan) for a specific company at a given date, based on its accounting entries.',
     {
       company_id: z.string().uuid().describe('The company UUID'),
-      date: z.string().optional().describe('Cut-off date (YYYY-MM-DD), default today')
+      date: z.string().optional().describe('Cut-off date (YYYY-MM-DD), default today'),
     },
     async ({ company_id, date }) => {
       const userId = getUserId();
@@ -342,29 +417,84 @@ export function registerCompanyFinanceTools(server: McpServer) {
 
       const all = Object.values(accounts);
 
-      // Assets: class 1-5 with debit balance
-      const assets = all
-        .filter(a => /^[1-5]/.test(a.code) && a.balance > 0)
-        .map(a => ({ code: a.code, name: a.name, balance: r(a.balance) }))
-        .sort((a, b) => a.code.localeCompare(b.code));
+      // ── BUG #11 fix: proper classification with reclassification ──
+      // SYSCOHADA / OHADA chart: class 1 = equity/long-term liabilities,
+      // class 2-5 = assets (2=fixed, 3=stock, 4=receivables/payables, 5=cash).
+      // But we classify by actual balance sign, then reclassify contra-normal balances.
 
-      // Liabilities: class 1-5 with credit balance
-      const liabilities = all
-        .filter(a => /^[1-5]/.test(a.code) && a.balance < 0)
-        .map(a => ({ code: a.code, name: a.name, balance: r(Math.abs(a.balance)) }))
-        .sort((a, b) => a.code.localeCompare(b.code));
+      // Normally-debit accounts (assets): class 2, 3, 5 and debit-balance class 4
+      // Normally-credit accounts (liabilities/equity): class 1 and credit-balance class 4
+      const isNormallyAsset = (code: string) => /^[235]/.test(code);
+      const isNormallyLiabilityOrEquity = (code: string) => /^[1]/.test(code);
+      // Class 4 is mixed (receivables = debit, payables = credit), classify by balance sign
 
-      const totalAssets = r(assets.reduce((s, a) => s + a.balance, 0));
-      const totalLiabilities = r(liabilities.reduce((s, a) => s + a.balance, 0));
+      const assetAccounts: { code: string; name: string; balance: number }[] = [];
+      const liabilityAccounts: { code: string; name: string; balance: number }[] = [];
+      const equityAccounts: { code: string; name: string; balance: number }[] = [];
+
+      for (const a of all) {
+        if (!/^[1-5]/.test(a.code)) continue; // skip revenue/expense classes 6-7
+
+        if (isNormallyAsset(a.code)) {
+          if (a.balance >= 0) {
+            // Normal: asset with debit balance
+            assetAccounts.push({ code: a.code, name: a.name, balance: r(a.balance) });
+          } else {
+            // Reclassify: asset with credit balance → show in liabilities (e.g. bank overdraft 521)
+            liabilityAccounts.push({
+              code: a.code,
+              name: `${a.name} (solde créditeur reclassé)`,
+              balance: r(Math.abs(a.balance)),
+            });
+          }
+        } else if (isNormallyLiabilityOrEquity(a.code)) {
+          if (a.balance <= 0) {
+            // Normal: liability/equity with credit balance
+            equityAccounts.push({ code: a.code, name: a.name, balance: r(Math.abs(a.balance)) });
+          } else {
+            // Reclassify: liability/equity with debit balance → show in assets
+            assetAccounts.push({
+              code: a.code,
+              name: `${a.name} (solde débiteur reclassé)`,
+              balance: r(a.balance),
+            });
+          }
+        } else {
+          // Class 4: classify by balance sign
+          if (a.balance > 0) {
+            assetAccounts.push({ code: a.code, name: a.name, balance: r(a.balance) });
+          } else if (a.balance < 0) {
+            liabilityAccounts.push({ code: a.code, name: a.name, balance: r(Math.abs(a.balance)) });
+          }
+        }
+      }
+
+      assetAccounts.sort((a, b) => a.code.localeCompare(b.code));
+      liabilityAccounts.sort((a, b) => a.code.localeCompare(b.code));
+      equityAccounts.sort((a, b) => a.code.localeCompare(b.code));
+
+      const totalAssets = r(assetAccounts.reduce((s, a) => s + a.balance, 0));
+      const totalLiabilities = r(liabilityAccounts.reduce((s, a) => s + a.balance, 0));
+      const totalEquity = r(equityAccounts.reduce((s, a) => s + a.balance, 0));
 
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify({
-          company_id,
-          date: cutoff,
-          assets: { accounts: assets, total: totalAssets },
-          liabilities: { accounts: liabilities, total: totalLiabilities },
-          balanced: Math.abs(totalAssets - totalLiabilities) < 0.01
-        }, null, 2) }]
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              {
+                company_id,
+                date: cutoff,
+                assets: { accounts: assetAccounts, total: totalAssets },
+                liabilities: { accounts: liabilityAccounts, total: totalLiabilities },
+                equity: { accounts: equityAccounts, total: totalEquity },
+                balanced: Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01,
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
   );
@@ -375,7 +505,7 @@ export function registerCompanyFinanceTools(server: McpServer) {
     'Compare KPIs across all companies (sociétés) of the user: revenue, expenses, margin side by side. Useful for portfolio analysis.',
     {
       start_date: z.string().optional().describe('Start date (YYYY-MM-DD), default first day of current month'),
-      end_date: z.string().optional().describe('End date (YYYY-MM-DD), default today')
+      end_date: z.string().optional().describe('End date (YYYY-MM-DD), default today'),
     },
     async ({ start_date, end_date }) => {
       const userId = getUserId();
@@ -394,21 +524,29 @@ export function registerCompanyFinanceTools(server: McpServer) {
 
       // Get all invoices and expenses in period
       const [invRes, expRes] = await Promise.all([
-        supabase.from('invoices').select('company_id, total_ttc, status, payment_status')
-          .eq('user_id', userId).gte('date', sDate).lte('date', eDate),
-        supabase.from('expenses').select('company_id, amount')
-          .eq('user_id', userId).gte('created_at', sDate).lte('created_at', eDate)
+        supabase
+          .from('invoices')
+          .select('company_id, total_ttc, status, payment_status')
+          .eq('user_id', userId)
+          .gte('date', sDate)
+          .lte('date', eDate),
+        supabase
+          .from('expenses')
+          .select('company_id, amount')
+          .eq('user_id', userId)
+          .gte('created_at', sDate)
+          .lte('created_at', eDate),
       ]);
 
       const r = (n: number) => Math.round(n * 100) / 100;
 
-      const results = (companies ?? []).map(c => {
-        const compInvoices = (invRes.data ?? []).filter(i => i.company_id === c.id);
-        const compExpenses = (expRes.data ?? []).filter(e => e.company_id === c.id);
+      const results = (companies ?? []).map((c) => {
+        const compInvoices = (invRes.data ?? []).filter((i) => i.company_id === c.id);
+        const compExpenses = (expRes.data ?? []).filter((e) => e.company_id === c.id);
 
         const revenue = compInvoices.reduce((s, i) => s + parseFloat(i.total_ttc || '0'), 0);
         const paidRevenue = compInvoices
-          .filter(i => i.payment_status === 'paid' || i.status === 'paid')
+          .filter((i) => i.payment_status === 'paid' || i.status === 'paid')
           .reduce((s, i) => s + parseFloat(i.total_ttc || '0'), 0);
         const expenses = compExpenses.reduce((s, e) => s + parseFloat(e.amount || '0'), 0);
 
@@ -434,12 +572,21 @@ export function registerCompanyFinanceTools(server: McpServer) {
       };
 
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify({
-          period: { start: sDate, end: eDate },
-          companies: results,
-          totals,
-          company_count: results.length
-        }, null, 2) }]
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              {
+                period: { start: sDate, end: eDate },
+                companies: results,
+                totals,
+                company_count: results.length,
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
   );

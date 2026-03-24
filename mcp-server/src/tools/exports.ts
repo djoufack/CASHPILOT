@@ -6,33 +6,44 @@ import { generateUBLInvoice, generateUBLCreditNote } from '../utils/ublGenerator
 import { validateDate } from '../utils/validation.js';
 import { safeError } from '../utils/errors.js';
 
-const COLS_ACCOUNTING_ENTRIES = 'id, transaction_date, account_code, description, debit, credit, entry_ref, journal, source_type, source_id, reference_type, reference_id, is_auto, created_at';
+const COLS_ACCOUNTING_ENTRIES =
+  'id, transaction_date, account_code, description, debit, credit, entry_ref, journal, source_type, source_id, reference_type, reference_id, is_auto, created_at';
 
 export function registerExportTools(server: McpServer) {
-
   server.tool(
     'export_fec',
     'Generate FEC (Fichier des Ecritures Comptables) for French tax compliance',
     {
       start_date: z.string().describe('Start date (YYYY-MM-DD)'),
-      end_date: z.string().describe('End date (YYYY-MM-DD)')
+      end_date: z.string().describe('End date (YYYY-MM-DD)'),
     },
     async ({ start_date, end_date }) => {
-      try { validateDate(start_date, 'start_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
-      try { validateDate(end_date, 'end_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+      try {
+        validateDate(start_date, 'start_date');
+      } catch (e: any) {
+        return { content: [{ type: 'text' as const, text: e.message }] };
+      }
+      try {
+        validateDate(end_date, 'end_date');
+      } catch (e: any) {
+        return { content: [{ type: 'text' as const, text: e.message }] };
+      }
 
       const [entriesRes, accountsRes] = await Promise.all([
-        supabase.from('accounting_entries').select(COLS_ACCOUNTING_ENTRIES)
+        supabase
+          .from('accounting_entries')
+          .select(COLS_ACCOUNTING_ENTRIES)
           .eq('user_id', getUserId())
-          .gte('transaction_date', start_date).lte('transaction_date', end_date)
+          .gte('transaction_date', start_date)
+          .lte('transaction_date', end_date)
           .order('transaction_date', { ascending: true }),
-        supabase.from('accounting_chart_of_accounts').select('account_code, account_name')
-          .eq('user_id', getUserId())
+        supabase.from('accounting_chart_of_accounts').select('account_code, account_name').eq('user_id', getUserId()),
       ]);
 
       const { data: entries, error } = entriesRes;
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'export FEC') }] };
-      if (!entries?.length) return { content: [{ type: 'text' as const, text: 'No entries found for the given period.' }] };
+      if (!entries?.length)
+        return { content: [{ type: 'text' as const, text: 'No entries found for the given period.' }] };
 
       const nameMap: Record<string, string> = {};
       for (const acc of accountsRes.data ?? []) {
@@ -40,7 +51,8 @@ export function registerExportTools(server: McpServer) {
       }
 
       // FEC header
-      const header = 'JournalCode|JournalLib|EcritureNum|EcritureDate|CompteNum|CompteLib|CompAuxNum|CompAuxLib|PieceRef|PieceDate|EcritureLib|Debit|Credit|EcritureLet|DateLet|ValidDate|Montantdevise|Idevise';
+      const header =
+        'JournalCode|JournalLib|EcritureNum|EcritureDate|CompteNum|CompteLib|CompAuxNum|CompAuxLib|PieceRef|PieceDate|EcritureLib|Debit|Credit|EcritureLet|DateLet|ValidDate|Montantdevise|Idevise';
 
       const rows = entries.map((e, i) => {
         const date = (e.transaction_date || '').replace(/-/g, '');
@@ -62,14 +74,19 @@ export function registerExportTools(server: McpServer) {
           '', // DateLet
           date,
           '', // Montantdevise
-          ''  // Idevise
+          '', // Idevise
         ].join('|');
       });
 
       const fecContent = '\uFEFF' + [header, ...rows].join('\n');
 
       return {
-        content: [{ type: 'text' as const, text: `FEC generated: ${entries.length} entries, period ${start_date} to ${end_date}.\n\n${fecContent}` }]
+        content: [
+          {
+            type: 'text' as const,
+            text: `FEC generated: ${entries.length} entries, period ${start_date} to ${end_date}.\n\n${fecContent}`,
+          },
+        ],
       };
     }
   );
@@ -79,19 +96,36 @@ export function registerExportTools(server: McpServer) {
     'Generate SAF-T XML (Standard Audit File for Tax)',
     {
       start_date: z.string().describe('Start date (YYYY-MM-DD)'),
-      end_date: z.string().describe('End date (YYYY-MM-DD)')
+      end_date: z.string().describe('End date (YYYY-MM-DD)'),
     },
     async ({ start_date, end_date }) => {
-      try { validateDate(start_date, 'start_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
-      try { validateDate(end_date, 'end_date'); } catch (e: any) { return { content: [{ type: 'text' as const, text: e.message }] }; }
+      try {
+        validateDate(start_date, 'start_date');
+      } catch (e: any) {
+        return { content: [{ type: 'text' as const, text: e.message }] };
+      }
+      try {
+        validateDate(end_date, 'end_date');
+      } catch (e: any) {
+        return { content: [{ type: 'text' as const, text: e.message }] };
+      }
 
       const [companyRes, accountsRes, entriesRes, clientsRes] = await Promise.all([
         supabase.from('company').select('*').eq('user_id', getUserId()).single(),
         supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', getUserId()),
-        supabase.from('accounting_entries').select(COLS_ACCOUNTING_ENTRIES).eq('user_id', getUserId())
-          .gte('transaction_date', start_date).lte('transaction_date', end_date)
+        supabase
+          .from('accounting_entries')
+          .select(COLS_ACCOUNTING_ENTRIES)
+          .eq('user_id', getUserId())
+          .gte('transaction_date', start_date)
+          .lte('transaction_date', end_date)
           .order('transaction_date', { ascending: true }),
-        supabase.from('clients').select('id, company_name, contact_name, email, phone, address, city, postal_code, country, vat_number, tax_id').eq('user_id', getUserId())
+        supabase
+          .from('clients')
+          .select(
+            'id, company_name, contact_name, email, phone, address, city, postal_code, country, vat_number, tax_id'
+          )
+          .eq('user_id', getUserId()),
       ]);
 
       const company = companyRes.data || { company_name: 'Unknown', tax_id: '' };
@@ -100,17 +134,26 @@ export function registerExportTools(server: McpServer) {
       const clients = clientsRes.data ?? [];
 
       const now = new Date().toISOString();
-      const accountsXml = accounts.map(a =>
-        `    <Account><AccountID>${escapeXml(a.account_code)}</AccountID><AccountDescription>${escapeXml(a.account_name)}</AccountDescription></Account>`
-      ).join('\n');
+      const accountsXml = accounts
+        .map(
+          (a) =>
+            `    <Account><AccountID>${escapeXml(a.account_code)}</AccountID><AccountDescription>${escapeXml(a.account_name)}</AccountDescription></Account>`
+        )
+        .join('\n');
 
-      const customersXml = clients.map(c =>
-        `    <Customer><CustomerID>${escapeXml(c.id)}</CustomerID><Name>${escapeXml(c.company_name)}</Name></Customer>`
-      ).join('\n');
+      const customersXml = clients
+        .map(
+          (c) =>
+            `    <Customer><CustomerID>${escapeXml(c.id)}</CustomerID><Name>${escapeXml(c.company_name)}</Name></Customer>`
+        )
+        .join('\n');
 
-      const entriesXml = entries.map(e =>
-        `    <Transaction><TransactionDate>${e.transaction_date}</TransactionDate><Description>${escapeXml(e.description)}</Description><DebitAmount>${formatAmount(e.debit)}</DebitAmount><CreditAmount>${formatAmount(e.credit)}</CreditAmount><AccountID>${escapeXml(e.account_code)}</AccountID></Transaction>`
-      ).join('\n');
+      const entriesXml = entries
+        .map(
+          (e) =>
+            `    <Transaction><TransactionDate>${e.transaction_date}</TransactionDate><Description>${escapeXml(e.description)}</Description><DebitAmount>${formatAmount(e.debit)}</DebitAmount><CreditAmount>${formatAmount(e.credit)}</CreditAmount><AccountID>${escapeXml(e.account_code)}</AccountID></Transaction>`
+        )
+        .join('\n');
 
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <AuditFile xmlns="urn:OECD:StandardAuditFile-Tax:2.00">
@@ -121,7 +164,7 @@ export function registerExportTools(server: McpServer) {
     <DateCreated>${now.split('T')[0]}</DateCreated>
     <StartDate>${start_date}</StartDate>
     <EndDate>${end_date}</EndDate>
-    <CurrencyCode>EUR</CurrencyCode>
+    <CurrencyCode>${escapeXml(company.currency || 'EUR')}</CurrencyCode>
   </Header>
   <MasterFiles>
     <GeneralLedgerAccounts>
@@ -137,7 +180,12 @@ ${entriesXml}
 </AuditFile>`;
 
       return {
-        content: [{ type: 'text' as const, text: `SAF-T generated: ${entries.length} entries, ${accounts.length} accounts.\n\n${xml}` }]
+        content: [
+          {
+            type: 'text' as const,
+            text: `SAF-T generated: ${entries.length} entries, ${accounts.length} accounts.\n\n${xml}`,
+          },
+        ],
       };
     }
   );
@@ -147,22 +195,28 @@ ${entriesXml}
     'Generate Factur-X (CII) XML for an invoice',
     {
       invoice_id: z.string().describe('Invoice UUID'),
-      profile: z.string().optional().describe('Factur-X profile: MINIMUM, BASIC, EN16931 (default BASIC)')
+      profile: z.string().optional().describe('Factur-X profile: MINIMUM, BASIC, EN16931 (default BASIC)'),
     },
     async ({ invoice_id, profile }) => {
       const profileId = profile ?? 'BASIC';
       const profiles: Record<string, string> = {
         MINIMUM: 'urn:factur-x.eu:1p0:minimum',
         BASIC: 'urn:factur-x.eu:1p0:basic',
-        EN16931: 'urn:cen.eu:en16931:2017'
+        EN16931: 'urn:cen.eu:en16931:2017',
       };
 
       const [invoiceRes, companyRes] = await Promise.all([
-        supabase.from('invoices').select('*, client:clients(*)').eq('id', invoice_id).eq('user_id', getUserId()).single(),
-        supabase.from('company').select('*').eq('user_id', getUserId()).single()
+        supabase
+          .from('invoices')
+          .select('*, client:clients(*)')
+          .eq('id', invoice_id)
+          .eq('user_id', getUserId())
+          .single(),
+        supabase.from('company').select('*').eq('user_id', getUserId()).single(),
       ]);
 
-      if (invoiceRes.error) return { content: [{ type: 'text' as const, text: safeError(invoiceRes.error, 'export Factur-X') }] };
+      if (invoiceRes.error)
+        return { content: [{ type: 'text' as const, text: safeError(invoiceRes.error, 'export Factur-X') }] };
 
       const inv = invoiceRes.data;
       const seller = companyRes.data || {};
@@ -205,10 +259,10 @@ ${entriesXml}
       </ram:ActualDeliverySupplyChainEvent>
     </ram:ApplicableHeaderTradeDelivery>
     <ram:ApplicableHeaderTradeSettlement>
-      <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
+      <ram:InvoiceCurrencyCode>${escapeXml(seller.currency || 'EUR')}</ram:InvoiceCurrencyCode>
       ${seller.iban ? `<ram:SpecifiedTradeSettlementPaymentMeans><ram:TypeCode>58</ram:TypeCode><ram:PayeePartyCreditorFinancialAccount><ram:IBANID>${escapeXml(seller.iban)}</ram:IBANID></ram:PayeePartyCreditorFinancialAccount></ram:SpecifiedTradeSettlementPaymentMeans>` : ''}
       <ram:ApplicableTradeTax>
-        <ram:CalculatedAmount>${formatAmount((parseFloat(inv.total_ttc || '0') - parseFloat(inv.total_ht || '0')))}</ram:CalculatedAmount>
+        <ram:CalculatedAmount>${formatAmount(parseFloat(inv.total_ttc || '0') - parseFloat(inv.total_ht || '0'))}</ram:CalculatedAmount>
         <ram:TypeCode>VAT</ram:TypeCode>
         <ram:BasisAmount>${formatAmount(inv.total_ht)}</ram:BasisAmount>
         <ram:CategoryCode>S</ram:CategoryCode>
@@ -222,7 +276,7 @@ ${entriesXml}
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
         <ram:LineTotalAmount>${formatAmount(inv.total_ht)}</ram:LineTotalAmount>
         <ram:TaxBasisTotalAmount>${formatAmount(inv.total_ht)}</ram:TaxBasisTotalAmount>
-        <ram:TaxTotalAmount currencyID="EUR">${formatAmount((parseFloat(inv.total_ttc || '0') - parseFloat(inv.total_ht || '0')))}</ram:TaxTotalAmount>
+        <ram:TaxTotalAmount currencyID="${escapeXml(seller.currency || 'EUR')}">${formatAmount(parseFloat(inv.total_ttc || '0') - parseFloat(inv.total_ht || '0'))}</ram:TaxTotalAmount>
         <ram:GrandTotalAmount>${formatAmount(inv.total_ttc)}</ram:GrandTotalAmount>
         <ram:DuePayableAmount>${formatAmount(inv.total_ttc)}</ram:DuePayableAmount>
       </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
@@ -231,7 +285,9 @@ ${entriesXml}
 </rsm:CrossIndustryInvoice>`;
 
       return {
-        content: [{ type: 'text' as const, text: `Factur-X XML (${profileId}) for invoice ${inv.invoice_number}.\n\n${xml}` }]
+        content: [
+          { type: 'text' as const, text: `Factur-X XML (${profileId}) for invoice ${inv.invoice_number}.\n\n${xml}` },
+        ],
       };
     }
   );
@@ -241,56 +297,85 @@ ${entriesXml}
     'Generate Peppol BIS Billing 3.0 UBL 2.1 XML for an invoice or credit note',
     {
       invoice_id: z.string().describe('Invoice UUID'),
-      type: z.enum(['invoice', 'credit_note']).optional().describe('Document type (default: invoice)')
+      type: z.enum(['invoice', 'credit_note']).optional().describe('Document type (default: invoice)'),
     },
     async ({ invoice_id, type }) => {
       const docType = type ?? 'invoice';
 
       const [invoiceRes, companyRes] = await Promise.all([
-        supabase.from('invoices').select('*, items:invoice_items(*)').eq('id', invoice_id).eq('user_id', getUserId()).single(),
-        supabase.from('company').select('*').eq('user_id', getUserId()).single()
+        supabase
+          .from('invoices')
+          .select('*, items:invoice_items(*)')
+          .eq('id', invoice_id)
+          .eq('user_id', getUserId())
+          .single(),
+        supabase.from('company').select('*').eq('user_id', getUserId()).single(),
       ]);
 
-      if (invoiceRes.error) return { content: [{ type: 'text' as const, text: safeError(invoiceRes.error, 'export UBL') }] };
+      if (invoiceRes.error)
+        return { content: [{ type: 'text' as const, text: safeError(invoiceRes.error, 'export UBL') }] };
 
       const inv = invoiceRes.data;
       const seller = companyRes.data || {};
 
-      const { data: buyer } = await supabase.from('clients').select('*').eq('id', inv.client_id).eq('user_id', getUserId()).single();
+      const { data: buyer } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', inv.client_id)
+        .eq('user_id', getUserId())
+        .single();
 
       const items = inv.items || [];
-      const xml = docType === 'credit_note'
-        ? generateUBLCreditNote(inv, seller, buyer || {}, items)
-        : generateUBLInvoice(inv, seller, buyer || {}, items);
+      const xml =
+        docType === 'credit_note'
+          ? generateUBLCreditNote(inv, seller, buyer || {}, items)
+          : generateUBLInvoice(inv, seller, buyer || {}, items);
 
       return {
-        content: [{ type: 'text' as const, text: `UBL 2.1 ${docType === 'credit_note' ? 'CreditNote' : 'Invoice'} XML for ${inv.invoice_number} (Peppol BIS 3.0).\n\n${xml}` }]
+        content: [
+          {
+            type: 'text' as const,
+            text: `UBL 2.1 ${docType === 'credit_note' ? 'CreditNote' : 'Invoice'} XML for ${inv.invoice_number} (Peppol BIS 3.0).\n\n${xml}`,
+          },
+        ],
       };
     }
   );
 
-  server.tool(
-    'backup_all_data',
-    'Export all user data as JSON backup',
-    {},
-    async () => {
-      const tables = ['clients', 'invoices', 'invoice_items', 'payments', 'expenses', 'suppliers',
-        'accounting_chart_of_accounts', 'accounting_entries', 'accounting_mappings',
-        'accounting_tax_rates', 'projects', 'timesheets', 'quotes', 'credit_notes',
-        'recurring_invoices', 'receivables', 'payables'];
+  server.tool('backup_all_data', 'Export all user data as JSON backup', {}, async () => {
+    const tables = [
+      'clients',
+      'invoices',
+      'invoice_items',
+      'payments',
+      'expenses',
+      'suppliers',
+      'accounting_chart_of_accounts',
+      'accounting_entries',
+      'accounting_mappings',
+      'accounting_tax_rates',
+      'projects',
+      'timesheets',
+      'quotes',
+      'credit_notes',
+      'recurring_invoices',
+      'receivables',
+      'payables',
+    ];
 
-      const backup: Record<string, unknown[]> = {};
+    const backup: Record<string, unknown[]> = {};
 
-      for (const table of tables) {
-        const { data } = await supabase.from(table).select('*').eq('user_id', getUserId());
-        backup[table] = data ?? [];
-      }
-
-      const stats = Object.entries(backup).map(([t, d]) => `${t}: ${d.length} rows`).join('\n');
-
-      return {
-        content: [{ type: 'text' as const, text: `Backup complete.\n${stats}\n\n${JSON.stringify(backup, null, 2)}` }]
-      };
+    for (const table of tables) {
+      const { data } = await supabase.from(table).select('*').eq('user_id', getUserId());
+      backup[table] = data ?? [];
     }
-  );
+
+    const stats = Object.entries(backup)
+      .map(([t, d]) => `${t}: ${d.length} rows`)
+      .join('\n');
+
+    return {
+      content: [{ type: 'text' as const, text: `Backup complete.\n${stats}\n\n${JSON.stringify(backup, null, 2)}` }],
+    };
+  });
 }

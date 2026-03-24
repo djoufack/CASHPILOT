@@ -37,7 +37,7 @@ export function registerAccountingTools(server: McpServer) {
       const result = {
         content: [{ type: 'text' as const, text: `${data?.length ?? 0} accounts.\n${JSON.stringify(data, null, 2)}` }],
       };
-      setCache(cacheKey, result, 300_000);
+      setCache(cacheKey, result, 60_000);
       return result;
     }
   );

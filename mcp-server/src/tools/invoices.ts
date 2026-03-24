@@ -157,9 +157,19 @@ export function registerInvoiceTools(server: McpServer) {
       status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial']).describe('New status'),
     },
     async ({ invoice_id, status }) => {
+      // Sync payment_status when status changes to paid/cancelled/draft
+      const updatePayload: Record<string, any> = { status };
+      if (status === 'paid') {
+        updatePayload.payment_status = 'paid';
+      } else if (status === 'cancelled') {
+        updatePayload.payment_status = 'cancelled';
+      } else if (status === 'draft') {
+        updatePayload.payment_status = 'unpaid';
+      }
+
       const { data, error } = await supabase
         .from('invoices')
-        .update({ status })
+        .update(updatePayload)
         .eq('id', invoice_id)
         .eq('user_id', getUserId())
         .select()
@@ -270,7 +280,7 @@ export function registerInvoiceTools(server: McpServer) {
       const userId = getUserId();
       const today = new Date().toISOString().split('T')[0];
 
-      // Fetch overdue unpaid/partial invoices with client info
+      // Fetch overdue unpaid/partial invoices with client info (exclude drafts and cancelled)
       const { data: invoices, error } = await supabase
         .from('invoices')
         .select(
@@ -278,6 +288,7 @@ export function registerInvoiceTools(server: McpServer) {
         )
         .eq('user_id', userId)
         .in('payment_status', ['unpaid', 'partial'])
+        .not('status', 'in', '("draft","cancelled")')
         .lt('due_date', today)
         .order('due_date', { ascending: true });
 
