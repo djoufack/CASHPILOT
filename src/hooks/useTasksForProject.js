@@ -1,8 +1,8 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { triggerWebhook } from '@/utils/webhookTrigger';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 const syncLegacyTaskTitle = (payload) => {
   const nextPayload = { ...payload };
@@ -30,19 +30,21 @@ export const useTasksForProject = (projectId, filters = {}) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { toast } = useToast();
+  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const fetchTasks = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId || !activeCompanyId) return;
     if (!supabase) {
-      console.warn("Supabase not configured");
+      console.warn('Supabase not configured');
       return;
     }
-    
+
     setLoading(true);
     try {
       let query = supabase
         .from('tasks')
-        .select(`
+        .select(
+          `
           *,
           subtasks (
             id,
@@ -59,9 +61,11 @@ export const useTasksForProject = (projectId, filters = {}) => {
           invoice:invoices(id, invoice_number, total_ttc),
           quote:quotes(id, quote_number, total_ttc),
           purchase_order:purchase_orders(id, po_number, total)
-        `)
+        `
+        )
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
+      query = applyCompanyScope(query);
 
       // Apply filters
       if (filters.status && filters.status !== 'all') {
@@ -87,15 +91,24 @@ export const useTasksForProject = (projectId, filters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [projectId, filters.status, filters.priority, filters.assigned_to, filters.search]);
+  }, [
+    projectId,
+    activeCompanyId,
+    applyCompanyScope,
+    filters.status,
+    filters.priority,
+    filters.assigned_to,
+    filters.search,
+  ]);
 
   const createTask = async (taskData) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
+    if (!activeCompanyId) throw new Error('No active company selected');
     try {
       const insertPayload = syncLegacyTaskTitle(taskData);
       const { data, error } = await supabase
         .from('tasks')
-        .insert([{ ...insertPayload, project_id: projectId }])
+        .insert([{ ...withCompanyScope(insertPayload), project_id: projectId }])
         .select()
         .single();
 
@@ -109,35 +122,37 @@ export const useTasksForProject = (projectId, filters = {}) => {
         status: data.status,
       });
       toast({
-        title: "Success",
-        description: "Task created successfully"
+        title: 'Success',
+        description: 'Task created successfully',
       });
       return data;
     } catch (err) {
       toast({
-        title: "Error creating task",
+        title: 'Error creating task',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     }
   };
 
   const updateTask = async (taskId, updates) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
+    if (!activeCompanyId) throw new Error('No active company selected');
     try {
-      const previousTask = tasks.find(t => t.id === taskId);
+      const previousTask = tasks.find((t) => t.id === taskId);
       const updatePayload = syncLegacyTaskTitle(updates);
-      const { data, error } = await supabase
+      let query = supabase
         .from('tasks')
-        .update({ ...updatePayload, updated_at: new Date().toISOString() })
+        .update(withCompanyScope({ ...updatePayload, updated_at: new Date().toISOString() }))
         .eq('id', taskId)
-        .select()
-        .single();
+        .select();
+      query = applyCompanyScope(query);
+      const { data, error } = await query.single();
 
       if (error) throw error;
 
-      setTasks(tasks.map(t => t.id === taskId ? { ...t, ...data } : t));
+      setTasks(tasks.map((t) => (t.id === taskId ? { ...t, ...data } : t)));
       if (previousTask?.status !== 'completed' && data.status === 'completed') {
         void triggerWebhook('task.completed', {
           id: data.id,
@@ -147,40 +162,40 @@ export const useTasksForProject = (projectId, filters = {}) => {
         });
       }
       toast({
-        title: "Success",
-        description: "Task updated successfully"
+        title: 'Success',
+        description: 'Task updated successfully',
       });
       return data;
     } catch (err) {
       toast({
-        title: "Error updating task",
+        title: 'Error updating task',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     }
   };
 
   const deleteTask = async (taskId) => {
-    if (!supabase) throw new Error("Supabase not configured");
+    if (!supabase) throw new Error('Supabase not configured');
+    if (!activeCompanyId) throw new Error('No active company selected');
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', taskId);
+      let query = supabase.from('tasks').delete().eq('id', taskId);
+      query = applyCompanyScope(query);
+      const { error } = await query;
 
       if (error) throw error;
 
-      setTasks(tasks.filter(t => t.id !== taskId));
+      setTasks(tasks.filter((t) => t.id !== taskId));
       toast({
-        title: "Success",
-        description: "Task deleted successfully"
+        title: 'Success',
+        description: 'Task deleted successfully',
       });
     } catch (err) {
       toast({
-        title: "Error deleting task",
+        title: 'Error deleting task',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       throw err;
     }
@@ -188,26 +203,30 @@ export const useTasksForProject = (projectId, filters = {}) => {
 
   useEffect(() => {
     fetchTasks();
-    
-    if (!projectId || !supabase) return;
+
+    if (!projectId || !activeCompanyId || !supabase) return;
 
     // Simplified subscription - in real app, might need more robust handling
     const subscription = supabase
       .channel(`tasks:project_id=eq.${projectId}`)
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'tasks', 
-        filter: `project_id=eq.${projectId}` 
-      }, () => {
-        fetchTasks(); // Refetch to get relations properly
-      })
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+          filter: `project_id=eq.${projectId}`,
+        },
+        () => {
+          fetchTasks(); // Refetch to get relations properly
+        }
+      )
       .subscribe();
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [projectId, fetchTasks]);
+  }, [projectId, activeCompanyId, fetchTasks]);
 
   return {
     tasks,
@@ -216,6 +235,6 @@ export const useTasksForProject = (projectId, filters = {}) => {
     createTask,
     updateTask,
     deleteTask,
-    refreshTasks: fetchTasks
+    refreshTasks: fetchTasks,
   };
 };
