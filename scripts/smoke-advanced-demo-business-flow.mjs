@@ -19,6 +19,23 @@ function optionalEnv(name, fallback = null) {
   return String(value).trim();
 }
 
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+function requireAnyEnv(...names) {
+  const value = firstNonEmpty(...names.map((name) => process.env[name]));
+  if (!value) {
+    throw new Error(`Missing required environment variable (any of): ${names.join(', ')}`);
+  }
+  return value;
+}
+
 function buildClient(url, key) {
   return createClient(url, key, {
     auth: {
@@ -306,6 +323,7 @@ async function runAccountFlow({
       .from('api_keys')
       .insert({
         user_id: userId,
+        company_id: company.id,
         name: `advanced-demo-smoke-${account.key}`,
         key_hash: keyHash,
         key_prefix: keyPrefix,
@@ -553,20 +571,20 @@ async function main() {
   const accounts = [
     {
       key: 'FR',
-      email: optionalEnv('PILOTAGE_FR_EMAIL', 'pilotage.fr.demo@cashpilot.cloud'),
-      password: requireEnv('PILOTAGE_FR_PASSWORD'),
+      email: firstNonEmpty(optionalEnv('PILOTAGE_FR_EMAIL'), optionalEnv('DEMO_USER_EMAIL_FR'), 'pilotage.fr.demo@cashpilot.cloud'),
+      password: requireAnyEnv('PILOTAGE_FR_PASSWORD', 'DEMO_USER_PASSWORD_FR'),
       vatRate: Number(optionalEnv('PILOTAGE_FR_VAT_RATE', '20')),
     },
     {
       key: 'BE',
-      email: optionalEnv('PILOTAGE_BE_EMAIL', 'pilotage.be.demo@cashpilot.cloud'),
-      password: requireEnv('PILOTAGE_BE_PASSWORD'),
+      email: firstNonEmpty(optionalEnv('PILOTAGE_BE_EMAIL'), optionalEnv('DEMO_USER_EMAIL_BE'), 'pilotage.be.demo@cashpilot.cloud'),
+      password: requireAnyEnv('PILOTAGE_BE_PASSWORD', 'DEMO_USER_PASSWORD_BE'),
       vatRate: Number(optionalEnv('PILOTAGE_BE_VAT_RATE', '21')),
     },
     {
       key: 'OHADA',
-      email: optionalEnv('PILOTAGE_OHADA_EMAIL', 'pilotage.ohada.demo@cashpilot.cloud'),
-      password: requireEnv('PILOTAGE_OHADA_PASSWORD'),
+      email: firstNonEmpty(optionalEnv('PILOTAGE_OHADA_EMAIL'), optionalEnv('DEMO_USER_EMAIL_OHADA'), 'pilotage.ohada.demo@cashpilot.cloud'),
+      password: requireAnyEnv('PILOTAGE_OHADA_PASSWORD', 'DEMO_USER_PASSWORD_OHADA'),
       vatRate: Number(optionalEnv('PILOTAGE_OHADA_VAT_RATE', '19.25')),
     },
   ];

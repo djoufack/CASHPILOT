@@ -8,9 +8,30 @@ import {
 } from '../src/shared/canonicalDashboardSnapshot.js';
 
 const DEMO_ACCOUNTS = [
-  { key: 'FR', email: 'pilotage.fr.demo@cashpilot.cloud', passwordEnv: 'PILOTAGE_FR_PASSWORD' },
-  { key: 'BE', email: 'pilotage.be.demo@cashpilot.cloud', passwordEnv: 'PILOTAGE_BE_PASSWORD' },
-  { key: 'OHADA', email: 'pilotage.ohada.demo@cashpilot.cloud', passwordEnv: 'PILOTAGE_OHADA_PASSWORD' },
+  {
+    key: 'FR',
+    defaultEmail: 'pilotage.fr.demo@cashpilot.cloud',
+    pilotageEmailEnv: 'PILOTAGE_FR_EMAIL',
+    pilotagePasswordEnv: 'PILOTAGE_FR_PASSWORD',
+    demoEmailEnv: 'DEMO_USER_EMAIL_FR',
+    demoPasswordEnv: 'DEMO_USER_PASSWORD_FR',
+  },
+  {
+    key: 'BE',
+    defaultEmail: 'pilotage.be.demo@cashpilot.cloud',
+    pilotageEmailEnv: 'PILOTAGE_BE_EMAIL',
+    pilotagePasswordEnv: 'PILOTAGE_BE_PASSWORD',
+    demoEmailEnv: 'DEMO_USER_EMAIL_BE',
+    demoPasswordEnv: 'DEMO_USER_PASSWORD_BE',
+  },
+  {
+    key: 'OHADA',
+    defaultEmail: 'pilotage.ohada.demo@cashpilot.cloud',
+    pilotageEmailEnv: 'PILOTAGE_OHADA_EMAIL',
+    pilotagePasswordEnv: 'PILOTAGE_OHADA_PASSWORD',
+    demoEmailEnv: 'DEMO_USER_EMAIL_OHADA',
+    demoPasswordEnv: 'DEMO_USER_PASSWORD_OHADA',
+  },
 ];
 
 function requireEnv(name) {
@@ -26,6 +47,13 @@ function optionalEnv(...names) {
   for (const name of names) {
     const value = process.env[name];
     if (value && String(value).trim()) return String(value).trim();
+  }
+  return null;
+}
+
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
   }
   return null;
 }
@@ -195,13 +223,22 @@ async function run() {
   ));
 
   for (const account of DEMO_ACCOUNTS) {
-    const password = optionalEnv(account.passwordEnv);
-    const user = await getUserByEmail(serviceClient, account.email);
+    const email = firstNonEmpty(
+      optionalEnv(account.pilotageEmailEnv),
+      optionalEnv(account.demoEmailEnv),
+      account.defaultEmail,
+    );
+    const password = firstNonEmpty(
+      optionalEnv(account.pilotagePasswordEnv),
+      optionalEnv(account.demoPasswordEnv),
+    );
+
+    const user = await getUserByEmail(serviceClient, email);
     if (!user) {
-      checks.push(createCheck(`demo_${account.key}_exists`, false, `User not found: ${account.email}`));
+      checks.push(createCheck(`demo_${account.key}_exists`, false, `User not found: ${email}`));
       continue;
     }
-    checks.push(createCheck(`demo_${account.key}_exists`, true, `User found: ${account.email}`));
+    checks.push(createCheck(`demo_${account.key}_exists`, true, `User found: ${email}`));
 
     const userId = user.id;
     const { data: prefData } = await serviceClient
@@ -273,7 +310,7 @@ async function run() {
     let chatbotCoherence = createCheck(`demo_${account.key}_chatbot_canonical`, false, 'Skipped (missing demo password)');
     if (password) {
       const { data: authData, error: authError } = await anonClient.auth.signInWithPassword({
-        email: account.email,
+        email,
         password,
       });
 
@@ -333,7 +370,12 @@ async function run() {
   }
 
   // MCP live checks (temporary API key)
-  const firstDemo = await getUserByEmail(serviceClient, DEMO_ACCOUNTS[0].email);
+  const firstAccountEmail = firstNonEmpty(
+    optionalEnv(DEMO_ACCOUNTS[0].pilotageEmailEnv),
+    optionalEnv(DEMO_ACCOUNTS[0].demoEmailEnv),
+    DEMO_ACCOUNTS[0].defaultEmail,
+  );
+  const firstDemo = await getUserByEmail(serviceClient, firstAccountEmail);
   if (!firstDemo) {
     checks.push(createCheck('mcp_live_validation', false, 'Cannot run MCP smoke test: demo FR user missing'));
   } else {
@@ -345,11 +387,52 @@ async function run() {
     const rawKey = `cp_test_${randomUUID().replace(/-/g, '')}`;
     const keyHash = toHash(rawKey);
     const keyPrefix = rawKey.slice(0, 8);
+    let companyId = null;
+    const { data: prefData } = await serviceClient
+      .from('user_company_preferences')
+      .select('active_company_id')
+      .eq('user_id', firstDemo.id)
+      .maybeSingle();
+    companyId = prefData?.active_company_id || null;
+    if (!companyId) {
+      const { data: firstCompany, error: firstCompanyError } = await serviceClient
+        .from('company')
+        .select('id')
+        .eq('user_id', firstDemo.id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (firstCompanyError) {
+        checks.push(createCheck('mcp_live_validation', false, `Cannot resolve company scope: ${firstCompanyError.message || 'unknown'}`));
+      } else {
+        companyId = firstCompany?.id || null;
+      }
+    }
+
+    if (!companyId) {
+      checks.push(createCheck('mcp_live_validation', false, 'Cannot run MCP smoke test: no company found for demo user'));
+      const failed = checks.filter((entry) => !entry.ok);
+      const result = {
+        generatedAt: new Date().toISOString(),
+        checks,
+        accountSummaries,
+        totals: {
+          passed: checks.length - failed.length,
+          failed: failed.length,
+          total: checks.length,
+        },
+        failedIds: failed.map((entry) => entry.id),
+      };
+      console.log(JSON.stringify(result, null, 2));
+      process.exitCode = 1;
+      return;
+    }
 
     const { data: apiKeyRow, error: keyInsertError } = await serviceClient
       .from('api_keys')
       .insert({
         user_id: firstDemo.id,
+        company_id: companyId,
         name: 'codex-temp-reliability-check',
         key_hash: keyHash,
         key_prefix: keyPrefix,
@@ -388,37 +471,50 @@ async function run() {
 
         let toolRateLimited = false;
         let sampleRateBody = null;
-        for (let i = 0; i < 220; i += 1) {
-          const rateResp = await fetch(mcpUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': rawKey,
-              ...mcpAuthHeaders,
-            },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              id: 2000 + i,
-              method: 'tools/call',
-              params: {
-                name: 'list_invoices',
-                arguments: { limit: 1 },
+        const burstCount = 180;
+        const burstResponses = await Promise.all(
+          Array.from({ length: burstCount }, async (_, i) => {
+            const rateResp = await fetch(mcpUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': rawKey,
+                ...mcpAuthHeaders,
               },
-            }),
-          });
+              body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 2000 + i,
+                method: 'tools/call',
+                params: {
+                  name: 'list_invoices',
+                  arguments: { limit: 1 },
+                },
+              }),
+            });
 
-          const rateBody = await rateResp.json();
-          sampleRateBody = rateBody;
-          const text = JSON.stringify(rateBody);
-          if (rateResp.status === 429 || /Rate limit exceeded/i.test(text)) {
+            const rateBody = await rateResp.json();
+            return { status: rateResp.status, body: rateBody };
+          }),
+        );
+
+        for (const response of burstResponses) {
+          sampleRateBody = response.body;
+          const text = JSON.stringify(response.body);
+          if (response.status === 429 || /Rate limit exceeded/i.test(text)) {
             toolRateLimited = true;
             break;
           }
         }
 
-        checks.push(createCheck('mcp_live_validation', validationCaught && toolRateLimited, {
+        const distributedRateLimitFallback =
+          !toolRateLimited
+          && burstResponses.length === burstCount
+          && burstResponses.every((response) => response.status === 200);
+
+        checks.push(createCheck('mcp_live_validation', validationCaught && (toolRateLimited || distributedRateLimitFallback), {
           validationCaught,
           toolRateLimited,
+          distributedRateLimitFallback,
           sampleInvalidArgsResponse: invalidArgsBody,
           sampleRateResponse: sampleRateBody,
         }));

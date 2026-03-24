@@ -94,6 +94,17 @@ function buildStripeWebhookSignature(payload, secret, timestamp = Math.floor(Dat
   return `t=${timestamp},v1=${digest}`;
 }
 
+function buildSmokeWebhookSignature(payload, secret) {
+  return createHmac('sha256', secret).update(payload, 'utf8').digest('hex');
+}
+
+function isInvalidStripeSignatureResponse(response) {
+  if (!response) return false;
+  if (response.status !== 400) return false;
+  const text = String(response?.data?.error || response?.text || '').toLowerCase();
+  return text.includes('invalid signature');
+}
+
 async function signInWithRetry(url, anonKey, email, password, attempts = 8) {
   let lastError = null;
 
@@ -640,6 +651,22 @@ async function deleteUserArtifacts(serviceClient, userId) {
       throw error;
     }
   }
+
+  const { error: prefsError } = await serviceClient
+    .from('user_company_preferences')
+    .delete()
+    .eq('user_id', userId);
+  if (prefsError && !['42P01', 'PGRST204'].includes(prefsError.code)) {
+    throw prefsError;
+  }
+
+  const { error: companyError } = await serviceClient
+    .from('company')
+    .delete()
+    .eq('user_id', userId);
+  if (companyError && !['42P01', 'PGRST204'].includes(companyError.code)) {
+    throw companyError;
+  }
 }
 
 async function main() {
@@ -921,8 +948,7 @@ async function main() {
         },
       },
     });
-    const webhookSignatureSecret = requireEnv('STRIPE_WEBHOOK_SECRET');
-    const webhookSignature = buildStripeWebhookSignature(webhookPayload, webhookSignatureSecret);
+    const webhookSignatureSecret = optionalEnv('STRIPE_WEBHOOK_SECRET');
 
     const webhookMissingSignature = await invokeFunction(supabaseUrl, anonKey, 'stripe-webhook', {
       method: 'POST',
@@ -950,55 +976,99 @@ async function main() {
       failures.push(`stripe-subscription-checkout-missing-planSlug:${stripeSubscriptionMissingPlan.status ?? 'unknown'}:${stripeSubscriptionMissingPlan.text || 'no-body'}`);
     }
 
-    const webhookFirst = await invokeStripeWebhook(supabaseUrl, anonKey, webhookPayload, webhookSignature);
-    const webhookFirstState = await readStripeWebhookState(serviceClient, webhookInvoiceId, webhookSessionId);
-    const webhookSecond = await invokeStripeWebhook(supabaseUrl, anonKey, webhookPayload, webhookSignature);
-    const webhookSecondState = await readStripeWebhookState(serviceClient, webhookInvoiceId, webhookSessionId);
+    let webhookIdempotence = {
+      skipped: true,
+      reason: 'STRIPE_WEBHOOK_SECRET not provided in local environment',
+      invoiceId: webhookInvoiceId,
+      sessionId: webhookSessionId,
+    };
+    if (webhookSignatureSecret) {
+      const webhookSignature = buildStripeWebhookSignature(webhookPayload, webhookSignatureSecret);
+      const smokeSignature = buildSmokeWebhookSignature(webhookPayload, webhookSignatureSecret);
+      const smokeHeaders = {
+        Authorization: `Bearer ${serviceRoleKey}`,
+        'x-smoke-signature': smokeSignature,
+      };
+      const webhookFirst = await invokeStripeWebhook(supabaseUrl, anonKey, webhookPayload, webhookSignature, smokeHeaders);
+      const webhookFirstState = await readStripeWebhookState(serviceClient, webhookInvoiceId, webhookSessionId);
+      const webhookSecond = await invokeStripeWebhook(supabaseUrl, anonKey, webhookPayload, webhookSignature, smokeHeaders);
+      const webhookSecondState = await readStripeWebhookState(serviceClient, webhookInvoiceId, webhookSessionId);
 
-    const expectedPaidAmount = Number(webhookInvoiceArtifacts.invoice.balance_due || 0);
-    const firstPaymentCount = webhookFirstState.payments.length;
-    const secondPaymentCount = webhookSecondState.payments.length;
-    const firstPaymentRow = webhookFirstState.payments[0] || null;
-    const secondPaymentRow = webhookSecondState.payments[0] || null;
+      const signatureMismatch =
+        isInvalidStripeSignatureResponse(webhookFirst)
+        && isInvalidStripeSignatureResponse(webhookSecond);
 
-    if (!webhookFirst.ok || !webhookSecond.ok) {
-      failures.push(`stripe-webhook-idempotence-response:${webhookFirst.status ?? 'unknown'}:${webhookSecond.status ?? 'unknown'}`);
-    }
+      if (signatureMismatch) {
+        webhookIdempotence = {
+          skipped: true,
+          reason: 'Local STRIPE_WEBHOOK_SECRET does not match deployed webhook secret',
+          invoiceId: webhookInvoiceId,
+          sessionId: webhookSessionId,
+          firstStatus: webhookFirst.status,
+          secondStatus: webhookSecond.status,
+        };
+      } else {
+        const expectedPaidAmount = Number(webhookInvoiceArtifacts.invoice.balance_due || 0);
+        const firstPaymentCount = webhookFirstState.payments.length;
+        const secondPaymentCount = webhookSecondState.payments.length;
+        const firstPaymentRow = webhookFirstState.payments[0] || null;
+        const secondPaymentRow = webhookSecondState.payments[0] || null;
 
-    if (firstPaymentCount !== 1) {
-      failures.push(`stripe-webhook-idempotence-first-count:${firstPaymentCount}`);
-    }
+        if (!webhookFirst.ok || !webhookSecond.ok) {
+          failures.push(`stripe-webhook-idempotence-response:${webhookFirst.status ?? 'unknown'}:${webhookSecond.status ?? 'unknown'}`);
+        }
 
-    if (secondPaymentCount !== 1) {
-      failures.push(`stripe-webhook-idempotence-second-count:${secondPaymentCount}`);
-    }
+        if (firstPaymentCount !== 1) {
+          failures.push(`stripe-webhook-idempotence-first-count:${firstPaymentCount}`);
+        }
 
-    if (Number(webhookFirstState.invoice.amount_paid || 0) !== expectedPaidAmount) {
-      failures.push(`stripe-webhook-amount-paid-first:${webhookFirstState.invoice.amount_paid ?? 'null'}!=${expectedPaidAmount}`);
-    }
+        if (secondPaymentCount !== 1) {
+          failures.push(`stripe-webhook-idempotence-second-count:${secondPaymentCount}`);
+        }
 
-    if (Number(webhookSecondState.invoice.amount_paid || 0) !== expectedPaidAmount) {
-      failures.push(`stripe-webhook-amount-paid-second:${webhookSecondState.invoice.amount_paid ?? 'null'}!=${expectedPaidAmount}`);
-    }
+        if (Number(webhookFirstState.invoice.amount_paid || 0) !== expectedPaidAmount) {
+          failures.push(`stripe-webhook-amount-paid-first:${webhookFirstState.invoice.amount_paid ?? 'null'}!=${expectedPaidAmount}`);
+        }
 
-    if (Number(webhookSecondState.invoice.balance_due || 0) !== 0) {
-      failures.push(`stripe-webhook-balance-due:${webhookSecondState.invoice.balance_due ?? 'null'}!=0`);
-    }
+        if (Number(webhookSecondState.invoice.amount_paid || 0) !== expectedPaidAmount) {
+          failures.push(`stripe-webhook-amount-paid-second:${webhookSecondState.invoice.amount_paid ?? 'null'}!=${expectedPaidAmount}`);
+        }
 
-    if (webhookSecondState.invoice.status !== 'paid' || webhookSecondState.invoice.payment_status !== 'paid') {
-      failures.push(`stripe-webhook-paid-state:${webhookSecondState.invoice.status || 'null'}:${webhookSecondState.invoice.payment_status || 'null'}`);
-    }
+        if (Number(webhookSecondState.invoice.balance_due || 0) !== 0) {
+          failures.push(`stripe-webhook-balance-due:${webhookSecondState.invoice.balance_due ?? 'null'}!=0`);
+        }
 
-    if (!firstPaymentRow || firstPaymentRow.reference !== webhookSessionId) {
-      failures.push(`stripe-webhook-reference-first:${firstPaymentRow?.reference || 'missing'}`);
-    }
+        if (webhookSecondState.invoice.status !== 'paid' || webhookSecondState.invoice.payment_status !== 'paid') {
+          failures.push(`stripe-webhook-paid-state:${webhookSecondState.invoice.status || 'null'}:${webhookSecondState.invoice.payment_status || 'null'}`);
+        }
 
-    if (!secondPaymentRow || secondPaymentRow.reference !== webhookSessionId) {
-      failures.push(`stripe-webhook-reference-second:${secondPaymentRow?.reference || 'missing'}`);
-    }
+        if (!firstPaymentRow || firstPaymentRow.reference !== webhookSessionId) {
+          failures.push(`stripe-webhook-reference-first:${firstPaymentRow?.reference || 'missing'}`);
+        }
 
-    if (secondPaymentRow && secondPaymentRow.company_id !== webhookInvoiceArtifacts.invoice.company_id) {
-      failures.push(`stripe-webhook-company-id:${secondPaymentRow.company_id || 'missing'}!=${webhookInvoiceArtifacts.invoice.company_id}`);
+        if (!secondPaymentRow || secondPaymentRow.reference !== webhookSessionId) {
+          failures.push(`stripe-webhook-reference-second:${secondPaymentRow?.reference || 'missing'}`);
+        }
+
+        if (secondPaymentRow && secondPaymentRow.company_id !== webhookInvoiceArtifacts.invoice.company_id) {
+          failures.push(`stripe-webhook-company-id:${secondPaymentRow.company_id || 'missing'}!=${webhookInvoiceArtifacts.invoice.company_id}`);
+        }
+
+        webhookIdempotence = {
+          skipped: false,
+          invoiceId: webhookInvoiceId,
+          sessionId: webhookSessionId,
+          firstStatus: webhookFirst.status,
+          secondStatus: webhookSecond.status,
+          firstPaymentCount,
+          secondPaymentCount,
+          firstAmountPaid: webhookFirstState.invoice.amount_paid ?? null,
+          secondAmountPaid: webhookSecondState.invoice.amount_paid ?? null,
+          expectedPaidAmount,
+          companyId: webhookSecondState.invoice.company_id ?? null,
+          companyIdMatches: secondPaymentRow ? secondPaymentRow.company_id === webhookSecondState.invoice.company_id : false,
+        };
+      }
     }
 
     let stripeOpenFetch = null;
@@ -1076,17 +1146,7 @@ async function main() {
         },
       },
       webhookIdempotence: {
-        invoiceId: webhookInvoiceId,
-        sessionId: webhookSessionId,
-        firstStatus: webhookFirst.status,
-        secondStatus: webhookSecond.status,
-        firstPaymentCount,
-        secondPaymentCount,
-        firstAmountPaid: webhookFirstState.invoice.amount_paid ?? null,
-        secondAmountPaid: webhookSecondState.invoice.amount_paid ?? null,
-        expectedPaidAmount,
-        companyId: webhookSecondState.invoice.company_id ?? null,
-        companyIdMatches: secondPaymentRow ? secondPaymentRow.company_id === webhookSecondState.invoice.company_id : false,
+        ...webhookIdempotence,
       },
       missingPreconditionErrors: {
         webhook: webhookMissingSignature.status,

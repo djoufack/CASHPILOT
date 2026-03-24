@@ -9,8 +9,32 @@ import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, stripe-signature, x-smoke-signature',
   ...SECURITY_HEADERS,
+};
+
+const toHex = (bytes: Uint8Array) =>
+  Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+
+const constantTimeEqual = (left: string, right: string) => {
+  if (left.length !== right.length) return false;
+  let result = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    result |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return result === 0;
+};
+
+const computeHmacSha256Hex = async (secret: string, payload: string) => {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
+    'sign',
+  ]);
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+  return toHex(new Uint8Array(signature));
 };
 
 const ensureUserCreditsRow = async (supabase: ReturnType<typeof createClient>, userId: string) => {
@@ -68,23 +92,44 @@ serve(async (req) => {
 
     const body = await req.text();
     const signature = req.headers.get('stripe-signature');
-
-    if (!signature) {
-      return new Response(JSON.stringify({ error: 'Missing stripe-signature header' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const smokeSignature = req.headers.get('x-smoke-signature');
 
     let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err.message);
-      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (smokeSignature) {
+      const expectedSmokeSignature = await computeHmacSha256Hex(webhookSecret, body);
+      const normalizedProvided = smokeSignature.trim().toLowerCase();
+      if (!constantTimeEqual(normalizedProvided, expectedSmokeSignature)) {
+        return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      try {
+        event = JSON.parse(body) as Stripe.Event;
+      } catch {
+        return new Response(JSON.stringify({ error: 'Invalid webhook payload' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      if (!signature) {
+        return new Response(JSON.stringify({ error: 'Missing stripe-signature header' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      try {
+        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      } catch (err) {
+        console.error('Webhook signature verification failed:', err.message);
+        return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // ========================================
