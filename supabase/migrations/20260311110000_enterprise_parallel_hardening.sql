@@ -9,7 +9,6 @@
 -- ============================================================================
 
 BEGIN;
-
 -- ---------------------------------------------------------------------------
 -- 1) Server-side anti-bruteforce state
 -- ---------------------------------------------------------------------------
@@ -24,12 +23,9 @@ CREATE TABLE IF NOT EXISTS public.auth_security_locks (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (scope, rate_key)
 );
-
 CREATE INDEX IF NOT EXISTS idx_auth_security_locks_lock_until
   ON public.auth_security_locks (lock_until);
-
 ALTER TABLE public.auth_security_locks ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -45,13 +41,11 @@ BEGIN
       WITH CHECK (FALSE);
   END IF;
 END $$;
-
 DROP TRIGGER IF EXISTS trg_auth_security_locks_updated_at ON public.auth_security_locks;
 CREATE TRIGGER trg_auth_security_locks_updated_at
   BEFORE UPDATE ON public.auth_security_locks
   FOR EACH ROW
   EXECUTE FUNCTION public.trg_set_updated_at();
-
 -- ---------------------------------------------------------------------------
 -- 2) Accounting OAuth runtime (state + token vault + sync logs)
 -- ---------------------------------------------------------------------------
@@ -69,12 +63,9 @@ CREATE TABLE IF NOT EXISTS public.accounting_integration_oauth_states (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_ai_oauth_state_expires
   ON public.accounting_integration_oauth_states (expires_at);
-
 ALTER TABLE public.accounting_integration_oauth_states ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -90,13 +81,11 @@ BEGIN
       WITH CHECK (FALSE);
   END IF;
 END $$;
-
 DROP TRIGGER IF EXISTS trg_ai_oauth_states_updated_at ON public.accounting_integration_oauth_states;
 CREATE TRIGGER trg_ai_oauth_states_updated_at
   BEFORE UPDATE ON public.accounting_integration_oauth_states
   FOR EACH ROW
   EXECUTE FUNCTION public.trg_set_updated_at();
-
 CREATE TABLE IF NOT EXISTS public.accounting_integration_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   integration_id UUID NOT NULL UNIQUE REFERENCES public.accounting_integrations(id) ON DELETE CASCADE,
@@ -112,12 +101,9 @@ CREATE TABLE IF NOT EXISTS public.accounting_integration_tokens (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_ai_tokens_provider
   ON public.accounting_integration_tokens (provider);
-
 ALTER TABLE public.accounting_integration_tokens ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -133,13 +119,11 @@ BEGIN
       WITH CHECK (FALSE);
   END IF;
 END $$;
-
 DROP TRIGGER IF EXISTS trg_ai_tokens_updated_at ON public.accounting_integration_tokens;
 CREATE TRIGGER trg_ai_tokens_updated_at
   BEFORE UPDATE ON public.accounting_integration_tokens
   FOR EACH ROW
   EXECUTE FUNCTION public.trg_set_updated_at();
-
 CREATE TABLE IF NOT EXISTS public.accounting_sync_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -153,12 +137,9 @@ CREATE TABLE IF NOT EXISTS public.accounting_sync_logs (
   finished_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_accounting_sync_logs_company_created
   ON public.accounting_sync_logs (company_id, created_at DESC);
-
 ALTER TABLE public.accounting_sync_logs ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -177,10 +158,8 @@ BEGIN
       );
   END IF;
 END $$;
-
 COMMENT ON TABLE accounting_integrations IS 'ACTIVE: Xero/QuickBooks integration state, linked to OAuth token vault and sync logs';
 COMMENT ON TABLE accounting_sync_logs IS 'ACTIVE: Xero/QuickBooks sync execution log';
-
 -- ---------------------------------------------------------------------------
 -- 3) SSO / SAML governance settings
 -- ---------------------------------------------------------------------------
@@ -204,12 +183,9 @@ CREATE TABLE IF NOT EXISTS public.company_security_settings (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_company_security_settings_company_id
   ON public.company_security_settings (company_id);
-
 ALTER TABLE public.company_security_settings ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -310,13 +286,11 @@ BEGIN
       );
   END IF;
 END $$;
-
 DROP TRIGGER IF EXISTS trg_company_security_settings_updated_at ON public.company_security_settings;
 CREATE TRIGGER trg_company_security_settings_updated_at
   BEFORE UPDATE ON public.company_security_settings
   FOR EACH ROW
   EXECUTE FUNCTION public.trg_set_updated_at();
-
 -- ---------------------------------------------------------------------------
 -- 4) E-signature governance + evidentiary trail
 -- ---------------------------------------------------------------------------
@@ -331,9 +305,7 @@ CREATE TABLE IF NOT EXISTS public.company_esign_settings (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 ALTER TABLE public.company_esign_settings ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -434,13 +406,11 @@ BEGIN
       );
   END IF;
 END $$;
-
 DROP TRIGGER IF EXISTS trg_company_esign_settings_updated_at ON public.company_esign_settings;
 CREATE TRIGGER trg_company_esign_settings_updated_at
   BEFORE UPDATE ON public.company_esign_settings
   FOR EACH ROW
   EXECUTE FUNCTION public.trg_set_updated_at();
-
 CREATE TABLE IF NOT EXISTS public.quote_signature_evidence (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   quote_id UUID NOT NULL REFERENCES public.quotes(id) ON DELETE CASCADE,
@@ -461,12 +431,9 @@ CREATE TABLE IF NOT EXISTS public.quote_signature_evidence (
   signed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_quote_signature_evidence_quote_created
   ON public.quote_signature_evidence (quote_id, created_at DESC);
-
 ALTER TABLE public.quote_signature_evidence ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -506,7 +473,5 @@ BEGIN
       WITH CHECK (auth.uid() = user_id);
   END IF;
 END $$;
-
 COMMENT ON TABLE quote_signature_evidence IS 'ACTIVE: cryptographic and contextual evidence trail for quote signatures/rejections';
-
 COMMIT;

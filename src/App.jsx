@@ -12,6 +12,8 @@ import { EntitlementsProvider } from '@/contexts/EntitlementsContext';
 import AppRoutes from './routes';
 import './i18n/config';
 
+// Public legal routes are declared in AppRoutes (path="/privacy", path="/legal").
+
 // Wrapper for AI Chat Widget - only shows when authenticated
 const AuthenticatedChatWidget = () => {
   const { user } = useAuth();

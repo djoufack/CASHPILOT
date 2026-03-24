@@ -193,6 +193,7 @@ export function buildFullDemoDataset(args) {
     config,
     userSeed,
     userId,
+    primaryCompanyId = null,
     clientRows,
     invoiceRows,
     paymentRows,
@@ -295,6 +296,7 @@ export function buildFullDemoDataset(args) {
     };
   });
   const defaultCompanyId =
+    primaryCompanyId ||
     enhancedClientRows[0]?.company_id ||
     invoiceRows[0]?.company_id ||
     null;
@@ -1115,6 +1117,7 @@ export function buildFullDemoDataset(args) {
   const teamMemberRows = teamSeeds.map((member, index) => ({
     id: uuidFromSeed(`${userSeed}:team-member:${member.key}`),
     user_id: userId,
+    company_id: resolveScopedCompanyId(index),
     name: member.name,
     email: member.email,
     role: member.role,

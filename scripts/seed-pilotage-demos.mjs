@@ -742,7 +742,7 @@ function buildScenarioFinancialState(dataset, companyId = null) {
 
 async function buildScenarioSeedRows(dataset) {
   const engine = new FinancialSimulationEngine();
-  const userSeed = `pilotage-demo:${dataset.config.country}`;
+  const userSeed = dataset.userSeed || `pilotage-demo:${dataset.config.country}`;
   const amountFactor = dataset.config.company.accounting_currency === 'XAF' ? 650 : 1;
   const scaleAmount = (baseAmount) => roundAmount(baseAmount * amountFactor);
   const scopedCompanies = (dataset.companyRows || [dataset.companyRow]).filter(Boolean);
@@ -808,6 +808,33 @@ async function buildScenarioSeedRows(dataset) {
       assumptions: [
         { name: 'Variation prix -2%', category: 'pricing', assumption_type: 'percentage_change', parameters: { rate: -2 } },
         { name: 'Charges reduites 4%', category: 'expense_reduction', assumption_type: 'percentage_change', parameters: { rate: 4 } },
+      ],
+    },
+    {
+      code: '008',
+      name: `${dataset.config.label} Relance marketing`,
+      description: 'Scenario de relance marketing avec hausse du pipeline',
+      assumptions: [
+        { name: 'Budget marketing +260', category: 'expense', assumption_type: 'recurring', parameters: { amount: scaleAmount(260) } },
+        { name: 'Croissance CA +6%', category: 'revenue', assumption_type: 'growth_rate', parameters: { rate: 6 } },
+      ],
+    },
+    {
+      code: '009',
+      name: `${dataset.config.label} Optimisation fournisseurs`,
+      description: 'Scenario de renegociation fournisseurs et gains d achats',
+      assumptions: [
+        { name: 'Achats -5%', category: 'expense_reduction', assumption_type: 'percentage_change', parameters: { rate: 5 } },
+        { name: 'Tresorerie +900', category: 'cash', assumption_type: 'recurring', parameters: { amount: scaleAmount(900) } },
+      ],
+    },
+    {
+      code: '010',
+      name: `${dataset.config.label} Intensification delivery`,
+      description: 'Scenario de montee en charge delivery avec hausse couts variables',
+      assumptions: [
+        { name: 'CA +4%', category: 'revenue', assumption_type: 'growth_rate', parameters: { rate: 4 } },
+        { name: 'Charges variables +3%', category: 'expense', assumption_type: 'percentage_change', parameters: { rate: 3 } },
       ],
     },
   ];
@@ -1465,11 +1492,20 @@ function ensureBalanced(entryGroups) {
 }
 
 function buildDemoConfigs() {
+  const frEmail = process.env.PILOTAGE_DEMO_EMAIL_FR || 'pilotage.fr.demo@cashpilot.cloud';
+  const beEmail = process.env.PILOTAGE_DEMO_EMAIL_BE || 'pilotage.be.demo@cashpilot.cloud';
+  const ohadaEmail = process.env.PILOTAGE_DEMO_EMAIL_OHADA || 'pilotage.ohada.demo@cashpilot.cloud';
+  const frUserId = process.env.PILOTAGE_DEMO_USER_ID_FR || null;
+  const beUserId = process.env.PILOTAGE_DEMO_USER_ID_BE || null;
+  const ohadaUserId = process.env.PILOTAGE_DEMO_USER_ID_OHADA || null;
+
   const configs = {
     FR: {
       country: 'FR',
       label: 'France',
-      email: 'pilotage.fr.demo@cashpilot.cloud',
+      email: frEmail,
+      userId: frUserId,
+      userSeed: frEmail !== 'pilotage.fr.demo@cashpilot.cloud' ? `pilotage-demo:FR:${frEmail.toLowerCase()}` : null,
       passwordEnvVar: 'PILOTAGE_DEMO_PASSWORD_FR',
       fullName: 'Pilotage Demo France',
       region: 'france',
@@ -1485,7 +1521,7 @@ function buildDemoConfigs() {
         postal_code: '75002',
         country: 'FR',
         accounting_currency: 'EUR',
-        email: 'pilotage.fr.demo@cashpilot.cloud',
+        email: frEmail,
         phone: '+33 1 83 64 20 26',
         website: 'https://cashpilot.tech',
         iban: 'FR7612345678901234567890123',
@@ -1585,7 +1621,9 @@ function buildDemoConfigs() {
     BE: {
       country: 'BE',
       label: 'Belgique',
-      email: 'pilotage.be.demo@cashpilot.cloud',
+      email: beEmail,
+      userId: beUserId,
+      userSeed: beEmail !== 'pilotage.be.demo@cashpilot.cloud' ? `pilotage-demo:BE:${beEmail.toLowerCase()}` : null,
       passwordEnvVar: 'PILOTAGE_DEMO_PASSWORD_BE',
       fullName: 'Pilotage Demo Belgique',
       region: 'belgium',
@@ -1601,7 +1639,7 @@ function buildDemoConfigs() {
         postal_code: '1000',
         country: 'BE',
         accounting_currency: 'EUR',
-        email: 'pilotage.be.demo@cashpilot.cloud',
+        email: beEmail,
         phone: '+32 2 430 20 26',
         website: 'https://cashpilot.tech',
         iban: 'BE68539007547034',
@@ -1698,7 +1736,9 @@ function buildDemoConfigs() {
     OHADA: {
       country: 'OHADA',
       label: 'OHADA',
-      email: 'pilotage.ohada.demo@cashpilot.cloud',
+      email: ohadaEmail,
+      userId: ohadaUserId,
+      userSeed: ohadaEmail !== 'pilotage.ohada.demo@cashpilot.cloud' ? `pilotage-demo:OHADA:${ohadaEmail.toLowerCase()}` : null,
       passwordEnvVar: 'PILOTAGE_DEMO_PASSWORD_OHADA',
       fullName: 'Pilotage Demo OHADA',
       region: 'ohada',
@@ -1714,7 +1754,7 @@ function buildDemoConfigs() {
         postal_code: '0000',
         country: 'CM',
         accounting_currency: 'XAF',
-        email: 'pilotage.ohada.demo@cashpilot.cloud',
+        email: ohadaEmail,
         phone: '+237 6 75 43 21 09',
         website: 'https://cashpilot.tech',
         iban: '',
@@ -1816,8 +1856,8 @@ function buildDemoConfigs() {
 }
 
 function buildDataset(config) {
-  const userSeed = `pilotage-demo:${config.country}`;
-  const userId = uuidFromSeed(`${userSeed}:user`);
+  const userSeed = config.userSeed || `pilotage-demo:${config.country}`;
+  const userId = config.userId || uuidFromSeed(`${userSeed}:user`);
   const profileId = uuidFromSeed(`${userSeed}:profile`);
   const companyId = uuidFromSeed(`${userSeed}:company`);
 
@@ -2075,7 +2115,7 @@ function buildDataset(config) {
 
 function buildEnhancedDataset(config) {
   const base = buildDataset(config);
-  const userSeed = `pilotage-demo:${config.country}`;
+  const userSeed = base.userSeed || config.userSeed || `pilotage-demo:${config.country}`;
   const primaryCompanyId = base.companyRow.id;
   const secondaryCompanyId = uuidFromSeed(`${userSeed}:company:secondary`);
   const companyCurrency = config.company.accounting_currency;
@@ -4209,7 +4249,8 @@ async function cleanupScenarioRows(client, userId) {
   }
 }
 
-async function cleanupDemoDataset(client, dataset) {
+async function cleanupDemoDataset(client, dataset, options = {}) {
+  const preserveCompanies = options?.preserveCompanies === true;
   const seedCompanyIds = toUniqueIds(((dataset.companyRows || [dataset.companyRow]) || []).map((row) => row?.id));
   const existingCompanyIds = await listIdsByFilter(client, 'company', 'user_id', dataset.userId);
   const companyIds = toUniqueIds([...seedCompanyIds, ...existingCompanyIds]);
@@ -4396,7 +4437,9 @@ async function cleanupDemoDataset(client, dataset) {
     await deleteRowsByValues(client, table, 'company_id', companyIds, { allowMissingColumn: true });
   }
 
-  await deleteRows(client, 'company', 'user_id', dataset.userId);
+  if (!preserveCompanies) {
+    await deleteRows(client, 'company', 'user_id', dataset.userId);
+  }
 }
 
 async function upsertRows(client, table, rows, onConflict) {
@@ -4605,6 +4648,107 @@ function ensureSeedProductsLinkedToSuppliers(dataset) {
   return {
     ...dataset,
     productRows: normalizedProductRows,
+  };
+}
+
+function buildSupplierProductCategoryConflictKey(userId, name) {
+  return `${userId || ''}::${String(name || '').trim()}`;
+}
+
+async function reconcileSupplierProductCategoryRows(client, dataset) {
+  const supplierProductCategoryRows = Array.isArray(dataset?.supplierProductCategoryRows)
+    ? dataset.supplierProductCategoryRows.filter(Boolean)
+    : [];
+  if (!supplierProductCategoryRows.length) {
+    return dataset;
+  }
+
+  const userId = dataset?.userId || supplierProductCategoryRows[0]?.user_id || null;
+  const categoryNames = toUniqueIds(
+    supplierProductCategoryRows
+      .map((row) => String(row?.name || '').trim())
+      .filter(Boolean)
+  );
+
+  const existingCategoryRows = [];
+  if (userId && categoryNames.length) {
+    for (const batch of chunkValues(categoryNames, 200)) {
+      const { data, error } = await client
+        .from('supplier_product_categories')
+        .select('id,user_id,name')
+        .eq('user_id', userId)
+        .in('name', batch);
+      if (error) {
+        throw new Error(`Failed to load supplier_product_categories: ${error.message}`);
+      }
+      existingCategoryRows.push(...(data || []));
+    }
+  }
+
+  const existingIdByKey = new Map(
+    existingCategoryRows.map((row) => [buildSupplierProductCategoryConflictKey(row.user_id, row.name), row.id])
+  );
+  const resolvedIdByKey = new Map();
+  const categoryIdMap = new Map();
+  const dedupedCategoryRows = [];
+  const seenCategoryKeys = new Set();
+
+  for (let index = 0; index < supplierProductCategoryRows.length; index += 1) {
+    const row = supplierProductCategoryRows[index];
+    const rowName = String(row?.name || '').trim();
+    const rowUserId = row?.user_id || userId || null;
+
+    if (!rowName || !rowUserId) {
+      dedupedCategoryRows.push(row);
+      continue;
+    }
+
+    const key = buildSupplierProductCategoryConflictKey(rowUserId, rowName);
+    const existingId = existingIdByKey.get(key) || null;
+    const resolvedId = resolvedIdByKey.get(key) || existingId || row.id;
+
+    if (!resolvedIdByKey.has(key)) {
+      resolvedIdByKey.set(key, resolvedId);
+    }
+
+    if (row.id && resolvedId && row.id !== resolvedId) {
+      categoryIdMap.set(row.id, resolvedId);
+    }
+
+    if (seenCategoryKeys.has(key)) {
+      continue;
+    }
+    seenCategoryKeys.add(key);
+
+    if (resolvedId && row.id !== resolvedId) {
+      dedupedCategoryRows.push({
+        ...row,
+        id: resolvedId,
+      });
+      continue;
+    }
+
+    dedupedCategoryRows.push(row);
+  }
+
+  const supplierProductRows = Array.isArray(dataset?.supplierProductRows)
+    ? dataset.supplierProductRows.map((row) => {
+        if (!row || typeof row !== 'object') return row;
+        const categoryId = row.category_id || null;
+        if (!categoryId || !categoryIdMap.has(categoryId)) {
+          return row;
+        }
+        return {
+          ...row,
+          category_id: categoryIdMap.get(categoryId),
+        };
+      })
+    : dataset?.supplierProductRows;
+
+  return {
+    ...dataset,
+    supplierProductCategoryRows: dedupedCategoryRows,
+    supplierProductRows,
   };
 }
 
@@ -4886,12 +5030,11 @@ async function applyDataset(client, dataset, options) {
   const companyScopedDataset = options.preserveCompanies
     ? await adaptDatasetForExistingCompanies(client, dataset)
     : dataset;
-  const effectiveDataset = ensureSeedProductsLinkedToSuppliers(companyScopedDataset);
+  const supplierLinkedDataset = ensureSeedProductsLinkedToSuppliers(companyScopedDataset);
+  const effectiveDataset = await reconcileSupplierProductCategoryRows(client, supplierLinkedDataset);
   const scenarioSeed = await buildScenarioSeedRows(effectiveDataset);
 
-  if (!options.preserveCompanies) {
-    await cleanupDemoDataset(client, effectiveDataset);
-  }
+  await cleanupDemoDataset(client, effectiveDataset, { preserveCompanies: options.preserveCompanies });
 
   await upsertRows(client, 'profiles', [effectiveDataset.profileRow], 'user_id');
   if (!options.preserveCompanies) {
@@ -4906,12 +5049,22 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'accounting_chart_of_accounts', effectiveDataset.chartRows, 'company_id,account_code');
   await upsertRows(client, 'accounting_mappings', effectiveDataset.mappingRows, 'user_id,source_type,source_category');
   await upsertRows(client, 'accounting_tax_rates', effectiveDataset.taxRateRows, 'id');
-  await upsertRows(client, 'accounting_analytical_axes', effectiveDataset.analyticalAxisRows || [], 'id');
+  await upsertRows(
+    client,
+    'accounting_analytical_axes',
+    effectiveDataset.analyticalAxisRows || [],
+    'company_id,user_id,axis_type,axis_code'
+  );
   await upsertRows(client, 'accounting_fixed_assets', effectiveDataset.fixedAssetRows || [], 'id');
   await upsertRows(client, 'accounting_depreciation_schedule', effectiveDataset.depreciationScheduleRows || [], 'id');
   await upsertRows(client, 'product_categories', effectiveDataset.productCategoryRows, 'id');
   await upsertRows(client, 'service_categories', effectiveDataset.serviceCategoryRows, 'id');
-  await upsertRows(client, 'supplier_product_categories', effectiveDataset.supplierProductCategoryRows, 'id');
+  await upsertRows(
+    client,
+    'supplier_product_categories',
+    effectiveDataset.supplierProductCategoryRows,
+    'user_id,name'
+  );
   await upsertRows(client, 'suppliers', effectiveDataset.supplierRows, 'id');
   await upsertRows(client, 'supplier_products', effectiveDataset.supplierProductRows, 'id');
   await upsertRows(client, 'supplier_services', effectiveDataset.supplierServiceRows, 'id');
@@ -5299,9 +5452,14 @@ async function runHrBackfillForDatasets(datasets) {
 }
 
 async function runGedBackfillForDatasets(datasets) {
+  const supportedGedEmails = new Set([
+    'pilotage.fr.demo@cashpilot.cloud',
+    'pilotage.be.demo@cashpilot.cloud',
+    'pilotage.ohada.demo@cashpilot.cloud',
+  ]);
   const scopedEmails = (datasets || [])
     .map((dataset) => String(dataset?.config?.email || '').trim().toLowerCase())
-    .filter(Boolean);
+    .filter((email) => Boolean(email) && supportedGedEmails.has(email));
   if (!scopedEmails.length) return;
 
   await new Promise((resolve, reject) => {

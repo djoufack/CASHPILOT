@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
@@ -15,11 +14,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
  * @returns {{ data, setData, loading, setLoading, error, setError, refetch }}
  */
 export const useSupabaseQuery = (queryFn, options = {}) => {
-  const {
-    deps = [],
-    defaultData = [],
-    enabled = true,
-  } = options;
+  const { deps = [], defaultData = [], enabled = true } = options;
 
   const [data, setData] = useState(defaultData);
   const [loading, setLoading] = useState(false);
@@ -55,7 +50,10 @@ export const useSupabaseQuery = (queryFn, options = {}) => {
 
   // Auto-fetch on mount / when deps change
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
 
     let cancelled = false;
     const guard = { cancelled: false };
@@ -86,7 +84,7 @@ export const useSupabaseQuery = (queryFn, options = {}) => {
       guard.cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [enabled, ...deps]);
 
   return { data, setData, loading, setLoading, error, setError, refetch };
 };

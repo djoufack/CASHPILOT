@@ -47,7 +47,6 @@ DO $$ BEGIN
     ADD CONSTRAINT fk_company_user
     FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 END $$;
-
 -- ============================================================================
 -- P3.2: supplier_invoices.user_id → auth.users(id) ON DELETE CASCADE
 -- The user_id column was added in 20260308220000_bulletproof_accounting_guard
@@ -81,7 +80,6 @@ DO $$ BEGIN
     ADD CONSTRAINT fk_supplier_invoices_user
     FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 END $$;
-
 -- ============================================================================
 -- P3.3: bank_sync_history.user_id → auth.users(id) ON DELETE CASCADE
 -- Created in 029_bank_connections with "user_id UUID NOT NULL" but NO FK.
@@ -101,7 +99,6 @@ DO $$ BEGIN
       FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
   END IF;
 END $$;
-
 -- ============================================================================
 -- P3.4: accounting_audit_log.user_id → auth.users(id) ON DELETE CASCADE
 -- Created in cashpilot_auto_accounting_engine_v2 with REFERENCES but no
@@ -135,7 +132,6 @@ DO $$ BEGIN
     ADD CONSTRAINT fk_accounting_audit_log_user
     FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 END $$;
-
 -- ============================================================================
 -- P3.5: supplier_invoice_line_items.user_id → auth.users(id) ON DELETE CASCADE
 -- Added in 20260306213000_denormalize with REFERENCES + ON DELETE CASCADE.
@@ -157,7 +153,6 @@ DO $$ BEGIN
       FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
   END IF;
 END $$;
-
 -- ============================================================================
 -- P3.6: report_builder_templates.user_id → auth.users(id) ON DELETE CASCADE
 -- Added in 20260306193000 with REFERENCES + ON DELETE CASCADE.
@@ -179,7 +174,6 @@ DO $$ BEGIN
       FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
   END IF;
 END $$;
-
 -- ============================================================================
 -- VERIFICATION COMMENT
 -- After this migration, the full cascade chain is:
@@ -200,4 +194,4 @@ END $$;
 --
 -- Special case (intentional ON DELETE SET NULL):
 --   audit_log.user_id → SET NULL (keeps audit trail after user deletion)
--- ============================================================================
+-- ============================================================================;

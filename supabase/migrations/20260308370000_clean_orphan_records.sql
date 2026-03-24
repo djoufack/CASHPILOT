@@ -2,7 +2,6 @@
 -- Found 3 orphan timesheets and 5 orphan accounting_entries (2026-03-08)
 
 BEGIN;
-
 -- Delete 3 timesheets referencing non-existent tasks (task_id IS NULL)
 DELETE FROM timesheets
 WHERE id IN (
@@ -10,7 +9,6 @@ WHERE id IN (
   'c4070260-09fa-454b-9958-f80d49744d4b',
   '9ed18673-7553-4265-8a92-8735e11b481c'
 );
-
 -- Delete 5 accounting_entries referencing non-existent expenses (source_id IS NULL, source_type = 'expense')
 DELETE FROM accounting_entries
 WHERE id IN (
@@ -20,5 +18,4 @@ WHERE id IN (
   '89b9801f-643f-415b-9c2c-c6dd0f34e822',
   '38dae404-4fec-4cc3-9f81-a8bdb44cd179'
 );
-
 COMMIT;

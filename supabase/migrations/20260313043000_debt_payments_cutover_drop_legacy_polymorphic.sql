@@ -4,7 +4,6 @@
 -- ============================================================================
 
 BEGIN;
-
 -- Final backfill/synchronization from legacy columns when they still exist.
 DO $$
 DECLARE
@@ -52,14 +51,11 @@ BEGIN
     $fix$;
   END IF;
 END $$;
-
 -- Keep only valid rows prior to hard enforcement.
 DELETE FROM public.debt_payments
 WHERE receivable_id IS NULL AND payable_id IS NULL;
-
 DELETE FROM public.debt_payments
 WHERE receivable_id IS NOT NULL AND payable_id IS NOT NULL;
-
 -- Enforce exactly one explicit parent.
 DO $$
 BEGIN
@@ -77,19 +73,15 @@ BEGIN
       ) NOT VALID;
   END IF;
 END $$;
-
 ALTER TABLE public.debt_payments
   VALIDATE CONSTRAINT chk_debt_payments_exactly_one_parent;
-
 -- Remove legacy polymorphic columns and common legacy indexes.
 DROP INDEX IF EXISTS public.idx_debt_payments_record_type;
 DROP INDEX IF EXISTS public.idx_debt_payments_record_id;
 DROP INDEX IF EXISTS public.idx_debt_payments_record_type_record_id;
-
 ALTER TABLE public.debt_payments
   DROP COLUMN IF EXISTS record_type CASCADE,
   DROP COLUMN IF EXISTS record_id CASCADE;
-
 -- Trigger/function now rely exclusively on explicit FKs.
 CREATE OR REPLACE FUNCTION public.assign_debt_payment_company_id()
 RETURNS TRIGGER
@@ -116,11 +108,9 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_assign_debt_payment_company_id ON public.debt_payments;
 CREATE TRIGGER trg_assign_debt_payment_company_id
   BEFORE INSERT OR UPDATE ON public.debt_payments
   FOR EACH ROW
   EXECUTE FUNCTION public.assign_debt_payment_company_id();
-
 COMMIT;
