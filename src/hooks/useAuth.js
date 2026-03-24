@@ -393,6 +393,7 @@ export const useAuthSource = () => {
           data: {
             full_name: sanitizedFullName,
           },
+          emailRedirectTo: `${window.location.origin}/login`,
         },
       });
 
