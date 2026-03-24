@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createAuthClient, HttpError, requireAuthenticatedUser } from '../_shared/billing.ts';
+import { getScopedCompany } from '../_shared/companyScope.ts';
 import { resolveScradaCredentials } from '../_shared/scradaCredentials.ts';
 
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -38,21 +39,18 @@ serve(async (req) => {
     // Already final? No need to poll
     if (['delivered', 'accepted', 'error', 'rejected'].includes(invoice.peppol_status)) {
       return new Response(JSON.stringify({ status: invoice.peppol_status, final: true }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Load Scrada credentials
-    let companyQuery = supabase
-      .from('company')
-      .select('id, scrada_company_id, scrada_api_key, scrada_password, scrada_api_key_encrypted, scrada_password_encrypted')
-      .eq('user_id', user.id);
-    if (invoice.company_id) {
-      companyQuery = companyQuery.eq('id', invoice.company_id);
-    } else {
-      companyQuery = companyQuery.order('created_at', { ascending: true }).limit(1);
-    }
-    const { data: company } = await companyQuery.single();
+    // Load Scrada credentials for the invoice company (or active company fallback).
+    const { company } = await getScopedCompany(
+      supabase,
+      user.id,
+      'id, scrada_company_id, scrada_api_key, scrada_password, scrada_api_key_encrypted, scrada_password_encrypted',
+      invoice.company_id
+    );
 
     const { apiKey, password } = await resolveScradaCredentials(company);
     if (!apiKey) throw new HttpError(400, 'Scrada credentials not configured');
@@ -66,54 +64,67 @@ serve(async (req) => {
       headers: {
         'X-API-KEY': apiKey,
         'X-PASSWORD': password || '',
-        'Language': 'FR',
+        Language: 'FR',
       },
     });
 
     if (!scradaResponse.ok) {
       const errText = await scradaResponse.text();
       return new Response(JSON.stringify({ error: `Scrada API error: ${errText}` }), {
-        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const scradaData = await scradaResponse.json();
 
     const statusMap: Record<string, string> = {
-      'Created': 'pending',
-      'Processed': 'delivered',
-      'Error': 'error',
+      Created: 'pending',
+      Processed: 'delivered',
+      Error: 'error',
     };
     const mappedStatus = statusMap[scradaData.status] || scradaData.status?.toLowerCase() || 'pending';
     const isFinal = ['delivered', 'error', 'rejected'].includes(mappedStatus);
 
     // Update invoice if status changed
     if (mappedStatus !== invoice.peppol_status) {
-      await supabase.from('invoices').update({
-        peppol_status: mappedStatus,
-        peppol_error_message: scradaData.errorMessage || null,
-      }).eq('id', invoice_id);
+      await supabase
+        .from('invoices')
+        .update({
+          peppol_status: mappedStatus,
+          peppol_error_message: scradaData.errorMessage || null,
+        })
+        .eq('id', invoice_id);
 
       await supabase.from('peppol_transmission_log').insert({
-        user_id: user.id, company_id: invoice.company_id || company.id, invoice_id, direction: 'outbound',
-        status: mappedStatus, ap_provider: 'scrada',
+        user_id: user.id,
+        company_id: invoice.company_id || company.id,
+        invoice_id,
+        direction: 'outbound',
+        status: mappedStatus,
+        ap_provider: 'scrada',
         ap_document_id: invoice.peppol_document_id,
         error_message: scradaData.errorMessage || null,
         metadata: scradaData,
       });
     }
 
-    return new Response(JSON.stringify({
-      status: mappedStatus, final: isFinal,
-      scradaStatus: scradaData.status,
-      errorMessage: scradaData.errorMessage || null,
-    }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        status: mappedStatus,
+        final: isFinal,
+        scradaStatus: scradaData.status,
+        errorMessage: scradaData.errorMessage || null,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: error instanceof HttpError ? error.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: error instanceof HttpError ? error.status : 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
-

@@ -1,5 +1,13 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { consumeCredits, createAuthClient, HttpError, refundCredits, requireAuthenticatedUser, resolveCreditCost } from '../_shared/billing.ts';
+import {
+  consumeCredits,
+  createAuthClient,
+  HttpError,
+  refundCredits,
+  requireAuthenticatedUser,
+  resolveCreditCost,
+} from '../_shared/billing.ts';
+import { getScopedCompany } from '../_shared/companyScope.ts';
 import { resolveScradaCredentials } from '../_shared/scradaCredentials.ts';
 
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -9,7 +17,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   ...SECURITY_HEADERS,
 };
-
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -26,12 +33,14 @@ serve(async (req) => {
     const supabase = createAuthClient(authHeader);
     const body = await req.json();
     const action = body.action || 'list';
+    const requestedCompanyId = body.company_id;
 
-    const { data: company } = await supabase
-      .from('company')
-      .select('peppol_endpoint_id, peppol_scheme_id, scrada_company_id, scrada_api_key, scrada_password, scrada_api_key_encrypted, scrada_password_encrypted')
-      .eq('user_id', user.id)
-      .single();
+    const { company, companyId } = await getScopedCompany(
+      supabase,
+      user.id,
+      'id, peppol_endpoint_id, peppol_scheme_id, scrada_company_id, scrada_api_key, scrada_password, scrada_api_key_encrypted, scrada_password_encrypted',
+      requestedCompanyId
+    );
 
     const { apiKey, password } = await resolveScradaCredentials(company);
     if (!company?.scrada_company_id || !apiKey || !password) {
@@ -42,7 +51,7 @@ serve(async (req) => {
     const scradaHeaders = {
       'X-API-KEY': apiKey,
       'X-PASSWORD': password,
-      'Language': 'FR',
+      Language: 'FR',
     };
 
     if (action === 'list') {
@@ -50,6 +59,7 @@ serve(async (req) => {
         .from('peppol_inbound_documents')
         .select('*')
         .eq('user_id', user.id)
+        .eq('company_id', companyId)
         .order('received_at', { ascending: false })
         .limit(100);
 
@@ -84,6 +94,7 @@ serve(async (req) => {
           .select('id')
           .eq('scrada_document_id', docId)
           .eq('user_id', user.id)
+          .eq('company_id', companyId)
           .maybeSingle();
 
         if (!existing) {
@@ -92,15 +103,18 @@ serve(async (req) => {
       }
 
       if (newDocuments.length === 0) {
-        return new Response(JSON.stringify({
-          synced: true,
-          totalFromScrada: documents.length,
-          newDocuments: 0,
-          requiredCredits: 0,
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            synced: true,
+            totalFromScrada: documents.length,
+            newDocuments: 0,
+            requiredCredits: 0,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
 
       const peppolReceiveCredits = await resolveCreditCost(supabase, 'PEPPOL_RECEIVE_INVOICE');
@@ -112,19 +126,22 @@ serve(async (req) => {
           supabase,
           user.id,
           requiredCredits,
-          `Peppol inbound sync (${newDocuments.length} invoices)`,
+          `Peppol inbound sync (${newDocuments.length} invoices)`
         );
       } catch (error) {
         if (error instanceof HttpError && error.status === 402) {
-          return new Response(JSON.stringify({
-            error: 'insufficient_credits',
-            insufficientCredits: true,
-            requiredCredits,
-            newDocuments: newDocuments.length,
-          }), {
-            status: 402,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          return new Response(
+            JSON.stringify({
+              error: 'insufficient_credits',
+              insufficientCredits: true,
+              requiredCredits,
+              newDocuments: newDocuments.length,
+            }),
+            {
+              status: 402,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
         }
         throw error;
       }
@@ -132,6 +149,7 @@ serve(async (req) => {
       try {
         const inboundRows = newDocuments.map(({ docId, doc }) => ({
           user_id: user.id,
+          company_id: companyId,
           scrada_document_id: docId,
           sender_peppol_id: doc.peppolSenderID || doc.senderID || null,
           sender_name: doc.senderName || null,
@@ -147,29 +165,30 @@ serve(async (req) => {
           received_at: doc.receivedAt || doc.createdOn || new Date().toISOString(),
         }));
 
-        const { error: insertDocsError } = await supabase
-          .from('peppol_inbound_documents')
-          .insert(inboundRows);
+        const { error: insertDocsError } = await supabase.from('peppol_inbound_documents').insert(inboundRows);
         if (insertDocsError) throw insertDocsError;
       } catch (error) {
         await refundCredits(
           supabase,
           user.id,
           creditDeduction,
-          `Refund Peppol inbound sync (${newDocuments.length} invoices)`,
+          `Refund Peppol inbound sync (${newDocuments.length} invoices)`
         );
         throw error;
       }
 
-      return new Response(JSON.stringify({
-        synced: true,
-        totalFromScrada: documents.length,
-        newDocuments: newDocuments.length,
-        requiredCredits,
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          synced: true,
+          totalFromScrada: documents.length,
+          newDocuments: newDocuments.length,
+          requiredCredits,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     if (action === 'get_ubl' && body.document_id) {
@@ -219,7 +238,3 @@ serve(async (req) => {
     });
   }
 });
-
-
-
-

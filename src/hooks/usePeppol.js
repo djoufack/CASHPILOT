@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCompany } from '@/hooks/useCompany';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 import { readFunctionErrorData } from '@/utils/supabaseFunctionErrors';
@@ -12,6 +13,7 @@ import { readFunctionErrorData } from '@/utils/supabaseFunctionErrors';
  */
 export function usePeppol() {
   const { user } = useAuth();
+  const { company } = useCompany();
   const { applyCompanyScope } = useCompanyScope();
 
   // ─── Outbound invoices ───
@@ -20,15 +22,16 @@ export function usePeppol() {
     loading: loadingInvoices,
     refetch: fetchOutboundInvoices,
   } = useSupabaseQuery(
-    async (guard) => {
+    async (_guard) => {
       if (!user) return [];
       let query = supabase
         .from('invoices')
-        .select(`
-          id, invoice_number, total_ht, total_ttc, tax_rate, status,
-          peppol_status, peppol_sent_at, peppol_document_id, peppol_error_message,
+        .select(
+          `
+          *,
           client:clients!fk_invoices_client_scope(id, company_name, contact_name, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled)
-        `)
+        `
+        )
         .eq('user_id', user.id)
         .eq('status', 'sent')
         .order('created_at', { ascending: false });
@@ -38,7 +41,7 @@ export function usePeppol() {
       if (error) throw error;
       return data || [];
     },
-    { deps: [user?.id, applyCompanyScope], defaultData: [], enabled: !!user },
+    { deps: [user?.id, applyCompanyScope], defaultData: [], enabled: !!user }
   );
 
   // ─── Inbound logs ───
@@ -47,7 +50,7 @@ export function usePeppol() {
     loading: loadingInbound,
     refetch: fetchInboundLogs,
   } = useSupabaseQuery(
-    async (guard) => {
+    async (_guard) => {
       if (!user) return [];
       let query = supabase
         .from('peppol_transmission_log')
@@ -61,7 +64,7 @@ export function usePeppol() {
       if (error) throw error;
       return data || [];
     },
-    { deps: [user?.id, applyCompanyScope], defaultData: [], enabled: !!user },
+    { deps: [user?.id, applyCompanyScope], defaultData: [], enabled: !!user }
   );
 
   // ─── All transmission logs ───
@@ -70,7 +73,7 @@ export function usePeppol() {
     loading: loadingLogs,
     refetch: fetchAllLogs,
   } = useSupabaseQuery(
-    async (guard) => {
+    async (_guard) => {
       if (!user) return [];
       let query = supabase
         .from('peppol_transmission_log')
@@ -84,7 +87,7 @@ export function usePeppol() {
       if (error) throw error;
       return data || [];
     },
-    { deps: [user?.id, applyCompanyScope], defaultData: [], enabled: !!user },
+    { deps: [user?.id, applyCompanyScope], defaultData: [], enabled: !!user }
   );
 
   // ─── AP account info ───
@@ -95,7 +98,9 @@ export function usePeppol() {
     if (!user) return;
     setLoadingApInfo(true);
     try {
-      const { data, error } = await supabase.functions.invoke('peppol-account-info');
+      const { data, error } = await supabase.functions.invoke('peppol-account-info', {
+        body: { company_id: company?.id || null },
+      });
       if (error) throw error;
       setApInfo(data);
     } catch (err) {
@@ -104,14 +109,11 @@ export function usePeppol() {
     } finally {
       setLoadingApInfo(false);
     }
-  }, [user]);
+  }, [company?.id, user]);
 
   // ─── Fetch invoice items (for send dialog, view, UBL export) ───
   const fetchInvoiceItems = useCallback(async (invoiceId) => {
-    const { data, error } = await supabase
-      .from('invoice_items')
-      .select('*')
-      .eq('invoice_id', invoiceId);
+    const { data, error } = await supabase.from('invoice_items').select('*').eq('invoice_id', invoiceId);
     if (error) throw error;
     return data || [];
   }, []);
@@ -124,7 +126,7 @@ export function usePeppol() {
     setSyncingInbound(true);
     try {
       const { data, error } = await supabase.functions.invoke('peppol-inbound', {
-        body: { action: 'sync' },
+        body: { action: 'sync', company_id: company?.id || null },
       });
       if (error) throw error;
       return data;
@@ -134,7 +136,7 @@ export function usePeppol() {
     } finally {
       setSyncingInbound(false);
     }
-  }, [user]);
+  }, [company?.id, user]);
 
   // ─── Refresh all data ───
   const refreshAll = useCallback(() => {

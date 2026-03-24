@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createAuthClient, HttpError, requireAuthenticatedUser } from '../_shared/billing.ts';
+import { getScopedCompany } from '../_shared/companyScope.ts';
 import { resolveScradaCredentials } from '../_shared/scradaCredentials.ts';
 
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
@@ -21,18 +22,27 @@ serve(async (req) => {
 
     const user = await requireAuthenticatedUser(req);
     const supabase = createAuthClient(authHeader);
+    let payload: Record<string, unknown> = {};
+    try {
+      payload = await req.json();
+    } catch {
+      payload = {};
+    }
+    const requestedCompanyId = payload.company_id;
 
     // Load Scrada credentials
-    const { data: company } = await supabase
-      .from('company')
-      .select('scrada_company_id, scrada_api_key, scrada_password, scrada_api_key_encrypted, scrada_password_encrypted, peppol_endpoint_id, peppol_scheme_id')
-      .eq('user_id', user.id)
-      .single();
+    const { company } = await getScopedCompany(
+      supabase,
+      user.id,
+      'scrada_company_id, scrada_api_key, scrada_password, scrada_api_key_encrypted, scrada_password_encrypted, peppol_endpoint_id, peppol_scheme_id',
+      requestedCompanyId
+    );
 
     const { apiKey, password } = await resolveScradaCredentials(company);
     if (!apiKey || !company?.scrada_company_id) {
       return new Response(JSON.stringify({ error: 'Scrada credentials not configured', configured: false }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -40,20 +50,22 @@ serve(async (req) => {
     const headers = {
       'X-API-KEY': apiKey,
       'X-PASSWORD': password || '',
-      'Language': 'FR',
+      Language: 'FR',
     };
 
     // 1. Fetch company profile from Scrada
     let companyProfile = null;
     try {
-      const companyRes = await fetch(
-        `${scradaBaseUrl}/company/${company.scrada_company_id}`,
-        { method: 'GET', headers }
-      );
+      const companyRes = await fetch(`${scradaBaseUrl}/company/${company.scrada_company_id}`, {
+        method: 'GET',
+        headers,
+      });
       if (companyRes.ok) {
         companyProfile = await companyRes.json();
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // 2. Check own Peppol registration status
     let registrationStatus = null;
@@ -69,49 +81,60 @@ serve(async (req) => {
         } else if (regRes.status === 404) {
           registrationStatus = { registered: false };
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     // 3. Fetch recent outbound documents (last 20)
     let recentDocuments: any[] = [];
     try {
-      const docsRes = await fetch(
-        `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolOutbound?limit=20`,
-        { method: 'GET', headers }
-      );
+      const docsRes = await fetch(`${scradaBaseUrl}/company/${company.scrada_company_id}/peppolOutbound?limit=20`, {
+        method: 'GET',
+        headers,
+      });
       if (docsRes.ok) {
         const docsData = await docsRes.json();
-        recentDocuments = Array.isArray(docsData) ? docsData : (docsData.items || docsData.data || []);
+        recentDocuments = Array.isArray(docsData) ? docsData : docsData.items || docsData.data || [];
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // 4. Fetch supported document types / profiles
     let supportedProfiles: any[] = [];
     try {
-      const profRes = await fetch(
-        `${scradaBaseUrl}/company/${company.scrada_company_id}/peppolRegistration`,
-        { method: 'GET', headers }
-      );
+      const profRes = await fetch(`${scradaBaseUrl}/company/${company.scrada_company_id}/peppolRegistration`, {
+        method: 'GET',
+        headers,
+      });
       if (profRes.ok) {
         const profData = await profRes.json();
-        supportedProfiles = Array.isArray(profData) ? profData : (profData.profiles || profData.documentTypes || [profData]);
+        supportedProfiles = Array.isArray(profData)
+          ? profData
+          : profData.profiles || profData.documentTypes || [profData];
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
-    return new Response(JSON.stringify({
-      configured: true,
-      companyProfile,
-      registrationStatus,
-      recentDocuments,
-      supportedProfiles,
-    }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        configured: true,
+        companyProfile,
+        registrationStatus,
+        recentDocuments,
+        supportedProfiles,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: error instanceof HttpError ? error.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: error instanceof HttpError ? error.status : 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
-
-
