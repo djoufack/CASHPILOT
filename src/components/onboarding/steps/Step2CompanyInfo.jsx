@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,11 +9,25 @@ import { useReferenceData } from '@/contexts/ReferenceDataContext';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { setStoredActiveCompanyId } from '@/utils/activeCompanyStorage';
 import { ArrowLeft, ArrowRight, Building2 } from 'lucide-react';
 
 const isMissingAccountingCurrencyColumn = (error) =>
-  error?.code === 'PGRST204' ||
-  String(error?.message || '').includes('accounting_currency');
+  error?.code === 'PGRST204' || String(error?.message || '').includes('accounting_currency');
+
+const withTimeout = async (factory, timeoutMs = 15000, message = 'La requete a expire.') => {
+  let timeoutId = null;
+  try {
+    return await Promise.race([
+      factory(),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
 
 const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
   const { t } = useTranslation();
@@ -34,22 +48,31 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
     iban: '',
     ...wizardData.companyInfo,
   });
+  const [companyId, setCompanyId] = useState(wizardData.companyInfo?.id || null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!user || !supabase) return;
     const loadCompany = async () => {
-      const { data, error } = await supabase
-        .from('company')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const { data, error } = await withTimeout(
+        () =>
+          supabase
+            .from('company')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle(),
+        12000,
+        t('messages.error.companyLoadTimeout', 'Le chargement de la societe a expire.')
+      );
       if (error) {
         console.error('Error loading company during onboarding:', error);
         return;
       }
       if (data) {
-        setForm(prev => ({
+        setCompanyId(data.id || null);
+        setForm((prev) => ({
           ...prev,
           ...data,
           currency: data.accounting_currency || prev.currency,
@@ -57,10 +80,10 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
       }
     };
     loadCompany();
-  }, [user]);
+  }, [user, t]);
 
   const handleChange = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }));
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleNext = async () => {
@@ -71,7 +94,7 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
       toast({
         title: t('validation.missingFields', 'Champs obligatoires manquants'),
         description: `${t('validation.pleaseComplete', 'Veuillez remplir')} : ${missingFields.join(', ')}`,
-        variant: "destructive"
+        variant: 'destructive',
       });
       return;
     }
@@ -81,38 +104,113 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
       let nextCompanyInfo = form;
 
       if (supabase && user) {
-        const accountingCurrency = String(form.currency || 'EUR').trim().toUpperCase() || 'EUR';
+        const accountingCurrency =
+          String(form.currency || 'EUR')
+            .trim()
+            .toUpperCase() || 'EUR';
+        const nowIso = new Date().toISOString();
         const basePayload = {
-          user_id: user.id,
           ...form,
+          user_id: user.id,
           currency: accountingCurrency,
-          updated_at: new Date().toISOString(),
+          updated_at: nowIso,
         };
-        let response = await supabase
-          .from('company')
-          .upsert({
-            ...basePayload,
-            accounting_currency: accountingCurrency,
-          }, { onConflict: 'user_id' });
 
-        if (response.error && isMissingAccountingCurrencyColumn(response.error)) {
-          response = await supabase
-            .from('company')
-            .upsert(basePayload, { onConflict: 'user_id' });
+        const upsertPayload = {
+          ...basePayload,
+          accounting_currency: accountingCurrency,
+        };
+
+        let response;
+        if (companyId) {
+          response = await withTimeout(
+            () =>
+              supabase
+                .from('company')
+                .update(upsertPayload)
+                .eq('id', companyId)
+                .eq('user_id', user.id)
+                .select('id')
+                .single(),
+            15000,
+            t('messages.error.companySaveTimeout', 'La sauvegarde a expire. Veuillez reessayer.')
+          );
+        } else {
+          response = await withTimeout(
+            () =>
+              supabase
+                .from('company')
+                .insert([
+                  {
+                    ...upsertPayload,
+                    created_at: nowIso,
+                  },
+                ])
+                .select('id')
+                .single(),
+            15000,
+            t('messages.error.companySaveTimeout', 'La sauvegarde a expire. Veuillez reessayer.')
+          );
         }
 
-        const { error } = response;
+        if (response.error && isMissingAccountingCurrencyColumn(response.error)) {
+          if (companyId) {
+            response = await withTimeout(
+              () =>
+                supabase
+                  .from('company')
+                  .update(basePayload)
+                  .eq('id', companyId)
+                  .eq('user_id', user.id)
+                  .select('id')
+                  .single(),
+              15000,
+              t('messages.error.companySaveTimeout', 'La sauvegarde a expire. Veuillez reessayer.')
+            );
+          } else {
+            response = await withTimeout(
+              () =>
+                supabase
+                  .from('company')
+                  .insert([
+                    {
+                      ...basePayload,
+                      created_at: nowIso,
+                    },
+                  ])
+                  .select('id')
+                  .single(),
+              15000,
+              t('messages.error.companySaveTimeout', 'La sauvegarde a expire. Veuillez reessayer.')
+            );
+          }
+        }
+
+        const { data: savedCompany, error } = response;
         if (error) {
           toast({
             title: t('messages.error.companySaveFailed', 'Erreur de sauvegarde'),
-            description: t('messages.error.companySaveDescription', "Impossible de sauvegarder les informations de l'entreprise. Veuillez reessayer."),
-            variant: "destructive"
+            description: t(
+              'messages.error.companySaveDescription',
+              "Impossible de sauvegarder les informations de l'entreprise. Veuillez reessayer."
+            ),
+            variant: 'destructive',
           });
           return;
         }
 
+        if (savedCompany?.id) {
+          setCompanyId(savedCompany.id);
+        }
+
+        const resolvedCompanyId = savedCompany?.id || companyId || null;
+        if (resolvedCompanyId) {
+          setStoredActiveCompanyId(resolvedCompanyId);
+        }
+
         nextCompanyInfo = {
           ...form,
+          id: resolvedCompanyId,
           currency: accountingCurrency,
         };
       }
@@ -122,8 +220,11 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
     } catch (err) {
       toast({
         title: t('messages.error.companySaveFailed', 'Erreur de sauvegarde'),
-        description: t('messages.error.companySaveDescription', "Impossible de sauvegarder les informations de l'entreprise. Veuillez reessayer."),
-        variant: "destructive"
+        description: t(
+          'messages.error.companySaveDescription',
+          "Impossible de sauvegarder les informations de l'entreprise. Veuillez reessayer."
+        ),
+        variant: 'destructive',
       });
     } finally {
       setSaving(false);
@@ -168,7 +269,9 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
         </div>
 
         <div className="space-y-1">
-          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.type', 'Type')}</Label>
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>
+            {t('onboarding.company.type', 'Type')}
+          </Label>
           <Select value={form.company_type} onValueChange={(v) => handleChange('company_type', v)}>
             <SelectTrigger className={inputClass} style={inputStyle}>
               <SelectValue />
@@ -181,7 +284,9 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
         </div>
 
         <div className="space-y-1">
-          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.taxId', 'N. TVA / SIRET')}</Label>
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>
+            {t('onboarding.company.taxId', 'N. TVA / SIRET')}
+          </Label>
           <Input
             value={form.tax_id}
             onChange={(e) => handleChange('tax_id', e.target.value)}
@@ -192,7 +297,9 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
         </div>
 
         <div className="sm:col-span-2 space-y-1">
-          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.address', 'Adresse')}</Label>
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>
+            {t('onboarding.company.address', 'Adresse')}
+          </Label>
           <Input
             value={form.address}
             onChange={(e) => handleChange('address', e.target.value)}
@@ -203,7 +310,9 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
         </div>
 
         <div className="space-y-1">
-          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.city', 'Ville')}</Label>
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>
+            {t('onboarding.company.city', 'Ville')}
+          </Label>
           <Input
             value={form.city}
             onChange={(e) => handleChange('city', e.target.value)}
@@ -214,7 +323,9 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
         </div>
 
         <div className="space-y-1">
-          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.postalCode', 'Code postal')}</Label>
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>
+            {t('onboarding.company.postalCode', 'Code postal')}
+          </Label>
           <Input
             value={form.postal_code}
             onChange={(e) => handleChange('postal_code', e.target.value)}
@@ -225,7 +336,9 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
         </div>
 
         <div className="space-y-1">
-          <Label className="text-xs" style={{ color: '#8b92a8' }}>{t('onboarding.company.country', 'Pays')}</Label>
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>
+            {t('onboarding.company.country', 'Pays')}
+          </Label>
           <SearchableSelect
             options={countryOptions}
             value={form.country}
@@ -254,7 +367,9 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
         </div>
 
         <div className="sm:col-span-2 space-y-1">
-          <Label className="text-xs" style={{ color: '#8b92a8' }}>IBAN</Label>
+          <Label className="text-xs" style={{ color: '#8b92a8' }}>
+            IBAN
+          </Label>
           <Input
             value={form.iban}
             onChange={(e) => handleChange('iban', e.target.value)}
@@ -280,10 +395,7 @@ const Step2CompanyInfo = ({ onNext, onBack, wizardData, updateWizardData }) => {
           className="text-white font-medium focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#0a0e1a] focus:ring-[#DAA520]"
           style={{ background: 'linear-gradient(135deg, #DAA520, #22C55E)' }}
         >
-          {saving
-            ? t('common.saving', 'Sauvegarde...')
-            : t('onboarding.next', 'Suivant')
-          }
+          {saving ? t('common.saving', 'Sauvegarde...') : t('onboarding.next', 'Suivant')}
           {!saving && <ArrowRight className="w-4 h-4 ml-2" />}
         </Button>
       </div>

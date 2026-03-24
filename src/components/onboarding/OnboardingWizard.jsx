@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useTranslation } from 'react-i18next';
@@ -18,54 +18,139 @@ const STEPS = [
   { key: 'confirm', labelKey: 'onboarding.steps.confirm', label: 'Confirmation' },
 ];
 
+const SAFE_SKIP_STEP = 3;
+
 const OnboardingWizard = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const {
     currentStep,
+    saving,
+    error: onboardingError,
     wizardData,
     updateWizardData,
     nextStep,
     prevStep,
     completeOnboarding,
   } = useOnboarding();
+  const [navigationError, setNavigationError] = useState(null);
+
+  const canSkipNow =
+    currentStep >= SAFE_SKIP_STEP && Boolean(wizardData.companyInfo?.id) && Boolean(wizardData.selectedPlanId);
 
   const handleSkip = useCallback(() => {
+    if (!canSkipNow) {
+      setNavigationError(
+        t(
+          'onboarding.errors.skipLocked',
+          'Vous pourrez quitter l’assistant apres la creation de la societe et le choix du plan comptable.'
+        )
+      );
+      return;
+    }
     navigate('/app');
-  }, [navigate]);
+  }, [canSkipNow, navigate, t]);
 
   const handleComplete = useCallback(async () => {
-    await completeOnboarding();
+    setNavigationError(null);
+    const result = await completeOnboarding();
+    if (!result?.success) {
+      setNavigationError(
+        result?.error ||
+          t(
+            'onboarding.errors.stepPersistenceFailed',
+            'Impossible de continuer pour le moment. Verifiez la connexion puis reessayez.'
+          )
+      );
+      return;
+    }
     navigate('/app');
-  }, [completeOnboarding, navigate]);
+  }, [completeOnboarding, navigate, t]);
 
-  // Keyboard navigation: Escape to skip
+  const handleNext = useCallback(async () => {
+    setNavigationError(null);
+    const result = await nextStep();
+    if (!result?.success) {
+      setNavigationError(
+        result?.error ||
+          t(
+            'onboarding.errors.stepPersistenceFailed',
+            'Impossible de continuer pour le moment. Verifiez la connexion puis reessayez.'
+          )
+      );
+    }
+  }, [nextStep, t]);
+
+  const handleBack = useCallback(async () => {
+    setNavigationError(null);
+    const result = await prevStep();
+    if (!result?.success) {
+      setNavigationError(
+        result?.error ||
+          t(
+            'onboarding.errors.stepPersistenceFailed',
+            'Impossible de continuer pour le moment. Verifiez la connexion puis reessayez.'
+          )
+      );
+    }
+  }, [prevStep, t]);
+
+  // Keyboard navigation: Escape to skip only when it is safe.
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && currentStep < 4) {
+      if (e.key === 'Escape' && canSkipNow) {
         handleSkip();
+      } else if (e.key === 'Escape' && !canSkipNow) {
+        setNavigationError(
+          t(
+            'onboarding.errors.skipLocked',
+            'Vous pourrez quitter l’assistant apres la creation de la societe et le choix du plan comptable.'
+          )
+        );
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentStep, handleSkip]);
+  }, [canSkipNow, handleSkip, t]);
 
   const renderStep = () => {
     switch (currentStep) {
       case 0:
-        return <Step1Welcome onNext={nextStep} onSkip={handleSkip} />;
+        return <Step1Welcome onNext={handleNext} onSkip={handleSkip} />;
       case 1:
-        return <Step2CompanyInfo onNext={nextStep} onBack={prevStep} wizardData={wizardData} updateWizardData={updateWizardData} />;
+        return (
+          <Step2CompanyInfo
+            onNext={handleNext}
+            onBack={handleBack}
+            wizardData={wizardData}
+            updateWizardData={updateWizardData}
+          />
+        );
       case 2:
-        return <Step3AccountingPlan onNext={nextStep} onBack={prevStep} wizardData={wizardData} updateWizardData={updateWizardData} />;
+        return (
+          <Step3AccountingPlan
+            onNext={handleNext}
+            onBack={handleBack}
+            wizardData={wizardData}
+            updateWizardData={updateWizardData}
+          />
+        );
       case 3:
-        return <Step4OpeningBalances onNext={nextStep} onBack={prevStep} wizardData={wizardData} updateWizardData={updateWizardData} />;
+        return (
+          <Step4OpeningBalances
+            onNext={handleNext}
+            onBack={handleBack}
+            wizardData={wizardData}
+            updateWizardData={updateWizardData}
+          />
+        );
       case 4:
-        return <Step5Confirmation onComplete={handleComplete} onBack={prevStep} wizardData={wizardData} />;
+        return <Step5Confirmation onComplete={handleComplete} onBack={handleBack} wizardData={wizardData} />;
       default:
-        return <Step1Welcome onNext={nextStep} onSkip={handleSkip} />;
+        return <Step1Welcome onNext={handleNext} onSkip={handleSkip} />;
     }
   };
+  const combinedError = navigationError || onboardingError;
 
   return (
     <div
@@ -75,9 +160,18 @@ const OnboardingWizard = () => {
       aria-label={t('onboarding.wizard.ariaLabel', 'Assistant de configuration comptable')}
     >
       {/* Background ambient glows */}
-      <div className="absolute top-[-15%] left-[-10%] w-[45%] h-[45%] rounded-full blur-[120px] pointer-events-none" style={{ background: 'rgba(218, 165, 32, 0.08)' }} />
-      <div className="absolute bottom-[-15%] right-[-10%] w-[45%] h-[45%] rounded-full blur-[120px] pointer-events-none" style={{ background: 'rgba(34, 197, 94, 0.06)' }} />
-      <div className="absolute top-[40%] left-[60%] w-[30%] h-[30%] rounded-full blur-[100px] pointer-events-none" style={{ background: 'rgba(139, 92, 246, 0.05)' }} />
+      <div
+        className="absolute top-[-15%] left-[-10%] w-[45%] h-[45%] rounded-full blur-[120px] pointer-events-none"
+        style={{ background: 'rgba(218, 165, 32, 0.08)' }}
+      />
+      <div
+        className="absolute bottom-[-15%] right-[-10%] w-[45%] h-[45%] rounded-full blur-[120px] pointer-events-none"
+        style={{ background: 'rgba(34, 197, 94, 0.06)' }}
+      />
+      <div
+        className="absolute top-[40%] left-[60%] w-[30%] h-[30%] rounded-full blur-[100px] pointer-events-none"
+        style={{ background: 'rgba(139, 92, 246, 0.05)' }}
+      />
 
       <div className="relative w-full max-w-2xl z-10">
         {/* Header with animated gradient title */}
@@ -166,14 +260,17 @@ const OnboardingWizard = () => {
             className="h-full rounded-full"
             style={{ background: 'linear-gradient(90deg, #DAA520, #22C55E)' }}
             initial={false}
-            animate={{ width: `${((currentStep) / (STEPS.length - 1)) * 100}%` }}
+            animate={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
             transition={{ duration: 0.4, ease: 'easeInOut' }}
           />
         </div>
 
         {/* Step label for mobile */}
         <p className="sm:hidden text-center text-sm mb-4" style={{ color: '#8b92a8' }}>
-          {t('onboarding.wizard.stepOf', 'Etape {{current}} sur {{total}}', { current: currentStep + 1, total: STEPS.length })}
+          {t('onboarding.wizard.stepOf', 'Etape {{current}} sur {{total}}', {
+            current: currentStep + 1,
+            total: STEPS.length,
+          })}
           {' - '}
           {t(STEPS[currentStep]?.labelKey, STEPS[currentStep]?.label)}
         </p>
@@ -204,19 +301,46 @@ const OnboardingWizard = () => {
           </AnimatePresence>
         </div>
 
+        {combinedError && (
+          <div
+            className="mt-4 rounded-xl border px-4 py-3 text-sm"
+            role="alert"
+            style={{ background: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.3)', color: '#fca5a5' }}
+          >
+            {combinedError}
+          </div>
+        )}
+
         {/* Skip link */}
-        {currentStep < 4 && (
+        {canSkipNow ? (
           <div className="text-center mt-4">
             <button
               onClick={handleSkip}
               className="text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#DAA520]/50 rounded px-2 py-1"
               style={{ color: '#8b92a8' }}
-              onMouseEnter={(e) => { e.target.style.color = '#e8eaf0'; }}
-              onMouseLeave={(e) => { e.target.style.color = '#8b92a8'; }}
+              onMouseEnter={(e) => {
+                e.target.style.color = '#e8eaf0';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.color = '#8b92a8';
+              }}
             >
               {t('onboarding.skipForNow', "Passer pour l'instant")}
             </button>
           </div>
+        ) : currentStep < 4 ? (
+          <p className="text-center mt-4 text-xs" style={{ color: '#4b5563' }}>
+            {t(
+              'onboarding.skipLockedHint',
+              "Vous pourrez quitter l'assistant apres la creation de la societe et le choix du plan comptable."
+            )}
+          </p>
+        ) : null}
+
+        {!combinedError && saving && (
+          <p className="text-center mt-4 text-xs" style={{ color: '#8b92a8' }}>
+            {t('onboarding.savingStep', 'Enregistrement de l’etape en cours...')}
+          </p>
         )}
       </div>
 
