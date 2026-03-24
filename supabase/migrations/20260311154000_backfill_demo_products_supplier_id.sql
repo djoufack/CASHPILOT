@@ -32,7 +32,6 @@ FROM candidate_products cp
 JOIN company_supplier cs ON cs.company_id = cp.company_id
 WHERE p.id = cp.id
   AND p.supplier_id IS NULL;
-
 WITH demo_users AS (
   SELECT id
   FROM auth.users
@@ -63,7 +62,6 @@ FROM candidate_products cp
 JOIN user_supplier us ON us.user_id = cp.user_id
 WHERE p.id = cp.id
   AND p.supplier_id IS NULL;
-
 DO $$
 DECLARE
   v_remaining INTEGER := 0;

@@ -1,5 +1,4 @@
 BEGIN;
-
 CREATE OR REPLACE FUNCTION public.log_recurring_line_item_crud_data_access()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -55,15 +54,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_financial_crud_audit_recurring_invoice_line_items ON public.recurring_invoice_line_items;
 CREATE TRIGGER trg_financial_crud_audit_recurring_invoice_line_items
   AFTER INSERT OR UPDATE OR DELETE ON public.recurring_invoice_line_items
   FOR EACH ROW
   EXECUTE FUNCTION public.log_recurring_line_item_crud_data_access();
-
 ALTER TABLE public.recurring_invoice_line_items
   ENABLE TRIGGER trg_financial_crud_audit_recurring_invoice_line_items;
-
 COMMIT;
-

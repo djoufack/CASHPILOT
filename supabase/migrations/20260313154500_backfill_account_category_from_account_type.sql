@@ -1,5 +1,4 @@
 BEGIN;
-
 CREATE OR REPLACE FUNCTION public.derive_account_category_from_type(p_account_type TEXT)
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -23,11 +22,9 @@ BEGIN
   RETURN 'autres';
 END;
 $$;
-
 UPDATE public.accounting_chart_of_accounts
 SET account_category = public.derive_account_category_from_type(account_type)
 WHERE coalesce(trim(account_category), '') = '';
-
 CREATE OR REPLACE FUNCTION public.ensure_account_category_from_account_type()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -39,12 +36,9 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_ensure_account_category_from_account_type ON public.accounting_chart_of_accounts;
 CREATE TRIGGER trg_ensure_account_category_from_account_type
   BEFORE INSERT OR UPDATE ON public.accounting_chart_of_accounts
   FOR EACH ROW
   EXECUTE FUNCTION public.ensure_account_category_from_account_type();
-
 COMMIT;
-

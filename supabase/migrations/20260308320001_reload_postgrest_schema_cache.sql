@@ -1,6 +1,5 @@
 -- Force PostgREST to reload its schema cache after FK changes
 NOTIFY pgrst, 'reload schema';
-
 -- Verify: exactly 1 FK on supplier_invoices.supplier_id
 DO $$
 DECLARE
@@ -38,7 +37,6 @@ BEGIN
     RAISE NOTICE 'Fixed: dropped all duplicate FKs, re-added single constraint';
   END IF;
 END $$;
-
 -- Also check supplier_orders for same issue (we added fk_supplier_order_items_order)
 DO $$
 DECLARE
@@ -69,7 +67,6 @@ BEGIN
     RAISE NOTICE 'Fixed supplier_order_items duplicate FK';
   END IF;
 END $$;
-
 -- Check invoice_items for same issue
 DO $$
 DECLARE
@@ -100,7 +97,6 @@ BEGIN
     RAISE NOTICE 'Fixed invoice_items duplicate FK';
   END IF;
 END $$;
-
 -- Check payments for same issue
 DO $$
 DECLARE
@@ -131,6 +127,5 @@ BEGIN
     RAISE NOTICE 'Fixed payments duplicate FK';
   END IF;
 END $$;
-
 -- Final schema reload
 NOTIFY pgrst, 'reload schema';

@@ -9,19 +9,14 @@ CREATE TABLE IF NOT EXISTS public.deleted_data_snapshots (
   deleted_at TIMESTAMPTZ DEFAULT now(),
   deleted_by UUID REFERENCES auth.users(id)
 );
-
 CREATE INDEX IF NOT EXISTS idx_deleted_snapshots_user ON deleted_data_snapshots(user_id);
 CREATE INDEX IF NOT EXISTS idx_deleted_snapshots_entity ON deleted_data_snapshots(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_deleted_snapshots_date ON deleted_data_snapshots(deleted_at DESC);
-
 ALTER TABLE deleted_data_snapshots ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "snapshot_select_own" ON deleted_data_snapshots
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
-
 CREATE POLICY "snapshot_insert_own" ON deleted_data_snapshots
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-
 CREATE OR REPLACE FUNCTION public.snapshot_before_client_delete()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
@@ -44,7 +39,6 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_snapshot_before_client_delete ON clients;
 CREATE TRIGGER trg_snapshot_before_client_delete
   BEFORE DELETE ON clients FOR EACH ROW
