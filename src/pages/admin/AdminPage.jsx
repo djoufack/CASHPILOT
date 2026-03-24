@@ -1,12 +1,11 @@
-
-import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminDashboard from './AdminDashboard';
 import UserManagement from './UserManagement';
-import { Shield, Users, LayoutDashboard, Key, Building2 } from 'lucide-react';
+import { Shield, Users, LayoutDashboard, Key, Building2, Wallet } from 'lucide-react';
 import AdminClientManager from '@/components/admin/AdminClientManager';
 import AdminRoleManager from '@/components/admin/AdminRoleManager';
 import AdminAuditTrail from '@/components/admin/AdminAuditTrail';
+import AdminBillingManager from '@/components/admin/AdminBillingManager';
 import { useTranslation } from 'react-i18next';
 
 const AdminPage = () => {
@@ -15,35 +14,54 @@ const AdminPage = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gradient">
-          {t('admin.systemHealth')} & Control
-        </h1>
+        <h1 className="text-3xl font-bold text-gradient">{t('admin.systemHealth')} & Control</h1>
         <p className="text-gray-400 mt-2">Manage users, roles, and system settings.</p>
       </div>
 
       <Tabs defaultValue="dashboard" className="w-full">
         <TabsList className="bg-gray-900 border-gray-800">
-          <TabsTrigger value="dashboard" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
+          <TabsTrigger
+            value="dashboard"
+            className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
+          >
             <LayoutDashboard className="w-4 h-4 mr-2" /> {t('common.dashboard')}
           </TabsTrigger>
-          <TabsTrigger value="users" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
+          <TabsTrigger
+            value="users"
+            className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
+          >
             <Users className="w-4 h-4 mr-2" /> {t('admin.users')}
           </TabsTrigger>
-          <TabsTrigger value="clients" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
+          <TabsTrigger
+            value="clients"
+            className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
+          >
             <Building2 className="w-4 h-4 mr-2" /> Clients
           </TabsTrigger>
-          <TabsTrigger value="roles" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
+          <TabsTrigger
+            value="roles"
+            className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
+          >
             <Key className="w-4 h-4 mr-2" /> {t('admin.roles')}
           </TabsTrigger>
-          <TabsTrigger value="audit" className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400">
-             <Shield className="w-4 h-4 mr-2" /> {t('admin.audit')}
+          <TabsTrigger
+            value="billing"
+            className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
+          >
+            <Wallet className="w-4 h-4 mr-2" /> Abonnements & Credits
+          </TabsTrigger>
+          <TabsTrigger
+            value="audit"
+            className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
+          >
+            <Shield className="w-4 h-4 mr-2" /> {t('admin.audit')}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-6">
           <AdminDashboard />
         </TabsContent>
-        
+
         <TabsContent value="users" className="mt-6">
           <UserManagement />
         </TabsContent>
@@ -55,7 +73,11 @@ const AdminPage = () => {
         <TabsContent value="roles" className="mt-6">
           <AdminRoleManager />
         </TabsContent>
-        
+
+        <TabsContent value="billing" className="mt-6">
+          <AdminBillingManager />
+        </TabsContent>
+
         <TabsContent value="audit" className="mt-6">
           <AdminAuditTrail />
         </TabsContent>
