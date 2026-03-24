@@ -180,6 +180,9 @@ const AppRoutes = () => {
       <Route path="/payment-success" element={page(PaymentSuccessPage)} />
       <Route path="/shared/:token" element={page(SharedSnapshotPage)} />
 
+      {/* ──────────── Legacy /dashboard redirect (BUG #9) ─────────────── */}
+      <Route path="/dashboard" element={<Navigate to="/app" replace />} />
+
       {/* ──────────────────────── Client Portal ────────────────────────── */}
       <Route
         path="/client-portal/*"

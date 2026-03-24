@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { supabase, getUserId } from '../supabase.js';
+import { supabase, getUserId, getCompanyId } from '../supabase.js';
 import { sanitizeRecord } from '../utils/sanitize.js';
 import { validateDatesInRecord } from '../utils/validation.js';
 import { safeError } from '../utils/errors.js';
@@ -55,6 +55,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('bank_connections')
         .insert([sanitizeRecord(payload)])
@@ -181,6 +182,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('payables')
         .insert([sanitizeRecord(payload)])
@@ -529,6 +531,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('services')
         .insert([sanitizeRecord(payload)])
@@ -639,7 +642,10 @@ export function registerGeneratedCrudTools(server: McpServer) {
       country: z.string().optional(),
       website: z.string().optional(),
       payment_terms: z.string().optional(),
-      supplier_type: z.string().optional(),
+      supplier_type: z
+        .enum(['service', 'product', 'both'])
+        .optional()
+        .describe("Supplier type: 'service', 'product', or 'both'"),
       status: z.enum(['active', 'inactive']).optional(),
       notes: z.string().optional(),
       tax_id: z.string().optional(),
@@ -653,6 +659,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('suppliers')
         .insert([sanitizeRecord(payload)])
@@ -682,7 +689,10 @@ export function registerGeneratedCrudTools(server: McpServer) {
       country: z.string().optional(),
       website: z.string().optional(),
       payment_terms: z.string().optional(),
-      supplier_type: z.string().optional(),
+      supplier_type: z
+        .enum(['service', 'product', 'both'])
+        .optional()
+        .describe("Supplier type: 'service', 'product', or 'both'"),
       status: z.enum(['active', 'inactive']).optional(),
       notes: z.string().optional(),
       tax_id: z.string().optional(),
@@ -768,6 +778,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('payment_reminder_rules')
         .insert([sanitizeRecord(payload)])
@@ -880,7 +891,13 @@ export function registerGeneratedCrudTools(server: McpServer) {
       date: z.string().optional(),
       status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired', 'converted']).optional(),
       total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
-      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
+      tax_rate: z
+        .number()
+        .min(0)
+        .max(100)
+        .multipleOf(0.01)
+        .optional()
+        .describe('Tax rate as percentage (e.g., 19.25 for 19.25%)'),
       total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
     },
     async (args) => {
@@ -888,6 +905,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('quotes')
         .insert([sanitizeRecord(payload)])
@@ -915,7 +933,13 @@ export function registerGeneratedCrudTools(server: McpServer) {
       date: z.string().optional(),
       status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired', 'converted']).optional(),
       total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
-      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
+      tax_rate: z
+        .number()
+        .min(0)
+        .max(100)
+        .multipleOf(0.01)
+        .optional()
+        .describe('Tax rate as percentage (e.g., 19.25 for 19.25%)'),
       total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
     },
     async (args) => {
@@ -1005,6 +1029,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('bank_statements')
         .insert([sanitizeRecord(payload)])
@@ -1358,6 +1383,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('supplier_orders')
         .insert([sanitizeRecord(payload)])
@@ -1471,6 +1497,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('service_categories')
         .insert([sanitizeRecord(payload)])
@@ -1585,7 +1612,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       postal_code: z.string().optional(),
       country: z.string().optional(),
       phone: z.string().optional(),
-      email: z.string().email().optional(),
+      email: z.string().optional().describe('Email address (validated but accepts empty string)'),
       website: z.string().optional(),
       logo_url: z.string().optional(),
       bank_account: z.string().optional(),
@@ -1598,7 +1625,13 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Strip empty-string optional fields so DB defaults apply
+      for (const key of Object.keys(payload)) {
+        if (payload[key] === '') delete payload[key];
+      }
       payload.user_id = getUserId();
+      // company table has no company_id — it IS the company
+      delete payload.company_id;
       const { data, error } = await supabase
         .from('company')
         .insert([sanitizeRecord(payload)])
@@ -1627,7 +1660,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       postal_code: z.string().optional(),
       country: z.string().optional(),
       phone: z.string().optional(),
-      email: z.string().email().optional(),
+      email: z.string().optional().describe('Email address (validated but accepts empty string)'),
       website: z.string().optional(),
       logo_url: z.string().optional(),
       bank_account: z.string().optional(),
@@ -1640,6 +1673,10 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const { id, ...updates } = args;
       const dateErr = validateDatesInRecord(updates);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      // Strip empty-string optional fields so they don't overwrite existing data
+      for (const key of Object.keys(updates)) {
+        if ((updates as Record<string, any>)[key] === '') delete (updates as Record<string, any>)[key];
+      }
       let query = supabase.from('company').update(sanitizeRecord(updates)).eq('id', id);
       query = query.eq('user_id', getUserId());
       const { data, error } = await query.select().single();
@@ -1730,6 +1767,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('bank_transactions')
         .insert([sanitizeRecord(payload)])
@@ -1856,6 +1894,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('payment_terms')
         .insert([sanitizeRecord(payload)])
@@ -1965,7 +2004,13 @@ export function registerGeneratedCrudTools(server: McpServer) {
       date: z.string(),
       reason: z.string().optional(),
       total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
-      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
+      tax_rate: z
+        .number()
+        .min(0)
+        .max(100)
+        .multipleOf(0.01)
+        .optional()
+        .describe('Tax rate as percentage (e.g., 19.25 for 19.25%)'),
       tax_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       status: z.enum(['draft', 'sent', 'applied', 'cancelled']).optional(),
@@ -1976,6 +2021,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('credit_notes')
         .insert([sanitizeRecord(payload)])
@@ -2010,7 +2056,13 @@ export function registerGeneratedCrudTools(server: McpServer) {
       date: z.string().optional(),
       reason: z.string().optional(),
       total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
-      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
+      tax_rate: z
+        .number()
+        .min(0)
+        .max(100)
+        .multipleOf(0.01)
+        .optional()
+        .describe('Tax rate as percentage (e.g., 19.25 for 19.25%)'),
       tax_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       status: z.enum(['draft', 'sent', 'applied', 'cancelled']).optional(),
@@ -2107,6 +2159,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('bank_reconciliation_sessions')
         .insert([sanitizeRecord(payload)])
@@ -2234,7 +2287,13 @@ export function registerGeneratedCrudTools(server: McpServer) {
       description: z.string().optional(),
       receipt_url: z.string().optional(),
       refacturable: z.boolean().optional(),
-      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
+      tax_rate: z
+        .number()
+        .min(0)
+        .max(100)
+        .multipleOf(0.01)
+        .optional()
+        .describe('Tax rate as decimal (e.g., 0.1925 for 19.25%)'),
       amount_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       tax_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       expense_date: z.string().optional(),
@@ -2244,6 +2303,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('expenses')
         .insert([sanitizeRecord(payload)])
@@ -2272,7 +2332,13 @@ export function registerGeneratedCrudTools(server: McpServer) {
       description: z.string().optional(),
       receipt_url: z.string().optional(),
       refacturable: z.boolean().optional(),
-      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional(),
+      tax_rate: z
+        .number()
+        .min(0)
+        .max(100)
+        .multipleOf(0.01)
+        .optional()
+        .describe('Tax rate as decimal (e.g., 0.1925 for 19.25%)'),
       amount_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       tax_amount: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       expense_date: z.string().optional(),
@@ -2361,6 +2427,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('receivables')
         .insert([sanitizeRecord(payload)])
@@ -2483,6 +2550,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('bank_statement_lines')
         .insert([sanitizeRecord(payload)])
@@ -2609,6 +2677,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('accounting_tax_rates')
         .insert([sanitizeRecord(payload)])
@@ -2732,6 +2801,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('recurring_invoices')
         .insert([sanitizeRecord(payload)])
@@ -2854,6 +2924,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('purchase_orders')
         .insert([sanitizeRecord(payload)])
@@ -2977,6 +3048,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('invoice_settings')
         .insert([sanitizeRecord(payload)])
@@ -3120,6 +3192,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
           return { content: [{ type: 'text' as const, text: 'Error: supplier not found or access denied' }] };
       }
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('products')
         .insert([sanitizeRecord(payload)])
@@ -3300,6 +3373,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
           return { content: [{ type: 'text' as const, text: 'Error: client not found or access denied' }] };
       }
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('timesheets')
         .insert([sanitizeRecord(payload)])
@@ -3461,6 +3535,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('projects')
         .insert([sanitizeRecord(payload)])
@@ -3574,6 +3649,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('dunning_steps')
         .insert([sanitizeRecord(payload)])
@@ -3691,6 +3767,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('dunning_history')
         .insert([sanitizeRecord(payload)])
@@ -3806,6 +3883,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('company_portfolios')
         .insert([sanitizeRecord(payload)])
@@ -3917,6 +3995,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
     async (args) => {
       const payload = { ...args } as Record<string, any>;
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('company_portfolio_members')
         .insert([sanitizeRecord(payload)])
@@ -4940,6 +5019,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
       payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('payment_alerts')
         .insert([sanitizeRecord(payload)])

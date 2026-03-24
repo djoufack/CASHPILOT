@@ -13,8 +13,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const memoryStorage: Record<string, string> = {};
 const customStorage = {
   getItem: (key: string) => memoryStorage[key] ?? null,
-  setItem: (key: string, value: string) => { memoryStorage[key] = value; },
-  removeItem: (key: string) => { delete memoryStorage[key]; },
+  setItem: (key: string, value: string) => {
+    memoryStorage[key] = value;
+  },
+  removeItem: (key: string) => {
+    delete memoryStorage[key];
+  },
 };
 
 const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -22,11 +26,12 @@ const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
     storage: customStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
 });
 
 let currentUserId: string | null = null;
 let currentSession: Session | null = null;
+let currentCompanyId: string | null = null;
 
 /**
  * Login with email/password. Sets the session for all subsequent queries.
@@ -51,6 +56,7 @@ export async function logout(): Promise<void> {
   await supabase.auth.signOut();
   currentSession = null;
   currentUserId = null;
+  currentCompanyId = null;
   // Clear in-memory storage
   for (const key of Object.keys(memoryStorage)) {
     delete memoryStorage[key];
@@ -65,7 +71,8 @@ export async function ensureSessionValid(): Promise<void> {
   if (!currentSession) return;
   const expiresAt = currentSession.expires_at || 0;
   const now = Math.floor(Date.now() / 1000);
-  if (expiresAt - now < 300) { // < 5 min remaining
+  if (expiresAt - now < 300) {
+    // < 5 min remaining
     const { data, error } = await supabase.auth.refreshSession();
     if (!error && data.session) {
       currentSession = data.session;
@@ -118,6 +125,25 @@ export function getSupabaseUrl(): string {
  */
 export function isAuthenticated(): boolean {
   return currentUserId !== null && currentSession !== null;
+}
+
+/**
+ * Get the company_id for the current user. Fetches and caches on first call.
+ * Returns the first company owned by the user (most users have one).
+ */
+export async function getCompanyId(): Promise<string> {
+  if (currentCompanyId) return currentCompanyId;
+  const userId = getUserId();
+  const { data, error } = await supabase
+    .from('company')
+    .select('id')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .single();
+  if (error || !data) throw new Error('No company found for this user. Create a company first.');
+  currentCompanyId = data.id;
+  return currentCompanyId!;
 }
 
 export { supabase };

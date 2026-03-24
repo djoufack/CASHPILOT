@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { supabase, getUserId } from '../supabase.js';
+import { supabase, getUserId, getCompanyId } from '../supabase.js';
 import { sanitizeText } from '../utils/sanitize.js';
 import { validateDate } from '../utils/validation.js';
 import { safeError } from '../utils/errors.js';
@@ -75,7 +75,13 @@ export function registerInvoiceTools(server: McpServer) {
       date: z.string().describe('Issue date (YYYY-MM-DD)'),
       due_date: z.string().describe('Due date (YYYY-MM-DD)'),
       total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).describe('Total excluding VAT'),
-      tax_rate: z.number().min(0).max(100).multipleOf(0.01).optional().describe('VAT rate (default 20)'),
+      tax_rate: z
+        .number()
+        .min(0)
+        .max(100)
+        .multipleOf(0.01)
+        .optional()
+        .describe('Tax rate as percentage (e.g., 19.25 for 19.25%). Default 20'),
       total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).describe('Total including VAT'),
       status: z
         .enum(['draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial'])
@@ -101,6 +107,7 @@ export function registerInvoiceTools(server: McpServer) {
         .insert([
           {
             user_id: getUserId(),
+            company_id: await getCompanyId(),
             invoice_number,
             client_id,
             date,
@@ -261,10 +268,69 @@ export function registerInvoiceTools(server: McpServer) {
     {},
     async () => {
       const userId = getUserId();
-      const { data, error } = await supabase.rpc('get_dunning_candidates', { p_user_id: userId });
+      const today = new Date().toISOString().split('T')[0];
+
+      // Fetch overdue unpaid/partial invoices with client info
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select(
+          'id, invoice_number, date, due_date, total_ttc, payment_status, balance_due, client:clients(id, company_name)'
+        )
+        .eq('user_id', userId)
+        .in('payment_status', ['unpaid', 'partial'])
+        .lt('due_date', today)
+        .order('due_date', { ascending: true });
+
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'get dunning candidates') }] };
+      if (!invoices || invoices.length === 0) {
+        return { content: [{ type: 'text' as const, text: 'No overdue invoices found for dunning.' }] };
+      }
+
+      // Fetch dunning history for these invoices
+      const invoiceIds = invoices.map((i: any) => i.id);
+      const { data: history } = await supabase
+        .from('dunning_history')
+        .select('invoice_id, sent_at, status, method')
+        .in('invoice_id', invoiceIds)
+        .order('sent_at', { ascending: false });
+
+      // Build dunning summary per invoice
+      const historyByInvoice: Record<string, { count: number; last_date: string | null }> = {};
+      for (const h of history ?? []) {
+        if (!historyByInvoice[h.invoice_id]) {
+          historyByInvoice[h.invoice_id] = { count: 0, last_date: h.sent_at };
+        }
+        historyByInvoice[h.invoice_id].count++;
+      }
+
+      const todayDate = new Date(today);
+      const candidates = invoices.map((inv: any) => {
+        const dueDate = new Date(inv.due_date);
+        const daysOverdue = Math.floor((todayDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+        const dunning = historyByInvoice[inv.id] || { count: 0, last_date: null };
+        return {
+          invoice_id: inv.id,
+          invoice_number: inv.invoice_number,
+          client_name: inv.client?.company_name ?? null,
+          total_ttc: inv.total_ttc,
+          balance_due: inv.balance_due,
+          due_date: inv.due_date,
+          days_overdue: daysOverdue,
+          last_dunning_date: dunning.last_date,
+          dunning_count: dunning.count,
+        };
+      });
+
+      // Sort by days overdue descending
+      candidates.sort((a: any, b: any) => b.days_overdue - a.days_overdue);
+
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+        content: [
+          {
+            type: 'text' as const,
+            text: `${candidates.length} dunning candidate(s) found.\n${JSON.stringify(candidates, null, 2)}`,
+          },
+        ],
       };
     }
   );

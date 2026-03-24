@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { supabase } from '../supabase.js';
+import { supabase, getUserId, getCompanyId } from '../supabase.js';
 import { sanitizeRecord } from '../utils/sanitize.js';
 import { validateDatesInRecord } from '../utils/validation.js';
 import { safeError } from '../utils/errors.js';
@@ -77,6 +77,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_departments')
         .insert([sanitizeRecord(payload)])
@@ -197,6 +199,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_employees')
         .insert([sanitizeRecord(payload)])
@@ -326,6 +330,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_employee_contracts')
         .insert([sanitizeRecord(payload)])
@@ -458,6 +464,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_employee_skills')
         .insert([sanitizeRecord(payload)])
@@ -575,6 +583,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_leave_types')
         .insert([sanitizeRecord(payload)])
@@ -690,6 +700,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_leave_requests')
         .insert([sanitizeRecord(payload)])
@@ -818,6 +830,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_work_calendars')
         .insert([sanitizeRecord(payload)])
@@ -939,6 +953,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_timesheet_periods')
         .insert([sanitizeRecord(payload)])
@@ -1085,6 +1101,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_timesheet_lines')
         .insert([sanitizeRecord(payload)])
@@ -1229,6 +1247,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_timesheet_approvals')
         .insert([sanitizeRecord(payload)])
@@ -1361,6 +1381,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_payroll_periods')
         .insert([sanitizeRecord(payload)])
@@ -1509,6 +1531,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_payroll_variable_items')
         .insert([sanitizeRecord(payload)])
@@ -1680,6 +1704,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_payroll_exports')
         .insert([sanitizeRecord(payload)])
@@ -1811,6 +1837,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_payroll_anomalies')
         .insert([sanitizeRecord(payload)])
@@ -1948,6 +1976,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_training_catalog')
         .insert([sanitizeRecord(payload)])
@@ -2099,6 +2129,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_training_enrollments')
         .insert([sanitizeRecord(payload)])
@@ -2256,6 +2288,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_skill_assessments')
         .insert([sanitizeRecord(payload)])
@@ -2399,6 +2433,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_performance_reviews')
         .insert([sanitizeRecord(payload)])
@@ -2551,6 +2587,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_succession_plans')
         .insert([sanitizeRecord(payload)])
@@ -2687,6 +2725,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_headcount_budgets')
         .insert([sanitizeRecord(payload)])
@@ -2831,6 +2871,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_surveys')
         .insert([sanitizeRecord(payload)])
@@ -2955,6 +2997,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_survey_responses')
         .insert([sanitizeRecord(payload)])
@@ -3094,6 +3138,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_risk_assessments')
         .insert([sanitizeRecord(payload)])
@@ -3239,6 +3285,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_job_positions')
         .insert([sanitizeRecord(payload)])
@@ -3361,6 +3409,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_candidates')
         .insert([sanitizeRecord(payload)])
@@ -3474,6 +3524,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_applications')
         .insert([sanitizeRecord(payload)])
@@ -3600,6 +3652,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_interview_sessions')
         .insert([sanitizeRecord(payload)])
@@ -3725,6 +3779,8 @@ export function registerHrCrudTools(server: McpServer) {
       const payload = { ...args } as Record<string, any>;
       const dateErr = validateDatesInRecord(payload);
       if (dateErr) return { content: [{ type: 'text' as const, text: dateErr }] };
+      payload.user_id = getUserId();
+      payload.company_id = payload.company_id || (await getCompanyId());
       const { data, error } = await supabase
         .from('hr_onboarding_plans')
         .insert([sanitizeRecord(payload)])
