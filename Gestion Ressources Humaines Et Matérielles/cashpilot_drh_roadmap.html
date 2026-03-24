@@ -1,0 +1,254 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.w{font-family:var(--font-sans);padding:14px}
+.tbs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.tb{padding:7px 13px;font-size:12px;border:.5px solid var(--color-border-secondary);border-radius:4px;cursor:pointer;background:none;color:var(--color-text-secondary);font-family:var(--font-sans)}
+.tb.on{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
+.pn{display:none}.pn.on{display:block}
+.pg{display:flex;flex-direction:column;gap:8px}
+.ph{border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden}
+.phh{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none}
+.phn{width:34px;height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#fff;flex-shrink:0}
+.pht{flex:1}
+.phtt{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.phd{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.phb{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.phs{font-size:11px;padding:3px 8px;border-radius:3px;font-weight:500}
+.phar{font-size:14px;color:var(--color-text-tertiary);transition:transform .2s}
+.phar.open{transform:rotate(90deg)}
+.phc{display:none;border-top:.5px solid var(--color-border-tertiary);padding:0}
+.phc.open{display:block}
+.tl{display:flex;gap:0;overflow-x:auto;padding:12px 14px 8px;scrollbar-width:none}
+.tl::-webkit-scrollbar{display:none}
+.tc{flex-shrink:0;width:110px;border:.5px solid var(--color-border-tertiary);border-top-width:2px;border-radius:6px;padding:8px;margin-right:6px;background:var(--color-background-primary)}
+.tn{font-size:10px;color:var(--color-text-tertiary);margin-bottom:2px}
+.tt{font-size:11px;font-weight:500;line-height:1.3;margin-bottom:3px;color:var(--color-text-primary)}
+.td{font-size:10px;color:var(--color-text-secondary);line-height:1.35}
+.tdur{font-size:10px;color:var(--color-text-tertiary);margin-top:4px}
+.tarr{flex-shrink:0;display:flex;align-items:center;padding-top:10px;margin-right:6px;color:var(--color-text-tertiary)}
+.tg{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 14px 12px}
+.ti{padding:8px 10px;background:var(--color-background-secondary);border-radius:6px}
+.til{font-size:10px;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.tiv{font-size:12px;color:var(--color-text-primary);line-height:1.4}
+/* Status badges */
+.bd{font-size:10px;padding:2px 7px;border-radius:3px;font-weight:500;white-space:nowrap}
+.bd-g{background:#D4EDDA;color:#1A5A2E}
+.bd-b{background:#D6E4F0;color:#1E3A5F}
+.bd-o{background:#FDF0E8;color:#7A3A10}
+.bd-p{background:#EDE7F6;color:#3D1A7A}
+/* DB analysis */
+.da{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.dc{border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px}
+.dch{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.dcn{font-size:11px;font-weight:500;color:var(--color-text-primary)}
+.dci{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dcl{display:flex;flex-direction:column;gap:3px}
+.dcli{font-size:11px;color:var(--color-text-secondary);display:flex;gap:5px}
+.dcli::before{content:'›';color:var(--color-text-tertiary)}
+/* Gantt */
+.gantt{overflow-x:auto}
+.gantt table{width:100%;border-collapse:collapse;font-size:11px}
+.gantt th{padding:5px 8px;text-align:center;background:var(--color-background-secondary);border:.5px solid var(--color-border-tertiary);color:var(--color-text-secondary);font-weight:500;white-space:nowrap}
+.gantt td{padding:5px 8px;border:.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+.gantt td.lbl{text-align:left;font-weight:500;white-space:nowrap;min-width:150px}
+.bar{border-radius:3px;height:14px;margin:0 2px}
+/* AI features */
+.aig{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.aic{border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px}
+.aith{font-size:12px;font-weight:500;margin-bottom:6px;color:var(--color-text-primary)}
+.aif{display:flex;gap:6px;align-items:flex-start;padding:5px 7px;background:var(--color-background-secondary);border-radius:4px;margin-bottom:3px}
+.aifn{font-size:11px;flex:1;line-height:1.3;color:var(--color-text-primary)}
+.aifb{font-size:10px;padding:1px 5px;border-radius:3px;white-space:nowrap;font-weight:500;flex-shrink:0;margin-top:1px}
+.aifb-r{background:#D4EDDA;color:#1A5A2E}
+.aifb-n{background:#D6E4F0;color:#1E3A5F}
+</style>
+<div class="w">
+<div class="tbs">
+  <button class="tb on" onclick="sT('audit',this)">Audit CashPilot</button>
+  <button class="tb" onclick="sT('phases',this)">5 Phases (21 sem.)</button>
+  <button class="tb" onclick="sT('gantt',this)">Gantt</button>
+  <button class="tb" onclick="sT('ia',this)">Couche IA</button>
+</div>
+
+<div id="pn-audit" class="pn on">
+  <div class="da">
+    <div class="dc">
+      <div class="dch"><div class="dci" style="background:#1A7A4A"></div><span class="dcn">14 tables hr_* existantes (vides)</span></div>
+      <div class="dcl">
+        <div class="dcli">hr_employees, hr_departments, hr_employee_contracts</div>
+        <div class="dcli">hr_payroll_periods, hr_payroll_variable_items, hr_payroll_anomalies</div>
+        <div class="dcli">hr_timesheet_periods, hr_timesheet_lines, hr_timesheet_approvals</div>
+        <div class="dcli">hr_leave_requests, hr_leave_types, hr_work_calendars</div>
+        <div class="dcli">hr_employee_skills, hr_payroll_exports</div>
+      </div>
+    </div>
+    <div class="dc">
+      <div class="dch"><div class="dci" style="background:#2E86AB"></div><span class="dcn">Données connexes actives</span></div>
+      <div class="dcl">
+        <div class="dcli">team_members — 21 lignes → migrer vers hr_employees</div>
+        <div class="dcli">team_member_compensations — 1 302 lignes (historique paie)</div>
+        <div class="dcli">timesheets — 1 350 lignes (legacy → hr_timesheet_lines)</div>
+        <div class="dcli">cost_centers — 49 lignes (FK déjà dans hr_employees)</div>
+        <div class="dcli">accounting_entries — 9 155 lignes (intégration paie)</div>
+      </div>
+    </div>
+    <div class="dc">
+      <div class="dch"><div class="dci" style="background:#5B2D8E"></div><span class="dcn">9 Edge Functions IA réutilisables</span></div>
+      <div class="dcl">
+        <div class="dcli">ai-chatbot → étendre en ai-hr-chatbot</div>
+        <div class="dcli">ai-anomaly-detect → anomalies paie + RPS</div>
+        <div class="dcli">ai-ml-forecast → prédiction turnover / absentéisme</div>
+        <div class="dcli">ai-sentiment → analyse enquêtes engagement NLP</div>
+        <div class="dcli">ai-report → bilan social + reporting RH auto</div>
+        <div class="dcli">send-email + webhooks → notifications RH</div>
+      </div>
+    </div>
+    <div class="dc">
+      <div class="dch"><div class="dci" style="background:#E07B39"></div><span class="dcn">32 tables à créer (migrations M001-M005)</span></div>
+      <div class="dcl">
+        <div class="dcli">M001 — Recrutement ATS: 5 tables</div>
+        <div class="dcli">M002 — Moteur paie complet: 2 tables + trigger compta</div>
+        <div class="dcli">M003 — Formation & compétences: 3 tables</div>
+        <div class="dcli">M004 — Performance, QVT, risques: 4 tables</div>
+        <div class="dcli">M005 — Contrôle social & KPIs: 3 tables + vue mat.</div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:10px 0;font-size:12px;color:var(--color-text-secondary)">
+    Projet Supabase: <code style="font-family:var(--font-mono);font-size:11px;background:var(--color-background-secondary);padding:2px 6px;border-radius:3px">rfzvrezrcigzmldgvntz</code> · PostgreSQL 17 · Région EU-Central-1 · 41 Edge Functions actives · 170+ tables
+  </div>
+</div>
+
+<div id="pn-phases" class="pn">
+<div class="pg" id="phases-container"></div>
+</div>
+
+<div id="pn-gantt" class="pn">
+<div class="gantt"><table id="gantt-tbl"></table></div>
+</div>
+
+<div id="pn-ia" class="pn">
+<div class="aig" id="ai-grid"></div>
+</div>
+</div>
+
+<script>
+const PHASES=[
+  {id:'p0',num:'P0',title:'Fondation & Migration',subtitle:'team_members → hr_employees + RLS',dur:'1 sem · S1',color:'#1A7A4A',badge:'DÉMARRAGE IMMÉDIAT',bc:'bd-g',
+   meta:[['Migrations','0 (tables existantes)'],['Edge Functions','0 (structures en place)'],['Pages Frontend','0'],['Dépendances','Aucune — démarrer maintenant']],
+   steps:[{n:1,t:'Migration team_members',d:'21 lignes → hr_employees, préserve company_id et employee_id FK',dur:'J1-2'},{n:2,t:'Référentiels RH',d:'hr_leave_types (BE légal), hr_work_calendars (5j/8h), hr_departments',dur:'J2-3'},{n:3,t:'RLS Policies',d:'Rôles drh_admin, hr_manager, employee_self sur toutes tables hr_*',dur:'J3-4'},{n:4,t:'Migration timesheets',d:'1350 lignes legacy → hr_timesheet_lines + hr_timesheet_periods',dur:'J4-5'},{n:5,t:'Validation MCP',d:'Tester accès nouvelles tables via CashPilot-BE MCP',dur:'J5'}]},
+  {id:'p1',num:'P1',title:'Administration & Paie',subtitle:'Moteur paie, absences, contrats, bulletins',dur:'4 sem · S2-S5',color:'#1E3A5F',badge:'PRIORITÉ 1',bc:'bd-b',
+   meta:[['Migrations','M002 (payroll_runs + payroll_items + trigger compta)'],['Edge Functions','hr-payroll-engine (v1 BE, v2 OHADA)'],['Pages Frontend','3 (Employés, Paie, Absences)'],['Dépendances','Phase P0 complète']], 
+   steps:[{n:1,t:'Migration M002',d:'hr_payroll_runs, hr_payroll_items, trigger accounting_entries OD',dur:'S2'},{n:2,t:'Edge Function hr-payroll-engine',d:'Calcul cotisations BE (ONSS 27.5%+13.07%, PP) et OHADA/CNPS',dur:'S2-S3'},{n:3,t:'Page Employés',d:'Liste, fiche, organigramme, formulaire embauche',dur:'S2-S3'},{n:4,t:'Dashboard Paie',d:'Périodes, calcul, validation DRH, bulletins PDF, historique',dur:'S3-S4'},{n:5,t:'Module Absences',d:'Demande congé, workflow approbation manager, calendrier soldes',dur:'S3-S4'},{n:6,t:'Workflows n8n',d:'Email validation congé + notification bulletin disponible',dur:'S4'},{n:7,t:'Tests équilibre comptable',d:'Vérifier que chaque cycle paie génère écritures DC équilibrées',dur:'S5'}]},
+  {id:'p2',num:'P2',title:'Recrutement & Onboarding (ATS)',subtitle:'Pipeline candidats, IA screening, onboarding 90j',dur:'3 sem · S6-S8',color:'#0F6E56',badge:'PRIORITÉ 2',bc:'bd-g',
+   meta:[['Migrations','M001 (5 tables recrutement)'],['Edge Functions','hr-recruitment-ai (CV parsing + scoring)'],['Pages Frontend','2 (ATS Kanban, Onboarding)'],['Dépendances','P1 — hr_employees actif']],
+   steps:[{n:1,t:'Migration M001',d:'hr_job_positions, hr_candidates, hr_applications, hr_interview_sessions, hr_onboarding_plans',dur:'S6'},{n:2,t:'Edge Function hr-recruitment-ai',d:'Parse CV (réutilise extract-invoice), score candidat vs fiche poste (LLM)',dur:'S6-S7'},{n:3,t:'ATS Kanban',d:'Pipeline candidats drag-and-drop: new → screening → interview → offer → hired',dur:'S6-S7'},{n:4,t:'Fiche candidat IA',d:'Scoring 0-100, résumé IA, questions entretien générées, timeline',dur:'S7'},{n:5,t:'Onboarding 90j',d:'Plan tâches, parrain, checklist, progression, création auto dossier',dur:'S8'},{n:6,t:'Workflow n8n embauche',d:'Trigger: application.status=hired → créer hr_employee + onboarding_plan',dur:'S8'}]},
+  {id:'p3',num:'P3',title:'Formation, Relations Sociales & QVT',subtitle:'LMS, compétences, CSE, DUERP, enquêtes',dur:'4 sem · S9-S12',color:'#E07B39',badge:'PRIORITÉ 3',bc:'bd-o',
+   meta:[['Migrations','M003 (formation) + M004 (QVT/risques)'],['Edge Functions','Étendre ai-sentiment pour NLP enquêtes'],['Pages Frontend','4 (Formation, Skills, QVT, Relations Sociales)'],['Dépendances','P2 — hr_employees peuplé']],
+   steps:[{n:1,t:'Migrations M003+M004',d:'training_catalog, enrollments, skill_assessments, surveys, risk_assessments',dur:'S9'},{n:2,t:'Catalogue formations',d:'Filtres CPF/OPCO, inscriptions, suivi complétion, solde heures',dur:'S9-S10'},{n:3,t:'Skills Matrix',d:'Radar par employé, gap analysis, recommandation formation auto',dur:'S10'},{n:4,t:'DUERP digital',d:'Formulaire évaluation risques 4x4, plan prévention, suivi actions',dur:'S11'},{n:5,t:'Enquêtes engagement',d:'Builder pulse survey, eNPS trimestriel, analyse NLP verbatims (ai-sentiment)',dur:'S11-S12'},{n:6,t:'Alerte RPS n8n',d:'Détection absentéisme anormal → alerte DRH automatique (ai-anomaly-detect)',dur:'S12'}]},
+  {id:'p4',num:'P4',title:'Carrières, Performance & Contrôle Social',subtitle:'9-box, succession, entretiens annuels, bilan social',dur:'4 sem · S13-S16',color:'#5B2D8E',badge:'PRIORITÉ 4',bc:'bd-p',
+   meta:[['Migrations','M004 suite (performance, succession) + M005 (contrôle)'],['Edge Functions','Étendre ai-ml-forecast → turnover prédiction'],['Pages Frontend','3 (Entretiens, People Review, Contrôle Social)'],['Dépendances','P3 — données QVT disponibles']],
+   steps:[{n:1,t:'Migrations M004 suite + M005',d:'performance_reviews, succession_plans, headcount_budgets, kpi_snapshots, mv_hr_dashboard',dur:'S13'},{n:2,t:'Entretiens annuels',d:'Formulaire objectifs/compétences, workflow employé→manager→RH, historique',dur:'S13-S14'},{n:3,t:'People Review 9-box',d:'Matrice performance×potentiel interactive, identification Hauts Potentiels',dur:'S14'},{n:4,t:'Plans de succession',d:'Successeurs pour postes critiques, niveaux readiness, actions développement',dur:'S14-S15'},{n:5,t:'Budget masse salariale',d:'Planification ETP N+1, simulation augmentations, ecarts budget/réel',dur:'S15'},{n:6,t:'Bilan Social Dashboard',d:'148 indicateurs légaux, index égalité H/F, reporting ESG/RSE',dur:'S15-S16'},{n:7,t:'Turnover predictor ML',d:'Étendre ai-ml-forecast avec features RH → score risque 0-100 par employé',dur:'S16'}]},
+  {id:'p5',num:'P5',title:'IA Layer & Automatisation Avancée',subtitle:'Chatbot RH, People Analytics, MCP tools, automatisation 80%',dur:'5 sem · S17-S21',color:'#8B1A6B',badge:'COUCHE IA',bc:'bd-p',
+   meta:[['Migrations','Aucune (données déjà là)'],['Edge Functions','ai-hr-chatbot (NEW), ai-hr-analytics (NEW), MCP tools RH'],['Pages Frontend','1 (People Analytics Dashboard) + chatbot overlay'],['Dépendances','P4 — 6+ mois de données historiques RH']],
+   steps:[{n:1,t:'ai-hr-chatbot',d:'Assistant conversationnel FR/EN: congés, bulletins, FAQ RH, actions structurées',dur:'S17-S18'},{n:2,t:'ai-hr-analytics engine',d:'4 modèles ML: turnover_risk, absenteeism_forecast, headcount_forecast, salary_benchmark',dur:'S17-S18'},{n:3,t:'Chatbot overlay frontend',d:'Panel flottant toutes pages RH, historique conversations, actions rapides',dur:'S18-S19'},{n:4,t:'People Analytics Dashboard',d:'Prédictions temps réel, heat map risques, recommandations action, tendances',dur:'S19-S20'},{n:5,t:'Export DSN automatique',d:'Génération fichier DSN mensuel pour URSSAF/ONSS, zéro action manuelle',dur:'S20'},{n:6,t:'MCP tools RH',d:'get_employee, request_leave, get_payslip, get_team_analytics pour agents IA',dur:'S21'},{n:7,t:'Audit RGPD + charge tests',d:'Validation DPO, RLS stress test, audit toutes données personnelles tables hr_*',dur:'S21'}]}
+];
+
+const AI_FEATURES=[
+  {fn:'ai-hr-chatbot',type:'new',color:'#8B1A6B',desc:'Assistant RH conversationnel 24/7',features:['Consultation solde congés (intent: get_leave_balance)','Téléchargement bulletin de paie','FAQ droits du travail et politique RH','Soumission demande congé par chat','Alerte formations disponibles et CPF']},
+  {fn:'ai-recruitment-ai',type:'new',color:'#0F6E56',desc:'IA screening & recrutement',features:['Parse PDF/DOCX CV → extraction structurée','Score candidat vs fiche de poste (0-100)','Génération questions entretien personnalisées','Rédaction offre d\'emploi optimisée','Prédiction réussite à l\'onboarding (90j)']},
+  {fn:'ai-hr-analytics',type:'new',color:'#5B2D8E',desc:'People Analytics & ML predictions',features:['Turnover risk score par employé (0-100)','Prédiction absentéisme par équipe/mois','Forecast headcount N+1 par scénario','Benchmark salarial marché en temps réel']},
+  {fn:'ai-anomaly-detect',type:'existing',color:'#1E3A5F',desc:'Détection anomalies (étendu paie+RPS)',features:['Anomalies calcul paie (taux, plafonds SS)','Détection absentéisme anormal (signaux RPS)','Alertes sur turnover soudain d\'équipe','Incohérences données RH (doublons, gaps)']},
+  {fn:'ai-ml-forecast',type:'existing',color:'#2E86AB',desc:'Forecasting (étendu RH)',features:['Prédiction masse salariale N+1 (scénarios)','Forecast recrutements nécessaires / chiffre d\'affaires','Modèle attrition par cohorte d\'embauche','Simulation impact augmentations générales']},
+  {fn:'ai-sentiment',type:'existing',color:'#E07B39',desc:'NLP (étendu enquêtes RH)',features:['Analyse verbatims enquêtes engagement','Score eNPS automatique par thème','Détection signaux faibles satisfaction','Résumé synthétique bilan social qualitatif']},
+];
+
+function sT(id,btn){
+  document.querySelectorAll('.pn').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pn-'+id).classList.add('on');
+  btn.classList.add('on');
+}
+
+function buildPhases(){
+  const c=document.getElementById('phases-container');
+  PHASES.forEach(ph=>{
+    const d=document.createElement('div');d.className='ph';
+    d.innerHTML=`<div class="phh" onclick="toggle('${ph.id}')">
+      <div class="phn" style="background:${ph.color}">${ph.num}</div>
+      <div class="pht"><div class="phtt">${ph.title}</div><div class="phd">${ph.subtitle}</div></div>
+      <div class="phb"><span class="bd phs ${ph.bc}">${ph.badge}</span><span style="font-size:11px;color:var(--color-text-tertiary);margin-left:4px">${ph.dur}</span><span class="phar" id="arr-${ph.id}">›</span></div>
+    </div>
+    <div class="phc" id="body-${ph.id}">
+      <div class="tl">${ph.steps.map((s,i)=>`
+        <div class="tc" style="border-top-color:${ph.color}">
+          <div class="tn">Étape ${s.n}</div>
+          <div class="tt">${s.t}</div>
+          <div class="td">${s.d}</div>
+          <div class="tdur">⏱ ${s.dur}</div>
+        </div>${i<ph.steps.length-1?'<div class="tarr">›</div>':''}`).join('')}
+      </div>
+      <div class="tg">${ph.meta.map(([l,v])=>`<div class="ti"><div class="til">${l}</div><div class="tiv">${v}</div></div>`).join('')}</div>
+    </div>`;
+    c.appendChild(d);
+  });
+}
+
+function toggle(id){
+  const b=document.getElementById('body-'+id);
+  const a=document.getElementById('arr-'+id);
+  const open=b.classList.toggle('open');
+  a.classList.toggle('open',open);
+}
+
+function buildGantt(){
+  const weeks=['S1','S2','S3','S4','S5','S6','S7','S8','S9','S10','S11','S12','S13','S14','S15','S16','S17','S18','S19','S20','S21'];
+  const rows=[
+    {lbl:'P0 — Fondation', start:0, end:0, color:'#1A7A4A'},
+    {lbl:'P1 — Paie & Admin', start:1, end:4, color:'#1E3A5F'},
+    {lbl:'P2 — Recrutement', start:5, end:7, color:'#0F6E56'},
+    {lbl:'P3 — Formation & QVT', start:8, end:11, color:'#E07B39'},
+    {lbl:'P4 — Carrières & Contrôle', start:12, end:15, color:'#5B2D8E'},
+    {lbl:'P5 — IA Layer', start:16, end:20, color:'#8B1A6B'},
+    {lbl:'Migrations SQL M001-M005', start:1, end:12, color:'#BA7517'},
+    {lbl:'Edge Functions IA (5 new)', start:5, end:20, color:'#185FA5'},
+    {lbl:'Workflows n8n', start:3, end:20, color:'#3B6D11'},
+    {lbl:'Tests & RGPD Audit', start:4, end:20, color:'#5F5E5A'},
+  ];
+  const t=document.getElementById('gantt-tbl');
+  let html=`<tr><th style="text-align:left;min-width:150px">Module / Livrable</th>${weeks.map(w=>`<th>${w}</th>`).join('')}</tr>`;
+  rows.forEach((r,i)=>{
+    html+=`<tr><td class="lbl" style="font-size:11px">${r.lbl}</td>`;
+    weeks.forEach((_,wi)=>{
+      if(wi>=r.start&&wi<=r.end){
+        html+=`<td style="padding:3px 2px;background:${r.color}18"><div class="bar" style="background:${r.color}"></div></td>`;
+      } else {
+        html+=`<td></td>`;
+      }
+    });
+    html+=`</tr>`;
+  });
+  t.innerHTML=html;
+}
+
+function buildAI(){
+  const g=document.getElementById('ai-grid');
+  g.innerHTML=AI_FEATURES.map(f=>`
+    <div class="aic">
+      <div class="dch" style="margin-bottom:5px">
+        <div class="dci" style="background:${f.color}"></div>
+        <span class="aith" style="color:${f.color}">${f.fn}</span>
+        <span class="aifb ${f.type==='new'?'aifb-r':'aifb-n'}" style="margin-left:auto">${f.type==='new'?'NOUVELLE':'ÉTENDUE'}</span>
+      </div>
+      <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px">${f.desc}</div>
+      ${f.features.map(x=>`<div class="aif"><span class="aifn">${x}</span></div>`).join('')}
+    </div>`).join('');
+}
+
+buildPhases();
+buildGantt();
+buildAI();
+// Auto-open P0
+toggle('p0');
+</script>
