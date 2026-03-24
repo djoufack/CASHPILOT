@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { supabaseAnonKey, supabaseUrl } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { isMissingRelationError } from '@/lib/supabaseCompatibility';
 
 /**
  * Hook for Smart Dunning IA.
@@ -35,6 +36,118 @@ export const useSmartDunning = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const buildFallbackSuggestions = useCallback(async () => {
+    if (!user || !activeCompanyId) {
+      return { suggestions: [], totalOverdue: 0 };
+    }
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const { data: invoiceRows, error: invoicesError } = await supabase
+      .from('invoices')
+      .select(
+        `
+        id,
+        invoice_number,
+        total_ttc,
+        balance_due,
+        due_date,
+        client_id,
+        clients (
+          id,
+          company_name,
+          email,
+          phone
+        )
+      `
+      )
+      .eq('user_id', user.id)
+      .eq('company_id', activeCompanyId)
+      .in('payment_status', ['unpaid', 'partial'])
+      .lt('due_date', todayIso)
+      .in('status', ['sent', 'overdue', 'accepted'])
+      .order('due_date', { ascending: true });
+
+    if (invoicesError) throw invoicesError;
+
+    const overdueInvoices = Array.isArray(invoiceRows) ? invoiceRows : [];
+    const invoiceIds = overdueInvoices.map((invoice) => invoice.id);
+
+    const executionHistoryByInvoice = new Map();
+    if (invoiceIds.length > 0) {
+      const { data: executionRows, error: executionsError } = await supabase
+        .from('dunning_executions')
+        .select('invoice_id, sent_at, status')
+        .eq('user_id', user.id)
+        .eq('company_id', activeCompanyId)
+        .in('invoice_id', invoiceIds);
+
+      if (executionsError) throw executionsError;
+
+      for (const execution of executionRows || []) {
+        if (execution.status === 'pending' || execution.status === 'failed') continue;
+        const current = executionHistoryByInvoice.get(execution.invoice_id) || { count: 0, lastSent: null };
+        current.count += 1;
+        if (!current.lastSent || new Date(execution.sent_at) > new Date(current.lastSent)) {
+          current.lastSent = execution.sent_at;
+        }
+        executionHistoryByInvoice.set(execution.invoice_id, current);
+      }
+    }
+
+    const now = Date.now();
+    let totalOverdue = 0;
+    const suggestions = overdueInvoices.map((invoice) => {
+      const balanceDue = Number(invoice.balance_due ?? invoice.total_ttc ?? 0);
+      totalOverdue += balanceDue;
+
+      const dueDateIso = invoice.due_date || todayIso;
+      const daysOverdue = Math.max(0, Math.floor((now - new Date(`${dueDateIso}T00:00:00Z`).getTime()) / 86400000));
+      const history = executionHistoryByInvoice.get(invoice.id) || { count: 0, lastSent: null };
+
+      let recommendedChannel = 'email';
+      let recommendedTone = 'friendly';
+      let urgency = 'low';
+
+      if (daysOverdue > 15) {
+        recommendedTone = 'firm';
+        urgency = 'high';
+      }
+      if (daysOverdue > 30) {
+        recommendedTone = 'urgent';
+        urgency = 'critical';
+        recommendedChannel = invoice.clients?.phone ? 'whatsapp' : 'letter';
+      }
+      if (daysOverdue > 7 && daysOverdue <= 30 && invoice.clients?.phone) {
+        recommendedChannel = 'sms';
+      }
+
+      return {
+        client_id: invoice.client_id,
+        client_name: invoice.clients?.company_name || 'Client inconnu',
+        client_email: invoice.clients?.email || null,
+        client_phone: invoice.clients?.phone || null,
+        ai_score: Math.max(1, 90 - daysOverdue - history.count * 5),
+        invoice_id: invoice.id,
+        invoice_number: invoice.invoice_number,
+        total_ttc: Number(invoice.total_ttc || 0),
+        balance_due: balanceDue,
+        due_date: dueDateIso,
+        days_overdue: daysOverdue,
+        recommended_channel: recommendedChannel,
+        recommended_tone: recommendedTone,
+        urgency,
+        payment_history: null,
+        dunning_history: {
+          count: history.count,
+          last_sent: history.lastSent,
+        },
+        recommended_step: Math.min(history.count + 1, 5),
+      };
+    });
+
+    return { suggestions, totalOverdue };
+  }, [user, activeCompanyId]);
+
   // ------------------------------------------
   // Fetch AI client scores via RPC
   // ------------------------------------------
@@ -46,11 +159,23 @@ export const useSmartDunning = () => {
         p_company_id: activeCompanyId,
       });
 
-      if (rpcError) throw rpcError;
+      let suggestions = [];
+      let rpcStats = {};
 
-      const result = data || {};
-      const suggestions = result.suggestions || [];
-      const rpcStats = result.stats || {};
+      if (rpcError) {
+        if (isMissingRelationError(rpcError, 'public.dunning_history')) {
+          const fallback = await buildFallbackSuggestions();
+          suggestions = fallback.suggestions;
+          rpcStats = { total_overdue_amount: fallback.totalOverdue };
+          console.warn('Smart dunning fallback activated: dunning_history table missing.');
+        } else {
+          throw rpcError;
+        }
+      } else {
+        const result = data || {};
+        suggestions = result.suggestions || [];
+        rpcStats = result.stats || {};
+      }
 
       // Map suggestions to client scores with normalized fields
       const scores = suggestions.map((s) => ({
@@ -69,7 +194,7 @@ export const useSmartDunning = () => {
         recommendedTone: s.recommended_tone,
         urgency: s.urgency,
         paymentHistory: s.payment_history,
-        dunningHistory: s.dunning_history,
+        dunningHistory: s.dunning_history || s.dunningHistory,
         recommendedStep: s.recommended_step,
       }));
 
@@ -84,7 +209,7 @@ export const useSmartDunning = () => {
       console.error('useSmartDunning fetchClientScores error:', err);
       // Non-critical: don't overwrite main error
     }
-  }, [user, activeCompanyId]);
+  }, [user, activeCompanyId, buildFallbackSuggestions]);
 
   // ------------------------------------------
   // Fetch campaigns
@@ -122,7 +247,7 @@ export const useSmartDunning = () => {
             *,
             dunning_campaigns:campaign_id (name, strategy),
             invoices:invoice_id (id, invoice_number, total_ttc, balance_due, due_date),
-            clients:client_id (id, company_name, email, phone)
+            clients (id, company_name, email, phone)
           `
           )
           .order('created_at', { ascending: false });

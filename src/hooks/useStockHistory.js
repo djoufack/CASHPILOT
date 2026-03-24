@@ -1,5 +1,4 @@
-
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -40,9 +39,8 @@ export const useStockHistory = () => {
       const changeQuantity = newQty - previousQty;
 
       // 1. Log History
-      const { error: historyError } = await supabase
-        .from('product_stock_history')
-        .insert([{
+      const { error: historyError } = await supabase.from('product_stock_history').insert([
+        {
           ...withCompanyScope({}),
           user_product_id: productId,
           product_id: productId,
@@ -52,8 +50,9 @@ export const useStockHistory = () => {
           reason,
           notes,
           order_id: orderId,
-          created_by: user.id
-        }]);
+          created_by: user.id,
+        },
+      ]);
 
       if (historyError) throw historyError;
 
@@ -73,28 +72,32 @@ export const useStockHistory = () => {
         .single();
 
       if (product && newQty <= product.min_stock_level) {
-          await supabase.from('stock_alerts').insert([{
-             ...withCompanyScope({}),
-             user_product_id: productId,
-             product_id: productId,
-             alert_type: newQty === 0 ? 'out_of_stock' : 'low_stock',
-             is_active: true
-          }]);
+        await supabase.from('stock_alerts').insert([
+          {
+            ...withCompanyScope({}),
+            user_product_id: productId,
+            product_id: productId,
+            alert_type: newQty === 0 ? 'out_of_stock' : 'low_stock',
+            is_active: true,
+          },
+        ]);
 
-          await supabase.from('notifications').insert([{
-             user_id: user.id,
-             type: 'stock_alert',
-             title: `Alerte Stock : ${product.product_name}`,
-             message: `Niveau de stock : ${newQty} (Min : ${product.min_stock_level})`,
-             related_id: productId
-          }]);
+        await supabase.from('notifications').insert([
+          {
+            user_id: user.id,
+            type: 'stock_alert',
+            title: `Alerte Stock : ${product.product_name}`,
+            message: `Niveau de stock : ${newQty} (Min : ${product.min_stock_level})`,
+            related_id: productId,
+          },
+        ]);
       }
 
-      toast({ title: "Stock mis à jour", description: "Niveau de stock ajusté avec succès." });
+      toast({ title: 'Stock mis à jour', description: 'Niveau de stock ajusté avec succès.' });
       return true;
     } catch (err) {
       setError(err.message);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
       return false;
     } finally {
       setLoading(false);
@@ -105,7 +108,7 @@ export const useStockHistory = () => {
     getProductHistory,
     addHistoryEntry,
     loading,
-    error
+    error,
   };
 };
 
@@ -114,48 +117,75 @@ export const useStockAlerts = () => {
   const { user } = useAuth();
   const { applyCompanyScope } = useCompanyScope();
 
-    const fetchAlerts = useCallback(async (categoryId = null) => {
-        if(!user) return;
-        try {
-            let query = supabase
-              .from('stock_alerts')
-              .select(`
-                *,
-                product:products(id, product_name, stock_quantity, min_stock_level, category:product_categories(id, name))
-              `)
-              .eq('is_active', true)
-              .order('created_at', { ascending: false });
+  const fetchAlerts = useCallback(
+    async (categoryId = null) => {
+      if (!user) return;
+      try {
+        let query = supabase
+          .from('stock_alerts')
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+        query = applyCompanyScope(query);
 
-            query = applyCompanyScope(query);
+        const { data: alertsData, error: alertsError } = await query;
+        if (alertsError) throw alertsError;
 
-            const { data, error } = await query;
+        const productIds = Array.from(
+          new Set((alertsData || []).map((alert) => alert.user_product_id || alert.product_id).filter(Boolean))
+        );
 
-            if(error) throw error;
+        let productsById = {};
+        if (productIds.length > 0) {
+          let productsQuery = supabase
+            .from('products')
+            .select('id, product_name, stock_quantity, min_stock_level, category:product_categories(id, name)')
+            .in('id', productIds);
+          productsQuery = applyCompanyScope(productsQuery);
 
-            let filtered = data || [];
-            if (categoryId) {
-                filtered = filtered.filter(a => a.product?.category?.id === categoryId);
-            }
+          const { data: productRows, error: productError } = await productsQuery;
+          if (productError) throw productError;
 
-            setAlerts(filtered);
-            return filtered;
-        } catch(err) {
-            console.error(err);
-            return [];
+          productsById = (productRows || []).reduce((accumulator, product) => {
+            accumulator[product.id] = product;
+            return accumulator;
+          }, {});
         }
-    }, [applyCompanyScope, user]);
 
-    const resolveAlert = useCallback(async (alertId) => {
-        try {
-            await supabase
-              .from('stock_alerts')
-              .update({ is_active: false, resolved_at: new Date().toISOString() })
-              .eq('id', alertId);
-            setAlerts(prev => prev.filter(a => a.id !== alertId));
-        } catch (err) {
-            console.error(err);
+        let filtered = (alertsData || []).map((alert) => ({
+          ...alert,
+          product: productsById[alert.user_product_id || alert.product_id] || null,
+        }));
+        if (categoryId) {
+          filtered = filtered.filter((a) => a.product?.category?.id === categoryId);
         }
-    }, []);
 
-    return { alerts, fetchAlerts, resolveAlert };
+        setAlerts(filtered);
+        return filtered;
+      } catch (err) {
+        console.error(err);
+        return [];
+      }
+    },
+    [applyCompanyScope, user]
+  );
+
+  const resolveAlert = useCallback(
+    async (alertId) => {
+      try {
+        let query = supabase
+          .from('stock_alerts')
+          .update({ is_active: false, resolved_at: new Date().toISOString() })
+          .eq('id', alertId);
+        query = applyCompanyScope(query);
+        await query;
+        setAlerts((prev) => prev.filter((a) => a.id !== alertId));
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [applyCompanyScope]
+  );
+
+  return { alerts, fetchAlerts, resolveAlert };
 };

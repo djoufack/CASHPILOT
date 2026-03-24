@@ -204,7 +204,7 @@ export function buildFullDemoDataset(args) {
   } = args;
 
   const locale = getLocaleBlueprint(config);
-  const minimumRecords = 7;
+  const minimumRecords = 10;
   const currency = config.company.accounting_currency;
   const amountFactor = currency === 'XAF' ? 650 : 1;
   const amount = (base) => clampAmount(base * amountFactor, roundAmount);

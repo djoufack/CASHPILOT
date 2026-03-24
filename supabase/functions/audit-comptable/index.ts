@@ -15,12 +15,12 @@ const SECURITY_HEADERS: Record<string, string> = {
 
 import { getAllowedOrigin } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': getAllowedOrigin(),
+const buildCorsHeaders = (req: Request) => ({
+  'Access-Control-Allow-Origin': getAllowedOrigin(req),
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   ...SECURITY_HEADERS,
-};
+});
 
 // ---------------------------------------------------------------------------
 // Types
@@ -138,6 +138,7 @@ async function fetchAllRows(queryFactory: () => any, label: string, pageSize = 1
 // ---------------------------------------------------------------------------
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {

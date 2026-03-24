@@ -113,20 +113,28 @@ describe('OAuth postMessage origin validation (regression)', () => {
 });
 
 // ============================================================================
-// Regression: CORS wildcard replaced with origin resolver
-// Bug: Edge Functions returned Access-Control-Allow-Origin: "*" which allows
-//      any site to make authenticated requests. Fix: getAllowedOrigin() now
-//      resolves from ALLOWED_ORIGIN env > SUPABASE_URL > fallback.
+// Regression: CORS resolver with trusted origins + localhost support
+// Bug: Some functions fell back to SUPABASE_URL as CORS origin, which breaks
+//      browser calls from the frontend app domain and from localhost QA runs.
 // ============================================================================
 
 describe('CORS origin resolver pattern (regression)', () => {
   /**
    * We cannot import the Deno-based cors.ts directly in a Node/jsdom env,
-   * so we test the equivalent resolution logic.
+   * so we test equivalent resolution logic.
    */
-  function getAllowedOrigin(env = {}) {
+  function getAllowedOrigin(env = {}, requestOrigin = null) {
     const FALLBACK_ORIGIN = 'https://cashpilot.vercel.app';
-    return env.ALLOWED_ORIGIN || env.SUPABASE_URL || FALLBACK_ORIGIN;
+    const explicit = env.ALLOWED_ORIGIN || env.APP_ORIGIN || env.APP_URL || null;
+    const trusted = ['https://cashpilot.tech', 'https://cashpilot.vercel.app'];
+    const localhost = ['http://localhost:4173', 'http://127.0.0.1:4173'];
+
+    if (requestOrigin && (trusted.includes(requestOrigin) || localhost.includes(requestOrigin))) {
+      return requestOrigin;
+    }
+
+    if (explicit) return explicit;
+    return FALLBACK_ORIGIN;
   }
 
   it('should prefer ALLOWED_ORIGIN when set', () => {
@@ -137,11 +145,14 @@ describe('CORS origin resolver pattern (regression)', () => {
     expect(result).toBe('https://custom.example.com');
   });
 
-  it('should fall back to SUPABASE_URL when ALLOWED_ORIGIN is not set', () => {
-    const result = getAllowedOrigin({
-      SUPABASE_URL: 'https://abc.supabase.co',
-    });
-    expect(result).toBe('https://abc.supabase.co');
+  it('should allow localhost request origin for local QA', () => {
+    const result = getAllowedOrigin({}, 'http://127.0.0.1:4173');
+    expect(result).toBe('http://127.0.0.1:4173');
+  });
+
+  it('should allow trusted CashPilot request origin', () => {
+    const result = getAllowedOrigin({}, 'https://cashpilot.tech');
+    expect(result).toBe('https://cashpilot.tech');
   });
 
   it('should fall back to production URL when no env vars are set', () => {
@@ -153,9 +164,8 @@ describe('CORS origin resolver pattern (regression)', () => {
     // Test with various env combinations — none should produce "*"
     const cases = [
       {},
-      { SUPABASE_URL: 'https://x.supabase.co' },
-      { ALLOWED_ORIGIN: 'https://app.example.com' },
-      { ALLOWED_ORIGIN: 'https://a.com', SUPABASE_URL: 'https://b.com' },
+      { APP_ORIGIN: 'https://app.example.com' },
+      { ALLOWED_ORIGIN: 'https://a.com', APP_URL: 'https://b.com' },
     ];
     for (const env of cases) {
       const origin = getAllowedOrigin(env);
@@ -164,12 +174,12 @@ describe('CORS origin resolver pattern (regression)', () => {
     }
   });
 
-  it('should ignore empty string ALLOWED_ORIGIN and fall through', () => {
+  it('should ignore empty ALLOWED_ORIGIN and fall back', () => {
     const result = getAllowedOrigin({
       ALLOWED_ORIGIN: '',
-      SUPABASE_URL: 'https://abc.supabase.co',
+      APP_ORIGIN: '',
     });
-    expect(result).toBe('https://abc.supabase.co');
+    expect(result).toBe('https://cashpilot.vercel.app');
   });
 });
 

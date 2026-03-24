@@ -6,17 +6,25 @@ import { getAllowedOrigin } from '../_shared/cors.ts';
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const corsHeaders = {
-  'Access-Control-Allow-Origin': getAllowedOrigin(),
+const buildCorsHeaders = (req: Request) => ({
+  'Access-Control-Allow-Origin': getAllowedOrigin(req),
   'Access-Control-Allow-Headers': 'authorization, x-api-key, content-type',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   ...SECURITY_HEADERS,
-};
+});
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(
+  body: unknown,
+  statusOrCors: number | Record<string, string> = 200,
+  maybeStatus?: number
+): Response {
+  const hasCorsHeaders = typeof statusOrCors === 'object' && statusOrCors !== null;
+  const corsHeaders = hasCorsHeaders ? (statusOrCors as Record<string, string>) : {};
+  const status = hasCorsHeaders ? (maybeStatus ?? 200) : (statusOrCors as number);
+
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -300,6 +308,7 @@ async function logUsage(
 // Main serve handler
 // ---------------------------------------------------------------------------
 serve(async (req: Request) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -318,7 +327,11 @@ serve(async (req: Request) => {
     null;
 
   if (!rawKey) {
-    return jsonResponse({ error: 'Missing API key. Provide via x-api-key header or Authorization: Bearer <key>' }, 401);
+    return jsonResponse(
+      { error: 'Missing API key. Provide via x-api-key header or Authorization: Bearer <key>' },
+      corsHeaders,
+      401
+    );
   }
 
   const supabase = createServiceClient();
@@ -333,7 +346,11 @@ serve(async (req: Request) => {
     if (!rateResult.allowed) {
       const elapsed = Date.now() - startTime;
       await logUsage(supabase, apiKeyRecord.id, url.pathname, req.method, 429, elapsed, ipAddress);
-      return jsonResponse({ error: 'Rate limit exceeded', retry_after_ms: rateResult.resetAt - Date.now() }, 429);
+      return jsonResponse(
+        { error: 'Rate limit exceeded', retry_after_ms: rateResult.resetAt - Date.now() },
+        corsHeaders,
+        429
+      );
     }
 
     // Parse path — strip the function prefix (/api-gateway)
@@ -346,13 +363,16 @@ serve(async (req: Request) => {
     if (apiPath === '/' || apiPath === '') {
       const elapsed = Date.now() - startTime;
       await logUsage(supabase, apiKeyRecord.id, '/', req.method, 200, elapsed, ipAddress);
-      return jsonResponse({
-        message: 'CashPilot Public API v1',
-        endpoints: Object.keys(routes),
-        scopes: apiKeyRecord.scopes,
-        rate_limit: apiKeyRecord.rate_limit,
-        rate_remaining: rateResult.remaining,
-      });
+      return jsonResponse(
+        {
+          message: 'CashPilot Public API v1',
+          endpoints: Object.keys(routes),
+          scopes: apiKeyRecord.scopes,
+          rate_limit: apiKeyRecord.rate_limit,
+          rate_remaining: rateResult.remaining,
+        },
+        corsHeaders
+      );
     }
 
     // Find handler
@@ -360,7 +380,7 @@ serve(async (req: Request) => {
     if (!handler) {
       const elapsed = Date.now() - startTime;
       await logUsage(supabase, apiKeyRecord.id, apiPath, req.method, 404, elapsed, ipAddress);
-      return jsonResponse({ error: `Unknown endpoint: ${apiPath}`, available: Object.keys(routes) }, 404);
+      return jsonResponse({ error: `Unknown endpoint: ${apiPath}`, available: Object.keys(routes) }, corsHeaders, 404);
     }
 
     // Execute handler
@@ -387,6 +407,6 @@ serve(async (req: Request) => {
       await logUsage(supabase, apiKeyRecord.id, url.pathname, req.method, status, elapsed, ipAddress);
     }
 
-    return jsonResponse({ error: message }, status);
+    return jsonResponse({ error: message }, corsHeaders, status);
   }
 });

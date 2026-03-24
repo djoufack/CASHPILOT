@@ -7,11 +7,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 import { getAllowedOrigin } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': getAllowedOrigin(),
+const buildCorsHeaders = (req: Request) => ({
+  'Access-Control-Allow-Origin': getAllowedOrigin(req),
   'Access-Control-Allow-Headers': 'content-type, x-webhook-signature',
   ...SECURITY_HEADERS,
-};
+});
 
 function verifySignature(payload: string, signature: string | null, secret: string): boolean {
   if (!signature || !secret) return false;
@@ -21,6 +21,7 @@ function verifySignature(payload: string, signature: string | null, secret: stri
 }
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
