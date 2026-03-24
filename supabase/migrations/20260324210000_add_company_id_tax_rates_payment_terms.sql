@@ -36,6 +36,10 @@ DROP POLICY IF EXISTS "Users can view own tax rates" ON public.accounting_tax_ra
 DROP POLICY IF EXISTS "Users can insert own tax rates" ON public.accounting_tax_rates;
 DROP POLICY IF EXISTS "Users can update own tax rates" ON public.accounting_tax_rates;
 DROP POLICY IF EXISTS "Users can delete own tax rates" ON public.accounting_tax_rates;
+DROP POLICY IF EXISTS "tax_rates_select_company" ON public.accounting_tax_rates;
+DROP POLICY IF EXISTS "tax_rates_insert_company" ON public.accounting_tax_rates;
+DROP POLICY IF EXISTS "tax_rates_update_company" ON public.accounting_tax_rates;
+DROP POLICY IF EXISTS "tax_rates_delete_company" ON public.accounting_tax_rates;
 
 CREATE POLICY "tax_rates_select_company" ON public.accounting_tax_rates
   FOR SELECT USING (
@@ -62,6 +66,10 @@ DROP POLICY IF EXISTS "payment_terms_select_own" ON public.payment_terms;
 DROP POLICY IF EXISTS "payment_terms_insert_own" ON public.payment_terms;
 DROP POLICY IF EXISTS "payment_terms_update_own" ON public.payment_terms;
 DROP POLICY IF EXISTS "payment_terms_delete_own" ON public.payment_terms;
+DROP POLICY IF EXISTS "payment_terms_select_company" ON public.payment_terms;
+DROP POLICY IF EXISTS "payment_terms_insert_company" ON public.payment_terms;
+DROP POLICY IF EXISTS "payment_terms_update_company" ON public.payment_terms;
+DROP POLICY IF EXISTS "payment_terms_delete_company" ON public.payment_terms;
 
 CREATE POLICY "payment_terms_select_company" ON public.payment_terms
   FOR SELECT USING (
