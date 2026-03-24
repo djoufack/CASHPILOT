@@ -1,5 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { supabase, getUserId, getCompanyId } from '../supabase.js';
 import { safeError } from '../utils/errors.js';
 import { validateDate, optionalDate } from '../utils/validation.js';
@@ -283,6 +286,37 @@ export function registerAccountingTools(server: McpServer) {
         KM: 'KM',
       };
       const syscohadaCode = ohadaMap[countryUpper];
+
+      // Load PCG/PCMN from local JSON files for FR/BE
+      const pcgFileMap: Record<string, string> = { FR: 'pcg-france.json', BE: 'pcg-belge.json' };
+      const pcgFile = pcgFileMap[countryUpper];
+      if (pcgFile && copiedCount === 0) {
+        try {
+          // Resolve path relative to project root (mcp-server runs from project root via tsx)
+          const projectRoot = process.cwd();
+          const filePath = join(projectRoot, 'src', 'data', pcgFile);
+          const raw = readFileSync(filePath, 'utf-8');
+          const accounts: any[] = JSON.parse(raw);
+          if (accounts.length > 0) {
+            const rows = accounts.map((a: any) => ({
+              user_id: getUserId(),
+              company_id: companyId,
+              account_code: a.account_code,
+              account_name: a.account_name,
+              account_type: a.account_type || 'other',
+              account_category: a.account_category || 'other',
+              parent_code: a.parent_code || null,
+              is_active: true,
+            }));
+            const { error: insertErr } = await supabase
+              .from('accounting_chart_of_accounts')
+              .upsert(rows, { onConflict: 'company_id,account_code', ignoreDuplicates: true });
+            if (!insertErr) copiedCount = rows.length;
+          }
+        } catch (e: any) {
+          console.error(`[init_accounting] Failed to load ${pcgFile}:`, e?.message);
+        }
+      }
 
       if (syscohadaCode) {
         const { data: templates } = await supabase

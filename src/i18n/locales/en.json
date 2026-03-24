@@ -169,6 +169,27 @@
     "productRevenue": "Product Revenue",
     "serviceRevenue": "Service Revenue",
     "otherRevenue": "Other Revenue",
+    "obligations": {
+      "title": "Current Obligations",
+      "subtitle": "Your internal priorities: collections, supplier payments and pending quotes.",
+      "clientInvoices": "Client Invoices",
+      "supplierInvoices": "Supplier Invoices",
+      "quotesToPrepare": "Quotes to Prepare",
+      "toCollect": "to collect",
+      "toPay": "to pay",
+      "overdue": "overdue",
+      "priorityActions": "Priority Actions",
+      "elements": "element(s)",
+      "noUrgent": "No urgent obligations detected.",
+      "dueDate": "Due",
+      "buckets": {
+        "overdue": "Overdue",
+        "dueToday": "Today",
+        "dueSoon": "Due soon",
+        "upcoming": "Upcoming",
+        "unscheduled": "No date"
+      }
+    },
     "revenueBreakdown": "Revenue Breakdown",
     "revenueBreakdownSub": "Products vs services by month",
     "totalLabel": "Total",

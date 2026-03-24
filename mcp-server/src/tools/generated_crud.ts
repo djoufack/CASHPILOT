@@ -889,6 +889,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
         .describe("Note: This is a Foreign Key to `clients.id`.<fk table='clients' column='id'/>"),
       quote_number: z.string(),
       date: z.string().optional(),
+      valid_until: z.string().optional().describe('Expiration date of the quote (YYYY-MM-DD)'),
       status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired', 'converted']).optional(),
       total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       tax_rate: z
@@ -899,6 +900,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
         .optional()
         .describe('Tax rate as percentage (e.g., 19.25 for 19.25%)'),
       total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      currency: z.string().optional().describe('ISO 4217 currency code (e.g., EUR, USD)'),
+      notes: z.string().optional().describe('Free-text notes for the quote'),
     },
     async (args) => {
       const payload = { ...args } as Record<string, any>;
@@ -931,6 +934,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
         .describe("Note: This is a Foreign Key to `clients.id`.<fk table='clients' column='id'/>"),
       quote_number: z.string().optional(),
       date: z.string().optional(),
+      valid_until: z.string().optional().describe('Expiration date of the quote (YYYY-MM-DD)'),
       status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired', 'converted']).optional(),
       total_ht: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
       tax_rate: z
@@ -941,6 +945,8 @@ export function registerGeneratedCrudTools(server: McpServer) {
         .optional()
         .describe('Tax rate as percentage (e.g., 19.25 for 19.25%)'),
       total_ttc: z.number().min(0).max(999999999.99).multipleOf(0.01).optional(),
+      currency: z.string().optional().describe('ISO 4217 currency code (e.g., EUR, USD)'),
+      notes: z.string().optional().describe('Free-text notes for the quote'),
     },
     async (args) => {
       const { id, ...updates } = args;

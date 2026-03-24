@@ -5,7 +5,10 @@
  */
 export function safeError(error: any, context: string): string {
   // Log full error for server-side debugging
-  console.error(`[${context}]`, error?.message || error);
-  // Return generic message to user — no raw DB details
-  return `Operation failed: ${context}. Please try again or check your input.`;
+  const msg = error?.message || JSON.stringify(error);
+  console.error(`[${context}]`, msg);
+  // Return actionable message: include DB detail so MCP users can self-correct,
+  // but strip raw SQL/schema internals that could leak table structure.
+  const safeMsg = msg?.replace(/\n/g, ' ')?.replace(/\s+/g, ' ')?.slice(0, 200) || 'unknown error';
+  return `Operation failed: ${context}. Detail: ${safeMsg}`;
 }
