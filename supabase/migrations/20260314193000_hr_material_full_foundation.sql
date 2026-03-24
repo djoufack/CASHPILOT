@@ -1,5 +1,4 @@
 BEGIN;
-
 CREATE OR REPLACE FUNCTION public.hr_material_set_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -9,7 +8,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- RH core
 CREATE TABLE IF NOT EXISTS public.hr_departments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -22,7 +20,6 @@ CREATE TABLE IF NOT EXISTS public.hr_departments (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (company_id, name)
 );
-
 CREATE TABLE IF NOT EXISTS public.hr_work_calendars (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -33,7 +30,6 @@ CREATE TABLE IF NOT EXISTS public.hr_work_calendars (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (company_id, name)
 );
-
 CREATE TABLE IF NOT EXISTS public.hr_leave_types (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -45,7 +41,6 @@ CREATE TABLE IF NOT EXISTS public.hr_leave_types (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (company_id, name)
 );
-
 CREATE TABLE IF NOT EXISTS public.hr_employees (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -68,7 +63,6 @@ CREATE TABLE IF NOT EXISTS public.hr_employees (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (company_id, employee_number)
 );
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -83,7 +77,6 @@ BEGIN
       ON DELETE SET NULL;
   END IF;
 END $$;
-
 CREATE TABLE IF NOT EXISTS public.hr_employee_contracts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -98,7 +91,6 @@ CREATE TABLE IF NOT EXISTS public.hr_employee_contracts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.hr_employee_skills (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -108,7 +100,6 @@ CREATE TABLE IF NOT EXISTS public.hr_employee_skills (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.hr_leave_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -123,7 +114,6 @@ CREATE TABLE IF NOT EXISTS public.hr_leave_requests (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (end_date >= start_date)
 );
-
 CREATE TABLE IF NOT EXISTS public.hr_timesheet_periods (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -139,7 +129,6 @@ CREATE TABLE IF NOT EXISTS public.hr_timesheet_periods (
   UNIQUE (company_id, employee_id, period_start, period_end),
   CHECK (period_end >= period_start)
 );
-
 CREATE TABLE IF NOT EXISTS public.hr_timesheet_lines (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -161,7 +150,6 @@ CREATE TABLE IF NOT EXISTS public.hr_timesheet_lines (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.hr_timesheet_approvals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -172,7 +160,6 @@ CREATE TABLE IF NOT EXISTS public.hr_timesheet_approvals (
   comment TEXT,
   decided_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.hr_payroll_periods (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -187,7 +174,6 @@ CREATE TABLE IF NOT EXISTS public.hr_payroll_periods (
   UNIQUE (company_id, period_start, period_end, calculation_version),
   CHECK (period_end >= period_start)
 );
-
 CREATE TABLE IF NOT EXISTS public.hr_payroll_variable_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -206,7 +192,6 @@ CREATE TABLE IF NOT EXISTS public.hr_payroll_variable_items (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.hr_payroll_exports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -221,7 +206,6 @@ CREATE TABLE IF NOT EXISTS public.hr_payroll_exports (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (payroll_period_id, version)
 );
-
 CREATE TABLE IF NOT EXISTS public.hr_payroll_anomalies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -233,7 +217,6 @@ CREATE TABLE IF NOT EXISTS public.hr_payroll_anomalies (
   details JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 -- Material core
 CREATE TABLE IF NOT EXISTS public.material_categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -245,7 +228,6 @@ CREATE TABLE IF NOT EXISTS public.material_categories (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (company_id, name)
 );
-
 CREATE TABLE IF NOT EXISTS public.material_assets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -261,7 +243,6 @@ CREATE TABLE IF NOT EXISTS public.material_assets (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (company_id, asset_code)
 );
-
 CREATE TABLE IF NOT EXISTS public.material_maintenance_windows (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -274,7 +255,6 @@ CREATE TABLE IF NOT EXISTS public.material_maintenance_windows (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (end_at >= start_at)
 );
-
 CREATE TABLE IF NOT EXISTS public.material_assignments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -291,7 +271,6 @@ CREATE TABLE IF NOT EXISTS public.material_assignments (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (end_at >= start_at)
 );
-
 CREATE TABLE IF NOT EXISTS public.material_usage_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -307,7 +286,6 @@ CREATE TABLE IF NOT EXISTS public.material_usage_logs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.material_usage_approvals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
@@ -317,13 +295,11 @@ CREATE TABLE IF NOT EXISTS public.material_usage_approvals (
   comment TEXT,
   decided_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 -- Legacy extensions
 ALTER TABLE public.team_members ADD COLUMN IF NOT EXISTS company_id UUID, ADD COLUMN IF NOT EXISTS employee_id UUID;
 ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS project_code TEXT, ADD COLUMN IF NOT EXISTS cost_center_id UUID, ADD COLUMN IF NOT EXISTS project_manager_employee_id UUID, ADD COLUMN IF NOT EXISTS budget_amount NUMERIC(14,2), ADD COLUMN IF NOT EXISTS currency VARCHAR(3) DEFAULT 'EUR';
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS task_code TEXT, ADD COLUMN IF NOT EXISTS billable BOOLEAN NOT NULL DEFAULT true, ADD COLUMN IF NOT EXISTS imputable BOOLEAN NOT NULL DEFAULT true, ADD COLUMN IF NOT EXISTS cost_center_id UUID;
 ALTER TABLE public.timesheets ADD COLUMN IF NOT EXISTS executed_by_employee_id UUID, ADD COLUMN IF NOT EXISTS timesheet_period_id UUID, ADD COLUMN IF NOT EXISTS line_type TEXT, ADD COLUMN IF NOT EXISTS approval_status TEXT;
-
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_team_members_company' AND conrelid = 'public.team_members'::regclass) THEN
@@ -348,7 +324,6 @@ BEGIN
     ALTER TABLE public.timesheets ADD CONSTRAINT fk_timesheets_hr_period FOREIGN KEY (timesheet_period_id) REFERENCES public.hr_timesheet_periods(id) ON DELETE SET NULL;
   END IF;
 END $$;
-
 -- Link existing member data to companies
 WITH c AS (
   SELECT pra.team_member_id AS member_id, pra.company_id FROM public.project_resource_allocations pra WHERE pra.team_member_id IS NOT NULL AND pra.company_id IS NOT NULL
@@ -363,7 +338,6 @@ UPDATE public.team_members tm
 SET company_id = r.company_id
 FROM r
 WHERE tm.id = r.member_id AND r.rn = 1 AND tm.company_id IS NULL;
-
 -- Business rules
 CREATE OR REPLACE FUNCTION public.hr_prevent_productive_time_on_leave()
 RETURNS TRIGGER
@@ -387,7 +361,6 @@ END;
 $$;
 DROP TRIGGER IF EXISTS trg_hr_prevent_productive_time_on_leave ON public.hr_timesheet_lines;
 CREATE TRIGGER trg_hr_prevent_productive_time_on_leave BEFORE INSERT OR UPDATE ON public.hr_timesheet_lines FOR EACH ROW EXECUTE FUNCTION public.hr_prevent_productive_time_on_leave();
-
 CREATE OR REPLACE FUNCTION public.material_enforce_availability()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -405,7 +378,6 @@ DROP TRIGGER IF EXISTS trg_material_assignment_availability ON public.material_a
 CREATE TRIGGER trg_material_assignment_availability BEFORE INSERT OR UPDATE ON public.material_assignments FOR EACH ROW EXECUTE FUNCTION public.material_enforce_availability();
 DROP TRIGGER IF EXISTS trg_material_usage_availability ON public.material_usage_logs;
 CREATE TRIGGER trg_material_usage_availability BEFORE INSERT OR UPDATE ON public.material_usage_logs FOR EACH ROW EXECUTE FUNCTION public.material_enforce_availability();
-
 CREATE OR REPLACE FUNCTION public.material_compute_usage_cost()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -421,7 +393,6 @@ END;
 $$;
 DROP TRIGGER IF EXISTS trg_material_compute_usage_cost ON public.material_usage_logs;
 CREATE TRIGGER trg_material_compute_usage_cost BEFORE INSERT OR UPDATE ON public.material_usage_logs FOR EACH ROW EXECUTE FUNCTION public.material_compute_usage_cost();
-
 CREATE OR REPLACE FUNCTION public.hr_calculate_payroll_period(p_payroll_period_id UUID, p_incremental BOOLEAN DEFAULT false)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -464,7 +435,6 @@ BEGIN
   RETURN jsonb_build_object('payroll_period_id', p_payroll_period_id, 'inserted_items', v_items, 'anomalies', v_anomalies);
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.hr_export_payroll_csv(p_payroll_period_id UUID)
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -479,7 +449,6 @@ BEGIN
   RETURN COALESCE(v_csv, '');
 END;
 $$;
-
 -- Accounting logs for CRUD
 CREATE OR REPLACE FUNCTION public.log_hr_material_data_access()
 RETURNS TRIGGER
@@ -497,7 +466,6 @@ BEGIN
   RETURN COALESCE(NEW, OLD);
 END;
 $$;
-
 DO $$
 DECLARE t TEXT;
 BEGIN
@@ -515,5 +483,4 @@ BEGIN
     EXECUTE format('CREATE POLICY p_company_owner_rw ON public.%I USING (EXISTS (SELECT 1 FROM public.company c WHERE c.id = company_id AND c.user_id = auth.uid())) WITH CHECK (EXISTS (SELECT 1 FROM public.company c WHERE c.id = company_id AND c.user_id = auth.uid()))', t);
   END LOOP;
 END $$;
-
 COMMIT;
