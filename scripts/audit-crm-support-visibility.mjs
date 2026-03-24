@@ -10,27 +10,39 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY');
 }
 
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return '';
+}
+
 const DEMOS = [
   {
-    email: 'pilotage.fr.demo@cashpilot.cloud',
-    password: process.env.PILOTAGE_FR_PASSWORD,
+    email: firstNonEmpty(process.env.PILOTAGE_FR_EMAIL, process.env.DEMO_USER_EMAIL_FR, 'pilotage.fr.demo@cashpilot.cloud'),
+    password: firstNonEmpty(process.env.PILOTAGE_FR_PASSWORD, process.env.DEMO_USER_PASSWORD_FR),
+    passwordEnvs: 'PILOTAGE_FR_PASSWORD|DEMO_USER_PASSWORD_FR',
     label: 'FR',
   },
   {
-    email: 'pilotage.be.demo@cashpilot.cloud',
-    password: process.env.PILOTAGE_BE_PASSWORD,
+    email: firstNonEmpty(process.env.PILOTAGE_BE_EMAIL, process.env.DEMO_USER_EMAIL_BE, 'pilotage.be.demo@cashpilot.cloud'),
+    password: firstNonEmpty(process.env.PILOTAGE_BE_PASSWORD, process.env.DEMO_USER_PASSWORD_BE),
+    passwordEnvs: 'PILOTAGE_BE_PASSWORD|DEMO_USER_PASSWORD_BE',
     label: 'BE',
   },
   {
-    email: 'pilotage.ohada.demo@cashpilot.cloud',
-    password: process.env.PILOTAGE_OHADA_PASSWORD,
+    email: firstNonEmpty(process.env.PILOTAGE_OHADA_EMAIL, process.env.DEMO_USER_EMAIL_OHADA, 'pilotage.ohada.demo@cashpilot.cloud'),
+    password: firstNonEmpty(process.env.PILOTAGE_OHADA_PASSWORD, process.env.DEMO_USER_PASSWORD_OHADA),
+    passwordEnvs: 'PILOTAGE_OHADA_PASSWORD|DEMO_USER_PASSWORD_OHADA',
     label: 'OHADA',
   },
 ];
 
 for (const demo of DEMOS) {
   if (!demo.password) {
-    throw new Error(`Missing password env for ${demo.label}`);
+    throw new Error(`Missing password env for ${demo.label}: ${demo.passwordEnvs}`);
   }
 }
 
