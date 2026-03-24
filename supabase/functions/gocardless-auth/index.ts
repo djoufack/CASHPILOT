@@ -1,12 +1,13 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
+import { getAllowedOrigin } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
+const buildCorsHeaders = (req: Request) => ({
+  'Access-Control-Allow-Origin': getAllowedOrigin(req),
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   ...SECURITY_HEADERS,
-};
+});
 
 const GOCARDLESS_BASE = 'https://bankaccountdata.gocardless.com/api/v2';
 const GOCARDLESS_TIMEOUT_MS = 20000;
@@ -23,11 +24,11 @@ class HttpError extends Error {
   }
 }
 
-function jsonResponse(payload: unknown, status = 200) {
+function jsonResponseForRequest(req: Request, payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: {
-      ...corsHeaders,
+      ...buildCorsHeaders(req),
       'Content-Type': 'application/json',
     },
   });
@@ -365,6 +366,7 @@ async function syncConnectionTransactions(
 }
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -380,7 +382,7 @@ serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return jsonResponse({ error: 'Missing or invalid Authorization header' }, 401);
+      return jsonResponseForRequest(req, { error: 'Missing or invalid Authorization header' }, 401);
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -393,7 +395,7 @@ serve(async (req) => {
     } = await supabaseAuth.auth.getUser();
 
     if (authError || !authUser) {
-      return jsonResponse({ error: 'Invalid or expired token' }, 401);
+      return jsonResponseForRequest(req, { error: 'Invalid or expired token' }, 401);
     }
 
     const body = await req.json().catch(() => ({}));
@@ -404,7 +406,7 @@ serve(async (req) => {
     if (action === 'health') {
       const credentialsConfigured = Boolean(secretId && secretKey);
       if (!credentialsConfigured) {
-        return jsonResponse({
+        return jsonResponseForRequest(req, {
           success: true,
           ready: false,
           credentialsConfigured: false,
@@ -416,7 +418,7 @@ serve(async (req) => {
 
       try {
         await fetchGoCardlessToken(secretId as string, secretKey as string);
-        return jsonResponse({
+        return jsonResponseForRequest(req, {
           success: true,
           ready: true,
           credentialsConfigured: true,
@@ -424,7 +426,7 @@ serve(async (req) => {
           checkedAt: new Date().toISOString(),
         });
       } catch (error) {
-        return jsonResponse({
+        return jsonResponseForRequest(req, {
           success: true,
           ready: false,
           credentialsConfigured: true,
@@ -449,7 +451,7 @@ serve(async (req) => {
           `/institutions/?country=${encodeURIComponent(institutionCountry)}`
         );
 
-        return jsonResponse({
+        return jsonResponseForRequest(req, {
           success: true,
           institutions: Array.isArray(institutions) ? institutions : [],
         });
@@ -457,12 +459,12 @@ serve(async (req) => {
 
       case 'create-requisition': {
         if (!institutionId) {
-          return jsonResponse({ error: 'Missing institutionId' }, 400);
+          return jsonResponseForRequest(req, { error: 'Missing institutionId' }, 400);
         }
 
         const resolvedCompanyId = await resolveTargetCompanyId(supabase, verifiedUserId, companyId);
         if (!resolvedCompanyId) {
-          return jsonResponse({ error: 'No company configured for this user' }, 422);
+          return jsonResponseForRequest(req, { error: 'No company configured for this user' }, 422);
         }
 
         const institutionDetails = await fetchGoCardless(accessToken, `/institutions/${institutionId}/`).catch(
@@ -501,7 +503,7 @@ serve(async (req) => {
           expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
         });
 
-        return jsonResponse({
+        return jsonResponseForRequest(req, {
           success: true,
           link: requisition.link,
           requisition_id: requisition.id,
@@ -512,7 +514,7 @@ serve(async (req) => {
 
       case 'complete-requisition': {
         if (!requisitionId) {
-          return jsonResponse({ error: 'Missing requisitionId' }, 400);
+          return jsonResponseForRequest(req, { error: 'Missing requisitionId' }, 400);
         }
 
         const requisition = await fetchGoCardless(accessToken, `/requisitions/${requisitionId}/`);
@@ -550,7 +552,8 @@ serve(async (req) => {
           }
           await statusUpdate;
 
-          return jsonResponse(
+          return jsonResponseForRequest(
+            req,
             {
               error:
                 mappedStatus === 'expired'
@@ -578,7 +581,7 @@ serve(async (req) => {
           }
           await noAccountUpdate;
 
-          return jsonResponse({ error: 'No bank account returned by GoCardless' }, 422);
+          return jsonResponseForRequest(req, { error: 'No bank account returned by GoCardless' }, 422);
         }
 
         const seedConnection = existingConnections?.[0] || null;
@@ -676,7 +679,7 @@ serve(async (req) => {
           });
         }
 
-        return jsonResponse({
+        return jsonResponseForRequest(req, {
           success: true,
           requisition_id: requisitionId,
           accounts: results,
@@ -685,7 +688,7 @@ serve(async (req) => {
 
       case 'sync-transactions': {
         if (!connectionId) {
-          return jsonResponse({ error: 'Missing connectionId' }, 400);
+          return jsonResponseForRequest(req, { error: 'Missing connectionId' }, 400);
         }
 
         let connectionQuery = supabase
@@ -699,7 +702,7 @@ serve(async (req) => {
         const { data: connection, error: connectionError } = await connectionQuery.maybeSingle();
 
         if (connectionError || !connection) {
-          return jsonResponse({ error: 'Bank connection not found' }, 404);
+          return jsonResponseForRequest(req, { error: 'Bank connection not found' }, 404);
         }
 
         const sync = await syncConnectionTransactions(supabase, {
@@ -709,7 +712,7 @@ serve(async (req) => {
           syncType: 'transactions',
         });
 
-        return jsonResponse({
+        return jsonResponseForRequest(req, {
           success: true,
           connection_id: connectionId,
           ...sync,
@@ -717,7 +720,7 @@ serve(async (req) => {
       }
 
       default:
-        return jsonResponse({ error: `Unknown action: ${action}` }, 400);
+        return jsonResponseForRequest(req, { error: `Unknown action: ${action}` }, 400);
     }
   } catch (error) {
     const status =
@@ -725,6 +728,6 @@ serve(async (req) => {
         ? Number((error as { status?: number }).status || 500)
         : 500;
 
-    return jsonResponse({ error: error instanceof Error ? error.message : 'Unexpected error' }, status);
+    return jsonResponseForRequest(req, { error: error instanceof Error ? error.message : 'Unexpected error' }, status);
   }
 });

@@ -5347,7 +5347,7 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'financial_scenarios', scenarioSeed.scenarioRows, 'id');
   await upsertRows(client, 'scenario_assumptions', scenarioSeed.scenarioAssumptionRows, 'id');
   await upsertRows(client, 'scenario_results', scenarioSeed.scenarioResultRows, 'scenario_id,calculation_date');
-  await ensureCompanyThresholdRows(client, effectiveDataset, 7);
+  await ensureCompanyThresholdRows(client, effectiveDataset, 10);
 
   const preferencePayload = {
     user_id: effectiveDataset.userId,

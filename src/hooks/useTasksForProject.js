@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { triggerWebhook } from '@/utils/webhookTrigger';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { isMissingColumnError } from '@/lib/supabaseCompatibility';
 
 const syncLegacyTaskTitle = (payload) => {
   const nextPayload = { ...payload };
@@ -41,47 +42,65 @@ export const useTasksForProject = (projectId, filters = {}) => {
 
     setLoading(true);
     try {
-      let query = supabase
-        .from('tasks')
-        .select(
-          `
+      const buildTasksQuery = (mode = 'full') => {
+        const subtaskColumnsByMode = {
+          full: [
+            'id',
+            'task_id',
+            'title',
+            'status',
+            'due_date',
+            'started_at',
+            'completed_at',
+            'created_at',
+            'updated_at',
+          ],
+          legacy: ['id', 'task_id', 'title', 'status', 'created_at', 'updated_at'],
+        };
+        const subtaskColumns = (subtaskColumnsByMode[mode] || subtaskColumnsByMode.legacy).join(',\n            ');
+
+        let query = supabase
+          .from('tasks')
+          .select(
+            `
           *,
           subtasks (
-            id,
-            task_id,
-            title,
-            status,
-            due_date,
-            started_at,
-            completed_at,
-            created_at,
-            updated_at
+            ${subtaskColumns}
           ),
           service:services(id, service_name, hourly_rate, pricing_type),
           invoice:invoices(id, invoice_number, total_ttc),
           quote:quotes(id, quote_number, total_ttc),
           purchase_order:purchase_orders(id, po_number, total)
         `
-        )
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-      query = applyCompanyScope(query);
+          )
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false });
 
-      // Apply filters
-      if (filters.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
-      }
-      if (filters.priority && filters.priority !== 'all') {
-        query = query.eq('priority', filters.priority);
-      }
-      if (filters.assigned_to) {
-        query = query.ilike('assigned_to', `%${filters.assigned_to}%`);
-      }
-      if (filters.search) {
-        query = query.ilike('title', `%${filters.search}%`);
-      }
+        query = applyCompanyScope(query);
 
-      const { data, error } = await query;
+        if (filters.status && filters.status !== 'all') {
+          query = query.eq('status', filters.status);
+        }
+        if (filters.priority && filters.priority !== 'all') {
+          query = query.eq('priority', filters.priority);
+        }
+        if (filters.assigned_to) {
+          query = query.ilike('assigned_to', `%${filters.assigned_to}%`);
+        }
+        if (filters.search) {
+          query = query.ilike('title', `%${filters.search}%`);
+        }
+
+        return query;
+      };
+
+      let { data, error } = await buildTasksQuery('full');
+
+      if (error && isMissingColumnError(error) && String(error.message || '').includes('subtasks_1.')) {
+        const fallbackResult = await buildTasksQuery('legacy');
+        data = fallbackResult.data;
+        error = fallbackResult.error;
+      }
 
       if (error) throw error;
       setTasks(data || []);
