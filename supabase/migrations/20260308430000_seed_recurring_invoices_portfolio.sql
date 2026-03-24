@@ -16,7 +16,6 @@ WHERE company_id IN (
   AND c.company_name NOT LIKE '% SRL'
   AND c.company_name != 'CashPilot Demo Afrique SARL'
 );
-
 DO $$
 DECLARE
   v_user_ids UUID[] := ARRAY[

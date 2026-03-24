@@ -155,21 +155,6 @@ const TopNavBar = ({ isCollapsed, mobileMenuOpen: externalMobileOpen, onMobileMe
               <LanguageSwitcher variant="segmented" />
             </motion.div>
           </div>
-
-          {/* Divider */}
-          <div className="h-6 w-px bg-gray-800 mx-1 shrink-0" />
-
-          {/* Logout */}
-          <motion.button
-            whileHover={{ scale: 1.03, x: 2 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-950/30 transition-all duration-200 shrink-0"
-            aria-label={t('common.logout')}
-          >
-            <LogOut size={18} />
-            <span className="text-sm font-medium">{t('common.logout')}</span>
-          </motion.button>
         </div>
       </motion.header>
 

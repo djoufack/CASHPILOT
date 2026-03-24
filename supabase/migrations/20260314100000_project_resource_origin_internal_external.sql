@@ -5,22 +5,18 @@
 -- ============================================================================
 
 BEGIN;
-
 ALTER TABLE public.project_resource_allocations
   ADD COLUMN IF NOT EXISTS resource_origin TEXT,
   ADD COLUMN IF NOT EXISTS supplier_id UUID REFERENCES public.suppliers(id) ON DELETE SET NULL;
-
 UPDATE public.project_resource_allocations
 SET resource_origin = CASE
   WHEN supplier_id IS NOT NULL THEN 'external_supplier'
   ELSE 'internal'
 END
 WHERE resource_origin IS NULL;
-
 ALTER TABLE public.project_resource_allocations
   ALTER COLUMN resource_origin SET DEFAULT 'internal',
   ALTER COLUMN resource_origin SET NOT NULL;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -34,7 +30,6 @@ BEGIN
       CHECK (resource_origin IN ('internal', 'external_supplier'));
   END IF;
 END $$;
-
 DO $$
 BEGIN
   IF EXISTS (
@@ -76,13 +71,10 @@ BEGIN
       );
   END IF;
 END $$;
-
 CREATE INDEX IF NOT EXISTS idx_project_resource_allocations_supplier_id
   ON public.project_resource_allocations(supplier_id);
-
 CREATE INDEX IF NOT EXISTS idx_project_resource_allocations_origin
   ON public.project_resource_allocations(resource_origin);
-
 CREATE OR REPLACE FUNCTION public.enforce_project_control_scope_integrity()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -185,7 +177,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.log_project_resource_allocations_data_access()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -244,11 +235,9 @@ BEGIN
   RETURN COALESCE(NEW, OLD);
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_audit_project_resource_allocations_data_access ON public.project_resource_allocations;
 CREATE TRIGGER trg_audit_project_resource_allocations_data_access
   AFTER INSERT OR UPDATE OR DELETE ON public.project_resource_allocations
   FOR EACH ROW
   EXECUTE FUNCTION public.log_project_resource_allocations_data_access();
-
 COMMIT;

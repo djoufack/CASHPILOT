@@ -5,7 +5,6 @@
 -- ============================================================================
 
 BEGIN;
-
 -- ============================================================================
 -- 1) Debt reference catalogs (UI-driven values moved to DB)
 -- ============================================================================
@@ -21,7 +20,6 @@ CREATE TABLE IF NOT EXISTS public.reference_debt_statuses (
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.reference_debt_categories (
   code TEXT PRIMARY KEY,
   label_key TEXT NOT NULL,
@@ -29,7 +27,6 @@ CREATE TABLE IF NOT EXISTS public.reference_debt_categories (
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.reference_debt_payment_methods (
   code TEXT PRIMARY KEY,
   label_key TEXT NOT NULL,
@@ -37,11 +34,9 @@ CREATE TABLE IF NOT EXISTS public.reference_debt_payment_methods (
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 ALTER TABLE public.reference_debt_statuses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reference_debt_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reference_debt_payment_methods ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -71,7 +66,6 @@ BEGIN
       ON public.reference_debt_payment_methods FOR SELECT USING (TRUE);
   END IF;
 END $$;
-
 INSERT INTO public.reference_debt_statuses
   (code, label_key, display_color, display_bg, is_open, is_terminal, sort_order, is_active)
 VALUES
@@ -88,7 +82,6 @@ ON CONFLICT (code) DO UPDATE SET
   is_terminal = EXCLUDED.is_terminal,
   sort_order = EXCLUDED.sort_order,
   is_active = EXCLUDED.is_active;
-
 INSERT INTO public.reference_debt_categories
   (code, label_key, sort_order, is_active)
 VALUES
@@ -101,7 +94,6 @@ ON CONFLICT (code) DO UPDATE SET
   label_key = EXCLUDED.label_key,
   sort_order = EXCLUDED.sort_order,
   is_active = EXCLUDED.is_active;
-
 INSERT INTO public.reference_debt_payment_methods
   (code, label_key, sort_order, is_active)
 VALUES
@@ -114,7 +106,6 @@ ON CONFLICT (code) DO UPDATE SET
   label_key = EXCLUDED.label_key,
   sort_order = EXCLUDED.sort_order,
   is_active = EXCLUDED.is_active;
-
 -- ============================================================================
 -- 2) AccountingMappings reference catalogs (UI-driven values moved to DB)
 -- ============================================================================
@@ -126,7 +117,6 @@ CREATE TABLE IF NOT EXISTS public.reference_accounting_source_types (
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.reference_accounting_source_categories (
   source_type TEXT NOT NULL REFERENCES public.reference_accounting_source_types(code) ON DELETE CASCADE,
   code TEXT NOT NULL,
@@ -136,10 +126,8 @@ CREATE TABLE IF NOT EXISTS public.reference_accounting_source_categories (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (source_type, code)
 );
-
 ALTER TABLE public.reference_accounting_source_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reference_accounting_source_categories ENABLE ROW LEVEL SECURITY;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -160,7 +148,6 @@ BEGIN
       ON public.reference_accounting_source_categories FOR SELECT USING (TRUE);
   END IF;
 END $$;
-
 INSERT INTO public.reference_accounting_source_types (code, label, sort_order, is_active) VALUES
   ('invoice',          'Facture client (vente)',            1, TRUE),
   ('expense',          'Dépense',                           2, TRUE),
@@ -172,7 +159,6 @@ ON CONFLICT (code) DO UPDATE SET
   label = EXCLUDED.label,
   sort_order = EXCLUDED.sort_order,
   is_active = EXCLUDED.is_active;
-
 INSERT INTO public.reference_accounting_source_categories (source_type, code, label, sort_order, is_active) VALUES
   ('invoice', 'revenue', 'revenue', 1, TRUE),
   ('invoice', 'service', 'service', 2, TRUE),
@@ -218,7 +204,6 @@ ON CONFLICT (source_type, code) DO UPDATE SET
   label = EXCLUDED.label,
   sort_order = EXCLUDED.sort_order,
   is_active = EXCLUDED.is_active;
-
 -- ============================================================================
 -- 3) debt_payments referential hardening (explicit FK columns)
 -- ============================================================================
@@ -226,24 +211,19 @@ ON CONFLICT (source_type, code) DO UPDATE SET
 ALTER TABLE public.debt_payments
   ADD COLUMN IF NOT EXISTS receivable_id UUID,
   ADD COLUMN IF NOT EXISTS payable_id UUID;
-
 UPDATE public.debt_payments
 SET receivable_id = COALESCE(receivable_id, CASE WHEN record_type = 'receivable' THEN record_id ELSE NULL END),
     payable_id = COALESCE(payable_id, CASE WHEN record_type = 'payable' THEN record_id ELSE NULL END);
-
 -- Remove legacy orphan rows before adding FK constraints
 DELETE FROM public.debt_payments dp
 WHERE dp.receivable_id IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM public.receivables r WHERE r.id = dp.receivable_id);
-
 DELETE FROM public.debt_payments dp
 WHERE dp.payable_id IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM public.payables p WHERE p.id = dp.payable_id);
-
 -- Remove invalid rows with no parent linkage
 DELETE FROM public.debt_payments
 WHERE receivable_id IS NULL AND payable_id IS NULL;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -283,13 +263,10 @@ BEGIN
       ) NOT VALID;
   END IF;
 END $$;
-
 ALTER TABLE public.debt_payments
   VALIDATE CONSTRAINT chk_debt_payments_exactly_one_parent;
-
 CREATE INDEX IF NOT EXISTS idx_debt_payments_receivable_id ON public.debt_payments(receivable_id);
 CREATE INDEX IF NOT EXISTS idx_debt_payments_payable_id ON public.debt_payments(payable_id);
-
 -- Keep legacy columns synchronized during transition.
 CREATE OR REPLACE FUNCTION public.assign_debt_payment_company_id()
 RETURNS TRIGGER
@@ -333,11 +310,9 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_assign_debt_payment_company_id ON public.debt_payments;
 CREATE TRIGGER trg_assign_debt_payment_company_id
   BEFORE INSERT OR UPDATE ON public.debt_payments
   FOR EACH ROW
   EXECUTE FUNCTION public.assign_debt_payment_company_id();
-
 COMMIT;

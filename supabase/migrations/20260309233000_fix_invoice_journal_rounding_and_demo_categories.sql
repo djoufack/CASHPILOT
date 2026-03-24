@@ -123,7 +123,6 @@ BEGIN
   RETURN NULL;
 END;
 $fn$;
-
 CREATE OR REPLACE FUNCTION public.ensure_account_exists(
   p_user_id uuid,
   p_company_id uuid,
@@ -237,7 +236,6 @@ BEGIN
   VALUES (gen_random_uuid(), p_user_id, p_account_code, v_name, v_type, v_category);
 END;
 $fn$;
-
 CREATE OR REPLACE FUNCTION public.insert_invoice_sales_entries(
   p_invoice invoices,
   p_company_id uuid,
@@ -326,7 +324,6 @@ BEGIN
   END IF;
 END;
 $fn$;
-
 CREATE OR REPLACE FUNCTION public.insert_invoice_journal_entries(
   p_invoice invoices
 ) RETURNS void
@@ -375,7 +372,6 @@ BEGIN
   END IF;
 END;
 $fn$;
-
 CREATE OR REPLACE FUNCTION public.rebuild_auto_invoice_entries(
   p_user_id uuid DEFAULT NULL
 ) RETURNS integer
@@ -410,7 +406,6 @@ BEGIN
   RETURN v_rebuilt_count;
 END;
 $fn$;
-
 CREATE OR REPLACE FUNCTION public.auto_journal_invoice()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -484,7 +479,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 UPDATE accounting_chart_of_accounts coa
 SET account_category = public.infer_account_category(coa.account_code, coa.account_name, coa.account_type)
 WHERE COALESCE(BTRIM(coa.account_category), '') = ''
@@ -494,5 +488,4 @@ WHERE COALESCE(BTRIM(coa.account_category), '') = ''
     FROM auth.users
     WHERE email LIKE 'pilotage.%.demo@cashpilot.cloud'
   );
-
 SELECT public.rebuild_auto_invoice_entries();

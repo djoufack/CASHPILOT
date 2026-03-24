@@ -2,6 +2,7 @@ export const landingPageContent = {
   fr: {
     nav: {
       features: 'Fonctionnalités',
+      latest: 'Nouveautés',
       simulations: 'Simulations',
       audience: 'Pour qui ?',
       advantages: 'Avantages',
@@ -209,6 +210,39 @@ export const landingPageContent = {
         { title: 'Export Excel/CSV natif', description: 'Export en un clic depuis toutes les pages principales' },
       ],
     },
+    latest: {
+      badge: 'Nouveautés CashPilot 2026',
+      title: 'Modules stratégiques disponibles',
+      description:
+        'Les dernières briques majeures de CashPilot sont actives dans la plateforme et documentées dans le guide.',
+      cards: [
+        {
+          title: 'GED HUB fédérée',
+          description:
+            'Point central de tous les documents de l’entreprise: recherche, filtres, accès module, téléversement et traçabilité.',
+        },
+        {
+          title: 'Ressources Humaines',
+          description:
+            'Employés, contrats, paie, congés, recrutement, formation et analytics RH par société, avec scope company strict.',
+        },
+        {
+          title: 'Gestion des projets',
+          description:
+            'Projets, tâches, ressources humaines et matérielles, coûts, timesheets et tableaux de bord pilotés par période.',
+        },
+        {
+          title: 'CRM complet',
+          description:
+            'Leads, opportunités, activités, tickets SLA et suivi client unifié, rattachés à chaque société.',
+        },
+        {
+          title: 'CFO Agent IA',
+          description:
+            'Assistant financier intelligent pour analyse, simulation et recommandations actionnables en temps réel.',
+        },
+      ],
+    },
     pilotage: {
       badge: "Pilotage d'entreprise",
       title: 'Centre de pilotage stratégique',
@@ -373,6 +407,7 @@ export const landingPageContent = {
   en: {
     nav: {
       features: 'Features',
+      latest: "What's new",
       simulations: 'Simulations',
       audience: 'Who is it for?',
       advantages: 'Advantages',
@@ -573,6 +608,36 @@ export const landingPageContent = {
         { title: 'Native Excel/CSV export', description: 'One-click export from all core pages' },
       ],
     },
+    latest: {
+      badge: 'CashPilot 2026 updates',
+      title: 'Strategic modules now live',
+      description: 'These major capabilities are now available in-app and documented in the user guide.',
+      cards: [
+        {
+          title: 'Federated GED HUB',
+          description:
+            'Centralized enterprise document hub with search, filters, module routing, uploads, and traceability.',
+        },
+        {
+          title: 'Human Resources',
+          description:
+            'Employees, contracts, payroll, leave, recruiting, training, and HR analytics per company with strict company scope.',
+        },
+        {
+          title: 'Project management',
+          description: 'Projects, tasks, human/material resources, costs, timesheets, and period-based dashboards.',
+        },
+        {
+          title: 'Full CRM',
+          description:
+            'Leads, opportunities, activities, SLA tickets, and unified client follow-up scoped to each company.',
+        },
+        {
+          title: 'AI CFO Agent',
+          description: 'Financial copilot for analysis, simulations, and real-time actionable recommendations.',
+        },
+      ],
+    },
     pilotage: {
       badge: 'Business steering',
       title: 'Strategic steering cockpit',
@@ -736,6 +801,7 @@ export const landingPageContent = {
   nl: {
     nav: {
       features: 'Functies',
+      latest: 'Nieuw',
       simulations: 'Simulaties',
       audience: 'Voor wie?',
       advantages: 'Voordelen',
@@ -943,6 +1009,36 @@ export const landingPageContent = {
         { title: 'REST API & webhooks', description: 'Gedocumenteerde API + HMAC-webhooks voor externe integraties' },
         { title: 'ECB-wisselkoersen', description: '33 valuta met automatisch bijgewerkte officiële koersen' },
         { title: 'Native Excel/CSV-export', description: 'Export met één klik vanaf alle hoofdschermen' },
+      ],
+    },
+    latest: {
+      badge: 'CashPilot 2026-nieuwigheden',
+      title: 'Strategische modules nu beschikbaar',
+      description: 'Deze grote uitbreidingen zijn live op het platform en opgenomen in de gebruikersgids.',
+      cards: [
+        {
+          title: 'Gefedereerde GED HUB',
+          description:
+            'Centraal documentpunt voor de onderneming met zoeken, filters, modulekoppeling, uploads en traceerbaarheid.',
+        },
+        {
+          title: 'Human Resources',
+          description:
+            'Medewerkers, contracten, payroll, verlof, rekrutering, opleiding en HR-analytics per vennootschap met strikte company-scope.',
+        },
+        {
+          title: 'Projectbeheer',
+          description:
+            'Projecten, taken, menselijke en materiële resources, kosten, timesheets en dashboards per periode.',
+        },
+        {
+          title: 'Volledige CRM',
+          description: 'Leads, opportuniteiten, activiteiten, SLA-tickets en uniforme klantopvolging per vennootschap.',
+        },
+        {
+          title: 'AI CFO Agent',
+          description: 'Financiële assistent voor analyse, simulaties en realtime aanbevelingen met directe impact.',
+        },
       ],
     },
     pilotage: {

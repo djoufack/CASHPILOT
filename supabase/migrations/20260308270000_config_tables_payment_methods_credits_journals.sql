@@ -20,31 +20,24 @@ CREATE TABLE IF NOT EXISTS payment_methods (
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(user_id, code)
 );
-
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_payment_methods_user_id ON payment_methods(user_id);
 CREATE INDEX IF NOT EXISTS idx_payment_methods_company_id ON payment_methods(company_id);
-
 -- RLS
 ALTER TABLE payment_methods ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "payment_methods_select_own"
   ON payment_methods FOR SELECT
   USING (user_id = auth.uid());
-
 CREATE POLICY "payment_methods_insert_own"
   ON payment_methods FOR INSERT
   WITH CHECK (user_id = auth.uid());
-
 CREATE POLICY "payment_methods_update_own"
   ON payment_methods FOR UPDATE
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
-
 CREATE POLICY "payment_methods_delete_own"
   ON payment_methods FOR DELETE
   USING (user_id = auth.uid());
-
 -- Seed payment_methods for ALL existing users
 INSERT INTO payment_methods (user_id, code, name, icon, sort_order)
 SELECT u.user_id, v.code, v.name, v.icon, v.sort_order
@@ -59,8 +52,6 @@ CROSS JOIN (
     ('other',         'Autre',             'MoreHorizontal', 6)
 ) AS v(code, name, icon, sort_order)
 ON CONFLICT (user_id, code) DO NOTHING;
-
-
 -- ============================================================================
 -- TABLE 2: credit_costs (system-wide config, no RLS)
 -- ============================================================================
@@ -74,7 +65,6 @@ CREATE TABLE IF NOT EXISTS credit_costs (
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
-
 -- Seed all credit costs from useCreditsGuard.js
 INSERT INTO credit_costs (operation_code, operation_name, cost, category) VALUES
   -- FINANCIAL_STATEMENTS (5 credits)
@@ -119,8 +109,6 @@ INSERT INTO credit_costs (operation_code, operation_name, cost, category) VALUES
   ('AI_REMINDER_SUGGEST',   'Suggestion relances IA',      1, 'AI_FEATURES'),
   ('AI_REPORT',             'Rapport IA',                  5, 'AI_FEATURES')
 ON CONFLICT (operation_code) DO NOTHING;
-
-
 -- ============================================================================
 -- TABLE 3: accounting_journals
 -- ============================================================================
@@ -136,31 +124,24 @@ CREATE TABLE IF NOT EXISTS accounting_journals (
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(user_id, code)
 );
-
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_accounting_journals_user_id ON accounting_journals(user_id);
 CREATE INDEX IF NOT EXISTS idx_accounting_journals_company_id ON accounting_journals(company_id);
-
 -- RLS
 ALTER TABLE accounting_journals ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "accounting_journals_select_own"
   ON accounting_journals FOR SELECT
   USING (user_id = auth.uid());
-
 CREATE POLICY "accounting_journals_insert_own"
   ON accounting_journals FOR INSERT
   WITH CHECK (user_id = auth.uid());
-
 CREATE POLICY "accounting_journals_update_own"
   ON accounting_journals FOR UPDATE
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
-
 CREATE POLICY "accounting_journals_delete_own"
   ON accounting_journals FOR DELETE
   USING (user_id = auth.uid());
-
 -- Seed accounting_journals for ALL existing users
 INSERT INTO accounting_journals (user_id, code, name, journal_type)
 SELECT u.user_id, v.code, v.name, v.journal_type

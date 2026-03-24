@@ -1,5 +1,4 @@
 BEGIN;
-
 CREATE OR REPLACE FUNCTION public.log_financial_crud_data_access()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -68,43 +67,36 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_financial_crud_audit_invoices ON public.invoices;
 CREATE TRIGGER trg_financial_crud_audit_invoices
   AFTER INSERT OR UPDATE OR DELETE ON public.invoices
   FOR EACH ROW
   EXECUTE FUNCTION public.log_financial_crud_data_access();
-
 DROP TRIGGER IF EXISTS trg_financial_crud_audit_invoice_items ON public.invoice_items;
 CREATE TRIGGER trg_financial_crud_audit_invoice_items
   AFTER INSERT OR UPDATE OR DELETE ON public.invoice_items
   FOR EACH ROW
   EXECUTE FUNCTION public.log_financial_crud_data_access();
-
 DROP TRIGGER IF EXISTS trg_financial_crud_audit_expenses ON public.expenses;
 CREATE TRIGGER trg_financial_crud_audit_expenses
   AFTER INSERT OR UPDATE OR DELETE ON public.expenses
   FOR EACH ROW
   EXECUTE FUNCTION public.log_financial_crud_data_access();
-
 DROP TRIGGER IF EXISTS trg_financial_crud_audit_payments ON public.payments;
 CREATE TRIGGER trg_financial_crud_audit_payments
   AFTER INSERT OR UPDATE OR DELETE ON public.payments
   FOR EACH ROW
   EXECUTE FUNCTION public.log_financial_crud_data_access();
-
 DROP TRIGGER IF EXISTS trg_financial_crud_audit_recurring_invoices ON public.recurring_invoices;
 CREATE TRIGGER trg_financial_crud_audit_recurring_invoices
   AFTER INSERT OR UPDATE OR DELETE ON public.recurring_invoices
   FOR EACH ROW
   EXECUTE FUNCTION public.log_financial_crud_data_access();
-
 DROP TRIGGER IF EXISTS trg_financial_crud_audit_recurring_invoice_line_items ON public.recurring_invoice_line_items;
 CREATE TRIGGER trg_financial_crud_audit_recurring_invoice_line_items
   AFTER INSERT OR UPDATE OR DELETE ON public.recurring_invoice_line_items
   FOR EACH ROW
   EXECUTE FUNCTION public.log_financial_crud_data_access();
-
 CREATE OR REPLACE FUNCTION public.generate_due_recurring_invoices(
   p_today DATE DEFAULT timezone('utc', now())::date,
   p_limit INTEGER DEFAULT 500
@@ -232,8 +224,6 @@ BEGIN
   RETURN;
 END;
 $$;
-
 REVOKE ALL ON FUNCTION public.generate_due_recurring_invoices(DATE, INTEGER) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.generate_due_recurring_invoices(DATE, INTEGER) TO service_role;
-
 COMMIT;

@@ -101,11 +101,35 @@ jobs:
           PILOTAGE_BE_PASSWORD: ${{ secrets.PILOTAGE_BE_PASSWORD }}
           PILOTAGE_OHADA_PASSWORD: ${{ secrets.PILOTAGE_OHADA_PASSWORD }}
 
+  remote-demo-thresholds:
+    needs: guards
+    if: ${{ github.ref == 'refs/heads/main' && secrets.SUPABASE_URL != '' && secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run demo thresholds gate
+        run: npm run verify:demo-thresholds
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
   remote-smoke-ui:
     needs:
       - guards
       - remote-reliability
       - remote-accounting-compliance
+      - remote-demo-thresholds
     if: ${{ github.ref == 'refs/heads/main' && secrets.SUPABASE_URL != '' && secrets.SUPABASE_SERVICE_ROLE_KEY != '' && secrets.PILOTAGE_FR_PASSWORD != '' && secrets.PILOTAGE_BE_PASSWORD != '' && secrets.PILOTAGE_OHADA_PASSWORD != '' }}
     runs-on: ubuntu-latest
     steps:

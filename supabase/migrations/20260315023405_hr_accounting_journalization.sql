@@ -37,12 +37,6 @@ $$;
 -- =============================================
 -- PART 1: Payroll validation → accounting entries
 -- =============================================
--- Trigger on hr_payroll_periods: AFTER UPDATE when status → 'validated'
--- For each active employee with an active contract:
---   DEBIT  6411 (salaire brut)
---   DEBIT  645  (charges patronales, 45% default)
---   CREDIT 421  (remuneration due)
---   CREDIT 431  (charges sociales)
 
 CREATE OR REPLACE FUNCTION public.auto_journal_payroll_validation()
 RETURNS TRIGGER
@@ -63,18 +57,15 @@ DECLARE
   v_code_social TEXT;
   r RECORD;
 BEGIN
-  -- Only fire when status changes TO 'validated'
   IF NEW.status <> 'validated' OR OLD.status = 'validated' THEN
     RETURN NEW;
   END IF;
 
   v_company_id := NEW.company_id;
 
-  -- Get company owner as user_id for accounting_entries
   SELECT c.user_id INTO v_user_id FROM company c WHERE c.id = v_company_id;
   IF v_user_id IS NULL THEN RETURN NEW; END IF;
 
-  -- Idempotency: skip if already journaled
   IF EXISTS (
     SELECT 1 FROM accounting_entries
     WHERE source_type = 'payroll_period'
@@ -84,7 +75,6 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- Resolve configurable account codes
   v_code_gross := get_hr_account_code(v_company_id, 'payroll.gross', '6411');
   v_code_charges := get_hr_account_code(v_company_id, 'payroll.charges', '645');
   v_code_remuneration := get_hr_account_code(v_company_id, 'payroll.remuneration_due', '421');
@@ -92,7 +82,6 @@ BEGIN
 
   v_ref := 'PAIE-' || TO_CHAR(NEW.period_start, 'YYYY-MM');
 
-  -- For each active employee with an active contract in this company
   FOR r IN
     SELECT e.id AS employee_id, e.full_name,
            c.monthly_salary, c.hourly_rate, c.pay_basis
@@ -100,34 +89,28 @@ BEGIN
     JOIN hr_employee_contracts c ON c.employee_id = e.id AND c.status = 'active'
     WHERE e.company_id = v_company_id AND e.status = 'active'
   LOOP
-    -- Determine gross salary (monthly or hourly * 151.67h)
     v_gross := COALESCE(r.monthly_salary, r.hourly_rate * 151.67, 0);
     IF v_gross <= 0 THEN CONTINUE; END IF;
 
     v_charges := ROUND(v_gross * v_charges_rate, 2);
 
-    -- 4 balanced entries per employee
     INSERT INTO accounting_entries (
       user_id, company_id, transaction_date, account_code,
       debit, credit, source_type, source_id,
       journal, entry_ref, is_auto, description
     ) VALUES
-    -- DEBIT 6411 (salaire brut)
     (v_user_id, v_company_id, NEW.period_end, v_code_gross,
      v_gross, 0, 'payroll_period', NEW.id,
      'OD', v_ref, true,
      'Salaire brut ' || r.full_name || ' ' || TO_CHAR(NEW.period_start, 'MM/YYYY')),
-    -- DEBIT 645 (charges patronales)
     (v_user_id, v_company_id, NEW.period_end, v_code_charges,
      v_charges, 0, 'payroll_period', NEW.id,
      'OD', v_ref, true,
      'Charges patronales ' || r.full_name || ' ' || TO_CHAR(NEW.period_start, 'MM/YYYY')),
-    -- CREDIT 421 (remuneration due)
     (v_user_id, v_company_id, NEW.period_end, v_code_remuneration,
      0, v_gross, 'payroll_period', NEW.id,
      'OD', v_ref, true,
      'Remuneration due ' || r.full_name || ' ' || TO_CHAR(NEW.period_start, 'MM/YYYY')),
-    -- CREDIT 431 (charges sociales)
     (v_user_id, v_company_id, NEW.period_end, v_code_social,
      0, v_charges, 'payroll_period', NEW.id,
      'OD', v_ref, true,
@@ -147,9 +130,6 @@ CREATE TRIGGER trg_auto_journal_payroll_validation
 -- =============================================
 -- PART 2: Training completion → accounting entry
 -- =============================================
--- When enrollment status → 'completed' AND training cost > 0:
---   DEBIT  6333 (participation formation)
---   CREDIT 4386 (organisme de formation)
 
 CREATE OR REPLACE FUNCTION public.auto_journal_training_completion()
 RETURNS TRIGGER
@@ -167,18 +147,15 @@ DECLARE
   v_code_training TEXT;
   v_code_provider TEXT;
 BEGIN
-  -- Only fire when status changes TO 'completed'
   IF NEW.status <> 'completed' OR OLD.status = 'completed' THEN
     RETURN NEW;
   END IF;
 
   v_company_id := NEW.company_id;
 
-  -- Get company owner
   SELECT c.user_id INTO v_user_id FROM company c WHERE c.id = v_company_id;
   IF v_user_id IS NULL THEN RETURN NEW; END IF;
 
-  -- Idempotency
   IF EXISTS (
     SELECT 1 FROM accounting_entries
     WHERE source_type = 'training_enrollment'
@@ -188,18 +165,15 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- Get training cost from catalog
   SELECT tc.cost_per_person, tc.title
   INTO v_cost, v_training_title
   FROM hr_training_catalog tc
   WHERE tc.id = NEW.training_id;
 
-  -- Only journal if there is a cost
   IF COALESCE(v_cost, 0) <= 0 THEN
     RETURN NEW;
   END IF;
 
-  -- Get employee name
   SELECT e.full_name INTO v_employee_name
   FROM hr_employees e WHERE e.id = NEW.employee_id;
 
@@ -213,12 +187,10 @@ BEGIN
     debit, credit, source_type, source_id,
     journal, entry_ref, is_auto, description
   ) VALUES
-  -- DEBIT 6333 (participation formation)
   (v_user_id, v_company_id, COALESCE(NEW.completed_at::DATE, CURRENT_DATE), v_code_training,
    v_cost, 0, 'training_enrollment', NEW.id,
    'OD', v_ref, true,
    'Formation ' || COALESCE(v_training_title, '') || ' - ' || COALESCE(v_employee_name, '')),
-  -- CREDIT 4386 (organisme formation)
   (v_user_id, v_company_id, COALESCE(NEW.completed_at::DATE, CURRENT_DATE), v_code_provider,
    0, v_cost, 'training_enrollment', NEW.id,
    'OD', v_ref, true,
@@ -237,10 +209,6 @@ CREATE TRIGGER trg_auto_journal_training_completion
 -- =============================================
 -- PART 3: Salary change → provision adjustment
 -- =============================================
--- When monthly_salary changes on an active contract:
---   Increase: DEBIT 6411 / CREDIT 4286 (provision delta)
---   Decrease: DEBIT 4286 / CREDIT 6411 (provision reversal)
--- Uses re-journal pattern (delete + re-insert)
 
 CREATE OR REPLACE FUNCTION public.auto_journal_salary_change()
 RETURNS TRIGGER
@@ -257,23 +225,19 @@ DECLARE
   v_code_salary TEXT;
   v_code_provision TEXT;
 BEGIN
-  -- Only fire when monthly_salary actually changes
   IF OLD.monthly_salary IS NOT DISTINCT FROM NEW.monthly_salary THEN
     RETURN NEW;
   END IF;
 
-  -- Only for active contracts
   IF NEW.status <> 'active' THEN
     RETURN NEW;
   END IF;
 
   v_company_id := NEW.company_id;
 
-  -- Get company owner
   SELECT c.user_id INTO v_user_id FROM company c WHERE c.id = v_company_id;
   IF v_user_id IS NULL THEN RETURN NEW; END IF;
 
-  -- Re-journal pattern: delete previous entries for this contract
   DELETE FROM accounting_entries
   WHERE source_type = 'salary_change'
     AND source_id = NEW.id
@@ -292,7 +256,6 @@ BEGIN
   v_code_provision := get_hr_account_code(v_company_id, 'salary.provision_liability', '4286');
 
   IF v_delta > 0 THEN
-    -- Salary increase: provision for additional cost
     INSERT INTO accounting_entries (
       user_id, company_id, transaction_date, account_code,
       debit, credit, source_type, source_id,
@@ -307,7 +270,6 @@ BEGIN
      'OD', v_ref, true,
      'Provision augmentation salaire ' || COALESCE(v_employee_name, ''));
   ELSE
-    -- Salary decrease: reverse provision
     INSERT INTO accounting_entries (
       user_id, company_id, transaction_date, account_code,
       debit, credit, source_type, source_id,
@@ -331,4 +293,4 @@ DROP TRIGGER IF EXISTS trg_auto_journal_salary_change ON public.hr_employee_cont
 CREATE TRIGGER trg_auto_journal_salary_change
   AFTER UPDATE ON public.hr_employee_contracts
   FOR EACH ROW
-  EXECUTE FUNCTION public.auto_journal_salary_change();
+  EXECUTE FUNCTION public.auto_journal_salary_change();;

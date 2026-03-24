@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
@@ -12,32 +13,43 @@ import { useReferenceData } from '@/contexts/ReferenceDataContext';
 import { resolveAccountingCurrency } from '@/utils/accountingCurrency';
 import { Loader2, Upload, Trash2, Camera, Building2, MapPin, CreditCard } from 'lucide-react';
 
+const EMPTY_COMPANY_FORM = {
+  company_name: '',
+  company_type: 'freelance',
+  registration_number: '',
+  tax_id: '',
+  address: '',
+  city: '',
+  postal_code: '',
+  country: '',
+  currency: 'EUR',
+  phone: '',
+  email: '',
+  website: '',
+  bank_name: '',
+  bank_account: '',
+  iban: '',
+  swift: '',
+};
+
 const CompanySettings = () => {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { company, loading, saving, uploading, saveCompany, uploadLogo, deleteLogo } = useCompany();
   const { countryOptions, currencyOptions, loading: referenceLoading } = useReferenceData();
 
   const logoInputRef = useRef(null);
-  const [createNewMode, setCreateNewMode] = useState(false);
+  const [createNewMode, setCreateNewMode] = useState(searchParams.get('create') === '1');
 
-  const [formData, setFormData] = useState({
-    company_name: '',
-    company_type: 'freelance',
-    registration_number: '',
-    tax_id: '',
-    address: '',
-    city: '',
-    postal_code: '',
-    country: '',
-    currency: 'EUR',
-    phone: '',
-    email: '',
-    website: '',
-    bank_name: '',
-    bank_account: '',
-    iban: '',
-    swift: '',
-  });
+  const [formData, setFormData] = useState(EMPTY_COMPANY_FORM);
+
+  useEffect(() => {
+    const requestedCreateMode = searchParams.get('create') === '1';
+    if (requestedCreateMode && !createNewMode) {
+      setCreateNewMode(true);
+      setFormData(EMPTY_COMPANY_FORM);
+    }
+  }, [createNewMode, searchParams]);
 
   useEffect(() => {
     if (company && !createNewMode) {
@@ -62,26 +74,19 @@ const CompanySettings = () => {
     }
   }, [company, createNewMode]);
 
+  const clearCreateQueryParam = () => {
+    if (searchParams.get('create') !== '1') {
+      return;
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete('create');
+    setSearchParams(nextSearchParams, { replace: true });
+  };
+
   const resetFormForNewCompany = () => {
     setCreateNewMode(true);
-    setFormData({
-      company_name: '',
-      company_type: 'freelance',
-      registration_number: '',
-      tax_id: '',
-      address: '',
-      city: '',
-      postal_code: '',
-      country: '',
-      currency: 'EUR',
-      phone: '',
-      email: '',
-      website: '',
-      bank_name: '',
-      bank_account: '',
-      iban: '',
-      swift: '',
-    });
+    setFormData(EMPTY_COMPANY_FORM);
   };
 
   const handleChange = (e) => {
@@ -98,6 +103,7 @@ const CompanySettings = () => {
     const success = await saveCompany(formData, { forceCreate: createNewMode });
     if (success) {
       setCreateNewMode(false);
+      clearCreateQueryParam();
     }
   };
 
@@ -143,7 +149,10 @@ const CompanySettings = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setCreateNewMode(false)}
+                  onClick={() => {
+                    setCreateNewMode(false);
+                    clearCreateQueryParam();
+                  }}
                   className="border-gray-700 text-gray-300 hover:bg-gray-800"
                 >
                   Modifier la societe active

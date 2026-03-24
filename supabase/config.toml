@@ -116,14 +116,16 @@ verify_jwt = false
 [functions.send-email]
 verify_jwt = true
 
+# Stripe functions validate JWT internally (requireAuthenticatedUser / auth.getUser).
+# Keep verify_jwt disabled to avoid gateway-level JWT incompatibilities.
 [functions.stripe-checkout]
-verify_jwt = true
+verify_jwt = false
 
 [functions.stripe-invoice-link]
 verify_jwt = false
 
 [functions.stripe-subscription-checkout]
-verify_jwt = true
+verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
@@ -165,10 +167,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.cfo-agent]
-verify_jwt = true
+verify_jwt = false
 
 [functions.cfo-alerts]
-verify_jwt = true
+verify_jwt = false
 
 [functions.chorus-pro-submit]
 verify_jwt = true

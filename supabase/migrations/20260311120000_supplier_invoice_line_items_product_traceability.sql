@@ -3,7 +3,6 @@
 
 ALTER TABLE public.supplier_invoice_line_items
   ADD COLUMN IF NOT EXISTS user_product_id UUID;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -19,13 +18,10 @@ BEGIN
       ON DELETE SET NULL ON UPDATE CASCADE;
   END IF;
 END $$;
-
 CREATE INDEX IF NOT EXISTS idx_supplier_invoice_line_items_user_product_id
   ON public.supplier_invoice_line_items(user_product_id);
-
 COMMENT ON COLUMN public.supplier_invoice_line_items.user_product_id
   IS 'Optional FK to products.id for supplier invoice line to catalog traceability.';
-
 CREATE OR REPLACE FUNCTION public.validate_supplier_invoice_line_item_product_link()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -79,16 +75,12 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 ALTER FUNCTION public.validate_supplier_invoice_line_item_product_link()
   SET search_path = public;
-
 DROP TRIGGER IF EXISTS trg_validate_supplier_invoice_line_item_product_link
   ON public.supplier_invoice_line_items;
-
 CREATE TRIGGER trg_validate_supplier_invoice_line_item_product_link
   BEFORE INSERT OR UPDATE OF invoice_id, user_product_id
   ON public.supplier_invoice_line_items
   FOR EACH ROW
   EXECUTE FUNCTION public.validate_supplier_invoice_line_item_product_link();
-

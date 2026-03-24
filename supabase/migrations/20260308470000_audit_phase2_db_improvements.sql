@@ -16,16 +16,12 @@
 
 CREATE INDEX IF NOT EXISTS idx_invoices_company_status_date
   ON invoices(company_id, status, date DESC);
-
 CREATE INDEX IF NOT EXISTS idx_expenses_company_category_date
   ON expenses(company_id, category, expense_date DESC);
-
 CREATE INDEX IF NOT EXISTS idx_accounting_entries_company_date
   ON accounting_entries(company_id, transaction_date DESC);
-
 CREATE INDEX IF NOT EXISTS idx_bank_transactions_reconciliation
   ON bank_transactions(bank_connection_id, reconciliation_status);
-
 -- ============================================================================
 -- 2. CHECK CONSTRAINTS
 -- ============================================================================
@@ -49,7 +45,6 @@ DO $$ BEGIN
     END IF;
   END IF;
 END $$;
-
 -- 2b. supplier_invoices: amount_paid must be non-negative
 -- (chk_si_paid_le_total already exists from phase 1; add non-negative guard)
 DO $$ BEGIN
@@ -67,7 +62,6 @@ DO $$ BEGIN
     END IF;
   END IF;
 END $$;
-
 -- 2c. payments: payment_method must be a known value
 DO $$ BEGIN
   IF EXISTS (
@@ -87,7 +81,6 @@ DO $$ BEGIN
     END IF;
   END IF;
 END $$;
-
 -- ============================================================================
 -- 3. HELPER: set_company_context() — cache company_id in session variable
 -- ============================================================================
@@ -105,6 +98,5 @@ BEGIN
   PERFORM set_config('app.current_company_id', p_company_id::text, true);
 END;
 $$;
-
 -- Grant execute to authenticated users
 GRANT EXECUTE ON FUNCTION public.set_company_context(UUID) TO authenticated;

@@ -10,24 +10,20 @@
 DROP POLICY IF EXISTS "quotes_select" ON public.quotes;
 DROP POLICY IF EXISTS "quotes_public_read_by_token" ON public.quotes;
 DROP POLICY IF EXISTS "quotes_select_own" ON public.quotes;
-
 CREATE POLICY "quotes_select_own"
   ON public.quotes
   FOR SELECT
   TO authenticated
   USING ((SELECT auth.uid()) = user_id);
-
 -- --------------------------------------------------------------------------
 -- 2) Sensitive operational tables: enforce service-role only table access.
 -- --------------------------------------------------------------------------
 REVOKE ALL ON TABLE public.pending_subscriptions FROM anon;
 REVOKE ALL ON TABLE public.pending_subscriptions FROM authenticated;
 GRANT ALL ON TABLE public.pending_subscriptions TO service_role;
-
 REVOKE ALL ON TABLE public.account_access_overrides FROM anon;
 REVOKE ALL ON TABLE public.account_access_overrides FROM authenticated;
 GRANT ALL ON TABLE public.account_access_overrides TO service_role;
-
 -- --------------------------------------------------------------------------
 -- 3) DB resolvers so frontend does not hardcode business defaults.
 -- --------------------------------------------------------------------------
@@ -60,7 +56,6 @@ BEGIN
   RETURN COALESCE(resolved_rate, 20);
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.get_default_payment_days(target_user_id UUID DEFAULT auth.uid())
 RETURNS INTEGER
 LANGUAGE plpgsql
@@ -89,9 +84,7 @@ BEGIN
   RETURN COALESCE(resolved_days, 30);
 END;
 $$;
-
 REVOKE ALL ON FUNCTION public.get_default_tax_rate(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_default_tax_rate(UUID) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.get_default_payment_days(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_default_payment_days(UUID) TO authenticated, service_role;

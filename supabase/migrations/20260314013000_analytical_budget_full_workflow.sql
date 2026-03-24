@@ -1,5 +1,4 @@
 BEGIN;
-
 CREATE OR REPLACE FUNCTION public.normalize_analytical_budget_line()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -24,13 +23,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_normalize_analytical_budget_line ON public.analytical_budget_lines;
 CREATE TRIGGER trg_normalize_analytical_budget_line
 BEFORE INSERT OR UPDATE ON public.analytical_budget_lines
 FOR EACH ROW
 EXECUTE FUNCTION public.normalize_analytical_budget_line();
-
 CREATE OR REPLACE FUNCTION public.f_generate_budget_lines(
   p_user_id UUID,
   p_company_id UUID,
@@ -150,7 +147,6 @@ BEGIN
   RETURN v_rows;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.f_analytical_budget_line_variances(
   p_user_id UUID,
   p_company_id UUID,
@@ -214,6 +210,4 @@ FROM planned p
 LEFT JOIN actual a ON a.period_month = p.period_month
 ORDER BY p.period_month;
 $$;
-
 COMMIT;
-

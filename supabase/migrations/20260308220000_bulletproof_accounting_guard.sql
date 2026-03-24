@@ -116,7 +116,6 @@ BEGIN
   VALUES (gen_random_uuid(), p_user_id, p_account_code, v_name, v_type);
 END;
 $fn$;
-
 -- ============================================================================
 -- 2. Replace validate_accounting_entry — auto-create instead of WARNING
 -- ============================================================================
@@ -159,7 +158,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- ============================================================================
 -- 3. Fix auto_journal_supplier_invoice — use correct column names
 --    Table has: total_ht, vat_amount, total_ttc (not amount_ht, tax_amount)
@@ -253,17 +251,14 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- Now safe to modify supplier_invoices table (trigger function is updated)
 ALTER TABLE supplier_invoices ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);
 ALTER TABLE supplier_invoices ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'draft';
-
 -- Backfill user_id from suppliers if NULL
 UPDATE supplier_invoices si
 SET user_id = s.user_id
 FROM suppliers s
 WHERE s.id = si.supplier_id AND si.user_id IS NULL;
-
 -- Trigger to auto-set user_id on INSERT
 CREATE OR REPLACE FUNCTION assign_supplier_invoice_user_id()
 RETURNS TRIGGER
@@ -278,13 +273,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_assign_supplier_invoice_user_id ON supplier_invoices;
 CREATE TRIGGER trg_assign_supplier_invoice_user_id
   BEFORE INSERT ON supplier_invoices
   FOR EACH ROW
   EXECUTE FUNCTION assign_supplier_invoice_user_id();
-
 -- ============================================================================
 -- 4. Pre-seed chart of accounts for ALL companies (FR / BE / OHADA)
 -- ============================================================================
@@ -312,7 +305,6 @@ CROSS JOIN (VALUES
 ) AS v(code, name, atype)
 WHERE c.user_id = 'a6985aad-8ae5-21d1-a773-511d32b71b24'
 ON CONFLICT (user_id, account_code) DO NOTHING;
-
 -- BE companies: PCMN accounts
 INSERT INTO accounting_chart_of_accounts (id, user_id, account_code, account_name, account_type)
 SELECT gen_random_uuid(), c.user_id, v.code, v.name, v.atype
@@ -337,7 +329,6 @@ CROSS JOIN (VALUES
 ) AS v(code, name, atype)
 WHERE c.user_id = 'e3b36145-b3ab-bab9-4101-68b5fe900811'
 ON CONFLICT (user_id, account_code) DO NOTHING;
-
 -- OHADA companies: SYSCOHADA accounts
 INSERT INTO accounting_chart_of_accounts (id, user_id, account_code, account_name, account_type)
 SELECT gen_random_uuid(), c.user_id, v.code, v.name, v.atype

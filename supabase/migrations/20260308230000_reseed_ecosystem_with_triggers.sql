@@ -21,7 +21,6 @@
 -- PHASE 1: CLEANUP (replica mode — no reverse triggers during delete)
 -- ============================================================================
 SET session_replication_role = 'replica';
-
 DO $$
 DECLARE
   v_company_ids UUID[];
@@ -81,12 +80,10 @@ BEGIN
   DELETE FROM services WHERE user_id = ANY(v_user_ids) AND description LIKE '%Portfolio%';
   DELETE FROM service_categories WHERE user_id = ANY(v_user_ids) AND description LIKE '%Portfolio%';
 END $$;
-
 -- ============================================================================
 -- PHASE 2: RE-ENABLE TRIGGERS — all INSERTs from here generate accounting entries
 -- ============================================================================
 SET session_replication_role = 'origin';
-
 -- ============================================================================
 -- PHASE 3: RE-SEED WITH TRIGGERS ACTIVE
 -- ============================================================================

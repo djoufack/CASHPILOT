@@ -14,13 +14,10 @@ CREATE TABLE IF NOT EXISTS invoice_status_config (
   display_bg TEXT,
   sort_order INT NOT NULL DEFAULT 0
 );
-
 ALTER TABLE invoice_status_config ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "invoice_status_config_read_all"
   ON invoice_status_config FOR SELECT
   USING (true);
-
 INSERT INTO invoice_status_config (status, is_billable, is_booked, is_collected, display_color, display_bg, sort_order) VALUES
   ('draft',     false, false, false, 'text-gray-400',   'bg-gray-500/10',   1),
   ('sent',      true,  true,  false, 'text-blue-400',   'bg-blue-500/10',   2),
@@ -29,7 +26,6 @@ INSERT INTO invoice_status_config (status, is_billable, is_booked, is_collected,
   ('overdue',   true,  true,  false, 'text-red-400',    'bg-red-500/10',    5),
   ('cancelled', false, false, false, 'text-gray-500',   'bg-gray-500/10',   6)
 ON CONFLICT (status) DO NOTHING;
-
 -- ============================================================
 -- B. Invoice status transitions (state machine)
 -- ============================================================
@@ -38,20 +34,16 @@ CREATE TABLE IF NOT EXISTS invoice_status_transitions (
   to_status TEXT NOT NULL REFERENCES invoice_status_config(status),
   PRIMARY KEY (from_status, to_status)
 );
-
 ALTER TABLE invoice_status_transitions ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "invoice_status_transitions_read_all"
   ON invoice_status_transitions FOR SELECT
   USING (true);
-
 INSERT INTO invoice_status_transitions (from_status, to_status) VALUES
   ('draft',   'sent'),      ('draft',   'cancelled'),
   ('sent',    'paid'),      ('sent',    'partial'),   ('sent',    'overdue'),  ('sent',    'cancelled'),
   ('partial', 'paid'),      ('partial', 'overdue'),   ('partial', 'cancelled'),
   ('overdue', 'paid'),      ('overdue', 'partial'),   ('overdue', 'cancelled')
 ON CONFLICT DO NOTHING;
-
 -- ============================================================
 -- C. Payment status determination function
 -- Mirrors getPaymentStatus() in src/utils/calculations.js lines 202-209
@@ -67,7 +59,6 @@ AS $$
     ELSE 'overpaid'
   END;
 $$;
-
 -- ============================================================
 -- D. Dashboard revenue views
 -- Replaces inline computation in canonicalDashboardSnapshot.js
@@ -80,7 +71,6 @@ FROM invoices i
 JOIN invoice_status_config isc ON i.status = isc.status
 WHERE isc.is_booked = true
 GROUP BY i.company_id, i.user_id, DATE_TRUNC('month', i.date);
-
 CREATE OR REPLACE VIEW v_collected_revenue AS
 SELECT i.company_id, i.user_id,
   DATE_TRUNC('month', i.date) AS month,

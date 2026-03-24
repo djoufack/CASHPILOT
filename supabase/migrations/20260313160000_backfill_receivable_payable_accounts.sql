@@ -1,5 +1,4 @@
 BEGIN;
-
 INSERT INTO public.accounting_chart_of_accounts (
   user_id,
   company_id,
@@ -25,7 +24,6 @@ WHERE c.user_id IS NOT NULL
     WHERE a.company_id = c.id
       AND a.account_code = '411'
   );
-
 INSERT INTO public.accounting_chart_of_accounts (
   user_id,
   company_id,
@@ -51,6 +49,4 @@ WHERE c.user_id IS NOT NULL
     WHERE a.company_id = c.id
       AND a.account_code = '401'
   );
-
 COMMIT;
-

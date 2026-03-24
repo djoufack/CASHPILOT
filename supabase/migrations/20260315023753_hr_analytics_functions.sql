@@ -1,14 +1,4 @@
--- Migration: HR Analytics Functions (Sprint 4)
--- Moves business logic from frontend useMemo/JS into SQL.
--- All functions are SECURITY INVOKER → RLS filters data per user.
-
--- =============================================
 -- 1. fn_bilan_social() → JSONB
--- =============================================
--- Replaces ~100 lines of useMemo in useBilanSocial.js
--- Returns: headcount, turnover_rate, avg_tenure_months, total_monthly_payroll,
---          department_breakdown[{id, name, headcount, actualPayroll, ...}]
-
 CREATE OR REPLACE FUNCTION public.fn_bilan_social()
 RETURNS JSONB
 LANGUAGE plpgsql STABLE
@@ -21,11 +11,9 @@ DECLARE
   v_total_monthly_payroll NUMERIC;
   v_dept_breakdown JSONB;
 BEGIN
-  -- Active employee count
   SELECT COUNT(*) INTO v_headcount
   FROM hr_employees WHERE status = 'active';
 
-  -- Turnover rate: terminated in last 12 months / current headcount
   SELECT CASE WHEN v_headcount > 0 THEN
     (COUNT(*) FILTER (
       WHERE status = 'terminated'
@@ -35,7 +23,6 @@ BEGIN
   INTO v_turnover_rate
   FROM hr_employees;
 
-  -- Average tenure in months for active employees with hire_date
   SELECT COALESCE(AVG(
     EXTRACT(EPOCH FROM (CURRENT_DATE - hire_date)) / (60*60*24*30.44)
   ), 0)
@@ -43,14 +30,12 @@ BEGIN
   FROM hr_employees
   WHERE status = 'active' AND hire_date IS NOT NULL;
 
-  -- Total monthly payroll from active contracts of active employees
   SELECT COALESCE(SUM(c.monthly_salary), 0)
   INTO v_total_monthly_payroll
   FROM hr_employee_contracts c
   JOIN hr_employees e ON e.id = c.employee_id
   WHERE c.status = 'active' AND e.status = 'active';
 
-  -- Department breakdown
   SELECT COALESCE(jsonb_agg(jsonb_build_object(
     'id', t.id,
     'name', t.name,
@@ -91,11 +76,7 @@ BEGIN
 END;
 $$;
 
--- =============================================
 -- 2. fn_hr_turnover_risk() → TABLE
--- =============================================
--- Replaces ~70 lines of scoring logic in usePeopleAnalytics.js
-
 CREATE OR REPLACE FUNCTION public.fn_hr_turnover_risk()
 RETURNS TABLE (
   employee_id UUID,
@@ -126,7 +107,6 @@ BEGIN
     v_score := 0;
     v_factors := ARRAY[]::TEXT[];
 
-    -- Factor 1: short tenure
     IF r.hire_date IS NOT NULL THEN
       v_tenure_months := (EXTRACT(YEAR FROM age(CURRENT_DATE, r.hire_date)) * 12 +
                           EXTRACT(MONTH FROM age(CURRENT_DATE, r.hire_date)))::INT;
@@ -145,13 +125,11 @@ BEGIN
       v_factors := array_append(v_factors, 'Date embauche inconnue');
     END IF;
 
-    -- Factor 2: on_leave
     IF r.status = 'on_leave' THEN
       v_score := v_score + 20;
       v_factors := array_append(v_factors, 'En conge');
     END IF;
 
-    -- Factor 3: contract status
     SELECT c.start_date, c.end_date, c.status
     INTO v_ctr
     FROM hr_employee_contracts c
@@ -202,10 +180,7 @@ BEGIN
 END;
 $$;
 
--- =============================================
 -- 3. fn_hr_absenteeism_forecast() → TABLE
--- =============================================
-
 CREATE OR REPLACE FUNCTION public.fn_hr_absenteeism_forecast()
 RETURNS TABLE (
   department TEXT,
@@ -217,7 +192,7 @@ LANGUAGE plpgsql STABLE
 SECURITY INVOKER
 AS $$
 DECLARE
-  v_wpd INT := 22; -- working days per month
+  v_wpd INT := 22;
   v_cy INT := EXTRACT(YEAR FROM CURRENT_DATE)::INT;
   v_cm INT := EXTRACT(MONTH FROM CURRENT_DATE)::INT;
   r RECORD;
@@ -280,11 +255,7 @@ BEGIN
 END;
 $$;
 
--- =============================================
 -- 4. fn_hr_salary_benchmark() → TABLE
--- =============================================
--- Uses PERCENTILE_CONT for real statistical percentiles
-
 CREATE OR REPLACE FUNCTION public.fn_hr_salary_benchmark()
 RETURNS TABLE (
   title TEXT,
@@ -321,11 +292,7 @@ AS $$
   ORDER BY PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY cs.salary) DESC;
 $$;
 
--- =============================================
 -- 5. fn_hr_headcount_forecast(p_scenario) → TABLE
--- =============================================
--- Gracefully handles missing hr_headcount_budgets table
-
 CREATE OR REPLACE FUNCTION public.fn_hr_headcount_forecast(
   p_scenario TEXT DEFAULT 'baseline'
 )
@@ -395,11 +362,11 @@ BEGIN
           variation := CASE WHEN r.hc > 0 THEN ROUND(((forecast_12m - r.hc)::NUMERIC / r.hc) * 100)::INT ELSE 0 END;
         END IF;
       EXCEPTION WHEN OTHERS THEN
-        NULL; -- Keep flat forecast
+        NULL;
       END;
     END IF;
 
     RETURN NEXT;
   END LOOP;
 END;
-$$;
+$$;;

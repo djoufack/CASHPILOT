@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 
 const STATUS_MAP = {
   active: { icon: CheckCircle2, colorClass: 'text-green-400 bg-green-500/10', key: 'banking.statusActive' },
+  pending: { icon: Clock, colorClass: 'text-yellow-400 bg-yellow-500/10', key: 'banking.statusPending' },
   expired: { icon: Clock, colorClass: 'text-orange-400 bg-orange-500/10', key: 'banking.statusExpired' },
   error: { icon: ShieldAlert, colorClass: 'text-red-400 bg-red-500/10', key: 'banking.statusError' },
   disconnected: { icon: XCircle, colorClass: 'text-gray-400 bg-gray-500/10', key: 'banking.statusDisconnected' },
+  revoked: { icon: XCircle, colorClass: 'text-gray-400 bg-gray-500/10', key: 'banking.statusDisconnected' },
 };
 
 export default function BankConnectionCard({ connection, onSync, onDisconnect }) {

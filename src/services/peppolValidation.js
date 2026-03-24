@@ -5,7 +5,25 @@
 
 import { resolveInvoiceCurrency } from '@/utils/invoiceCurrency';
 
-const VALID_CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'HUF', 'RON', 'BGN', 'HRK', 'ISK', 'JPY', 'CAD', 'AUD'];
+const VALID_CURRENCIES = [
+  'EUR',
+  'USD',
+  'GBP',
+  'CHF',
+  'SEK',
+  'NOK',
+  'DKK',
+  'PLN',
+  'CZK',
+  'HUF',
+  'RON',
+  'BGN',
+  'HRK',
+  'ISK',
+  'JPY',
+  'CAD',
+  'AUD',
+];
 
 /**
  * Validate invoice data against EN16931 + Peppol BIS 3.0 rules.
@@ -17,9 +35,7 @@ const VALID_CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN'
  */
 export const validateForPeppolBE = (invoice, seller, buyer, items) => {
   const errors = [];
-  const explicitInvoiceCurrency = typeof invoice.currency === 'string'
-    ? invoice.currency.trim().toUpperCase()
-    : '';
+  const explicitInvoiceCurrency = typeof invoice.currency === 'string' ? invoice.currency.trim().toUpperCase() : '';
 
   // BR-01: Invoice number is mandatory
   if (!invoice.invoice_number) {
@@ -27,7 +43,8 @@ export const validateForPeppolBE = (invoice, seller, buyer, items) => {
   }
 
   // BR-02: Invoice issue date is mandatory
-  if (!invoice.invoice_date) {
+  const issueDate = invoice.invoice_date || invoice.date;
+  if (!issueDate) {
     errors.push({ rule: 'BR-02', message: 'Invoice issue date is required' });
   }
 
@@ -70,7 +87,10 @@ export const validateForPeppolBE = (invoice, seller, buyer, items) => {
   }
 
   // PEPPOL-EN16931-R003: BuyerReference or OrderReference
-  if (!invoice.reference && !invoice.order_reference) {
+  const buyerReference = [invoice.reference, invoice.order_reference]
+    .map((value) => (typeof value === 'string' ? value.trim() : value))
+    .find(Boolean);
+  if (!buyerReference) {
     errors.push({ rule: 'PEPPOL-EN16931-R003', message: 'Buyer reference or order reference is required' });
   }
 
@@ -80,7 +100,10 @@ export const validateForPeppolBE = (invoice, seller, buyer, items) => {
     const lineSumRounded = Number(lineSum.toFixed(2));
     const totalHT = Number(Number(invoice.total_ht).toFixed(2));
     if (Math.abs(lineSumRounded - totalHT) > 0.01) {
-      errors.push({ rule: 'BR-12', message: `Sum of line totals (${lineSumRounded}) does not match total_ht (${totalHT})` });
+      errors.push({
+        rule: 'BR-12',
+        message: `Sum of line totals (${lineSumRounded}) does not match total_ht (${totalHT})`,
+      });
     }
   }
 
@@ -89,7 +112,10 @@ export const validateForPeppolBE = (invoice, seller, buyer, items) => {
     const expected = Number((Number(invoice.total_ht) + Number(invoice.total_vat)).toFixed(2));
     const actual = Number(Number(invoice.total_ttc).toFixed(2));
     if (Math.abs(expected - actual) > 0.01) {
-      errors.push({ rule: 'BR-15', message: `total_ttc (${actual}) does not match total_ht + total_vat (${expected})` });
+      errors.push({
+        rule: 'BR-15',
+        message: `total_ttc (${actual}) does not match total_ht + total_vat (${expected})`,
+      });
     }
   }
 

@@ -4,7 +4,6 @@
 -- Idempotent: Yes — all operations use IF EXISTS / IF NOT EXISTS / CREATE OR REPLACE
 
 BEGIN;
-
 -- ============================================================================
 -- 1. FLATTEN RLS POLICIES — Proof of Concept (2 policies)
 -- ============================================================================
@@ -29,14 +28,12 @@ BEGIN;
 ALTER POLICY "clients_select" ON clients USING (
   ((SELECT auth.uid()) = user_id) OR is_admin()
 );
-
 -- 1b. clients_update — replace EXISTS (SELECT 1 FROM user_roles...) with is_admin()
 -- BEFORE: (EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = auth.uid() AND ur.role = 'admin')) OR (auth.uid() = user_id)
 -- AFTER:  is_admin() OR ((SELECT auth.uid()) = user_id)
 ALTER POLICY "clients_update" ON clients USING (
   is_admin() OR ((SELECT auth.uid()) = user_id)
 );
-
 -- ============================================================================
 -- 2. TAG EMPTY TABLES — Document status of 19 unused/planned tables
 -- ============================================================================
@@ -62,7 +59,6 @@ COMMENT ON TABLE report_templates IS 'PLANNED: Custom financial report template 
 COMMENT ON TABLE report_template_sections IS 'PLANNED: Sections within custom report templates — not yet active';
 COMMENT ON TABLE accounting_integrations IS 'PLANNED: Xero/QuickBooks integration credentials — not yet active';
 COMMENT ON TABLE accounting_sync_logs IS 'PLANNED: Xero/QuickBooks sync event logging — not yet active';
-
 -- ============================================================================
 -- 3. DATA ACCESS LOGGING FUNCTION
 -- ============================================================================
@@ -94,7 +90,6 @@ BEGIN
       'data_access'
     ));
 END $$;
-
 -- 3b. Create the logging function
 CREATE OR REPLACE FUNCTION public.log_data_access(
   p_table_name TEXT,
@@ -129,8 +124,6 @@ BEGIN
   );
 END;
 $$;
-
 COMMENT ON FUNCTION public.log_data_access(TEXT, TEXT, UUID) IS
   'Log a data access event (SELECT/INSERT/UPDATE/DELETE) into accounting_audit_log for audit trail purposes';
-
 COMMIT;

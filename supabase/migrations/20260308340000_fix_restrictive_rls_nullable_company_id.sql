@@ -56,6 +56,5 @@ BEGIN
     RAISE NOTICE 'Fixed policy % on %', v_policy_name, v_tbl;
   END LOOP;
 END $$;
-
 -- Reload PostgREST schema cache
 NOTIFY pgrst, 'reload schema';

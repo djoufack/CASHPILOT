@@ -123,7 +123,6 @@ BEGIN
   );
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.f_vat_breakdown(
   p_user_id UUID,
   p_company_id UUID DEFAULT NULL,
@@ -255,10 +254,7 @@ BEGIN
   RETURN jsonb_build_object('output', v_output, 'input', v_input);
 END;
 $$;
-
 REVOKE ALL ON FUNCTION public.f_vat_summary(UUID, UUID, DATE, DATE) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.f_vat_summary(UUID, UUID, DATE, DATE) TO authenticated, service_role;
-
 REVOKE ALL ON FUNCTION public.f_vat_breakdown(UUID, UUID, DATE, DATE) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.f_vat_breakdown(UUID, UUID, DATE, DATE) TO authenticated, service_role;
-

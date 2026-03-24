@@ -55,16 +55,17 @@ const updateLastActivity = (summary, value) => {
   }
 };
 
-const groupMoney = (rows, valueKey) => rows.reduce((accumulator, row) => {
-  const amount = toAmount(row[valueKey]);
-  if (amount === 0) {
-    return accumulator;
-  }
+const groupMoney = (rows, valueKey) =>
+  rows.reduce((accumulator, row) => {
+    const amount = toAmount(row[valueKey]);
+    if (amount === 0) {
+      return accumulator;
+    }
 
-  const currency = row.currency || 'EUR';
-  accumulator[currency] = (accumulator[currency] || 0) + amount;
-  return accumulator;
-}, {});
+    const currency = row.currency || 'EUR';
+    accumulator[currency] = (accumulator[currency] || 0) + amount;
+    return accumulator;
+  }, {});
 
 const formatMoneyGroups = (groups) => {
   const entries = Object.entries(groups);
@@ -116,7 +117,11 @@ const getDaysOverdue = (dueDate) => {
 
 const isInvoiceClosed = (invoice) => {
   const balanceDue = toAmount(invoice.balance_due);
-  return CLOSED_INVOICE_STATUSES.has(invoice.status) || CLOSED_PAYMENT_STATUSES.has(invoice.payment_status) || balanceDue <= 0;
+  return (
+    CLOSED_INVOICE_STATUSES.has(invoice.status) ||
+    CLOSED_PAYMENT_STATUSES.has(invoice.payment_status) ||
+    balanceDue <= 0
+  );
 };
 
 const PortfolioPage = () => {
@@ -124,12 +129,7 @@ const PortfolioPage = () => {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
-  const {
-    companies,
-    activeCompany,
-    switchCompany,
-    loading: companyLoading,
-  } = useCompany();
+  const { companies, activeCompany, switchCompany, loading: companyLoading } = useCompany();
 
   const [loading, setLoading] = useState(false);
   const [portfolio, setPortfolio] = useState([]);
@@ -147,17 +147,11 @@ const PortfolioPage = () => {
       return;
     }
 
-    const companyIds = companies.map((company) => company.id);
     setLoading(true);
 
     try {
       // Use SECURITY DEFINER RPCs to bypass company_scope_guard restrictive RLS
-      const [
-        invoicesResponse,
-        paymentsResponse,
-        projectsResponse,
-        quotesResponse,
-      ] = await Promise.all([
+      const [invoicesResponse, paymentsResponse, projectsResponse, quotesResponse] = await Promise.all([
         supabase.rpc('get_portfolio_invoices'),
         supabase.rpc('get_portfolio_payments'),
         supabase.rpc('get_portfolio_projects'),
@@ -254,7 +248,7 @@ const PortfolioPage = () => {
             return 1;
           }
           return right.bookedRevenue - left.bookedRevenue;
-        }),
+        })
       );
       setWatchlist(nextWatchlist.sort((left, right) => right.daysOverdue - left.daysOverdue));
     } catch (error) {
@@ -272,20 +266,28 @@ const PortfolioPage = () => {
     loadPortfolio();
   }, [loadPortfolio]);
 
-  const portfolioTotals = useMemo(() => ({
-    companies: portfolio.length,
-    overdueCompanies: portfolio.filter((company) => company.overdueInvoices > 0).length,
-    activeProjects: portfolio.reduce((sum, company) => sum + company.activeProjects, 0),
-    openQuotes: portfolio.reduce((sum, company) => sum + company.openQuotes, 0),
-    bookedRevenue: groupMoney(portfolio, 'bookedRevenue'),
-    collectedCash: groupMoney(portfolio, 'collectedCash'),
-    outstandingReceivables: groupMoney(portfolio, 'outstandingReceivables'),
-    quotePipeline: groupMoney(portfolio, 'quotePipeline'),
-  }), [portfolio]);
+  const portfolioTotals = useMemo(
+    () => ({
+      companies: portfolio.length,
+      overdueCompanies: portfolio.filter((company) => company.overdueInvoices > 0).length,
+      activeProjects: portfolio.reduce((sum, company) => sum + company.activeProjects, 0),
+      openQuotes: portfolio.reduce((sum, company) => sum + company.openQuotes, 0),
+      bookedRevenue: groupMoney(portfolio, 'bookedRevenue'),
+      collectedCash: groupMoney(portfolio, 'collectedCash'),
+      outstandingReceivables: groupMoney(portfolio, 'outstandingReceivables'),
+      quotePipeline: groupMoney(portfolio, 'quotePipeline'),
+    }),
+    [portfolio]
+  );
 
   const openCompanyWorkspace = async (companyId) => {
     await switchCompany(companyId);
     navigate('/app');
+  };
+
+  const openCompanySettings = async (companyId) => {
+    await switchCompany(companyId);
+    navigate('/app/settings?tab=societe');
   };
 
   const headerCards = [
@@ -335,9 +337,7 @@ const PortfolioPage = () => {
                 </div>
                 <div>
                   <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">{t('portfolio.title')}</h1>
-                  <p className="text-sm md:text-base text-slate-300">
-                    {t('portfolio.subtitle')}
-                  </p>
+                  <p className="text-sm md:text-base text-slate-300">{t('portfolio.subtitle')}</p>
                 </div>
               </div>
             </div>
@@ -352,10 +352,10 @@ const PortfolioPage = () => {
                 {t('portfolio.refresh')}
               </Button>
               <Button
-                onClick={() => navigate('/app/settings')}
+                onClick={() => navigate('/app/settings?tab=societe&create=1')}
                 className="bg-orange-500 text-white hover:bg-orange-600"
               >
-                {t('portfolio.manageCompanies')}
+                {t('portfolio.createCompany')}
               </Button>
             </div>
           </div>
@@ -391,100 +391,129 @@ const PortfolioPage = () => {
                 <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-8 text-center text-slate-400">
                   {companyLoading || loading ? t('portfolio.emptyLoading') : t('portfolio.emptyNone')}
                 </div>
-              ) : portfolio.map((companySummary) => {
-                const health = getCompanyHealth(companySummary, t);
-                const revenueShare = topRevenue > 0 ? (companySummary.bookedRevenue / topRevenue) * 100 : 0;
+              ) : (
+                portfolio.map((companySummary) => {
+                  const health = getCompanyHealth(companySummary, t);
+                  const revenueShare = topRevenue > 0 ? (companySummary.bookedRevenue / topRevenue) * 100 : 0;
 
-                return (
-                  <div
-                    key={companySummary.company.id}
-                    className={`rounded-2xl border p-5 ${
-                      companySummary.company.id === activeCompany?.id
-                        ? 'border-orange-400/35 bg-orange-500/10'
-                        : 'border-white/10 bg-white/5'
-                    }`}
-                  >
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="space-y-3 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="text-lg font-semibold text-white">
-                            {companySummary.company.company_name || t('portfolio.companyFallback')}
-                          </h2>
-                          <Badge className={health.className}>{health.label}</Badge>
-                          {companySummary.company.id === activeCompany?.id && (
-                            <Badge className="bg-teal-500/15 text-teal-200 border-teal-400/30">{t('portfolio.activeBadge')}</Badge>
-                          )}
+                  return (
+                    <div
+                      key={companySummary.company.id}
+                      className={`rounded-2xl border p-5 ${
+                        companySummary.company.id === activeCompany?.id
+                          ? 'border-orange-400/35 bg-orange-500/10'
+                          : 'border-white/10 bg-white/5'
+                      }`}
+                    >
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="space-y-3 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="text-lg font-semibold text-white">
+                              {companySummary.company.company_name || t('portfolio.companyFallback')}
+                            </h2>
+                            <Badge className={health.className}>{health.label}</Badge>
+                            {companySummary.company.id === activeCompany?.id && (
+                              <Badge className="bg-teal-500/15 text-teal-200 border-teal-400/30">
+                                {t('portfolio.activeBadge')}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                                {t('portfolio.metrics.bookedRevenue')}
+                              </p>
+                              <p className="mt-1 text-base font-semibold text-white">
+                                {formatCurrency(companySummary.bookedRevenue, companySummary.currency)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                                {t('portfolio.metrics.collectedCash')}
+                              </p>
+                              <p className="mt-1 text-base font-semibold text-emerald-300">
+                                {formatCurrency(companySummary.collectedCash, companySummary.currency)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                                {t('portfolio.metrics.outstanding')}
+                              </p>
+                              <p className="mt-1 text-base font-semibold text-amber-300">
+                                {formatCurrency(companySummary.outstandingReceivables, companySummary.currency)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                                {t('portfolio.metrics.overdue')}
+                              </p>
+                              <p className="mt-1 text-base font-semibold text-rose-300">
+                                {t('portfolio.metrics.overdueValue', {
+                                  count: companySummary.overdueInvoices,
+                                  amount: formatCurrency(companySummary.overdueReceivables, companySummary.currency),
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                                {t('portfolio.metrics.activeProjects')}
+                              </p>
+                              <p className="mt-1 text-base font-semibold text-white">{companySummary.activeProjects}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                                {t('portfolio.metrics.quotePipeline')}
+                              </p>
+                              <p className="mt-1 text-base font-semibold text-cyan-300">
+                                {t('portfolio.metrics.quotePipelineValue', {
+                                  count: companySummary.openQuotes,
+                                  amount: formatCurrency(companySummary.quotePipeline, companySummary.currency),
+                                })}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('portfolio.metrics.bookedRevenue')}</p>
-                            <p className="mt-1 text-base font-semibold text-white">{formatCurrency(companySummary.bookedRevenue, companySummary.currency)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('portfolio.metrics.collectedCash')}</p>
-                            <p className="mt-1 text-base font-semibold text-emerald-300">{formatCurrency(companySummary.collectedCash, companySummary.currency)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('portfolio.metrics.outstanding')}</p>
-                            <p className="mt-1 text-base font-semibold text-amber-300">{formatCurrency(companySummary.outstandingReceivables, companySummary.currency)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('portfolio.metrics.overdue')}</p>
-                            <p className="mt-1 text-base font-semibold text-rose-300">
-                              {t('portfolio.metrics.overdueValue', {
-                                count: companySummary.overdueInvoices,
-                                amount: formatCurrency(companySummary.overdueReceivables, companySummary.currency),
+
+                        <div className="flex min-w-[220px] flex-col gap-3">
+                          <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                            <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-slate-500">
+                              <span>{t('portfolio.revenueWeight')}</span>
+                              <span>{Math.round(revenueShare)}%</span>
+                            </div>
+                            <div className="mt-3 h-2 rounded-full bg-white/10">
+                              <div
+                                className="h-2 rounded-full bg-gradient-to-r from-orange-400 to-teal-300"
+                                style={{ width: `${Math.max(revenueShare, 6)}%` }}
+                              />
+                            </div>
+                            <p className="mt-3 text-xs text-slate-400">
+                              {t('portfolio.lastActivity', {
+                                date: companySummary.lastActivityAt
+                                  ? new Date(companySummary.lastActivityAt).toLocaleDateString(locale)
+                                  : t('portfolio.noActivity'),
                               })}
                             </p>
                           </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('portfolio.metrics.activeProjects')}</p>
-                            <p className="mt-1 text-base font-semibold text-white">{companySummary.activeProjects}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('portfolio.metrics.quotePipeline')}</p>
-                            <p className="mt-1 text-base font-semibold text-cyan-300">
-                              {t('portfolio.metrics.quotePipelineValue', {
-                                count: companySummary.openQuotes,
-                                amount: formatCurrency(companySummary.quotePipeline, companySummary.currency),
-                              })}
-                            </p>
-                          </div>
+                          <Button
+                            onClick={() => openCompanyWorkspace(companySummary.company.id)}
+                            className="justify-between bg-white text-slate-950 hover:bg-slate-200"
+                          >
+                            {t('portfolio.openCompany')}
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => openCompanySettings(companySummary.company.id)}
+                            className="justify-center border-white/20 bg-transparent text-white hover:bg-white/10"
+                          >
+                            {t('portfolio.openCompanySettings')}
+                          </Button>
                         </div>
-                      </div>
-
-                      <div className="flex min-w-[220px] flex-col gap-3">
-                        <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-                          <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-slate-500">
-                            <span>{t('portfolio.revenueWeight')}</span>
-                            <span>{Math.round(revenueShare)}%</span>
-                          </div>
-                          <div className="mt-3 h-2 rounded-full bg-white/10">
-                            <div
-                              className="h-2 rounded-full bg-gradient-to-r from-orange-400 to-teal-300"
-                              style={{ width: `${Math.max(revenueShare, 6)}%` }}
-                            />
-                          </div>
-                          <p className="mt-3 text-xs text-slate-400">
-                            {t('portfolio.lastActivity', {
-                              date: companySummary.lastActivityAt
-                                ? new Date(companySummary.lastActivityAt).toLocaleDateString(locale)
-                                : t('portfolio.noActivity'),
-                            })}
-                          </p>
-                        </div>
-                        <Button
-                          onClick={() => openCompanyWorkspace(companySummary.company.id)}
-                          className="justify-between bg-white text-slate-950 hover:bg-slate-200"
-                        >
-                          {t('portfolio.openCompany')}
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </CardContent>
           </Card>
 
@@ -498,18 +527,29 @@ const PortfolioPage = () => {
                   <div className="rounded-2xl border border-dashed border-emerald-500/20 bg-emerald-500/5 p-5 text-sm text-emerald-200">
                     {t('portfolio.watchlistNone')}
                   </div>
-                ) : watchlist.slice(0, 8).map((item) => (
-                  <div key={`${item.companyId}-${item.invoiceNumber}`} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-medium text-white">{item.invoiceNumber}</p>
-                        <p className="text-sm text-slate-400">{item.companyName} · {item.clientName}</p>
+                ) : (
+                  watchlist.slice(0, 8).map((item) => (
+                    <div
+                      key={`${item.companyId}-${item.invoiceNumber}`}
+                      className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium text-white">{item.invoiceNumber}</p>
+                          <p className="text-sm text-slate-400">
+                            {item.companyName} · {item.clientName}
+                          </p>
+                        </div>
+                        <Badge className="bg-rose-500/15 text-rose-200 border-rose-400/30">
+                          {t('portfolio.daysOverdue', { count: item.daysOverdue })}
+                        </Badge>
                       </div>
-                      <Badge className="bg-rose-500/15 text-rose-200 border-rose-400/30">{t('portfolio.daysOverdue', { count: item.daysOverdue })}</Badge>
+                      <p className="mt-3 text-sm font-semibold text-amber-300">
+                        {formatCurrency(item.amount, item.currency)}
+                      </p>
                     </div>
-                    <p className="mt-3 text-sm font-semibold text-amber-300">{formatCurrency(item.amount, item.currency)}</p>
-                  </div>
-                ))}
+                  ))
+                )}
               </CardContent>
             </Card>
 
@@ -522,14 +562,24 @@ const PortfolioPage = () => {
                   <Briefcase className="mt-0.5 h-5 w-5 text-teal-300" />
                   <div>
                     <p className="font-medium text-white">{t('portfolio.quickRead.projectLoadTitle')}</p>
-                    <p>{t('portfolio.quickRead.projectLoadText', { projects: portfolioTotals.activeProjects, companies: portfolioTotals.companies })}</p>
+                    <p>
+                      {t('portfolio.quickRead.projectLoadText', {
+                        projects: portfolioTotals.activeProjects,
+                        companies: portfolioTotals.companies,
+                      })}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
                   <FileSignature className="mt-0.5 h-5 w-5 text-cyan-300" />
                   <div>
                     <p className="font-medium text-white">{t('portfolio.quickRead.quotePipelineTitle')}</p>
-                    <p>{t('portfolio.quickRead.quotePipelineText', { quotes: portfolioTotals.openQuotes, amount: formatMoneyGroups(portfolioTotals.quotePipeline) })}</p>
+                    <p>
+                      {t('portfolio.quickRead.quotePipelineText', {
+                        quotes: portfolioTotals.openQuotes,
+                        amount: formatMoneyGroups(portfolioTotals.quotePipeline),
+                      })}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
