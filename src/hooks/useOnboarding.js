@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 export const useOnboarding = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [wizardData, setWizardData] = useState({
@@ -17,13 +19,13 @@ export const useOnboarding = () => {
   const fetchOnboardingStatus = useCallback(async () => {
     if (!user || !supabase) return;
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('onboarding_completed, onboarding_step')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
       setOnboardingCompleted(data?.onboarding_completed ?? false);
       setCurrentStep(data?.onboarding_step ?? 0);
     } catch (err) {
@@ -38,53 +40,94 @@ export const useOnboarding = () => {
     fetchOnboardingStatus();
   }, [fetchOnboardingStatus]);
 
-  const saveStep = async (step) => {
-    if (!user || !supabase) return;
-    try {
-      await supabase
-        .from('profiles')
-        .update({ onboarding_step: step })
-        .eq('user_id', user.id);
-      setCurrentStep(step);
-    } catch (err) {
-      console.warn('Error saving onboarding step:', err.message);
-    }
-  };
+  const buildFailureResult = useCallback((message) => {
+    const normalizedMessage = message || 'Une erreur est survenue pendant la sauvegarde.';
+    setError(normalizedMessage);
+    return { success: false, error: normalizedMessage };
+  }, []);
 
-  const completeOnboarding = async () => {
-    if (!user || !supabase) return;
+  const saveStep = useCallback(
+    async (step) => {
+      if (!user || !supabase) {
+        return buildFailureResult("L'utilisateur ou Supabase n'est pas disponible.");
+      }
+
+      setSaving(true);
+      setError(null);
+
+      try {
+        const { error: saveError } = await supabase
+          .from('profiles')
+          .update({ onboarding_step: step })
+          .eq('user_id', user.id);
+
+        if (saveError) {
+          throw saveError;
+        }
+
+        setCurrentStep(step);
+        return { success: true, step };
+      } catch (err) {
+        console.warn('Error saving onboarding step:', err.message);
+        return buildFailureResult(err.message);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [buildFailureResult, user]
+  );
+
+  const completeOnboarding = useCallback(async () => {
+    if (!user || !supabase) {
+      return buildFailureResult("L'utilisateur ou Supabase n'est pas disponible.");
+    }
+
+    setSaving(true);
+    setError(null);
+
     try {
-      await supabase
+      const { error: saveError } = await supabase
         .from('profiles')
         .update({ onboarding_completed: true, onboarding_step: 5 })
         .eq('user_id', user.id);
+
+      if (saveError) {
+        throw saveError;
+      }
+
       setOnboardingCompleted(true);
       setCurrentStep(5);
+      return { success: true, completed: true, step: 5 };
     } catch (err) {
       console.warn('Error completing onboarding:', err.message);
+      return buildFailureResult(err.message);
+    } finally {
+      setSaving(false);
     }
-  };
+  }, [buildFailureResult, user]);
 
   const updateWizardData = (key, value) => {
-    setWizardData(prev => ({ ...prev, [key]: value }));
+    setWizardData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
     const next = currentStep + 1;
-    saveStep(next);
+    return saveStep(next);
   };
 
-  const prevStep = () => {
+  const prevStep = async () => {
     const prev = Math.max(0, currentStep - 1);
-    saveStep(prev);
+    return saveStep(prev);
   };
 
-  const goToStep = (step) => {
-    saveStep(step);
+  const goToStep = async (step) => {
+    return saveStep(step);
   };
 
   return {
     loading,
+    saving,
+    error,
     onboardingCompleted,
     currentStep,
     wizardData,
@@ -92,6 +135,7 @@ export const useOnboarding = () => {
     nextStep,
     prevStep,
     goToStep,
+    saveStep,
     completeOnboarding,
     refresh: fetchOnboardingStatus,
   };

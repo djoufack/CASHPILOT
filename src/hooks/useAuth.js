@@ -401,7 +401,7 @@ export const useAuthSource = () => {
       recordRateLimitSuccess(AUTH_SCOPE_SIGN_UP, normalizedEmail);
       await reportServerRateLimitOutcome(AUTH_SCOPE_SIGN_UP, normalizedEmail, 'success');
 
-      if (data.user) {
+      if (data.user && data.session) {
         // Create profile
         const profileData = {
           user_id: data.user.id,
