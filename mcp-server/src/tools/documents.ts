@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { supabase, getUserId } from '../supabase.js';
+import { supabase, getUserId, getCompanyId } from '../supabase.js';
 import { optionalDate } from '../utils/validation.js';
 import { safeError } from '../utils/errors.js';
 
@@ -440,11 +440,13 @@ export function registerDocumentTools(server: McpServer) {
         .single();
       const currency = companyData?.currency || 'EUR';
 
+      const companyId = await getCompanyId();
       const { data, error } = await supabase
         .from('expenses')
         .insert([
           {
             user_id: userId,
+            company_id: companyId,
             amount: Math.round(amount_ttc * 100) / 100,
             amount_ht: Math.round(amountHt * 100) / 100,
             tax_amount: Math.round(taxAmount * 100) / 100,
