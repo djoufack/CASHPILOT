@@ -1,23 +1,9 @@
-
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -158,7 +144,9 @@ const ClientFormDialog = ({
                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-gray-700 text-white max-h-[300px]">
                       {countryOptions.map((country) => (
-                        <SelectItem key={country.value} value={country.value}>{country.label}</SelectItem>
+                        <SelectItem key={country.value} value={country.value}>
+                          {country.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -278,7 +266,10 @@ const ClientFormDialog = ({
                     <Input
                       id="peppol_endpoint_id"
                       value={formData.peppol_endpoint_id}
-                      onChange={(e) => { setFormData({ ...formData, peppol_endpoint_id: e.target.value }); resetPeppolCheck(); }}
+                      onChange={(e) => {
+                        setFormData({ ...formData, peppol_endpoint_id: e.target.value });
+                        resetPeppolCheck();
+                      }}
                       placeholder="0123456789"
                       className="bg-gray-700 border-gray-600 text-white w-full"
                     />
@@ -287,18 +278,31 @@ const ClientFormDialog = ({
                       variant="outline"
                       size="sm"
                       disabled={!formData.peppol_endpoint_id || peppolChecking}
-                      onClick={() => checkRegistration(formData.peppol_endpoint_id)}
+                      onClick={() =>
+                        checkRegistration(
+                          formData.peppol_endpoint_id.includes(':')
+                            ? formData.peppol_endpoint_id
+                            : `${formData.peppol_scheme_id || '0208'}:${formData.peppol_endpoint_id}`
+                        )
+                      }
                       className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 shrink-0"
                     >
                       {peppolChecking ? <Loader2 className="w-4 h-4 animate-spin" /> : t('peppol.checkPeppol')}
                     </Button>
                   </div>
                   {peppolResult && (
-                    <span className={`flex items-center gap-1 text-xs ${peppolResult.registered ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {peppolResult.registered
-                        ? <><CheckCircle className="w-3 h-3" /> {t('peppol.checkRegistered')}</>
-                        : <><XCircle className="w-3 h-3" /> {t('peppol.checkNotRegistered')}</>
-                      }
+                    <span
+                      className={`flex items-center gap-1 text-xs ${peppolResult.registered ? 'text-emerald-400' : 'text-red-400'}`}
+                    >
+                      {peppolResult.registered ? (
+                        <>
+                          <CheckCircle className="w-3 h-3" /> {t('peppol.checkRegistered')}
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-3 h-3" /> {t('peppol.checkNotRegistered')}
+                        </>
+                      )}
                     </span>
                   )}
                 </div>
@@ -358,10 +362,7 @@ const ClientFormDialog = ({
               >
                 {t('buttons.cancel')}
               </Button>
-              <Button
-                type="submit"
-                className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto text-lg py-5"
-              >
+              <Button type="submit" className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto text-lg py-5">
                 {t('buttons.save')}
               </Button>
             </DialogFooter>

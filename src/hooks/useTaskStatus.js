@@ -1,20 +1,24 @@
-
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useTaskStatus = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { toast } = useToast();
+  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const updateTaskStatus = async (taskId, newStatus, currentTask = {}) => {
     if (!supabase) {
       toast({
-        title: "Configuration Error",
-        description: "Supabase is not configured",
-        variant: "destructive"
+        title: 'Configuration Error',
+        description: 'Supabase is not configured',
+        variant: 'destructive',
       });
+      return null;
+    }
+    if (!activeCompanyId) {
       return null;
     }
 
@@ -34,26 +38,23 @@ export const useTaskStatus = () => {
         updates.completed_at = new Date().toISOString();
         // If it was never marked as started, mark it started now too
         if (!currentTask.started_at) {
-           updates.started_at = new Date().toISOString(); 
+          updates.started_at = new Date().toISOString();
         }
       } else if (newStatus === 'pending') {
-        // Reset timestamps if moving back to pending? 
+        // Reset timestamps if moving back to pending?
         // Usually safer to keep history, but for strict state management:
         updates.completed_at = null;
         updates.started_at = null;
       }
 
-      const { data, error: updateError } = await supabase
-        .from('tasks')
-        .update(updates)
-        .eq('id', taskId)
-        .select()
-        .single();
+      let query = supabase.from('tasks').update(withCompanyScope(updates)).eq('id', taskId).select();
+      query = applyCompanyScope(query);
+      const { data, error: updateError } = await query.single();
 
       if (updateError) throw updateError;
 
       toast({
-        title: "Status Updated",
+        title: 'Status Updated',
         description: `Task moved to ${newStatus.replace('_', ' ')}`,
       });
 
@@ -62,9 +63,9 @@ export const useTaskStatus = () => {
       console.error('Error updating task status:', err);
       setError(err.message);
       toast({
-        title: "Update Failed",
+        title: 'Update Failed',
         description: err.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
       return null;
     } finally {
@@ -75,6 +76,6 @@ export const useTaskStatus = () => {
   return {
     updateTaskStatus,
     loading,
-    error
+    error,
   };
 };

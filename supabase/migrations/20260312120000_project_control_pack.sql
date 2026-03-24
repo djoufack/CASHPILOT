@@ -10,16 +10,12 @@
 -- 1) Referential integrity for execution ownership
 ALTER TABLE public.tasks
   ADD COLUMN IF NOT EXISTS assigned_member_id UUID REFERENCES public.team_members(id) ON DELETE SET NULL;
-
 ALTER TABLE public.timesheets
   ADD COLUMN IF NOT EXISTS executed_by_member_id UUID REFERENCES public.team_members(id) ON DELETE SET NULL;
-
 CREATE INDEX IF NOT EXISTS idx_tasks_assigned_member_id
   ON public.tasks(assigned_member_id);
-
 CREATE INDEX IF NOT EXISTS idx_timesheets_executed_by_member_id
   ON public.timesheets(executed_by_member_id);
-
 -- 2) Project baselines (planned commitments snapshot)
 CREATE TABLE IF NOT EXISTS public.project_baselines (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -39,13 +35,10 @@ CREATE TABLE IF NOT EXISTS public.project_baselines (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT uq_project_baselines_project_version UNIQUE (project_id, version)
 );
-
 CREATE INDEX IF NOT EXISTS idx_project_baselines_project_id
   ON public.project_baselines(project_id);
-
 CREATE INDEX IF NOT EXISTS idx_project_baselines_company_id
   ON public.project_baselines(company_id);
-
 -- 3) Project milestones (task/payment control points)
 CREATE TABLE IF NOT EXISTS public.project_milestones (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -70,16 +63,12 @@ CREATE TABLE IF NOT EXISTS public.project_milestones (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_project_milestones_project_id
   ON public.project_milestones(project_id);
-
 CREATE INDEX IF NOT EXISTS idx_project_milestones_company_id
   ON public.project_milestones(company_id);
-
 CREATE INDEX IF NOT EXISTS idx_project_milestones_status
   ON public.project_milestones(status);
-
 -- 4) Resources allocation (human + material)
 CREATE TABLE IF NOT EXISTS public.project_resource_allocations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -107,16 +96,12 @@ CREATE TABLE IF NOT EXISTS public.project_resource_allocations (
       (resource_type = 'material' AND COALESCE(resource_name, '') <> '')
     )
 );
-
 CREATE INDEX IF NOT EXISTS idx_project_resource_allocations_project_id
   ON public.project_resource_allocations(project_id);
-
 CREATE INDEX IF NOT EXISTS idx_project_resource_allocations_company_id
   ON public.project_resource_allocations(company_id);
-
 CREATE INDEX IF NOT EXISTS idx_project_resource_allocations_team_member_id
   ON public.project_resource_allocations(team_member_id);
-
 -- 5) Compensation tracking for executed work
 CREATE TABLE IF NOT EXISTS public.team_member_compensations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -136,19 +121,14 @@ CREATE TABLE IF NOT EXISTS public.team_member_compensations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_team_member_compensations_project_id
   ON public.team_member_compensations(project_id);
-
 CREATE INDEX IF NOT EXISTS idx_team_member_compensations_company_id
   ON public.team_member_compensations(company_id);
-
 CREATE INDEX IF NOT EXISTS idx_team_member_compensations_member_id
   ON public.team_member_compensations(team_member_id);
-
 CREATE INDEX IF NOT EXISTS idx_team_member_compensations_timesheet_id
   ON public.team_member_compensations(timesheet_id);
-
 -- 6) Helper function for milestone financial adjustment
 CREATE OR REPLACE FUNCTION public.compute_milestone_adjustment(
   p_planned_date DATE,
@@ -199,52 +179,43 @@ BEGIN
   END CASE;
 END;
 $$;
-
 -- 7) updated_at triggers
 DROP TRIGGER IF EXISTS update_project_baselines_modtime ON public.project_baselines;
 CREATE TRIGGER update_project_baselines_modtime
   BEFORE UPDATE ON public.project_baselines
   FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-
 DROP TRIGGER IF EXISTS update_project_milestones_modtime ON public.project_milestones;
 CREATE TRIGGER update_project_milestones_modtime
   BEFORE UPDATE ON public.project_milestones
   FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-
 DROP TRIGGER IF EXISTS update_project_resource_allocations_modtime ON public.project_resource_allocations;
 CREATE TRIGGER update_project_resource_allocations_modtime
   BEFORE UPDATE ON public.project_resource_allocations
   FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-
 DROP TRIGGER IF EXISTS update_team_member_compensations_modtime ON public.team_member_compensations;
 CREATE TRIGGER update_team_member_compensations_modtime
   BEFORE UPDATE ON public.team_member_compensations
   FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
-
 -- 8) RLS
 ALTER TABLE public.project_baselines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.project_milestones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.project_resource_allocations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.team_member_compensations ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "Users manage own project baselines" ON public.project_baselines;
 CREATE POLICY "Users manage own project baselines" ON public.project_baselines
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 DROP POLICY IF EXISTS "Users manage own project milestones" ON public.project_milestones;
 CREATE POLICY "Users manage own project milestones" ON public.project_milestones
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 DROP POLICY IF EXISTS "Users manage own project resource allocations" ON public.project_resource_allocations;
 CREATE POLICY "Users manage own project resource allocations" ON public.project_resource_allocations
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 DROP POLICY IF EXISTS "Users manage own team member compensations" ON public.team_member_compensations;
 CREATE POLICY "Users manage own team member compensations" ON public.team_member_compensations
   FOR ALL

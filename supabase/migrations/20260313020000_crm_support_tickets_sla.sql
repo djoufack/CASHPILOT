@@ -7,7 +7,6 @@
 -- ============================================================================
 
 BEGIN;
-
 CREATE TABLE IF NOT EXISTS public.crm_support_sla_policies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
@@ -21,7 +20,6 @@ CREATE TABLE IF NOT EXISTS public.crm_support_sla_policies (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.crm_support_tickets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
@@ -49,7 +47,6 @@ CREATE TABLE IF NOT EXISTS public.crm_support_tickets (
     REFERENCES public.projects(id, company_id, user_id)
     ON DELETE SET NULL
 );
-
 CREATE INDEX IF NOT EXISTS idx_crm_support_tickets_company_status
   ON public.crm_support_tickets(company_id, status);
 CREATE INDEX IF NOT EXISTS idx_crm_support_tickets_company_priority
@@ -58,13 +55,10 @@ CREATE INDEX IF NOT EXISTS idx_crm_support_tickets_due_at
   ON public.crm_support_tickets(due_at);
 CREATE INDEX IF NOT EXISTS idx_crm_support_tickets_client
   ON public.crm_support_tickets(client_id);
-
 CREATE INDEX IF NOT EXISTS idx_crm_support_sla_policies_company_priority
   ON public.crm_support_sla_policies(company_id, priority);
-
 ALTER TABLE public.crm_support_sla_policies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_support_tickets ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS crm_support_sla_policies_company_scope_guard ON public.crm_support_sla_policies;
 CREATE POLICY crm_support_sla_policies_company_scope_guard
 ON public.crm_support_sla_policies
@@ -73,7 +67,6 @@ FOR ALL
 TO authenticated
 USING (company_id = public.resolve_preferred_company_id((SELECT auth.uid())))
 WITH CHECK (company_id = public.resolve_preferred_company_id((SELECT auth.uid())));
-
 DROP POLICY IF EXISTS crm_support_tickets_company_scope_guard ON public.crm_support_tickets;
 CREATE POLICY crm_support_tickets_company_scope_guard
 ON public.crm_support_tickets
@@ -82,7 +75,6 @@ FOR ALL
 TO authenticated
 USING (company_id = public.resolve_preferred_company_id((SELECT auth.uid())))
 WITH CHECK (company_id = public.resolve_preferred_company_id((SELECT auth.uid())));
-
 CREATE OR REPLACE FUNCTION public.touch_crm_support_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -92,19 +84,16 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_touch_crm_support_sla_policies_updated_at ON public.crm_support_sla_policies;
 CREATE TRIGGER trg_touch_crm_support_sla_policies_updated_at
   BEFORE UPDATE ON public.crm_support_sla_policies
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_crm_support_updated_at();
-
 DROP TRIGGER IF EXISTS trg_touch_crm_support_tickets_updated_at ON public.crm_support_tickets;
 CREATE TRIGGER trg_touch_crm_support_tickets_updated_at
   BEFORE UPDATE ON public.crm_support_tickets
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_crm_support_updated_at();
-
 CREATE OR REPLACE FUNCTION public.enforce_crm_support_ticket_scope()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -161,25 +150,21 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_enforce_crm_support_ticket_scope ON public.crm_support_tickets;
 CREATE TRIGGER trg_enforce_crm_support_ticket_scope
   BEFORE INSERT OR UPDATE ON public.crm_support_tickets
   FOR EACH ROW
   EXECUTE FUNCTION public.enforce_crm_support_ticket_scope();
-
 DROP TRIGGER IF EXISTS trg_audit_crm_support_tickets ON public.crm_support_tickets;
 CREATE TRIGGER trg_audit_crm_support_tickets
   AFTER INSERT OR UPDATE OR DELETE ON public.crm_support_tickets
   FOR EACH ROW
   EXECUTE FUNCTION public.log_crm_data_access();
-
 DROP TRIGGER IF EXISTS trg_audit_crm_support_sla_policies ON public.crm_support_sla_policies;
 CREATE TRIGGER trg_audit_crm_support_sla_policies
   AFTER INSERT OR UPDATE OR DELETE ON public.crm_support_sla_policies
   FOR EACH ROW
   EXECUTE FUNCTION public.log_crm_data_access();
-
 DO $$
 DECLARE
   v_company RECORD;
@@ -290,5 +275,4 @@ BEGIN
   END LOOP;
 END;
 $$;
-
 COMMIT;

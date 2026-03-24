@@ -1,27 +1,28 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useTasksWithStatus = (projectId, initialFilters = {}) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user } = useAuth();
-  
+  const { activeCompanyId, applyCompanyScope } = useCompanyScope();
+
   const [filters, setFilters] = useState({
     status: 'all',
     priority: 'all',
     assignee: 'all',
-    ...initialFilters
+    ...initialFilters,
   });
 
   const [sortBy, setSortBy] = useState('created_at'); // created_at, due_date, priority
 
   const fetchTasks = useCallback(async () => {
-    if (!projectId || !user) return;
+    if (!projectId || !user || !activeCompanyId) return;
     if (!supabase) {
-      console.warn("Supabase not configured");
+      console.warn('Supabase not configured');
       setLoading(false);
       return;
     }
@@ -30,14 +31,17 @@ export const useTasksWithStatus = (projectId, initialFilters = {}) => {
     try {
       let query = supabase
         .from('tasks')
-        .select(`
+        .select(
+          `
           *,
           subtasks (count),
           invoice:invoices(id, invoice_number, total_ttc),
           quote:quotes(id, quote_number, total_ttc),
           purchase_order:purchase_orders(id, po_number, total)
-        `)
+        `
+        )
         .eq('project_id', projectId);
+      query = applyCompanyScope(query);
 
       // Filters
       if (filters.status && filters.status !== 'all') {
@@ -56,7 +60,7 @@ export const useTasksWithStatus = (projectId, initialFilters = {}) => {
       } else if (sortBy === 'priority') {
         // Sort explicitly not easily supported in simple queries without CASE
         // fallback to client side or simple order
-        query = query.order('priority', { ascending: false }); 
+        query = query.order('priority', { ascending: false });
       } else {
         query = query.order('created_at', { ascending: false });
       }
@@ -71,7 +75,7 @@ export const useTasksWithStatus = (projectId, initialFilters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [projectId, user, filters, sortBy]);
+  }, [projectId, user, activeCompanyId, applyCompanyScope, filters, sortBy]);
 
   useEffect(() => {
     fetchTasks();
@@ -86,6 +90,6 @@ export const useTasksWithStatus = (projectId, initialFilters = {}) => {
     sortBy,
     setSortBy,
     refreshTasks: fetchTasks,
-    setTasks // Exposed for optimistic updates
+    setTasks, // Exposed for optimistic updates
   };
 };
