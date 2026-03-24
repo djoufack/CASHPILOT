@@ -23,6 +23,9 @@ const resolveRegionHint = (country) => {
   return 'france';
 };
 
+const buildScopedConflict = (companyId, fallbackConflict) =>
+  companyId ? `company_id,${fallbackConflict}` : fallbackConflict;
+
 async function loadReferenceAccounts(country) {
   const accounts = await getGlobalAccountingPlanAccounts(country);
   return (accounts || []).map((account) => ({
@@ -96,18 +99,16 @@ export async function initializeAccounting(userId, country, companyId = null) {
         error: 'Aucune societe active selectionnee pour initialiser le plan comptable.',
       };
     }
-    const { error: settingsError } = await supabase
-      .from('user_accounting_settings')
-      .upsert(
-        {
-          user_id: userId,
-          country,
-          is_initialized: false,
-          auto_journal_enabled: true,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      );
+    const { error: settingsError } = await supabase.from('user_accounting_settings').upsert(
+      {
+        user_id: userId,
+        country,
+        is_initialized: false,
+        auto_journal_enabled: true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    );
 
     if (settingsError) {
       console.error('[AccountingInit] Error upserting settings:', settingsError.message);
@@ -139,8 +140,8 @@ export async function initializeAccounting(userId, country, companyId = null) {
     }
 
     const accountsCount = await bulkInsertAccounts(userId, accounts, companyId);
-    const mappingsCount = await insertDefaultMappings(userId, country);
-    const taxRatesCount = await insertDefaultTaxRates(userId, country);
+    const mappingsCount = await insertDefaultMappings(userId, country, companyId);
+    const taxRatesCount = await insertDefaultTaxRates(userId, country, companyId);
 
     const { error: finalizeError } = await supabase
       .from('user_accounting_settings')
@@ -215,7 +216,7 @@ async function bulkInsertAccounts(userId, accounts, companyId = null) {
 // Insert default mappings
 // ---------------------------------------------------------------------------
 
-async function insertDefaultMappings(userId, country) {
+async function insertDefaultMappings(userId, country, companyId = null) {
   const mappings = await getDefaultMappings(country);
 
   if (mappings.length === 0) {
@@ -224,6 +225,7 @@ async function insertDefaultMappings(userId, country) {
 
   const rows = mappings.map((mapping) => ({
     user_id: userId,
+    ...(companyId ? { company_id: companyId } : {}),
     source_type: mapping.source_type,
     source_category: mapping.source_category,
     debit_account_code: mapping.debit_account_code,
@@ -234,7 +236,7 @@ async function insertDefaultMappings(userId, country) {
   try {
     const { error } = await supabase
       .from('accounting_mappings')
-      .upsert(rows, { onConflict: 'user_id,source_type,source_category' });
+      .upsert(rows, { onConflict: buildScopedConflict(companyId, 'user_id,source_type,source_category') });
 
     if (error) {
       console.error('[AccountingInit] Error inserting mappings:', error.message);
@@ -252,7 +254,7 @@ async function insertDefaultMappings(userId, country) {
 // Insert default tax rates
 // ---------------------------------------------------------------------------
 
-async function insertDefaultTaxRates(userId, country) {
+async function insertDefaultTaxRates(userId, country, companyId = null) {
   const taxRates = await getDefaultTaxRates(country);
 
   if (taxRates.length === 0) {
@@ -261,6 +263,7 @@ async function insertDefaultTaxRates(userId, country) {
 
   const rows = taxRates.map((taxRate) => ({
     user_id: userId,
+    ...(companyId ? { company_id: companyId } : {}),
     name: taxRate.name,
     rate: taxRate.rate,
     tax_type: taxRate.tax_type,
@@ -271,7 +274,7 @@ async function insertDefaultTaxRates(userId, country) {
   try {
     const { error } = await supabase
       .from('accounting_tax_rates')
-      .upsert(rows, { onConflict: 'user_id,name' });
+      .upsert(rows, { onConflict: buildScopedConflict(companyId, 'user_id,name') });
 
     if (error) {
       console.error('[AccountingInit] Error inserting tax rates:', error.message);
@@ -401,12 +404,13 @@ export async function copyPlanAccounts(fromPlanId, userId) {
 
     for (let index = 0; index < rows.length; index += BATCH_SIZE) {
       const batch = rows.slice(index, index + BATCH_SIZE);
-      const { error: insertError } = await supabase
-        .from('accounting_plan_accounts')
-        .insert(batch);
+      const { error: insertError } = await supabase.from('accounting_plan_accounts').insert(batch);
 
       if (insertError) {
-        console.error(`[AccountingInit] Error copying accounts batch ${Math.floor(index / BATCH_SIZE) + 1}:`, insertError.message);
+        console.error(
+          `[AccountingInit] Error copying accounts batch ${Math.floor(index / BATCH_SIZE) + 1}:`,
+          insertError.message
+        );
       } else {
         totalCopied += batch.length;
       }
@@ -454,18 +458,16 @@ export async function initializeAccountingFromPlan(userId, planId, countryCode, 
 
     const country = countryCode || 'FR';
 
-    const { error: settingsError } = await supabase
-      .from('user_accounting_settings')
-      .upsert(
-        {
-          user_id: userId,
-          country,
-          plan_id: planId,
-          is_initialized: false,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      );
+    const { error: settingsError } = await supabase.from('user_accounting_settings').upsert(
+      {
+        user_id: userId,
+        country,
+        plan_id: planId,
+        is_initialized: false,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    );
 
     if (settingsError) {
       console.error('[AccountingInit] Error upserting settings:', settingsError.message);
@@ -500,8 +502,8 @@ export async function initializeAccountingFromPlan(userId, planId, countryCode, 
       accountsCount = await bulkInsertAccounts(userId, referenceAccounts, companyId);
     }
 
-    const mappingsCount = await insertDefaultMappings(userId, country);
-    const taxRatesCount = await insertDefaultTaxRates(userId, country);
+    const mappingsCount = await insertDefaultMappings(userId, country, companyId);
+    const taxRatesCount = await insertDefaultTaxRates(userId, country, companyId);
 
     const { error: finalizeError } = await supabase
       .from('user_accounting_settings')
