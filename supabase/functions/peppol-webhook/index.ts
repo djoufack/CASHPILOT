@@ -6,17 +6,19 @@ import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://cashpilot.tech',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-scrada-topic, x-scrada-hmac-sha256, x-scrada-company-id, x-scrada-event-id, x-scrada-triggered-at, x-scrada-attempt',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-scrada-topic, x-scrada-hmac-sha256, x-scrada-company-id, x-scrada-event-id, x-scrada-triggered-at, x-scrada-attempt',
   ...SECURITY_HEADERS,
 };
-
 
 async function verifyHmacSignature(body: string, signature: string, secret: string): Promise<boolean> {
   const encoder = new TextEncoder();
   const keyData = encoder.encode(secret);
   const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const computed = await crypto.subtle.sign('HMAC', key, encoder.encode(body));
-  const computedHex = Array.from(new Uint8Array(computed)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  const computedHex = Array.from(new Uint8Array(computed))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
   return computedHex === signature.toLowerCase();
 }
 
@@ -34,21 +36,24 @@ serve(async (req) => {
   if (scradaWebhookSecret) {
     if (!hmacHeader) {
       return new Response(JSON.stringify({ error: 'Missing x-scrada-hmac-sha256 header' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     const valid = await verifyHmacSignature(rawBody, hmacHeader, scradaWebhookSecret);
     if (!valid) {
       console.error('Peppol webhook HMAC signature verification failed');
       return new Response(JSON.stringify({ error: 'Invalid HMAC signature' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
   } else {
     if (!allowInsecureWebhooks) {
       console.error('SCRADA_WEBHOOK_SECRET is required for peppol-webhook');
       return new Response(JSON.stringify({ error: 'Webhook security misconfigured (missing SCRADA_WEBHOOK_SECRET)' }), {
-        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     console.warn('ALLOW_INSECURE_WEBHOOKS=true — skipping HMAC verification');
@@ -73,7 +78,8 @@ serve(async (req) => {
 
     if (!companyRecord) {
       return new Response(JSON.stringify({ error: 'Unknown Scrada company ID' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -84,9 +90,9 @@ serve(async (req) => {
       const body = JSON.parse(rawBody);
 
       const statusMap: Record<string, string> = {
-        'Created': 'pending',
-        'Processed': 'delivered',
-        'Error': 'error',
+        Created: 'pending',
+        Processed: 'delivered',
+        Error: 'error',
       };
       const mappedStatus = statusMap[body.status] || body.status?.toLowerCase() || 'pending';
 
@@ -94,23 +100,34 @@ serve(async (req) => {
         .from('invoices')
         .select('id')
         .eq('peppol_document_id', body.id)
+        .eq('company_id', companyRecord.id)
         .maybeSingle();
 
       if (invoice) {
-        await supabaseAdmin.from('invoices').update({
-          peppol_status: mappedStatus,
-          peppol_error_message: body.status === 'Error' ? (body.errorMessage || null) : null,
-        }).eq('id', invoice.id);
+        await supabaseAdmin
+          .from('invoices')
+          .update({
+            peppol_status: mappedStatus,
+            peppol_error_message: body.status === 'Error' ? body.errorMessage || null : null,
+          })
+          .eq('id', invoice.id);
 
         await supabaseAdmin.from('peppol_transmission_log').insert({
-          user_id: userId, company_id: companyRecord.id, invoice_id: invoice.id, direction: 'outbound',
-          status: mappedStatus, ap_provider: 'scrada', ap_document_id: body.id,
-          error_message: body.errorMessage || null, metadata: body,
+          user_id: userId,
+          company_id: companyRecord.id,
+          invoice_id: invoice.id,
+          direction: 'outbound',
+          status: mappedStatus,
+          ap_provider: 'scrada',
+          ap_document_id: body.id,
+          error_message: body.errorMessage || null,
+          metadata: body,
         });
       }
 
       return new Response(JSON.stringify({ received: true, topic }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -131,6 +148,7 @@ serve(async (req) => {
         .select('id')
         .eq('scrada_document_id', documentId)
         .eq('user_id', userId)
+        .eq('company_id', companyRecord.id)
         .maybeSingle();
 
       if (!existing) {
@@ -145,7 +163,7 @@ serve(async (req) => {
               supabaseAdmin,
               userId,
               peppolReceiveCredits,
-              `Peppol inbound webhook ${documentId}`,
+              `Peppol inbound webhook ${documentId}`
             );
           } catch (billingError) {
             if (billingError instanceof HttpError && billingError.status === 402) {
@@ -175,6 +193,7 @@ serve(async (req) => {
 
           const { error: insertDocError } = await supabaseAdmin.from('peppol_inbound_documents').insert({
             user_id: userId,
+            company_id: companyRecord.id,
             scrada_document_id: documentId,
             sender_peppol_id: senderPeppolId,
             document_type: 'invoice',
@@ -189,31 +208,27 @@ serve(async (req) => {
           // the inbound document itself and skip log insertion here.
         } catch (error) {
           if (creditDeduction) {
-            await refundCredits(
-              supabaseAdmin,
-              userId,
-              creditDeduction,
-              `Refund Peppol inbound webhook ${documentId}`,
-            );
+            await refundCredits(supabaseAdmin, userId, creditDeduction, `Refund Peppol inbound webhook ${documentId}`);
           }
 
           throw error;
         }
       }
       return new Response(JSON.stringify({ received: true, topic, documentId }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // Unknown topic — acknowledge anyway
     return new Response(JSON.stringify({ received: true, topic, unhandled: true }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
-
-
