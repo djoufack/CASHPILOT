@@ -401,6 +401,7 @@ const LandingPage = () => {
 
   const navLinks = [
     { href: '#features', label: copy.nav.features },
+    { href: '#latest', label: copy.nav.latest },
     { href: '#simulation', label: copy.nav.simulations },
     { href: '#audience', label: copy.nav.audience },
     { href: '#advantages', label: copy.nav.advantages },
@@ -470,6 +471,13 @@ const LandingPage = () => {
     { icon: Coins, color: 'violet-indigo', ...copy.features.cards[19] },
     { icon: Download, color: 'lime-emerald', ...copy.features.cards[20] },
   ];
+  const latestCardIcons = [FileText, Users, Briefcase, UserCheck, Brain];
+  const latestCardColors = ['yellow-orange', 'green-emerald', 'purple-pink', 'blue-cyan', 'violet-purple'];
+  const latestCards = (copy.latest?.cards || []).map((card, index) => ({
+    icon: latestCardIcons[index % latestCardIcons.length],
+    color: latestCardColors[index % latestCardColors.length],
+    ...card,
+  }));
 
   const pilotageCards = [
     { icon: PieChart, className: 'sim-orange', ...copy.pilotage.cards[0] },
@@ -986,6 +994,41 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
+
+      {latestCards.length > 0 && (
+        <section id="latest" className="section section-features">
+          <div className="section-bg">
+            <div className="bg-gradient features-gradient"></div>
+            <div className="bg-mesh"></div>
+          </div>
+
+          <div className="container">
+            <div className="section-header">
+              <div className="section-badge badge-cyan">
+                <Sparkles />
+                <span>{copy.latest.badge}</span>
+              </div>
+              <h2 className="section-title">{copy.latest.title}</h2>
+              <p className="section-description">{copy.latest.description}</p>
+            </div>
+
+            <div className="features-grid">
+              {latestCards.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <div key={card.title} className="feature-card" data-color={card.color}>
+                    <div className="feature-card-icon">
+                      <Icon />
+                    </div>
+                    <h3>{card.title}</h3>
+                    <p>{card.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Pilotage Stratégique Section */}
       <section id="pilotage" className="section section-simulation">

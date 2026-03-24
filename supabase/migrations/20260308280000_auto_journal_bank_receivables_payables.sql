@@ -258,14 +258,12 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- Attach trigger
 DROP TRIGGER IF EXISTS trg_auto_journal_bank_transaction ON public.bank_transactions;
 CREATE TRIGGER trg_auto_journal_bank_transaction
   AFTER UPDATE ON public.bank_transactions
   FOR EACH ROW
   EXECUTE FUNCTION auto_journal_bank_transaction();
-
 -- 1b. Reversal trigger: fires when reconciliation_status changes FROM 'matched' to something else
 CREATE OR REPLACE FUNCTION reverse_journal_bank_transaction()
 RETURNS TRIGGER
@@ -313,14 +311,12 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- Attach reversal trigger (BEFORE the main trigger so reversal happens first on re-match)
 DROP TRIGGER IF EXISTS trg_reverse_journal_bank_transaction ON public.bank_transactions;
 CREATE TRIGGER trg_reverse_journal_bank_transaction
   BEFORE UPDATE ON public.bank_transactions
   FOR EACH ROW
   EXECUTE FUNCTION reverse_journal_bank_transaction();
-
 -- 1c. Reversal on DELETE
 CREATE OR REPLACE FUNCTION reverse_journal_bank_transaction_on_delete()
 RETURNS TRIGGER
@@ -343,14 +339,11 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_reverse_journal_bank_transaction_on_delete ON public.bank_transactions;
 CREATE TRIGGER trg_reverse_journal_bank_transaction_on_delete
   BEFORE DELETE ON public.bank_transactions
   FOR EACH ROW
   EXECUTE FUNCTION reverse_journal_bank_transaction_on_delete();
-
-
 -- =====================================================================
 -- PART 2: RECEIVABLE AUTO-JOURNAL
 -- =====================================================================
@@ -475,14 +468,12 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- Attach trigger
 DROP TRIGGER IF EXISTS trg_auto_journal_receivable ON public.receivables;
 CREATE TRIGGER trg_auto_journal_receivable
   AFTER INSERT OR UPDATE ON public.receivables
   FOR EACH ROW
   EXECUTE FUNCTION auto_journal_receivable();
-
 -- 2b. Reversal on DELETE
 CREATE OR REPLACE FUNCTION reverse_journal_receivable()
 RETURNS TRIGGER
@@ -516,14 +507,11 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_reverse_journal_receivable_on_delete ON public.receivables;
 CREATE TRIGGER trg_reverse_journal_receivable_on_delete
   BEFORE DELETE ON public.receivables
   FOR EACH ROW
   EXECUTE FUNCTION reverse_journal_receivable();
-
-
 -- =====================================================================
 -- PART 3: PAYABLE AUTO-JOURNAL
 -- =====================================================================
@@ -643,14 +631,12 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- Attach trigger
 DROP TRIGGER IF EXISTS trg_auto_journal_payable ON public.payables;
 CREATE TRIGGER trg_auto_journal_payable
   AFTER INSERT OR UPDATE ON public.payables
   FOR EACH ROW
   EXECUTE FUNCTION auto_journal_payable();
-
 -- 3b. Reversal on DELETE
 CREATE OR REPLACE FUNCTION reverse_journal_payable()
 RETURNS TRIGGER
@@ -684,14 +670,11 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_reverse_journal_payable_on_delete ON public.payables;
 CREATE TRIGGER trg_reverse_journal_payable_on_delete
   BEFORE DELETE ON public.payables
   FOR EACH ROW
   EXECUTE FUNCTION reverse_journal_payable();
-
-
 -- =====================================================================
 -- PART 4: UPDATE company_id resolver for new source types
 -- =====================================================================
@@ -758,7 +741,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- =====================================================================
 -- PART 5: Add new event types to accounting_audit_log check constraint
 -- (idempotent: drop and recreate)
@@ -789,7 +771,6 @@ EXCEPTION
     NULL;
 END;
 $$;
-
 -- =====================================================================
 -- NOTES:
 -- - bank_transaction entries use journal 'BQ' (Banque)
@@ -798,4 +779,4 @@ $$;
 -- - All triggers are idempotent (check for existing entries)
 -- - Reversal uses reverse_journal_entries() from existing infrastructure
 -- - company_id is auto-assigned by trg_assign_accounting_entry_company_id
--- =====================================================================
+-- =====================================================================;

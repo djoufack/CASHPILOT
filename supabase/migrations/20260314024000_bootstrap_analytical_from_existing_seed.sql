@@ -1,5 +1,4 @@
 BEGIN;
-
 CREATE OR REPLACE FUNCTION public.f_bootstrap_analytical_from_seed(
   p_user_id UUID,
   p_company_id UUID,
@@ -368,6 +367,4 @@ BEGIN
   );
 END;
 $$;
-
 COMMIT;
-

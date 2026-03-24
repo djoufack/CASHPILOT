@@ -8,10 +8,8 @@
 
 ALTER TABLE public.products
   ADD COLUMN IF NOT EXISTS inventory_tracking_enabled BOOLEAN NOT NULL DEFAULT TRUE;
-
 COMMENT ON COLUMN public.products.inventory_tracking_enabled IS
   'TRUE for stock-tracked goods only. FALSE for services, subscriptions, licenses, and other non-stockable offers.';
-
 CREATE OR REPLACE FUNCTION public.auto_stock_decrement()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -81,12 +79,10 @@ BEGIN
     IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_auto_stock_decrement ON public.invoice_items;
 CREATE TRIGGER trg_auto_stock_decrement
     AFTER INSERT OR DELETE ON public.invoice_items
     FOR EACH ROW EXECUTE FUNCTION public.auto_stock_decrement();
-
 CREATE OR REPLACE FUNCTION public.auto_journal_stock_movement()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -232,7 +228,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.ensure_account_exists(
   p_user_id UUID,
   p_company_id UUID,
@@ -344,7 +339,6 @@ BEGIN
     (gen_random_uuid(), p_user_id, p_company_id, p_account_code, v_name, v_type);
 END;
 $fn$;
-
 UPDATE public.accounting_chart_of_accounts coa
 SET account_name = CASE
   WHEN c.country = 'FR' THEN 'Variation des stocks (approvisionnements et marchandises)'
@@ -355,7 +349,6 @@ FROM public.company c
 WHERE coa.company_id = c.id
   AND coa.account_code = '603'
   AND COALESCE(coa.account_name, '') IN ('', 'Compte 603');
-
 WITH demo_service_products AS (
   SELECT p.id
   FROM public.products p
@@ -383,7 +376,6 @@ USING demo_service_products dsp
 WHERE ae.source_type = 'stock_movement'
   AND ae.source_id = dsp.id
   AND ae.is_auto = TRUE;
-
 WITH demo_service_products AS (
   SELECT p.id
   FROM public.products p
@@ -411,7 +403,6 @@ USING demo_service_products dsp
 WHERE aal.source_table = 'products'
   AND aal.source_id = dsp.id
   AND aal.event_type = 'auto_journal';
-
 WITH demo_service_products AS (
   SELECT p.id
   FROM public.products p
@@ -437,7 +428,6 @@ WITH demo_service_products AS (
 DELETE FROM public.product_stock_history psh
 USING demo_service_products dsp
 WHERE COALESCE(psh.product_id, psh.user_product_id) = dsp.id;
-
 WITH demo_service_products AS (
   SELECT p.id
   FROM public.products p
@@ -463,7 +453,6 @@ WITH demo_service_products AS (
 DELETE FROM public.stock_alerts sa
 USING demo_service_products dsp
 WHERE COALESCE(sa.product_id, sa.user_product_id) = dsp.id;
-
 WITH demo_service_products AS (
   SELECT p.id
   FROM public.products p

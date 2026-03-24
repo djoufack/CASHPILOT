@@ -45,14 +45,33 @@ describe('useSupabaseQuery', () => {
   it('skips fetch when enabled=false', async () => {
     const queryFn = vi.fn(async () => [{ id: 1 }]);
 
-    const { result } = renderHook(() =>
-      useSupabaseQuery(queryFn, { enabled: false })
-    );
+    const { result } = renderHook(() => useSupabaseQuery(queryFn, { enabled: false }));
 
     // Should never start loading
     expect(result.current.loading).toBe(false);
     expect(result.current.data).toEqual([]);
     expect(queryFn).not.toHaveBeenCalled();
+  });
+
+  it('triggers fetch when enabled switches from false to true even if deps do not change', async () => {
+    const queryFn = vi.fn(async () => [{ id: 99 }]);
+
+    const { result, rerender } = renderHook(({ enabled }) => useSupabaseQuery(queryFn, { enabled, deps: [] }), {
+      initialProps: { enabled: false },
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.data).toEqual([]);
+    expect(queryFn).not.toHaveBeenCalled();
+
+    rerender({ enabled: true });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(queryFn).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual([{ id: 99 }]);
   });
 
   it('refetch triggers a new fetch and returns data', async () => {

@@ -80,13 +80,10 @@ BEGIN
 
   RAISE NOTICE 'Cleaned up previous seed data for % companies', array_length(v_company_ids, 1);
 END $$;
-
-
 -- ============================================================================
 -- STEP 2: Disable ALL triggers during seed (we generate entries manually after)
 -- ============================================================================
 SET session_replication_role = 'replica';
-
 -- ============================================================================
 -- STEP 3: Full ecosystem seed
 -- ============================================================================
@@ -589,12 +586,10 @@ BEGIN
 
   END LOOP;
 END $$;
-
 -- ============================================================================
 -- STEP 4: Re-enable ALL triggers
 -- ============================================================================
 SET session_replication_role = 'origin';
-
 -- ============================================================================
 -- STEP 5: Generate accounting entries for all seeded invoices/expenses/payments
 --         by calling the auto_journal functions manually for each record

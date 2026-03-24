@@ -36,7 +36,6 @@ BEGIN
   WHERE i.user_id = auth.uid();
 END;
 $$;
-
 -- 2. Portfolio payments — returns all payments for all user companies
 CREATE OR REPLACE FUNCTION get_portfolio_payments()
 RETURNS TABLE (
@@ -56,7 +55,6 @@ BEGIN
   WHERE p.user_id = auth.uid();
 END;
 $$;
-
 -- 3. Portfolio projects — returns all projects for all user companies
 CREATE OR REPLACE FUNCTION get_portfolio_projects()
 RETURNS TABLE (
@@ -77,7 +75,6 @@ BEGIN
   WHERE pr.user_id = auth.uid();
 END;
 $$;
-
 -- 4. Portfolio quotes — returns all quotes for all user companies
 CREATE OR REPLACE FUNCTION get_portfolio_quotes()
 RETURNS TABLE (
@@ -105,7 +102,6 @@ BEGIN
   WHERE q.user_id = auth.uid();
 END;
 $$;
-
 COMMENT ON FUNCTION get_portfolio_invoices() IS 'Returns all invoices across all companies for the authenticated user, bypassing company_scope_guard RLS';
 COMMENT ON FUNCTION get_portfolio_payments() IS 'Returns all payments across all companies for the authenticated user, bypassing company_scope_guard RLS';
 COMMENT ON FUNCTION get_portfolio_projects() IS 'Returns all projects across all companies for the authenticated user, bypassing company_scope_guard RLS';

@@ -19,10 +19,8 @@
 -- ============================================================================
 ALTER TABLE accounting_chart_of_accounts
   ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES company(id) ON DELETE CASCADE;
-
 ALTER TABLE accounting_chart_of_accounts
   DROP CONSTRAINT IF EXISTS uq_accounting_chart_user_code;
-
 -- ============================================================================
 -- 2. Backfill mono-company users
 -- ============================================================================
@@ -36,7 +34,6 @@ FROM (
 ) c
 WHERE coa.user_id = c.user_id
   AND coa.company_id IS NULL;
-
 -- ============================================================================
 -- 3. Backfill multi-company users (duplicate chart for each company)
 -- ============================================================================
@@ -61,26 +58,20 @@ WHERE coa.company_id IS NULL
   AND coa.user_id IN (
     SELECT user_id FROM company GROUP BY user_id HAVING COUNT(*) > 1
   );
-
 -- Remove the original unscoped rows (now duplicated per company)
 DELETE FROM accounting_chart_of_accounts WHERE company_id IS NULL;
-
 -- ============================================================================
 -- 4. Constraints and indexes
 -- ============================================================================
 ALTER TABLE accounting_chart_of_accounts
   ALTER COLUMN company_id SET NOT NULL;
-
 ALTER TABLE accounting_chart_of_accounts
   ADD CONSTRAINT uq_accounting_chart_company_code UNIQUE (company_id, account_code);
-
 CREATE INDEX IF NOT EXISTS idx_accounting_coa_company_id
   ON accounting_chart_of_accounts(company_id);
-
 DROP INDEX IF EXISTS idx_accounting_coa_type;
 CREATE INDEX IF NOT EXISTS idx_accounting_coa_company_type
   ON accounting_chart_of_accounts(company_id, account_type);
-
 -- ============================================================================
 -- 5. Update f_trial_balance — JOIN on company_id instead of user_id
 -- ============================================================================
@@ -127,7 +118,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET search_path = public;
-
 -- ============================================================================
 -- 6. Update f_sum_by_semantic_role — JOIN on company_id
 -- ============================================================================
@@ -169,7 +159,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET search_path = public;
-
 -- ============================================================================
 -- 7. Update f_financial_diagnostic — chart count scoped by company + capex JOIN
 -- ============================================================================
@@ -377,7 +366,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET search_path = public;
-
 -- ============================================================================
 -- 8. Update ensure_account_exists() — scope by company_id
 -- ============================================================================
@@ -492,7 +480,6 @@ BEGIN
     (gen_random_uuid(), p_user_id, p_company_id, p_account_code, v_name, v_type);
 END;
 $fn$;
-
 -- ============================================================================
 -- 9. Update validate_accounting_entry() — scope by company_id
 -- ============================================================================
@@ -537,4 +524,3 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-

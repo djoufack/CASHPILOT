@@ -80,8 +80,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
-
 -- ============================================================
 -- Step 2: Reassign misplaced payable entries to correct company
 -- ============================================================
@@ -91,7 +89,6 @@ FROM payables p
 WHERE ae.source_type = 'payable'
   AND ae.source_id = p.id
   AND ae.company_id != p.company_id;
-
 -- ============================================================
 -- Step 3: Reassign misplaced receivable entries to correct company
 -- ============================================================
@@ -101,7 +98,6 @@ FROM receivables r
 WHERE ae.source_type = 'receivable'
   AND ae.source_id = r.id
   AND ae.company_id != r.company_id;
-
 -- ============================================================
 -- Step 4: Reassign misplaced stock_movement entries to correct company
 -- ============================================================
@@ -111,8 +107,6 @@ FROM products pr
 WHERE ae.source_type = 'stock_movement'
   AND ae.source_id = pr.id
   AND ae.company_id != pr.company_id;
-
-
 -- ============================================================
 -- Step 5: Generate missing payable accounting entries
 -- (for companies that have payables but no corresponding entries)
@@ -168,8 +162,6 @@ BEGIN
 
   RAISE NOTICE 'Payable accounting entries generated';
 END $$;
-
-
 -- ============================================================
 -- Step 6: Generate missing receivable accounting entries
 -- ============================================================
@@ -224,8 +216,6 @@ BEGIN
 
   RAISE NOTICE 'Receivable accounting entries generated';
 END $$;
-
-
 -- ============================================================
 -- Step 7: Generate missing stock_movement accounting entries
 -- ============================================================
@@ -284,6 +274,4 @@ BEGIN
 
   RAISE NOTICE 'Stock movement accounting entries generated';
 END $$;
-
-
 NOTIFY pgrst, 'reload schema';

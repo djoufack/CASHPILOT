@@ -46,7 +46,6 @@ BEGIN
     AND user_id = p_user_id;
 END;
 $$;
-
 ------------------------------------------------------------------------
 -- PART 1A: auto_journal_payable — already has v_company_id, add to INSERTs
 ------------------------------------------------------------------------
@@ -157,7 +156,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 ------------------------------------------------------------------------
 -- PART 1B: auto_journal_receivable — already has v_company_id, add to INSERTs
 ------------------------------------------------------------------------
@@ -271,7 +269,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 ------------------------------------------------------------------------
 -- PART 1C: auto_journal_payment — add company_id + UPDATE handling
 ------------------------------------------------------------------------
@@ -346,13 +343,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- Add UPDATE trigger for payments (was missing)
 DROP TRIGGER IF EXISTS trg_auto_journal_payment_on_update ON payments;
 CREATE TRIGGER trg_auto_journal_payment_on_update
 AFTER UPDATE ON payments
 FOR EACH ROW EXECUTE FUNCTION auto_journal_payment();
-
 ------------------------------------------------------------------------
 -- PART 1D: auto_journal_expense — add company_id
 ------------------------------------------------------------------------
@@ -434,7 +429,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 ------------------------------------------------------------------------
 -- PART 1E: auto_journal_invoice — add company_id
 ------------------------------------------------------------------------
@@ -584,7 +578,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 ------------------------------------------------------------------------
 -- PART 1F: auto_journal_credit_note — add company_id
 ------------------------------------------------------------------------
@@ -666,7 +659,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 ------------------------------------------------------------------------
 -- PART 1G: auto_journal_supplier_invoice — add company_id
 ------------------------------------------------------------------------
@@ -790,7 +782,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 ------------------------------------------------------------------------
 -- PART 1H: auto_journal_bank_transaction — add company_id to all INSERTs
 ------------------------------------------------------------------------
@@ -1016,7 +1007,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 ------------------------------------------------------------------------
 -- PART 1I: auto_journal_stock_movement — add company_id
 ------------------------------------------------------------------------
@@ -1166,13 +1156,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- Replace the products trigger to also fire on INSERT
 DROP TRIGGER IF EXISTS trg_auto_journal_stock_movement ON products;
 CREATE TRIGGER trg_auto_journal_stock_movement
 AFTER INSERT OR UPDATE ON products
 FOR EACH ROW EXECUTE FUNCTION auto_journal_stock_movement();
-
 ------------------------------------------------------------------------
 -- PART 2A: supplier_invoices DELETE trigger (function exists, trigger missing)
 ------------------------------------------------------------------------
@@ -1181,7 +1169,6 @@ DROP TRIGGER IF EXISTS trg_reverse_journal_supplier_invoice_on_delete ON supplie
 CREATE TRIGGER trg_reverse_journal_supplier_invoice_on_delete
 BEFORE DELETE ON supplier_invoices
 FOR EACH ROW EXECUTE FUNCTION reverse_journal_supplier_invoice();
-
 ------------------------------------------------------------------------
 -- PART 2B: products DELETE reverse trigger
 ------------------------------------------------------------------------
@@ -1212,7 +1199,6 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_reverse_journal_stock_on_delete ON products;
 CREATE TRIGGER trg_reverse_journal_stock_on_delete
 BEFORE DELETE ON products

@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { useCompany } from '@/hooks/useCompany';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
+import { supabase } from '@/lib/supabase';
 import invoiceTemplates, { DEFAULT_INVOICE_TEMPLATE_ID } from '@/config/invoiceTemplates';
 import { themeList, getTheme } from '@/config/invoiceThemes';
 import { Button } from '@/components/ui/button';
@@ -10,13 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Save, Eye } from 'lucide-react';
 
@@ -64,54 +60,37 @@ const LABEL_KEYS = [
   { key: 'notes', default: 'Notes' },
 ];
 
-// Sample invoice for preview
-const sampleInvoice = {
-  invoice_number: 'INV-2026-01-001',
-  date: '2026-01-15',
-  due_date: '2026-02-15',
-  status: 'sent',
-  payment_status: 'partial',
-  total_ht: 1500,
-  tax_rate: 21,
-  total_ttc: 1815,
-  discount_type: 'percentage',
-  discount_value: 10,
-  discount_amount: 150,
-  amount_paid: 500,
-  balance_due: 1315,
-  notes: 'Payment due within 30 days. Thank you for your business.',
-};
-
-const sampleClient = {
-  company_name: 'Acme Corporation',
-  contact_name: 'John Doe',
-  address: '123 Business Street',
-  postal_code: '1000',
-  city: 'Brussels',
-  country: 'Belgium',
-  email: 'john@acme.com',
-  vat_number: 'BE0123456789',
-  preferred_currency: 'EUR',
-};
-
-const sampleItems = [
-  { description: 'Web Development', quantity: 40, unit_price: 75, discount_type: 'none', discount_value: 0 },
-  { description: 'UI/UX Design', quantity: 20, unit_price: 85, discount_type: 'percentage', discount_value: 10 },
-  { description: 'Project Management', quantity: 10, unit_price: 65, discount_type: 'none', discount_value: 0 },
-];
-
 const InvoiceCustomization = () => {
   const { t } = useTranslation();
   const { settings, loading, saveSettings } = useInvoiceSettings();
   const { company } = useCompany();
+  const { activeCompanyId, applyCompanyScope } = useCompanyScope();
   const { toast } = useToast();
   const { defaultRate } = useDefaultTaxRate();
+  const [previewInvoice, setPreviewInvoice] = useState(null);
+  const [previewClient, setPreviewClient] = useState(null);
+  const [previewItems, setPreviewItems] = useState([]);
 
-  // Build sample invoice with DB-driven tax rate
-  const dynamicSampleInvoice = useMemo(() => ({
-    ...sampleInvoice,
-    tax_rate: defaultRate,
-  }), [defaultRate]);
+  const dynamicPreviewInvoice = useMemo(
+    () => ({
+      invoice_number: '',
+      date: new Date().toISOString().slice(0, 10),
+      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      status: 'draft',
+      payment_status: 'pending',
+      total_ht: 0,
+      total_ttc: 0,
+      discount_type: 'none',
+      discount_value: 0,
+      discount_amount: 0,
+      amount_paid: 0,
+      balance_due: 0,
+      notes: '',
+      ...(previewInvoice || {}),
+      tax_rate: previewInvoice?.tax_rate ?? defaultRate,
+    }),
+    [defaultRate, previewInvoice]
+  );
 
   const [localSettings, setLocalSettings] = useState(settings);
   const [showPreview, setShowPreview] = useState(false);
@@ -122,6 +101,69 @@ const InvoiceCustomization = () => {
       setLocalSettings(settings);
     }
   }, [settings, loading]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPreviewData = async () => {
+      if (!supabase || !activeCompanyId) {
+        if (!cancelled) {
+          setPreviewInvoice(null);
+          setPreviewClient(null);
+          setPreviewItems([]);
+        }
+        return;
+      }
+
+      try {
+        let invoiceQuery = supabase.from('invoices').select('*').order('created_at', { ascending: false }).limit(1);
+        invoiceQuery = applyCompanyScope(invoiceQuery);
+        const { data: invoiceRows, error: invoiceError } = await invoiceQuery;
+        if (invoiceError) throw invoiceError;
+
+        const invoice = invoiceRows?.[0] || null;
+        if (!invoice) {
+          if (!cancelled) {
+            setPreviewInvoice(null);
+            setPreviewClient(null);
+            setPreviewItems([]);
+          }
+          return;
+        }
+
+        let client = null;
+        if (invoice.client_id) {
+          let clientQuery = supabase.from('clients').select('*').eq('id', invoice.client_id).limit(1);
+          clientQuery = applyCompanyScope(clientQuery);
+          const { data: clientRows } = await clientQuery;
+          client = clientRows?.[0] || null;
+        }
+
+        const { data: itemsRows } = await supabase
+          .from('invoice_items')
+          .select('*')
+          .eq('invoice_id', invoice.id)
+          .order('created_at', { ascending: true });
+
+        if (!cancelled) {
+          setPreviewInvoice(invoice);
+          setPreviewClient(client);
+          setPreviewItems(itemsRows || []);
+        }
+      } catch (_error) {
+        if (!cancelled) {
+          setPreviewInvoice(null);
+          setPreviewClient(null);
+          setPreviewItems([]);
+        }
+      }
+    };
+
+    loadPreviewData();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCompanyId, applyCompanyScope]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -136,18 +178,19 @@ const InvoiceCustomization = () => {
   };
 
   const updateField = (field, value) => {
-    setLocalSettings(prev => ({ ...prev, [field]: value }));
+    setLocalSettings((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateLabel = (key, value) => {
-    setLocalSettings(prev => ({
+    setLocalSettings((prev) => ({
       ...prev,
       custom_labels: { ...prev.custom_labels, [key]: value },
     }));
   };
 
   const currentTheme = getTheme(localSettings.color_theme);
-  const TemplateComponent = templateComponents[localSettings.template_id] || templateComponents[DEFAULT_INVOICE_TEMPLATE_ID];
+  const TemplateComponent =
+    templateComponents[localSettings.template_id] || templateComponents[DEFAULT_INVOICE_TEMPLATE_ID];
 
   if (loading) {
     return <div className="text-gray-400 p-4">{t('invoiceSettings.loading')}</div>;
@@ -162,7 +205,11 @@ const InvoiceCustomization = () => {
           <p className="text-sm text-gray-400 mt-1">{t('invoiceSettings.subtitle')}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowPreview(!showPreview)} className="border-gray-600 text-gray-300 hover:bg-gray-700">
+          <Button
+            variant="outline"
+            onClick={() => setShowPreview(!showPreview)}
+            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+          >
             <Eye className="w-4 h-4 mr-2" />
             {showPreview ? t('invoiceSettings.hidePreview') : t('invoiceSettings.showPreview')}
           </Button>
@@ -180,7 +227,7 @@ const InvoiceCustomization = () => {
           <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
             <h3 className="text-lg font-semibold mb-4">{t('invoiceSettings.template')}</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-              {invoiceTemplates.map(tmpl => (
+              {invoiceTemplates.map((tmpl) => (
                 <button
                   key={tmpl.id}
                   onClick={() => updateField('template_id', tmpl.id)}
@@ -190,7 +237,10 @@ const InvoiceCustomization = () => {
                       : 'border-gray-600 hover:border-gray-500 bg-gray-700/50'
                   }`}
                 >
-                  <div className="w-full h-16 rounded mb-2 flex items-center justify-center text-2xl" style={{ backgroundColor: getTheme(localSettings.color_theme).secondary }}>
+                  <div
+                    className="w-full h-16 rounded mb-2 flex items-center justify-center text-2xl"
+                    style={{ backgroundColor: getTheme(localSettings.color_theme).secondary }}
+                  >
                     {tmpl.id === 'dmg_default' && '🧾'}
                     {tmpl.id === 'classic' && '📄'}
                     {tmpl.id === 'modern' && '🎨'}
@@ -209,12 +259,14 @@ const InvoiceCustomization = () => {
           <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
             <h3 className="text-lg font-semibold mb-4">{t('invoiceSettings.colorTheme')}</h3>
             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2">
-              {themeList.map(theme => (
+              {themeList.map((theme) => (
                 <button
                   key={theme.id}
                   onClick={() => updateField('color_theme', theme.id)}
                   className={`relative group rounded-lg p-1 transition-all ${
-                    localSettings.color_theme === theme.id ? 'ring-2 ring-orange-500' : 'hover:ring-1 hover:ring-gray-500'
+                    localSettings.color_theme === theme.id
+                      ? 'ring-2 ring-orange-500'
+                      : 'hover:ring-1 hover:ring-gray-500'
                   }`}
                   title={theme.name}
                 >
@@ -240,8 +292,10 @@ const InvoiceCustomization = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-700 border-gray-600 text-white">
-                    {FONT_OPTIONS.map(f => (
-                      <SelectItem key={f} value={f} style={{ fontFamily: f }}>{f}</SelectItem>
+                    {FONT_OPTIONS.map((f) => (
+                      <SelectItem key={f} value={f} style={{ fontFamily: f }}>
+                        {f}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -253,11 +307,17 @@ const InvoiceCustomization = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <Label className="text-sm text-gray-300">{t('invoiceSettings.showBankDetails')}</Label>
-                  <Switch checked={localSettings.show_bank_details} onCheckedChange={(v) => updateField('show_bank_details', v)} />
+                  <Switch
+                    checked={localSettings.show_bank_details}
+                    onCheckedChange={(v) => updateField('show_bank_details', v)}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label className="text-sm text-gray-300">{t('invoiceSettings.showPaymentTerms')}</Label>
-                  <Switch checked={localSettings.show_payment_terms} onCheckedChange={(v) => updateField('show_payment_terms', v)} />
+                  <Switch
+                    checked={localSettings.show_payment_terms}
+                    onCheckedChange={(v) => updateField('show_payment_terms', v)}
+                  />
                 </div>
               </div>
             </div>
@@ -299,12 +359,15 @@ const InvoiceCustomization = () => {
         {showPreview && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">{t('invoiceSettings.preview')}</h3>
-            <div className="rounded-lg overflow-hidden border border-gray-700 shadow-xl" style={{ transform: 'scale(0.85)', transformOrigin: 'top left', width: '117.6%' }}>
+            <div
+              className="rounded-lg overflow-hidden border border-gray-700 shadow-xl"
+              style={{ transform: 'scale(0.85)', transformOrigin: 'top left', width: '117.6%' }}
+            >
               <TemplateComponent
-                invoice={dynamicSampleInvoice}
-                client={sampleClient}
-                items={sampleItems}
-                company={company || { company_name: 'Your Company', email: 'info@company.com', iban: 'BE00 0000 0000 0000', bank_name: 'ING Belgium', swift: 'BBRUBEBB' }}
+                invoice={dynamicPreviewInvoice}
+                client={previewClient || {}}
+                items={previewItems}
+                company={company || {}}
                 theme={currentTheme}
                 settings={localSettings}
               />

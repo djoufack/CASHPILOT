@@ -6,7 +6,6 @@
 -- ============================================================================
 
 BEGIN;
-
 -- ============================================================================
 -- A. Referential integrity hardening (PK/FK priority)
 -- ============================================================================
@@ -19,7 +18,6 @@ SET
 FROM public.projects p
 WHERE p.id = pb.project_id
   AND (pb.company_id IS NULL OR pb.user_id IS DISTINCT FROM p.user_id);
-
 UPDATE public.project_milestones pm
 SET
   company_id = COALESCE(pm.company_id, p.company_id),
@@ -27,7 +25,6 @@ SET
 FROM public.projects p
 WHERE p.id = pm.project_id
   AND (pm.company_id IS NULL OR pm.user_id IS DISTINCT FROM p.user_id);
-
 UPDATE public.project_resource_allocations pra
 SET
   company_id = COALESCE(pra.company_id, p.company_id),
@@ -35,7 +32,6 @@ SET
 FROM public.projects p
 WHERE p.id = pra.project_id
   AND (pra.company_id IS NULL OR pra.user_id IS DISTINCT FROM p.user_id);
-
 UPDATE public.team_member_compensations tmc
 SET
   company_id = COALESCE(tmc.company_id, p.company_id),
@@ -43,20 +39,15 @@ SET
 FROM public.projects p
 WHERE p.id = tmc.project_id
   AND (tmc.company_id IS NULL OR tmc.user_id IS DISTINCT FROM p.user_id);
-
 -- 2) Enforce NOT NULL scope on new project-control tables
 ALTER TABLE public.project_baselines
   ALTER COLUMN company_id SET NOT NULL;
-
 ALTER TABLE public.project_milestones
   ALTER COLUMN company_id SET NOT NULL;
-
 ALTER TABLE public.project_resource_allocations
   ALTER COLUMN company_id SET NOT NULL;
-
 ALTER TABLE public.team_member_compensations
   ALTER COLUMN company_id SET NOT NULL;
-
 -- 3) Add unique composites required for cross-table FK scope enforcement
 DO $$
 BEGIN
@@ -106,7 +97,6 @@ BEGIN
       ADD CONSTRAINT uq_team_members_id_user UNIQUE (id, user_id);
   END IF;
 END $$;
-
 -- 4) Scope-aligned foreign keys (project/user/company coherence)
 DO $$
 BEGIN
@@ -207,7 +197,6 @@ BEGIN
       ON DELETE RESTRICT;
   END IF;
 END $$;
-
 -- 5) Trigger-level guardrails only where FK cannot fully express ownership
 CREATE OR REPLACE FUNCTION public.enforce_project_control_scope_integrity()
 RETURNS TRIGGER
@@ -298,31 +287,26 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_enforce_tasks_assigned_member_scope ON public.tasks;
 CREATE TRIGGER trg_enforce_tasks_assigned_member_scope
   BEFORE INSERT OR UPDATE ON public.tasks
   FOR EACH ROW
   EXECUTE FUNCTION public.enforce_project_control_scope_integrity();
-
 DROP TRIGGER IF EXISTS trg_enforce_timesheets_executor_scope ON public.timesheets;
 CREATE TRIGGER trg_enforce_timesheets_executor_scope
   BEFORE INSERT OR UPDATE ON public.timesheets
   FOR EACH ROW
   EXECUTE FUNCTION public.enforce_project_control_scope_integrity();
-
 DROP TRIGGER IF EXISTS trg_enforce_project_resources_member_scope ON public.project_resource_allocations;
 CREATE TRIGGER trg_enforce_project_resources_member_scope
   BEFORE INSERT OR UPDATE ON public.project_resource_allocations
   FOR EACH ROW
   EXECUTE FUNCTION public.enforce_project_control_scope_integrity();
-
 DROP TRIGGER IF EXISTS trg_enforce_team_member_compensations_scope ON public.team_member_compensations;
 CREATE TRIGGER trg_enforce_team_member_compensations_scope
   BEFORE INSERT OR UPDATE ON public.team_member_compensations
   FOR EACH ROW
   EXECUTE FUNCTION public.enforce_project_control_scope_integrity();
-
 -- ============================================================================
 -- B. Real-time accounting journalization for financial CRUD
 --    Targets: team_member_compensations + project_milestones
@@ -344,7 +328,6 @@ BEGIN
   RETURN COALESCE(v_enabled, true);
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.project_control_entry_ref(p_prefix TEXT, p_source_id UUID)
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -358,7 +341,6 @@ BEGIN
     || TO_CHAR((EXTRACT(EPOCH FROM clock_timestamp()) * 1000)::BIGINT, 'FM0000000000000');
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.reverse_latest_project_journal_batch(
   p_user_id UUID,
   p_source_type TEXT,
@@ -417,7 +399,6 @@ BEGIN
   RETURN v_count;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.post_team_member_compensation_journal(
   p_row public.team_member_compensations
 )
@@ -528,7 +509,6 @@ BEGIN
   RETURN v_inserted;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.auto_journal_team_member_compensation_crud()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -597,13 +577,11 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_auto_journal_team_member_compensations ON public.team_member_compensations;
 CREATE TRIGGER trg_auto_journal_team_member_compensations
   AFTER INSERT OR UPDATE OR DELETE ON public.team_member_compensations
   FOR EACH ROW
   EXECUTE FUNCTION public.auto_journal_team_member_compensation_crud();
-
 CREATE OR REPLACE FUNCTION public.post_project_milestone_journal(
   p_row public.project_milestones
 )
@@ -717,7 +695,6 @@ BEGIN
   RETURN 2;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.auto_journal_project_milestone_crud()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -787,12 +764,9 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_auto_journal_project_milestones ON public.project_milestones;
 CREATE TRIGGER trg_auto_journal_project_milestones
   AFTER INSERT OR UPDATE OR DELETE ON public.project_milestones
   FOR EACH ROW
   EXECUTE FUNCTION public.auto_journal_project_milestone_crud();
-
 COMMIT;
-

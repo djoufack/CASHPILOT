@@ -87,7 +87,6 @@ BEGIN
     RAISE NOTICE 'User %: cleaned up NULL-company services & categories', v_uid;
   END LOOP;
 END $$;
-
 -- Step 2: Clean up any remaining NULL-company orphans (old seeds like "Diagnostic pilotage")
 DELETE FROM services
 WHERE user_id IN (
@@ -97,7 +96,6 @@ WHERE user_id IN (
 )
 AND company_id IS NULL
 AND description != 'Comprehensive seed data';
-
 DELETE FROM service_categories
 WHERE user_id IN (
   'a6985aad-8ae5-21d1-a773-511d32b71b24'::uuid,
@@ -105,7 +103,6 @@ WHERE user_id IN (
   'eb70d17b-9562-59ed-f783-89327e65a7c1'::uuid
 )
 AND company_id IS NULL;
-
 -- Step 3: Revert RLS policies to strict (remove NULL allowance from migration 340000)
 DO $$
 DECLARE
@@ -152,5 +149,4 @@ BEGIN
     RAISE NOTICE 'Reverted policy % on % to strict', v_policy_name, v_tbl;
   END LOOP;
 END $$;
-
 NOTIFY pgrst, 'reload schema';

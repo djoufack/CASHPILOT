@@ -49,9 +49,7 @@ BEGIN
   RETURN v_total;
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-
 COMMENT ON FUNCTION f_sum_by_semantic_role IS 'Sums entries by semantic role using taxonomy classification. Replaces sumEntriesByPredicate() from financialAnalysisCalculations.js.';
-
 -- =====================================================================
 -- 2. F_EXTRACT_FINANCIAL_POSITION
 -- Replaces: extractFinancialPosition() from financialMetrics.js:52
@@ -202,9 +200,7 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-
 COMMENT ON FUNCTION f_extract_financial_position IS 'Extracts financial position from balance sheet by semantic role. Replaces extractFinancialPosition() from financialMetrics.js.';
-
 -- =====================================================================
 -- 3. F_FINANCIAL_DIAGNOSTIC
 -- Replaces: buildFinancialDiagnostic() from financialAnalysisCalculations.js:404
@@ -444,5 +440,4 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-
 COMMENT ON FUNCTION f_financial_diagnostic IS 'Complete financial diagnostic: margins, financing, ratios. Replaces buildFinancialDiagnostic() from financialAnalysisCalculations.js.';

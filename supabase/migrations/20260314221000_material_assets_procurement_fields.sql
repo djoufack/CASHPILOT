@@ -1,5 +1,4 @@
 BEGIN;
-
 ALTER TABLE public.material_assets
   ADD COLUMN IF NOT EXISTS acquisition_mode TEXT,
   ADD COLUMN IF NOT EXISTS supplier_id UUID,
@@ -11,15 +10,12 @@ ALTER TABLE public.material_assets
   ADD COLUMN IF NOT EXISTS rental_rate NUMERIC(14,4),
   ADD COLUMN IF NOT EXISTS billing_cycle TEXT,
   ADD COLUMN IF NOT EXISTS notes TEXT;
-
 UPDATE public.material_assets
 SET acquisition_mode = 'purchase'
 WHERE acquisition_mode IS NULL;
-
 ALTER TABLE public.material_assets
   ALTER COLUMN acquisition_mode SET DEFAULT 'purchase',
   ALTER COLUMN acquisition_mode SET NOT NULL;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -33,7 +29,6 @@ BEGIN
       CHECK (acquisition_mode IN ('purchase', 'rental', 'service'));
   END IF;
 END $$;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -49,7 +44,6 @@ BEGIN
       ON DELETE SET NULL;
   END IF;
 END $$;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -67,7 +61,6 @@ BEGIN
       );
   END IF;
 END $$;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -81,7 +74,6 @@ BEGIN
       CHECK (purchase_cost IS NULL OR purchase_cost >= 0);
   END IF;
 END $$;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -95,7 +87,6 @@ BEGIN
       CHECK (rental_rate IS NULL OR rental_rate >= 0);
   END IF;
 END $$;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -112,11 +103,8 @@ BEGIN
       );
   END IF;
 END $$;
-
 CREATE INDEX IF NOT EXISTS idx_material_assets_supplier_id
   ON public.material_assets(supplier_id);
-
 CREATE INDEX IF NOT EXISTS idx_material_assets_acquisition_mode
   ON public.material_assets(acquisition_mode);
-
 COMMIT;

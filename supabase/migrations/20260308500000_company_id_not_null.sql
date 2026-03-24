@@ -41,7 +41,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on accounting_depreciation_schedule.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 2. product_categories
 -- =====================================================================
@@ -57,7 +56,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on product_categories.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 3. products
 -- =====================================================================
@@ -73,7 +71,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on products.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 4. product_stock_history
 -- =====================================================================
@@ -93,7 +90,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on product_stock_history.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 5. stock_alerts
 -- =====================================================================
@@ -112,7 +108,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on stock_alerts.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 6. supplier_product_categories
 -- =====================================================================
@@ -128,7 +123,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on supplier_product_categories.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 7. supplier_products
 -- =====================================================================
@@ -147,7 +141,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on supplier_products.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 8. supplier_services
 -- =====================================================================
@@ -166,7 +159,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on supplier_services.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 9. supplier_locations
 -- =====================================================================
@@ -185,7 +177,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on supplier_locations.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 10. supplier_reports_cache
 -- =====================================================================
@@ -204,7 +195,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on supplier_reports_cache.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 11. payment_reminder_rules
 -- =====================================================================
@@ -220,7 +210,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on payment_reminder_rules.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 12. payment_reminder_logs
 -- =====================================================================
@@ -240,7 +229,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on payment_reminder_logs.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 13. purchase_orders
 -- =====================================================================
@@ -259,7 +247,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on purchase_orders.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 14. receivables
 -- =====================================================================
@@ -275,7 +262,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on receivables.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 15. payables
 -- =====================================================================
@@ -291,7 +277,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on payables.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 16. debt_payments
 -- =====================================================================
@@ -314,7 +299,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on debt_payments.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 17. bank_sync_history
 -- =====================================================================
@@ -333,7 +317,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on bank_sync_history.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 18. bank_transactions
 -- =====================================================================
@@ -353,7 +336,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on bank_transactions.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 19. peppol_transmission_log
 -- =====================================================================
@@ -372,7 +354,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on peppol_transmission_log.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 20. financial_scenarios
 -- =====================================================================
@@ -388,7 +369,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on financial_scenarios.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 21. scenario_comparisons
 -- =====================================================================
@@ -404,7 +384,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on scenario_comparisons.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 22. dashboard_snapshots
 -- =====================================================================
@@ -420,7 +399,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on dashboard_snapshots.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 23. payment_methods (config table, but user-scoped)
 -- =====================================================================
@@ -436,7 +414,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on payment_methods.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 24. accounting_journals (config table, but user-scoped)
 -- =====================================================================
@@ -452,7 +429,6 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN
   RAISE NOTICE 'Skipping NOT NULL on accounting_journals.company_id: %', SQLERRM;
 END $$;
-
 -- =====================================================================
 -- 25. Re-enforce NOT NULL on tables from previous migration that used
 --     conditional logic (supplier_invoices had a conditional check)

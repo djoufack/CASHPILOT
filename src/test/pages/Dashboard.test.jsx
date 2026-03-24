@@ -210,15 +210,15 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }) => <div data-testid="responsive-container">{children}</div>,
-  AreaChart: ({ children }) => <div data-testid="area-chart">{children}</div>,
+  AreaChart: () => <div data-testid="area-chart" />,
   Area: () => null,
   XAxis: () => null,
   YAxis: () => null,
   CartesianGrid: () => null,
   Tooltip: () => null,
-  LineChart: ({ children }) => <div data-testid="line-chart">{children}</div>,
+  LineChart: () => <div data-testid="line-chart" />,
   Line: () => null,
-  BarChart: ({ children }) => <div data-testid="bar-chart">{children}</div>,
+  BarChart: () => <div data-testid="bar-chart" />,
   Bar: () => null,
   Legend: () => null,
 }));

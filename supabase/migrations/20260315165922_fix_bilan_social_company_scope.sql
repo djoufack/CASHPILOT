@@ -1,14 +1,6 @@
 -- Migration: Fix fn_bilan_social company scope
 -- Adds p_company_id parameter to fn_bilan_social() so that the function
--- filters all HR data by the caller's active company. This closes a
--- security gap where the original function returned data across ALL
--- companies visible to the authenticated user.
---
--- The original function (from 20260315150000_hr_analytics_functions.sql)
--- had no company filter. This CREATE OR REPLACE adds the parameter and
--- applies WHERE company_id = p_company_id to every query.
---
--- Return type (JSONB) is preserved. SECURITY INVOKER is preserved.
+-- filters all HR data by the caller's active company.
 
 CREATE OR REPLACE FUNCTION public.fn_bilan_social(
   p_company_id UUID
@@ -100,4 +92,4 @@ BEGIN
     'department_breakdown', v_dept_breakdown
   );
 END;
-$$;
+$$;;

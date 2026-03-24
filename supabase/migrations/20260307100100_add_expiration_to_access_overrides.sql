@@ -2,21 +2,18 @@
 ALTER TABLE IF EXISTS public.account_access_overrides
   ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS description TEXT;
-
 -- Set expiration on existing demo accounts (90 days from now).
 UPDATE public.account_access_overrides
 SET expires_at = timezone('utc', now()) + INTERVAL '90 days',
     description = COALESCE(description, 'Demo account - auto-expires')
 WHERE access_mode = 'demo_full_access'
   AND expires_at IS NULL;
-
 -- Set expiration on admin overrides (180 days, must be renewed).
 UPDATE public.account_access_overrides
 SET expires_at = timezone('utc', now()) + INTERVAL '180 days',
     description = COALESCE(description, 'Admin override - renew periodically')
 WHERE access_mode = 'admin_full_access'
   AND expires_at IS NULL;
-
 -- Keep existing function signature, but include expiration guard.
 CREATE OR REPLACE FUNCTION public.get_account_access_override(target_user_id UUID DEFAULT auth.uid())
 RETURNS TABLE (

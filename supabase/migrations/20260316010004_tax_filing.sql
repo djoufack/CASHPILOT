@@ -30,7 +30,7 @@ ALTER TABLE public.tax_rules ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "tax_rules_select_authenticated"
   ON public.tax_rules FOR SELECT
   TO authenticated
-  USING (true);
+  USING (auth.uid() IS NOT NULL);
 
 -- ---------------------------------------------------------------------------
 -- 2. tax_declarations — Company-scoped (ENF-2 compliant)

@@ -315,9 +315,7 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-
 COMMENT ON FUNCTION f_pilotage_ratios IS 'Advanced pilotage ratios + alerts. Replaces computePilotageRatios() + computeAlerts() from pilotageCalculations.js.';
-
 -- =====================================================================
 -- 2. F_VALUATION
 -- Replaces: buildValuationSummary() from valuationCalculations.js
@@ -547,9 +545,7 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-
 COMMENT ON FUNCTION f_valuation IS 'Enterprise valuation via EBITDA multiples + DCF. Replaces buildValuationSummary() from valuationCalculations.js.';
-
 -- =====================================================================
 -- 3. F_TAX_SYNTHESIS
 -- Replaces: buildTaxSynthesis() from taxCalculations.js
@@ -735,5 +731,4 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-
 COMMENT ON FUNCTION f_tax_synthesis IS 'Complete tax synthesis (IS + IMF + R&D credits). Replaces buildTaxSynthesis() from taxCalculations.js.';

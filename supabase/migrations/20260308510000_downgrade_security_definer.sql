@@ -40,7 +40,6 @@ ALTER FUNCTION public.auto_journal_stock_movement() SET search_path = public;
 ALTER FUNCTION public.auto_journal_receivable() SET search_path = public;
 ALTER FUNCTION public.auto_journal_payable() SET search_path = public;
 ALTER FUNCTION public.auto_journal_bank_statement_line_reconciled() SET search_path = public;
-
 -- Trigger functions (reversal)
 ALTER FUNCTION public.reverse_journal_entries(UUID, TEXT, UUID, TEXT) SET search_path = public;
 ALTER FUNCTION public.reverse_journal_invoice() SET search_path = public;
@@ -55,7 +54,6 @@ ALTER FUNCTION public.reverse_journal_bank_transaction_on_delete() SET search_pa
 ALTER FUNCTION public.reverse_journal_receivable() SET search_path = public;
 ALTER FUNCTION public.reverse_journal_payable() SET search_path = public;
 ALTER FUNCTION public.reverse_journal_stock_on_delete() SET search_path = public;
-
 -- Trigger functions (validation & audit)
 ALTER FUNCTION public.check_entry_balance() SET search_path = public;
 ALTER FUNCTION public.check_accounting_balance() SET search_path = public;
@@ -67,7 +65,6 @@ ALTER FUNCTION public.set_sil_user_id() SET search_path = public;
 ALTER FUNCTION public.snapshot_before_client_delete() SET search_path = public;
 ALTER FUNCTION public.enforce_supplier_invoice_approval_role_guard() SET search_path = public;
 ALTER FUNCTION public.generate_depreciation_entries(UUID, DATE) SET search_path = public;
-
 -- Admin/Auth/Billing RPCs
 ALTER FUNCTION public.is_admin(UUID) SET search_path = public;
 ALTER FUNCTION public.current_user_has_finance_approval_role(UUID) SET search_path = public;
@@ -84,13 +81,11 @@ ALTER FUNCTION public.increment_webhook_failure(UUID) SET search_path = public;
 ALTER FUNCTION public.check_rate_limit(TEXT, TEXT, INTEGER, INTEGER) SET search_path = public;
 ALTER FUNCTION public.set_company_context(UUID) SET search_path = public;
 ALTER FUNCTION public.log_data_access(TEXT, TEXT, UUID) SET search_path = public;
-
 -- Portfolio cross-company RPCs
 ALTER FUNCTION public.get_portfolio_invoices() SET search_path = public;
 ALTER FUNCTION public.get_portfolio_payments() SET search_path = public;
 ALTER FUNCTION public.get_portfolio_projects() SET search_path = public;
 ALTER FUNCTION public.get_portfolio_quotes() SET search_path = public;
-
 -- Accounting calculation functions
 ALTER FUNCTION public.classify_account(TEXT, TEXT, TEXT, TEXT) SET search_path = public;
 ALTER FUNCTION public.f_trial_balance(UUID, UUID, DATE, DATE) SET search_path = public;
@@ -107,7 +102,6 @@ ALTER FUNCTION public.f_general_ledger(UUID, UUID, DATE, DATE) SET search_path =
 ALTER FUNCTION public.f_journal_book(UUID, UUID, DATE, DATE) SET search_path = public;
 ALTER FUNCTION public.f_monthly_chart(UUID, UUID, DATE, DATE) SET search_path = public;
 ALTER FUNCTION public.f_account_balance(UUID, UUID, DATE, DATE) SET search_path = public;
-
 -- ============================================================================
 -- PART 2: No downgrades performed
 -- ============================================================================
@@ -117,4 +111,4 @@ ALTER FUNCTION public.f_account_balance(UUID, UUID, DATE, DATE) SET search_path 
 --
 -- If a function is later determined to be safe for downgrade, use:
 --   ALTER FUNCTION public.<name>(<args>) SECURITY INVOKER;
--- ============================================================================
+-- ============================================================================;

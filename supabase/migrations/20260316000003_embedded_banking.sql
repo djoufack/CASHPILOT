@@ -25,7 +25,7 @@ DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'bank_providers' AND policyname = 'Anyone can read bank_providers') THEN
     CREATE POLICY "Anyone can read bank_providers" ON bank_providers FOR SELECT
-      USING (true);
+      USING (auth.uid() IS NOT NULL);
   END IF;
 END $$;
 

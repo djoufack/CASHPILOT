@@ -7,12 +7,10 @@
 -- 1. Set default to TRUE for new rows
 ALTER TABLE user_accounting_settings
   ALTER COLUMN auto_journal_enabled SET DEFAULT true;
-
 -- 2. Enable for ALL existing users who have it NULL or FALSE
 UPDATE user_accounting_settings
 SET auto_journal_enabled = true
 WHERE auto_journal_enabled IS NOT TRUE;
-
 -- 3. Ensure every authenticated user has accounting settings
 -- (insert for users who don't have settings yet)
 INSERT INTO user_accounting_settings (user_id, auto_journal_enabled)
@@ -22,7 +20,6 @@ WHERE NOT EXISTS (
   SELECT 1 FROM user_accounting_settings uas WHERE uas.user_id = u.id
 )
 ON CONFLICT (user_id) DO NOTHING;
-
 -- 4. RE-RUN BACKFILL now that auto_journal_enabled is TRUE for everyone
 -- This ensures all existing data gets journalized.
 
@@ -113,7 +110,6 @@ BEGIN
   RAISE NOTICE 'Invoice backfill complete (forced)';
 END;
 $$;
-
 -- 4b. Backfill expenses
 DO $$
 DECLARE
@@ -162,7 +158,6 @@ BEGIN
   RAISE NOTICE 'Expense backfill complete (forced)';
 END;
 $$;
-
 -- 4c. Backfill payments
 DO $$
 DECLARE
@@ -199,7 +194,6 @@ BEGIN
   RAISE NOTICE 'Payment backfill complete (forced)';
 END;
 $$;
-
 -- 4d. Backfill credit notes
 DO $$
 DECLARE
@@ -249,7 +243,6 @@ BEGIN
   RAISE NOTICE 'Credit note backfill complete (forced)';
 END;
 $$;
-
 -- 5. Also update the trigger functions to NEVER check auto_journal_enabled
 -- The requirement is NON-NEGOTIABLE: all CRUD = accounting entries always.
 
@@ -348,7 +341,6 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
 -- 5b. Expense trigger: remove auto_journal_enabled check
 CREATE OR REPLACE FUNCTION auto_journal_expense()
 RETURNS TRIGGER
@@ -403,7 +395,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- 5c. Payment trigger: remove auto_journal_enabled check
 CREATE OR REPLACE FUNCTION auto_journal_payment()
 RETURNS TRIGGER
@@ -441,7 +432,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- 5d. Supplier invoice trigger: remove auto_journal_enabled check
 CREATE OR REPLACE FUNCTION auto_journal_supplier_invoice() RETURNS TRIGGER AS $$
 DECLARE
@@ -516,7 +506,6 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
 -- 5e. Credit note trigger: remove auto_journal_enabled check
 CREATE OR REPLACE FUNCTION auto_journal_credit_note()
 RETURNS TRIGGER

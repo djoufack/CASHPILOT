@@ -8,4 +8,5 @@
 -- This migration file documents the changes for version control.
 -- Re-running is idempotent (multipliers already applied).
 
-SELECT 1; -- no-op placeholder, data already updated
+SELECT 1;
+-- no-op placeholder, data already updated;

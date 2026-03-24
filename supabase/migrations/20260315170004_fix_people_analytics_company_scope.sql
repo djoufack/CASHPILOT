@@ -1,24 +1,11 @@
 -- Migration: Fix People Analytics company scope filtering
--- Adds p_company_id parameter to all 4 analytics functions to prevent
--- cross-company data leakage. Each function now filters by company_id.
---
--- Because adding a parameter changes the function signature in PostgreSQL,
--- we must DROP the old signatures first, then CREATE the new ones.
--- This avoids leaving stale unfiltered overloads accessible.
-
--- =============================================
 -- Drop old signatures (no company_id parameter)
--- =============================================
 DROP FUNCTION IF EXISTS public.fn_hr_turnover_risk();
 DROP FUNCTION IF EXISTS public.fn_hr_absenteeism_forecast();
 DROP FUNCTION IF EXISTS public.fn_hr_salary_benchmark();
 DROP FUNCTION IF EXISTS public.fn_hr_headcount_forecast(TEXT);
 
--- =============================================
--- 1. fn_hr_turnover_risk(p_company_id UUID) → TABLE
--- =============================================
--- Now requires p_company_id and filters hr_employees + hr_employee_contracts.
-
+-- 1. fn_hr_turnover_risk(p_company_id UUID)
 CREATE OR REPLACE FUNCTION public.fn_hr_turnover_risk(
   p_company_id UUID
 )
@@ -52,7 +39,6 @@ BEGIN
     v_score := 0;
     v_factors := ARRAY[]::TEXT[];
 
-    -- Factor 1: short tenure
     IF r.hire_date IS NOT NULL THEN
       v_tenure_months := (EXTRACT(YEAR FROM age(CURRENT_DATE, r.hire_date)) * 12 +
                           EXTRACT(MONTH FROM age(CURRENT_DATE, r.hire_date)))::INT;
@@ -71,13 +57,11 @@ BEGIN
       v_factors := array_append(v_factors, 'Date embauche inconnue');
     END IF;
 
-    -- Factor 2: on_leave
     IF r.status = 'on_leave' THEN
       v_score := v_score + 20;
       v_factors := array_append(v_factors, 'En conge');
     END IF;
 
-    -- Factor 3: contract status
     SELECT c.start_date, c.end_date, c.status
     INTO v_ctr
     FROM hr_employee_contracts c
@@ -129,11 +113,7 @@ BEGIN
 END;
 $$;
 
--- =============================================
--- 2. fn_hr_absenteeism_forecast(p_company_id UUID) → TABLE
--- =============================================
--- Now requires p_company_id and filters hr_employees, hr_departments, hr_leave_requests.
-
+-- 2. fn_hr_absenteeism_forecast(p_company_id UUID)
 CREATE OR REPLACE FUNCTION public.fn_hr_absenteeism_forecast(
   p_company_id UUID
 )
@@ -147,7 +127,7 @@ LANGUAGE plpgsql STABLE
 SECURITY INVOKER
 AS $$
 DECLARE
-  v_wpd INT := 22; -- working days per month
+  v_wpd INT := 22;
   v_cy INT := EXTRACT(YEAR FROM CURRENT_DATE)::INT;
   v_cm INT := EXTRACT(MONTH FROM CURRENT_DATE)::INT;
   r RECORD;
@@ -212,11 +192,7 @@ BEGIN
 END;
 $$;
 
--- =============================================
--- 3. fn_hr_salary_benchmark(p_company_id UUID) → TABLE
--- =============================================
--- Now requires p_company_id and filters hr_employees + hr_employee_contracts.
-
+-- 3. fn_hr_salary_benchmark(p_company_id UUID)
 CREATE OR REPLACE FUNCTION public.fn_hr_salary_benchmark(
   p_company_id UUID
 )
@@ -256,12 +232,7 @@ AS $$
   ORDER BY PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY cs.salary) DESC;
 $$;
 
--- =============================================
--- 4. fn_hr_headcount_forecast(p_scenario TEXT, p_company_id UUID) → TABLE
--- =============================================
--- Now requires p_company_id and filters hr_employees + hr_headcount_budgets.
--- Keeps existing p_scenario parameter.
-
+-- 4. fn_hr_headcount_forecast(p_scenario TEXT, p_company_id UUID)
 CREATE OR REPLACE FUNCTION public.fn_hr_headcount_forecast(
   p_scenario TEXT DEFAULT 'baseline',
   p_company_id UUID DEFAULT NULL
@@ -333,11 +304,11 @@ BEGIN
           variation := CASE WHEN r.hc > 0 THEN ROUND(((forecast_12m - r.hc)::NUMERIC / r.hc) * 100)::INT ELSE 0 END;
         END IF;
       EXCEPTION WHEN OTHERS THEN
-        NULL; -- Keep flat forecast
+        NULL;
       END;
     END IF;
 
     RETURN NEXT;
   END LOOP;
 END;
-$$;
+$$;;

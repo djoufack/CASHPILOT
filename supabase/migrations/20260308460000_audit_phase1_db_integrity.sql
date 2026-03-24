@@ -21,14 +21,12 @@ DO $$ BEGIN
     ALTER TABLE invoices ADD CONSTRAINT uniq_user_invoice_number UNIQUE(user_id, invoice_number);
   END IF;
 END $$;
-
 -- Prevent duplicate quote numbers per user
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uniq_user_quote_number') THEN
     ALTER TABLE quotes ADD CONSTRAINT uniq_user_quote_number UNIQUE(user_id, quote_number);
   END IF;
 END $$;
-
 -- ============================================================================
 -- 2. NOT NULL on accounting_entries.company_id
 -- ============================================================================
@@ -38,13 +36,10 @@ UPDATE accounting_entries
 SET company_id = resolve_preferred_company_id(user_id)
 WHERE company_id IS NULL
   AND user_id IS NOT NULL;
-
 -- For any remaining NULLs (no user_id or no preferred company), delete orphan rows
 DELETE FROM accounting_entries WHERE company_id IS NULL;
-
 -- Now enforce NOT NULL
 ALTER TABLE accounting_entries ALTER COLUMN company_id SET NOT NULL;
-
 -- ============================================================================
 -- 3. RLS on reference/lookup tables
 -- ============================================================================
@@ -56,7 +51,6 @@ DO $$ BEGIN
     CREATE POLICY "credit_costs_select" ON credit_costs FOR SELECT TO authenticated USING (true);
   END IF;
 END $$;
-
 -- sector_benchmarks
 ALTER TABLE sector_benchmarks ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
@@ -64,7 +58,6 @@ DO $$ BEGIN
     CREATE POLICY "sector_benchmarks_select" ON sector_benchmarks FOR SELECT TO authenticated USING (true);
   END IF;
 END $$;
-
 -- tax_brackets
 ALTER TABLE tax_brackets ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
@@ -72,7 +65,6 @@ DO $$ BEGIN
     CREATE POLICY "tax_brackets_select" ON tax_brackets FOR SELECT TO authenticated USING (true);
   END IF;
 END $$;
-
 -- tax_rate_presets
 ALTER TABLE tax_rate_presets ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
@@ -80,7 +72,6 @@ DO $$ BEGIN
     CREATE POLICY "tax_rate_presets_select" ON tax_rate_presets FOR SELECT TO authenticated USING (true);
   END IF;
 END $$;
-
 -- ============================================================================
 -- 4. Missing indexes
 -- ============================================================================
@@ -90,7 +81,6 @@ CREATE INDEX IF NOT EXISTS idx_product_stock_history_order ON product_stock_hist
 CREATE INDEX IF NOT EXISTS idx_api_keys_superseded ON api_keys(superseded_by);
 CREATE INDEX IF NOT EXISTS idx_accounting_audit_log_user ON accounting_audit_log(user_id);
 CREATE INDEX IF NOT EXISTS idx_accounting_audit_log_created ON accounting_audit_log(created_at);
-
 -- ============================================================================
 -- 5. Missing FK constraints
 -- ============================================================================
@@ -102,7 +92,6 @@ DO $$ BEGIN
       FOREIGN KEY (category_id) REFERENCES service_categories(id) ON DELETE SET NULL;
   END IF;
 END $$;
-
 -- ============================================================================
 -- 6. CHECK constraints
 -- ============================================================================

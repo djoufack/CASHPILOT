@@ -155,15 +155,12 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_auto_journal_stock_movement ON public.products;
 CREATE TRIGGER trg_auto_journal_stock_movement
   AFTER UPDATE ON public.products
   FOR EACH ROW
   WHEN (OLD.stock_quantity IS DISTINCT FROM NEW.stock_quantity)
   EXECUTE FUNCTION auto_journal_stock_movement();
-
-
 -- =====================================================================
 -- D2: AUTO-JOURNAL BANK STATEMENT LINE RECONCILED
 -- Fires AFTER UPDATE on bank_statement_lines when reconciliation_status
@@ -297,15 +294,12 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_auto_journal_bsl_reconciled ON public.bank_statement_lines;
 CREATE TRIGGER trg_auto_journal_bsl_reconciled
   AFTER UPDATE ON public.bank_statement_lines
   FOR EACH ROW
   WHEN (OLD.reconciliation_status IS DISTINCT FROM NEW.reconciliation_status)
   EXECUTE FUNCTION auto_journal_bank_statement_line_reconciled();
-
-
 -- =====================================================================
 -- D3: GENERATE DEPRECIATION ENTRIES (callable function, not auto-trigger)
 -- Called monthly/annually to generate depreciation journal entries for
@@ -469,8 +463,6 @@ BEGIN
   RETURN v_count;
 END;
 $$;
-
-
 -- =====================================================================
 -- D4: ENFORCE BALANCED ENTRIES (constraint trigger)
 -- Fires AFTER INSERT on accounting_entries.
@@ -500,15 +492,12 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_enforce_balanced_entries ON public.accounting_entries;
 CREATE CONSTRAINT TRIGGER trg_enforce_balanced_entries
   AFTER INSERT ON public.accounting_entries
   DEFERRABLE INITIALLY DEFERRED
   FOR EACH ROW
   EXECUTE FUNCTION enforce_balanced_entries();
-
-
 -- =====================================================================
 -- Update company_id resolver to handle new source types
 -- =====================================================================

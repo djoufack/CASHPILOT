@@ -1,5 +1,4 @@
 BEGIN;
-
 -- 1) Hard business rule: active budget must have at least one source scope
 --    (object/cost center/axis value) OR at least one budget line.
 CREATE OR REPLACE FUNCTION public.validate_analytical_budget_activation()
@@ -62,7 +61,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- Remediate legacy invalid active budgets before enforcing trigger.
 UPDATE public.analytical_budgets b
 SET
@@ -77,13 +75,11 @@ WHERE b.is_active = true
     FROM public.analytical_budget_lines bl
     WHERE bl.budget_id = b.id
   );
-
 DROP TRIGGER IF EXISTS trg_validate_analytical_budget_activation ON public.analytical_budgets;
 CREATE TRIGGER trg_validate_analytical_budget_activation
 BEFORE INSERT OR UPDATE ON public.analytical_budgets
 FOR EACH ROW
 EXECUTE FUNCTION public.validate_analytical_budget_activation();
-
 CREATE OR REPLACE FUNCTION public.validate_budget_after_line_delete()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -130,13 +126,11 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_validate_budget_after_line_delete ON public.analytical_budget_lines;
 CREATE TRIGGER trg_validate_budget_after_line_delete
 AFTER DELETE ON public.analytical_budget_lines
 FOR EACH ROW
 EXECUTE FUNCTION public.validate_budget_after_line_delete();
-
 -- 2) Persisted multi-scenarios for analytical budgets
 CREATE TABLE IF NOT EXISTS public.analytical_budget_scenarios (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -155,44 +149,11 @@ CREATE TABLE IF NOT EXISTS public.analytical_budget_scenarios (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (company_id, user_id, budget_id, scenario_name)
 );
-
 CREATE INDEX IF NOT EXISTS idx_analytical_budget_scenarios_scope
   ON public.analytical_budget_scenarios(company_id, user_id, budget_id, is_active);
-
-INSERT INTO public.analytical_budget_scenarios (
-  budget_id,
-  user_id,
-  company_id,
-  scenario_name,
-  revenue_growth_percent,
-  cost_optimization_percent,
-  risk_percent,
-  notes,
-  metadata,
-  is_default,
-  is_active
-)
-SELECT
-  b.id,
-  b.user_id,
-  b.company_id,
-  'Base',
-  6,
-  3,
-  2,
-  'Scénario initial généré automatiquement.',
-  jsonb_build_object('seeded_by_migration', '20260314080000'),
-  true,
-  true
-FROM public.analytical_budgets b
-WHERE b.is_active = true
-ON CONFLICT (company_id, user_id, budget_id, scenario_name)
-DO NOTHING;
-
 CREATE UNIQUE INDEX IF NOT EXISTS idx_analytical_budget_scenarios_one_default
   ON public.analytical_budget_scenarios(budget_id)
   WHERE is_default = true AND is_active = true;
-
 ALTER TABLE public.analytical_budget_scenarios ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "analytical_budget_scenarios_scope_policy" ON public.analytical_budget_scenarios;
 CREATE POLICY "analytical_budget_scenarios_scope_policy"
@@ -200,13 +161,11 @@ CREATE POLICY "analytical_budget_scenarios_scope_policy"
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 DROP TRIGGER IF EXISTS trg_analytical_budget_scenarios_touch ON public.analytical_budget_scenarios;
 CREATE TRIGGER trg_analytical_budget_scenarios_touch
   BEFORE UPDATE ON public.analytical_budget_scenarios
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_updated_at();
-
 CREATE OR REPLACE FUNCTION public.validate_analytical_budget_scenario_scope()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -232,19 +191,16 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_validate_analytical_budget_scenario_scope ON public.analytical_budget_scenarios;
 CREATE TRIGGER trg_validate_analytical_budget_scenario_scope
 BEFORE INSERT OR UPDATE ON public.analytical_budget_scenarios
 FOR EACH ROW
 EXECUTE FUNCTION public.validate_analytical_budget_scenario_scope();
-
 DROP TRIGGER IF EXISTS trg_audit_analytical_budget_scenarios_crud ON public.analytical_budget_scenarios;
 CREATE TRIGGER trg_audit_analytical_budget_scenarios_crud
   AFTER INSERT OR UPDATE OR DELETE ON public.analytical_budget_scenarios
   FOR EACH ROW
   EXECUTE FUNCTION public.log_analytical_financial_crud_audit();
-
 -- 3) Data quality KPI (DB-first) for the selected budget
 CREATE OR REPLACE FUNCTION public.f_analytical_budget_data_quality(
   p_user_id UUID,
@@ -321,7 +277,6 @@ SELECT
   ) AS axis_values_imputed_count,
   (SELECT count(*)::INTEGER FROM matching_allocations) AS allocations_count;
 $$;
-
 CREATE OR REPLACE FUNCTION public.f_analytical_budget_scenario_curve(
   p_user_id UUID,
   p_company_id UUID,
@@ -401,7 +356,6 @@ FROM scenario_scope s
 CROSS JOIN base b
 ORDER BY b.period_month;
 $$;
-
 CREATE OR REPLACE FUNCTION public.f_analytical_budget_scenario_summaries(
   p_user_id UUID,
   p_company_id UUID,
@@ -482,5 +436,4 @@ FROM scenario_scope s
 CROSS JOIN base b
 ORDER BY s.updated_at DESC, s.created_at DESC;
 $$;
-
 COMMIT;

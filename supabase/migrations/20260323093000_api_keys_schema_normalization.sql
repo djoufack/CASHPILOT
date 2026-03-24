@@ -1,6 +1,8 @@
 -- Normalize public.api_keys to a single secure model:
 -- name + key_hash + key_prefix + company_id (no plaintext secret storage)
 
+SET search_path = public, extensions;
+
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 DO $$
@@ -61,7 +63,7 @@ BEGIN
       AND column_name = 'api_key'
   ) THEN
     UPDATE public.api_keys
-    SET key_hash = encode(digest(api_key, 'sha256'), 'hex')
+    SET key_hash = encode(digest(convert_to(api_key, 'UTF8'), 'sha256'), 'hex')
     WHERE (key_hash IS NULL OR btrim(key_hash) = '')
       AND api_key IS NOT NULL
       AND btrim(api_key) <> '';
@@ -124,7 +126,7 @@ SET created_at = now()
 WHERE created_at IS NULL;
 
 UPDATE public.api_keys
-SET key_hash = encode(digest(gen_random_uuid()::TEXT, 'sha256'), 'hex'),
+SET key_hash = encode(digest(convert_to(gen_random_uuid()::TEXT, 'UTF8'), 'sha256'), 'hex'),
     is_active = false
 WHERE key_hash IS NULL OR btrim(key_hash) = '';
 

@@ -55,12 +55,33 @@ async function getUserByEmail(serviceClient, email) {
   return null;
 }
 
-async function expectRows(label, query) {
-  const { data, error } = await query;
-  if (error) {
-    throw new Error(`${label}: ${error.message}`);
+async function expectRows(label, query, options = {}) {
+  const { paginate = false, pageSize = 1000 } = options;
+  if (!paginate) {
+    const { data, error } = await query;
+    if (error) {
+      throw new Error(`${label}: ${error.message}`);
+    }
+    return data || [];
   }
-  return data || [];
+
+  const rows = [];
+  let offset = 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { data, error } = await query.range(offset, offset + pageSize - 1);
+    if (error) {
+      throw new Error(`${label}: ${error.message}`);
+    }
+    const batch = data || [];
+    rows.push(...batch);
+    if (batch.length < pageSize) {
+      break;
+    }
+    offset += pageSize;
+  }
+
+  return rows;
 }
 
 async function expectCount(label, query) {
@@ -162,6 +183,7 @@ async function run() {
             .eq('user_id', user.id)
             .eq('company_id', company.id)
             .order('account_code', { ascending: true }),
+          { paginate: true },
         ),
         expectRows(
           `entries for ${company.company_name}`,
@@ -171,6 +193,7 @@ async function run() {
             .eq('user_id', user.id)
             .eq('company_id', company.id)
             .order('transaction_date', { ascending: true }),
+          { paginate: true },
         ),
         expectRows(
           `first entry date for ${company.company_name}`,

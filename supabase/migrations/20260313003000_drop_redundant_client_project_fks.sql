@@ -14,7 +14,6 @@
 -- ============================================================================
 
 BEGIN;
-
 DO $$
 BEGIN
   IF EXISTS (
@@ -62,6 +61,4 @@ BEGIN
     ALTER TABLE public.timesheets DROP CONSTRAINT timesheets_client_id_fkey;
   END IF;
 END $$;
-
 COMMIT;
-

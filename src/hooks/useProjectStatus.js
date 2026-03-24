@@ -1,6 +1,6 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useCompanyScope } from '@/hooks/useCompanyScope';
 
 export const useProjectStatus = (projectId) => {
   const [status, setStatus] = useState('active');
@@ -12,22 +12,22 @@ export const useProjectStatus = (projectId) => {
     completed: 0,
     on_hold: 0,
     cancelled: 0,
-    progress: 0
+    progress: 0,
   });
+  const { activeCompanyId, applyCompanyScope } = useCompanyScope();
 
   const calculateProjectStatus = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId || !activeCompanyId) return;
     if (!supabase) {
-      console.warn("Supabase not configured");
+      console.warn('Supabase not configured');
       return;
     }
 
     setLoading(true);
     try {
-      const { data: tasks, error } = await supabase
-        .from('tasks')
-        .select('status')
-        .eq('project_id', projectId);
+      let query = supabase.from('tasks').select('status').eq('project_id', projectId);
+      query = applyCompanyScope(query);
+      const { data: tasks, error } = await query;
 
       if (error) throw error;
 
@@ -36,10 +36,13 @@ export const useProjectStatus = (projectId) => {
         return;
       }
 
-      const counts = tasks.reduce((acc, task) => {
-        acc[task.status] = (acc[task.status] || 0) + 1;
-        return acc;
-      }, { pending: 0, in_progress: 0, completed: 0, on_hold: 0, cancelled: 0 });
+      const counts = tasks.reduce(
+        (acc, task) => {
+          acc[task.status] = (acc[task.status] || 0) + 1;
+          return acc;
+        },
+        { pending: 0, in_progress: 0, completed: 0, on_hold: 0, cancelled: 0 }
+      );
 
       const total = tasks.length;
       const progress = total > 0 ? Math.round((counts.completed / total) * 100) : 0;
@@ -47,7 +50,7 @@ export const useProjectStatus = (projectId) => {
       setStats({
         total,
         ...counts,
-        progress
+        progress,
       });
 
       // Logic for project status based on tasks
@@ -61,18 +64,17 @@ export const useProjectStatus = (projectId) => {
       }
 
       // Optionally update project status in DB if it changed
-      // Note: This might cause race conditions if multiple users view the page, 
+      // Note: This might cause race conditions if multiple users view the page,
       // but is often acceptable for simple implementations.
       // await supabase.from('projects').update({ status: newProjectStatus }).eq('id', projectId);
-      
-      setStatus(newProjectStatus);
 
+      setStatus(newProjectStatus);
     } catch (err) {
       console.error('Error calculating project status:', err);
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, activeCompanyId, applyCompanyScope]);
 
   useEffect(() => {
     calculateProjectStatus();
