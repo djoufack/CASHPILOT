@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveCompanyId } from '@/hooks/useActiveCompanyId';
-import { initializeAccounting } from '@/services/accountingInitService';
+import { initializeAccounting, initializeAccountingFromPlan } from '@/services/accountingInitService';
 import { generateOpeningEntries } from '@/services/openingBalanceService';
 import { ArrowLeft, CheckCircle2, Loader2, Rocket, Building2, FileText, PiggyBank, PartyPopper } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -47,6 +47,7 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
   const { user } = useAuth();
   const activeCompanyId = useActiveCompanyId();
   const [planName, setPlanName] = useState('');
+  const [planCountryCode, setPlanCountryCode] = useState(null);
   const [initializing, setInitializing] = useState(false);
   const [progress, setProgress] = useState('');
   const [progressPercent, setProgressPercent] = useState(0);
@@ -56,18 +57,25 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
   useEffect(() => {
     const fetchPlanName = async () => {
       if (!wizardData.selectedPlanId || !supabase) return;
+
       const { data } = await supabase
         .from('accounting_plans')
         .select('name, country_code')
         .eq('id', wizardData.selectedPlanId)
         .single();
-      if (data) setPlanName(data.name);
+
+      if (data) {
+        setPlanName(data.name);
+        setPlanCountryCode(data.country_code || null);
+      }
     };
+
     fetchPlanName();
   }, [wizardData.selectedPlanId]);
 
-  const balanceEntries = Object.entries(wizardData.openingBalances || {})
-    .filter(([, val]) => val && parseFloat(val) > 0);
+  const balanceEntries = Object.entries(wizardData.openingBalances || {}).filter(
+    ([, val]) => val && parseFloat(val) > 0
+  );
 
   const handleLaunch = useCallback(async () => {
     if (!user) return;
@@ -76,15 +84,18 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
     setProgressPercent(10);
 
     try {
-      if (!activeCompanyId) {
-        throw new Error('Aucune societe active selectionnee.');
+      const resolvedCompanyId = activeCompanyId || wizardData.companyInfo?.id || null;
+      if (!resolvedCompanyId) {
+        throw new Error("Aucune societe active ou societe du wizard n'est disponible.");
       }
 
-      const country = wizardData.selectedPlanCountry || 'FR';
+      const country = wizardData.selectedPlanCountry || planCountryCode || 'FR';
 
       setProgress(t('onboarding.confirm.progressAccounts', 'Chargement du plan comptable...'));
       setProgressPercent(30);
-      const result = await initializeAccounting(user.id, country, activeCompanyId);
+      const result = wizardData.selectedPlanId
+        ? await initializeAccountingFromPlan(user.id, wizardData.selectedPlanId, country, resolvedCompanyId)
+        : await initializeAccounting(user.id, country, resolvedCompanyId);
 
       if (!result.success) {
         throw new Error(result.error || 'Initialization failed');
@@ -100,7 +111,7 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
           wizardData.selectedPlanId,
           user.id,
           country,
-          activeCompanyId,
+          resolvedCompanyId
         );
       }
 
@@ -109,7 +120,7 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
       setSuccess(true);
 
       // Brief pause so user sees the success animation
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 2000));
       onComplete();
     } catch (err) {
       console.error('Onboarding init error:', err);
@@ -117,12 +128,16 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
       setInitializing(false);
       setProgressPercent(0);
     }
-  }, [activeCompanyId, user, wizardData, balanceEntries.length, t, onComplete]);
+  }, [activeCompanyId, user, wizardData, balanceEntries.length, t, onComplete, planCountryCode]);
 
   const selectedCurrency = wizardData.companyInfo?.currency || 'EUR';
 
   return (
-    <div className="space-y-6 relative overflow-hidden" role="region" aria-label={t('onboarding.confirm.title', 'Tout est pret !')}>
+    <div
+      className="space-y-6 relative overflow-hidden"
+      role="region"
+      aria-label={t('onboarding.confirm.title', 'Tout est pret !')}
+    >
       {/* Confetti animation on success */}
       {success && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-20">
@@ -188,7 +203,9 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
                     <Building2 className="w-4 h-4" style={{ color: '#DAA520' }} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium" style={{ color: '#e8eaf0' }}>{wizardData.companyInfo.company_name}</p>
+                    <p className="text-sm font-medium" style={{ color: '#e8eaf0' }}>
+                      {wizardData.companyInfo.company_name}
+                    </p>
                     <p className="text-xs" style={{ color: '#8b92a8' }}>
                       {[wizardData.companyInfo.city, wizardData.companyInfo.country].filter(Boolean).join(', ')}
                     </p>
@@ -210,7 +227,9 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
                     <FileText className="w-4 h-4" style={{ color: '#3B82F6' }} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium" style={{ color: '#e8eaf0' }}>{planName}</p>
+                    <p className="text-sm font-medium" style={{ color: '#e8eaf0' }}>
+                      {planName}
+                    </p>
                     <p className="text-xs" style={{ color: '#8b92a8' }}>
                       {t('onboarding.confirm.planSelected', 'Plan comptable selectionne')}
                     </p>
@@ -262,10 +281,15 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
                   style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)' }}
                 >
                   <Loader2 className="w-5 h-5 animate-spin shrink-0" style={{ color: '#3B82F6' }} />
-                  <p className="text-sm" style={{ color: '#93C5FD' }}>{progress}</p>
+                  <p className="text-sm" style={{ color: '#93C5FD' }}>
+                    {progress}
+                  </p>
                 </div>
                 {/* Progress bar */}
-                <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(30, 41, 59, 0.5)' }}>
+                <div
+                  className="w-full h-1.5 rounded-full overflow-hidden"
+                  style={{ background: 'rgba(30, 41, 59, 0.5)' }}
+                >
                   <motion.div
                     className="h-full rounded-full"
                     style={{ background: 'linear-gradient(90deg, #DAA520, #22C55E)' }}
@@ -284,7 +308,9 @@ const Step5Confirmation = ({ onComplete, onBack, wizardData }) => {
                 style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
                 role="alert"
               >
-                <p className="text-sm" style={{ color: '#FCA5A5' }}>{error}</p>
+                <p className="text-sm" style={{ color: '#FCA5A5' }}>
+                  {error}
+                </p>
               </div>
             )}
 
