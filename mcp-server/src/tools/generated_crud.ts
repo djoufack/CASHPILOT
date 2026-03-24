@@ -1594,7 +1594,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list service categories') }] };
       const result = { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
-      setCache(cacheKey, result, 300_000);
+      setCache(cacheKey, result, 60_000);
       return result;
     }
   );
@@ -1612,7 +1612,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
       postal_code: z.string().optional(),
       country: z.string().optional(),
       phone: z.string().optional(),
-      email: z.string().optional().describe('Email address (validated but accepts empty string)'),
+      email: z
+        .string()
+        .email()
+        .or(z.literal(''))
+        .optional()
+        .describe('Email address (validated, accepts empty string)'),
       website: z.string().optional(),
       logo_url: z.string().optional(),
       bank_account: z.string().optional(),
@@ -1660,7 +1665,12 @@ export function registerGeneratedCrudTools(server: McpServer) {
       postal_code: z.string().optional(),
       country: z.string().optional(),
       phone: z.string().optional(),
-      email: z.string().optional().describe('Email address (validated but accepts empty string)'),
+      email: z
+        .string()
+        .email()
+        .or(z.literal(''))
+        .optional()
+        .describe('Email address (validated, accepts empty string)'),
       website: z.string().optional(),
       logo_url: z.string().optional(),
       bank_account: z.string().optional(),
@@ -2779,7 +2789,7 @@ export function registerGeneratedCrudTools(server: McpServer) {
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) return { content: [{ type: 'text' as const, text: safeError(error, 'list accounting tax rates') }] };
       const result = { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
-      setCache(cacheKey, result, 300_000);
+      setCache(cacheKey, result, 60_000);
       return result;
     }
   );

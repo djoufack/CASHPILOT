@@ -362,12 +362,11 @@ export function registerDocumentTools(server: McpServer) {
     async ({ invoice_id, amount, reason }) => {
       const userId = getUserId();
 
-      const { data: invoice, error: invErr } = await supabase
-        .from('invoices')
-        .select('*')
-        .eq('id', invoice_id)
-        .eq('user_id', userId)
-        .single();
+      const [{ data: invoice, error: invErr }, { data: companyData }] = await Promise.all([
+        supabase.from('invoices').select('*').eq('id', invoice_id).eq('user_id', userId).single(),
+        supabase.from('company').select('currency').eq('user_id', userId).limit(1).single(),
+      ]);
+      const currency = companyData?.currency || 'EUR';
 
       if (invErr || !invoice)
         return {
@@ -399,7 +398,7 @@ export function registerDocumentTools(server: McpServer) {
         content: [
           {
             type: 'text' as const,
-            text: `Credit note created: ${creditNumber} for ${creditAmount} EUR\n${JSON.stringify(creditNote, null, 2)}`,
+            text: `Credit note created: ${creditNumber} for ${creditAmount} ${currency}\n${JSON.stringify(creditNote, null, 2)}`,
           },
         ],
       };
@@ -432,6 +431,15 @@ export function registerDocumentTools(server: McpServer) {
       const amountHt = amount_ttc / (1 + rate / 100);
       const taxAmount = amount_ttc - amountHt;
 
+      // Fetch company currency for display
+      const { data: companyData } = await supabase
+        .from('company')
+        .select('currency')
+        .eq('user_id', userId)
+        .limit(1)
+        .single();
+      const currency = companyData?.currency || 'EUR';
+
       const { data, error } = await supabase
         .from('expenses')
         .insert([
@@ -457,7 +465,7 @@ export function registerDocumentTools(server: McpServer) {
         content: [
           {
             type: 'text' as const,
-            text: `Expense recorded: ${Math.round(amount_ttc * 100) / 100} EUR TTC (${Math.round(amountHt * 100) / 100} HT + ${Math.round(taxAmount * 100) / 100} TVA)\n${JSON.stringify(data, null, 2)}`,
+            text: `Expense recorded: ${Math.round(amount_ttc * 100) / 100} ${currency} TTC (${Math.round(amountHt * 100) / 100} HT + ${Math.round(taxAmount * 100) / 100} TVA)\n${JSON.stringify(data, null, 2)}`,
           },
         ],
       };

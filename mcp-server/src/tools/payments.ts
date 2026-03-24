@@ -131,13 +131,25 @@ export function registerPaymentTools(server: McpServer) {
       days_overdue: z.number().optional().describe('Only show invoices overdue by at least N days'),
     },
     async ({ days_overdue }) => {
+      const userId = getUserId();
+
+      // Fetch company currency
+      const { data: companyData } = await supabase
+        .from('company')
+        .select('currency')
+        .eq('user_id', userId)
+        .limit(1)
+        .single();
+      const currency = companyData?.currency || 'EUR';
+
       let query = supabase
         .from('invoices')
         .select(
           `id, invoice_number, date, due_date, total_ttc, payment_status, balance_due, client:clients(id, company_name)`
         )
-        .eq('user_id', getUserId())
+        .eq('user_id', userId)
         .in('payment_status', ['unpaid', 'partial'])
+        .not('status', 'in', '("draft","cancelled")')
         .order('due_date', { ascending: true });
 
       if (days_overdue) {
@@ -154,7 +166,7 @@ export function registerPaymentTools(server: McpServer) {
         content: [
           {
             type: 'text' as const,
-            text: `${data?.length ?? 0} unpaid invoices. Total: ${total.toFixed(2)} EUR.\n${JSON.stringify(data, null, 2)}`,
+            text: `${data?.length ?? 0} unpaid invoices. Total: ${total.toFixed(2)} ${currency}.\n${JSON.stringify(data, null, 2)}`,
           },
         ],
       };
