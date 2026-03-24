@@ -14,7 +14,6 @@
 -- =========================================================
 
 BEGIN;
-
 -- =========================================================
 -- 0. HELPER: set_updated_at (idempotent)
 -- =========================================================
@@ -26,7 +25,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- =========================================================
 -- 1. PORTFOLIOS
 -- =========================================================
@@ -43,13 +41,10 @@ CREATE TABLE IF NOT EXISTS public.company_portfolios (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE UNIQUE INDEX IF NOT EXISTS uq_company_portfolios_default_per_user
   ON public.company_portfolios(user_id) WHERE is_default = true;
-
 CREATE INDEX IF NOT EXISTS idx_company_portfolios_user_id
   ON public.company_portfolios(user_id);
-
 CREATE TABLE IF NOT EXISTS public.company_portfolio_members (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   portfolio_id UUID NOT NULL REFERENCES public.company_portfolios(id) ON DELETE CASCADE,
@@ -58,40 +53,32 @@ CREATE TABLE IF NOT EXISTS public.company_portfolio_members (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (portfolio_id, company_id)
 );
-
 CREATE INDEX IF NOT EXISTS idx_cpm_portfolio_id ON public.company_portfolio_members(portfolio_id);
 CREATE INDEX IF NOT EXISTS idx_cpm_company_id ON public.company_portfolio_members(company_id);
 CREATE INDEX IF NOT EXISTS idx_cpm_user_id ON public.company_portfolio_members(user_id);
-
 -- Link company to portfolio
 ALTER TABLE public.company
   ADD COLUMN IF NOT EXISTS portfolio_id UUID REFERENCES public.company_portfolios(id) ON DELETE SET NULL;
-
 CREATE INDEX IF NOT EXISTS idx_company_portfolio_id ON public.company(portfolio_id);
-
 -- RLS
 ALTER TABLE public.company_portfolios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_portfolio_members ENABLE ROW LEVEL SECURITY;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'cp_portfolios_owner_all') THEN
     CREATE POLICY "cp_portfolios_owner_all" ON public.company_portfolios FOR ALL
       USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
   END IF;
 END $$;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'cp_portfolio_members_owner_all') THEN
     CREATE POLICY "cp_portfolio_members_owner_all" ON public.company_portfolio_members FOR ALL
       USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
   END IF;
 END $$;
-
 DROP TRIGGER IF EXISTS trg_company_portfolios_updated_at ON public.company_portfolios;
 CREATE TRIGGER trg_company_portfolios_updated_at
   BEFORE UPDATE ON public.company_portfolios
   FOR EACH ROW EXECUTE FUNCTION public.trg_set_updated_at();
-
 -- =========================================================
 -- 2. PAYMENT INSTRUMENTS HUB
 -- =========================================================
@@ -148,32 +135,26 @@ CREATE TABLE IF NOT EXISTS public.company_payment_instruments (
 
   UNIQUE (company_id, code)
 );
-
 CREATE INDEX IF NOT EXISTS idx_cpi_user_id ON public.company_payment_instruments(user_id);
 CREATE INDEX IF NOT EXISTS idx_cpi_company_id ON public.company_payment_instruments(company_id);
 CREATE INDEX IF NOT EXISTS idx_cpi_portfolio_id ON public.company_payment_instruments(portfolio_id);
 CREATE INDEX IF NOT EXISTS idx_cpi_type ON public.company_payment_instruments(instrument_type);
 CREATE INDEX IF NOT EXISTS idx_cpi_status ON public.company_payment_instruments(status);
 CREATE INDEX IF NOT EXISTS idx_cpi_account_code ON public.company_payment_instruments(account_code);
-
 CREATE UNIQUE INDEX IF NOT EXISTS uq_company_default_instrument_per_type
   ON public.company_payment_instruments(company_id, instrument_type)
   WHERE is_default = true AND status = 'active';
-
 ALTER TABLE public.company_payment_instruments ENABLE ROW LEVEL SECURITY;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'cpi_owner_all') THEN
     CREATE POLICY "cpi_owner_all" ON public.company_payment_instruments FOR ALL
       USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
   END IF;
 END $$;
-
 DROP TRIGGER IF EXISTS trg_cpi_updated_at ON public.company_payment_instruments;
 CREATE TRIGGER trg_cpi_updated_at
   BEFORE UPDATE ON public.company_payment_instruments
   FOR EACH ROW EXECUTE FUNCTION public.trg_set_updated_at();
-
 -- Portfolio sync trigger
 CREATE OR REPLACE FUNCTION public.sync_portfolio_from_company()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
@@ -185,12 +166,10 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_sync_portfolio_cpi ON public.company_payment_instruments;
 CREATE TRIGGER trg_sync_portfolio_cpi
   BEFORE INSERT OR UPDATE ON public.company_payment_instruments
   FOR EACH ROW EXECUTE FUNCTION public.sync_portfolio_from_company();
-
 -- =========================================================
 -- 3. INSTRUMENT DETAIL TABLES (1:1)
 -- =========================================================
@@ -215,10 +194,8 @@ CREATE TABLE IF NOT EXISTS public.payment_instrument_bank_accounts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_piba_bank_connection_id
   ON public.payment_instrument_bank_accounts(bank_connection_id);
-
 -- Cards
 CREATE TABLE IF NOT EXISTS public.payment_instrument_cards (
   instrument_id UUID PRIMARY KEY REFERENCES public.company_payment_instruments(id) ON DELETE CASCADE,
@@ -238,7 +215,6 @@ CREATE TABLE IF NOT EXISTS public.payment_instrument_cards (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 -- Cash accounts
 CREATE TABLE IF NOT EXISTS public.payment_instrument_cash_accounts (
   instrument_id UUID PRIMARY KEY REFERENCES public.company_payment_instruments(id) ON DELETE CASCADE,
@@ -252,12 +228,10 @@ CREATE TABLE IF NOT EXISTS public.payment_instrument_cash_accounts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 -- RLS for detail tables
 ALTER TABLE public.payment_instrument_bank_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_instrument_cards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_instrument_cash_accounts ENABLE ROW LEVEL SECURITY;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'piba_owner_all') THEN
     CREATE POLICY "piba_owner_all" ON public.payment_instrument_bank_accounts FOR ALL
@@ -265,7 +239,6 @@ DO $$ BEGIN
       WITH CHECK (EXISTS (SELECT 1 FROM public.company_payment_instruments pi WHERE pi.id = instrument_id AND pi.user_id = auth.uid()));
   END IF;
 END $$;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'pic_owner_all') THEN
     CREATE POLICY "pic_owner_all" ON public.payment_instrument_cards FOR ALL
@@ -273,7 +246,6 @@ DO $$ BEGIN
       WITH CHECK (EXISTS (SELECT 1 FROM public.company_payment_instruments pi WHERE pi.id = instrument_id AND pi.user_id = auth.uid()));
   END IF;
 END $$;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'pica_owner_all') THEN
     CREATE POLICY "pica_owner_all" ON public.payment_instrument_cash_accounts FOR ALL
@@ -281,7 +253,6 @@ DO $$ BEGIN
       WITH CHECK (EXISTS (SELECT 1 FROM public.company_payment_instruments pi WHERE pi.id = instrument_id AND pi.user_id = auth.uid()));
   END IF;
 END $$;
-
 -- =========================================================
 -- 4. ALTER EXISTING TABLES
 -- =========================================================
@@ -289,43 +260,29 @@ END $$;
 ALTER TABLE public.payments
   ADD COLUMN IF NOT EXISTS payment_instrument_id UUID REFERENCES public.company_payment_instruments(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS payment_transaction_id UUID;
-
 CREATE INDEX IF NOT EXISTS idx_payments_payment_instrument_id ON public.payments(payment_instrument_id);
-
 ALTER TABLE public.expenses
   ADD COLUMN IF NOT EXISTS payment_instrument_id UUID REFERENCES public.company_payment_instruments(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS payment_transaction_id UUID;
-
 CREATE INDEX IF NOT EXISTS idx_expenses_payment_instrument_id ON public.expenses(payment_instrument_id);
-
 ALTER TABLE public.debt_payments
   ADD COLUMN IF NOT EXISTS payment_instrument_id UUID REFERENCES public.company_payment_instruments(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS payment_transaction_id UUID;
-
 CREATE INDEX IF NOT EXISTS idx_debt_payments_payment_instrument_id ON public.debt_payments(payment_instrument_id);
-
 ALTER TABLE public.bank_transactions
   ADD COLUMN IF NOT EXISTS payment_instrument_id UUID REFERENCES public.company_payment_instruments(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS payment_transaction_id UUID;
-
 CREATE INDEX IF NOT EXISTS idx_bank_transactions_pi_id ON public.bank_transactions(payment_instrument_id);
-
 ALTER TABLE public.bank_statements
   ADD COLUMN IF NOT EXISTS payment_instrument_id UUID REFERENCES public.company_payment_instruments(id) ON DELETE SET NULL;
-
 CREATE INDEX IF NOT EXISTS idx_bank_statements_pi_id ON public.bank_statements(payment_instrument_id);
-
 ALTER TABLE public.bank_connections
   ADD COLUMN IF NOT EXISTS payment_instrument_id UUID REFERENCES public.company_payment_instruments(id) ON DELETE SET NULL;
-
 CREATE INDEX IF NOT EXISTS idx_bank_connections_pi_id ON public.bank_connections(payment_instrument_id);
-
 ALTER TABLE public.accounting_entries
   ADD COLUMN IF NOT EXISTS payment_instrument_id UUID REFERENCES public.company_payment_instruments(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS payment_transaction_id UUID;
-
 CREATE INDEX IF NOT EXISTS idx_accounting_entries_pi_id ON public.accounting_entries(payment_instrument_id);
-
 -- =========================================================
 -- 5. UNIFIED TRANSACTION REGISTER
 -- =========================================================
@@ -394,7 +351,6 @@ CREATE TABLE IF NOT EXISTS public.payment_transactions (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ
 );
-
 CREATE INDEX IF NOT EXISTS idx_pt_user_id ON public.payment_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_pt_company_id ON public.payment_transactions(company_id);
 CREATE INDEX IF NOT EXISTS idx_pt_portfolio_id ON public.payment_transactions(portfolio_id);
@@ -404,26 +360,21 @@ CREATE INDEX IF NOT EXISTS idx_pt_source ON public.payment_transactions(source_m
 CREATE INDEX IF NOT EXISTS idx_pt_transfer_group ON public.payment_transactions(transfer_group_id);
 CREATE INDEX IF NOT EXISTS idx_pt_status ON public.payment_transactions(status);
 CREATE INDEX IF NOT EXISTS idx_pt_flow ON public.payment_transactions(flow_direction);
-
 ALTER TABLE public.payment_transactions ENABLE ROW LEVEL SECURITY;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'pt_owner_all') THEN
     CREATE POLICY "pt_owner_all" ON public.payment_transactions FOR ALL
       USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
   END IF;
 END $$;
-
 DROP TRIGGER IF EXISTS trg_pt_updated_at ON public.payment_transactions;
 CREATE TRIGGER trg_pt_updated_at
   BEFORE UPDATE ON public.payment_transactions
   FOR EACH ROW EXECUTE FUNCTION public.trg_set_updated_at();
-
 DROP TRIGGER IF EXISTS trg_sync_portfolio_pt ON public.payment_transactions;
 CREATE TRIGGER trg_sync_portfolio_pt
   BEFORE INSERT OR UPDATE ON public.payment_transactions
   FOR EACH ROW EXECUTE FUNCTION public.sync_portfolio_from_company();
-
 -- Add FK constraints from existing tables to payment_transactions
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'fk_payments_pt_id') THEN
@@ -447,13 +398,11 @@ DO $$ BEGIN
       FOREIGN KEY (payment_transaction_id) REFERENCES public.payment_transactions(id) ON DELETE SET NULL;
   END IF;
 END $$;
-
 CREATE INDEX IF NOT EXISTS idx_payments_pt_id ON public.payments(payment_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_pt_id ON public.expenses(payment_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_debt_payments_pt_id ON public.debt_payments(payment_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_bank_transactions_pt_id ON public.bank_transactions(payment_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_accounting_entries_pt_id ON public.accounting_entries(payment_transaction_id);
-
 -- =========================================================
 -- 6. ALLOCATIONS
 -- =========================================================
@@ -469,12 +418,9 @@ CREATE TABLE IF NOT EXISTS public.payment_transaction_allocations (
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_pta_pt_id ON public.payment_transaction_allocations(payment_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_pta_target ON public.payment_transaction_allocations(allocation_type, target_id);
-
 ALTER TABLE public.payment_transaction_allocations ENABLE ROW LEVEL SECURITY;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'pta_owner_all') THEN
     CREATE POLICY "pta_owner_all" ON public.payment_transaction_allocations FOR ALL
@@ -482,7 +428,6 @@ DO $$ BEGIN
       WITH CHECK (EXISTS (SELECT 1 FROM public.payment_transactions pt WHERE pt.id = payment_transaction_id AND pt.user_id = auth.uid()));
   END IF;
 END $$;
-
 -- =========================================================
 -- 7. INTERNAL TRANSFERS
 -- =========================================================
@@ -508,30 +453,24 @@ CREATE TABLE IF NOT EXISTS public.payment_transfers (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (from_instrument_id <> to_instrument_id)
 );
-
 CREATE INDEX IF NOT EXISTS idx_ptf_user_id ON public.payment_transfers(user_id);
 CREATE INDEX IF NOT EXISTS idx_ptf_company_id ON public.payment_transfers(company_id);
 CREATE INDEX IF NOT EXISTS idx_ptf_group_id ON public.payment_transfers(transfer_group_id);
-
 ALTER TABLE public.payment_transfers ENABLE ROW LEVEL SECURITY;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'ptf_owner_all') THEN
     CREATE POLICY "ptf_owner_all" ON public.payment_transfers FOR ALL
       USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
   END IF;
 END $$;
-
 DROP TRIGGER IF EXISTS trg_ptf_updated_at ON public.payment_transfers;
 CREATE TRIGGER trg_ptf_updated_at
   BEFORE UPDATE ON public.payment_transfers
   FOR EACH ROW EXECUTE FUNCTION public.trg_set_updated_at();
-
 DROP TRIGGER IF EXISTS trg_sync_portfolio_ptf ON public.payment_transfers;
 CREATE TRIGGER trg_sync_portfolio_ptf
   BEFORE INSERT OR UPDATE ON public.payment_transfers
   FOR EACH ROW EXECUTE FUNCTION public.sync_portfolio_from_company();
-
 -- =========================================================
 -- 8. AUDIT LOG
 -- =========================================================
@@ -549,18 +488,14 @@ CREATE TABLE IF NOT EXISTS public.payment_instrument_audit_log (
   context JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_pial_instrument_id ON public.payment_instrument_audit_log(payment_instrument_id);
-
 ALTER TABLE public.payment_instrument_audit_log ENABLE ROW LEVEL SECURITY;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'pial_owner_read') THEN
     CREATE POLICY "pial_owner_read" ON public.payment_instrument_audit_log FOR SELECT
       USING (EXISTS (SELECT 1 FROM public.company_payment_instruments pi WHERE pi.id = payment_instrument_id AND pi.user_id = auth.uid()));
   END IF;
 END $$;
-
 -- =========================================================
 -- 9. ALERTS
 -- =========================================================
@@ -580,19 +515,15 @@ CREATE TABLE IF NOT EXISTS public.payment_alerts (
   resolved_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_pa_user_id ON public.payment_alerts(user_id);
 CREATE INDEX IF NOT EXISTS idx_pa_instrument_id ON public.payment_alerts(payment_instrument_id);
-
 ALTER TABLE public.payment_alerts ENABLE ROW LEVEL SECURITY;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'pa_owner_all') THEN
     CREATE POLICY "pa_owner_all" ON public.payment_alerts FOR ALL
       USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
   END IF;
 END $$;
-
 -- =========================================================
 -- 10. RECONCILIATIONS
 -- =========================================================
@@ -613,19 +544,15 @@ CREATE TABLE IF NOT EXISTS public.payment_reconciliations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   reconciled_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
 );
-
 CREATE INDEX IF NOT EXISTS idx_pr_pt_id ON public.payment_reconciliations(payment_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_pr_bt_id ON public.payment_reconciliations(bank_transaction_id);
-
 ALTER TABLE public.payment_reconciliations ENABLE ROW LEVEL SECURITY;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'pr_owner_all') THEN
     CREATE POLICY "pr_owner_all" ON public.payment_reconciliations FOR ALL
       USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
   END IF;
 END $$;
-
 -- =========================================================
 -- 11. REPORT EXPORTS
 -- =========================================================
@@ -646,18 +573,14 @@ CREATE TABLE IF NOT EXISTS public.payment_report_exports (
   error_message TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_pre_user_id ON public.payment_report_exports(user_id);
-
 ALTER TABLE public.payment_report_exports ENABLE ROW LEVEL SECURITY;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'pre_owner_all') THEN
     CREATE POLICY "pre_owner_all" ON public.payment_report_exports FOR ALL
       USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
   END IF;
 END $$;
-
 -- =========================================================
 -- 12. TRIGGERS: Consistency & Balance
 -- =========================================================
@@ -684,12 +607,10 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_ensure_instrument_consistency ON public.payment_transactions;
 CREATE TRIGGER trg_ensure_instrument_consistency
   BEFORE INSERT OR UPDATE ON public.payment_transactions
   FOR EACH ROW EXECUTE FUNCTION public.ensure_instrument_company_consistency();
-
 -- Update instrument balance on transaction changes
 CREATE OR REPLACE FUNCTION public.apply_payment_transaction_balance()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
@@ -736,12 +657,10 @@ BEGIN
   RETURN NULL;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_apply_pt_balance ON public.payment_transactions;
 CREATE TRIGGER trg_apply_pt_balance
   AFTER INSERT OR UPDATE OR DELETE ON public.payment_transactions
   FOR EACH ROW EXECUTE FUNCTION public.apply_payment_transaction_balance();
-
 -- Audit log for instrument changes
 CREATE OR REPLACE FUNCTION public.log_payment_instrument_changes()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
@@ -760,12 +679,10 @@ BEGIN
   RETURN NULL;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_log_instrument_changes ON public.company_payment_instruments;
 CREATE TRIGGER trg_log_instrument_changes
   AFTER INSERT OR UPDATE ON public.company_payment_instruments
   FOR EACH ROW EXECUTE FUNCTION public.log_payment_instrument_changes();
-
 -- Auto-generate accounting sub-account codes
 CREATE OR REPLACE FUNCTION public.generate_instrument_account_code(
   p_company_id UUID,
@@ -796,7 +713,6 @@ BEGIN
   RETURN v_base_code || LPAD(v_next_seq::TEXT, 3, '0');
 END;
 $$;
-
 -- =========================================================
 -- 13. ANALYTICAL VIEWS
 -- =========================================================
@@ -814,7 +730,6 @@ LEFT JOIN public.payment_transactions pt
   ON pt.payment_instrument_id = pi.id AND pt.deleted_at IS NULL AND pt.status IN ('posted', 'reconciled')
 GROUP BY pi.id, pi.user_id, pi.company_id, pi.portfolio_id,
   pi.instrument_type, pi.instrument_subtype, pi.label, pi.currency, pi.current_balance;
-
 CREATE OR REPLACE VIEW public.v_company_payment_stats AS
 SELECT
   pt.user_id, pt.company_id, pt.portfolio_id,
@@ -825,7 +740,6 @@ SELECT
 FROM public.payment_transactions pt
 WHERE pt.deleted_at IS NULL AND pt.status IN ('posted', 'reconciled')
 GROUP BY pt.user_id, pt.company_id, pt.portfolio_id;
-
 CREATE OR REPLACE VIEW public.v_portfolio_payment_stats AS
 SELECT
   pt.user_id, pt.portfolio_id,
@@ -836,7 +750,6 @@ SELECT
 FROM public.payment_transactions pt
 WHERE pt.deleted_at IS NULL AND pt.status IN ('posted', 'reconciled') AND pt.portfolio_id IS NOT NULL
 GROUP BY pt.user_id, pt.portfolio_id;
-
 -- =========================================================
 -- 14. RPC FUNCTIONS
 -- =========================================================
@@ -866,7 +779,6 @@ CREATE OR REPLACE FUNCTION public.rpc_payment_volume_by_method(
   GROUP BY TO_CHAR(pt.transaction_date, 'YYYY-MM'), pi.instrument_type, pi.instrument_subtype
   ORDER BY 1, 2;
 $$;
-
 -- Cash flow per instrument
 CREATE OR REPLACE FUNCTION public.rpc_account_cash_flow(
   p_instrument_id UUID,
@@ -890,7 +802,6 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
       (SELECT opening_balance FROM public.company_payment_instruments WHERE id = p_instrument_id)
   FROM monthly m;
 $$;
-
 -- Daily balance evolution
 CREATE OR REPLACE FUNCTION public.rpc_account_balance_evolution(
   p_instrument_id UUID,
@@ -912,7 +823,6 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
       (SELECT opening_balance FROM public.company_payment_instruments WHERE id = p_instrument_id)
   FROM daily d;
 $$;
-
 -- Portfolio consolidated balances
 CREATE OR REPLACE FUNCTION public.rpc_portfolio_consolidated_balances(
   p_user_id UUID
@@ -935,7 +845,6 @@ CREATE OR REPLACE FUNCTION public.rpc_portfolio_consolidated_balances(
   JOIN public.company_payment_instruments pi ON pi.company_id = c.id AND pi.status = 'active'
   WHERE cp.user_id = p_user_id;
 $$;
-
 -- Card spending by category
 CREATE OR REPLACE FUNCTION public.rpc_card_spending_by_category(
   p_instrument_id UUID,
@@ -953,7 +862,6 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     AND pt.deleted_at IS NULL AND pt.status IN ('posted', 'reconciled')
   GROUP BY pt.category, pt.subcategory ORDER BY 4 DESC;
 $$;
-
 -- =========================================================
 -- 15. BACKFILL: Default portfolios & instruments
 -- =========================================================
@@ -966,19 +874,16 @@ FROM public.company c
 WHERE NOT EXISTS (
   SELECT 1 FROM public.company_portfolios p WHERE p.user_id = c.user_id AND p.is_default = true
 );
-
 -- Attach companies to their portfolio
 UPDATE public.company c
 SET portfolio_id = p.id
 FROM public.company_portfolios p
 WHERE p.user_id = c.user_id AND p.is_default = true AND c.portfolio_id IS NULL;
-
 -- Populate portfolio members
 INSERT INTO public.company_portfolio_members (portfolio_id, company_id, user_id)
 SELECT c.portfolio_id, c.id, c.user_id
 FROM public.company c WHERE c.portfolio_id IS NOT NULL
 ON CONFLICT (portfolio_id, company_id) DO NOTHING;
-
 -- Create default bank instrument per company
 INSERT INTO public.company_payment_instruments (
   user_id, company_id, portfolio_id,
@@ -1000,7 +905,6 @@ WHERE NOT EXISTS (
   SELECT 1 FROM public.company_payment_instruments pi
   WHERE pi.company_id = c.id AND pi.instrument_type = 'bank_account' AND pi.is_default = true
 );
-
 -- Create default cash instrument per company
 INSERT INTO public.company_payment_instruments (
   user_id, company_id, portfolio_id,
@@ -1020,7 +924,6 @@ WHERE NOT EXISTS (
   SELECT 1 FROM public.company_payment_instruments pi
   WHERE pi.company_id = c.id AND pi.instrument_type = 'cash' AND pi.is_default = true
 );
-
 -- Link existing bank_connections to instruments
 UPDATE public.bank_connections bc
 SET payment_instrument_id = pi.id
@@ -1028,5 +931,4 @@ FROM public.company_payment_instruments pi
 WHERE pi.company_id = bc.company_id
   AND pi.instrument_type = 'bank_account' AND pi.is_default = true
   AND bc.payment_instrument_id IS NULL;
-
 COMMIT;

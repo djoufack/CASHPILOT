@@ -166,14 +166,12 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- Attach trigger
 DROP TRIGGER IF EXISTS trg_auto_journal_supplier_order ON public.supplier_orders;
 CREATE TRIGGER trg_auto_journal_supplier_order
   AFTER INSERT OR UPDATE ON public.supplier_orders
   FOR EACH ROW
   EXECUTE FUNCTION auto_journal_supplier_order();
-
 -- Reversal on DELETE
 CREATE OR REPLACE FUNCTION reverse_journal_supplier_order()
 RETURNS TRIGGER
@@ -206,14 +204,11 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_reverse_journal_supplier_order_on_delete ON public.supplier_orders;
 CREATE TRIGGER trg_reverse_journal_supplier_order_on_delete
   BEFORE DELETE ON public.supplier_orders
   FOR EACH ROW
   EXECUTE FUNCTION reverse_journal_supplier_order();
-
-
 -- =====================================================================
 -- PART 2: PURCHASE ORDERS — Auto-journal
 -- =====================================================================
@@ -366,14 +361,12 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- Attach trigger
 DROP TRIGGER IF EXISTS trg_auto_journal_purchase_order ON public.purchase_orders;
 CREATE TRIGGER trg_auto_journal_purchase_order
   AFTER INSERT OR UPDATE ON public.purchase_orders
   FOR EACH ROW
   EXECUTE FUNCTION auto_journal_purchase_order();
-
 -- Reversal on DELETE
 CREATE OR REPLACE FUNCTION reverse_journal_purchase_order()
 RETURNS TRIGGER
@@ -406,14 +399,11 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_reverse_journal_purchase_order_on_delete ON public.purchase_orders;
 CREATE TRIGGER trg_reverse_journal_purchase_order_on_delete
   BEFORE DELETE ON public.purchase_orders
   FOR EACH ROW
   EXECUTE FUNCTION reverse_journal_purchase_order();
-
-
 -- =====================================================================
 -- PART 3: UPDATE company_id assignment for new source_types
 -- =====================================================================
@@ -471,8 +461,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
-
 -- =====================================================================
 -- PART 4: BACKFILL — Journal existing supplier_orders & purchase_orders
 -- =====================================================================
@@ -593,7 +581,5 @@ BEGIN
 
   RAISE NOTICE 'Backfilled % accounting entries for orders', v_count;
 END $$;
-
-
 -- Force PostgREST schema reload
 NOTIFY pgrst, 'reload schema';

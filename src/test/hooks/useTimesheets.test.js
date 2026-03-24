@@ -183,10 +183,14 @@ describe('useTimesheets', () => {
     expect(result.current.calculateDuration(null, null)).toBe(0);
   });
 
-  it('returns hook API shape', () => {
+  it('returns hook API shape', async () => {
     chainsByTable['timesheets'] = createChain({ data: [], error: null });
 
     const { result } = renderHook(() => useTimesheets());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
 
     expect(result.current).toHaveProperty('timesheets');
     expect(result.current).toHaveProperty('loading');

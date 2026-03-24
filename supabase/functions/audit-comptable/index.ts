@@ -112,6 +112,27 @@ function computeCategoryScore(checks: CheckResult[]): number {
   return computeScore(checks);
 }
 
+async function fetchAllRows(queryFactory: () => any, label: string, pageSize = 1000): Promise<any[]> {
+  const rows: any[] = [];
+  let from = 0;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { data, error } = await queryFactory().range(from, from + pageSize - 1);
+    if (error) {
+      throw new Error(`${label}: ${error.message}`);
+    }
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < pageSize) {
+      break;
+    }
+    from += pageSize;
+  }
+
+  return rows;
+}
+
 // ---------------------------------------------------------------------------
 // Main handler
 // ---------------------------------------------------------------------------
@@ -164,8 +185,8 @@ serve(async (req) => {
     }
 
     // ── Fetch data in parallel ───────────────────────────────
-    const [entriesRes, accountsRes, invoicesRes, expensesRes, bankTxRes] = await Promise.all([
-      (() => {
+    const [entries, accounts, invoices, expenses, bankTx] = await Promise.all([
+      fetchAllRows(() => {
         let q = supabase
           .from('accounting_entries')
           .select('*')
@@ -175,13 +196,13 @@ serve(async (req) => {
           .order('transaction_date', { ascending: true });
         if (companyId) q = q.eq('company_id', companyId);
         return q;
-      })(),
-      (() => {
+      }, 'accounting_entries'),
+      fetchAllRows(() => {
         let q = supabase.from('accounting_chart_of_accounts').select('*').eq('user_id', userId);
         if (companyId) q = q.eq('company_id', companyId);
         return q;
-      })(),
-      (() => {
+      }, 'accounting_chart_of_accounts'),
+      fetchAllRows(() => {
         let q = supabase
           .from('invoices')
           .select('*')
@@ -190,8 +211,8 @@ serve(async (req) => {
           .lte('date', periodEnd);
         if (companyId) q = q.eq('company_id', companyId);
         return q;
-      })(),
-      (() => {
+      }, 'invoices'),
+      fetchAllRows(() => {
         let q = supabase
           .from('expenses')
           .select('*')
@@ -200,8 +221,8 @@ serve(async (req) => {
           .lte('expense_date', periodEnd);
         if (companyId) q = q.eq('company_id', companyId);
         return q;
-      })(),
-      (() => {
+      }, 'expenses'),
+      fetchAllRows(() => {
         let q = supabase
           .from('bank_transactions')
           .select('*')
@@ -210,14 +231,8 @@ serve(async (req) => {
           .lte('date', periodEnd);
         if (companyId) q = q.eq('company_id', companyId);
         return q;
-      })(),
+      }, 'bank_transactions'),
     ]);
-
-    const entries = entriesRes.data ?? [];
-    const accounts = accountsRes.data ?? [];
-    const invoices = invoicesRes.data ?? [];
-    const expenses = expensesRes.data ?? [];
-    const bankTx = bankTxRes.data ?? [];
 
     // Build lookup maps
     const accountCodeSet = new Set(accounts.map((a: any) => a.account_code));

@@ -3,13 +3,26 @@ import { renderHook, waitFor } from '@testing-library/react';
 
 // ── Hoisted state shared between mocks and tests ─────────────────────────────
 
-const { mockToast, mockLogAction, mockUser, mockFromFn } = vi.hoisted(() => {
-  const mockToast = vi.fn();
-  const mockLogAction = vi.fn();
-  const mockUser = { id: 'user-1', email: 'test@example.com' };
-  const mockFromFn = vi.fn();
-  return { mockToast, mockLogAction, mockUser, mockFromFn };
-});
+const { mockToast, mockLogAction, mockUser, mockFromFn, mockApplyCompanyScope, mockWithCompanyScope } = vi.hoisted(
+  () => {
+    const mockToast = vi.fn();
+    const mockLogAction = vi.fn();
+    const mockUser = { id: 'user-1', email: 'test@example.com' };
+    const mockFromFn = vi.fn();
+    const mockActiveCompanyId = 'comp-1';
+    const mockApplyCompanyScope = vi.fn((query) => {
+      if (query && typeof query.eq === 'function') {
+        return query.eq('company_id', mockActiveCompanyId);
+      }
+      return query;
+    });
+    const mockWithCompanyScope = vi.fn((payload) => ({
+      ...payload,
+      company_id: mockActiveCompanyId,
+    }));
+    return { mockToast, mockLogAction, mockUser, mockFromFn, mockApplyCompanyScope, mockWithCompanyScope };
+  }
+);
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -37,16 +50,8 @@ const mockActiveCompanyId = 'comp-1';
 vi.mock('@/hooks/useCompanyScope', () => ({
   useCompanyScope: () => ({
     activeCompanyId: mockActiveCompanyId,
-    applyCompanyScope: vi.fn((query) => {
-      if (query && typeof query.eq === 'function') {
-        return query.eq('company_id', mockActiveCompanyId);
-      }
-      return query;
-    }),
-    withCompanyScope: vi.fn((payload) => ({
-      ...payload,
-      company_id: mockActiveCompanyId,
-    })),
+    applyCompanyScope: mockApplyCompanyScope,
+    withCompanyScope: mockWithCompanyScope,
   }),
 }));
 
@@ -115,10 +120,14 @@ describe('useExpenses', () => {
 
   // ---------- Initial state ----------
 
-  it('returns empty expenses initially', () => {
+  it('returns empty expenses initially', async () => {
     chainsByTable['expenses'] = createChain({ data: [], error: null });
 
     const { result } = renderHook(() => useExpenses());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
 
     expect(result.current.expenses).toEqual([]);
     expect(result.current.error).toBeNull();
@@ -139,10 +148,14 @@ describe('useExpenses', () => {
 
   // ---------- Return shape ----------
 
-  it('returns all expected API fields', () => {
+  it('returns all expected API fields', async () => {
     chainsByTable['expenses'] = createChain({ data: [], error: null });
 
     const { result } = renderHook(() => useExpenses());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
 
     expect(result.current).toHaveProperty('expenses');
     expect(result.current).toHaveProperty('loading');

@@ -44,7 +44,6 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
 -- 2. Make check_accounting_balance() SECURITY DEFINER
 CREATE OR REPLACE FUNCTION check_accounting_balance()
 RETURNS TRIGGER

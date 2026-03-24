@@ -122,9 +122,9 @@ export default function AccountantDashboardPage() {
         if (permissions.view_expenses) {
           const { data: expenses } = await supabase
             .from('expenses')
-            .select('id, description, amount, currency, category, date, status')
+            .select('id, description, amount, currency, category, expense_date, status')
             .eq('company_id', selectedCompanyId)
-            .order('date', { ascending: false })
+            .order('expense_date', { ascending: false })
             .limit(10);
           results.recentExpenses = expenses || [];
         }
@@ -401,7 +401,7 @@ export default function AccountantDashboardPage() {
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-white truncate">{exp.description || '-'}</p>
                             <p className="text-xs text-slate-400">
-                              {exp.category || '-'} &middot; {formatDate(exp.date)}
+                              {exp.category || '-'} &middot; {formatDate(exp.expense_date)}
                             </p>
                           </div>
                           <p className="text-sm font-semibold text-white shrink-0 ml-2">
