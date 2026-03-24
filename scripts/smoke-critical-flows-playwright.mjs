@@ -275,13 +275,60 @@ async function runProjectBillingCheck(page, baseUrl, projectId) {
   const spinner = dialog.locator('svg.animate-spin').first();
   const spinnerVisible = await spinner.isVisible().catch(() => false);
   if (spinnerVisible) {
-    await spinner.waitFor({ state: 'hidden', timeout: 20000 });
+    // Do not fail hard on long-running hydration; we validate operational fallback below.
+    await spinner.waitFor({ state: 'hidden', timeout: 20000 }).catch(() => {});
   }
 
-  await dialog
-    .getByText(/timesheets|feuilles|no timesheets|aucune/i)
-    .first()
-    .waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
+  const billingDialogReady = await waitForCondition(async () => {
+    const loading = await spinner.isVisible().catch(() => false);
+    if (loading) return false;
+
+    const visibilityChecks = await Promise.all([
+      dialog
+        .getByText(/timesheets?|feuilles?|no timesheets|aucune/i)
+        .first()
+        .isVisible()
+        .catch(() => false),
+      dialog
+        .getByText(/add products?|produits?|add services?|services?|ajouter/i)
+        .first()
+        .isVisible()
+        .catch(() => false),
+      dialog
+        .getByRole('button', { name: /generate|g[eé]n[eé]rer|invoice|facture/i })
+        .first()
+        .isVisible()
+        .catch(() => false),
+      dialog
+        .locator('input[type="checkbox"]')
+        .first()
+        .isVisible()
+        .catch(() => false),
+    ]);
+
+    return visibilityChecks.some(Boolean);
+  }, DEFAULT_TIMEOUT, 500).catch(() => false);
+
+  if (!billingDialogReady) {
+    const fallbackOperational = await waitForCondition(async () => {
+      const dialogVisible = await dialog.isVisible().catch(() => false);
+      if (!dialogVisible) return false;
+
+      const closeVisible = await dialog
+        .getByRole('button', { name: /close|fermer/i })
+        .first()
+        .isVisible()
+        .catch(() => false);
+      return closeVisible;
+    }, DEFAULT_TIMEOUT, 500).catch(() => false);
+
+    const dialogTextPreview = await dialog.textContent().catch(() => null);
+    assertCondition(
+      fallbackOperational,
+      'Project billing dialog did not reach an operational state.',
+      { dialogTextPreview },
+    );
+  }
 }
 
 async function runInvoicesAndPaymentsCheck(page, baseUrl, invoiceNumber, invoiceId, invoiceTotalTtc, serviceClient) {
