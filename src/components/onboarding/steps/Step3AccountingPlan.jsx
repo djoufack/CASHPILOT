@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import * as XLSX from 'xlsx';
 import { ArrowLeft, ArrowRight, FileText, Upload, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const PLAN_META = {
@@ -11,7 +12,7 @@ const PLAN_META = {
     color: '#3B82F6',
     classes: [
       { code: '1', name: 'Comptes de capitaux' },
-      { code: '2', name: 'Comptes d\'immobilisations' },
+      { code: '2', name: "Comptes d'immobilisations" },
       { code: '3', name: 'Comptes de stocks' },
       { code: '4', name: 'Comptes de tiers' },
       { code: '5', name: 'Comptes financiers' },
@@ -24,7 +25,7 @@ const PLAN_META = {
     color: '#F59E0B',
     classes: [
       { code: '1', name: 'Fonds propres et provisions' },
-      { code: '2', name: 'Frais d\'etablissement et immobilisations' },
+      { code: '2', name: "Frais d'etablissement et immobilisations" },
       { code: '3', name: 'Stocks et commandes en cours' },
       { code: '4', name: 'Creances et dettes' },
       { code: '5', name: 'Placements et valeurs disponibles' },
@@ -37,7 +38,7 @@ const PLAN_META = {
     color: '#22C55E',
     classes: [
       { code: '1', name: 'Comptes de ressources durables' },
-      { code: '2', name: 'Comptes d\'actif immobilise' },
+      { code: '2', name: "Comptes d'actif immobilise" },
       { code: '3', name: 'Comptes de stocks' },
       { code: '4', name: 'Comptes de tiers' },
       { code: '5', name: 'Comptes de tresorerie' },
@@ -56,6 +57,7 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
   const [showUpload, setShowUpload] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadPreview, setUploadPreview] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [previewPlan, setPreviewPlan] = useState(null);
 
@@ -86,30 +88,114 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadFile(file);
+    setUploadPreview(null);
+    setUploadError(null);
     parseFile(file);
   };
 
-  const parseFile = async (file) => {
+  const normalizeHeader = (value) =>
+    String(value || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+
+  const mapRowsToAccounts = (rows) => {
+    if (!Array.isArray(rows) || rows.length < 2) {
+      throw new Error('Le fichier importé est vide ou ne contient pas de lignes exploitables.');
+    }
+
+    const header = rows[0].map(normalizeHeader);
+    const codeIdx = header.findIndex((h) =>
+      ['code', 'numero', 'numéro', 'account_code', 'accountnumber', 'compte'].includes(h)
+    );
+    const nameIdx = header.findIndex((h) =>
+      ['nom', 'libelle', 'libellé', 'name', 'account_name', 'intitule'].includes(h)
+    );
+    const typeIdx = header.findIndex((h) => ['type', 'classe', 'account_type', 'category'].includes(h));
+
+    if (codeIdx === -1 || nameIdx === -1) {
+      throw new Error('Colonnes "code" et "nom" introuvables dans le fichier.');
+    }
+
+    const accounts = rows
+      .slice(1)
+      .map((row) => ({
+        account_code: String(row[codeIdx] || '').trim(),
+        account_name: String(row[nameIdx] || '').trim(),
+        account_type: typeIdx >= 0 ? mapAccountType(row[typeIdx]) : inferType(row[codeIdx]),
+      }))
+      .filter((account) => account.account_code && account.account_name);
+
+    if (accounts.length === 0) {
+      throw new Error('Aucun compte valide n’a été trouvé dans ce fichier.');
+    }
+
+    return accounts;
+  };
+
+  const parseCsvFile = async (file) => {
     const text = await file.text();
-    const lines = text.split('\n').filter(l => l.trim());
+    const lines = text.split('\n').filter((line) => line.trim());
     const separator = text.includes(';') ? ';' : text.includes('\t') ? '\t' : ',';
-    const rows = lines.map(l => l.split(separator).map(c => c.trim().replace(/^"|"$/g, '')));
+    const rows = lines.map((line) => line.split(separator).map((cell) => cell.trim().replace(/^"|"$/g, '')));
+    return mapRowsToAccounts(rows);
+  };
 
-    if (rows.length < 2) return;
-    const header = rows[0].map(h => h.toLowerCase());
-    const codeIdx = header.findIndex(h => ['code', 'numero', 'num\u00e9ro', 'account_code'].includes(h));
-    const nameIdx = header.findIndex(h => ['nom', 'libelle', 'libell\u00e9', 'name', 'account_name'].includes(h));
-    const typeIdx = header.findIndex(h => ['type', 'classe', 'account_type'].includes(h));
+  const parseExcelFile = async (file) => {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const firstSheetName = workbook.SheetNames?.[0];
 
-    if (codeIdx === -1 || nameIdx === -1) return;
+    if (!firstSheetName) {
+      throw new Error('Le fichier Excel ne contient aucune feuille exploitable.');
+    }
 
-    const accounts = rows.slice(1).map(row => ({
-      account_code: row[codeIdx] || '',
-      account_name: row[nameIdx] || '',
-      account_type: typeIdx >= 0 ? mapAccountType(row[typeIdx]) : inferType(row[codeIdx]),
-    })).filter(a => a.account_code && a.account_name);
+    const worksheet = workbook.Sheets[firstSheetName];
+    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: false });
+    return mapRowsToAccounts(rows);
+  };
 
-    setUploadPreview(accounts);
+  const getFriendlyParseError = (extension, error) => {
+    const message = String(error?.message || '').trim();
+    if (
+      message.includes('Colonnes "') ||
+      message.includes('Aucun compte valide') ||
+      message.includes('vide') ||
+      message.includes('feuille')
+    ) {
+      return message;
+    }
+
+    if (['xlsx', 'xls'].includes(extension)) {
+      return "Impossible de lire ce fichier Excel. Verifiez que le fichier n'est pas corrompu.";
+    }
+
+    return 'Impossible de lire ce fichier CSV. Verifiez son format et son contenu.';
+  };
+
+  const parseFile = async (file) => {
+    try {
+      const extension = String(file.name || '')
+        .split('.')
+        .pop()
+        .toLowerCase();
+      const accounts = ['xlsx', 'xls'].includes(extension) ? await parseExcelFile(file) : await parseCsvFile(file);
+
+      setUploadPreview(accounts);
+    } catch (err) {
+      if (import.meta.env.MODE !== 'test') {
+        console.error('Failed to parse accounting plan file:', err);
+      }
+      setUploadPreview(null);
+      const extension = String(file.name || '')
+        .split('.')
+        .pop()
+        .toLowerCase();
+      setUploadError(getFriendlyParseError(extension, err));
+    }
   };
 
   const mapAccountType = (raw) => {
@@ -152,7 +238,7 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
 
       if (planErr) throw planErr;
 
-      const accounts = uploadPreview.map(a => ({
+      const accounts = uploadPreview.map((a) => ({
         plan_id: plan.id,
         account_code: a.account_code,
         account_name: a.account_name,
@@ -164,7 +250,7 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
         await supabase.from('accounting_plan_accounts').insert(accounts.slice(i, i + batchSize));
       }
 
-      setPlans(prev => [...prev, plan]);
+      setPlans((prev) => [...prev, plan]);
       setSelectedPlanId(plan.id);
       updateWizardData('selectedPlanId', plan.id);
       updateWizardData('selectedPlanCountry', null);
@@ -204,7 +290,7 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
         </div>
       ) : (
         <div className="grid gap-3">
-          {plans.map(plan => {
+          {plans.map((plan) => {
             const meta = PLAN_META[plan.country_code];
             const isSelected = selectedPlanId === plan.id;
             const showPreview = isSelected && previewPlan === plan.country_code && meta;
@@ -225,7 +311,9 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{meta?.flag || '\u{1F4C4}'}</span>
                       <div>
-                        <h3 className="font-medium text-sm" style={{ color: '#e8eaf0' }}>{plan.name}</h3>
+                        <h3 className="font-medium text-sm" style={{ color: '#e8eaf0' }}>
+                          {plan.name}
+                        </h3>
                         <p className="text-xs mt-0.5" style={{ color: '#8b92a8' }}>
                           {plan.description || `${plan.accounts_count} comptes`}
                         </p>
@@ -233,11 +321,13 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
                     </div>
                     <div className="flex items-center gap-2">
                       {isSelected && <CheckCircle2 className="w-5 h-5" style={{ color: '#DAA520' }} />}
-                      {meta && isSelected && (
-                        showPreview
-                          ? <ChevronUp className="w-4 h-4" style={{ color: '#8b92a8' }} />
-                          : <ChevronDown className="w-4 h-4" style={{ color: '#8b92a8' }} />
-                      )}
+                      {meta &&
+                        isSelected &&
+                        (showPreview ? (
+                          <ChevronUp className="w-4 h-4" style={{ color: '#8b92a8' }} />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" style={{ color: '#8b92a8' }} />
+                        ))}
                     </div>
                   </div>
                 </button>
@@ -251,7 +341,7 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
                     <p className="text-xs font-medium mb-2" style={{ color: '#8b92a8' }}>
                       {t('onboarding.plan.mainClasses', 'Classes principales :')}
                     </p>
-                    {meta.classes.map(cls => (
+                    {meta.classes.map((cls) => (
                       <div key={cls.code} className="flex items-center gap-2">
                         <span
                           className="w-5 h-5 rounded text-xs font-bold flex items-center justify-center shrink-0"
@@ -259,7 +349,9 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
                         >
                           {cls.code}
                         </span>
-                        <span className="text-xs" style={{ color: '#e8eaf0' }}>{cls.name}</span>
+                        <span className="text-xs" style={{ color: '#e8eaf0' }}>
+                          {cls.name}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -281,7 +373,9 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
                   <h3 className="font-medium text-sm" style={{ color: '#8b92a8' }}>
                     {t('onboarding.plan.import', 'Importer mon plan comptable')}
                   </h3>
-                  <p className="text-xs mt-0.5" style={{ color: '#8b92a8' }}>CSV ou Excel (.xlsx, .csv)</p>
+                  <p className="text-xs mt-0.5" style={{ color: '#8b92a8' }}>
+                    CSV ou Excel (.xlsx, .csv)
+                  </p>
                 </div>
               </div>
             </button>
@@ -299,18 +393,29 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
                 aria-label={t('onboarding.plan.uploadFile', 'Choisir un fichier a importer')}
               />
               <p className="text-xs" style={{ color: '#8b92a8' }}>
-                Colonnes attendues : <code style={{ color: '#e8eaf0' }}>code</code>, <code style={{ color: '#e8eaf0' }}>nom</code>, <code style={{ color: '#e8eaf0' }}>type</code> (optionnel)
+                Colonnes attendues : <code style={{ color: '#e8eaf0' }}>code</code>,{' '}
+                <code style={{ color: '#e8eaf0' }}>nom</code>, <code style={{ color: '#e8eaf0' }}>type</code>{' '}
+                (optionnel)
               </p>
+              {uploadError && (
+                <p className="text-sm" style={{ color: '#F87171' }} role="alert">
+                  {uploadError}
+                </p>
+              )}
               {uploadPreview && (
                 <div className="space-y-2">
-                  <p className="text-sm" style={{ color: '#22C55E' }}>{uploadPreview.length} comptes detectes</p>
+                  <p className="text-sm" style={{ color: '#22C55E' }}>
+                    {uploadPreview.length} comptes detectes
+                  </p>
                   <div
                     className="max-h-32 overflow-y-auto text-xs rounded p-2 space-y-1"
                     style={{ background: 'rgba(10, 14, 26, 0.5)' }}
                   >
                     {uploadPreview.slice(0, 8).map((a, i) => (
                       <div key={i} className="flex justify-between" style={{ color: '#8b92a8' }}>
-                        <span>{a.account_code} - {a.account_name}</span>
+                        <span>
+                          {a.account_code} - {a.account_name}
+                        </span>
                         <span style={{ color: '#4b5563' }}>{a.account_type}</span>
                       </div>
                     ))}
