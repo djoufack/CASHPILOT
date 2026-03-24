@@ -119,6 +119,9 @@ verify_jwt = true
 [functions.delete-account]
 verify_jwt = true
 
+[functions.admin-users]
+verify_jwt = true
+
 [functions.exchange-rates]
 verify_jwt = false
 

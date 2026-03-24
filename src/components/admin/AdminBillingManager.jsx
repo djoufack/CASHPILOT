@@ -4,8 +4,15 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Coins, CreditCard, RefreshCw, Save, Search, Trash2, Wallet } from 'lucide-react';
-import { CREDIT_TRANSACTION_TYPES, SUBSCRIPTION_STATUS_OPTIONS, useAdminBilling } from '@/hooks/useAdminBilling';
+import { Coins, CreditCard, RefreshCw, Save, Search, Trash2, UserCog, UserPlus, Wallet } from 'lucide-react';
+import {
+  ADMIN_ACCESS_ROLE_OPTIONS,
+  CREDIT_TRANSACTION_TYPES,
+  PROFILE_ROLE_OPTIONS,
+  SUBSCRIPTION_STATUS_OPTIONS,
+  USER_DELETE_CONFIRMATION_PHRASE,
+  useAdminBilling,
+} from '@/hooks/useAdminBilling';
 
 const toDateTimeLocalInput = (value) => {
   if (!value) return '';
@@ -31,11 +38,31 @@ const toDraftFromRecord = (record) => ({
   current_period_end: toDateTimeLocalInput(record.current_period_end),
 });
 
+const toUserDraftFromRecord = (record) => ({
+  email: record.email || '',
+  full_name: record.full_name || '',
+  company_name: record.company_name || '',
+  phone: record.phone || '',
+  profile_role: record.profile_role || 'user',
+  access_role: record.access_role || 'user',
+  password: '',
+});
+
 const buildDefaultTransactionDraft = (userId) => ({
   user_id: userId,
   type: 'bonus',
   amount: '',
   description: '',
+});
+
+const buildDefaultCreateUserDraft = () => ({
+  email: '',
+  password: '',
+  full_name: '',
+  company_name: '',
+  phone: '',
+  profile_role: 'user',
+  access_role: 'user',
 });
 
 const AdminBillingManager = () => {
@@ -49,7 +76,13 @@ const AdminBillingManager = () => {
     loadingTransactionsUserId,
     savingTransactionUserId,
     deletingTransactionId,
+    creatingUser,
+    updatingAccountUserId,
+    deletingAccountUserId,
     fetchBillingData,
+    createUserAccount,
+    updateUserAccount,
+    deleteUserAccount,
     upsertUserCredits,
     deleteUserCredits,
     fetchTransactions,
@@ -59,7 +92,10 @@ const AdminBillingManager = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [drafts, setDrafts] = useState({});
+  const [userDrafts, setUserDrafts] = useState({});
+  const [createUserDraft, setCreateUserDraft] = useState(buildDefaultCreateUserDraft);
   const [expandedUserId, setExpandedUserId] = useState(null);
+  const [selectedUserId, setSelectedUserId] = useState(null);
   const [transactionDrafts, setTransactionDrafts] = useState({});
 
   useEffect(() => {
@@ -73,7 +109,22 @@ const AdminBillingManager = () => {
         return accumulator;
       }, {})
     );
+
+    setUserDrafts(
+      records.reduce((accumulator, record) => {
+        accumulator[record.user_id] = toUserDraftFromRecord(record);
+        return accumulator;
+      }, {})
+    );
   }, [records]);
+
+  useEffect(() => {
+    if (!selectedUserId) return;
+    const exists = records.some((record) => record.user_id === selectedUserId);
+    if (!exists) {
+      setSelectedUserId(null);
+    }
+  }, [records, selectedUserId]);
 
   const plansById = useMemo(() => new Map((plans || []).map((plan) => [plan.id, plan])), [plans]);
 
@@ -86,6 +137,9 @@ const AdminBillingManager = () => {
       return [
         record.user_id,
         record.name,
+        record.email,
+        record.full_name,
+        record.company_name,
         record.profile_role,
         record.access_role,
         record.subscription_status,
@@ -125,7 +179,17 @@ const AdminBillingManager = () => {
     }));
   };
 
-  const hasChanges = (record) => {
+  const handleUserDraftChange = (userId, field, value) => {
+    setUserDrafts((current) => ({
+      ...current,
+      [userId]: {
+        ...(current[userId] || {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  const hasCreditsChanges = (record) => {
     const draft = drafts[record.user_id];
     if (!draft) return false;
 
@@ -141,17 +205,79 @@ const AdminBillingManager = () => {
     );
   };
 
-  const handleSave = async (record) => {
+  const hasUserChanges = (record) => {
+    const draft = userDrafts[record.user_id];
+    if (!draft) return false;
+
+    const baseline = toUserDraftFromRecord(record);
+    return (
+      draft.email !== baseline.email ||
+      draft.full_name !== baseline.full_name ||
+      draft.company_name !== baseline.company_name ||
+      draft.phone !== baseline.phone ||
+      draft.profile_role !== baseline.profile_role ||
+      draft.access_role !== baseline.access_role ||
+      Boolean(draft.password)
+    );
+  };
+
+  const handleSaveCredits = async (record) => {
     const draft = drafts[record.user_id];
     if (!draft) return;
     await upsertUserCredits(record, draft);
   };
 
-  const handleDelete = async (record) => {
+  const handleDeleteCredits = async (record) => {
     if (!window.confirm(`Delete credits record for ${record.name}?`)) {
       return;
     }
     await deleteUserCredits(record);
+  };
+
+  const handleSaveUser = async (record) => {
+    const draft = userDrafts[record.user_id];
+    if (!draft) return;
+
+    const success = await updateUserAccount(record, draft);
+    if (!success) return;
+
+    setUserDrafts((current) => ({
+      ...current,
+      [record.user_id]: {
+        ...current[record.user_id],
+        password: '',
+      },
+    }));
+  };
+
+  const handleDeleteUser = async (record) => {
+    const typed = window.prompt(
+      `Type ${USER_DELETE_CONFIRMATION_PHRASE} to delete ${record.email || record.user_id} and all linked data.`
+    );
+    if (typed !== USER_DELETE_CONFIRMATION_PHRASE) {
+      return;
+    }
+
+    const success = await deleteUserAccount(record);
+    if (success && selectedUserId === record.user_id) {
+      setSelectedUserId(null);
+    }
+    if (success && expandedUserId === record.user_id) {
+      setExpandedUserId(null);
+    }
+  };
+
+  const handleCreateUserDraftChange = (field, value) => {
+    setCreateUserDraft((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleCreateUser = async () => {
+    const success = await createUserAccount(createUserDraft);
+    if (!success) return;
+    setCreateUserDraft(buildDefaultCreateUserDraft());
   };
 
   const handleToggleTransactions = async (record) => {
@@ -201,6 +327,7 @@ const AdminBillingManager = () => {
 
   const expandedRecord = records.find((record) => record.user_id === expandedUserId) || null;
   const expandedTransactions = expandedUserId ? transactionsByUserId[expandedUserId] || [] : [];
+  const selectedRecord = records.find((record) => record.user_id === selectedUserId) || null;
 
   return (
     <div className="space-y-6">
@@ -220,6 +347,97 @@ const AdminBillingManager = () => {
       </div>
 
       <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <UserPlus className="w-5 h-5 text-orange-400" />
+          <h3 className="text-lg font-semibold text-white">Create platform user</h3>
+        </div>
+        <p className="text-sm text-gray-400">
+          Admin CRUD is server-authoritative. New users are created in auth, profile, and access role in one flow.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          <Input
+            value={createUserDraft.email}
+            onChange={(event) => handleCreateUserDraftChange('email', event.target.value)}
+            placeholder="Email"
+            className="bg-gray-950 border-gray-800 text-white"
+          />
+          <Input
+            value={createUserDraft.password}
+            onChange={(event) => handleCreateUserDraftChange('password', event.target.value)}
+            placeholder="Temporary password"
+            type="password"
+            className="bg-gray-950 border-gray-800 text-white"
+          />
+          <Input
+            value={createUserDraft.full_name}
+            onChange={(event) => handleCreateUserDraftChange('full_name', event.target.value)}
+            placeholder="Full name"
+            className="bg-gray-950 border-gray-800 text-white"
+          />
+          <Input
+            value={createUserDraft.company_name}
+            onChange={(event) => handleCreateUserDraftChange('company_name', event.target.value)}
+            placeholder="Company name"
+            className="bg-gray-950 border-gray-800 text-white"
+          />
+          <Input
+            value={createUserDraft.phone}
+            onChange={(event) => handleCreateUserDraftChange('phone', event.target.value)}
+            placeholder="Phone"
+            className="bg-gray-950 border-gray-800 text-white"
+          />
+          <Select
+            value={createUserDraft.profile_role}
+            onValueChange={(value) => handleCreateUserDraftChange('profile_role', value)}
+          >
+            <SelectTrigger className="bg-gray-950 border-gray-800 text-white">
+              <SelectValue placeholder="Profile role" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-900 border-gray-800 text-white">
+              {PROFILE_ROLE_OPTIONS.map((role) => (
+                <SelectItem key={role} value={role}>
+                  profile: {role}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={createUserDraft.access_role}
+            onValueChange={(value) => handleCreateUserDraftChange('access_role', value)}
+          >
+            <SelectTrigger className="bg-gray-950 border-gray-800 text-white">
+              <SelectValue placeholder="Access role" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-900 border-gray-800 text-white">
+              {ADMIN_ACCESS_ROLE_OPTIONS.map((role) => (
+                <SelectItem key={role} value={role}>
+                  access: {role}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={handleCreateUser}
+            disabled={creatingUser}
+            className="bg-orange-500 hover:bg-orange-600 text-white"
+          >
+            {creatingUser ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Creating
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Create user
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-white flex items-center gap-2">
@@ -227,7 +445,7 @@ const AdminBillingManager = () => {
               Subscriptions and credits
             </h2>
             <p className="text-sm text-gray-400 mt-1">
-              Admin-only CRUD on <code>user_credits</code> for every platform user.
+              Admin-only CRUD on user accounts, subscriptions, and <code>user_credits</code> for every platform user.
             </p>
           </div>
           <Button
@@ -245,7 +463,7 @@ const AdminBillingManager = () => {
           <Input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search user, role, plan, status..."
+            placeholder="Search user, email, role, plan, status..."
             className="pl-9 bg-gray-950 border-gray-800 text-white"
           />
         </div>
@@ -294,6 +512,7 @@ const AdminBillingManager = () => {
                     <TableRow key={record.user_id} className="border-gray-800 align-top">
                       <TableCell>
                         <div className="font-medium text-white">{record.name}</div>
+                        <div className="text-xs text-gray-400 mt-1">{record.email || 'Email unavailable'}</div>
                         <div className="text-xs text-gray-500 mt-1">{record.user_id}</div>
                         <div className="text-xs text-gray-500 mt-1">Available: {availableCredits}</div>
                       </TableCell>
@@ -400,9 +619,9 @@ const AdminBillingManager = () => {
                         <div className="flex flex-col gap-2 items-end">
                           <Button
                             size="sm"
-                            onClick={() => handleSave(record)}
-                            disabled={!hasChanges(record) || savingUserId === record.user_id}
-                            className="bg-orange-500 hover:bg-orange-600 text-white min-w-[96px]"
+                            onClick={() => handleSaveCredits(record)}
+                            disabled={!hasCreditsChanges(record) || savingUserId === record.user_id}
+                            className="bg-orange-500 hover:bg-orange-600 text-white min-w-[128px]"
                           >
                             {savingUserId === record.user_id ? (
                               <>
@@ -412,7 +631,7 @@ const AdminBillingManager = () => {
                             ) : (
                               <>
                                 <Save className="w-4 h-4 mr-2" />
-                                {record.has_credits_row ? 'Update' : 'Create'}
+                                {record.has_credits_row ? 'Update credits' : 'Create credits'}
                               </>
                             )}
                           </Button>
@@ -420,19 +639,31 @@ const AdminBillingManager = () => {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() =>
+                              setSelectedUserId((current) => (current === record.user_id ? null : record.user_id))
+                            }
+                            className="border-gray-700 text-gray-300 hover:bg-gray-800 min-w-[128px]"
+                          >
+                            <UserCog className="w-4 h-4 mr-2" />
+                            Account
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => handleToggleTransactions(record)}
-                            className="border-gray-700 text-gray-300 hover:bg-gray-800 min-w-[96px]"
+                            className="border-gray-700 text-gray-300 hover:bg-gray-800 min-w-[128px]"
                           >
                             <Coins className="w-4 h-4 mr-2" />
-                            Txns
+                            Transactions
                           </Button>
 
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleDelete(record)}
+                            onClick={() => handleDeleteCredits(record)}
                             disabled={!record.has_credits_row || deletingUserId === record.user_id}
-                            className="min-w-[96px]"
+                            className="min-w-[128px]"
                           >
                             {deletingUserId === record.user_id ? (
                               <>
@@ -442,7 +673,7 @@ const AdminBillingManager = () => {
                             ) : (
                               <>
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
+                                Delete credits
                               </>
                             )}
                           </Button>
@@ -456,6 +687,133 @@ const AdminBillingManager = () => {
           </Table>
         </div>
       </div>
+
+      {selectedRecord ? (
+        <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <UserCog className="w-5 h-5 text-orange-400" />
+                User account - {selectedRecord.name}
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">{selectedRecord.user_id}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Account updates propagate through auth, profile and role mapping. Deletion is cascade.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={fetchBillingData}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh users
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            <Input
+              value={(userDrafts[selectedRecord.user_id] || toUserDraftFromRecord(selectedRecord)).email}
+              onChange={(event) => handleUserDraftChange(selectedRecord.user_id, 'email', event.target.value)}
+              placeholder="Email"
+              className="bg-gray-950 border-gray-800 text-white"
+            />
+            <Input
+              value={(userDrafts[selectedRecord.user_id] || toUserDraftFromRecord(selectedRecord)).full_name}
+              onChange={(event) => handleUserDraftChange(selectedRecord.user_id, 'full_name', event.target.value)}
+              placeholder="Full name"
+              className="bg-gray-950 border-gray-800 text-white"
+            />
+            <Input
+              value={(userDrafts[selectedRecord.user_id] || toUserDraftFromRecord(selectedRecord)).company_name}
+              onChange={(event) => handleUserDraftChange(selectedRecord.user_id, 'company_name', event.target.value)}
+              placeholder="Company name"
+              className="bg-gray-950 border-gray-800 text-white"
+            />
+            <Input
+              value={(userDrafts[selectedRecord.user_id] || toUserDraftFromRecord(selectedRecord)).phone}
+              onChange={(event) => handleUserDraftChange(selectedRecord.user_id, 'phone', event.target.value)}
+              placeholder="Phone"
+              className="bg-gray-950 border-gray-800 text-white"
+            />
+            <Select
+              value={(userDrafts[selectedRecord.user_id] || toUserDraftFromRecord(selectedRecord)).profile_role}
+              onValueChange={(value) => handleUserDraftChange(selectedRecord.user_id, 'profile_role', value)}
+            >
+              <SelectTrigger className="bg-gray-950 border-gray-800 text-white">
+                <SelectValue placeholder="Profile role" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-900 border-gray-800 text-white">
+                {PROFILE_ROLE_OPTIONS.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    profile: {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={(userDrafts[selectedRecord.user_id] || toUserDraftFromRecord(selectedRecord)).access_role}
+              onValueChange={(value) => handleUserDraftChange(selectedRecord.user_id, 'access_role', value)}
+            >
+              <SelectTrigger className="bg-gray-950 border-gray-800 text-white">
+                <SelectValue placeholder="Access role" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-900 border-gray-800 text-white">
+                {ADMIN_ACCESS_ROLE_OPTIONS.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    access: {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              value={(userDrafts[selectedRecord.user_id] || toUserDraftFromRecord(selectedRecord)).password}
+              onChange={(event) => handleUserDraftChange(selectedRecord.user_id, 'password', event.target.value)}
+              placeholder="New password (optional)"
+              type="password"
+              className="bg-gray-950 border-gray-800 text-white"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={() => handleSaveUser(selectedRecord)}
+              disabled={!hasUserChanges(selectedRecord) || updatingAccountUserId === selectedRecord.user_id}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              {updatingAccountUserId === selectedRecord.user_id ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Saving user
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Update user account
+                </>
+              )}
+            </Button>
+
+            <Button
+              variant="destructive"
+              onClick={() => handleDeleteUser(selectedRecord)}
+              disabled={deletingAccountUserId === selectedRecord.user_id}
+            >
+              {deletingAccountUserId === selectedRecord.user_id ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting user
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete user account
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {expandedRecord ? (
         <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 space-y-4">
