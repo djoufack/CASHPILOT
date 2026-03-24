@@ -1,5 +1,4 @@
 BEGIN;
-
 -- Backfill default scenarios for environments where 20260314080000 was already applied
 -- before automatic seeding was added.
 INSERT INTO public.analytical_budget_scenarios (
@@ -39,7 +38,6 @@ WHERE b.is_active = true
   )
 ON CONFLICT (company_id, user_id, budget_id, scenario_name)
 DO NOTHING;
-
 -- Ensure exactly one default per budget when scenarios exist.
 WITH ranked AS (
   SELECT
@@ -57,5 +55,4 @@ SET is_default = (r.rn = 1)
 FROM ranked r
 WHERE s.id = r.id
   AND s.is_default IS DISTINCT FROM (r.rn = 1);
-
 COMMIT;

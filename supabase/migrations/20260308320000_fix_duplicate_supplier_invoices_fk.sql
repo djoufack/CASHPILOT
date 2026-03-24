@@ -13,7 +13,6 @@
 -- Drop the duplicate FK we added
 ALTER TABLE supplier_invoices
   DROP CONSTRAINT IF EXISTS fk_supplier_invoices_supplier;
-
 -- Verify: list remaining FK constraints on supplier_invoices.supplier_id
 -- (Should be exactly 1 — the original one)
 DO $$

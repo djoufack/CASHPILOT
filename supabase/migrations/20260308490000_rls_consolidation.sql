@@ -15,7 +15,6 @@
 --   7-10. supplier_invoice_line_items — delete/insert/select/update   : simplify dual-path ownership check
 
 BEGIN;
-
 -- ============================================================================
 -- 1. profiles — "Admins can view all profiles (roles)"
 -- ============================================================================
@@ -24,7 +23,6 @@ BEGIN;
 ALTER POLICY "Admins can view all profiles (roles)" ON profiles USING (
   is_admin()
 );
-
 -- ============================================================================
 -- 2. role_permissions — "Admins can manage permissions" (INSERT WITH CHECK)
 -- ============================================================================
@@ -33,7 +31,6 @@ ALTER POLICY "Admins can view all profiles (roles)" ON profiles USING (
 ALTER POLICY "Admins can manage permissions" ON role_permissions WITH CHECK (
   is_admin()
 );
-
 -- ============================================================================
 -- 3. user_roles — "Admins can manage all roles" (INSERT WITH CHECK)
 -- ============================================================================
@@ -42,7 +39,6 @@ ALTER POLICY "Admins can manage permissions" ON role_permissions WITH CHECK (
 ALTER POLICY "Admins can manage all roles" ON user_roles WITH CHECK (
   is_admin()
 );
-
 -- ============================================================================
 -- 4. user_roles — "user_roles_select"
 -- ============================================================================
@@ -52,7 +48,6 @@ ALTER POLICY "Admins can manage all roles" ON user_roles WITH CHECK (
 ALTER POLICY "user_roles_select" ON user_roles USING (
   ((SELECT auth.uid()) = user_id) OR is_admin()
 );
-
 -- ============================================================================
 -- 5. audit_log — "audit_log_insert"
 -- ============================================================================
@@ -62,7 +57,6 @@ ALTER POLICY "user_roles_select" ON user_roles USING (
 ALTER POLICY "audit_log_insert" ON audit_log WITH CHECK (
   ((SELECT auth.uid()) = user_id) OR is_admin()
 );
-
 -- ============================================================================
 -- 6. audit_log — "audit_log_select"
 -- ============================================================================
@@ -72,7 +66,6 @@ ALTER POLICY "audit_log_insert" ON audit_log WITH CHECK (
 ALTER POLICY "audit_log_select" ON audit_log USING (
   ((SELECT auth.uid()) = user_id) OR is_admin()
 );
-
 -- ============================================================================
 -- 7-10. supplier_invoice_line_items — simplify dual-path ownership checks
 -- ============================================================================
@@ -99,7 +92,6 @@ ALTER POLICY "supplier_invoice_line_items_delete" ON supplier_invoice_line_items
       AND si.company_id = resolve_preferred_company_id((SELECT auth.uid()))
   )
 );
-
 -- 8. supplier_invoice_line_items INSERT
 ALTER POLICY "supplier_invoice_line_items_insert" ON supplier_invoice_line_items WITH CHECK (
   ((SELECT auth.uid()) = user_id)
@@ -109,7 +101,6 @@ ALTER POLICY "supplier_invoice_line_items_insert" ON supplier_invoice_line_items
       AND si.company_id = resolve_preferred_company_id((SELECT auth.uid()))
   )
 );
-
 -- 9. supplier_invoice_line_items SELECT
 ALTER POLICY "supplier_invoice_line_items_select" ON supplier_invoice_line_items USING (
   ((SELECT auth.uid()) = user_id)
@@ -119,7 +110,6 @@ ALTER POLICY "supplier_invoice_line_items_select" ON supplier_invoice_line_items
       AND si.company_id = resolve_preferred_company_id((SELECT auth.uid()))
   )
 );
-
 -- 10. supplier_invoice_line_items UPDATE (USING + WITH CHECK)
 ALTER POLICY "supplier_invoice_line_items_update" ON supplier_invoice_line_items
   USING (
@@ -138,5 +128,4 @@ ALTER POLICY "supplier_invoice_line_items_update" ON supplier_invoice_line_items
         AND si.company_id = resolve_preferred_company_id((SELECT auth.uid()))
     )
   );
-
 COMMIT;

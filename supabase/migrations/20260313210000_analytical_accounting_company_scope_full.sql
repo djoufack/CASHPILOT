@@ -1,7 +1,6 @@
 -- Analytical Accounting Full Activation (company-scoped, DB-first, audited)
 
 BEGIN;
-
 -- ============================================================================
 -- 0) Ensure accounting audit log supports data_access events
 -- ============================================================================
@@ -29,13 +28,11 @@ BEGIN
       )
     );
 END $$;
-
 -- ============================================================================
 -- 1) Upgrade existing analytical axes table to strict company scope
 -- ============================================================================
 ALTER TABLE public.accounting_analytical_axes
   ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES public.company(id) ON DELETE RESTRICT;
-
 UPDATE public.accounting_analytical_axes ax
 SET company_id = c.id
 FROM (
@@ -47,13 +44,10 @@ FROM (
 ) c
 WHERE ax.company_id IS NULL
   AND c.user_id = ax.user_id;
-
 DELETE FROM public.accounting_analytical_axes ax
 WHERE ax.company_id IS NULL;
-
 ALTER TABLE public.accounting_analytical_axes
   ALTER COLUMN company_id SET NOT NULL;
-
 DO $$
 BEGIN
   IF EXISTS (
@@ -66,7 +60,6 @@ BEGIN
       DROP CONSTRAINT accounting_analytical_axes_user_id_axis_type_axis_code_key;
   END IF;
 END $$;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -91,10 +84,8 @@ BEGIN
       UNIQUE (id, company_id, user_id);
   END IF;
 END $$;
-
 CREATE INDEX IF NOT EXISTS idx_accounting_analytical_axes_scope
   ON public.accounting_analytical_axes(company_id, user_id, axis_type, is_active);
-
 DROP POLICY IF EXISTS "analytical_axes_user_policy" ON public.accounting_analytical_axes;
 CREATE POLICY "analytical_axes_scope_policy"
   ON public.accounting_analytical_axes
@@ -117,10 +108,8 @@ CREATE POLICY "analytical_axes_scope_policy"
         AND c.user_id = auth.uid()
     )
   );
-
 COMMENT ON TABLE public.accounting_analytical_axes IS
   'ACTIVE: Company-scoped analytical axis catalog (single source of truth).';
-
 CREATE OR REPLACE VIEW public.analytical_axes AS
 SELECT
   id,
@@ -134,7 +123,6 @@ SELECT
   created_at,
   updated_at
 FROM public.accounting_analytical_axes;
-
 -- ============================================================================
 -- 2) Analytical dimensions / master data
 -- ============================================================================
@@ -153,7 +141,6 @@ CREATE TABLE IF NOT EXISTS public.analytical_axis_values (
   UNIQUE (axis_id, value_code),
   UNIQUE (id, company_id, user_id)
 );
-
 ALTER TABLE public.analytical_axis_values ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "analytical_axis_values_scope_policy" ON public.analytical_axis_values;
 CREATE POLICY "analytical_axis_values_scope_policy"
@@ -161,10 +148,8 @@ CREATE POLICY "analytical_axis_values_scope_policy"
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 CREATE INDEX IF NOT EXISTS idx_analytical_axis_values_scope
   ON public.analytical_axis_values(company_id, user_id, axis_id, is_active);
-
 CREATE TABLE IF NOT EXISTS public.analytical_objects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -183,7 +168,6 @@ CREATE TABLE IF NOT EXISTS public.analytical_objects (
   UNIQUE (company_id, user_id, object_type, object_code),
   UNIQUE (id, company_id, user_id)
 );
-
 ALTER TABLE public.analytical_objects ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "analytical_objects_scope_policy" ON public.analytical_objects;
 CREATE POLICY "analytical_objects_scope_policy"
@@ -191,10 +175,8 @@ CREATE POLICY "analytical_objects_scope_policy"
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 CREATE INDEX IF NOT EXISTS idx_analytical_objects_scope
   ON public.analytical_objects(company_id, user_id, object_type, is_active);
-
 CREATE TABLE IF NOT EXISTS public.cost_centers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -212,7 +194,6 @@ CREATE TABLE IF NOT EXISTS public.cost_centers (
   UNIQUE (company_id, user_id, center_code),
   UNIQUE (id, company_id, user_id)
 );
-
 ALTER TABLE public.cost_centers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "cost_centers_scope_policy" ON public.cost_centers;
 CREATE POLICY "cost_centers_scope_policy"
@@ -220,10 +201,8 @@ CREATE POLICY "cost_centers_scope_policy"
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 CREATE INDEX IF NOT EXISTS idx_cost_centers_scope
   ON public.cost_centers(company_id, user_id, center_type, is_active);
-
 CREATE TABLE IF NOT EXISTS public.center_redistribution_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -236,7 +215,6 @@ CREATE TABLE IF NOT EXISTS public.center_redistribution_rules (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (company_id, user_id, from_center_id, to_center_id)
 );
-
 ALTER TABLE public.center_redistribution_rules ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "center_redistribution_rules_scope_policy" ON public.center_redistribution_rules;
 CREATE POLICY "center_redistribution_rules_scope_policy"
@@ -244,10 +222,8 @@ CREATE POLICY "center_redistribution_rules_scope_policy"
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 CREATE INDEX IF NOT EXISTS idx_center_redistribution_rules_scope
   ON public.center_redistribution_rules(company_id, user_id, from_center_id, is_active);
-
 -- ============================================================================
 -- 3) Classification metadata on accounting entries (direct/indirect, behavior)
 -- ============================================================================
@@ -256,7 +232,6 @@ ALTER TABLE public.accounting_entries
   ADD COLUMN IF NOT EXISTS analytical_cost_behavior TEXT,
   ADD COLUMN IF NOT EXISTS analytical_destination TEXT,
   ADD COLUMN IF NOT EXISTS analytical_method TEXT;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -292,10 +267,8 @@ BEGIN
       CHECK (analytical_method IS NULL OR analytical_method IN ('full_costing', 'direct_costing', 'standard_costing', 'abc_costing', 'manual'));
   END IF;
 END $$;
-
 CREATE INDEX IF NOT EXISTS idx_accounting_entries_analytical_classification
   ON public.accounting_entries(company_id, user_id, analytical_cost_behavior, analytical_destination);
-
 -- ============================================================================
 -- 4) Allocation rules and allocation lines with hard validation
 -- ============================================================================
@@ -320,7 +293,6 @@ CREATE TABLE IF NOT EXISTS public.analytical_allocation_rules (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (company_id, user_id, rule_name)
 );
-
 ALTER TABLE public.analytical_allocation_rules ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "analytical_allocation_rules_scope_policy" ON public.analytical_allocation_rules;
 CREATE POLICY "analytical_allocation_rules_scope_policy"
@@ -328,7 +300,6 @@ CREATE POLICY "analytical_allocation_rules_scope_policy"
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 CREATE TABLE IF NOT EXISTS public.analytical_allocations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -351,11 +322,9 @@ CREATE TABLE IF NOT EXISTS public.analytical_allocations (
   CHECK (object_id IS NOT NULL OR cost_center_id IS NOT NULL OR axis_value_id IS NOT NULL),
   CHECK (allocation_percent IS NULL OR (allocation_percent >= 0 AND allocation_percent <= 100))
 );
-
 CREATE UNIQUE INDEX IF NOT EXISTS uq_analytical_allocations_redistribution_once
   ON public.analytical_allocations(redistributed_from_allocation_id, redistribution_rule_id)
   WHERE redistributed_from_allocation_id IS NOT NULL AND redistribution_rule_id IS NOT NULL;
-
 ALTER TABLE public.analytical_allocations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "analytical_allocations_scope_policy" ON public.analytical_allocations;
 CREATE POLICY "analytical_allocations_scope_policy"
@@ -363,13 +332,10 @@ CREATE POLICY "analytical_allocations_scope_policy"
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 CREATE INDEX IF NOT EXISTS idx_analytical_allocations_scope
   ON public.analytical_allocations(company_id, user_id, entry_id);
-
 CREATE INDEX IF NOT EXISTS idx_analytical_allocations_dimensions
   ON public.analytical_allocations(company_id, object_id, cost_center_id, axis_value_id);
-
 CREATE TABLE IF NOT EXISTS public.analytical_inclusion_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -386,7 +352,6 @@ CREATE TABLE IF NOT EXISTS public.analytical_inclusion_rules (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (company_id, user_id, rule_name)
 );
-
 ALTER TABLE public.analytical_inclusion_rules ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "analytical_inclusion_rules_scope_policy" ON public.analytical_inclusion_rules;
 CREATE POLICY "analytical_inclusion_rules_scope_policy"
@@ -394,7 +359,6 @@ CREATE POLICY "analytical_inclusion_rules_scope_policy"
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 -- ============================================================================
 -- 5) Budgets + budget lines + variances
 -- ============================================================================
@@ -416,7 +380,6 @@ CREATE TABLE IF NOT EXISTS public.analytical_budgets (
   CHECK (period_end >= period_start),
   UNIQUE (company_id, user_id, budget_name)
 );
-
 ALTER TABLE public.analytical_budgets ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "analytical_budgets_scope_policy" ON public.analytical_budgets;
 CREATE POLICY "analytical_budgets_scope_policy"
@@ -424,7 +387,6 @@ CREATE POLICY "analytical_budgets_scope_policy"
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 CREATE TABLE IF NOT EXISTS public.analytical_budget_lines (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   budget_id UUID NOT NULL REFERENCES public.analytical_budgets(id) ON DELETE CASCADE,
@@ -439,7 +401,6 @@ CREATE TABLE IF NOT EXISTS public.analytical_budget_lines (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (budget_id, period_month)
 );
-
 ALTER TABLE public.analytical_budget_lines ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "analytical_budget_lines_scope_policy" ON public.analytical_budget_lines;
 CREATE POLICY "analytical_budget_lines_scope_policy"
@@ -447,10 +408,8 @@ CREATE POLICY "analytical_budget_lines_scope_policy"
   FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
 CREATE INDEX IF NOT EXISTS idx_analytical_budget_lines_scope
   ON public.analytical_budget_lines(company_id, user_id, period_month);
-
 -- ============================================================================
 -- 6) Generic updated_at function for analytical entities
 -- ============================================================================
@@ -463,61 +422,51 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_analytical_axis_values_touch ON public.analytical_axis_values;
 CREATE TRIGGER trg_analytical_axis_values_touch
   BEFORE UPDATE ON public.analytical_axis_values
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_updated_at();
-
 DROP TRIGGER IF EXISTS trg_analytical_objects_touch ON public.analytical_objects;
 CREATE TRIGGER trg_analytical_objects_touch
   BEFORE UPDATE ON public.analytical_objects
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_updated_at();
-
 DROP TRIGGER IF EXISTS trg_cost_centers_touch ON public.cost_centers;
 CREATE TRIGGER trg_cost_centers_touch
   BEFORE UPDATE ON public.cost_centers
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_updated_at();
-
 DROP TRIGGER IF EXISTS trg_center_redistribution_rules_touch ON public.center_redistribution_rules;
 CREATE TRIGGER trg_center_redistribution_rules_touch
   BEFORE UPDATE ON public.center_redistribution_rules
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_updated_at();
-
 DROP TRIGGER IF EXISTS trg_analytical_allocation_rules_touch ON public.analytical_allocation_rules;
 CREATE TRIGGER trg_analytical_allocation_rules_touch
   BEFORE UPDATE ON public.analytical_allocation_rules
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_updated_at();
-
 DROP TRIGGER IF EXISTS trg_analytical_allocations_touch ON public.analytical_allocations;
 CREATE TRIGGER trg_analytical_allocations_touch
   BEFORE UPDATE ON public.analytical_allocations
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_updated_at();
-
 DROP TRIGGER IF EXISTS trg_analytical_inclusion_rules_touch ON public.analytical_inclusion_rules;
 CREATE TRIGGER trg_analytical_inclusion_rules_touch
   BEFORE UPDATE ON public.analytical_inclusion_rules
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_updated_at();
-
 DROP TRIGGER IF EXISTS trg_analytical_budgets_touch ON public.analytical_budgets;
 CREATE TRIGGER trg_analytical_budgets_touch
   BEFORE UPDATE ON public.analytical_budgets
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_updated_at();
-
 DROP TRIGGER IF EXISTS trg_analytical_budget_lines_touch ON public.analytical_budget_lines;
 CREATE TRIGGER trg_analytical_budget_lines_touch
   BEFORE UPDATE ON public.analytical_budget_lines
   FOR EACH ROW
   EXECUTE FUNCTION public.touch_updated_at();
-
 -- ============================================================================
 -- 7) Hard integrity checks for allocation scope and 100% balancing
 -- ============================================================================
@@ -569,13 +518,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_validate_analytical_allocation_scope ON public.analytical_allocations;
 CREATE TRIGGER trg_validate_analytical_allocation_scope
   BEFORE INSERT OR UPDATE ON public.analytical_allocations
   FOR EACH ROW
   EXECUTE FUNCTION public.validate_analytical_allocation_scope();
-
 CREATE OR REPLACE FUNCTION public.enforce_entry_allocation_balance()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -626,14 +573,12 @@ BEGIN
   RETURN COALESCE(NEW, OLD);
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_enforce_entry_allocation_balance ON public.analytical_allocations;
 CREATE CONSTRAINT TRIGGER trg_enforce_entry_allocation_balance
   AFTER INSERT OR UPDATE OR DELETE ON public.analytical_allocations
   DEFERRABLE INITIALLY DEFERRED
   FOR EACH ROW
   EXECUTE FUNCTION public.enforce_entry_allocation_balance();
-
 -- ============================================================================
 -- 8) DB-first analytical RPCs and views
 -- ============================================================================
@@ -723,7 +668,6 @@ BEGIN
   );
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.f_analytical_budget_variances(
   p_user_id UUID,
   p_company_id UUID,
@@ -792,7 +736,6 @@ FROM planned p
 LEFT JOIN actual a ON a.budget_id = p.budget_id
 ORDER BY p.budget_name;
 $$;
-
 CREATE OR REPLACE FUNCTION public.f_redistribute_auxiliary_centers(
   p_user_id UUID,
   p_company_id UUID,
@@ -856,8 +799,6 @@ BEGIN
     AND c_to.center_type = 'principal'
     AND a.redistribution_rule_id IS NULL
   ON CONFLICT (redistributed_from_allocation_id, redistribution_rule_id)
-  WHERE redistributed_from_allocation_id IS NOT NULL
-    AND redistribution_rule_id IS NOT NULL
   DO UPDATE SET
     amount = EXCLUDED.amount,
     allocation_percent = EXCLUDED.allocation_percent,
@@ -867,7 +808,6 @@ BEGIN
   RETURN v_rows;
 END;
 $$;
-
 CREATE OR REPLACE VIEW public.breakeven_view AS
 SELECT
   a.object_id,
@@ -906,7 +846,6 @@ FROM public.analytical_allocations a
 JOIN public.accounting_entries e ON e.id = a.entry_id
 LEFT JOIN public.analytical_objects o ON o.id = a.object_id
 GROUP BY a.object_id;
-
 -- ============================================================================
 -- 9) Real-time CRUD audit logging (analytical + financial scope)
 -- ============================================================================
@@ -960,69 +899,57 @@ BEGIN
   RETURN COALESCE(NEW, OLD);
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_audit_accounting_analytical_axes_crud ON public.accounting_analytical_axes;
 CREATE TRIGGER trg_audit_accounting_analytical_axes_crud
   AFTER INSERT OR UPDATE OR DELETE ON public.accounting_analytical_axes
   FOR EACH ROW
   EXECUTE FUNCTION public.log_analytical_financial_crud_audit();
-
 DROP TRIGGER IF EXISTS trg_audit_analytical_axis_values_crud ON public.analytical_axis_values;
 CREATE TRIGGER trg_audit_analytical_axis_values_crud
   AFTER INSERT OR UPDATE OR DELETE ON public.analytical_axis_values
   FOR EACH ROW
   EXECUTE FUNCTION public.log_analytical_financial_crud_audit();
-
 DROP TRIGGER IF EXISTS trg_audit_analytical_objects_crud ON public.analytical_objects;
 CREATE TRIGGER trg_audit_analytical_objects_crud
   AFTER INSERT OR UPDATE OR DELETE ON public.analytical_objects
   FOR EACH ROW
   EXECUTE FUNCTION public.log_analytical_financial_crud_audit();
-
 DROP TRIGGER IF EXISTS trg_audit_cost_centers_crud ON public.cost_centers;
 CREATE TRIGGER trg_audit_cost_centers_crud
   AFTER INSERT OR UPDATE OR DELETE ON public.cost_centers
   FOR EACH ROW
   EXECUTE FUNCTION public.log_analytical_financial_crud_audit();
-
 DROP TRIGGER IF EXISTS trg_audit_center_redistribution_rules_crud ON public.center_redistribution_rules;
 CREATE TRIGGER trg_audit_center_redistribution_rules_crud
   AFTER INSERT OR UPDATE OR DELETE ON public.center_redistribution_rules
   FOR EACH ROW
   EXECUTE FUNCTION public.log_analytical_financial_crud_audit();
-
 DROP TRIGGER IF EXISTS trg_audit_analytical_allocation_rules_crud ON public.analytical_allocation_rules;
 CREATE TRIGGER trg_audit_analytical_allocation_rules_crud
   AFTER INSERT OR UPDATE OR DELETE ON public.analytical_allocation_rules
   FOR EACH ROW
   EXECUTE FUNCTION public.log_analytical_financial_crud_audit();
-
 DROP TRIGGER IF EXISTS trg_audit_analytical_allocations_crud ON public.analytical_allocations;
 CREATE TRIGGER trg_audit_analytical_allocations_crud
   AFTER INSERT OR UPDATE OR DELETE ON public.analytical_allocations
   FOR EACH ROW
   EXECUTE FUNCTION public.log_analytical_financial_crud_audit();
-
 DROP TRIGGER IF EXISTS trg_audit_analytical_inclusion_rules_crud ON public.analytical_inclusion_rules;
 CREATE TRIGGER trg_audit_analytical_inclusion_rules_crud
   AFTER INSERT OR UPDATE OR DELETE ON public.analytical_inclusion_rules
   FOR EACH ROW
   EXECUTE FUNCTION public.log_analytical_financial_crud_audit();
-
 DROP TRIGGER IF EXISTS trg_audit_analytical_budgets_crud ON public.analytical_budgets;
 CREATE TRIGGER trg_audit_analytical_budgets_crud
   AFTER INSERT OR UPDATE OR DELETE ON public.analytical_budgets
   FOR EACH ROW
   EXECUTE FUNCTION public.log_analytical_financial_crud_audit();
-
 DROP TRIGGER IF EXISTS trg_audit_analytical_budget_lines_crud ON public.analytical_budget_lines;
 CREATE TRIGGER trg_audit_analytical_budget_lines_crud
   AFTER INSERT OR UPDATE OR DELETE ON public.analytical_budget_lines
   FOR EACH ROW
   EXECUTE FUNCTION public.log_analytical_financial_crud_audit();
-
 COMMENT ON TABLE public.cost_centers IS 'ACTIVE: Analytical accounting cost centers with principal/auxiliary/structure split.';
 COMMENT ON TABLE public.analytical_budgets IS 'ACTIVE: Analytical budgets by object/cost center/axis with monthly lines.';
 COMMENT ON TABLE public.analytical_allocations IS 'ACTIVE: Analytical allocations per accounting entry with hard balancing constraints.';
-
 COMMIT;

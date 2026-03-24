@@ -4,6 +4,31 @@ import { supabaseAnonKey, supabaseUrl } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 
+async function getFreshAccessToken() {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error) throw error;
+  if (session?.access_token) return session.access_token;
+
+  const { data, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) throw refreshError;
+  return data?.session?.access_token || null;
+}
+
+async function callCfoAlerts(companyId, accessToken) {
+  return fetch(`${supabaseUrl}/functions/v1/cfo-alerts`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      apikey: supabaseAnonKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ company_id: companyId }),
+  });
+}
+
 export const useCfoAlerts = () => {
   const { user } = useAuth();
   const { activeCompanyId, applyCompanyScope } = useCompanyScope();
@@ -39,19 +64,21 @@ export const useCfoAlerts = () => {
     if (!user || !activeCompanyId) return;
 
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      let accessToken = await getFreshAccessToken();
+      if (!accessToken) return;
 
-      await fetch(`${supabaseUrl}/functions/v1/cfo-alerts`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-          apikey: supabaseAnonKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ company_id: activeCompanyId }),
-      });
+      let response = await callCfoAlerts(activeCompanyId, accessToken);
+      if (response.status === 401) {
+        accessToken = await getFreshAccessToken();
+        if (!accessToken) return;
+        response = await callCfoAlerts(activeCompanyId, accessToken);
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Generate CFO alerts error:', response.status, errorText);
+        return;
+      }
 
       await fetchAlerts();
     } catch (err) {

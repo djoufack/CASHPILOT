@@ -106,7 +106,6 @@ BEGIN
   END LOOP;
 END;
 $$;
-
 -- Also ensure the init_accounting function creates ALL required accounts
 -- for BE (PCMN) users who are missing them
 DO $$

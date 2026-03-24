@@ -1,5 +1,4 @@
 BEGIN;
-
 -- Fix ON CONFLICT inference for partial unique index used by redistribution.
 CREATE OR REPLACE FUNCTION public.f_redistribute_auxiliary_centers(
   p_user_id UUID,
@@ -75,7 +74,6 @@ BEGIN
   RETURN v_rows;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.f_get_or_create_default_cost_center(
   p_user_id UUID,
   p_company_id UUID
@@ -115,7 +113,6 @@ BEGIN
   RETURN v_center_id;
 END;
 $$;
-
 -- Seed analytical allocations from accounting entries to make analytics
 -- immediately consumable even before detailed object/axis setup.
 CREATE OR REPLACE FUNCTION public.f_seed_analytical_allocations_from_entries(
@@ -188,7 +185,6 @@ BEGIN
   RETURN v_rows;
 END;
 $$;
-
 CREATE OR REPLACE FUNCTION public.sync_analytical_allocation_from_accounting_entry()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -264,13 +260,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_sync_analytical_allocation_from_accounting_entry ON public.accounting_entries;
 CREATE TRIGGER trg_sync_analytical_allocation_from_accounting_entry
 AFTER INSERT ON public.accounting_entries
 FOR EACH ROW
 EXECUTE FUNCTION public.sync_analytical_allocation_from_accounting_entry();
-
 -- One-shot backfill to populate analytical data for already posted entries.
 DO $$
 DECLARE
@@ -290,6 +284,4 @@ BEGIN
     );
   END LOOP;
 END $$;
-
 COMMIT;
-

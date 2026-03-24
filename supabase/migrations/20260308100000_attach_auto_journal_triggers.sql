@@ -21,21 +21,18 @@ CREATE TRIGGER trg_auto_journal_invoice
   AFTER INSERT OR UPDATE ON public.invoices
   FOR EACH ROW
   EXECUTE FUNCTION auto_journal_invoice();
-
 -- 1b. EXPENSES — INSERT (auto-journal on creation)
 DROP TRIGGER IF EXISTS trg_auto_journal_expense ON public.expenses;
 CREATE TRIGGER trg_auto_journal_expense
   AFTER INSERT ON public.expenses
   FOR EACH ROW
   EXECUTE FUNCTION auto_journal_expense();
-
 -- 1c. PAYMENTS — INSERT (auto-journal on creation)
 DROP TRIGGER IF EXISTS trg_auto_journal_payment ON public.payments;
 CREATE TRIGGER trg_auto_journal_payment
   AFTER INSERT ON public.payments
   FOR EACH ROW
   EXECUTE FUNCTION auto_journal_payment();
-
 -- =====================================================================
 -- PART 2: REVERSAL FUNCTIONS + TRIGGERS (DELETE & UPDATE-cancel)
 -- =====================================================================
@@ -77,7 +74,6 @@ BEGIN
     AND user_id = p_user_id;
 END;
 $$;
-
 -- 2b. INVOICE reversal on DELETE
 CREATE OR REPLACE FUNCTION reverse_journal_invoice()
 RETURNS TRIGGER
@@ -104,13 +100,11 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_reverse_journal_invoice_on_delete ON public.invoices;
 CREATE TRIGGER trg_reverse_journal_invoice_on_delete
   BEFORE DELETE ON public.invoices
   FOR EACH ROW
   EXECUTE FUNCTION reverse_journal_invoice();
-
 -- Invoice reversal on status revert (sent/paid -> draft/cancelled)
 CREATE OR REPLACE FUNCTION reverse_journal_invoice_on_cancel()
 RETURNS TRIGGER
@@ -142,13 +136,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_reverse_journal_invoice_on_cancel ON public.invoices;
 CREATE TRIGGER trg_reverse_journal_invoice_on_cancel
   BEFORE UPDATE ON public.invoices
   FOR EACH ROW
   EXECUTE FUNCTION reverse_journal_invoice_on_cancel();
-
 -- 2c. EXPENSE reversal on DELETE
 CREATE OR REPLACE FUNCTION reverse_journal_expense()
 RETURNS TRIGGER
@@ -171,13 +163,11 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_reverse_journal_expense_on_delete ON public.expenses;
 CREATE TRIGGER trg_reverse_journal_expense_on_delete
   BEFORE DELETE ON public.expenses
   FOR EACH ROW
   EXECUTE FUNCTION reverse_journal_expense();
-
 -- 2d. EXPENSE UPDATE: re-journal on amount/category change
 CREATE OR REPLACE FUNCTION update_journal_expense()
 RETURNS TRIGGER
@@ -211,20 +201,17 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_update_journal_expense ON public.expenses;
 CREATE TRIGGER trg_update_journal_expense
   BEFORE UPDATE ON public.expenses
   FOR EACH ROW
   EXECUTE FUNCTION update_journal_expense();
-
 -- Re-trigger expense auto-journal AFTER update (when entries were deleted)
 DROP TRIGGER IF EXISTS trg_auto_journal_expense_on_update ON public.expenses;
 CREATE TRIGGER trg_auto_journal_expense_on_update
   AFTER UPDATE ON public.expenses
   FOR EACH ROW
   EXECUTE FUNCTION auto_journal_expense();
-
 -- 2e. PAYMENT reversal on DELETE
 CREATE OR REPLACE FUNCTION reverse_journal_payment()
 RETURNS TRIGGER
@@ -247,13 +234,11 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_reverse_journal_payment_on_delete ON public.payments;
 CREATE TRIGGER trg_reverse_journal_payment_on_delete
   BEFORE DELETE ON public.payments
   FOR EACH ROW
   EXECUTE FUNCTION reverse_journal_payment();
-
 -- =====================================================================
 -- PART 3: CREDIT NOTES auto-journal (if not already attached)
 -- =====================================================================
@@ -328,13 +313,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_auto_journal_credit_note ON public.credit_notes;
 CREATE TRIGGER trg_auto_journal_credit_note
   AFTER INSERT OR UPDATE ON public.credit_notes
   FOR EACH ROW
   EXECUTE FUNCTION auto_journal_credit_note();
-
 -- Credit note reversal on DELETE
 CREATE OR REPLACE FUNCTION reverse_journal_credit_note()
 RETURNS TRIGGER
@@ -355,13 +338,11 @@ BEGIN
   RETURN OLD;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trg_reverse_journal_credit_note_on_delete ON public.credit_notes;
 CREATE TRIGGER trg_reverse_journal_credit_note_on_delete
   BEFORE DELETE ON public.credit_notes
   FOR EACH ROW
   EXECUTE FUNCTION reverse_journal_credit_note();
-
 -- =====================================================================
 -- PART 4: Add supplier_invoice source types to company_id resolver
 -- (supplier_invoice_reversal, credit_note_reversal, etc.)
@@ -417,7 +398,6 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 -- =====================================================================
 -- PART 5: BACKFILL existing data missing accounting entries
 -- =====================================================================
@@ -515,7 +495,6 @@ BEGIN
   RAISE NOTICE 'Invoice backfill complete';
 END;
 $$;
-
 -- 5b. Backfill expenses
 DO $$
 DECLARE
@@ -570,7 +549,6 @@ BEGIN
   RAISE NOTICE 'Expense backfill complete';
 END;
 $$;
-
 -- 5c. Backfill payments
 DO $$
 DECLARE
@@ -613,7 +591,6 @@ BEGIN
   RAISE NOTICE 'Payment backfill complete';
 END;
 $$;
-
 -- 5d. Backfill credit notes
 DO $$
 DECLARE
@@ -669,11 +646,10 @@ BEGIN
   RAISE NOTICE 'Credit note backfill complete';
 END;
 $$;
-
 -- =====================================================================
 -- NOTES:
 -- - quotes and purchase_orders are NOT journalized (they are not
 --   accounting events per se — only invoices/payments are)
 -- - supplier_orders generate entries via supplier_invoices
 -- - company_id is auto-assigned by trg_assign_accounting_entry_company_id
--- =====================================================================
+-- =====================================================================;

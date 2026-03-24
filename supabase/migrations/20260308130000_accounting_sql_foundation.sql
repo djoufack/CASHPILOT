@@ -19,13 +19,11 @@ CREATE TABLE IF NOT EXISTS accounting_account_taxonomy (
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(region, code_prefix, semantic_role)
 );
-
 -- RLS: read-only for all authenticated users (reference data)
 ALTER TABLE accounting_account_taxonomy ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "taxonomy_read_all" ON accounting_account_taxonomy;
 CREATE POLICY "taxonomy_read_all" ON accounting_account_taxonomy
   FOR SELECT TO authenticated USING (true);
-
 -- =====================================================================
 -- 1b. SEED DATA — France rules
 -- Source: accountTaxonomy.js lines 56-75
@@ -69,7 +67,6 @@ INSERT INTO accounting_account_taxonomy (region, code_prefix, semantic_role, pri
   ('france', '41', 'receivable', 10),
   ('france', '40', 'trade_payable', 10)
 ON CONFLICT DO NOTHING;
-
 -- =====================================================================
 -- 1c. SEED DATA — Belgium rules
 -- Source: accountTaxonomy.js lines 76-100
@@ -111,7 +108,6 @@ INSERT INTO accounting_account_taxonomy (region, code_prefix, semantic_role, pri
   ('belgium', '40', 'receivable', 10),
   ('belgium', '44', 'trade_payable', 10)
 ON CONFLICT DO NOTHING;
-
 -- =====================================================================
 -- 1d. SEED DATA — OHADA rules
 -- Source: accountTaxonomy.js lines 101-122
@@ -162,7 +158,6 @@ INSERT INTO accounting_account_taxonomy (region, code_prefix, semantic_role, pri
   ('ohada', '41', 'receivable', 10),
   ('ohada', '40', 'trade_payable', 10)
 ON CONFLICT DO NOTHING;
-
 -- =====================================================================
 -- 1e. SEED DATA — Common balance-sheet roles for ALL regions
 -- (cash, fixed_asset, inventory)
@@ -176,7 +171,6 @@ CROSS JOIN (VALUES
   ('3', 'inventory', 5)
 ) AS t(prefix, role, prio)
 ON CONFLICT DO NOTHING;
-
 -- =====================================================================
 -- 2. CLASSIFY_ACCOUNT FUNCTION
 -- Replaces: accountTaxonomy.js getAccountSemanticProfile() (lines 175-355)
@@ -212,9 +206,7 @@ BEGIN
   ORDER BY length(t.code_prefix) DESC, t.priority DESC;
 END;
 $$ LANGUAGE plpgsql STABLE;
-
 COMMENT ON FUNCTION classify_account IS 'Classifies an account by semantic role using prefix matching against accounting_account_taxonomy. Replaces frontend accountTaxonomy.js.';
-
 -- =====================================================================
 -- 3. F_TRIAL_BALANCE
 -- Replaces: accountingCalculations.js buildTrialBalance() (lines 634-671)
@@ -261,9 +253,7 @@ BEGIN
   ORDER BY COALESCE(coa.account_code, ae.account_code);
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-
 COMMENT ON FUNCTION f_trial_balance IS 'Computes trial balance from accounting entries. Replaces buildTrialBalance() from accountingCalculations.js.';
-
 -- =====================================================================
 -- 4. F_INCOME_STATEMENT
 -- Replaces: accountingCalculations.js buildIncomeStatementFromEntries() (lines 872-903)
@@ -325,9 +315,7 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-
 COMMENT ON FUNCTION f_income_statement IS 'Builds income statement from trial balance. Replaces buildIncomeStatementFromEntries() from accountingCalculations.js.';
-
 -- =====================================================================
 -- 5. F_BALANCE_SHEET
 -- Replaces: accountingCalculations.js buildBalanceSheetFromEntries() (lines 748-867)
@@ -502,5 +490,4 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-
 COMMENT ON FUNCTION f_balance_sheet IS 'Builds SYSCOHADA balance sheet from cumulative trial balance. Replaces buildBalanceSheetFromEntries() from accountingCalculations.js.';

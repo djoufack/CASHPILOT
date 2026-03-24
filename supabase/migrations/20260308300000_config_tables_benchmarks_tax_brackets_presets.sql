@@ -26,7 +26,6 @@ CREATE TABLE IF NOT EXISTS sector_benchmarks (
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(sector_code, region, year)
 );
-
 -- No RLS needed (reference data)
 
 -- Seed: FR benchmarks (from FinancialDiagnostic.jsx lines 69-121)
@@ -36,7 +35,6 @@ VALUES
   ('commerce', 'Commerce', 'FR', 30, 9, 4, 35000, 42000, 1.5, 1.2, 40, 45, 30, 'INSEE/BPI France 2024', 2026),
   ('industrie', 'Industrie', 'FR', 36, 13, 6, 50000, 72000, 1.8, 1.5, 55, 50, 45, 'INSEE/BPI France 2024', 2026)
 ON CONFLICT DO NOTHING;
-
 -- Seed: BE benchmarks (Belgian variants)
 INSERT INTO sector_benchmarks (sector_code, sector_name, region, gross_margin_percent, ebitda_margin, net_margin, bfr_typical, caf_typical, debt_ratio_max, current_ratio_min, dso_days, dpo_days, inventory_days, source, year)
 VALUES
@@ -44,7 +42,6 @@ VALUES
   ('commerce', 'Commerce', 'BE', 28, 8, 3.5, 32000, 39000, 1.6, 1.1, 45, 50, 32, 'BNB/SPF Économie 2024', 2026),
   ('industrie', 'Industrie', 'BE', 34, 12, 5.5, 48000, 68000, 1.9, 1.4, 58, 52, 48, 'BNB/SPF Économie 2024', 2026)
 ON CONFLICT DO NOTHING;
-
 -- Seed: OHADA benchmarks (OHADA zone variants)
 INSERT INTO sector_benchmarks (sector_code, sector_name, region, gross_margin_percent, ebitda_margin, net_margin, bfr_typical, caf_typical, debt_ratio_max, current_ratio_min, dso_days, dpo_days, inventory_days, source, year)
 VALUES
@@ -52,8 +49,6 @@ VALUES
   ('commerce', 'Commerce', 'OHADA', 32, 10, 5, 28000, 35000, 1.4, 1.2, 55, 55, 35, 'BCEAO/SYSCOHADA 2024', 2026),
   ('industrie', 'Industrie', 'OHADA', 38, 14, 7, 42000, 60000, 1.7, 1.3, 65, 60, 50, 'BCEAO/SYSCOHADA 2024', 2026)
 ON CONFLICT DO NOTHING;
-
-
 -- ============================================================================
 -- Table 2: tax_brackets — Corporate income tax brackets by country
 -- ============================================================================
@@ -70,7 +65,6 @@ CREATE TABLE IF NOT EXISTS tax_brackets (
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(country_code, tax_type, bracket_min, effective_year)
 );
-
 -- No RLS needed (reference data)
 
 -- Seed: FR corporate tax brackets (from accountingCalculations.js lines 34-37)
@@ -79,21 +73,17 @@ VALUES
   ('FR', 'corporate_income', 0, 42500, 0.15, 'Taux réduit PME', 2026, 'CGI Art. 219-I-b'),
   ('FR', 'corporate_income', 42500, NULL, 0.25, 'Taux normal', 2026, 'CGI Art. 219-I')
 ON CONFLICT DO NOTHING;
-
 -- Seed: BE corporate tax brackets
 INSERT INTO tax_brackets (country_code, tax_type, bracket_min, bracket_max, rate, label, effective_year, source)
 VALUES
   ('BE', 'corporate_income', 0, 100000, 0.20, 'Taux réduit PME', 2026, 'CIR Art. 215'),
   ('BE', 'corporate_income', 100000, NULL, 0.25, 'Taux normal', 2026, 'CIR Art. 215')
 ON CONFLICT DO NOTHING;
-
 -- Seed: OHADA corporate tax (flat rate)
 INSERT INTO tax_brackets (country_code, tax_type, bracket_min, bracket_max, rate, label, effective_year, source)
 VALUES
   ('OHADA', 'corporate_income', 0, NULL, 0.30, 'Taux unique IS', 2026, 'Code Général des Impôts OHADA')
 ON CONFLICT DO NOTHING;
-
-
 -- ============================================================================
 -- Table 3: tax_rate_presets — VAT rate presets by country
 -- ============================================================================
@@ -109,7 +99,6 @@ CREATE TABLE IF NOT EXISTS tax_rate_presets (
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(country_code, rate, account_code)
 );
-
 -- No RLS needed (reference data)
 
 -- Seed: FR VAT presets (from TaxRatesManager.jsx lines 14-21)
@@ -122,7 +111,6 @@ VALUES
   ('FR', 'TVA déductible 20%', 0.20, '445660', 'VAT', 5),
   ('FR', 'TVA déductible 10%', 0.10, '445660', 'VAT', 6)
 ON CONFLICT DO NOTHING;
-
 -- Seed: BE VAT presets (from TaxRatesManager.jsx lines 22-30)
 INSERT INTO tax_rate_presets (country_code, preset_name, rate, account_code, tax_type, sort_order)
 VALUES
@@ -134,7 +122,6 @@ VALUES
   ('BE', 'TVA 12% déductible (achats)', 0.12, '4111', 'VAT', 6),
   ('BE', 'TVA 6% déductible (achats)', 0.06, '4111', 'VAT', 7)
 ON CONFLICT DO NOTHING;
-
 -- Seed: OHADA VAT presets
 INSERT INTO tax_rate_presets (country_code, preset_name, rate, account_code, tax_type, sort_order)
 VALUES

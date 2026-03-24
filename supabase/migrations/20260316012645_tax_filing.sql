@@ -21,16 +21,20 @@ CREATE TABLE IF NOT EXISTS public.tax_rules (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_tax_rules_country_type ON public.tax_rules (country_code, tax_type);
-CREATE INDEX idx_tax_rules_effective ON public.tax_rules (effective_date);
+CREATE INDEX IF NOT EXISTS idx_tax_rules_country_type ON public.tax_rules (country_code, tax_type);
+CREATE INDEX IF NOT EXISTS idx_tax_rules_effective ON public.tax_rules (effective_date);
 
 ALTER TABLE public.tax_rules ENABLE ROW LEVEL SECURITY;
 
 -- tax_rules is a read-only reference table for all authenticated users
-CREATE POLICY "tax_rules_select_authenticated"
-  ON public.tax_rules FOR SELECT
-  TO authenticated
-  USING (auth.uid() IS NOT NULL);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tax_rules' AND policyname = 'tax_rules_select_authenticated') THEN
+    CREATE POLICY "tax_rules_select_authenticated"
+      ON public.tax_rules FOR SELECT
+      TO authenticated
+      USING (auth.uid() IS NOT NULL);
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- 2. tax_declarations — Company-scoped (ENF-2 compliant)
@@ -55,66 +59,76 @@ CREATE TABLE IF NOT EXISTS public.tax_declarations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_tax_declarations_company ON public.tax_declarations (company_id);
-CREATE INDEX idx_tax_declarations_user ON public.tax_declarations (user_id);
-CREATE INDEX idx_tax_declarations_status ON public.tax_declarations (status);
-CREATE INDEX idx_tax_declarations_type ON public.tax_declarations (declaration_type);
-CREATE INDEX idx_tax_declarations_period ON public.tax_declarations (period_start, period_end);
+CREATE INDEX IF NOT EXISTS idx_tax_declarations_company ON public.tax_declarations (company_id);
+CREATE INDEX IF NOT EXISTS idx_tax_declarations_user ON public.tax_declarations (user_id);
+CREATE INDEX IF NOT EXISTS idx_tax_declarations_status ON public.tax_declarations (status);
+CREATE INDEX IF NOT EXISTS idx_tax_declarations_type ON public.tax_declarations (declaration_type);
+CREATE INDEX IF NOT EXISTS idx_tax_declarations_period ON public.tax_declarations (period_start, period_end);
 
 ALTER TABLE public.tax_declarations ENABLE ROW LEVEL SECURITY;
 
--- RLS: user → company → data chain (ENF-2)
-CREATE POLICY "tax_declarations_select_own"
-  ON public.tax_declarations FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.company c
-      WHERE c.id = tax_declarations.company_id
-        AND c.user_id = auth.uid()
-    )
-  );
+-- RLS: user -> company -> data chain (ENF-2)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tax_declarations' AND policyname = 'tax_declarations_select_own') THEN
+    CREATE POLICY "tax_declarations_select_own"
+      ON public.tax_declarations FOR SELECT
+      TO authenticated
+      USING (
+        EXISTS (
+          SELECT 1 FROM public.company c
+          WHERE c.id = tax_declarations.company_id
+            AND c.user_id = auth.uid()
+        )
+      );
+  END IF;
 
-CREATE POLICY "tax_declarations_insert_own"
-  ON public.tax_declarations FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    user_id = auth.uid()
-    AND EXISTS (
-      SELECT 1 FROM public.company c
-      WHERE c.id = tax_declarations.company_id
-        AND c.user_id = auth.uid()
-    )
-  );
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tax_declarations' AND policyname = 'tax_declarations_insert_own') THEN
+    CREATE POLICY "tax_declarations_insert_own"
+      ON public.tax_declarations FOR INSERT
+      TO authenticated
+      WITH CHECK (
+        user_id = auth.uid()
+        AND EXISTS (
+          SELECT 1 FROM public.company c
+          WHERE c.id = tax_declarations.company_id
+            AND c.user_id = auth.uid()
+        )
+      );
+  END IF;
 
-CREATE POLICY "tax_declarations_update_own"
-  ON public.tax_declarations FOR UPDATE
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.company c
-      WHERE c.id = tax_declarations.company_id
-        AND c.user_id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.company c
-      WHERE c.id = tax_declarations.company_id
-        AND c.user_id = auth.uid()
-    )
-  );
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tax_declarations' AND policyname = 'tax_declarations_update_own') THEN
+    CREATE POLICY "tax_declarations_update_own"
+      ON public.tax_declarations FOR UPDATE
+      TO authenticated
+      USING (
+        EXISTS (
+          SELECT 1 FROM public.company c
+          WHERE c.id = tax_declarations.company_id
+            AND c.user_id = auth.uid()
+        )
+      )
+      WITH CHECK (
+        EXISTS (
+          SELECT 1 FROM public.company c
+          WHERE c.id = tax_declarations.company_id
+            AND c.user_id = auth.uid()
+        )
+      );
+  END IF;
 
-CREATE POLICY "tax_declarations_delete_own"
-  ON public.tax_declarations FOR DELETE
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.company c
-      WHERE c.id = tax_declarations.company_id
-        AND c.user_id = auth.uid()
-    )
-  );
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tax_declarations' AND policyname = 'tax_declarations_delete_own') THEN
+    CREATE POLICY "tax_declarations_delete_own"
+      ON public.tax_declarations FOR DELETE
+      TO authenticated
+      USING (
+        EXISTS (
+          SELECT 1 FROM public.company c
+          WHERE c.id = tax_declarations.company_id
+            AND c.user_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- 3. Seed tax_rules with standard rates
@@ -159,8 +173,6 @@ VALUES
 
 -- ---------------------------------------------------------------------------
 -- 4. RPC: compute_vat_declaration
--- Computes VAT collected (sales), VAT deductible (purchases), net VAT,
--- with detail per rate.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.compute_vat_declaration(
   p_company_id UUID,
@@ -181,7 +193,6 @@ DECLARE
   v_country TEXT;
   rec RECORD;
 BEGIN
-  -- Verify ownership
   SELECT c.user_id INTO v_user_id
   FROM public.company c
   WHERE c.id = p_company_id AND c.user_id = auth.uid();
@@ -190,13 +201,10 @@ BEGIN
     RAISE EXCEPTION 'Access denied: company not owned by current user';
   END IF;
 
-  -- Get company country (default FR)
   SELECT COALESCE(c.country, 'FR') INTO v_country
   FROM public.company c
   WHERE c.id = p_company_id;
 
-  -- VAT collected: from invoices (sales)
-  -- Group by tax_rate to get detail per rate
   FOR rec IN
     SELECT
       COALESCE(i.tax_rate, 20) AS vat_rate,
@@ -219,7 +227,6 @@ BEGIN
     ));
   END LOOP;
 
-  -- VAT deductible: from expenses + supplier invoices
   FOR rec IN
     SELECT
       COALESCE(e.tax_rate, 20) AS vat_rate,
@@ -243,7 +250,6 @@ BEGIN
     ));
   END LOOP;
 
-  -- Also include supplier invoices if they exist
   FOR rec IN
     SELECT
       COALESCE(si.tax_rate, 20) AS vat_rate,
@@ -284,7 +290,6 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- 5. RPC: compute_corporate_tax
--- Computes fiscal result, deductions, corporate tax due.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.compute_corporate_tax(
   p_company_id UUID,
@@ -308,7 +313,6 @@ DECLARE
   v_reduced_threshold NUMERIC(15,2);
   v_normal_rate NUMERIC(10,4);
 BEGIN
-  -- Verify ownership
   SELECT c.user_id INTO v_user_id
   FROM public.company c
   WHERE c.id = p_company_id AND c.user_id = auth.uid();
@@ -317,7 +321,6 @@ BEGIN
     RAISE EXCEPTION 'Access denied: company not owned by current user';
   END IF;
 
-  -- Get company country
   SELECT COALESCE(c.country, 'FR') INTO v_country
   FROM public.company c
   WHERE c.id = p_company_id;
@@ -325,7 +328,6 @@ BEGIN
   v_start_date := make_date(p_year, 1, 1);
   v_end_date := make_date(p_year, 12, 31);
 
-  -- Revenue from paid invoices
   SELECT COALESCE(SUM(i.total_ht), 0) INTO v_revenue
   FROM public.invoices i
   WHERE i.company_id = p_company_id
@@ -333,14 +335,12 @@ BEGIN
     AND i.date <= v_end_date
     AND i.status = 'paid';
 
-  -- Expenses
   SELECT COALESCE(SUM(e.amount), 0) INTO v_expenses
   FROM public.expenses e
   WHERE e.company_id = p_company_id
     AND e.expense_date >= v_start_date
     AND e.expense_date <= v_end_date;
 
-  -- Also add supplier invoice expenses
   SELECT v_expenses + COALESCE(SUM(si.amount_ht), 0) INTO v_expenses
   FROM public.supplier_invoices si
   WHERE si.company_id = p_company_id
@@ -350,7 +350,6 @@ BEGIN
 
   v_fiscal_result := v_revenue - v_expenses;
 
-  -- Get tax rates from tax_rules
   SELECT rate INTO v_normal_rate
   FROM public.tax_rules
   WHERE country_code = v_country
@@ -371,14 +370,11 @@ BEGIN
   ORDER BY effective_date DESC NULLS LAST
   LIMIT 1;
 
-  -- Default rates if not found
   v_normal_rate := COALESCE(v_normal_rate, 25.0000);
 
-  -- Compute tax
   IF v_fiscal_result <= 0 THEN
     v_tax_due := 0;
   ELSIF v_reduced_rate IS NOT NULL AND v_reduced_threshold IS NOT NULL AND v_fiscal_result > 0 THEN
-    -- Apply reduced rate on first bracket, normal rate on rest
     IF v_fiscal_result <= v_reduced_threshold THEN
       v_tax_due := v_fiscal_result * (v_reduced_rate / 100);
     ELSE
@@ -402,4 +398,4 @@ BEGIN
     'computed_at', now()
   );
 END;
-$$;
+$$;;

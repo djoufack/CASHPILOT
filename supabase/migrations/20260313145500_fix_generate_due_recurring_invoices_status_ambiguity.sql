@@ -1,5 +1,4 @@
 BEGIN;
-
 CREATE OR REPLACE FUNCTION public.generate_due_recurring_invoices(
   p_today DATE DEFAULT timezone('utc', now())::date,
   p_limit INTEGER DEFAULT 500
@@ -127,9 +126,6 @@ BEGIN
   RETURN;
 END;
 $$;
-
 REVOKE ALL ON FUNCTION public.generate_due_recurring_invoices(DATE, INTEGER) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.generate_due_recurring_invoices(DATE, INTEGER) TO service_role;
-
 COMMIT;
-
