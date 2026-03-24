@@ -169,6 +169,27 @@
     "productRevenue": "Revenus Produits",
     "serviceRevenue": "Revenus Services",
     "otherRevenue": "Autres Revenus",
+    "obligations": {
+      "title": "Obligations du moment",
+      "subtitle": "Vos priorites internes: encaissements, paiements fournisseurs et devis attendus.",
+      "clientInvoices": "Factures clients",
+      "supplierInvoices": "Factures fournisseurs",
+      "quotesToPrepare": "Devis a preparer",
+      "toCollect": "a encaisser",
+      "toPay": "a payer",
+      "overdue": "en retard",
+      "priorityActions": "Actions prioritaires",
+      "elements": "element(s)",
+      "noUrgent": "Aucune obligation urgente detectee.",
+      "dueDate": "Echeance",
+      "buckets": {
+        "overdue": "En retard",
+        "dueToday": "Aujourd'hui",
+        "dueSoon": "A venir",
+        "upcoming": "Planifie",
+        "unscheduled": "Sans date"
+      }
+    },
     "revenueBreakdown": "Ventilation des Revenus",
     "revenueBreakdownSub": "Produits vs services par mois",
     "totalLabel": "Total",
