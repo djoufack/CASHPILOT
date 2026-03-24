@@ -1,5 +1,64 @@
 project_id = "rfzvrezrcigzmldgvntz"
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Auth configuration
+# ──────────────────────────────────────────────────────────────────────────────
+[auth]
+enabled = true
+# The base URL of CashPilot production site.
+# Used as the default redirect destination after email confirmation.
+site_url = "https://cashpilot.tech/login"
+# Allowed redirect URLs after authentication (exact match).
+additional_redirect_urls = [
+  "https://cashpilot.tech",
+  "https://cashpilot.tech/login",
+  "https://cashpilot.tech/dashboard",
+  "https://cashpilot.tech/auth/callback",
+  "https://cashpilot-djoufack-gmailcoms-projects.vercel.app/",
+  "https://cashpilot-djoufack-gmailcoms-projects.vercel.app/**",
+  "https://cashpilot-*-djoufack-gmailcoms-projects.vercel.app",
+  "https://cashpilot-*-djoufack-gmailcoms-projects.vercel.app/**",
+  "https://cashpilot-djoufack-2632-djoufack-gmailcoms-projects.vercel.app/",
+  "https://cashpilot-djoufack-2632-djoufack-gmailcoms-projects.vercel.app/**",
+  "https://cashpilot-*-djoufack-2632-djoufack-gmailcoms-projects.vercel.app",
+  "https://cashpilot-*-djoufack-2632-djoufack-gmailcoms-projects.vercel.app/**",
+  "http://localhost:5173",
+  "http://localhost:5173/login",
+  "http://localhost:5173/dashboard",
+  "http://localhost:5173/auth/callback",
+  "http://localhost:8788/login",
+  "http://localhost:8788/dashboard"
+]
+# Tokens valid for 1 hour
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+minimum_password_length = 6
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# Users must confirm email before first sign-in
+enable_confirmations = true
+secure_password_change = false
+max_frequency = "60s"
+otp_length = 8
+otp_expiry = 3600
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.mfa.phone]
+enroll_enabled = false
+verify_enabled = false
+
 [functions.ai-anomaly-detect]
 verify_jwt = true
 
