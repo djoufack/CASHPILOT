@@ -29,13 +29,30 @@ const toSafeInt = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const normalizePlanScope = (plan) => {
+  if (!plan || typeof plan !== 'object') {
+    return 'none';
+  }
+
+  const rawScope = typeof plan?.plan_scope === 'string' ? plan.plan_scope.trim().toLowerCase() : '';
+  if (rawScope === 'subscription' || rawScope === 'trial' || rawScope === 'none') {
+    return rawScope;
+  }
+
+  const slug = typeof plan?.slug === 'string' ? plan.slug.trim().toLowerCase() : '';
+  if (slug === 'trial') return 'trial';
+  if (slug === 'none' || slug === 'free') return 'none';
+  return 'subscription';
+};
+
 const toDraftFromRecord = (record) => ({
   free_credits: String(record.free_credits ?? 0),
   subscription_credits: String(record.subscription_credits ?? 0),
   paid_credits: String(record.paid_credits ?? 0),
   total_used: String(record.total_used ?? 0),
-  subscription_plan_id: record.subscription_plan_id || 'none',
+  subscription_plan_id: record.subscription_plan_id || '',
   subscription_status: normalizeSubscriptionStatus(record.subscription_status),
+  current_period_start: toDateTimeLocalInput(record.current_period_start),
   current_period_end: toDateTimeLocalInput(record.current_period_end),
 });
 
@@ -129,6 +146,10 @@ const AdminBillingManager = () => {
   }, [records, selectedUserId]);
 
   const plansById = useMemo(() => new Map((plans || []).map((plan) => [plan.id, plan])), [plans]);
+  const assignablePlans = useMemo(
+    () => (plans || []).filter((plan) => plan?.is_active !== false && plan?.admin_selectable !== false),
+    [plans]
+  );
 
   const filteredRecords = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -203,6 +224,7 @@ const AdminBillingManager = () => {
       draft.total_used !== baseline.total_used ||
       draft.subscription_plan_id !== baseline.subscription_plan_id ||
       draft.subscription_status !== baseline.subscription_status ||
+      draft.current_period_start !== baseline.current_period_start ||
       draft.current_period_end !== baseline.current_period_end
     );
   };
@@ -498,7 +520,7 @@ const AdminBillingManager = () => {
         </div>
 
         <div className="border border-gray-800 rounded-lg overflow-x-auto">
-          <Table className="min-w-[1480px]">
+          <Table className="min-w-[1720px]">
             <TableHeader className="bg-gray-950">
               <TableRow className="border-gray-800">
                 <TableHead className="text-gray-400">User</TableHead>
@@ -509,29 +531,28 @@ const AdminBillingManager = () => {
                 <TableHead className="text-gray-400">Sub</TableHead>
                 <TableHead className="text-gray-400">Paid</TableHead>
                 <TableHead className="text-gray-400">Used</TableHead>
-                <TableHead className="text-gray-400 min-w-[200px]">Current period end</TableHead>
+                <TableHead className="text-gray-400 min-w-[220px]">Début validité</TableHead>
+                <TableHead className="text-gray-400 min-w-[220px]">Fin validité</TableHead>
                 <TableHead className="text-gray-400 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="bg-gray-900/30">
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="py-8 text-center text-gray-500">
+                  <TableCell colSpan={11} className="py-8 text-center text-gray-500">
                     Loading subscriptions and credits...
                   </TableCell>
                 </TableRow>
               ) : filteredRecords.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="py-8 text-center text-gray-500">
+                  <TableCell colSpan={11} className="py-8 text-center text-gray-500">
                     No users found.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredRecords.map((record) => {
                   const draft = drafts[record.user_id] || toDraftFromRecord(record);
-                  const selectedPlan = plansById.get(
-                    draft.subscription_plan_id === 'none' ? null : draft.subscription_plan_id
-                  );
+                  const selectedPlan = plansById.get(draft.subscription_plan_id) || null;
                   const selectedAction = actionSelections[record.user_id] || 'none';
                   const isSavingCredits = savingUserId === record.user_id;
                   const isDeletingCredits = deletingUserId === record.user_id;
@@ -561,15 +582,14 @@ const AdminBillingManager = () => {
                       </TableCell>
                       <TableCell className="min-w-[200px]">
                         <Select
-                          value={draft.subscription_plan_id || 'none'}
+                          value={draft.subscription_plan_id || undefined}
                           onValueChange={(value) => handleDraftChange(record.user_id, 'subscription_plan_id', value)}
                         >
                           <SelectTrigger className="bg-gray-950 border-gray-800 text-white">
-                            <SelectValue placeholder="Aucun abonnement" />
+                            <SelectValue placeholder="Select plan" />
                           </SelectTrigger>
                           <SelectContent className="bg-gray-900 border-gray-800 text-white">
-                            <SelectItem value="none">Aucun abonnement</SelectItem>
-                            {plans.map((plan) => (
+                            {assignablePlans.map((plan) => (
                               <SelectItem key={plan.id} value={plan.id}>
                                 {plan.name} ({plan.slug})
                               </SelectItem>
@@ -579,7 +599,7 @@ const AdminBillingManager = () => {
                         {selectedPlan ? (
                           <div className="text-xs text-gray-500 mt-2">
                             {selectedPlan.credits_per_month} credits/month, {selectedPlan.price_cents / 100}{' '}
-                            {selectedPlan.currency}
+                            {selectedPlan.currency} · scope: {normalizePlanScope(selectedPlan)}
                           </div>
                         ) : null}
                       </TableCell>
@@ -635,6 +655,16 @@ const AdminBillingManager = () => {
                           min={0}
                           value={draft.total_used}
                           onChange={(event) => handleDraftChange(record.user_id, 'total_used', event.target.value)}
+                          className="h-9 bg-gray-950 border-gray-800 text-white"
+                        />
+                      </TableCell>
+                      <TableCell className="min-w-[220px]">
+                        <Input
+                          type="datetime-local"
+                          value={draft.current_period_start}
+                          onChange={(event) =>
+                            handleDraftChange(record.user_id, 'current_period_start', event.target.value)
+                          }
                           className="h-9 bg-gray-950 border-gray-800 text-white"
                         />
                       </TableCell>

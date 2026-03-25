@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 const navigateSpy = vi.fn();
@@ -126,5 +127,14 @@ describe('PricingPage', () => {
     expect(screen.queryByText('pricing.creditPacks')).not.toBeInTheDocument();
     expect(screen.queryByText('Pack 100')).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'pricing.subscribe' }).length).toBeGreaterThan(0);
+  });
+
+  it('renders trial choice and routes guests to signup trial flow', async () => {
+    render(<PricingPage />);
+
+    const trialButton = screen.getByRole('button', { name: 'Choisir la période d’essai (30 jours)' });
+    await userEvent.click(trialButton);
+
+    expect(navigateSpy).toHaveBeenCalledWith('/signup?trial=30d&redirect=/app');
   });
 });
