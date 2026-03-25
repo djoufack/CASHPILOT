@@ -468,8 +468,8 @@ const AdminBillingManager = () => {
           />
         </div>
 
-        <div className="border border-gray-800 rounded-lg overflow-hidden">
-          <Table>
+        <div className="border border-gray-800 rounded-lg overflow-x-auto">
+          <Table className="min-w-[1480px]">
             <TableHeader className="bg-gray-950">
               <TableRow className="border-gray-800">
                 <TableHead className="text-gray-400">User</TableHead>
