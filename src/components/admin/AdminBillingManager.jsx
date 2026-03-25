@@ -97,6 +97,7 @@ const AdminBillingManager = () => {
   const [expandedUserId, setExpandedUserId] = useState(null);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [transactionDrafts, setTransactionDrafts] = useState({});
+  const [actionSelections, setActionSelections] = useState({});
 
   useEffect(() => {
     fetchBillingData();
@@ -325,6 +326,33 @@ const AdminBillingManager = () => {
     }));
   };
 
+  const handleSelectRowAction = async (record, actionValue) => {
+    if (!record?.user_id) return;
+
+    if (!actionValue || actionValue === 'none') {
+      setActionSelections((current) => ({
+        ...current,
+        [record.user_id]: 'none',
+      }));
+      return;
+    }
+
+    if (actionValue === 'update_credits') {
+      await handleSaveCredits(record);
+    } else if (actionValue === 'account') {
+      setSelectedUserId((current) => (current === record.user_id ? null : record.user_id));
+    } else if (actionValue === 'transactions') {
+      await handleToggleTransactions(record);
+    } else if (actionValue === 'delete_credits') {
+      await handleDeleteCredits(record);
+    }
+
+    setActionSelections((current) => ({
+      ...current,
+      [record.user_id]: 'none',
+    }));
+  };
+
   const expandedRecord = records.find((record) => record.user_id === expandedUserId) || null;
   const expandedTransactions = expandedUserId ? transactionsByUserId[expandedUserId] || [] : [];
   const selectedRecord = records.find((record) => record.user_id === selectedUserId) || null;
@@ -503,6 +531,10 @@ const AdminBillingManager = () => {
                   const selectedPlan = plansById.get(
                     draft.subscription_plan_id === 'none' ? null : draft.subscription_plan_id
                   );
+                  const selectedAction = actionSelections[record.user_id] || 'none';
+                  const isSavingCredits = savingUserId === record.user_id;
+                  const isDeletingCredits = deletingUserId === record.user_id;
+                  const creditsActionLabel = record.has_credits_row ? 'Update credits' : 'Create credits';
                   const availableCredits =
                     toSafeInt(draft.free_credits, record.free_credits) +
                     toSafeInt(draft.subscription_credits, record.subscription_credits) +
@@ -616,67 +648,34 @@ const AdminBillingManager = () => {
                         />
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
-                        <div className="flex flex-col gap-2 items-end">
-                          <Button
-                            size="sm"
-                            onClick={() => handleSaveCredits(record)}
-                            disabled={!hasCreditsChanges(record) || savingUserId === record.user_id}
-                            className="bg-orange-500 hover:bg-orange-600 text-white min-w-[128px]"
+                        <div className="flex justify-end">
+                          <Select
+                            value={selectedAction}
+                            onValueChange={(value) => handleSelectRowAction(record, value)}
                           >
-                            {savingUserId === record.user_id ? (
-                              <>
-                                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                Saving
-                              </>
-                            ) : (
-                              <>
-                                <Save className="w-4 h-4 mr-2" />
-                                {record.has_credits_row ? 'Update credits' : 'Create credits'}
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              setSelectedUserId((current) => (current === record.user_id ? null : record.user_id))
-                            }
-                            className="border-gray-700 text-gray-300 hover:bg-gray-800 min-w-[128px]"
-                          >
-                            <UserCog className="w-4 h-4 mr-2" />
-                            Account
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleToggleTransactions(record)}
-                            className="border-gray-700 text-gray-300 hover:bg-gray-800 min-w-[128px]"
-                          >
-                            <Coins className="w-4 h-4 mr-2" />
-                            Transactions
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDeleteCredits(record)}
-                            disabled={!record.has_credits_row || deletingUserId === record.user_id}
-                            className="min-w-[128px]"
-                          >
-                            {deletingUserId === record.user_id ? (
-                              <>
-                                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                Deleting
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete credits
-                              </>
-                            )}
-                          </Button>
+                            <SelectTrigger className="bg-gray-950 border-gray-800 text-white min-w-[190px]">
+                              <SelectValue placeholder="Choose action" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-900 border-gray-800 text-white">
+                              <SelectItem value="none">Choose action</SelectItem>
+                              <SelectItem
+                                value="update_credits"
+                                disabled={!hasCreditsChanges(record) || isSavingCredits}
+                              >
+                                {isSavingCredits ? 'Saving credits...' : creditsActionLabel}
+                              </SelectItem>
+                              <SelectItem value="account">Account</SelectItem>
+                              <SelectItem value="transactions">
+                                {expandedUserId === record.user_id ? 'Hide transactions' : 'Transactions'}
+                              </SelectItem>
+                              <SelectItem
+                                value="delete_credits"
+                                disabled={!record.has_credits_row || isDeletingCredits}
+                              >
+                                {isDeletingCredits ? 'Deleting credits...' : 'Delete credits'}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </TableCell>
                     </TableRow>
