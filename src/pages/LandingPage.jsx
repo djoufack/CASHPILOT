@@ -77,7 +77,6 @@ const LandingPage = () => {
       if (preloaderRef.current) {
         preloaderRef.current.classList.add('loaded');
       }
-      document.body.style.overflow = 'visible';
 
       // Trigger hero animations
       setTimeout(() => {
@@ -93,6 +92,19 @@ const LandingPage = () => {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Lock body scroll only while mobile menu is open and always restore previous state.
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+
+    if (mobileMenuActive) {
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileMenuActive]);
 
   // Custom Cursor
   useEffect(() => {
@@ -362,13 +374,11 @@ const LandingPage = () => {
   }, [isLoaded]);
 
   const toggleMobileMenu = () => {
-    setMobileMenuActive(!mobileMenuActive);
-    document.body.style.overflow = !mobileMenuActive ? 'hidden' : 'visible';
+    setMobileMenuActive((previous) => !previous);
   };
 
   const closeMobileMenu = () => {
     setMobileMenuActive(false);
-    document.body.style.overflow = 'visible';
   };
 
   const languageCode = String(i18n.resolvedLanguage || i18n.language || 'en')
@@ -383,6 +393,7 @@ const LandingPage = () => {
         : { privacy: 'Privacy policy', legal: 'Legal notice' };
 
   const handleNavigate = (path) => {
+    closeMobileMenu();
     navigate(path);
   };
 

@@ -126,6 +126,7 @@ const MainLayout = () => {
         id="main-content"
         role="main"
         aria-label={t('common.mainContent', 'Contenu principal')}
+        style={{ WebkitOverflowScrolling: 'touch' }}
         className={`flex-1 transition-all duration-300 ease-in-out overflow-y-auto
           ${isCollapsed ? 'md:ml-[68px]' : 'md:ml-[260px]'}
           md:pt-14
