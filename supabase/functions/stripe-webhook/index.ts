@@ -28,6 +28,30 @@ const constantTimeEqual = (left: string, right: string) => {
   return result === 0;
 };
 
+const CANONICAL_SUBSCRIPTION_STATUSES = new Set([
+  'none',
+  'trialing',
+  'active',
+  'past_due',
+  'canceled',
+  'unpaid',
+  'incomplete',
+  'incomplete_expired',
+  'paused',
+]);
+
+const normalizeSubscriptionStatus = (status?: string | null) => {
+  if (!status) return 'none';
+  const normalized = status.toLowerCase();
+  return CANONICAL_SUBSCRIPTION_STATUSES.has(normalized) ? normalized : 'none';
+};
+
+const getEventMetadata = (event: Stripe.Event, extra: Record<string, string | number | boolean | null> = {}) => ({
+  stripe_event_id: event.id,
+  stripe_event_type: event.type,
+  ...extra,
+});
+
 const computeHmacSha256Hex = async (secret: string, payload: string) => {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
@@ -37,7 +61,7 @@ const computeHmacSha256Hex = async (secret: string, payload: string) => {
   return toHex(new Uint8Array(signature));
 };
 
-const ensureUserCreditsRow = async (supabase: ReturnType<typeof createClient>, userId: string) => {
+const ensureUserCreditsRow = async (supabase: any, userId: string) => {
   const { data: existingCredits, error: existingCreditsError } = await supabase
     .from('user_credits')
     .select('user_id')
@@ -54,14 +78,72 @@ const ensureUserCreditsRow = async (supabase: ReturnType<typeof createClient>, u
 
   const { error: insertCreditsError } = await supabase.from('user_credits').insert({
     user_id: userId,
-    free_credits: 10,
+    free_credits: 0,
     paid_credits: 0,
+    subscription_credits: 0,
+    subscription_plan_id: null,
+    subscription_status: 'none',
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    current_period_end: null,
     updated_at: new Date().toISOString(),
   });
 
   if (insertCreditsError) {
     throw insertCreditsError;
   }
+};
+
+const findProcessedStripeEvent = async (
+  supabase: any,
+  eventId: string,
+  sessionId?: string | null
+): Promise<boolean> => {
+  const { data: eventMatches, error: eventError } = await supabase
+    .from('credit_transactions')
+    .select('id')
+    .contains('metadata', { stripe_event_id: eventId })
+    .limit(1);
+
+  if (eventError) {
+    throw eventError;
+  }
+
+  if (eventMatches && eventMatches.length > 0) {
+    return true;
+  }
+
+  if (!sessionId) {
+    return false;
+  }
+
+  const { data: sessionMatches, error: sessionError } = await supabase
+    .from('credit_transactions')
+    .select('id')
+    .eq('stripe_session_id', sessionId)
+    .limit(1);
+
+  if (sessionError) {
+    throw sessionError;
+  }
+
+  return Boolean(sessionMatches && sessionMatches.length > 0);
+};
+
+const getSubscriptionState = async (supabase: any, userId: string): Promise<any> => {
+  const { data, error } = await supabase
+    .from('user_credits')
+    .select(
+      'subscription_status, subscription_plan_id, subscription_credits, current_period_end, stripe_subscription_id, stripe_customer_id'
+    )
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 };
 
 const getCheckoutPaymentIntentId = (session: Stripe.Checkout.Session) => {
@@ -124,7 +206,7 @@ serve(async (req) => {
       try {
         event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
       } catch (err) {
-        console.error('Webhook signature verification failed:', err.message);
+        console.error('Webhook signature verification failed:', err instanceof Error ? err.message : String(err));
         return new Response(JSON.stringify({ error: 'Invalid signature' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -138,6 +220,7 @@ serve(async (req) => {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.user_id;
+      const eventAlreadyProcessed = await findProcessedStripeEvent(supabase, event.id, session.id);
 
       // --- Subscription checkout ---
       if (session.mode === 'subscription') {
@@ -157,6 +240,7 @@ serve(async (req) => {
 
         // Retrieve subscription to get current_period_end
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
+        const canonicalSubscriptionStatus = normalizeSubscriptionStatus(sub.status);
 
         if (isGuest || !userId) {
           // --- Guest checkout: store as pending subscription ---
@@ -204,13 +288,20 @@ serve(async (req) => {
 
           await ensureUserCreditsRow(supabase, userId);
 
+          if (eventAlreadyProcessed) {
+            console.log('Subscription session already processed:', session.id);
+            return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
           const { error: updateError } = await supabase
             .from('user_credits')
             .update({
               subscription_plan_id: planId,
               stripe_subscription_id: subscriptionId,
               stripe_customer_id: session.customer as string,
-              subscription_status: 'active',
+              subscription_status: canonicalSubscriptionStatus,
               subscription_credits: creditsPerMonth,
               current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
               updated_at: new Date().toISOString(),
@@ -229,9 +320,16 @@ serve(async (req) => {
             amount: creditsPerMonth,
             description: `Abonnement ${planSlug} activé — ${creditsPerMonth} crédits`,
             stripe_session_id: session.id,
+            metadata: getEventMetadata(event, {
+              subscription_id: subscriptionId,
+              plan_id: planId || null,
+              plan_slug: planSlug || null,
+            }),
           });
 
-          console.log(`Subscription ${planSlug} activated for user ${userId} (${creditsPerMonth} credits)`);
+          console.log(
+            `Subscription ${planSlug} activated for user ${userId} (${creditsPerMonth} credits, status=${canonicalSubscriptionStatus})`
+          );
         }
 
         // --- Invoice payment via Stripe Payment Link ---
@@ -372,7 +470,7 @@ serve(async (req) => {
           : Number(existingInvoice.amount_paid || 0) + amountPaid;
 
         await Promise.all([
-          deliverWebhookEvent(supabase, invoiceUserId, 'invoice.paid', {
+          deliverWebhookEvent(supabase as any, invoiceUserId, 'invoice.paid', {
             id: invoiceId,
             invoice_number: existingInvoice.invoice_number,
             client_id: existingInvoice.client_id,
@@ -381,7 +479,7 @@ serve(async (req) => {
             payment_status: 'paid',
             amount_paid: newAmountPaid,
           }),
-          deliverWebhookEvent(supabase, invoiceUserId, 'payment.received', {
+          deliverWebhookEvent(supabase as any, invoiceUserId, 'payment.received', {
             invoice_id: invoiceId,
             amount: amountPaid,
             payment_method: 'card',
@@ -438,6 +536,9 @@ serve(async (req) => {
           description: `Purchased ${credits} credits via Stripe`,
           stripe_session_id: session.id,
           stripe_payment_intent: session.payment_intent as string,
+          metadata: getEventMetadata(event, {
+            purchase_credits: credits,
+          }),
         });
 
         console.log(`Credited ${credits} credits to user ${userId} (session: ${session.id})`);
@@ -450,6 +551,7 @@ serve(async (req) => {
     if (event.type === 'invoice.paid') {
       const invoice = event.data.object as Stripe.Invoice;
       const subscriptionId = invoice.subscription as string;
+      const eventAlreadyProcessed = await findProcessedStripeEvent(supabase, event.id);
 
       // Skip if not a subscription invoice or first invoice (handled by checkout)
       if (!subscriptionId || invoice.billing_reason === 'subscription_create') {
@@ -486,16 +588,39 @@ serve(async (req) => {
         });
       }
 
+      if (eventAlreadyProcessed) {
+        console.log(`Subscription renewal event already processed (${event.id})`);
+        return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       // Retrieve subscription for period end
       const sub = await stripe.subscriptions.retrieve(subscriptionId);
+      const canonicalSubscriptionStatus = normalizeSubscriptionStatus(sub.status);
+      const currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
+      const currentState = await getSubscriptionState(supabase, userCredits.user_id);
+
+      if (
+        currentState &&
+        currentState.subscription_status === canonicalSubscriptionStatus &&
+        currentState.subscription_credits === plan.credits_per_month &&
+        currentState.current_period_end === currentPeriodEnd &&
+        currentState.stripe_subscription_id === subscriptionId
+      ) {
+        console.log(`Subscription renewal already applied for user ${userCredits.user_id} (${subscriptionId})`);
+        return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       // Reset subscription credits to monthly quota
       const { error: resetError } = await supabase
         .from('user_credits')
         .update({
           subscription_credits: plan.credits_per_month,
-          subscription_status: 'active',
-          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+          subscription_status: canonicalSubscriptionStatus,
+          current_period_end: currentPeriodEnd,
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userCredits.user_id);
@@ -510,9 +635,16 @@ serve(async (req) => {
         type: 'subscription_renewal',
         amount: plan.credits_per_month,
         description: `Renouvellement ${plan.name} — ${plan.credits_per_month} crédits`,
+        metadata: getEventMetadata(event, {
+          subscription_id: subscriptionId,
+          invoice_id: invoice.id,
+          plan_id: userCredits.subscription_plan_id || null,
+        }),
       });
 
-      console.log(`Renewed ${plan.slug} for user ${userCredits.user_id} (${plan.credits_per_month} credits)`);
+      console.log(
+        `Renewed ${plan.slug} for user ${userCredits.user_id} (${plan.credits_per_month} credits, status=${canonicalSubscriptionStatus})`
+      );
     }
 
     // ========================================
@@ -532,10 +664,28 @@ serve(async (req) => {
       const planSlug = subscription.metadata?.plan_slug;
       const planId = subscription.metadata?.plan_id;
       const creditsPerMonth = parseInt(subscription.metadata?.credits_per_month || '0', 10);
+      const canonicalSubscriptionStatus = normalizeSubscriptionStatus(subscription.status);
+      const currentPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+      const currentState = await getSubscriptionState(supabase, userId);
+
+      if (
+        currentState &&
+        currentState.subscription_status === canonicalSubscriptionStatus &&
+        currentState.subscription_plan_id === (planId || null) &&
+        currentState.subscription_credits === creditsPerMonth &&
+        currentState.current_period_end === currentPeriodEnd &&
+        currentState.stripe_subscription_id === subscription.id &&
+        currentState.stripe_customer_id === (typeof subscription.customer === 'string' ? subscription.customer : null)
+      ) {
+        console.log(`Subscription update already applied for user ${userId} (${subscription.id})`);
+        return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       const updateData: Record<string, unknown> = {
-        subscription_status: subscription.status === 'active' ? 'active' : subscription.status,
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        subscription_status: canonicalSubscriptionStatus,
+        current_period_end: currentPeriodEnd,
         updated_at: new Date().toISOString(),
       };
 
@@ -546,7 +696,7 @@ serve(async (req) => {
 
       await supabase.from('user_credits').update(updateData).eq('user_id', userId);
 
-      console.log(`Subscription updated for user ${userId}: status=${subscription.status}, plan=${planSlug}`);
+      console.log(`Subscription updated for user ${userId}: status=${canonicalSubscriptionStatus}, plan=${planSlug}`);
     }
 
     // ========================================
@@ -555,6 +705,15 @@ serve(async (req) => {
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as Stripe.Subscription;
       const userId = subscription.metadata?.user_id;
+      const canonicalSubscriptionStatus = 'canceled';
+      const eventAlreadyProcessed = await findProcessedStripeEvent(supabase, event.id);
+
+      if (eventAlreadyProcessed) {
+        console.log(`Subscription cancellation event already processed (${event.id})`);
+        return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       if (!userId) {
         // Fallback: find by subscription ID
@@ -565,10 +724,24 @@ serve(async (req) => {
           .single();
 
         if (userCredits) {
+          const currentState = await getSubscriptionState(supabase, userCredits.user_id);
+          if (
+            currentState &&
+            currentState.subscription_status === canonicalSubscriptionStatus &&
+            currentState.subscription_plan_id === null &&
+            currentState.subscription_credits === 0 &&
+            currentState.stripe_subscription_id === null
+          ) {
+            console.log(`Subscription cancellation already applied for user ${userCredits.user_id}`);
+            return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
           await supabase
             .from('user_credits')
             .update({
-              subscription_status: 'canceled',
+              subscription_status: canonicalSubscriptionStatus,
               subscription_credits: 0,
               stripe_subscription_id: null,
               subscription_plan_id: null,
@@ -582,15 +755,32 @@ serve(async (req) => {
             type: 'subscription_canceled',
             amount: 0,
             description: 'Abonnement annulé',
+            metadata: getEventMetadata(event, {
+              subscription_id: subscription.id,
+            }),
           });
 
           console.log(`Subscription canceled for user ${userCredits.user_id}`);
         }
       } else {
+        const currentState = await getSubscriptionState(supabase, userId);
+        if (
+          currentState &&
+          currentState.subscription_status === canonicalSubscriptionStatus &&
+          currentState.subscription_plan_id === null &&
+          currentState.subscription_credits === 0 &&
+          currentState.stripe_subscription_id === null
+        ) {
+          console.log(`Subscription cancellation already applied for user ${userId}`);
+          return new Response(JSON.stringify({ received: true, status: 'already_processed' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
         await supabase
           .from('user_credits')
           .update({
-            subscription_status: 'canceled',
+            subscription_status: canonicalSubscriptionStatus,
             subscription_credits: 0,
             stripe_subscription_id: null,
             subscription_plan_id: null,
@@ -604,6 +794,9 @@ serve(async (req) => {
           type: 'subscription_canceled',
           amount: 0,
           description: 'Abonnement annulé',
+          metadata: getEventMetadata(event, {
+            subscription_id: subscription.id,
+          }),
         });
 
         console.log(`Subscription canceled for user ${userId}`);

@@ -214,8 +214,10 @@ serve(async (req) => {
         } else {
           const { error: insertCustomerError } = await supabase.from('user_credits').insert({
             user_id: resolvedUserId,
-            free_credits: 10,
+            free_credits: 0,
             paid_credits: 0,
+            subscription_credits: 0,
+            subscription_status: 'none',
             stripe_customer_id: customerId,
             updated_at: new Date().toISOString(),
           });
@@ -257,7 +259,8 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Subscription checkout error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

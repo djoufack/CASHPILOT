@@ -161,7 +161,13 @@ const listAllAuthUsers = async (supabase: ReturnType<typeof createServiceClient>
 
 const getUserSummaries = async (supabase: ReturnType<typeof createServiceClient>) => {
   const authUsers = await listAllAuthUsers(supabase);
-  const userIds = authUsers.map((user) => asStringOrNull(user.id)).filter((value): value is string => Boolean(value));
+  const activeAuthUsers = authUsers.filter((user) => {
+    const deletedAt = asStringOrNull((user as AnyRecord).deleted_at);
+    return !deletedAt;
+  });
+  const userIds = activeAuthUsers
+    .map((user) => asStringOrNull(user.id))
+    .filter((value): value is string => Boolean(value));
 
   if (userIds.length === 0) {
     return [];
@@ -193,7 +199,7 @@ const getUserSummaries = async (supabase: ReturnType<typeof createServiceClient>
   const roleByUserId = new Map((roleRows || []).map((roleRow) => [roleRow.user_id, roleRow]));
   const creditsByUserId = new Map((credits || []).map((creditsRow) => [creditsRow.user_id, creditsRow]));
 
-  const users = authUsers.map((authUser) => {
+  const users = activeAuthUsers.map((authUser) => {
     const userId = asStringOrNull(authUser.id) || '';
     const metadata =
       authUser.user_metadata && typeof authUser.user_metadata === 'object' ? (authUser.user_metadata as AnyRecord) : {};

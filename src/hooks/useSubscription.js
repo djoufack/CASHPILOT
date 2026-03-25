@@ -5,13 +5,33 @@ import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { createSubscriptionCheckout, redirectToCheckout } from '@/services/subscriptionService';
 
+const CANONICAL_SUBSCRIPTION_STATUSES = new Set([
+  'none',
+  'trialing',
+  'active',
+  'past_due',
+  'canceled',
+  'unpaid',
+  'incomplete',
+  'incomplete_expired',
+  'paused',
+]);
+
+const normalizeSubscriptionStatus = (status) => {
+  if (!status || status === 'inactive') {
+    return 'none';
+  }
+
+  return CANONICAL_SUBSCRIPTION_STATUSES.has(status) ? status : 'none';
+};
+
 export const useSubscription = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation();
   const [currentPlan, setCurrentPlan] = useState(null);
   const [plans, setPlans] = useState([]);
-  const [subscriptionStatus, setSubscriptionStatus] = useState('inactive');
+  const [subscriptionStatus, setSubscriptionStatus] = useState('none');
   const [subscriptionCredits, setSubscriptionCredits] = useState(0);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +59,7 @@ export const useSubscription = () => {
 
     if (!user) {
       setCurrentPlan(null);
-      setSubscriptionStatus('inactive');
+      setSubscriptionStatus('none');
       setSubscriptionCredits(0);
       setCurrentPeriodEnd(null);
       setLoading(false);
@@ -62,7 +82,7 @@ export const useSubscription = () => {
         .single();
 
       if (data) {
-        setSubscriptionStatus(data.subscription_status || 'inactive');
+        setSubscriptionStatus(normalizeSubscriptionStatus(data.subscription_status));
         setSubscriptionCredits(data.subscription_credits || 0);
         setCurrentPeriodEnd(data.current_period_end);
 
@@ -76,8 +96,17 @@ export const useSubscription = () => {
         } else {
           setCurrentPlan(null);
         }
+      } else {
+        setCurrentPlan(null);
+        setSubscriptionStatus('none');
+        setSubscriptionCredits(0);
+        setCurrentPeriodEnd(null);
       }
     } catch (err) {
+      setCurrentPlan(null);
+      setSubscriptionStatus('none');
+      setSubscriptionCredits(0);
+      setCurrentPeriodEnd(null);
       console.error('Error fetching subscription:', err);
     } finally {
       setLoading(false);
