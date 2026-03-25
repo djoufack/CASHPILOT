@@ -209,7 +209,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="relative min-h-[100dvh] min-h-screen overflow-hidden bg-[#020712] px-3 py-4 sm:px-6 sm:py-8">
+    <div className="relative min-h-[100dvh] min-h-screen overflow-x-hidden overflow-y-auto bg-[#020712] px-3 py-4 sm:px-6 sm:py-8">
       <Helmet>
         <title>{t('pages.login', 'Login')} | CashPilot</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -320,10 +320,10 @@ const LoginPage = () => {
             <LanguageSwitcher variant="segmented" />
           </div>
 
-          <div className="relative rounded-3xl bg-gray-900/80 p-1 shadow-2xl backdrop-blur-xl">
-            <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-yellow-500/70 via-amber-400/60 to-cyan-500/65 p-[1px] opacity-70" />
+          <div className="relative rounded-3xl bg-[#060b21]/85 p-1 shadow-2xl backdrop-blur-xl">
+            <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-[#0c1f4f]/85 via-[#1d2f6f]/80 to-[#4b1f74]/80 p-[1px] opacity-80" />
 
-            <div className="relative z-10 rounded-[22px] bg-gray-950/93 p-6 sm:p-8">
+            <div className="relative z-10 rounded-[22px] bg-gradient-to-br from-[#07112d]/96 via-[#101e49]/95 to-[#2f1858]/94 p-6 sm:p-8">
               <div className="mb-7 text-center">
                 <h2 className="mb-2 text-4xl font-bold tracking-tight text-white">{t('app.name')}</h2>
                 <p className="text-sm text-gray-400">{t('auth.welcomeBack')}</p>
