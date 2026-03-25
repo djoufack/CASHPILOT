@@ -120,7 +120,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.admin-users]
-verify_jwt = true
+verify_jwt = false
 
 [functions.exchange-rates]
 verify_jwt = false

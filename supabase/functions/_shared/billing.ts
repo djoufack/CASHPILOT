@@ -9,27 +9,27 @@ export class HttpError extends Error {
   }
 }
 
-const parseRpcResult = <T>(payload: T | T[] | null) => Array.isArray(payload) ? payload[0] : payload;
+const parseRpcResult = <T>(payload: T | T[] | null) => (Array.isArray(payload) ? payload[0] : payload);
 
-const requireEnv = (name: string): string => {
-  const value = Deno.env.get(name)?.trim();
-  if (!value) {
-    throw new HttpError(500, `Server misconfigured: missing ${name}`);
+const requireFirstEnv = (...names: string[]): string => {
+  for (const name of names) {
+    const value = Deno.env.get(name)?.trim();
+    if (value) {
+      return value;
+    }
   }
 
-  return value;
+  throw new HttpError(500, `Server misconfigured: missing ${names.join(' | ')}`);
 };
 
-export const createServiceClient = () => createClient(
-  requireEnv('SUPABASE_URL'),
-  requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
-);
+const resolveSupabaseUrl = () => requireFirstEnv('CASHPILOT_SUPABASE_URL', 'SUPABASE_URL');
+const resolveAnonKey = () => requireFirstEnv('CASHPILOT_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY');
+const resolveServiceRoleKey = () => requireFirstEnv('CASHPILOT_SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_ROLE_KEY');
 
-export const createAuthClient = (authHeader: string) => createClient(
-  requireEnv('SUPABASE_URL'),
-  requireEnv('SUPABASE_ANON_KEY'),
-  { global: { headers: { Authorization: authHeader } } },
-);
+export const createServiceClient = () => createClient(resolveSupabaseUrl(), resolveServiceRoleKey());
+
+export const createAuthClient = (authHeader: string) =>
+  createClient(resolveSupabaseUrl(), resolveAnonKey(), { global: { headers: { Authorization: authHeader } } });
 
 const extractBearerToken = (authHeader: string) => {
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
@@ -47,11 +47,23 @@ export const requireAuthenticatedUser = async (req: Request) => {
   }
 
   const token = extractBearerToken(authHeader);
-  const supabaseAdmin = createServiceClient();
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  const response = await fetch(`${resolveSupabaseUrl()}/auth/v1/user`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: resolveAnonKey(),
+    },
+  });
 
-  if (error || !user) {
-    throw new HttpError(401, error?.message || 'Unauthorized');
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    const message = payload?.message || payload?.error || payload?.error_description || 'Unauthorized';
+    throw new HttpError(401, message);
+  }
+
+  const user = await response.json().catch(() => null);
+  if (!user?.id) {
+    throw new HttpError(401, 'Unauthorized');
   }
 
   return user;
@@ -59,7 +71,7 @@ export const requireAuthenticatedUser = async (req: Request) => {
 
 export const resolveCreditCost = async (
   supabase: ReturnType<typeof createClient>,
-  operationCode: string,
+  operationCode: string
 ): Promise<number> => {
   const { data, error } = await supabase
     .from('credit_costs')
@@ -80,7 +92,11 @@ export const resolveCreditCost = async (
   return cost;
 };
 
-export const requireEntitlement = async (supabase: ReturnType<typeof createClient>, userId: string, featureKey: string) => {
+export const requireEntitlement = async (
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  featureKey: string
+) => {
   const { data, error } = await supabase.rpc('user_has_entitlement', {
     p_feature_key: featureKey,
     target_user_id: userId,
@@ -111,7 +127,7 @@ export const consumeCredits = async (
   supabase: ReturnType<typeof createClient>,
   userId: string,
   amount: number,
-  description: string,
+  description: string
 ) => {
   const { data, error } = await supabase.rpc('consume_user_credits', {
     target_user_id: userId,
@@ -135,7 +151,7 @@ export const refundCredits = async (
   supabase: ReturnType<typeof createClient>,
   userId: string,
   deduction: Partial<CreditConsumptionResult> | null | undefined,
-  description: string,
+  description: string
 ) => {
   if (!deduction) {
     return;

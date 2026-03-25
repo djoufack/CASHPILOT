@@ -121,6 +121,13 @@ export const useAdminBilling = () => {
           console.error(`Admin billing fetch ${index} failed:`, result.reason);
         }
       });
+      if (_results[0].status === 'rejected') {
+        toast({
+          title: 'Warning',
+          description: 'Admin user directory is unavailable. Emails and account CRUD data may be incomplete.',
+          variant: 'destructive',
+        });
+      }
 
       const adminUsersRes = _results[0].status === 'fulfilled' ? _results[0].value : { users: [] };
       const profileRes = _results[1].status === 'fulfilled' ? _results[1].value : { data: null, error: null };
