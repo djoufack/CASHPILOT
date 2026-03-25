@@ -25,6 +25,22 @@ const normalizeSubscriptionStatus = (status) => {
   return CANONICAL_SUBSCRIPTION_STATUSES.has(status) ? status : 'none';
 };
 
+const normalizePlanScope = (plan) => {
+  if (!plan || typeof plan !== 'object') {
+    return 'none';
+  }
+
+  const rawScope = typeof plan?.plan_scope === 'string' ? plan.plan_scope.trim().toLowerCase() : '';
+  if (rawScope === 'subscription' || rawScope === 'trial' || rawScope === 'none') {
+    return rawScope;
+  }
+
+  const slug = typeof plan?.slug === 'string' ? plan.slug.trim().toLowerCase() : '';
+  if (slug === 'trial') return 'trial';
+  if (slug === 'none' || slug === 'free') return 'none';
+  return 'subscription';
+};
+
 export const useSubscription = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -45,7 +61,14 @@ export const useSubscription = () => {
         .select('*')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
-      setPlans(data || []);
+
+      const visiblePaidPlans = (data || []).filter((plan) => {
+        const scope = normalizePlanScope(plan);
+        const visibleOnPricing = plan?.visible_on_pricing !== false;
+        return scope === 'subscription' && visibleOnPricing;
+      });
+
+      setPlans(visiblePaidPlans);
     } catch (err) {
       console.error('Error fetching plans:', err);
     }
@@ -92,7 +115,12 @@ export const useSubscription = () => {
             .select('*')
             .eq('id', data.subscription_plan_id)
             .single();
-          setCurrentPlan(plan || null);
+
+          if (plan && normalizePlanScope(plan) === 'subscription') {
+            setCurrentPlan(plan);
+          } else {
+            setCurrentPlan(null);
+          }
         } else {
           setCurrentPlan(null);
         }

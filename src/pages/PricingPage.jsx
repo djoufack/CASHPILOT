@@ -55,6 +55,22 @@ const PLAN_TARGETS = {
   enterprise: 'pricing.target.enterprise',
 };
 
+const normalizePlanScope = (plan) => {
+  if (!plan || typeof plan !== 'object') {
+    return 'none';
+  }
+
+  const rawScope = typeof plan?.plan_scope === 'string' ? plan.plan_scope.trim().toLowerCase() : '';
+  if (rawScope === 'subscription' || rawScope === 'trial' || rawScope === 'none') {
+    return rawScope;
+  }
+
+  const slug = typeof plan?.slug === 'string' ? plan.slug.trim().toLowerCase() : '';
+  if (slug === 'trial') return 'trial';
+  if (slug === 'none' || slug === 'free') return 'none';
+  return 'subscription';
+};
+
 const PricingPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -67,7 +83,10 @@ const PricingPage = () => {
   const [showCreditCosts, setShowCreditCosts] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState('monthly'); // 'monthly' | 'annual'
   const [openFaq, setOpenFaq] = useState(null);
-  const visiblePlans = plans.filter((plan) => plan.slug !== 'free');
+  const visiblePlans = plans.filter((plan) => {
+    const scope = normalizePlanScope(plan);
+    return scope === 'subscription' && plan?.visible_on_pricing !== false;
+  });
 
   // Handle return from Stripe
   useEffect(() => {
@@ -116,6 +135,15 @@ const PricingPage = () => {
         toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
       }
     }
+  };
+
+  const handleStartTrial = () => {
+    if (user) {
+      navigate('/app');
+      return;
+    }
+
+    navigate('/signup?trial=30d&redirect=/app');
   };
 
   const isCurrentPlan = (slug) => {
@@ -241,6 +269,26 @@ const PricingPage = () => {
               </span>
             </button>
           </div>
+
+          <div className="mt-4">
+            <button
+              onClick={handleStartTrial}
+              disabled={fullAccessOverride}
+              className={`px-6 py-2.5 rounded-full text-sm font-semibold border transition-all ${
+                fullAccessOverride
+                  ? 'border-cyan-500/30 text-cyan-300/70 bg-cyan-500/10 cursor-default'
+                  : trialActive && !currentPlan
+                    ? 'border-emerald-500/40 text-emerald-300 bg-emerald-500/10'
+                    : 'border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/15'
+              }`}
+            >
+              {fullAccessOverride
+                ? 'Acces administrateur actif'
+                : trialActive && !currentPlan
+                  ? 'Période d’essai en cours (30 jours)'
+                  : 'Choisir la période d’essai (30 jours)'}
+            </button>
+          </div>
         </div>
 
         {/* User current balance (if logged in) */}
@@ -270,7 +318,7 @@ const PricingPage = () => {
         {user && !fullAccessOverride && trialActive && !currentPlan && (
           <div className="mb-10 max-w-3xl mx-auto rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">Essai complet actif</p>
-            <p className="mt-2 text-lg font-semibold text-white">Tous les services sont ouverts pendant 3 jours.</p>
+            <p className="mt-2 text-lg font-semibold text-white">Tous les services sont ouverts pendant 30 jours.</p>
             <p className="mt-1 text-sm text-emerald-100/80">
               Fin de l'essai le {new Date(trialEndsAt).toLocaleDateString('fr-FR')}.
               {trialDaysRemaining > 0

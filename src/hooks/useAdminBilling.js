@@ -19,6 +19,7 @@ export const CREDIT_TRANSACTION_TYPES = ['purchase', 'usage', 'bonus', 'refund']
 export const ADMIN_ACCESS_ROLE_OPTIONS = ['user', 'manager', 'accountant', 'admin'];
 export const PROFILE_ROLE_OPTIONS = ['user', 'client', 'freelance', 'manager', 'accountant', 'admin'];
 export const USER_DELETE_CONFIRMATION_PHRASE = 'DELETE_USER_AND_ALL_DATA';
+const TRIAL_DURATION_DAYS = 30;
 
 const DEFAULT_CREDIT_RECORD = {
   free_credits: 0,
@@ -27,6 +28,7 @@ const DEFAULT_CREDIT_RECORD = {
   total_used: 0,
   subscription_plan_id: null,
   subscription_status: 'none',
+  current_period_start: null,
   current_period_end: null,
 };
 
@@ -48,6 +50,21 @@ const toDateSortValue = (value) => {
   if (!value) return 0;
   const parsed = new Date(value).getTime();
   return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const toIsoDateTimeOrNullSafe = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+};
+
+const addDaysIso = (isoValue, days) => {
+  if (!isoValue) return null;
+  const date = new Date(isoValue);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString();
 };
 
 const toNonEmptyString = (value) => {
@@ -74,6 +91,27 @@ export const normalizeSubscriptionStatus = (value) => {
   }
 
   return SUBSCRIPTION_STATUS_OPTIONS.includes(normalized) ? normalized : 'none';
+};
+
+const normalizePlanScope = (plan) => {
+  if (!plan || typeof plan !== 'object') {
+    return 'none';
+  }
+
+  const rawScope = typeof plan?.plan_scope === 'string' ? plan.plan_scope.trim().toLowerCase() : '';
+  if (rawScope === 'subscription' || rawScope === 'trial' || rawScope === 'none') {
+    return rawScope;
+  }
+
+  const slug = typeof plan?.slug === 'string' ? plan.slug.trim().toLowerCase() : '';
+  if (slug === 'trial') return 'trial';
+  if (slug === 'none' || slug === 'free') return 'none';
+  return 'subscription';
+};
+
+const resolvePlanIdByScope = (plans, scope) => {
+  const match = (plans || []).find((plan) => normalizePlanScope(plan) === scope && plan?.is_active !== false);
+  return match?.id || null;
 };
 
 export const useAdminBilling = () => {
@@ -127,12 +165,13 @@ export const useAdminBilling = () => {
         supabase
           .from('user_credits')
           .select(
-            'user_id, free_credits, subscription_credits, paid_credits, total_used, subscription_plan_id, subscription_status, current_period_end, updated_at'
+            'user_id, free_credits, subscription_credits, paid_credits, total_used, subscription_plan_id, subscription_status, current_period_start, current_period_end, updated_at'
           ),
         supabase
           .from('subscription_plans')
-          .select('id, name, slug, price_cents, currency, credits_per_month, is_active, sort_order')
-          .eq('is_active', true)
+          .select(
+            'id, name, slug, price_cents, currency, credits_per_month, is_active, sort_order, plan_scope, visible_on_pricing, admin_selectable'
+          )
           .order('sort_order', { ascending: true }),
       ]);
 
@@ -172,6 +211,10 @@ export const useAdminBilling = () => {
         (roleRes.data || []).map((roleRow) => [roleRow.user_id, normalizeRole(roleRow.role)])
       );
       const creditsByUserId = new Map((creditsRes.data || []).map((creditRow) => [creditRow.user_id, creditRow]));
+      const plansList = plansRes.data || [];
+      const plansById = new Map(plansList.map((plan) => [plan.id, plan]));
+      const trialPlanId = resolvePlanIdByScope(plansList, 'trial');
+      const nonePlanId = resolvePlanIdByScope(plansList, 'none');
       const allUserIds = new Set([
         ...adminUsersByUserId.keys(),
         ...profilesByUserId.keys(),
@@ -187,6 +230,37 @@ export const useAdminBilling = () => {
         const fullName = toNonEmptyString(adminUser?.full_name) || toNonEmptyString(profile?.full_name);
         const companyName = toNonEmptyString(adminUser?.company_name) || toNonEmptyString(profile?.company_name);
         const email = toNonEmptyString(adminUser?.email);
+        const createdAt = adminUser?.created_at || profile?.created_at || null;
+        const createdAtIso = toIsoDateTimeOrNullSafe(createdAt);
+        const accessRole = normalizeAccessRole(
+          adminUser?.access_role || rolesByUserId.get(userId) || profile?.role || 'user'
+        );
+        const fallbackPlanId = accessRole === 'admin' ? nonePlanId : trialPlanId;
+        const effectivePlanId = credits.subscription_plan_id || fallbackPlanId || null;
+        const effectivePlan = effectivePlanId ? plansById.get(effectivePlanId) || null : null;
+        const effectivePlanScope = normalizePlanScope(effectivePlan);
+        const trialEndsAtIso = addDaysIso(createdAtIso, TRIAL_DURATION_DAYS);
+        const nowTs = Date.now();
+        const normalizedStatus = normalizeSubscriptionStatus(credits.subscription_status);
+        const periodStartIso = toIsoDateTimeOrNullSafe(credits.current_period_start) || createdAtIso;
+        const periodEndIso =
+          toIsoDateTimeOrNullSafe(credits.current_period_end) ||
+          (effectivePlanScope === 'trial' ? trialEndsAtIso : null);
+        const trialIsActive =
+          effectivePlanScope === 'trial' && periodEndIso && Number.isFinite(new Date(periodEndIso).getTime())
+            ? nowTs < new Date(periodEndIso).getTime()
+            : false;
+        const hasPaidPlan = effectivePlanScope === 'subscription';
+        const isPaidLifecycleStatus = ['active', 'trialing', 'past_due'].includes(normalizedStatus);
+        const hasPaidSubscription =
+          hasPaidPlan &&
+          isPaidLifecycleStatus &&
+          (!periodEndIso ||
+            !Number.isFinite(new Date(periodEndIso).getTime()) ||
+            nowTs <= new Date(periodEndIso).getTime());
+        const effectiveStatus = hasPaidSubscription ? normalizedStatus : trialIsActive ? 'trialing' : 'none';
+        const effectivePeriodStart = periodStartIso;
+        const effectivePeriodEnd = effectivePlanScope === 'none' ? null : periodEndIso;
 
         return {
           user_id: userId,
@@ -196,19 +270,21 @@ export const useAdminBilling = () => {
           phone: toNonEmptyString(adminUser?.phone) || toNonEmptyString(profile?.phone),
           name: fullName || companyName || email || 'Unknown user',
           profile_role: normalizeProfileRole(adminUser?.profile_role || profile?.role),
-          access_role: normalizeAccessRole(
-            adminUser?.access_role || rolesByUserId.get(userId) || profile?.role || 'user'
-          ),
-          created_at: adminUser?.created_at || profile?.created_at || null,
+          access_role: accessRole,
+          created_at: createdAt,
           account_updated_at: adminUser?.updated_at || null,
           has_credits_row: Boolean(creditsByUserId.get(userId)),
           free_credits: toSafeInt(credits.free_credits, 0),
           subscription_credits: toSafeInt(credits.subscription_credits, 0),
           paid_credits: toSafeInt(credits.paid_credits, 0),
           total_used: toSafeInt(credits.total_used, 0),
-          subscription_plan_id: credits.subscription_plan_id || null,
-          subscription_status: normalizeSubscriptionStatus(credits.subscription_status),
-          current_period_end: credits.current_period_end || null,
+          subscription_plan_id: effectivePlanId,
+          subscription_plan_scope: effectivePlanScope,
+          subscription_status: effectiveStatus,
+          current_period_start: effectivePeriodStart,
+          current_period_end: effectivePeriodEnd,
+          trial_ends_at: effectivePlanScope === 'trial' ? periodEndIso : null,
+          trial_active: Boolean(trialIsActive),
           updated_at: credits.updated_at || null,
         };
       });
@@ -222,7 +298,7 @@ export const useAdminBilling = () => {
       });
 
       setRecords(nextRecords);
-      setPlans(plansRes.data || []);
+      setPlans(plansList);
     } catch (err) {
       console.error('Failed to fetch admin billing data:', err);
       toast({
@@ -451,8 +527,58 @@ export const useAdminBilling = () => {
         total_used: record.total_used,
         subscription_plan_id: record.subscription_plan_id,
         subscription_status: record.subscription_status,
+        current_period_start: record.current_period_start,
         current_period_end: record.current_period_end,
       };
+
+      const selectedPlanId =
+        toNonEmptyString(draft.subscription_plan_id) || toNonEmptyString(record.subscription_plan_id);
+      if (!selectedPlanId) {
+        toast({
+          title: 'Error',
+          description: 'Subscription plan is required',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      const selectedPlan = (plans || []).find((plan) => plan?.id === selectedPlanId) || null;
+      if (!selectedPlan) {
+        toast({
+          title: 'Error',
+          description: 'Selected subscription plan does not exist',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      const selectedPlanScope = normalizePlanScope(selectedPlan);
+      const nowIso = new Date().toISOString();
+      const normalizedDraftStatus = normalizeSubscriptionStatus(draft.subscription_status);
+      const baselineStart =
+        toIsoDateTimeOrNull(draft.current_period_start) ||
+        toIsoDateTimeOrNull(record.current_period_start) ||
+        toIsoDateTimeOrNull(record.created_at) ||
+        nowIso;
+      const baselineEnd =
+        toIsoDateTimeOrNull(draft.current_period_end) || toIsoDateTimeOrNull(record.current_period_end);
+
+      let nextStatus = normalizedDraftStatus;
+      let nextPeriodStart = baselineStart;
+      let nextPeriodEnd = baselineEnd;
+
+      if (selectedPlanScope === 'none') {
+        nextStatus = 'none';
+        nextPeriodStart = null;
+        nextPeriodEnd = null;
+      } else if (selectedPlanScope === 'trial') {
+        nextPeriodStart = baselineStart;
+        nextPeriodEnd = baselineEnd || addDaysIso(nextPeriodStart, TRIAL_DURATION_DAYS);
+        const endTimestamp = nextPeriodEnd ? new Date(nextPeriodEnd).getTime() : Number.NaN;
+        nextStatus = Number.isFinite(endTimestamp) && endTimestamp > Date.now() ? 'trialing' : 'none';
+      } else if (!SUBSCRIPTION_STATUS_OPTIONS.includes(nextStatus)) {
+        nextStatus = 'none';
+      }
 
       const nextState = {
         user_id: record.user_id,
@@ -460,11 +586,11 @@ export const useAdminBilling = () => {
         subscription_credits: Math.max(0, toSafeInt(draft.subscription_credits, previousState.subscription_credits)),
         paid_credits: Math.max(0, toSafeInt(draft.paid_credits, previousState.paid_credits)),
         total_used: Math.max(0, toSafeInt(draft.total_used, previousState.total_used)),
-        subscription_plan_id:
-          draft.subscription_plan_id && draft.subscription_plan_id !== 'none' ? draft.subscription_plan_id : null,
-        subscription_status: normalizeSubscriptionStatus(draft.subscription_status),
-        current_period_end: toIsoDateTimeOrNull(draft.current_period_end),
-        updated_at: new Date().toISOString(),
+        subscription_plan_id: selectedPlanId,
+        subscription_status: nextStatus,
+        current_period_start: nextPeriodStart,
+        current_period_end: nextPeriodEnd,
+        updated_at: nowIso,
       };
 
       setSavingUserId(record.user_id);
@@ -499,7 +625,7 @@ export const useAdminBilling = () => {
         setSavingUserId(null);
       }
     },
-    [fetchBillingData, logAction, toast]
+    [fetchBillingData, logAction, plans, toast]
   );
 
   const deleteUserCredits = useCallback(
@@ -525,6 +651,7 @@ export const useAdminBilling = () => {
             total_used: record.total_used,
             subscription_plan_id: record.subscription_plan_id,
             subscription_status: record.subscription_status,
+            current_period_start: record.current_period_start,
             current_period_end: record.current_period_end,
           },
           null

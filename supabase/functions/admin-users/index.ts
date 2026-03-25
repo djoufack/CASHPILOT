@@ -186,7 +186,7 @@ const getUserSummaries = async (supabase: ReturnType<typeof createServiceClient>
     supabase
       .from('user_credits')
       .select(
-        'user_id, free_credits, subscription_credits, paid_credits, total_used, subscription_plan_id, subscription_status, current_period_end, updated_at'
+        'user_id, free_credits, subscription_credits, paid_credits, total_used, subscription_plan_id, subscription_status, current_period_start, current_period_end, updated_at'
       )
       .in('user_id', userIds),
   ]);
@@ -229,6 +229,7 @@ const getUserSummaries = async (supabase: ReturnType<typeof createServiceClient>
             total_used: creditsRow.total_used,
             subscription_plan_id: creditsRow.subscription_plan_id,
             subscription_status: creditsRow.subscription_status,
+            current_period_start: creditsRow.current_period_start,
             current_period_end: creditsRow.current_period_end,
             updated_at: creditsRow.updated_at,
           }

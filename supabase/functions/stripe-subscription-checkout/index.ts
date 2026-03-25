@@ -57,6 +57,22 @@ const normalizeReturnUrl = (candidate: string | undefined, fallbackPath: string,
   return `${origin}${fallbackPath}`;
 };
 
+const normalizePlanScope = (plan: Record<string, unknown> | null | undefined) => {
+  if (!plan || typeof plan !== 'object') {
+    return 'none';
+  }
+
+  const rawScope = typeof plan?.plan_scope === 'string' ? plan.plan_scope.trim().toLowerCase() : '';
+  if (rawScope === 'subscription' || rawScope === 'trial' || rawScope === 'none') {
+    return rawScope;
+  }
+
+  const slug = typeof plan?.slug === 'string' ? plan.slug.trim().toLowerCase() : '';
+  if (slug === 'trial') return 'trial';
+  if (slug === 'none' || slug === 'free') return 'none';
+  return 'subscription';
+};
+
 serve(async (req) => {
   const origin = resolveOrigin(req.headers.get('origin'));
   const corsHeaders = buildCorsHeaders(origin);
@@ -135,11 +151,15 @@ serve(async (req) => {
       });
     }
 
-    if (plan.slug === 'free') {
-      return new Response(JSON.stringify({ error: 'Cannot checkout for the free plan' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const planScope = normalizePlanScope(plan);
+    if (planScope !== 'subscription') {
+      return new Response(
+        JSON.stringify({ error: 'Only paid subscription plans can be purchased via Stripe checkout' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const isYearly = billingInterval === 'yearly' || billingInterval === 'annual';
@@ -212,18 +232,24 @@ serve(async (req) => {
             throw updateCustomerError;
           }
         } else {
-          const { error: insertCustomerError } = await supabase.from('user_credits').insert({
-            user_id: resolvedUserId,
-            free_credits: 0,
-            paid_credits: 0,
-            subscription_credits: 0,
-            subscription_status: 'none',
-            stripe_customer_id: customerId,
-            updated_at: new Date().toISOString(),
+          const { error: refreshError } = await supabase.rpc('refresh_user_billing_state', {
+            target_user_id: resolvedUserId,
           });
 
-          if (insertCustomerError) {
-            throw insertCustomerError;
+          if (refreshError) {
+            throw refreshError;
+          }
+
+          const { error: updateCustomerError } = await supabase
+            .from('user_credits')
+            .update({
+              stripe_customer_id: customerId,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', resolvedUserId);
+
+          if (updateCustomerError) {
+            throw updateCustomerError;
           }
         }
       }

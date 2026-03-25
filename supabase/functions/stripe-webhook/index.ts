@@ -76,17 +76,45 @@ const ensureUserCreditsRow = async (supabase: any, userId: string) => {
     return;
   }
 
+  const { error: refreshError } = await supabase.rpc('refresh_user_billing_state', {
+    target_user_id: userId,
+  });
+
+  if (!refreshError) {
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+  const trialEndIso = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [{ data: roleRow }, { data: profileRow }, { data: planRows, error: plansError }] = await Promise.all([
+    supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+    supabase.from('profiles').select('role').eq('user_id', userId).maybeSingle(),
+    supabase.from('subscription_plans').select('id, slug').in('slug', ['trial', 'none']).eq('is_active', true),
+  ]);
+
+  if (plansError) {
+    throw plansError;
+  }
+
+  const isAdmin =
+    String(roleRow?.role || '').toLowerCase() === 'admin' || String(profileRow?.role || '').toLowerCase() === 'admin';
+  const trialPlanId = (planRows || []).find((plan: any) => plan?.slug === 'trial')?.id || null;
+  const nonePlanId = (planRows || []).find((plan: any) => plan?.slug === 'none')?.id || null;
+  const fallbackPlanId = isAdmin ? nonePlanId : trialPlanId;
+
   const { error: insertCreditsError } = await supabase.from('user_credits').insert({
     user_id: userId,
     free_credits: 0,
     paid_credits: 0,
     subscription_credits: 0,
-    subscription_plan_id: null,
-    subscription_status: 'none',
+    subscription_plan_id: fallbackPlanId,
+    subscription_status: isAdmin ? 'none' : 'trialing',
     stripe_customer_id: null,
     stripe_subscription_id: null,
-    current_period_end: null,
-    updated_at: new Date().toISOString(),
+    current_period_start: isAdmin ? null : nowIso,
+    current_period_end: isAdmin ? null : trialEndIso,
+    updated_at: nowIso,
   });
 
   if (insertCreditsError) {
@@ -134,7 +162,7 @@ const getSubscriptionState = async (supabase: any, userId: string): Promise<any>
   const { data, error } = await supabase
     .from('user_credits')
     .select(
-      'subscription_status, subscription_plan_id, subscription_credits, current_period_end, stripe_subscription_id, stripe_customer_id'
+      'subscription_status, subscription_plan_id, subscription_credits, current_period_start, current_period_end, stripe_subscription_id, stripe_customer_id'
     )
     .eq('user_id', userId)
     .maybeSingle();
@@ -303,6 +331,7 @@ serve(async (req) => {
               stripe_customer_id: session.customer as string,
               subscription_status: canonicalSubscriptionStatus,
               subscription_credits: creditsPerMonth,
+              current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
               current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
               updated_at: new Date().toISOString(),
             })
@@ -598,6 +627,7 @@ serve(async (req) => {
       // Retrieve subscription for period end
       const sub = await stripe.subscriptions.retrieve(subscriptionId);
       const canonicalSubscriptionStatus = normalizeSubscriptionStatus(sub.status);
+      const currentPeriodStart = new Date(sub.current_period_start * 1000).toISOString();
       const currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
       const currentState = await getSubscriptionState(supabase, userCredits.user_id);
 
@@ -605,6 +635,7 @@ serve(async (req) => {
         currentState &&
         currentState.subscription_status === canonicalSubscriptionStatus &&
         currentState.subscription_credits === plan.credits_per_month &&
+        currentState.current_period_start === currentPeriodStart &&
         currentState.current_period_end === currentPeriodEnd &&
         currentState.stripe_subscription_id === subscriptionId
       ) {
@@ -620,6 +651,7 @@ serve(async (req) => {
         .update({
           subscription_credits: plan.credits_per_month,
           subscription_status: canonicalSubscriptionStatus,
+          current_period_start: currentPeriodStart,
           current_period_end: currentPeriodEnd,
           updated_at: new Date().toISOString(),
         })
@@ -665,6 +697,7 @@ serve(async (req) => {
       const planId = subscription.metadata?.plan_id;
       const creditsPerMonth = parseInt(subscription.metadata?.credits_per_month || '0', 10);
       const canonicalSubscriptionStatus = normalizeSubscriptionStatus(subscription.status);
+      const currentPeriodStart = new Date(subscription.current_period_start * 1000).toISOString();
       const currentPeriodEnd = new Date(subscription.current_period_end * 1000).toISOString();
       const currentState = await getSubscriptionState(supabase, userId);
 
@@ -673,6 +706,7 @@ serve(async (req) => {
         currentState.subscription_status === canonicalSubscriptionStatus &&
         currentState.subscription_plan_id === (planId || null) &&
         currentState.subscription_credits === creditsPerMonth &&
+        currentState.current_period_start === currentPeriodStart &&
         currentState.current_period_end === currentPeriodEnd &&
         currentState.stripe_subscription_id === subscription.id &&
         currentState.stripe_customer_id === (typeof subscription.customer === 'string' ? subscription.customer : null)
@@ -685,6 +719,7 @@ serve(async (req) => {
 
       const updateData: Record<string, unknown> = {
         subscription_status: canonicalSubscriptionStatus,
+        current_period_start: currentPeriodStart,
         current_period_end: currentPeriodEnd,
         updated_at: new Date().toISOString(),
       };
@@ -730,6 +765,7 @@ serve(async (req) => {
             currentState.subscription_status === canonicalSubscriptionStatus &&
             currentState.subscription_plan_id === null &&
             currentState.subscription_credits === 0 &&
+            currentState.current_period_start === null &&
             currentState.stripe_subscription_id === null
           ) {
             console.log(`Subscription cancellation already applied for user ${userCredits.user_id}`);
@@ -745,10 +781,15 @@ serve(async (req) => {
               subscription_credits: 0,
               stripe_subscription_id: null,
               subscription_plan_id: null,
+              current_period_start: null,
               current_period_end: null,
               updated_at: new Date().toISOString(),
             })
             .eq('user_id', userCredits.user_id);
+
+          await supabase.rpc('refresh_user_billing_state', {
+            target_user_id: userCredits.user_id,
+          });
 
           await supabase.from('credit_transactions').insert({
             user_id: userCredits.user_id,
@@ -769,6 +810,7 @@ serve(async (req) => {
           currentState.subscription_status === canonicalSubscriptionStatus &&
           currentState.subscription_plan_id === null &&
           currentState.subscription_credits === 0 &&
+          currentState.current_period_start === null &&
           currentState.stripe_subscription_id === null
         ) {
           console.log(`Subscription cancellation already applied for user ${userId}`);
@@ -784,10 +826,15 @@ serve(async (req) => {
             subscription_credits: 0,
             stripe_subscription_id: null,
             subscription_plan_id: null,
+            current_period_start: null,
             current_period_end: null,
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', userId);
+
+        await supabase.rpc('refresh_user_billing_state', {
+          target_user_id: userId,
+        });
 
         await supabase.from('credit_transactions').insert({
           user_id: userId,
