@@ -6,16 +6,25 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useCredits } from '@/hooks/useCredits';
 import { useEntitlements } from '@/hooks/useEntitlements';
-import { createCheckoutSession, redirectToCheckout as redirectToCreditCheckout, formatPrice } from '@/services/stripeService';
 import { createSubscriptionCheckout } from '@/services/subscriptionService';
 import { useToast } from '@/components/ui/use-toast';
-import {
-  Coins, Zap, Star, TrendingUp, Crown,
-  Check, X, ArrowRight, Wallet, Sparkles,
-  CreditCard, ChevronDown, Shield, Lock,
-  RotateCcw, HelpCircle
-} from 'lucide-react';
 import { CREDIT_COSTS, CREDIT_CATEGORIES, CREDIT_COST_LABELS } from '@/hooks/useCreditsGuard';
+import {
+  Coins,
+  Zap,
+  Star,
+  TrendingUp,
+  Crown,
+  Check,
+  ArrowRight,
+  Wallet,
+  Sparkles,
+  ChevronDown,
+  Shield,
+  Lock,
+  RotateCcw,
+  HelpCircle,
+} from 'lucide-react';
 
 const PLAN_ICONS = {
   free: Coins,
@@ -28,7 +37,12 @@ const PLAN_ICONS = {
 const PLAN_COLORS = {
   free: { text: 'text-gray-400', bg: 'bg-gray-400', border: 'border-gray-600', glow: '' },
   starter: { text: 'text-blue-400', bg: 'bg-blue-400', border: 'border-blue-500/50', glow: '' },
-  pro: { text: 'text-orange-400', bg: 'bg-orange-400', border: 'border-orange-500/60', glow: 'shadow-lg shadow-orange-500/10' },
+  pro: {
+    text: 'text-orange-400',
+    bg: 'bg-orange-400',
+    border: 'border-orange-500/60',
+    glow: 'shadow-lg shadow-orange-500/10',
+  },
   business: { text: 'text-purple-400', bg: 'bg-purple-400', border: 'border-purple-500/50', glow: '' },
   enterprise: { text: 'text-emerald-400', bg: 'bg-emerald-400', border: 'border-emerald-500/50', glow: '' },
 };
@@ -47,13 +61,13 @@ const PricingPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { plans, currentPlan, subscriptionStatus, subscribing, subscribe } = useSubscription();
-  const { packages, credits, availableCredits, unlimitedAccess, unlimitedAccessLabel } = useCredits();
+  const { credits, availableCredits, unlimitedAccess, unlimitedAccessLabel } = useCredits();
   const { trialActive, trialEndsAt, fullAccessOverride, accessLabel } = useEntitlements();
   const { toast } = useToast();
-  const [purchasing, setPurchasing] = useState(null);
   const [showCreditCosts, setShowCreditCosts] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState('monthly'); // 'monthly' | 'annual'
   const [openFaq, setOpenFaq] = useState(null);
+  const visiblePlans = plans.filter((plan) => plan.slug !== 'free');
 
   // Handle return from Stripe
   useEffect(() => {
@@ -81,7 +95,6 @@ const PricingPage = () => {
       return;
     }
 
-    if (planSlug === 'free') return;
     if (planSlug === 'enterprise') {
       window.location.href = 'mailto:contact@cashpilot.tech?subject=Enterprise Plan';
       return;
@@ -105,44 +118,10 @@ const PricingPage = () => {
     }
   };
 
-  const handleBuyCredits = async (pkg) => {
-    if (fullAccessOverride) {
-      toast({
-        title: 'Credits non requis',
-        description: `${accessLabel || 'Ce compte'} dispose deja d'un acces illimite.`,
-      });
-      return;
-    }
-
-    if (!user) {
-      navigate('/signup?redirect=/pricing');
-      return;
-    }
-    setPurchasing(pkg.id);
-    try {
-      const session = await createCheckoutSession({
-        priceId: pkg.stripe_price_id,
-        credits: pkg.credits,
-        userId: user.id,
-        customerEmail: user.email,
-        successUrl: `${window.location.origin}/pricing?status=success`,
-        cancelUrl: `${window.location.origin}/pricing?status=cancelled`,
-      });
-      if (session.url) {
-        redirectToCreditCheckout(session.url);
-      }
-    } catch (err) {
-      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
-    } finally {
-      setPurchasing(null);
-    }
-  };
-
   const isCurrentPlan = (slug) => {
     if (fullAccessOverride) return false;
     if (trialActive && !currentPlan) return false;
-    if (!currentPlan) return slug === 'free';
-    return currentPlan.slug === slug && subscriptionStatus === 'active';
+    return Boolean(currentPlan) && currentPlan.slug === slug && subscriptionStatus === 'active';
   };
 
   const trialDaysRemaining = trialEndsAt
@@ -167,10 +146,8 @@ const PricingPage = () => {
   const getCostPerCredit = (priceCents, creditsPerMonth) => {
     if (priceCents === 0 || creditsPerMonth === 0) return null;
     const effective = billingPeriod === 'annual' ? (priceCents * 10) / 12 : priceCents;
-    return ((effective / creditsPerMonth) / 100).toFixed(3);
+    return (effective / creditsPerMonth / 100).toFixed(3);
   };
-
-  const PACKAGE_ICONS = [Coins, Zap, Star, TrendingUp];
 
   const FAQ_ITEMS = [
     { q: 'pricing.faq.q1', a: 'pricing.faq.a1' },
@@ -182,7 +159,9 @@ const PricingPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a]">
-      <Helmet><title>{t('pages.pricing', 'Pricing')} | CashPilot</title></Helmet>
+      <Helmet>
+        <title>{t('pages.pricing', 'Pricing')} | CashPilot</title>
+      </Helmet>
       {/* Navigation bar */}
       <nav
         className="fixed top-0 left-0 right-0 z-50 bg-[#0a0e1a]/80 backdrop-blur-xl border-b border-gray-800/50"
@@ -193,7 +172,10 @@ const PricingPage = () => {
           <a
             href="/"
             className="flex items-center gap-2 text-white font-bold text-xl hover:text-orange-400 transition-colors"
-            onClick={(e) => { e.preventDefault(); navigate('/'); }}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/');
+            }}
           >
             <Wallet className="w-6 h-6 text-orange-500" />
             CashPilot
@@ -230,12 +212,8 @@ const PricingPage = () => {
       <div className="pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-            {t('pricing.title')}
-          </h1>
-          <p className="text-lg text-gray-400 max-w-2xl mx-auto mb-8">
-            {t('pricing.subtitle')}
-          </p>
+          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">{t('pricing.title')}</h1>
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto mb-8">{t('pricing.subtitle')}</p>
 
           {/* Billing toggle */}
           <div className="inline-flex items-center gap-3 bg-[#0f1528] rounded-full p-1.5 border border-gray-700/50">
@@ -282,9 +260,7 @@ const PricingPage = () => {
 
         {user && fullAccessOverride && (
           <div className="mb-10 max-w-3xl mx-auto rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-5 text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">
-              Acces illimite
-            </p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">Acces illimite</p>
             <p className="mt-2 text-lg font-semibold text-white">
               {accessLabel || 'Ce compte'} dispose de tous les services sans limitation de temps ni de credits.
             </p>
@@ -293,15 +269,13 @@ const PricingPage = () => {
 
         {user && !fullAccessOverride && trialActive && !currentPlan && (
           <div className="mb-10 max-w-3xl mx-auto rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
-              Essai complet actif
-            </p>
-            <p className="mt-2 text-lg font-semibold text-white">
-              Tous les services sont ouverts pendant 3 jours.
-            </p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">Essai complet actif</p>
+            <p className="mt-2 text-lg font-semibold text-white">Tous les services sont ouverts pendant 3 jours.</p>
             <p className="mt-1 text-sm text-emerald-100/80">
               Fin de l'essai le {new Date(trialEndsAt).toLocaleDateString('fr-FR')}.
-              {trialDaysRemaining > 0 ? ` Il reste ${trialDaysRemaining} jour${trialDaysRemaining > 1 ? 's' : ''}.` : ''}
+              {trialDaysRemaining > 0
+                ? ` Il reste ${trialDaysRemaining} jour${trialDaysRemaining > 1 ? 's' : ''}.`
+                : ''}
             </p>
           </div>
         )}
@@ -311,7 +285,7 @@ const PricingPage = () => {
         {/* ================================ */}
         <section className="mb-20">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {plans.map((plan, index) => {
+            {visiblePlans.map((plan, index) => {
               const Icon = PLAN_ICONS[plan.slug] || Coins;
               const colors = PLAN_COLORS[plan.slug] || PLAN_COLORS.free;
               const isCurrent = isCurrentPlan(plan.slug);
@@ -362,18 +336,12 @@ const PricingPage = () => {
                   {/* Price */}
                   <div className="mb-1">
                     <span className="text-3xl font-bold text-white">{formatPlanPrice(plan.price_cents)}</span>
-                    {plan.price_cents > 0 && (
-                      <span className="text-gray-500 text-sm">/{t('pricing.month')}</span>
-                    )}
+                    {plan.price_cents > 0 && <span className="text-gray-500 text-sm">/{t('pricing.month')}</span>}
                   </div>
 
                   {/* Annual total or cost per credit */}
                   <div className="mb-4 min-h-[2.5rem]">
-                    {annualTotal && (
-                      <p className="text-xs text-gray-500">
-                        {annualTotal}
-                      </p>
-                    )}
+                    {annualTotal && <p className="text-xs text-gray-500">{annualTotal}</p>}
                     {costPerCredit && (
                       <p className={`text-xs ${colors.text} font-medium`}>
                         {costPerCredit} €/{t('credits.credit')}
@@ -397,46 +365,29 @@ const PricingPage = () => {
                         <span>{feature}</span>
                       </li>
                     ))}
-                    {/* Show crossed-out features on Free plan */}
-                    {plan.slug === 'free' && (
-                      <>
-                        <li className="flex items-start gap-2 text-sm text-gray-600 line-through">
-                          <X className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
-                          <span>{t('pricing.noFeature.reports')}</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-sm text-gray-600 line-through">
-                          <X className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
-                          <span>{t('pricing.noFeature.support')}</span>
-                        </li>
-                      </>
-                    )}
                   </ul>
 
                   {/* CTA button */}
                   <button
                     onClick={() => handleSubscribe(plan.slug)}
-                    disabled={isCurrent || subscribing === plan.slug || plan.slug === 'free'}
+                    disabled={isCurrent || subscribing === plan.slug}
                     className={`w-full py-2.5 rounded-xl font-medium text-sm transition-all ${
                       isCurrent
                         ? 'bg-green-500/20 text-green-400 cursor-default'
-                        : plan.slug === 'free'
-                          ? 'bg-gray-800/50 text-gray-500 cursor-default'
-                          : plan.slug === 'enterprise'
-                            ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30'
-                            : isPopular
-                              ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-orange-500/25'
-                              : 'bg-gray-700 hover:bg-gray-600 text-white'
+                        : plan.slug === 'enterprise'
+                          ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30'
+                          : isPopular
+                            ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-orange-500/25'
+                            : 'bg-gray-700 hover:bg-gray-600 text-white'
                     }`}
                   >
                     {subscribing === plan.slug
                       ? '...'
                       : isCurrent
                         ? t('pricing.currentPlan')
-                        : plan.slug === 'free'
-                          ? t('pricing.freePlan')
-                          : plan.slug === 'enterprise'
-                            ? t('pricing.contactUs')
-                            : t('pricing.subscribe')}
+                        : plan.slug === 'enterprise'
+                          ? t('pricing.contactUs')
+                          : t('pricing.subscribe')}
                   </button>
                 </div>
               );
@@ -465,58 +416,6 @@ const PricingPage = () => {
         </section>
 
         {/* ================================ */}
-        {/* CREDIT PACKS (one-time)          */}
-        {/* ================================ */}
-        <section className="mb-20">
-          <h2 className="text-2xl font-bold text-white mb-2 text-center">
-            {t('pricing.creditPacks')}
-          </h2>
-          <p className="text-gray-400 text-center mb-8">{t('pricing.creditPacksDesc')}</p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            {packages.map((pkg, index) => {
-              const Icon = PACKAGE_ICONS[index % PACKAGE_ICONS.length];
-              const pricePerCredit = (pkg.price_cents / pkg.credits / 100).toFixed(3);
-              const savings = index > 0
-                ? Math.round((1 - (pkg.price_cents / pkg.credits) / (packages[0]?.price_cents / packages[0]?.credits)) * 100)
-                : 0;
-              return (
-                <div
-                  key={pkg.id}
-                  className={`bg-[#0f1528]/80 backdrop-blur-sm rounded-2xl border p-5 flex flex-col transition-all hover:-translate-y-1 ${
-                    index === 1 ? 'border-orange-500/50 ring-1 ring-orange-500/30' : 'border-gray-700/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <Icon className="w-5 h-5 text-orange-400" />
-                    <h4 className="font-semibold text-white">{pkg.name}</h4>
-                    {savings > 0 && (
-                      <span className="ml-auto text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-bold">
-                        -{savings}%
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-400 mb-1">
-                    {pkg.credits.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-500 mb-3">{t('credits.creditsLabel')}</p>
-                  <p className="text-lg font-semibold text-white mb-1">{formatPrice(pkg.price_cents, pkg.currency)}</p>
-                  <p className="text-xs text-gray-500 mb-4">{pricePerCredit} €/{t('credits.credit')}</p>
-                  <button
-                    onClick={() => handleBuyCredits(pkg)}
-                    disabled={purchasing === pkg.id}
-                    className="mt-auto w-full py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2"
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    {purchasing === pkg.id ? '...' : t('credits.buy')}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ================================ */}
         {/* CREDIT COSTS TABLE               */}
         {/* ================================ */}
         <section className="max-w-4xl mx-auto mb-20">
@@ -536,10 +435,12 @@ const PricingPage = () => {
                   {t('credits.categories.financialStatements')}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                  {CREDIT_CATEGORIES.FINANCIAL_STATEMENTS.map(key => (
+                  {CREDIT_CATEGORIES.FINANCIAL_STATEMENTS.map((key) => (
                     <div key={key} className="flex justify-between p-2 bg-gray-800/50 rounded-lg">
                       <span className="text-gray-300">{t(CREDIT_COST_LABELS[key])}</span>
-                      <span className="text-orange-400 font-semibold">{CREDIT_COSTS[key]} {t('credits.creditsLabel')}</span>
+                      <span className="text-orange-400 font-semibold">
+                        {CREDIT_COSTS[key]} {t('credits.creditsLabel')}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -551,10 +452,12 @@ const PricingPage = () => {
                   {t('credits.categories.commercialDocuments')}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                  {CREDIT_CATEGORIES.COMMERCIAL_DOCUMENTS.map(key => (
+                  {CREDIT_CATEGORIES.COMMERCIAL_DOCUMENTS.map((key) => (
                     <div key={key} className="flex justify-between p-2 bg-gray-800/50 rounded-lg">
                       <span className="text-gray-300">{t(CREDIT_COST_LABELS[key])}</span>
-                      <span className="text-blue-400 font-semibold">{CREDIT_COSTS[key]} {t('credits.creditsLabel')}</span>
+                      <span className="text-blue-400 font-semibold">
+                        {CREDIT_COSTS[key]} {t('credits.creditsLabel')}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -566,10 +469,12 @@ const PricingPage = () => {
                   {t('credits.categories.analyticalReports')}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                  {CREDIT_CATEGORIES.ANALYTICAL_REPORTS.map(key => (
+                  {CREDIT_CATEGORIES.ANALYTICAL_REPORTS.map((key) => (
                     <div key={key} className="flex justify-between p-2 bg-gray-800/50 rounded-lg">
                       <span className="text-gray-300">{t(CREDIT_COST_LABELS[key])}</span>
-                      <span className="text-purple-400 font-semibold">{CREDIT_COSTS[key]} {t('credits.creditsLabel')}</span>
+                      <span className="text-purple-400 font-semibold">
+                        {CREDIT_COSTS[key]} {t('credits.creditsLabel')}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -580,10 +485,12 @@ const PricingPage = () => {
                   {t('credits.categories.peppol')}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                  {CREDIT_CATEGORIES.PEPPOL.map(key => (
+                  {CREDIT_CATEGORIES.PEPPOL.map((key) => (
                     <div key={key} className="flex justify-between p-2 bg-gray-800/50 rounded-lg">
                       <span className="text-gray-300">{t(CREDIT_COST_LABELS[key])}</span>
-                      <span className="text-emerald-400 font-semibold">{CREDIT_COSTS[key]} {t('credits.creditsLabel')}</span>
+                      <span className="text-emerald-400 font-semibold">
+                        {CREDIT_COSTS[key]} {t('credits.creditsLabel')}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -622,7 +529,9 @@ const PricingPage = () => {
                   className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-800/30 transition-colors"
                 >
                   <span className="font-medium text-white text-sm">{t(item.q)}</span>
-                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ml-2 ${openFaq === index ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ml-2 ${openFaq === index ? 'rotate-180' : ''}`}
+                  />
                 </button>
                 {openFaq === index && (
                   <div className="px-4 pb-4">
@@ -636,9 +545,7 @@ const PricingPage = () => {
 
         {/* Footer */}
         <div className="text-center">
-          <p className="text-gray-500 text-sm">
-            {t('pricing.footer')}
-          </p>
+          <p className="text-gray-500 text-sm">{t('pricing.footer')}</p>
         </div>
       </div>
 

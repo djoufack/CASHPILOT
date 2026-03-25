@@ -75,6 +75,7 @@ function parseArgs(argv) {
     skipBuild: false,
     skipNavigation: false,
     skipPilotageUi: false,
+    skipSmokeCleanup: false,
   };
 
   for (const arg of argv) {
@@ -82,6 +83,7 @@ function parseArgs(argv) {
     if (arg === '--skip-build') options.skipBuild = true;
     if (arg === '--skip-navigation') options.skipNavigation = true;
     if (arg === '--skip-pilotage-ui') options.skipPilotageUi = true;
+    if (arg === '--skip-smoke-cleanup') options.skipSmokeCleanup = true;
     if (arg.startsWith('--preview-host=')) options.previewHost = String(arg.split('=', 2)[1] || options.previewHost).trim();
     if (arg.startsWith('--preview-port=')) {
       const parsed = Number.parseInt(arg.split('=', 2)[1], 10);
@@ -410,8 +412,8 @@ async function runCampaign() {
     return env;
   }, {});
 
-  const addStep = async ({ id, title, command, args = [], env = {}, timeoutMs }) => {
-    if (shouldStop) return;
+  const addStep = async ({ id, title, command, args = [], env = {}, timeoutMs, force = false }) => {
+    if (shouldStop && !force) return;
     const logFilePath = path.join(logsDir, `${id}.log`);
     await fs.writeFile(logFilePath, `# ${id}\n# started_at=${nowIso()}\n# command=${[command, ...args].join(' ')}\n\n`);
     const result = await runCommand({ command, args, cwd: ROOT_DIR, env: { ...sharedRuntimeEnv, ...env }, logFilePath, timeoutMs });
@@ -427,7 +429,7 @@ async function runCampaign() {
       startedAt: new Date(Date.now() - result.durationMs).toISOString(),
       finishedAt: nowIso(),
     });
-    if (!ok && options.failFast) shouldStop = true;
+    if (!ok && options.failFast && !force) shouldStop = true;
   };
 
   for (const account of DEMO_ACCOUNTS) {
@@ -586,6 +588,20 @@ async function runCampaign() {
     if (previewProcess && !previewProcess.killed) {
       previewProcess.kill('SIGTERM');
     }
+  }
+
+  if (!options.skipSmokeCleanup) {
+    await addStep({
+      id: 'cleanup_smoke_users',
+      title: 'Cleanup smoke users',
+      command: NODE_BIN,
+      args: ['scripts/cleanup-smoke-users.mjs'],
+      env: {
+        SMOKE_CLEANUP_MIN_AGE_MINUTES: optionalEnv('CAMPAIGN_SMOKE_CLEANUP_MIN_AGE_MINUTES', '0'),
+      },
+      timeoutMs: 15 * 60 * 1000,
+      force: true,
+    });
   }
 
   const passedSteps = steps.filter((step) => step.ok).length;

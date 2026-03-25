@@ -11,6 +11,7 @@ import {
   PROFILE_ROLE_OPTIONS,
   SUBSCRIPTION_STATUS_OPTIONS,
   USER_DELETE_CONFIRMATION_PHRASE,
+  normalizeSubscriptionStatus,
   useAdminBilling,
 } from '@/hooks/useAdminBilling';
 
@@ -34,7 +35,7 @@ const toDraftFromRecord = (record) => ({
   paid_credits: String(record.paid_credits ?? 0),
   total_used: String(record.total_used ?? 0),
   subscription_plan_id: record.subscription_plan_id || 'none',
-  subscription_status: record.subscription_status || 'inactive',
+  subscription_status: normalizeSubscriptionStatus(record.subscription_status),
   current_period_end: toDateTimeLocalInput(record.current_period_end),
 });
 
@@ -544,7 +545,7 @@ const AdminBillingManager = () => {
                     <TableRow key={record.user_id} className="border-gray-800 align-top">
                       <TableCell>
                         <div className="font-medium text-white">{record.name}</div>
-                        <div className="text-xs text-gray-400 mt-1">{record.email || 'Email unavailable'}</div>
+                        <div className="text-xs text-gray-400 mt-1">{record.email || 'Email indisponible'}</div>
                         <div className="text-xs text-gray-500 mt-1">{record.user_id}</div>
                         <div className="text-xs text-gray-500 mt-1">Available: {availableCredits}</div>
                       </TableCell>
@@ -564,10 +565,10 @@ const AdminBillingManager = () => {
                           onValueChange={(value) => handleDraftChange(record.user_id, 'subscription_plan_id', value)}
                         >
                           <SelectTrigger className="bg-gray-950 border-gray-800 text-white">
-                            <SelectValue placeholder="No plan" />
+                            <SelectValue placeholder="Aucun abonnement" />
                           </SelectTrigger>
                           <SelectContent className="bg-gray-900 border-gray-800 text-white">
-                            <SelectItem value="none">No plan (free)</SelectItem>
+                            <SelectItem value="none">Aucun abonnement</SelectItem>
                             {plans.map((plan) => (
                               <SelectItem key={plan.id} value={plan.id}>
                                 {plan.name} ({plan.slug})
@@ -584,7 +585,7 @@ const AdminBillingManager = () => {
                       </TableCell>
                       <TableCell className="min-w-[160px]">
                         <Select
-                          value={draft.subscription_status || 'inactive'}
+                          value={draft.subscription_status || 'none'}
                           onValueChange={(value) => handleDraftChange(record.user_id, 'subscription_status', value)}
                         >
                           <SelectTrigger className="bg-gray-950 border-gray-800 text-white">
@@ -593,7 +594,7 @@ const AdminBillingManager = () => {
                           <SelectContent className="bg-gray-900 border-gray-800 text-white">
                             {SUBSCRIPTION_STATUS_OPTIONS.map((status) => (
                               <SelectItem key={status} value={status}>
-                                {status}
+                                {status === 'none' ? 'none' : status}
                               </SelectItem>
                             ))}
                           </SelectContent>

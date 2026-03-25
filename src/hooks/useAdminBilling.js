@@ -4,7 +4,17 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { normalizeRole } from '@/lib/roles';
 
-export const SUBSCRIPTION_STATUS_OPTIONS = ['inactive', 'active', 'trialing', 'past_due', 'canceled', 'unpaid'];
+export const SUBSCRIPTION_STATUS_OPTIONS = [
+  'none',
+  'trialing',
+  'active',
+  'past_due',
+  'canceled',
+  'unpaid',
+  'incomplete',
+  'incomplete_expired',
+  'paused',
+];
 export const CREDIT_TRANSACTION_TYPES = ['purchase', 'usage', 'bonus', 'refund'];
 export const ADMIN_ACCESS_ROLE_OPTIONS = ['user', 'manager', 'accountant', 'admin'];
 export const PROFILE_ROLE_OPTIONS = ['user', 'client', 'freelance', 'manager', 'accountant', 'admin'];
@@ -16,7 +26,7 @@ const DEFAULT_CREDIT_RECORD = {
   paid_credits: 0,
   total_used: 0,
   subscription_plan_id: null,
-  subscription_status: 'inactive',
+  subscription_status: 'none',
   current_period_end: null,
 };
 
@@ -54,6 +64,16 @@ const normalizeAccessRole = (value) => {
 const normalizeProfileRole = (value) => {
   const normalized = normalizeRole(value);
   return PROFILE_ROLE_OPTIONS.includes(normalized) ? normalized : 'user';
+};
+
+export const normalizeSubscriptionStatus = (value) => {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+  if (!normalized || normalized === 'inactive') {
+    return 'none';
+  }
+
+  return SUBSCRIPTION_STATUS_OPTIONS.includes(normalized) ? normalized : 'none';
 };
 
 export const useAdminBilling = () => {
@@ -174,7 +194,7 @@ export const useAdminBilling = () => {
           full_name: fullName,
           company_name: companyName,
           phone: toNonEmptyString(adminUser?.phone) || toNonEmptyString(profile?.phone),
-          name: fullName || companyName || 'Unknown user',
+          name: fullName || companyName || email || 'Unknown user',
           profile_role: normalizeProfileRole(adminUser?.profile_role || profile?.role),
           access_role: normalizeAccessRole(
             adminUser?.access_role || rolesByUserId.get(userId) || profile?.role || 'user'
@@ -187,7 +207,7 @@ export const useAdminBilling = () => {
           paid_credits: toSafeInt(credits.paid_credits, 0),
           total_used: toSafeInt(credits.total_used, 0),
           subscription_plan_id: credits.subscription_plan_id || null,
-          subscription_status: credits.subscription_status || 'inactive',
+          subscription_status: normalizeSubscriptionStatus(credits.subscription_status),
           current_period_end: credits.current_period_end || null,
           updated_at: credits.updated_at || null,
         };
@@ -442,9 +462,7 @@ export const useAdminBilling = () => {
         total_used: Math.max(0, toSafeInt(draft.total_used, previousState.total_used)),
         subscription_plan_id:
           draft.subscription_plan_id && draft.subscription_plan_id !== 'none' ? draft.subscription_plan_id : null,
-        subscription_status: SUBSCRIPTION_STATUS_OPTIONS.includes(draft.subscription_status)
-          ? draft.subscription_status
-          : 'inactive',
+        subscription_status: normalizeSubscriptionStatus(draft.subscription_status),
         current_period_end: toIsoDateTimeOrNull(draft.current_period_end),
         updated_at: new Date().toISOString(),
       };

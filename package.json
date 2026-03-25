@@ -32,6 +32,7 @@
     "smoke:pilotage-demos": "node scripts/smoke-pilotage-demos.mjs",
     "smoke:pilotage-ui": "node scripts/smoke-pilotage-ui-playwright.mjs",
     "smoke:navigation": "node scripts/smoke-navigation-responsive-playwright.mjs",
+    "smoke:cleanup": "node scripts/cleanup-smoke-users.mjs",
     "smoke:demo-user-crud": "node --env-file=.env scripts/smoke-demo-user-crud.mjs",
     "campaign:demo": "node --env-file=.env scripts/run-demo-test-campaign.mjs",
     "campaign:demo:fast": "node --env-file=.env scripts/run-demo-test-campaign.mjs --skip-build --skip-pilotage-ui",
