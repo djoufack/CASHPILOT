@@ -82,13 +82,20 @@ serve(async (req) => {
     const user = await authenticateUser(req);
     const body = await req.json().catch(() => ({}));
     const { action, companyId } = body;
-    const gcToken = Deno.env.get('GOCARDLESS_ACCESS_TOKEN');
+    const supabase = getServiceClient();
+
+    // Read token from env or vault
+    let gcToken = Deno.env.get('GOCARDLESS_ACCESS_TOKEN');
+    if (!gcToken) {
+      const { data: vaultResult } = await supabase.rpc('get_vault_secret', {
+        secret_name: 'GOCARDLESS_ACCESS_TOKEN',
+      });
+      gcToken = vaultResult || null;
+    }
 
     if (!gcToken) {
       return json(req, { error: 'GoCardless access token not configured' }, 500);
     }
-
-    const supabase = getServiceClient();
 
     // Verify company ownership
     if (companyId) {
