@@ -116,6 +116,7 @@ const CashFlowForecastPage = lazyRetry(() => import('./pages/CashFlowForecastPag
 const AccountantPortalPage = lazyRetry(() => import('./pages/AccountantPortalPage'));
 const AccountantDashboardPage = lazyRetry(() => import('./pages/AccountantDashboardPage'));
 const EmbeddedBankingPage = lazyRetry(() => import('./pages/EmbeddedBankingPage'));
+const GoCardlessCallbackPage = lazyRetry(() => import('./pages/GoCardlessCallbackPage'));
 const ConsolidationDashboardPage = lazyRetry(() => import('./pages/ConsolidationDashboardPage'));
 
 // Game Changer Features — Wave 3
@@ -343,6 +344,7 @@ const AppRoutes = () => {
         <Route path="portfolio" element={page(PortfolioPage)} />
         <Route path="integrations" element={page(IntegrationsHubPage)} />
         <Route path="bank-callback" element={page(BankCallbackPage)} />
+        <Route path="gocardless-callback" element={page(GoCardlessCallbackPage)} />
 
         <Route
           path="analytics"
