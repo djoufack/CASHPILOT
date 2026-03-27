@@ -1,9 +1,9 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuditComptable } from '@/hooks/useAuditComptable';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Loader2, AlertTriangle, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 const ScoreGauge = ({ score, grade, size = 120 }) => {
   const radius = (size - 16) / 2;
@@ -41,6 +41,15 @@ const CategoryIndicator = ({ label, score }) => {
   );
 };
 
+const HEALTH_INFO = {
+  title: 'Sante Comptable',
+  definition: 'Score synthétique de qualité comptable basé sur les contrôles d’audit.',
+  dataSource: 'Hook `useAuditComptable(true)` alimenté par les résultats d’audit comptable.',
+  formula: 'Score global = agrégation pondérée des contrôles passés/échoués.',
+  calculationMethod: 'Récupère `auditResult` puis affiche le score, la note et les catégories (équilibre, fiscal, anomalies).',
+  notes: 'Le widget n’altère pas les écritures: il restitue un état de conformité.',
+};
+
 const AccountingHealthWidget = () => {
   const { auditResult, loading, error } = useAuditComptable(true);
 
@@ -50,7 +59,10 @@ const AccountingHealthWidget = () => {
         className="glass-card rounded-2xl p-6 border border-white/5">
         <div className="flex items-center gap-3 mb-4">
           <ShieldCheck className="w-5 h-5 text-orange-400" />
-          <h3 className="text-lg font-semibold text-white">Sante Comptable</h3>
+          <h3 className="text-lg font-semibold text-white inline-flex items-center gap-1.5">
+            <PanelInfoPopover {...HEALTH_INFO} />
+            <span>Sante Comptable</span>
+          </h3>
         </div>
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
@@ -65,7 +77,10 @@ const AccountingHealthWidget = () => {
         className="glass-card rounded-2xl p-6 border border-white/5">
         <div className="flex items-center gap-3 mb-4">
           <ShieldCheck className="w-5 h-5 text-orange-400" />
-          <h3 className="text-lg font-semibold text-white">Sante Comptable</h3>
+          <h3 className="text-lg font-semibold text-white inline-flex items-center gap-1.5">
+            <PanelInfoPopover {...HEALTH_INFO} />
+            <span>Sante Comptable</span>
+          </h3>
         </div>
         <p className="text-gray-400 text-sm mb-4">
           {error || 'Lancez votre premier audit pour voir votre score.'}
@@ -87,7 +102,10 @@ const AccountingHealthWidget = () => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <ShieldCheck className="w-5 h-5 text-orange-400" />
-          <h3 className="text-lg font-semibold text-white">Sante Comptable</h3>
+          <h3 className="text-lg font-semibold text-white inline-flex items-center gap-1.5">
+            <PanelInfoPopover {...HEALTH_INFO} />
+            <span>Sante Comptable</span>
+          </h3>
         </div>
         <span className="text-xs text-gray-500">{summary.passed}/{summary.total_checks} ok</span>
       </div>

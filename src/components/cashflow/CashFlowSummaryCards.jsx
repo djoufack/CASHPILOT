@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/utils/calculations';
 import { Wallet, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 /**
  * Summary cards showing current balance and 30/60/90 day forecasts.
@@ -96,6 +97,37 @@ const CashFlowSummaryCards = ({ forecast = null, milestones = null, loading = fa
     },
   ];
 
+  const summaryInfo = {
+    current: {
+      title: t('cashflow.summary.currentBalance', 'Solde Actuel'),
+      definition: 'Solde de trésorerie de départ servant de base à la projection.',
+      dataSource: 'Objet `forecast.startingBalance` renvoyé par `useCashFlowForecast`.',
+      formula: 'Solde actuel = solde de départ comptable.',
+      calculationMethod: 'Affiche la valeur brute transmise par le moteur de prévision sans retraitement.',
+    },
+    '30d': {
+      title: t('cashflow.summary.forecast30', 'Prevision 30j'),
+      definition: 'Solde estimé à horizon 30 jours.',
+      dataSource: 'Milestone `milestones.day_30.balance`.',
+      formula: 'Prévision 30j = solde projeté du scénario de base au jour 30.',
+      calculationMethod: 'Lit le jalon calculé par le moteur de prévision et le compare au solde actuel.',
+    },
+    '60d': {
+      title: t('cashflow.summary.forecast60', 'Prevision 60j'),
+      definition: 'Solde estimé à horizon 60 jours.',
+      dataSource: 'Milestone `milestones.day_60.balance`.',
+      formula: 'Prévision 60j = solde projeté du scénario de base au jour 60.',
+      calculationMethod: 'Lit le jalon calculé par le moteur de prévision et le compare au solde actuel.',
+    },
+    '90d': {
+      title: t('cashflow.summary.forecast90', 'Prevision 90j'),
+      definition: 'Solde estimé à horizon 90 jours.',
+      dataSource: 'Milestone `milestones.day_90.balance`.',
+      formula: 'Prévision 90j = solde projeté du scénario de base au jour 90.',
+      calculationMethod: 'Lit le jalon calculé par le moteur de prévision et le compare au solde actuel.',
+    },
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card) => {
@@ -115,7 +147,10 @@ const CashFlowSummaryCards = ({ forecast = null, milestones = null, loading = fa
             className={`bg-[#0f1528]/80 border ${card.borderColor} rounded-2xl p-5 backdrop-blur-sm transition-all hover:shadow-lg hover:border-opacity-50`}
           >
             <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-400 text-sm font-medium">{card.label}</span>
+              <span className="text-gray-400 text-sm font-medium inline-flex items-center gap-1.5">
+                <PanelInfoPopover {...summaryInfo[card.key]} />
+                <span>{card.label}</span>
+              </span>
               <div className={`p-2 rounded-lg ${card.iconBg}`}>
                 <Icon className={`w-4 h-4 ${card.iconColor}`} />
               </div>

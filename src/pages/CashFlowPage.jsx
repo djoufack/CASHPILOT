@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useCashFlow } from '@/hooks/useCashFlow';
 import { formatCurrency } from '@/utils/calculations';
 import { Button } from '@/components/ui/button';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import {
   TrendingUp,
   TrendingDown,
@@ -20,6 +21,63 @@ const CashFlowPage = () => {
   const { t } = useTranslation();
   const [period, setPeriod] = useState(6);
   const { cashFlowData, summary, loading, forecast, refresh } = useCashFlow(period);
+
+  const cashFlowPanelInfo = useMemo(
+    () => ({
+      totalIncome: {
+        title: 'Total Income',
+        definition: 'Total des encaissements agrégés sur la période sélectionnée.',
+        dataSource: 'Série `cashFlowData` fournie par le hook `useCashFlow(period)`.',
+        formula: 'Total Income = Somme des valeurs `income` de chaque période.',
+        calculationMethod:
+          'Parcourt les périodes retournées par le hook et additionne les montants d encaissement.',
+        filters: `Période active: ${period} mois.`,
+      },
+      totalExpenses: {
+        title: 'Total Expenses',
+        definition: 'Total des décaissements agrégés sur la période sélectionnée.',
+        dataSource: 'Série `cashFlowData` fournie par le hook `useCashFlow(period)`.',
+        formula: 'Total Expenses = Somme des valeurs `expenses` de chaque période.',
+        calculationMethod:
+          'Parcourt les périodes retournées par le hook et additionne les montants de dépenses.',
+        filters: `Période active: ${period} mois.`,
+      },
+      netCashFlow: {
+        title: 'Net Cash Flow',
+        definition: 'Solde net de trésorerie sur la période sélectionnée.',
+        dataSource: 'Résumé `summary` calculé par le hook `useCashFlow(period)`.',
+        formula: 'Net Cash Flow = Total Income - Total Expenses',
+        calculationMethod:
+          'Utilise les agrégats de revenu et de dépense déjà consolidés puis calcule la différence.',
+        filters: `Période active: ${period} mois.`,
+      },
+      monthlyCashFlow: {
+        title: 'Monthly Cash Flow',
+        definition: 'Comparaison mensuelle des encaissements et décaissements.',
+        dataSource: 'Historique `cashFlowData` et projection `forecastData` combinés dans `combinedData`.',
+        formula: 'Pour chaque mois: Net = Income - Expenses',
+        calculationMethod:
+          'Fusionne l historique et la projection, puis trace deux séries barres (income, expenses).',
+      },
+      threeMonthForecast: {
+        title: '3-Month Forecast',
+        definition: 'Projection des 3 prochains mois de trésorerie.',
+        dataSource: 'Fonction `forecast(3)` exposée par le hook `useCashFlow`.',
+        formula: 'Projection mensuelle basée sur la moyenne des 3 derniers mois.',
+        calculationMethod:
+          'Calcule des valeurs prévues income/expenses/net pour trois mois futurs à partir de l activité récente.',
+      },
+      netCashFlowTrend: {
+        title: 'Net Cash Flow Trend',
+        definition: 'Évolution du solde net période par période.',
+        dataSource: 'Historique `cashFlowData` du hook `useCashFlow`.',
+        formula: 'Net = Income - Expenses pour chaque point.',
+        calculationMethod:
+          'Construit la série `net` et applique une couleur verte ou rouge selon le signe du net.',
+      },
+    }),
+    [period]
+  );
 
   const forecastData = useMemo(() => forecast(3), [forecast]);
 
@@ -55,6 +113,7 @@ const CashFlowPage = () => {
   const summaryCards = [
     {
       label: 'Total Income',
+      info: cashFlowPanelInfo.totalIncome,
       value: summary.totalIn,
       icon: ArrowUpRight,
       color: 'text-green-400',
@@ -63,6 +122,7 @@ const CashFlowPage = () => {
     },
     {
       label: 'Total Expenses',
+      info: cashFlowPanelInfo.totalExpenses,
       value: summary.totalOut,
       icon: ArrowDownRight,
       color: 'text-red-400',
@@ -71,6 +131,7 @@ const CashFlowPage = () => {
     },
     {
       label: 'Net Cash Flow',
+      info: cashFlowPanelInfo.netCashFlow,
       value: summary.net,
       icon: summary.net >= 0 ? TrendingUp : TrendingDown,
       color: summary.net >= 0 ? 'text-emerald-400' : 'text-red-400',
@@ -127,7 +188,10 @@ const CashFlowPage = () => {
               className={`bg-gray-900/50 rounded-xl border ${card.borderColor} p-5 transition-all hover:shadow-lg`}
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-gray-400 text-sm font-medium">{card.label}</span>
+                <span className="text-gray-400 text-sm font-medium inline-flex items-center gap-1.5">
+                  <PanelInfoPopover {...card.info} />
+                  <span>{card.label}</span>
+                </span>
                 <div className={`p-2 rounded-lg ${card.bgColor}`}>
                   <card.icon className={`w-5 h-5 ${card.color}`} />
                 </div>
@@ -142,7 +206,8 @@ const CashFlowPage = () => {
         <div className="bg-gray-900 p-4 md:p-6 rounded-xl border border-gray-800 shadow-lg mb-8">
           <h3 className="text-lg md:text-xl font-bold text-gradient mb-6 flex items-center">
             <DollarSign className="w-5 h-5 mr-2 text-blue-500" />
-            Monthly Cash Flow
+            <PanelInfoPopover {...cashFlowPanelInfo.monthlyCashFlow} />
+            <span>Monthly Cash Flow</span>
           </h3>
           <div className="h-[300px] md:h-[400px]">
             {combinedData.length > 0 ? (
@@ -173,7 +238,8 @@ const CashFlowPage = () => {
           <div className="bg-gray-900 p-4 md:p-6 rounded-xl border border-gray-800 shadow-lg mb-8">
             <h3 className="text-lg md:text-xl font-bold text-gradient mb-6 flex items-center">
               <Calendar className="w-5 h-5 mr-2 text-purple-500" />
-              3-Month Forecast
+              <PanelInfoPopover {...cashFlowPanelInfo.threeMonthForecast} />
+              <span>3-Month Forecast</span>
             </h3>
             <p className="text-gray-400 text-sm mb-4">
               Projections based on the average of your last 3 months of activity
@@ -210,7 +276,8 @@ const CashFlowPage = () => {
         <div className="bg-gray-900 p-4 md:p-6 rounded-xl border border-gray-800 shadow-lg">
           <h3 className="text-lg md:text-xl font-bold text-gradient mb-6 flex items-center">
             <TrendingUp className="w-5 h-5 mr-2 text-green-500" />
-            Net Cash Flow Trend
+            <PanelInfoPopover {...cashFlowPanelInfo.netCashFlowTrend} />
+            <span>Net Cash Flow Trend</span>
           </h3>
           <div className="h-[250px] md:h-[300px]">
             {cashFlowData.length > 0 ? (

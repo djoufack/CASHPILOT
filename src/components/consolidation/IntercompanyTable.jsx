@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { formatCurrency } from '@/utils/calculations';
 import { ArrowRight, Ban, CheckCircle2, Clock } from 'lucide-react';
 
@@ -27,6 +28,15 @@ const TYPE_LABELS = {
   transfer: 'consolidation.typeTransfer',
 };
 
+const INTERCOMPANY_INFO = {
+  title: 'Transactions inter-societes',
+  definition: 'Tableau des flux entre sociétés du portefeuille consolidé.',
+  dataSource: 'Liste `intercompanyTransactions` issue du hook `useConsolidation`.',
+  formula: 'Total éliminations = somme des montants avec statut `confirmed` ou `eliminated`.',
+  calculationMethod: 'Affiche chaque flux source/cible avec type, statut et montant, puis calcule les totaux en pied de tableau.',
+  notes: 'Les statuts permettent de distinguer les transactions en attente, confirmées et éliminées.',
+};
+
 export default function IntercompanyTable({ transactions = [], currency = 'EUR' }) {
   const { t } = useTranslation();
 
@@ -40,7 +50,10 @@ export default function IntercompanyTable({ transactions = [], currency = 'EUR' 
     return (
       <Card className="bg-[#0f1528]/80 border-white/10 backdrop-blur-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-white text-base">{t('consolidation.intercompanyTransactions')}</CardTitle>
+          <CardTitle className="text-white text-base inline-flex items-center gap-1.5">
+            <PanelInfoPopover {...INTERCOMPANY_INFO} />
+            <span>{t('consolidation.intercompanyTransactions')}</span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-slate-400 text-center text-sm">{t('consolidation.noIntercompanyTransactions')}</p>
@@ -53,7 +66,10 @@ export default function IntercompanyTable({ transactions = [], currency = 'EUR' 
     <Card className="bg-[#0f1528]/80 border-white/10 backdrop-blur-sm">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-base">{t('consolidation.intercompanyTransactions')}</CardTitle>
+          <CardTitle className="text-white text-base inline-flex items-center gap-1.5">
+            <PanelInfoPopover {...INTERCOMPANY_INFO} />
+            <span>{t('consolidation.intercompanyTransactions')}</span>
+          </CardTitle>
           <div className="text-xs text-slate-400">
             {t('consolidation.eliminationsTotal')}:{' '}
             <span className="text-emerald-400 font-semibold">{formatCurrency(totalEliminations, currency)}</span>

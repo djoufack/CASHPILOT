@@ -16,6 +16,7 @@ import {
   getGlobalAccountingPlanAccounts,
 } from '@/services/referenceDataService';
 import { validateChartOfAccountsImport } from '@/utils/accountingQualityChecks';
+import { isMissingColumnError } from '@/lib/supabaseCompatibility';
 
 const resolveRegionHint = (country) => {
   if (country === 'BE') return 'belgium';
@@ -49,7 +50,29 @@ async function loadReferenceAccounts(country) {
  * @param {string} userId
  * @returns {Promise<{ isInitialized: boolean, country: string|null, settings: object|null }>}
  */
-export async function checkAccountingInitialized(userId) {
+async function checkCompanyChartAvailability(userId, companyId) {
+  if (!companyId) {
+    return { hasAccounts: null, error: null };
+  }
+
+  try {
+    const { count, error } = await supabase
+      .from('accounting_chart_of_accounts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('company_id', companyId);
+
+    if (error) {
+      return { hasAccounts: false, error };
+    }
+
+    return { hasAccounts: Number(count || 0) > 0, error: null };
+  } catch (err) {
+    return { hasAccounts: false, error: err };
+  }
+}
+
+export async function checkAccountingInitialized(userId, companyId = null) {
   try {
     const { data, error } = await supabase
       .from('user_accounting_settings')
@@ -62,18 +85,36 @@ export async function checkAccountingInitialized(userId) {
       return { isInitialized: false, country: null, settings: null };
     }
 
-    if (!data) {
-      return { isInitialized: false, country: null, settings: null };
+    const companyScope = await checkCompanyChartAvailability(userId, companyId);
+    if (companyScope.error) {
+      console.error('[AccountingInit] Error checking company chart availability:', companyScope.error);
     }
 
+    if (!data) {
+      if (companyId && companyScope.hasAccounts) {
+        return {
+          isInitialized: true,
+          country: null,
+          settings: null,
+          companyHasAccounts: true,
+        };
+      }
+      return { isInitialized: false, country: null, settings: null, companyHasAccounts: companyScope.hasAccounts };
+    }
+
+    const settingsInitialized = Boolean(data.is_initialized);
+    const companyHasAccounts = companyId ? Boolean(companyScope.hasAccounts) : null;
+    const isInitialized = companyId ? companyHasAccounts : settingsInitialized;
+
     return {
-      isInitialized: !!data.is_initialized,
+      isInitialized,
       country: data.country || null,
       settings: data,
+      companyHasAccounts,
     };
   } catch (err) {
     console.error('[AccountingInit] Unexpected error in checkAccountingInitialized:', err);
-    return { isInitialized: false, country: null, settings: null };
+    return { isInitialized: false, country: null, settings: null, companyHasAccounts: null };
   }
 }
 
@@ -234,9 +275,20 @@ async function insertDefaultMappings(userId, country, companyId = null) {
   }));
 
   try {
-    const { error } = await supabase
+    let { error } = await supabase
       .from('accounting_mappings')
       .upsert(rows, { onConflict: buildScopedConflict(companyId, 'user_id,source_type,source_category') });
+
+    if (error && companyId && isMissingColumnError(error, 'company_id')) {
+      const fallbackRows = rows.map((row) => {
+        const { company_id: _ignoredCompanyId, ...withoutCompany } = row;
+        return withoutCompany;
+      });
+
+      ({ error } = await supabase
+        .from('accounting_mappings')
+        .upsert(fallbackRows, { onConflict: 'user_id,source_type,source_category' }));
+    }
 
     if (error) {
       console.error('[AccountingInit] Error inserting mappings:', error.message);
@@ -272,9 +324,18 @@ async function insertDefaultTaxRates(userId, country, companyId = null) {
   }));
 
   try {
-    const { error } = await supabase
+    let { error } = await supabase
       .from('accounting_tax_rates')
       .upsert(rows, { onConflict: buildScopedConflict(companyId, 'user_id,name') });
+
+    if (error && companyId && isMissingColumnError(error, 'company_id')) {
+      const fallbackRows = rows.map((row) => {
+        const { company_id: _ignoredCompanyId, ...withoutCompany } = row;
+        return withoutCompany;
+      });
+
+      ({ error } = await supabase.from('accounting_tax_rates').upsert(fallbackRows, { onConflict: 'user_id,name' }));
+    }
 
     if (error) {
       console.error('[AccountingInit] Error inserting tax rates:', error.message);

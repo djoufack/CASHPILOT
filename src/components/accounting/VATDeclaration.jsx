@@ -1,5 +1,3 @@
-
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,8 +5,69 @@ import { Download, FileText, Receipt, ArrowDown, ArrowUp, Minus, PieChart as Pie
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import { formatCurrency } from '@/utils/calculations';
 import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 const COLORS = ['#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
+const VAT_PANEL_INFO = {
+  outputVAT: {
+    title: 'TVA collectee',
+    definition: 'Montant total de TVA collecte sur les ventes de la periode.',
+    dataSource: "Agregat `outputVAT` renvoye par `useAccountingData` (RPC SQL TVA) avec detail `vatBreakdown.output`.",
+    formula: 'TVA collectee = Somme des montants TVA sur operations de vente.',
+    calculationMethod:
+      'La base calcule la TVA sur les ecritures/transactions de vente puis consolide par periode selectionnee.',
+  },
+  inputVAT: {
+    title: 'TVA deductible',
+    definition: 'Montant total de TVA deductible sur les achats de la periode.',
+    dataSource: "Agregat `inputVAT` renvoye par `useAccountingData` (RPC SQL TVA) avec detail `vatBreakdown.input`.",
+    formula: 'TVA deductible = Somme des montants TVA recuperables sur achats.',
+    calculationMethod:
+      'La base comptabilise les montants deducibles selon les ecritures d achat puis les agrège sur la periode.',
+  },
+  netVAT: {
+    title: 'TVA nette',
+    definition: "Solde TVA a reverser (ou credit) sur la periode.",
+    dataSource: "Agregat `vatPayable` renvoye par la fonction SQL de synthese TVA.",
+    formula: 'TVA nette = TVA collectee - TVA deductible',
+    calculationMethod:
+      'Le moteur SQL calcule les deux composantes puis retourne le solde net signe.',
+  },
+  monthlyHistory: {
+    title: 'Historique mensuel TVA',
+    definition: 'Evolution mensuelle de la TVA collectee et deductible.',
+    dataSource: 'Serie `monthlyData` (revenus/charges, eventuellement outputVAT/inputVAT) fournie par `useAccountingData`.',
+    formula: 'Par mois: collectee = outputVAT (ou revenue * taux), deductible = inputVAT (ou expense * taux).',
+    calculationMethod:
+      'Pour chaque mois, le composant priorise les montants TVA explicites puis applique un taux de repli.',
+    notes: 'Le taux de repli est derive du taux TVA par defaut de la societe.',
+  },
+  vatBreakdown: {
+    title: 'Repartition TVA',
+    definition: 'Ventilation des montants TVA par compte/rubrique.',
+    dataSource: 'Donnees `vatBreakdown.output` et `vatBreakdown.input` issues du backend comptable.',
+    formula: 'Valeur segment = montant TVA absolu par rubrique',
+    calculationMethod:
+      'Le donut combine les lignes collectees et deductibles, puis affiche la part de chaque rubrique.',
+  },
+  outputDetail: {
+    title: 'Detail TVA collectee',
+    definition: 'Liste des rubriques de TVA collectee avec montants et bases.',
+    dataSource: 'Tableau `vatBreakdown.output` fourni par `useAccountingData`.',
+    formula: 'Total collectee = Somme des lignes de TVA collectee',
+    calculationMethod:
+      'Chaque ligne affiche taux, compte, base et montant TVA; le total est la somme des lignes affichees.',
+  },
+  inputDetail: {
+    title: 'Detail TVA deductible',
+    definition: 'Liste des rubriques de TVA deductible avec montants et bases.',
+    dataSource: 'Tableau `vatBreakdown.input` fourni par `useAccountingData`.',
+    formula: 'Total deductible = Somme des lignes de TVA deductible',
+    calculationMethod:
+      'Chaque ligne affiche taux, compte, base et montant TVA; le total est la somme des lignes affichees.',
+  },
+};
 
 const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthlyData, period, onExportPDF, onExportHTML, currency }) => {
 
@@ -83,6 +142,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
           <CardContent className="p-5">
             <div className="flex items-center gap-2 text-green-400 mb-2">
               <ArrowUp className="w-4 h-4" />
+              <PanelInfoPopover {...VAT_PANEL_INFO.outputVAT} />
               <span className="text-sm font-medium">TVA collectee</span>
             </div>
             <p className="text-2xl font-bold text-gradient">{formatCurrency(outputVAT || 0, currency)}</p>
@@ -94,6 +154,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
           <CardContent className="p-5">
             <div className="flex items-center gap-2 text-blue-400 mb-2">
               <ArrowDown className="w-4 h-4" />
+              <PanelInfoPopover {...VAT_PANEL_INFO.inputVAT} />
               <span className="text-sm font-medium">TVA deductible</span>
             </div>
             <p className="text-2xl font-bold text-gradient">{formatCurrency(inputVAT || 0, currency)}</p>
@@ -105,6 +166,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-2">
               <Minus className="w-4 h-4 text-orange-400" />
+              <PanelInfoPopover {...VAT_PANEL_INFO.netVAT} />
               <span className="text-sm font-medium text-orange-400">TVA nette</span>
             </div>
             <p className={`text-2xl font-bold ${(vatPayable || 0) > 0 ? 'text-red-400' : 'text-green-400'}`}>
@@ -122,7 +184,10 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
         {/* Monthly bar chart - 2/3 width */}
         <Card className="bg-gray-900 border-gray-800 lg:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-400">Historique mensuel TVA</CardTitle>
+            <CardTitle className="text-sm text-gray-400 inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...VAT_PANEL_INFO.monthlyHistory} />
+              <span>Historique mensuel TVA</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[280px]">
@@ -166,6 +231,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
+              <PanelInfoPopover {...VAT_PANEL_INFO.vatBreakdown} />
               <PieChartIcon className="w-4 h-4" /> Repartition TVA
             </CardTitle>
           </CardHeader>
@@ -217,6 +283,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm text-green-400 flex items-center gap-2">
+              <PanelInfoPopover {...VAT_PANEL_INFO.outputDetail} />
               <ArrowUp className="w-3.5 h-3.5" /> Detail TVA collectee
             </CardTitle>
           </CardHeader>
@@ -255,6 +322,7 @@ const VATDeclaration = ({ outputVAT, inputVAT, vatPayable, vatBreakdown, monthly
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm text-blue-400 flex items-center gap-2">
+              <PanelInfoPopover {...VAT_PANEL_INFO.inputDetail} />
               <ArrowDown className="w-3.5 h-3.5" /> Detail TVA deductible
             </CardTitle>
           </CardHeader>

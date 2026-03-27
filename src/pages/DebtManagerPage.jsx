@@ -41,6 +41,7 @@ import DebtAgendaView from '@/components/DebtAgendaView';
 import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { exportDebtListPDF, exportDebtListHTML } from '@/services/exportListsPDF';
 import { formatDateInput } from '@/utils/dateFormatting';
 
@@ -113,6 +114,64 @@ const DebtManagerPage = () => {
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: defaultPaymentMethod, notes: '' });
 
   const netBalance = rStats.totalPending - pStats.totalOwed;
+
+  const debtPanelInfo = useMemo(
+    () => ({
+      netBalance: {
+        title: t('debtManager.netBalance'),
+        definition: 'Solde net des créances et dettes encore ouvertes.',
+        dataSource: 'Agrégats `rStats.totalPending` et `pStats.totalOwed` issus des hooks `useReceivables` et `usePayables`.',
+        formula: 'Solde net = Créances restantes - Dettes restantes',
+        calculationMethod:
+          'Calcule le montant restant de chaque créance et dette, puis soustrait le total dettes au total créances.',
+      },
+      totalReceivable: {
+        title: t('debtManager.totalReceivable'),
+        definition: 'Montant total des créances enregistrées.',
+        dataSource: 'Statistique `rStats.totalReceivable` calculée côté hook.',
+        formula: 'Total créances = somme des montants de toutes les créances.',
+        calculationMethod: 'Additionne `amount` sur la liste des créances.',
+      },
+      totalCollected: {
+        title: t('debtManager.totalCollected'),
+        definition: 'Montant total déjà encaissé sur les créances.',
+        dataSource: 'Statistique `rStats.totalCollected` calculée côté hook.',
+        formula: 'Total encaissé = somme des paiements reçus sur créances.',
+        calculationMethod: 'Additionne `amount_paid` sur la liste des créances.',
+      },
+      totalPayable: {
+        title: t('debtManager.totalPayable'),
+        definition: 'Montant total des dettes enregistrées.',
+        dataSource: 'Statistique `pStats.totalPayable` calculée côté hook.',
+        formula: 'Total dettes = somme des montants de toutes les dettes.',
+        calculationMethod: 'Additionne `amount` sur la liste des dettes.',
+      },
+      totalRepaid: {
+        title: t('debtManager.totalRepaid'),
+        definition: 'Montant total déjà remboursé sur les dettes.',
+        dataSource: 'Statistique `pStats.totalRepaid` calculée côté hook.',
+        formula: 'Total remboursé = somme des paiements effectués sur dettes.',
+        calculationMethod: 'Additionne `amount_paid` sur la liste des dettes.',
+      },
+      pendingReceivables: {
+        title: t('debtManager.pendingReceivables'),
+        definition: 'Créances encore ouvertes et à suivre en priorité.',
+        dataSource: 'Liste `receivablesInFollowUp` filtrée selon statut ouvert et reste à encaisser.',
+        formula: 'Reste par ligne = amount - amount_paid',
+        calculationMethod:
+          'Filtre les créances ouvertes, trie par suivi opérationnel puis affiche les premières lignes avec leur reste dû.',
+      },
+      pendingPayables: {
+        title: t('debtManager.pendingPayables'),
+        definition: 'Dettes encore ouvertes et à suivre en priorité.',
+        dataSource: 'Liste `payablesInFollowUp` filtrée selon statut ouvert et reste à payer.',
+        formula: 'Reste par ligne = amount - amount_paid',
+        calculationMethod:
+          'Filtre les dettes ouvertes, trie par suivi opérationnel puis affiche les premières lignes avec leur reste dû.',
+      },
+    }),
+    [t]
+  );
 
   const resetPaymentForm = useCallback(
     () => ({
@@ -411,7 +470,10 @@ const DebtManagerPage = () => {
       >
         <div className="flex items-center gap-3 mb-2">
           <Wallet className={`w-6 h-6 ${netBalance >= 0 ? 'text-green-400' : 'text-red-400'}`} />
-          <span className="text-gray-400 text-sm">{t('debtManager.netBalance')}</span>
+          <span className="text-gray-400 text-sm inline-flex items-center gap-1.5">
+            <PanelInfoPopover {...debtPanelInfo.netBalance} />
+            <span>{t('debtManager.netBalance')}</span>
+          </span>
         </div>
         <p className={`text-3xl font-bold ${netBalance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
           {netBalance >= 0 ? '+' : ''}
@@ -426,24 +488,28 @@ const DebtManagerPage = () => {
           icon={ArrowDownCircle}
           color="green"
           label={t('debtManager.totalReceivable')}
+          info={debtPanelInfo.totalReceivable}
           value={formatAmount(rStats.totalReceivable)}
         />
         <StatCard
           icon={CheckCircle2}
           color="green"
           label={t('debtManager.totalCollected')}
+          info={debtPanelInfo.totalCollected}
           value={formatAmount(rStats.totalCollected)}
         />
         <StatCard
           icon={ArrowUpCircle}
           color="red"
           label={t('debtManager.totalPayable')}
+          info={debtPanelInfo.totalPayable}
           value={formatAmount(pStats.totalPayable)}
         />
         <StatCard
           icon={CreditCard}
           color="blue"
           label={t('debtManager.totalRepaid')}
+          info={debtPanelInfo.totalRepaid}
           value={formatAmount(pStats.totalRepaid)}
         />
       </div>
@@ -453,7 +519,10 @@ const DebtManagerPage = () => {
         <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-4 h-4 text-yellow-400" />
-            <span className="text-sm font-medium text-white">{t('debtManager.pendingReceivables')}</span>
+            <span className="text-sm font-medium text-white inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...debtPanelInfo.pendingReceivables} />
+              <span>{t('debtManager.pendingReceivables')}</span>
+            </span>
             <span className="ml-auto bg-yellow-500/20 text-yellow-400 text-xs px-2 py-0.5 rounded-full">
               {receivablesInFollowUp.length}
             </span>
@@ -482,7 +551,10 @@ const DebtManagerPage = () => {
         <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-4 h-4 text-red-400" />
-            <span className="text-sm font-medium text-white">{t('debtManager.pendingPayables')}</span>
+            <span className="text-sm font-medium text-white inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...debtPanelInfo.pendingPayables} />
+              <span>{t('debtManager.pendingPayables')}</span>
+            </span>
             <span className="ml-auto bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded-full">
               {payablesInFollowUp.length}
             </span>
@@ -1231,7 +1303,7 @@ const DebtManagerPage = () => {
 };
 
 // ─── STAT CARD COMPONENT ─────────────────────────
-const StatCard = ({ icon: Icon, color, label, value }) => {
+const StatCard = ({ icon: Icon, color, label, info, value }) => {
   const colors = {
     green: 'bg-green-500/10 border-green-500/30 text-green-400',
     red: 'bg-red-500/10 border-red-500/30 text-red-400',
@@ -1243,7 +1315,10 @@ const StatCard = ({ icon: Icon, color, label, value }) => {
     <div className={`p-4 rounded-lg border ${colors[color]}`}>
       <div className="flex items-center gap-2 mb-2">
         <Icon className="w-4 h-4" />
-        <span className="text-xs text-gray-400">{label}</span>
+        <span className="text-xs text-gray-400 inline-flex items-center gap-1.5">
+          {info && <PanelInfoPopover {...info} />}
+          <span>{label}</span>
+        </span>
       </div>
       <p className="text-lg font-bold">{value}</p>
     </div>

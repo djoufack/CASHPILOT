@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -29,6 +28,7 @@ import {
 } from '@/components/ui/table';
 import { Plus, Eye, Loader2, Building2, TrendingDown, Package } from 'lucide-react';
 import { useFixedAssets } from '@/hooks/useFixedAssets';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 const EMPTY_FORM = {
   asset_name: '',
@@ -91,6 +91,47 @@ const fmtDate = (dateStr) => {
   } catch {
     return dateStr;
   }
+};
+
+const FIXED_ASSETS_INFO = {
+  mainPanel: {
+    title: 'Immobilisations',
+    definition: "Registre des immobilisations et suivi des amortissements comptables de la societe.",
+    dataSource: 'Tables `accounting_fixed_assets` et `accounting_depreciation_schedule`.',
+    formula: 'VNC = Cout acquisition - amortissement cumule',
+    calculationMethod:
+      'Chaque immobilisation conserve ses parametres d amortissement et alimente un echeancier de dotation.',
+  },
+  totalGross: {
+    title: 'Valeur brute totale',
+    definition: 'Somme des couts d acquisition des immobilisations actives ou historisees.',
+    dataSource: 'Champ `acquisition_cost` de `accounting_fixed_assets`.',
+    formula: 'Valeur brute = Somme(acquisition_cost)',
+    calculationMethod: 'Aggregation locale des couts de toutes les immobilisations chargees.',
+  },
+  totalDepreciation: {
+    title: 'Amortissements cumules',
+    definition: 'Montant total des amortissements comptabilises.',
+    dataSource: 'Statut des actifs et logique de calcul de depreciation du module.',
+    formula: 'Amortissements cumules = Somme des dotations postees',
+    calculationMethod:
+      'Le KPI consolide les montants amortis a partir des actifs et de leur statut comptable.',
+  },
+  totalNet: {
+    title: 'Valeur nette comptable',
+    definition: 'Valeur residuelle globale des immobilisations apres amortissement.',
+    dataSource: 'Valeur brute et amortissements cumules calcules dans le composant.',
+    formula: 'VNC totale = Valeur brute - amortissements cumules',
+    calculationMethod: 'Difference entre KPI de valeur brute et KPI de depreciation cumulee.',
+  },
+  register: {
+    title: 'Registre des immobilisations',
+    definition: 'Table detaillee des immobilisations avec type, date, montants, methode et statut.',
+    dataSource: 'Table `accounting_fixed_assets` enrichie par le dialogue echeancier.',
+    formula: 'VNC ligne = cout - depreciation (ou residual selon statut)',
+    calculationMethod:
+      "Chaque ligne affiche les attributs principaux et ouvre l echeancier pour les ecritures de dotation.",
+  },
 };
 
 // ─── Schedule Dialog ────────────────────────────────────────────────────────
@@ -450,14 +491,6 @@ const FixedAssets = () => {
 
   // KPI computations
   const totalGross = assets.reduce((s, a) => s + (parseFloat(a.acquisition_cost) || 0), 0);
-  const totalNet = assets.reduce((s, a) => {
-    const cost = parseFloat(a.acquisition_cost) || 0;
-    const residual = parseFloat(a.residual_value) || 0;
-    // VNC approximation: cost - accumulated based on status
-    // We use acquisition_cost as gross; for a proper VNC we'd need the schedule
-    // Here we just show acquisition_cost as gross
-    return s + cost;
-  }, 0);
 
   // For accumulated and net we derive from assets' implicit accumulated
   // Since we don't store accumulated on the asset directly, we approximate:
@@ -485,6 +518,7 @@ const FixedAssets = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
         <div>
           <h2 className="text-xl font-bold text-gradient flex items-center gap-2">
+            <PanelInfoPopover {...FIXED_ASSETS_INFO.mainPanel} />
             <Building2 className="w-5 h-5" />
             {t('accounting.fixedAssets.title')}
           </h2>
@@ -496,9 +530,12 @@ const FixedAssets = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-              {t('accounting.fixedAssets.totalGross')}
-            </p>
+            <div className="inline-flex items-center gap-1.5 mb-1">
+              <PanelInfoPopover {...FIXED_ASSETS_INFO.totalGross} />
+              <p className="text-xs text-gray-500 uppercase tracking-wider">
+                {t('accounting.fixedAssets.totalGross')}
+              </p>
+            </div>
             <p className="text-2xl font-bold font-mono text-blue-400">
               {fmtAmount(totalGross)}
             </p>
@@ -508,9 +545,12 @@ const FixedAssets = () => {
 
         <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-              {t('accounting.fixedAssets.totalDepreciation')}
-            </p>
+            <div className="inline-flex items-center gap-1.5 mb-1">
+              <PanelInfoPopover {...FIXED_ASSETS_INFO.totalDepreciation} />
+              <p className="text-xs text-gray-500 uppercase tracking-wider">
+                {t('accounting.fixedAssets.totalDepreciation')}
+              </p>
+            </div>
             <p className="text-2xl font-bold font-mono text-orange-400">
               {fmtAmount(totalDepreciation)}
             </p>
@@ -520,9 +560,12 @@ const FixedAssets = () => {
 
         <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-              {t('accounting.fixedAssets.totalNet')}
-            </p>
+            <div className="inline-flex items-center gap-1.5 mb-1">
+              <PanelInfoPopover {...FIXED_ASSETS_INFO.totalNet} />
+              <p className="text-xs text-gray-500 uppercase tracking-wider">
+                {t('accounting.fixedAssets.totalNet')}
+              </p>
+            </div>
             <p className="text-2xl font-bold font-mono text-emerald-400">
               {fmtAmount(totalNetValue)}
             </p>
@@ -535,6 +578,7 @@ const FixedAssets = () => {
       <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
         <CardHeader className="pb-2 pt-4">
           <CardTitle className="text-sm text-gray-300 uppercase tracking-wider flex items-center gap-2">
+            <PanelInfoPopover {...FIXED_ASSETS_INFO.register} />
             <Package className="w-4 h-4 text-orange-400" />
             Registre des immobilisations
           </CardTitle>

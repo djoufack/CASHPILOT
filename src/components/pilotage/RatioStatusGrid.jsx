@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import {
   CheckCircle,
   AlertTriangle,
@@ -46,6 +47,15 @@ const DEFAULT_STATUS = {
   color: 'text-gray-400',
   bg: 'bg-gray-500/10',
   border: 'border-gray-500/20',
+};
+
+const RATIO_STATUS_INFO = {
+  title: 'Ratios de structure',
+  definition: 'Bloc de synthèse des ratios structurels et de liquidité utilisés pour le pilotage financier.',
+  dataSource: 'Résultats calculés à partir des données `pilotageRatios`, `financialDiagnostic` et `ratioEvaluations`.',
+  formula: 'Chaque sous-indicateur applique sa propre formule de ratio comptable.',
+  calculationMethod: 'Les valeurs sont consolidées en amont puis affichées avec leur statut de qualité calculé.',
+  notes: 'Les statuts excellent, bon, moyen, faible et critique sont déterminés par les seuils pilotage.',
 };
 
 const RATIO_DEFS = [
@@ -122,11 +132,19 @@ const RatioStatusGrid = ({ data }) => {
   );
 
   return (
-    <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl h-full">
+      <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold text-gray-200 flex items-center gap-2">
           <Activity className="w-4 h-4 text-orange-400" />
-          {t('pilotage.ratios.structure')}
+          <PanelInfoPopover
+            title={RATIO_STATUS_INFO.title}
+            definition={RATIO_STATUS_INFO.definition}
+            dataSource={RATIO_STATUS_INFO.dataSource}
+            formula={RATIO_STATUS_INFO.formula}
+            calculationMethod={RATIO_STATUS_INFO.calculationMethod}
+            notes={RATIO_STATUS_INFO.notes}
+          />
+          <span>{t('pilotage.ratios.structure')}</span>
         </CardTitle>
       </CardHeader>
       <CardContent>

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { AlertTriangle, FileSignature, FileText, RefreshCw, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { useObligations } from '@/hooks/useObligations';
 import { formatDueDate, formatMoney } from '@/lib/obligations';
 
@@ -42,11 +43,14 @@ const getCategoryConfig = (t) => ({
   },
 });
 
-const SummaryCard = ({ label, value, subtext, icon: Icon, accentClass }) => (
+const SummaryCard = ({ label, info, value, subtext, icon: Icon, accentClass }) => (
   <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-4">
     <div className="flex items-center justify-between gap-3">
       <div>
-        <div className="text-xs uppercase tracking-wider text-gray-500">{label}</div>
+        <div className="text-xs uppercase tracking-wider text-gray-500 inline-flex items-center gap-1.5">
+          {info && <PanelInfoPopover {...info} />}
+          <span>{label}</span>
+        </div>
         <div className="mt-2 text-2xl font-bold text-white">{value}</div>
         <div className="mt-1 text-sm text-gray-400">{subtext}</div>
       </div>
@@ -62,6 +66,44 @@ const ObligationsPanel = () => {
   const { obligations, summary, currency, loading, refresh } = useObligations();
   const bucketLabels = useMemo(() => getBucketLabels(t), [t]);
   const categoryConfig = useMemo(() => getCategoryConfig(t), [t]);
+  const panelInfo = useMemo(() => ({
+    title: {
+      title: t('dashboard.obligations.title', 'Obligations du moment'),
+      definition: 'Vue de priorisation des obligations opérationnelles de trésorerie et de suivi commercial.',
+      dataSource: 'Hook `useObligations` (agrégations issues des factures clients, factures fournisseurs et tâches devis).',
+      formula: 'Sans formule unique: bloc de synthèse multi-catégories.',
+      calculationMethod: 'Calcule les agrégats par catégorie puis classe les obligations selon leur urgence (retard, échéance du jour, proche, planifiée).',
+    },
+    priorityActions: {
+      title: t('dashboard.obligations.priorityActions', 'Actions prioritaires'),
+      definition: 'Liste ordonnée des actions les plus urgentes à traiter.',
+      dataSource: 'Liste `obligations` construite par `useObligations`.',
+      formula: 'Aucune formule unique.',
+      calculationMethod: 'Trie les éléments par bucket d’échéance puis limite l’affichage aux 6 premières entrées.',
+      notes: 'Le compteur affiche le volume total d’obligations détectées.',
+    },
+    receivables: {
+      title: t('dashboard.obligations.clientInvoices', 'Factures clients'),
+      definition: 'Nombre et montant des créances à encaisser.',
+      dataSource: 'Agrégat `summary.receivables` du hook `useObligations`.',
+      formula: 'Montant = somme des soldes clients ouverts.',
+      calculationMethod: 'Compte les factures clients non soldées et additionne leurs montants dus.',
+    },
+    payables: {
+      title: t('dashboard.obligations.supplierInvoices', 'Factures fournisseurs'),
+      definition: 'Nombre et montant des dettes fournisseurs à payer.',
+      dataSource: 'Agrégat `summary.payables` du hook `useObligations`.',
+      formula: 'Montant = somme des dettes fournisseurs ouvertes.',
+      calculationMethod: 'Compte les factures fournisseurs non réglées et additionne les montants à payer.',
+    },
+    quoteTasks: {
+      title: t('dashboard.obligations.quotesToPrepare', 'Devis à préparer'),
+      definition: 'Volume des tâches devis en attente et en retard.',
+      dataSource: 'Agrégat `summary.quoteTasks` du hook `useObligations`.',
+      formula: 'Compteur = nombre de tâches devis ouvertes.',
+      calculationMethod: 'Agrège les tâches devis ouvertes et calcule le sous-compteur des retards.',
+    },
+  }), [t]);
 
   const topItems = useMemo(() => obligations.slice(0, 6), [obligations]);
 
@@ -76,8 +118,9 @@ const ObligationsPanel = () => {
         <div>
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-orange-400" />
-            <h2 className="text-xl font-semibold text-white">
-              {t('dashboard.obligations.title', 'Obligations du moment')}
+            <h2 className="text-xl font-semibold text-white inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...panelInfo.title} />
+              <span>{t('dashboard.obligations.title', 'Obligations du moment')}</span>
             </h2>
           </div>
           <p className="mt-2 text-sm text-gray-400">
@@ -101,6 +144,7 @@ const ObligationsPanel = () => {
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <SummaryCard
           label={t('dashboard.obligations.clientInvoices', 'Factures clients')}
+          info={panelInfo.receivables}
           value={summary.receivables.count}
           subtext={`${formatMoney(summary.receivables.amount, currency)} ${t('dashboard.obligations.toCollect', 'a encaisser')}`}
           icon={FileText}
@@ -108,6 +152,7 @@ const ObligationsPanel = () => {
         />
         <SummaryCard
           label={t('dashboard.obligations.supplierInvoices', 'Factures fournisseurs')}
+          info={panelInfo.payables}
           value={summary.payables.count}
           subtext={`${formatMoney(summary.payables.amount, currency)} ${t('dashboard.obligations.toPay', 'a payer')}`}
           icon={Receipt}
@@ -115,6 +160,7 @@ const ObligationsPanel = () => {
         />
         <SummaryCard
           label={t('dashboard.obligations.quotesToPrepare', 'Devis a preparer')}
+          info={panelInfo.quoteTasks}
           value={summary.quoteTasks.count}
           subtext={`${summary.quoteTasks.overdueCount} ${t('dashboard.obligations.overdue', 'en retard')}`}
           icon={FileSignature}
@@ -124,8 +170,9 @@ const ObligationsPanel = () => {
 
       <div className="mt-6 rounded-xl border border-gray-800 bg-gray-900/40">
         <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
-          <div className="text-sm font-medium text-white">
-            {t('dashboard.obligations.priorityActions', 'Actions prioritaires')}
+          <div className="text-sm font-medium text-white inline-flex items-center gap-1.5">
+            <PanelInfoPopover {...panelInfo.priorityActions} />
+            <span>{t('dashboard.obligations.priorityActions', 'Actions prioritaires')}</span>
           </div>
           <div className="text-xs text-gray-500">
             {obligations.length} {t('dashboard.obligations.elements', 'element(s)')}

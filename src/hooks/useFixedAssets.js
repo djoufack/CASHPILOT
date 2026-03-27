@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { isMissingColumnError } from '@/lib/supabaseCompatibility';
 
 /**
  * Calculate depreciation schedule (linear or declining)
@@ -63,17 +64,30 @@ export function useFixedAssets() {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const stripCompanyId = useCallback((payload = {}) => {
+    const { company_id: _ignoredCompanyId, ...withoutCompany } = payload;
+    return withoutCompany;
+  }, []);
+
   const fetchAssets = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      let query = supabase
-        .from('accounting_fixed_assets')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('acquisition_date', { ascending: false });
+      const buildBaseQuery = () =>
+        supabase
+          .from('accounting_fixed_assets')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('acquisition_date', { ascending: false });
+
+      let query = buildBaseQuery();
       query = applyCompanyScope(query, { includeUnassigned: false });
-      const { data, error } = await query;
+      let { data, error } = await query;
+
+      if (error && isMissingColumnError(error, 'company_id')) {
+        ({ data, error } = await buildBaseQuery());
+      }
+
       if (error) throw error;
       setAssets(data || []);
     } catch (err) {
@@ -85,25 +99,44 @@ export function useFixedAssets() {
 
   const fetchSchedule = useCallback(async (assetId) => {
     if (!user) return [];
-    let query = supabase
-      .from('accounting_depreciation_schedule')
-      .select('*')
-      .eq('asset_id', assetId)
-      .order('period_year')
-      .order('period_month');
+    const buildBaseQuery = () =>
+      supabase
+        .from('accounting_depreciation_schedule')
+        .select('*')
+        .eq('asset_id', assetId)
+        .eq('user_id', user.id)
+        .order('period_year')
+        .order('period_month');
+
+    let query = buildBaseQuery();
     query = applyCompanyScope(query, { includeUnassigned: false });
-    const { data, error } = await query;
+    let { data, error } = await query;
+
+    if (error && isMissingColumnError(error, 'company_id')) {
+      ({ data, error } = await buildBaseQuery());
+    }
+
     if (error) throw error;
     return data || [];
   }, [applyCompanyScope, user]);
 
   const createAsset = useCallback(async (assetData) => {
     if (!user) return;
-    const { data, error } = await supabase
+    const scopedPayload = { ...withCompanyScope(assetData), user_id: user.id };
+    let { data, error } = await supabase
       .from('accounting_fixed_assets')
-      .insert({ ...withCompanyScope(assetData), user_id: user.id })
+      .insert(scopedPayload)
       .select()
       .single();
+
+    if (error && scopedPayload.company_id && isMissingColumnError(error, 'company_id')) {
+      ({ data, error } = await supabase
+        .from('accounting_fixed_assets')
+        .insert(stripCompanyId(scopedPayload))
+        .select()
+        .single());
+    }
+
     if (error) throw error;
 
     // Generate depreciation schedule
@@ -121,14 +154,21 @@ export function useFixedAssets() {
         user_id: user.id,
         company_id: data.company_id || activeCompanyId || null,
       }));
-      const { error: scheduleError } = await supabase.from('accounting_depreciation_schedule').insert(rows);
+      let { error: scheduleError } = await supabase.from('accounting_depreciation_schedule').insert(rows);
+
+      if (scheduleError && rows.some((row) => row.company_id) && isMissingColumnError(scheduleError, 'company_id')) {
+        ({ error: scheduleError } = await supabase
+          .from('accounting_depreciation_schedule')
+          .insert(rows.map((row) => stripCompanyId(row))));
+      }
+
       if (scheduleError) console.warn('Schedule insert error:', scheduleError);
     }
 
     toast({ title: 'Immobilisation créée', description: assetData.asset_name });
     await fetchAssets();
     return data;
-  }, [user, withCompanyScope, fetchAssets, toast, activeCompanyId]);
+  }, [user, withCompanyScope, fetchAssets, toast, activeCompanyId, stripCompanyId]);
 
   const updateAsset = useCallback(async (id, updates) => {
     const { data, error } = await supabase

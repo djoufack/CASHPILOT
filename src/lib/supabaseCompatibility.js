@@ -1,4 +1,8 @@
-const normalizeMessage = (error) => String(error?.message || '').toLowerCase();
+const normalizeMessage = (error) =>
+  [error?.message, error?.details, error?.hint]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
 
 const normalizeCode = (error) => String(error?.code || '').toUpperCase();
 
@@ -6,9 +10,15 @@ export const isSupabaseErrorCode = (error, expectedCode) =>
   normalizeCode(error) === String(expectedCode || '').toUpperCase();
 
 export const isMissingColumnError = (error, columnRef = '') => {
-  if (!isSupabaseErrorCode(error, '42703')) return false;
+  const message = normalizeMessage(error);
+  const isSqlMissingColumn = isSupabaseErrorCode(error, '42703');
+  const isPostgrestMissingColumn =
+    isSupabaseErrorCode(error, 'PGRST204') &&
+    (message.includes('could not find') || message.includes('schema cache') || message.includes('column'));
+
+  if (!isSqlMissingColumn && !isPostgrestMissingColumn) return false;
   if (!columnRef) return true;
-  return normalizeMessage(error).includes(String(columnRef).toLowerCase());
+  return message.includes(String(columnRef).toLowerCase());
 };
 
 export const isMissingRelationError = (error, relationRef = '') => {

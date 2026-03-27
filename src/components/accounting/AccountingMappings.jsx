@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, AlertTriangle, ArrowRight, Settings, Zap, Loader2, Lightbulb } from 'lucide-react';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 const EMPTY_FORM = {
   source_type: '',
@@ -25,6 +26,17 @@ const normalizeCountryCode = (countryCode) =>
   String(countryCode || '')
     .trim()
     .toUpperCase();
+
+const MAPPINGS_INFO = {
+  title: 'Mappings comptables',
+  definition: 'Table de correspondance entre categories de transactions et comptes debit/credit.',
+  dataSource:
+    'Table `accounting_mappings` chargee via `useAccounting`, plus references `reference_accounting_source_*`.',
+  formula: 'Ecriture auto = mapping(source_type, source_category) -> compte debit / compte credit',
+  calculationMethod:
+    'A chaque flux financier, le moteur applique la combinaison type/categorie pour determiner les comptes cibles.',
+  notes: 'Les presets chargent des mappings standards par pays et mettent a jour les doublons type/categorie.',
+};
 
 const AccountingMappings = () => {
   const { accounts, mappings, fetchAccounts, fetchMappings, createMapping, deleteMapping, bulkCreateMappings } =
@@ -299,7 +311,10 @@ const AccountingMappings = () => {
 
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
-          <h3 className="text-lg font-bold text-white">Mappings comptables</h3>
+          <h3 className="text-lg font-bold text-white inline-flex items-center gap-1.5">
+            <PanelInfoPopover {...MAPPINGS_INFO} />
+            <span>Mappings comptables</span>
+          </h3>
           <p className="text-sm text-gray-400">
             Associez chaque categorie de transaction a un compte du plan comptable.
           </p>

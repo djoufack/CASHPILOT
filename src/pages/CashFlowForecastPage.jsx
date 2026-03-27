@@ -7,6 +7,7 @@ import CashFlowChart from '@/components/cashflow/CashFlowChart';
 import CashFlowAlerts from '@/components/cashflow/CashFlowAlerts';
 import { Brain, RefreshCw, Loader2, TrendingUp, TrendingDown, Minus, Lightbulb, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 const PERIOD_OPTIONS = [30, 60, 90, 180];
 
@@ -56,6 +57,15 @@ const CashFlowForecastPage = () => {
     low: 'text-emerald-400',
     medium: 'text-amber-400',
     high: 'text-red-400',
+  };
+
+  const analysisPanelInfo = {
+    title: t('cashflow.analysis.title', 'Analyse IA'),
+    definition: 'Lecture synthétique de la tendance, volatilité et recommandations de trésorerie.',
+    dataSource: 'Objet `analysis` et bloc `scenarios` retournés par `useCashFlowForecast`.',
+    formula: 'Sans formule unique: interprétation des projections multi-scénarios.',
+    calculationMethod:
+      'Récupère les indicateurs fournis par le moteur IA, puis affiche tendance, volatilité, scénarios et recommandations.',
   };
 
   return (
@@ -139,7 +149,10 @@ const CashFlowForecastPage = () => {
                 <BarChart3 className="w-4 h-4 text-purple-400" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">{t('cashflow.analysis.title', 'Analyse IA')}</h3>
+                <h3 className="text-lg font-bold text-white inline-flex items-center gap-1.5">
+                  <PanelInfoPopover {...analysisPanelInfo} />
+                  <span>{t('cashflow.analysis.title', 'Analyse IA')}</span>
+                </h3>
                 <p className="text-xs text-gray-500">{t('cashflow.analysis.subtitle', 'Tendance et volatilite')}</p>
               </div>
             </div>

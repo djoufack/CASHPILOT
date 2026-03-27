@@ -1,5 +1,4 @@
-
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,12 +20,30 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, Legend } from 'recharts';
 import { Button } from '@/components/ui/button';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { exportDashboardPDF, exportDashboardHTML } from '@/services/exportReports';
 import { captureError } from '@/services/errorTracking';
 import AccountingHealthWidget from '@/components/AccountingHealthWidget';
 import ObligationsPanel from '@/components/dashboard/ObligationsPanel';
 import SnapshotShareDialog from '@/components/SnapshotShareDialog';
 import SectionErrorBoundary from '@/components/SectionErrorBoundary';
+
+const InfoLabel = ({ info, children, className = '' }) => (
+  <span className={`inline-flex items-center gap-1.5 ${className}`.trim()}>
+    <PanelInfoPopover
+      title={info.title}
+      definition={info.definition}
+      dataSource={info.dataSource}
+      formula={info.formula}
+      calculationMethod={info.calculationMethod}
+      filters={info.filters}
+      notes={info.notes}
+      ariaLabel={`Informations sur ${info.title}`}
+      triggerClassName="text-orange-300 hover:text-orange-200 hover:bg-orange-500/10"
+    />
+    <span>{children}</span>
+  </span>
+);
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -35,11 +52,11 @@ const Dashboard = () => {
   const { invoices, fetchInvoices, loading: invoicesLoading } = useInvoices();
   const { timesheets, fetchTimesheets, loading: timesheetsLoading } = useTimesheets();
   const { projects, fetchProjects, loading: projectsLoading } = useProjects();
-  const { clients, fetchClients } = useClients();
+  const { fetchClients } = useClients();
   const { company } = useCompany();
   const { expenses, fetchExpenses, loading: expensesLoading } = useExpenses();
   const [cfGranularity, setCfGranularity] = useState('month');
-  const { cashFlowData, summary: cashFlowSummary, loading: cashFlowLoading } = useCashFlow(6, cfGranularity);
+  const { cashFlowData, loading: cashFlowLoading } = useCashFlow(6, cfGranularity);
   const { guardedAction, modalProps } = useCreditsGuard();
   const companyCurrency = resolveAccountingCurrency(company);
   const dashboardFetchersRef = useRef({
@@ -171,10 +188,116 @@ const Dashboard = () => {
 
   const cc = companyCurrency;
   const stats = [
-    { label: t('dashboard.totalRevenue'), value: formatCompactCurrency(metrics.revenue, cc), fullValue: formatCurrency(metrics.revenue, cc), icon: DollarSign, trend: formatTrendLabel(metrics.revenueTrend), trendUp: parseFloat(metrics.revenueTrend) >= 0 },
-    { label: t('dashboard.profitMargin'), value: `${Math.round(metrics.profitMargin)}%`, icon: TrendingUp, trend: formatTrendLabel(metrics.marginTrend), trendUp: parseFloat(metrics.marginTrend) >= 0 },
-    { label: t('dashboard.occupancyRate'), value: `${Math.round(metrics.occupancyRate)}%`, icon: Activity, trend: formatTrendLabel(metrics.occupancyTrend), trendUp: parseFloat(metrics.occupancyTrend) >= 0 },
+    { key: 'totalRevenue', label: t('dashboard.totalRevenue'), value: formatCompactCurrency(metrics.revenue, cc), fullValue: formatCurrency(metrics.revenue, cc), icon: DollarSign, trend: formatTrendLabel(metrics.revenueTrend), trendUp: parseFloat(metrics.revenueTrend) >= 0 },
+    { key: 'profitMargin', label: t('dashboard.profitMargin'), value: `${Math.round(metrics.profitMargin)}%`, icon: TrendingUp, trend: formatTrendLabel(metrics.marginTrend), trendUp: parseFloat(metrics.marginTrend) >= 0 },
+    { key: 'occupancyRate', label: t('dashboard.occupancyRate'), value: `${Math.round(metrics.occupancyRate)}%`, icon: Activity, trend: formatTrendLabel(metrics.occupancyTrend), trendUp: parseFloat(metrics.occupancyTrend) >= 0 },
   ];
+
+  const dashboardPanelInfo = useMemo(() => ({
+    totalRevenue: {
+      title: t('dashboard.totalRevenue'),
+      definition: "Chiffre d'affaires facturé sur la période affichée.",
+      dataSource: 'Factures, projets, temps saisis et dépenses consolidés via `useInvoices()`, `useProjects()`, `useTimesheets()` et `useExpenses()` puis agrégés par `buildCanonicalDashboardSnapshot()`.',
+      formula: 'Somme des factures facturables retenues dans le snapshot canonique.',
+      calculationMethod: "Additionne les factures dont le statut est facturable (`sent`, `paid`) et calcule chaque montant avec `getCanonicalInvoiceAmount()`.",
+      filters: "Exclut les statuts non facturables comme `draft` et `cancelled`.",
+    },
+    profitMargin: {
+      title: t('dashboard.profitMargin'),
+      definition: 'Part du chiffre d’affaires conservée après prise en compte des dépenses.',
+      dataSource: 'Même snapshot canonique que le chiffre d’affaires et les dépenses.',
+      formula: '(Chiffre d’affaires - Dépenses totales) / Chiffre d’affaires × 100',
+      calculationMethod: 'Calcule le revenu total et les dépenses totales, puis applique `calculateProfitMargin()` sur ces deux agrégats.',
+      notes: 'Le résultat est arrondi à l’unité pour l’affichage du KPI.',
+    },
+    occupancyRate: {
+      title: t('dashboard.occupancyRate'),
+      definition: "Taux d'occupation des ressources productives sur la période.",
+      dataSource: 'Temps saisis via `useTimesheets()` et budgets de projet via `useProjects()`.',
+      formula: 'Somme des minutes saisies / Somme des minutes budgétées × 100',
+      calculationMethod: 'Additionne `timesheets.duration_minutes`, convertit les budgets projet en minutes via `budget_hours × 60`, puis calcule le ratio.',
+      notes: 'Si aucun budget n’est disponible mais des temps existent, le snapshot canonique peut afficher 100% lorsqu’au moins un projet existe.',
+    },
+    productRevenue: {
+      title: t('dashboard.productRevenue'),
+      definition: "Part du chiffre d'affaires issue des lignes de produits.",
+      dataSource: 'Lignes de factures classées comme produits dans le snapshot canonique.',
+      formula: 'Somme des montants des lignes où `item_type = product` ou `product_id` est présent.',
+      calculationMethod: 'Regroupe les lignes facturées par catégorie produit et additionne `item.total`, ou à défaut `quantity × unit_price`.',
+    },
+    serviceRevenue: {
+      title: t('dashboard.serviceRevenue'),
+      definition: "Part du chiffre d'affaires issue des prestations et services.",
+      dataSource: 'Lignes de factures classées comme services dans le snapshot canonique.',
+      formula: 'Somme des montants des lignes où `item_type = service`, `timesheet` ou `service_id` est présent.',
+      calculationMethod: 'Additionne les montants des lignes de service avec la même logique de repli `quantity × unit_price`.',
+    },
+    totalExpenses: {
+      title: t('dashboard.totalExpenses'),
+      definition: 'Total des charges enregistrées sur la période affichée.',
+      dataSource: 'Dépenses récupérées via `useExpenses()` puis agrégées dans le snapshot canonique.',
+      formula: 'Somme de tous les montants de dépenses.',
+      calculationMethod: 'Additionne chaque `expense.amount` dans `buildCanonicalDashboardSnapshot()`.',
+    },
+    netCashFlow: {
+      title: t('dashboard.netCashFlow'),
+      definition: 'Solde net généré par l’activité sur la période.',
+      dataSource: 'Revenu total et dépenses totales du snapshot canonique.',
+      formula: 'Chiffre d’affaires - Dépenses totales',
+      calculationMethod: 'Reprend le revenu total calculé à partir des factures facturables, soustrait les dépenses totales et affiche le résultat brut.',
+    },
+    revenueBreakdown: {
+      title: t('dashboard.revenueBreakdown'),
+      definition: "Répartition mensuelle du chiffre d'affaires par type de ligne.",
+      dataSource: 'Factures facturables et leurs lignes, consolidées dans `revenueBreakdownData`.',
+      formula: 'Pour chaque mois, somme des montants des lignes produits, services et autres.',
+      calculationMethod: 'Regroupe les factures par mois puis calcule chaque ligne avec `item.total` ou `quantity × unit_price`, avant d’agréger par catégorie.',
+      notes: 'Le graphique affiche la ventilation mensuelle et non un cumul global.',
+    },
+    revenueOverview: {
+      title: t('dashboard.revenueOverview'),
+      definition: "Évolution temporelle du chiffre d'affaires agrégé.",
+      dataSource: 'Série `revenueData` produite par le snapshot canonique depuis les factures facturables.',
+      formula: 'Pour chaque période: somme des montants facturables.',
+      calculationMethod: 'Regroupe les factures par période puis cumule les montants par point du graphique.',
+    },
+    revenueByClient: {
+      title: t('dashboard.revenueByClient'),
+      definition: "Comparaison du chiffre d'affaires entre clients.",
+      dataSource: 'Série `clientRevenueData` issue du snapshot canonique.',
+      formula: 'Par client: somme des montants facturables.',
+      calculationMethod: 'Agrége les montants par identifiant client et affiche les valeurs classées.',
+    },
+    cashFlow: {
+      title: t('dashboard.cashFlow'),
+      definition: 'Évolution des encaissements, décaissements et du solde net de trésorerie.',
+      dataSource: 'Hook `useCashFlow` selon la granularité sélectionnée (mois/semaine).',
+      formula: 'Net = revenus (income) - dépenses (expenses).',
+      calculationMethod: 'Calcule les séries income/expenses par période puis dérive le net affiché sur le graphique.',
+      filters: 'Granularité pilotée par `cfGranularity`.',
+    },
+    quickActions: {
+      title: t('dashboard.quickActions'),
+      definition: 'Raccourcis opérationnels vers les actions principales du dashboard.',
+      dataSource: 'Configuration locale `quickActions` (routes applicatives).',
+      formula: 'Sans formule.',
+      calculationMethod: 'Affiche une carte d’action par entrée définie dans `quickActions`.',
+    },
+    recentInvoices: {
+      title: t('dashboard.recentInvoices'),
+      definition: 'Dernières factures créées triées par date décroissante.',
+      dataSource: 'Liste `invoices` issue du hook `useInvoices`.',
+      formula: 'Top 5 selon `created_at` décroissant.',
+      calculationMethod: 'Trie les factures sur `created_at` puis conserve les 5 plus récentes.',
+    },
+    recentTimesheets: {
+      title: t('dashboard.recentTimesheets'),
+      definition: 'Dernières saisies de temps triées par date décroissante.',
+      dataSource: 'Liste `timesheets` issue du hook `useTimesheets`.',
+      formula: 'Top 5 selon `date` décroissant.',
+      calculationMethod: 'Trie les feuilles de temps sur `date` puis conserve les 5 plus récentes.',
+    },
+  }), [t]);
 
   const dashboardSnapshotData = useMemo(() => ({
     companyName: company?.company_name || t('app.name'),
@@ -310,7 +433,11 @@ const Dashboard = () => {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{stat.label}</p>
+                  <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">
+                    <InfoLabel info={dashboardPanelInfo[stat.key]}>
+                      {stat.label}
+                    </InfoLabel>
+                  </p>
                   <p className="text-2xl md:text-3xl font-bold text-gradient" title={stat.fullValue || stat.value}>{stat.value}</p>
                   <div className="flex items-center gap-1 mt-2">
                     {stat.trendUp ? (
@@ -341,7 +468,9 @@ const Dashboard = () => {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.productRevenue')}</p>
+                  <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">
+                    <InfoLabel info={dashboardPanelInfo.productRevenue}>{t('dashboard.productRevenue')}</InfoLabel>
+                  </p>
                   <p className="text-2xl md:text-3xl font-bold text-blue-400" title={formatCurrency(revenueByType.product, cc)}>{formatCompactCurrency(revenueByType.product, cc)}</p>
                 </div>
                 <div className="p-3 rounded-xl bg-blue-500/10">
@@ -358,7 +487,9 @@ const Dashboard = () => {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.serviceRevenue')}</p>
+                  <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">
+                    <InfoLabel info={dashboardPanelInfo.serviceRevenue}>{t('dashboard.serviceRevenue')}</InfoLabel>
+                  </p>
                   <p className="text-2xl md:text-3xl font-bold text-emerald-400" title={formatCurrency(revenueByType.service, cc)}>{formatCompactCurrency(revenueByType.service, cc)}</p>
                 </div>
                 <div className="p-3 rounded-xl bg-emerald-500/10">
@@ -379,7 +510,9 @@ const Dashboard = () => {
           >
             <div className="flex items-center justify-between">
                 <div>
-                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.totalExpenses')}</p>
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">
+                  <InfoLabel info={dashboardPanelInfo.totalExpenses}>{t('dashboard.totalExpenses')}</InfoLabel>
+                </p>
                 <p className="text-2xl md:text-3xl font-bold text-red-400" title={formatCurrency(metrics.totalExpenses, cc)}>{formatCompactCurrency(metrics.totalExpenses, cc)}</p>
               </div>
               <div className="p-3 rounded-xl bg-red-500/10">
@@ -396,7 +529,9 @@ const Dashboard = () => {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">{t('dashboard.netCashFlow')}</p>
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">
+                  <InfoLabel info={dashboardPanelInfo.netCashFlow}>{t('dashboard.netCashFlow')}</InfoLabel>
+                </p>
                 <p className={`text-2xl md:text-3xl font-bold ${metrics.netCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`} title={formatCurrency(metrics.netCashFlow, cc)}>
                   {formatCompactCurrency(metrics.netCashFlow, cc)}
                 </p>
@@ -424,7 +559,20 @@ const Dashboard = () => {
 
             <div className="flex items-center justify-between mb-6 relative z-10">
               <div>
-                <h2 className="text-lg font-semibold text-white tracking-tight">{t('dashboard.revenueBreakdown')}</h2>
+                <h2 className="text-lg font-semibold text-white tracking-tight inline-flex items-center gap-1.5">
+                  <PanelInfoPopover
+                    title={dashboardPanelInfo.revenueBreakdown.title}
+                    definition={dashboardPanelInfo.revenueBreakdown.definition}
+                    dataSource={dashboardPanelInfo.revenueBreakdown.dataSource}
+                    formula={dashboardPanelInfo.revenueBreakdown.formula}
+                    calculationMethod={dashboardPanelInfo.revenueBreakdown.calculationMethod}
+                    filters={dashboardPanelInfo.revenueBreakdown.filters}
+                    notes={dashboardPanelInfo.revenueBreakdown.notes}
+                    ariaLabel={`Informations sur ${dashboardPanelInfo.revenueBreakdown.title}`}
+                    triggerClassName="text-orange-300 hover:text-orange-200 hover:bg-orange-500/10"
+                  />
+                  <span>{t('dashboard.revenueBreakdown')}</span>
+                </h2>
                 <p className="text-xs text-gray-500 mt-0.5">{t('dashboard.revenueBreakdownSub')}</p>
               </div>
               {/* Custom legend */}
@@ -530,7 +678,10 @@ const Dashboard = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <h2 className="text-lg font-semibold text-gradient mb-5">{t('dashboard.revenueOverview')}</h2>
+            <h2 className="text-lg font-semibold text-gradient mb-5 inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...dashboardPanelInfo.revenueOverview} />
+              <span>{t('dashboard.revenueOverview')}</span>
+            </h2>
             <div id="dashboard-revenue-chart" className="h-[280px] w-full">
               {revenueData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -565,7 +716,10 @@ const Dashboard = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <h2 className="text-lg font-semibold text-gradient mb-5">{t('dashboard.revenueByClient')}</h2>
+            <h2 className="text-lg font-semibold text-gradient mb-5 inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...dashboardPanelInfo.revenueByClient} />
+              <span>{t('dashboard.revenueByClient')}</span>
+            </h2>
             <div id="dashboard-client-chart" className="h-[280px] w-full">
               {clientRevenueData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -598,7 +752,10 @@ const Dashboard = () => {
             transition={{ delay: 0.5 }}
           >
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold text-gradient">{t('dashboard.cashFlow')}</h2>
+              <h2 className="text-lg font-semibold text-gradient inline-flex items-center gap-1.5">
+                <PanelInfoPopover {...dashboardPanelInfo.cashFlow} />
+                <span>{t('dashboard.cashFlow')}</span>
+              </h2>
               <div className="flex items-center gap-1 bg-gray-800/60 rounded-lg p-0.5">
                 <Calendar className="w-3.5 h-3.5 text-gray-500 ml-2" />
                 {[{ key: 'month', label: t('dashboard.monthly') }, { key: 'week', label: t('dashboard.weekly') }].map(opt => (
@@ -680,7 +837,8 @@ const Dashboard = () => {
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gradient mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-orange-400" />
-            {t('dashboard.quickActions')}
+            <PanelInfoPopover {...dashboardPanelInfo.quickActions} />
+            <span>{t('dashboard.quickActions')}</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {quickActions.map((action, index) => (
@@ -706,7 +864,8 @@ const Dashboard = () => {
           >
             <h2 className="text-lg font-semibold text-gradient mb-4 flex items-center gap-2">
               <FileText className="w-5 h-5 text-orange-400" />
-              {t('dashboard.recentInvoices')}
+              <PanelInfoPopover {...dashboardPanelInfo.recentInvoices} />
+              <span>{t('dashboard.recentInvoices')}</span>
             </h2>
             <div className="space-y-3">
               {recentInvoices.length > 0 ? (
@@ -742,7 +901,8 @@ const Dashboard = () => {
           >
             <h2 className="text-lg font-semibold text-gradient mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5 text-orange-400" />
-              {t('dashboard.recentTimesheets')}
+              <PanelInfoPopover {...dashboardPanelInfo.recentTimesheets} />
+              <span>{t('dashboard.recentTimesheets')}</span>
             </h2>
             <div className="space-y-3">
               {recentTimesheets.length > 0 ? (

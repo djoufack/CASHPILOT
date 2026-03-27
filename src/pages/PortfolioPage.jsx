@@ -19,6 +19,7 @@ import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/utils/calculations';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
@@ -135,6 +136,67 @@ const PortfolioPage = () => {
   const [portfolio, setPortfolio] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
   const locale = i18n.resolvedLanguage || i18n.language || 'en';
+
+  const panelInfo = useMemo(() => ({
+    summary: {
+      companiesTracked: {
+        title: t('portfolio.summary.companiesTracked'),
+        definition: 'Nombre total de societes visibles dans le portefeuille actif.',
+        dataSource: 'Table company et agregations portefeuille calculees depuis les RPC Supabase.',
+        formula: 'Nombre de societes = total des societes presentes dans le portefeuille courant.',
+        calculationMethod: 'On compte les societes chargees dans l etat portefeuille, puis on applique le tri de priorite de la societe active et du revenu facture.',
+        notes: 'Le sous-indicateur de retard correspond au nombre de societes ayant au moins une facture en retard.',
+      },
+      bookedRevenue: {
+        title: t('portfolio.summary.bookedRevenue'),
+        definition: 'Revenu facture cumule par societe sur le perimetre du portefeuille.',
+        dataSource: 'Factures retournees par `get_portfolio_invoices` via Supabase.',
+        formula: 'Somme des montants TTC des factures non annulees.',
+        calculationMethod: 'Pour chaque facture, on ajoute `total_ttc` si le statut est different de cancelled.',
+        notes: 'Les montants sont regroupes par devise lorsqu il existe plusieurs monnaies.',
+      },
+      collectedCash: {
+        title: t('portfolio.summary.collectedCash'),
+        definition: 'Encaissements cumules observes dans le portefeuille.',
+        dataSource: 'Paiements retournes par `get_portfolio_payments` via Supabase.',
+        formula: 'Somme des montants de paiement.',
+        calculationMethod: 'On additionne `amount` pour tous les paiements recus sur les societes du portefeuille.',
+        notes: 'Les valeurs sont agregees par devise si necessaire.',
+      },
+      outstandingReceivables: {
+        title: t('portfolio.summary.outstandingReceivables'),
+        definition: 'Creances clients encore dues sur les factures ouvertes.',
+        dataSource: 'Factures retournees par `get_portfolio_invoices` via Supabase.',
+        formula: 'Somme des soldes dus des factures non closes et non annulees.',
+        calculationMethod: 'On conserve les factures non reglees, on ecarte les factures annulees, puis on additionne `balance_due`.',
+        notes: 'Le sous-indicateur de pipeline reprend la valeur des devis ouverts.',
+      },
+    },
+    sections: {
+      companiesAndPriorities: {
+        title: t('portfolio.sections.companiesAndPriorities'),
+        definition: 'Bloc principal de pilotage qui classe les societes du portefeuille par priorite operationnelle.',
+        dataSource: 'Vue portefeuille consolidee construite a partir des factures, paiements, projets et devis des RPC Supabase.',
+        calculationMethod: 'Les societes sont triees en priorite sur la societe active, puis par revenu facture decroissant.',
+        notes: 'Ce panneau sert a acceder rapidement a une societe ou a ses parametres.',
+      },
+      watchlist: {
+        title: t('portfolio.sections.watchlist'),
+        definition: 'Liste des factures clients en retard de paiement detectees dans le portefeuille.',
+        dataSource: 'Factures retournees par `get_portfolio_invoices` via Supabase.',
+        formula: 'Nombre d elements = nombre de factures en retard; montant = somme des soldes dus en retard.',
+        calculationMethod: 'Une facture est retenue si elle est ouverte, non annulee et avec une date d echeance anterieure a la date du jour.',
+        notes: 'Le badge de retard affiche le nombre de jours ecoules depuis l echeance.',
+      },
+      quickRead: {
+        title: t('portfolio.sections.quickRead'),
+        definition: 'Resume de lecture rapide des signaux cles du portefeuille.',
+        dataSource: 'Agregats calcules localement a partir des societes, projets, devis et retards consolides.',
+        calculationMethod: 'Les metriques affichees dans ce bloc synthetisent la charge projet, le pipeline de devis et l action recommandee.',
+        notes: 'Ce panneau ne modifie aucune donnee; il restitue uniquement une synthese de pilotage.',
+      },
+    },
+  }), [t]);
 
   const loadPortfolio = useCallback(async () => {
     if (!user || companyLoading) {
@@ -292,28 +354,36 @@ const PortfolioPage = () => {
 
   const headerCards = [
     {
+      key: 'companiesTracked',
       title: t('portfolio.summary.companiesTracked'),
       value: String(portfolioTotals.companies),
       hint: t('portfolio.summary.withOverdue', { count: portfolioTotals.overdueCompanies }),
       icon: Layers3,
+      info: panelInfo.summary.companiesTracked,
     },
     {
+      key: 'bookedRevenue',
       title: t('portfolio.summary.bookedRevenue'),
       value: formatMoneyGroups(portfolioTotals.bookedRevenue),
       hint: t('portfolio.summary.activeProjects', { count: portfolioTotals.activeProjects }),
       icon: BadgeEuro,
+      info: panelInfo.summary.bookedRevenue,
     },
     {
+      key: 'collectedCash',
       title: t('portfolio.summary.collectedCash'),
       value: formatMoneyGroups(portfolioTotals.collectedCash),
       hint: t('portfolio.summary.openQuotes', { count: portfolioTotals.openQuotes }),
       icon: Wallet,
+      info: panelInfo.summary.collectedCash,
     },
     {
+      key: 'outstandingReceivables',
       title: t('portfolio.summary.outstandingReceivables'),
       value: formatMoneyGroups(portfolioTotals.outstandingReceivables),
       hint: t('portfolio.summary.pipelineHint', { amount: formatMoneyGroups(portfolioTotals.quotePipeline) }),
       icon: AlertTriangle,
+      info: panelInfo.summary.outstandingReceivables,
     },
   ];
 
@@ -365,10 +435,13 @@ const PortfolioPage = () => {
           {headerCards.map((card) => {
             const Icon = card.icon;
             return (
-              <Card key={card.title} className="border-white/10 bg-slate-950/70 backdrop-blur">
+              <Card key={card.key} className="border-white/10 bg-slate-950/70 backdrop-blur">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-slate-300">{card.title}</CardTitle>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <PanelInfoPopover {...card.info} />
+                      <CardTitle className="text-sm font-medium text-slate-300">{card.title}</CardTitle>
+                    </div>
                     <Icon className="h-5 w-5 text-orange-300" />
                   </div>
                 </CardHeader>
@@ -384,7 +457,10 @@ const PortfolioPage = () => {
         <section className="grid gap-6 xl:grid-cols-[1.6fr_0.95fr]">
           <Card className="border-white/10 bg-slate-950/70 backdrop-blur">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white">{t('portfolio.sections.companiesAndPriorities')}</CardTitle>
+              <CardTitle className="text-white flex items-center gap-2">
+                <PanelInfoPopover {...panelInfo.sections.companiesAndPriorities} />
+                <span>{t('portfolio.sections.companiesAndPriorities')}</span>
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {portfolio.length === 0 ? (
@@ -520,7 +596,10 @@ const PortfolioPage = () => {
           <div className="space-y-6">
             <Card className="border-white/10 bg-slate-950/70 backdrop-blur">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white">{t('portfolio.sections.watchlist')}</CardTitle>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <PanelInfoPopover {...panelInfo.sections.watchlist} />
+                  <span>{t('portfolio.sections.watchlist')}</span>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {watchlist.length === 0 ? (
@@ -555,7 +634,10 @@ const PortfolioPage = () => {
 
             <Card className="border-white/10 bg-slate-950/70 backdrop-blur">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white">{t('portfolio.sections.quickRead')}</CardTitle>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <PanelInfoPopover {...panelInfo.sections.quickRead} />
+                  <span>{t('portfolio.sections.quickRead')}</span>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-slate-300">
                 <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">

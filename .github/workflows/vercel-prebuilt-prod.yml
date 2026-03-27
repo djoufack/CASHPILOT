@@ -31,6 +31,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run guards
+        run: npm run guard
+
+      - name: Run critical regression tests
+        run: |
+          npm run test -- \
+            src/test/regression/companyScopeMissingColumnsMigration.test.js \
+            src/test/regression/verifyAccountingCompanyScopeScriptContract.test.js \
+            src/test/services/accountingInitService.test.js \
+            src/test/regression/supabaseCompatibility.test.js
+
+      - name: Run remote accounting compliance gate
+        if: ${{ secrets.SUPABASE_URL != '' && secrets.SUPABASE_SERVICE_ROLE_KEY != '' && secrets.VITE_SUPABASE_ANON_KEY != '' && secrets.PILOTAGE_FR_PASSWORD != '' && secrets.PILOTAGE_BE_PASSWORD != '' && secrets.PILOTAGE_OHADA_PASSWORD != '' }}
+        run: npm run verify:accounting-company-scope
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          PILOTAGE_FR_PASSWORD: ${{ secrets.PILOTAGE_FR_PASSWORD }}
+          PILOTAGE_BE_PASSWORD: ${{ secrets.PILOTAGE_BE_PASSWORD }}
+          PILOTAGE_OHADA_PASSWORD: ${{ secrets.PILOTAGE_OHADA_PASSWORD }}
+
       - name: Pull Vercel project settings (production)
         run: npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 

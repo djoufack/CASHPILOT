@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import {
   AlertTriangle,
   AlertCircle,
@@ -40,6 +41,15 @@ const SEVERITY_CONFIG = {
 };
 
 const DEFAULT_SEVERITY = SEVERITY_CONFIG.info;
+
+const ALERTS_INFO = {
+  title: 'Alertes financières',
+  definition: 'Liste des alertes prioritaires détectées sur le périmètre pilotage pour la période courante.',
+  dataSource: 'Alertes calculées à partir de `data.alerts` et des règles de diagnostic pilotage.',
+  formula: 'Aucune formule unique: chaque alerte applique sa propre règle de déclenchement.',
+  calculationMethod: 'Les alertes sont triées par sévérité décroissante puis affichées avec leur message et leurs seuils.',
+  notes: 'Le compteur à droite indique le nombre total d’alertes remontées sur le bloc.',
+};
 
 const formatNumber = (value) => {
   if (value == null) return '--';
@@ -110,11 +120,19 @@ const AlertsPanel = ({ alerts }) => {
   }, [alerts, hasAlerts]);
 
   return (
-    <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl h-full">
+      <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold text-gray-200 flex items-center gap-2">
           <Bell className="w-4 h-4 text-orange-400" />
-          {t('pilotage.alerts.title')}
+          <PanelInfoPopover
+            title={ALERTS_INFO.title}
+            definition={ALERTS_INFO.definition}
+            dataSource={ALERTS_INFO.dataSource}
+            formula={ALERTS_INFO.formula}
+            calculationMethod={ALERTS_INFO.calculationMethod}
+            notes={ALERTS_INFO.notes}
+          />
+          <span>{t('pilotage.alerts.title')}</span>
           {hasAlerts && (
             <span className="ml-auto text-xs font-normal text-gray-500">
               {sortedAlerts.length}

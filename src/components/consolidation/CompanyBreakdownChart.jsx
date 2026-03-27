@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/utils/calculations';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 const COMPANY_COLORS = [
   '#10b981', // emerald
@@ -88,6 +89,39 @@ export default function CompanyBreakdownChart({ data, mode = 'pnl', currency: _c
     return { rows: [], companies: [] };
   }, [data, mode, t]);
 
+  const chartInfo = useMemo(() => {
+    if (mode === 'balance') {
+      return {
+        title: t('consolidation.companyBreakdown'),
+        definition: 'Répartition des actifs, passifs et capitaux propres par société dans le périmètre consolidé.',
+        dataSource: 'Balance consolidée par société.',
+        formula: 'Valeur affichée = données de balance par société pour chaque ligne du graphique',
+        calculationMethod: 'Construire une ligne par agrégat de balance et la répartir société par société sans modifier les montants sources.',
+        notes: 'Le graphique compare les contributions individuelles par société sur la balance consolidée.',
+      };
+    }
+
+    if (mode === 'cash') {
+      return {
+        title: t('consolidation.companyBreakdown'),
+        definition: 'Répartition de la trésorerie par société dans le portefeuille consolidé.',
+        dataSource: 'Vue consolidée de trésorerie par société.',
+        formula: 'Valeur affichée = solde de trésorerie par société',
+        calculationMethod: 'Afficher les soldes de trésorerie individuels de chaque société dans le périmètre sélectionné.',
+        notes: 'Aucune pondération n’est appliquée au niveau du graphique.',
+      };
+    }
+
+    return {
+      title: t('consolidation.companyBreakdown'),
+      definition: 'Répartition du compte de résultat consolidé par société.',
+      dataSource: 'Compte de résultat consolidé par société.',
+      formula: 'Valeur affichée = revenus, charges ou résultat net par société selon la série sélectionnée',
+      calculationMethod: 'Afficher, pour chaque catégorie du P&L, les montants consolidés par société à partir des données du portefeuille.',
+      notes: 'Le graphique permet de comparer les contributions de chaque société sur les revenus, charges et résultat net.',
+    };
+  }, [mode, t]);
+
   if (chartData.rows.length === 0) {
     return (
       <Card className="bg-[#0f1528]/80 border-white/10 backdrop-blur-sm">
@@ -101,7 +135,10 @@ export default function CompanyBreakdownChart({ data, mode = 'pnl', currency: _c
   return (
     <Card className="bg-[#0f1528]/80 border-white/10 backdrop-blur-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-white text-base">{t('consolidation.companyBreakdown')}</CardTitle>
+        <CardTitle className="text-white text-base flex items-center gap-2">
+          <PanelInfoPopover {...chartInfo} />
+          <span>{t('consolidation.companyBreakdown')}</span>
+        </CardTitle>
       </CardHeader>
       <CardContent className="p-4">
         <ResponsiveContainer width="100%" height={320}>

@@ -102,6 +102,8 @@ function summarizeCompanyResult(result) {
     companyName: result.companyName,
     period: result.period,
     accountCount: result.accountCount,
+    mappingCount: result.mappingCount,
+    bankStatementCount: result.bankStatementCount,
     entryCount: result.entryCount,
     invoiceCount: result.invoiceCount,
     expenseCount: result.expenseCount,
@@ -123,9 +125,17 @@ async function run() {
   }
 
   const serviceClient = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-  const nullCompanyCount = await expectCount(
+  const nullChartCompanyCount = await expectCount(
     'chart rows without company_id',
     serviceClient.from('accounting_chart_of_accounts').select('*', { count: 'exact', head: true }).is('company_id', null),
+  );
+  const nullMappingsCompanyCount = await expectCount(
+    'accounting mappings rows without company_id',
+    serviceClient.from('accounting_mappings').select('*', { count: 'exact', head: true }).is('company_id', null),
+  );
+  const nullBankStatementsCompanyCount = await expectCount(
+    'bank statements rows without company_id',
+    serviceClient.from('bank_statements').select('*', { count: 'exact', head: true }).is('company_id', null),
   );
 
   const accountResults = [];
@@ -174,7 +184,7 @@ async function run() {
     const companyResults = [];
 
     for (const company of companies) {
-      const [accounts, entries, firstEntryRows, lastEntryRows] = await Promise.all([
+      const [accounts, entries, firstEntryRows, lastEntryRows, mappingCount, bankStatementCount] = await Promise.all([
         expectRows(
           `accounts for ${company.company_name}`,
           serviceClient
@@ -214,6 +224,22 @@ async function run() {
             .eq('company_id', company.id)
             .order('transaction_date', { ascending: false })
             .limit(1),
+        ),
+        expectCount(
+          `mapping count for ${company.company_name}`,
+          serviceClient
+            .from('accounting_mappings')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('company_id', company.id),
+        ),
+        expectCount(
+          `bank statement count for ${company.company_name}`,
+          serviceClient
+            .from('bank_statements')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('company_id', company.id),
         ),
       ]);
 
@@ -344,6 +370,8 @@ async function run() {
         country: company.country,
         period: { start: firstEntryDate, end: lastEntryDate },
         accountCount: accounts.length,
+        mappingCount,
+        bankStatementCount,
         entryCount: entries.length,
         invoiceCount,
         expenseCount,
@@ -373,7 +401,9 @@ async function run() {
 
   const result = {
     generatedAt: new Date().toISOString(),
-    chartRowsMissingCompanyScope: nullCompanyCount,
+    chartRowsMissingCompanyScope: nullChartCompanyCount,
+    mappingRowsMissingCompanyScope: nullMappingsCompanyCount,
+    bankStatementRowsMissingCompanyScope: nullBankStatementsCompanyCount,
     accounts: accountResults,
     totals: {
       passedAccounts: accountResults.length - failedAccounts.length,
@@ -388,7 +418,12 @@ async function run() {
 
   console.log(JSON.stringify(result, null, 2));
 
-  if (nullCompanyCount !== 0 || failedAccounts.length > 0) {
+  if (
+    nullChartCompanyCount !== 0 ||
+    nullMappingsCompanyCount !== 0 ||
+    nullBankStatementsCompanyCount !== 0 ||
+    failedAccounts.length > 0
+  ) {
     process.exitCode = 1;
   }
 }
