@@ -116,6 +116,7 @@
   - nouveau test de regression (contrat seed).
 
 ## Git et deployment
-- Commit final: `<A_COMPLETER_APRES_COMMIT>`
+- Commit final: `cb1a507`
 - Push: `main` -> `origin/main`
-- Deploiement Vercel production: `<A_COMPLETER_APRES_DEPLOY>`
+- Deploiement Vercel production: `https://cashpilot.tech`
+- Inspect deployment: `https://vercel.com/djoufack-gmailcoms-projects/cashpilot/3xhCpXvJK34pKvjjWtvHH8ZpztZT`
