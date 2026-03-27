@@ -2,7 +2,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { AlertTriangle, BarChart3, Clock3, Link2, Loader2, Share2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +49,203 @@ const SnapshotSummaryCards = ({ cards = [] }) => (
     ))}
   </div>
 );
+
+const formatScopeValue = (value, fallback = '—') => value || fallback;
+
+const SharedPilotageSnapshot = ({ snapshot, t, locale }) => {
+  const data = snapshot?.snapshot_data || {};
+  const generatedAt = formatDate(data.generatedAt, locale);
+  const periodLabel =
+    data.period?.label ||
+    [data.period?.startDate, data.period?.endDate].filter(Boolean).join(' - ') ||
+    t('sharedSnapshot.pilotage.noPeriod');
+  const scope = data.scope || {};
+  const dataQuality = data.dataQuality || {};
+  const signalCards = data.signalCards || [];
+  const alerts = data.alerts || [];
+  const topIssues = data.topIssues || [];
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-white/10 bg-slate-950/80">
+        <CardHeader className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="bg-orange-500/10 text-orange-200 border-white/10">{t('sharedSnapshot.badge')}</Badge>
+            <Badge className="bg-white/5 text-slate-200 border-white/10">
+              {t('sharedSnapshot.pilotage.moduleBadge')}
+            </Badge>
+          </div>
+          <CardTitle className="text-white text-2xl">{data.title || snapshot.title}</CardTitle>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                {t('sharedSnapshot.pilotage.company')}
+              </p>
+              <p className="mt-2 text-sm font-medium text-white">
+                {data.companyName || t('sharedSnapshot.companyFallback')}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('sharedSnapshot.pilotage.period')}</p>
+              <p className="mt-2 text-sm font-medium text-white">{periodLabel}</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                {t('sharedSnapshot.pilotage.generatedAt')}
+              </p>
+              <p className="mt-2 text-sm font-medium text-white">{generatedAt || '—'}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 text-sm text-slate-300">
+            <Badge className="bg-cyan-500/10 text-cyan-200 border-cyan-500/20">
+              {t('sharedSnapshot.pilotage.region')}: {formatScopeValue(scope.region)}
+            </Badge>
+            <Badge className="bg-violet-500/10 text-violet-200 border-violet-500/20">
+              {t('sharedSnapshot.pilotage.sector')}: {formatScopeValue(scope.sector)}
+            </Badge>
+            <Badge className="bg-emerald-500/10 text-emerald-200 border-emerald-500/20">
+              {t('sharedSnapshot.pilotage.currency')}: {formatScopeValue(data.currency)}
+            </Badge>
+          </div>
+        </CardHeader>
+      </Card>
+
+      <SnapshotSummaryCards cards={data.summaryCards || []} />
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card className="border-white/10 bg-slate-950/80">
+          <CardHeader>
+            <CardTitle className="text-white">{t('sharedSnapshot.pilotage.signals')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {signalCards.length === 0 ? (
+              <p className="text-sm text-slate-500">{t('sharedSnapshot.pilotage.noSignals')}</p>
+            ) : (
+              signalCards.map((signal) => (
+                <div key={signal.label} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-white">{signal.label}</p>
+                      {signal.hint ? <p className="mt-1 text-xs text-slate-400">{signal.hint}</p> : null}
+                    </div>
+                    <p className={`text-lg font-semibold ${signal.accentClass || 'text-white'}`}>{signal.value}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-slate-950/80">
+          <CardHeader>
+            <CardTitle className="text-white">{t('sharedSnapshot.pilotage.dataQuality')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                  {t('sharedSnapshot.pilotage.datasetStatus')}
+                </p>
+                <p className="mt-2 font-semibold text-white">
+                  {t(`sharedSnapshot.pilotage.datasetStatusValues.${dataQuality.datasetStatus || 'setup'}`)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                  {t('sharedSnapshot.pilotage.valuationMode')}
+                </p>
+                <p className="mt-2 font-semibold text-white">
+                  {t(`sharedSnapshot.pilotage.valuationModeValues.${dataQuality.valuationMode || 'unavailable'}`)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                  {t('sharedSnapshot.pilotage.alertsTitle')}
+                </p>
+                <p className="mt-2 font-semibold text-white">
+                  {dataQuality.criticalAlerts || 0} {t('sharedSnapshot.pilotage.critical')} /{' '}
+                  {dataQuality.warningAlerts || 0} {t('sharedSnapshot.pilotage.warning')}
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                  {t('sharedSnapshot.pilotage.monthlyPoints')}
+                </p>
+                <p className="mt-2 font-semibold text-white">{dataQuality.monthlyPoints || 0}</p>
+              </div>
+            </div>
+            {Array.isArray(topIssues) && topIssues.length > 0 ? (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-amber-200">
+                  {t('sharedSnapshot.pilotage.topIssues')}
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {topIssues.map((issue, index) => (
+                    <li key={`${issue}-${index}`} className="text-slate-200">
+                      {issue}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card className="border-white/10 bg-slate-950/80">
+          <CardHeader>
+            <CardTitle className="text-white">{t('sharedSnapshot.pilotage.alertsTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {alerts.length === 0 ? (
+              <p className="text-sm text-slate-500">{t('sharedSnapshot.pilotage.noAlerts')}</p>
+            ) : (
+              alerts.map((alert, index) => (
+                <div
+                  key={`${alert.title || alert.message || index}`}
+                  className="rounded-xl border border-white/10 bg-white/5 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-white">
+                        {alert.title || alert.message || t('sharedSnapshot.pilotage.alertFallback')}
+                      </p>
+                      {alert.message && alert.title ? (
+                        <p className="mt-1 text-xs text-slate-400">{alert.message}</p>
+                      ) : null}
+                    </div>
+                    <Badge className="bg-white/10 text-slate-200 border-white/10">
+                      {t(`sharedSnapshot.pilotage.severity.${alert.severity || 'info'}`)}
+                    </Badge>
+                  </div>
+                  {alert.value !== undefined || alert.threshold !== undefined ? (
+                    <p className="mt-3 text-xs text-slate-400">
+                      {t('sharedSnapshot.pilotage.alertValues', {
+                        value: alert.value ?? '—',
+                        threshold: alert.threshold ?? '—',
+                      })}
+                    </p>
+                  ) : null}
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-slate-950/80">
+          <CardHeader>
+            <CardTitle className="text-white">{t('sharedSnapshot.pilotage.snapshotMeta')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-slate-300">
+            <p>{t('sharedSnapshot.pilotage.scopeDescription')}</p>
+            <p>{t('sharedSnapshot.pilotage.dataQualityDescription')}</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
 
 const SharedDashboardSnapshot = ({ snapshot, t }) => {
   const data = snapshot?.snapshot_data || {};
@@ -87,14 +295,16 @@ const SharedDashboardSnapshot = ({ snapshot, t }) => {
           <CardContent className="space-y-3">
             {(data.clientRevenueData || []).length === 0 ? (
               <p className="text-sm text-slate-500">{t('sharedSnapshot.dashboard.noClientData')}</p>
-            ) : (data.clientRevenueData || []).map((client) => (
-              <div key={client.name} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium text-white">{client.name}</p>
-                  <p className="text-sm font-semibold text-cyan-300">{formatCurrency(client.amount, currency)}</p>
+            ) : (
+              (data.clientRevenueData || []).map((client) => (
+                <div key={client.name} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium text-white">{client.name}</p>
+                    <p className="text-sm font-semibold text-cyan-300">{formatCurrency(client.amount, currency)}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
@@ -107,20 +317,22 @@ const SharedDashboardSnapshot = ({ snapshot, t }) => {
           <CardContent className="space-y-3">
             {(data.recentInvoices || []).length === 0 ? (
               <p className="text-sm text-slate-500">{t('sharedSnapshot.dashboard.noRecentInvoices')}</p>
-            ) : (data.recentInvoices || []).map((invoice) => (
-              <div key={invoice.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-white">{invoice.label}</p>
-                    <p className="text-xs text-slate-400">{invoice.subtitle}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-orange-300">{invoice.amountLabel}</p>
-                    <Badge className="mt-2 bg-white/10 text-slate-200 border-white/10">{invoice.status}</Badge>
+            ) : (
+              (data.recentInvoices || []).map((invoice) => (
+                <div key={invoice.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-white">{invoice.label}</p>
+                      <p className="text-xs text-slate-400">{invoice.subtitle}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-orange-300">{invoice.amountLabel}</p>
+                      <Badge className="mt-2 bg-white/10 text-slate-200 border-white/10">{invoice.status}</Badge>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
 
@@ -134,20 +346,22 @@ const SharedDashboardSnapshot = ({ snapshot, t }) => {
           <CardContent className="space-y-3">
             {(data.recentTimesheets || []).length === 0 ? (
               <p className="text-sm text-slate-500">{t('sharedSnapshot.dashboard.noRecentTimesheets')}</p>
-            ) : (data.recentTimesheets || []).map((timesheet) => (
-              <div key={timesheet.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-white">{timesheet.label}</p>
-                    <p className="text-xs text-slate-400">{timesheet.subtitle}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-violet-300">{timesheet.durationLabel}</p>
-                    <p className="text-xs text-slate-500">{timesheet.dateLabel}</p>
+            ) : (
+              (data.recentTimesheets || []).map((timesheet) => (
+                <div key={timesheet.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-white">{timesheet.label}</p>
+                      <p className="text-xs text-slate-400">{timesheet.subtitle}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-violet-300">{timesheet.durationLabel}</p>
+                      <p className="text-xs text-slate-500">{timesheet.dateLabel}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
@@ -158,8 +372,8 @@ const SharedDashboardSnapshot = ({ snapshot, t }) => {
 const SharedAnalyticsSnapshot = ({ snapshot, t }) => {
   const data = snapshot?.snapshot_data || {};
   const currency = data.currency || 'EUR';
-  const agingData = data.receivablesAging || [];
-  const monthlyRevenueExpensesData = data.revenueExpensesData || [];
+  const agingData = useMemo(() => data.receivablesAging || [], [data.receivablesAging]);
+  const monthlyRevenueExpensesData = useMemo(() => data.revenueExpensesData || [], [data.revenueExpensesData]);
   const continuousRevenueExpensesData = useMemo(
     () => buildContinuousSeries(monthlyRevenueExpensesData, ['revenue', 'expenses'], 28),
     [monthlyRevenueExpensesData]
@@ -269,18 +483,27 @@ const SharedAnalyticsSnapshot = ({ snapshot, t }) => {
           <CardContent className="space-y-3">
             {(data.receivablesWatchlist || []).length === 0 ? (
               <p className="text-sm text-slate-500">{t('sharedSnapshot.analytics.noWatchlist')}</p>
-            ) : (data.receivablesWatchlist || []).map((item) => (
-              <div key={item.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-white">{item.clientName}</p>
-                    <p className="text-xs text-slate-400">{t('sharedSnapshot.analytics.dueDate', { invoiceNumber: item.invoiceNumber, dueDate: item.dueDate })}</p>
+            ) : (
+              (data.receivablesWatchlist || []).map((item) => (
+                <div key={item.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-white">{item.clientName}</p>
+                      <p className="text-xs text-slate-400">
+                        {t('sharedSnapshot.analytics.dueDate', {
+                          invoiceNumber: item.invoiceNumber,
+                          dueDate: item.dueDate,
+                        })}
+                      </p>
+                    </div>
+                    <Badge className="bg-red-500/10 text-red-300 border-red-500/20">
+                      {t('sharedSnapshot.analytics.days', { count: item.daysOverdue })}
+                    </Badge>
                   </div>
-                  <Badge className="bg-red-500/10 text-red-300 border-red-500/20">{t('sharedSnapshot.analytics.days', { count: item.daysOverdue })}</Badge>
+                  <p className="mt-3 text-sm font-semibold text-orange-300">{formatCurrency(item.amount, currency)}</p>
                 </div>
-                <p className="mt-3 text-sm font-semibold text-orange-300">{formatCurrency(item.amount, currency)}</p>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
 
@@ -291,22 +514,28 @@ const SharedAnalyticsSnapshot = ({ snapshot, t }) => {
           <CardContent className="space-y-3">
             {(data.topProjects || []).length === 0 ? (
               <p className="text-sm text-slate-500">{t('sharedSnapshot.analytics.noProjectData')}</p>
-            ) : (data.topProjects || []).map((project) => (
-              <div key={project.name} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-white">{project.name}</p>
-                    <p className="text-xs text-slate-400">{t('sharedSnapshot.analytics.hoursWorked', { count: project.hours.toFixed(1) })}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-emerald-300">{formatCurrency(project.revenue, currency)}</p>
-                    <p className="text-xs text-slate-500">
-                      {project.revenuePerHour > 0 ? `${formatCurrency(project.revenuePerHour, currency)}/h` : t('sharedSnapshot.analytics.noRevenueLinked')}
-                    </p>
+            ) : (
+              (data.topProjects || []).map((project) => (
+                <div key={project.name} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-white">{project.name}</p>
+                      <p className="text-xs text-slate-400">
+                        {t('sharedSnapshot.analytics.hoursWorked', { count: project.hours.toFixed(1) })}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-emerald-300">{formatCurrency(project.revenue, currency)}</p>
+                      <p className="text-xs text-slate-500">
+                        {project.revenuePerHour > 0
+                          ? `${formatCurrency(project.revenuePerHour, currency)}/h`
+                          : t('sharedSnapshot.analytics.noRevenueLinked')}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
@@ -399,12 +628,12 @@ const SharedSnapshotPage = () => {
             </div>
           ) : error ? (
             <Card className="border-red-500/20 bg-red-500/5">
-              <CardContent className="p-8 text-center text-red-200">
-                {error}
-              </CardContent>
+              <CardContent className="p-8 text-center text-red-200">{error}</CardContent>
             </Card>
           ) : snapshot?.snapshot_type === 'analytics' ? (
             <SharedAnalyticsSnapshot snapshot={snapshot} t={t} />
+          ) : snapshot?.snapshot_type === 'pilotage' ? (
+            <SharedPilotageSnapshot snapshot={snapshot} t={t} locale={locale} />
           ) : (
             <SharedDashboardSnapshot snapshot={snapshot} t={t} />
           )}

@@ -2625,6 +2625,25 @@
       "trend": "Tendance",
       "vsLastMonth": "vs mois précédent"
     },
+    "snapshot": {
+      "revenue": "Revenus",
+      "revenueHint": "Base de pilotage sur la période sélectionnée",
+      "expenses": "Charges",
+      "expensesHint": "Charges opérationnelles et structurelles",
+      "netIncome": "Résultat net",
+      "netIncomeHint": "Lecture synthétique de la rentabilité",
+      "netCashFlow": "Flux de trésorerie net",
+      "netCashFlowHint": "Solde des encaissements et décaissements",
+      "datasetStatus": "Statut du jeu de données",
+      "alerts": "Alertes critiques / attention",
+      "alertsHint": "Répartition des signaux sur la période",
+      "valuationMode": "Mode de valorisation",
+      "preTaxReady": "Base fiscale prête",
+      "preTaxMissing": "Base fiscale incomplète",
+      "monthlyPoints": "Points mensuels",
+      "monthlyPointsHint": "Nombre de points agrégés pour le partage",
+      "entries": "écritures"
+    },
     "ratios": {
       "structure": "Ratios de Structure",
       "liquidity": "Ratios de Liquidité",
@@ -2692,7 +2711,13 @@
       "noAlerts": "Aucune alerte — indicateurs sains",
       "critical": "Critique",
       "warning": "Attention",
-      "info": "Information"
+      "info": "Information",
+      "actions": {
+        "openCashFlow": "Ouvrir la trésorerie",
+        "openFinancialPilotage": "Ouvrir le pilotage financier",
+        "openAccountingPilotage": "Ouvrir le pilotage comptable",
+        "openPilotage": "Ouvrir le pilotage"
+      }
     },
     "benchmark": {
       "title": "Benchmarking Sectoriel",
@@ -3032,6 +3057,49 @@
       "noProjectData": "Aucune donnée projet exploitable dans ce snapshot.",
       "hoursWorked": "{{count}} h travaillées",
       "noRevenueLinked": "Sans CA lié"
+    },
+    "pilotage": {
+      "moduleBadge": "Pilotage d'entreprise",
+      "company": "Société",
+      "period": "Période",
+      "generatedAt": "Généré le",
+      "region": "Région",
+      "sector": "Secteur",
+      "currency": "Devise",
+      "signals": "Synthèse et signaux",
+      "noSignals": "Aucune donnée de synthèse dans ce snapshot.",
+      "dataQuality": "Qualité des données",
+      "datasetStatus": "Statut du jeu de données",
+      "datasetStatusValues": {
+        "setup": "Configuration à terminer",
+        "empty": "Jeu de données vide",
+        "warning": "Jeu de données à surveiller",
+        "blocked": "Jeu de données bloquant",
+        "ready": "Jeu de données exploitable"
+      },
+      "valuationMode": "Mode de valorisation",
+      "valuationModeValues": {
+        "full": "DCF + multiples disponibles",
+        "multiples-only": "Multiples disponibles",
+        "unavailable": "Non exploitable"
+      },
+      "critical": "critique",
+      "warning": "attention",
+      "monthlyPoints": "Points mensuels",
+      "topIssues": "Points de vigilance",
+      "alertsTitle": "Signaux et alertes",
+      "noAlerts": "Aucune alerte dans ce snapshot.",
+      "alertFallback": "Alerte sans titre",
+      "severity": {
+        "critical": "Critique",
+        "warning": "Attention",
+        "info": "Information"
+      },
+      "alertValues": "Valeur {{value}} · Seuil {{threshold}}",
+      "snapshotMeta": "Résumé du snapshot",
+      "scopeDescription": "Ce snapshot contient uniquement des données Pilotage synthétiques générées par un lien sécurisé.",
+      "dataQualityDescription": "La qualité des données, le mode de valorisation et les signaux sont inclus pour conserver le contexte partagé.",
+      "noPeriod": "Période indisponible"
     }
   },
   "portfolio": {
