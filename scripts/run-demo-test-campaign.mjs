@@ -23,6 +23,16 @@ function firstNonEmpty(...values) {
   return '';
 }
 
+function optionalEnv(...names) {
+  for (const name of names) {
+    const value = process.env[name];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return '';
+}
+
 const ACCOUNT_CONFIG = [
   {
     key: 'FR',
