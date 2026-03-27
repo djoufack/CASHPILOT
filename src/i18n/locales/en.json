@@ -2638,6 +2638,25 @@
       "trend": "Trend",
       "vsLastMonth": "vs last month"
     },
+    "snapshot": {
+      "revenue": "Revenue",
+      "revenueHint": "Steering base for the selected period",
+      "expenses": "Expenses",
+      "expensesHint": "Operating and structural expenses",
+      "netIncome": "Net income",
+      "netIncomeHint": "Synthetic profitability view",
+      "netCashFlow": "Net cash flow",
+      "netCashFlowHint": "Cash in minus cash out",
+      "datasetStatus": "Dataset status",
+      "alerts": "Critical / warning alerts",
+      "alertsHint": "Signal split for the period",
+      "valuationMode": "Valuation mode",
+      "preTaxReady": "Tax base ready",
+      "preTaxMissing": "Tax base incomplete",
+      "monthlyPoints": "Monthly points",
+      "monthlyPointsHint": "Aggregated points included in the share",
+      "entries": "entries"
+    },
     "ratios": {
       "structure": "Structure Ratios",
       "liquidity": "Liquidity Ratios",
@@ -2705,7 +2724,13 @@
       "noAlerts": "No alerts — healthy indicators",
       "critical": "Critical",
       "warning": "Warning",
-      "info": "Info"
+      "info": "Info",
+      "actions": {
+        "openCashFlow": "Open cash flow",
+        "openFinancialPilotage": "Open financial steering",
+        "openAccountingPilotage": "Open accounting steering",
+        "openPilotage": "Open steering"
+      }
     },
     "benchmark": {
       "title": "Sector Benchmarking",
@@ -3045,6 +3070,49 @@
       "noProjectData": "No usable project data in this snapshot.",
       "hoursWorked": "{{count}} h worked",
       "noRevenueLinked": "No linked revenue"
+    },
+    "pilotage": {
+      "moduleBadge": "Business steering",
+      "company": "Company",
+      "period": "Period",
+      "generatedAt": "Generated on",
+      "region": "Region",
+      "sector": "Sector",
+      "currency": "Currency",
+      "signals": "Summary and signals",
+      "noSignals": "No summary data in this snapshot.",
+      "dataQuality": "Data quality",
+      "datasetStatus": "Dataset status",
+      "datasetStatusValues": {
+        "setup": "Setup still required",
+        "empty": "Empty dataset",
+        "warning": "Dataset requires review",
+        "blocked": "Dataset blocked",
+        "ready": "Dataset ready"
+      },
+      "valuationMode": "Valuation mode",
+      "valuationModeValues": {
+        "full": "DCF + multiples available",
+        "multiples-only": "Multiples available",
+        "unavailable": "Not usable"
+      },
+      "critical": "critical",
+      "warning": "warning",
+      "monthlyPoints": "Monthly points",
+      "topIssues": "Key issues",
+      "alertsTitle": "Signals and alerts",
+      "noAlerts": "No alerts in this snapshot.",
+      "alertFallback": "Untitled alert",
+      "severity": {
+        "critical": "Critical",
+        "warning": "Warning",
+        "info": "Info"
+      },
+      "alertValues": "Value {{value}} · Threshold {{threshold}}",
+      "snapshotMeta": "Snapshot summary",
+      "scopeDescription": "This snapshot contains only synthetic Pilotage data generated through a secure share link.",
+      "dataQualityDescription": "Data quality, valuation mode, and signals are included to preserve the shared context.",
+      "noPeriod": "Period unavailable"
     }
   },
   "portfolio": {

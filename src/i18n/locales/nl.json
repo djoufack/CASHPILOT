@@ -1875,6 +1875,49 @@
       "noProjectData": "Geen bruikbare projectgegevens in deze snapshot.",
       "hoursWorked": "{{count}} u gewerkt",
       "noRevenueLinked": "Geen gekoppelde omzet"
+    },
+    "pilotage": {
+      "moduleBadge": "Bedrijfssturing",
+      "company": "Bedrijf",
+      "period": "Periode",
+      "generatedAt": "Aangemaakt op",
+      "region": "Regio",
+      "sector": "Sector",
+      "currency": "Valuta",
+      "signals": "Samenvatting en signalen",
+      "noSignals": "Geen samenvattingsgegevens in deze snapshot.",
+      "dataQuality": "Datakwaliteit",
+      "datasetStatus": "Status van de dataset",
+      "datasetStatusValues": {
+        "setup": "Installatie nog vereist",
+        "empty": "Lege dataset",
+        "warning": "Dataset vereist controle",
+        "blocked": "Dataset geblokkeerd",
+        "ready": "Dataset klaar"
+      },
+      "valuationMode": "Waarderingsmodus",
+      "valuationModeValues": {
+        "full": "DCF + multiples beschikbaar",
+        "multiples-only": "Multiples beschikbaar",
+        "unavailable": "Niet bruikbaar"
+      },
+      "critical": "kritiek",
+      "warning": "waarschuwing",
+      "monthlyPoints": "Maandpunten",
+      "topIssues": "Belangrijkste aandachtspunten",
+      "alertsTitle": "Signalen en alerts",
+      "noAlerts": "Geen alerts in deze snapshot.",
+      "alertFallback": "Alert zonder titel",
+      "severity": {
+        "critical": "Kritiek",
+        "warning": "Waarschuwing",
+        "info": "Info"
+      },
+      "alertValues": "Waarde {{value}} · Drempel {{threshold}}",
+      "snapshotMeta": "Snapshotoverzicht",
+      "scopeDescription": "Deze snapshot bevat alleen synthetische Pilotage-gegevens die via een beveiligde deel-link zijn gegenereerd.",
+      "dataQualityDescription": "Datakwaliteit, waarderingsmodus en signalen zijn toegevoegd om de gedeelde context te behouden.",
+      "noPeriod": "Periode niet beschikbaar"
     }
   },
   "portfolio": {
@@ -2865,6 +2908,25 @@
       "trend": "Trend",
       "vsLastMonth": "vs vorige maand"
     },
+    "snapshot": {
+      "revenue": "Omzet",
+      "revenueHint": "Sturingsbasis voor de geselecteerde periode",
+      "expenses": "Kosten",
+      "expensesHint": "Operationele en structurele kosten",
+      "netIncome": "Nettoresultaat",
+      "netIncomeHint": "Synthetische rendementsweergave",
+      "netCashFlow": "Netto kasstroom",
+      "netCashFlowHint": "Kasinstroom min kasuitstroom",
+      "datasetStatus": "Status van de dataset",
+      "alerts": "Kritieke / waarschuwingsalerts",
+      "alertsHint": "Verdeling van signalen over de periode",
+      "valuationMode": "Waarderingsmodus",
+      "preTaxReady": "Belastinggrondslag gereed",
+      "preTaxMissing": "Belastinggrondslag onvolledig",
+      "monthlyPoints": "Maandpunten",
+      "monthlyPointsHint": "Geaggregeerde punten in de share",
+      "entries": "boekingen"
+    },
     "ratios": {
       "structure": "Structuurkencijfers",
       "liquidity": "Liquiditeitskencijfers",
@@ -2932,7 +2994,13 @@
       "noAlerts": "Geen waarschuwingen — gezonde indicatoren",
       "critical": "Kritiek",
       "warning": "Waarschuwing",
-      "info": "Info"
+      "info": "Info",
+      "actions": {
+        "openCashFlow": "Kasstroom openen",
+        "openFinancialPilotage": "Financiële sturing openen",
+        "openAccountingPilotage": "Boekhoudkundige sturing openen",
+        "openPilotage": "Sturing openen"
+      }
     },
     "benchmark": {
       "title": "Sectorbenchmarking",

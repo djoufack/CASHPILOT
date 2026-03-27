@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // ---------------------------------------------------------------------------
@@ -6,6 +6,34 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 // ---------------------------------------------------------------------------
 
 const mockUser = { id: 'user-1', email: 'test@example.com' };
+
+const defaultDashboardSnapshot = {
+  metrics: {
+    revenue: 4200,
+    profitMargin: 75,
+    occupancyRate: 60,
+    totalExpenses: 200,
+    netCashFlow: 4000,
+    revenueTrend: 12,
+    marginTrend: 5,
+    occupancyTrend: -3,
+  },
+  revenueData: [
+    { name: 'Jan', revenue: 1200 },
+    { name: 'Feb', revenue: 3000 },
+  ],
+  clientRevenueData: [
+    { name: 'Acme Corp', amount: 1200 },
+    { name: 'Beta Inc', amount: 3000 },
+  ],
+  revenueByType: { product: 2000, service: 2200, other: 0 },
+  revenueBreakdownData: [
+    { name: 'Jan', products: 800, services: 400 },
+    { name: 'Feb', products: 1200, services: 1800 },
+  ],
+};
+
+let dashboardSnapshot = defaultDashboardSnapshot;
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -128,31 +156,7 @@ vi.mock('@/utils/calculations', () => ({
 }));
 
 vi.mock('@/shared/canonicalDashboardSnapshot', () => ({
-  buildCanonicalDashboardSnapshot: () => ({
-    metrics: {
-      revenue: 4200,
-      profitMargin: 75,
-      occupancyRate: 60,
-      totalExpenses: 200,
-      netCashFlow: 4000,
-      revenueTrend: 12,
-      marginTrend: 5,
-      occupancyTrend: -3,
-    },
-    revenueData: [
-      { name: 'Jan', revenue: 1200 },
-      { name: 'Feb', revenue: 3000 },
-    ],
-    clientRevenueData: [
-      { name: 'Acme Corp', amount: 1200 },
-      { name: 'Beta Inc', amount: 3000 },
-    ],
-    revenueByType: { product: 2000, service: 2200, other: 0 },
-    revenueBreakdownData: [
-      { name: 'Jan', products: 800, services: 400 },
-      { name: 'Feb', products: 1200, services: 1800 },
-    ],
-  }),
+  buildCanonicalDashboardSnapshot: () => dashboardSnapshot,
   getCanonicalInvoiceAmount: (inv) => inv.total_ttc || 0,
 }));
 
@@ -255,6 +259,8 @@ import Dashboard from '@/pages/Dashboard';
 
 describe('Dashboard', () => {
   beforeEach(() => {
+    dashboardSnapshot = defaultDashboardSnapshot;
+    localStorage.clear();
     vi.clearAllMocks();
   });
 
@@ -267,7 +273,24 @@ describe('Dashboard', () => {
     render(<Dashboard />);
     expect(screen.getByText('dashboard.totalRevenue')).toBeTruthy();
     expect(screen.getByText('dashboard.profitMargin')).toBeTruthy();
-    expect(screen.getByText('dashboard.occupancyRate')).toBeTruthy();
+    expect(screen.getAllByText('dashboard.netCashFlow').length).toBeGreaterThan(0);
+  });
+
+  it('provides drill-down links for the main KPI cards', () => {
+    render(<Dashboard />);
+
+    expect(screen.getByRole('link', { name: 'dashboard.totalRevenue: ouvrir la vue détaillée' })).toHaveAttribute(
+      'href',
+      '/app/invoices?status=sent,paid'
+    );
+    expect(screen.getByRole('link', { name: 'dashboard.profitMargin: ouvrir la vue détaillée' })).toHaveAttribute(
+      'href',
+      '/app/expenses?view=list'
+    );
+    expect(screen.getByRole('link', { name: 'dashboard.netCashFlow: ouvrir la vue détaillée' })).toHaveAttribute(
+      'href',
+      '/app/cash-flow'
+    );
   });
 
   it('displays computed metric values from the canonical snapshot', () => {
@@ -276,17 +299,43 @@ describe('Dashboard', () => {
     expect(screen.getByText('4200 EUR')).toBeTruthy();
     // Profit margin rounded
     expect(screen.getByText('75%')).toBeTruthy();
-    // Occupancy rate rounded
-    expect(screen.getByText('60%')).toBeTruthy();
+    // Net cash flow rounded
+    expect(screen.getAllByText('4000 EUR').length).toBeGreaterThan(0);
+  });
+
+  it('renders the role selector with the three dashboard views', () => {
+    render(<Dashboard />);
+
+    const roleSelect = screen.getByLabelText('Vue par role');
+    expect(roleSelect).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'DG' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'RAF' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Comptable' })).toBeTruthy();
+  });
+
+  it('changes the dashboard content when switching to the comptable view', () => {
+    render(<Dashboard />);
+
+    expect(screen.getByText('dashboard.revenueByClient')).toBeTruthy();
+    expect(screen.queryByText('Audit comptable')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Vue par role'), { target: { value: 'comptable' } });
+
+    expect(screen.getByText('dashboard.revenueBreakdown')).toBeTruthy();
+    expect(screen.getByText('dashboard.recentTimesheets')).toBeTruthy();
+    expect(screen.getByText('Audit comptable')).toBeTruthy();
+    expect(localStorage.getItem('cashpilot.dashboard.role-view')).toBe('comptable');
   });
 
   it('shows the expenses and net cash flow cards', () => {
+    localStorage.setItem('cashpilot.dashboard.role-view', 'raf');
     render(<Dashboard />);
-    expect(screen.getByText('dashboard.totalExpenses')).toBeTruthy();
-    expect(screen.getByText('dashboard.netCashFlow')).toBeTruthy();
+    expect(screen.getAllByText('dashboard.totalExpenses').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('dashboard.netCashFlow').length).toBeGreaterThan(0);
   });
 
   it('renders the revenue breakdown chart section', () => {
+    localStorage.setItem('cashpilot.dashboard.role-view', 'comptable');
     render(<Dashboard />);
     expect(screen.getByText('dashboard.revenueBreakdown')).toBeTruthy();
     expect(screen.getByTestId('bar-chart')).toBeTruthy();
@@ -300,9 +349,9 @@ describe('Dashboard', () => {
 
   it('renders quick action links', () => {
     render(<Dashboard />);
-    expect(screen.getByText('dashboard.newTimesheet')).toBeTruthy();
-    expect(screen.getByText('dashboard.newInvoice')).toBeTruthy();
-    expect(screen.getByText('dashboard.newClient')).toBeTruthy();
+    expect(screen.getByText('Nouvelle facture')).toBeTruthy();
+    expect(screen.getByText('Nouveau client')).toBeTruthy();
+    expect(screen.getByText('Nouvelle saisie')).toBeTruthy();
   });
 
   it('renders recent invoices section with data', () => {
@@ -313,6 +362,7 @@ describe('Dashboard', () => {
   });
 
   it('renders recent timesheets section with data', () => {
+    localStorage.setItem('cashpilot.dashboard.role-view', 'comptable');
     render(<Dashboard />);
     expect(screen.getByText('dashboard.recentTimesheets')).toBeTruthy();
     expect(screen.getByText('Dev Task')).toBeTruthy();
@@ -323,6 +373,33 @@ describe('Dashboard', () => {
     render(<Dashboard />);
     expect(screen.getByTestId('accounting-health-widget')).toBeTruthy();
     expect(screen.getByTestId('obligations-panel')).toBeTruthy();
+  });
+
+  it('renders proactive alerts when margin or cash deteriorate', () => {
+    dashboardSnapshot = {
+      ...defaultDashboardSnapshot,
+      metrics: {
+        ...defaultDashboardSnapshot.metrics,
+        profitMargin: -2,
+        marginTrend: -4,
+        netCashFlow: 150,
+        totalExpenses: 1800,
+      },
+    };
+
+    render(<Dashboard />);
+
+    expect(screen.getByText('Marge critique')).toBeTruthy();
+    expect(screen.getByText('Cash sous pression')).toBeTruthy();
+    expect(screen.getByText('Critique')).toBeTruthy();
+    expect(screen.getByText('Attention')).toBeTruthy();
+    expect(screen.getByText(/La marge nette est négative/)).toBeTruthy();
+    expect(screen.getByText(/La trésorerie nette est limitée à 150\.00 EUR/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Analyser les dépenses' })).toHaveAttribute(
+      'href',
+      '/app/expenses?view=list'
+    );
+    expect(screen.getByRole('link', { name: 'Ouvrir la trésorerie' })).toHaveAttribute('href', '/app/cash-flow');
   });
 
   it('renders the PDF and HTML export buttons', () => {
