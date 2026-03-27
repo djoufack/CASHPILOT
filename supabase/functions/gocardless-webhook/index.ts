@@ -48,7 +48,14 @@ serve(async (req) => {
   try {
     const rawBody = await req.text();
     const signatureHeader = req.headers.get('Webhook-Signature') || '';
-    const webhookSecret = Deno.env.get('GOCARDLESS_WEBHOOK_SECRET') || '';
+    let webhookSecret = Deno.env.get('GOCARDLESS_WEBHOOK_SECRET') || '';
+    if (!webhookSecret) {
+      const supabaseForVault = getServiceClient();
+      const { data: vaultResult } = await supabaseForVault.rpc('get_vault_secret', {
+        secret_name: 'GOCARDLESS_WEBHOOK_SECRET',
+      });
+      webhookSecret = vaultResult || '';
+    }
 
     // Verify signature if secret configured
     if (webhookSecret) {
