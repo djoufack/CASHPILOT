@@ -1,6 +1,7 @@
 # Audit 360 CashPilot - 2026-03-27
 
 ## Perimetre
+
 - Frontend (build + smoke UI responsive + smoke parcours modules).
 - Backend (edge functions, scripts de verification fiabilite).
 - Database (seed/reseed, coherence comptable, ownership company scope, audit financier).
@@ -12,6 +13,7 @@
 ## Bugs detectes et resolus
 
 ### Bug 1 - Crash campagne demo (ReferenceError)
+
 - Symptome:
   - `scripts/run-demo-test-campaign.mjs` plantait en fin de run.
   - Erreur: `ReferenceError: optionalEnv is not defined`.
@@ -26,6 +28,7 @@
   - Campagne demo relancee avec succes.
 
 ### Bug 2 - Echec seed demo (duplicate key supplier_product_categories)
+
 - Symptome:
   - `node --env-file=.env scripts/seed-pilotage-demos.mjs --apply` echouait.
   - Erreur: `duplicate key value violates unique constraint "supplier_product_categories_pkey"`.
@@ -40,6 +43,7 @@
   - Seed complet FR/BE/OHADA applique avec succes.
 
 ### Bug 3 - Deficits demo OHADA (tables seuils)
+
 - Symptome:
   - Echec `audit-demo-thresholds` sur OHADA:
     - `accounting_fixed_assets`
@@ -57,6 +61,7 @@
 ## Validations executees (preuves)
 
 ### Tests unitaires / regression
+
 - Commande:
   - `npm test`
 - Resultat:
@@ -64,6 +69,7 @@
   - `640/640` tests passes.
 
 ### Campagne demo complete (frontend + backend + db)
+
 - Commande:
   - `npm run campaign:demo`
 - Resultat:
@@ -73,7 +79,27 @@
     - `artifacts/test-campaign/mn8uhd4o-5f6c6fd7/summary.md`
     - `artifacts/test-campaign/mn8uhd4o-5f6c6fd7/execution-matrix.csv`
 
+### Revalidation finale campagne demo (run confirme)
+
+- Date:
+  - `2026-03-27`
+- Commande:
+  - `npm run campaign:demo`
+- Contexte:
+  - Variables `PILOTAGE_*_PASSWORD` injectees explicitement pour les 3 comptes demo.
+- Resultat:
+  - `runId: mn8utuk4-b1423a5c`
+  - `passedSteps: 9`
+  - `failedSteps: 0`
+  - `passedAccounts: 3/3` (FR, BE, OHADA)
+  - `passedCompanies: 21/21`
+- Artefacts:
+  - `artifacts/test-campaign/mn8utuk4-b1423a5c/summary.json`
+  - `artifacts/test-campaign/mn8utuk4-b1423a5c/summary.md`
+  - `artifacts/test-campaign/mn8utuk4-b1423a5c/execution-matrix.csv`
+
 ### Verification fiabilite globale
+
 - Commande:
   - `node --env-file=.env scripts/verify-cashpilot-reliability.mjs`
 - Resultat:
@@ -82,6 +108,7 @@
   - Inclut checks securite, chatbot canonique, MCP hardening, coherences FR/BE/OHADA.
 
 ### Audit financier recurrent
+
 - Commande:
   - `node --env-file=.env scripts/verify-recurring-financial-audit.mjs`
 - Resultat:
@@ -89,6 +116,7 @@
   - Toutes verifications CRUD + triggers d'audit financier OK.
 
 ### Company scope comptable
+
 - Commande:
   - `scripts/verify-accounting-company-scope.mjs` (dans campagne)
 - Resultat:
@@ -98,6 +126,7 @@
   - `3/3` comptes demo OK.
 
 ## Confirmation finale
+
 - Comptes demo FR / BE / OHADA testes avec succes.
 - Tests positifs observes a `100%` sur la chaine d'audit executee.
 - Exigences ENF respectees sur la campagne:
@@ -106,6 +135,7 @@
   - ENF-3: audit comptable et flux financiers verifies via scripts dedies.
 
 ## Changements techniques livres
+
 - `scripts/run-demo-test-campaign.mjs`
   - ajout `optionalEnv(...)` pour supprimer le crash runtime.
 - `scripts/seed-pilotage-demos.mjs`
@@ -116,7 +146,10 @@
   - nouveau test de regression (contrat seed).
 
 ## Git et deployment
-- Commit final: `cb1a507`
+
+- Commits audit: `cb1a507`, `a22e3ba`
 - Push: `main` -> `origin/main`
 - Deploiement Vercel production: `https://cashpilot.tech`
-- Inspect deployment: `https://vercel.com/djoufack-gmailcoms-projects/cashpilot/3xhCpXvJK34pKvjjWtvHH8ZpztZT`
+- Inspect deployments:
+  - `https://vercel.com/djoufack-gmailcoms-projects/cashpilot/3xhCpXvJK34pKvjjWtvHH8ZpztZT`
+  - `https://vercel.com/djoufack-gmailcoms-projects/cashpilot/6LHPPrfBsfaXh94m3p5ShuPvBWq6`
