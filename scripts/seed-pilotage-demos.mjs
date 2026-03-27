@@ -5063,7 +5063,7 @@ async function applyDataset(client, dataset, options) {
     client,
     'supplier_product_categories',
     effectiveDataset.supplierProductCategoryRows,
-    'user_id,name'
+    'id'
   );
   await upsertRows(client, 'suppliers', effectiveDataset.supplierRows, 'id');
   await upsertRows(client, 'supplier_products', effectiveDataset.supplierProductRows, 'id');
