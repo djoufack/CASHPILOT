@@ -17,11 +17,11 @@ function normalizeCountryCode(value) {
   );
 }
 
-function mapInstitutionToProvider(institution, fallbackCountry) {
+function mapInstitutionToProvider(institution, fallbackCountry, apiType = 'gocardless') {
   return {
     id: institution.id,
     name: institution.name,
-    api_type: 'gocardless',
+    api_type: apiType,
     supported_countries: institution.countries?.length ? institution.countries : [fallbackCountry],
     logo_url: institution.logo || null,
     country: fallbackCountry,
@@ -63,6 +63,7 @@ export function useEmbeddedBanking() {
     syncConnection,
     disconnectBank,
     refresh,
+    yapilyHealth,
   } = useBankConnections();
 
   const [providers, setProviders] = useState([]);
@@ -79,9 +80,25 @@ export function useEmbeddedBanking() {
     if (!user) return;
     setProvidersLoading(true);
     try {
-      const institutions = await listInstitutions(selectedCountry, { force: true });
-      const mapped = institutions.map((institution) => mapInstitutionToProvider(institution, selectedCountry));
-      setProviders(mapped);
+      // Fetch from both providers in parallel, prefer Yapily if available
+      const [gcInstitutions, ypInstitutions] = await Promise.all([
+        listInstitutions(selectedCountry, { force: true, provider: 'gocardless' }).catch(() => []),
+        listInstitutions(selectedCountry, { force: true, provider: 'yapily' }).catch(() => []),
+      ]);
+      const gcMapped = gcInstitutions.map((inst) => mapInstitutionToProvider(inst, selectedCountry, 'gocardless'));
+      const ypMapped = ypInstitutions.map((inst) => mapInstitutionToProvider(inst, selectedCountry, 'yapily'));
+      // Yapily institutions first, then GoCardless (deduped by name)
+      const seenNames = new Set();
+      const merged = [];
+      for (const inst of [...ypMapped, ...gcMapped]) {
+        const key = inst.name.toLowerCase();
+        if (!seenNames.has(key)) {
+          seenNames.add(key);
+          merged.push(inst);
+        }
+      }
+      merged.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+      setProviders(merged);
       setError(null);
     } catch (err) {
       setProviders([]);
@@ -161,11 +178,13 @@ export function useEmbeddedBanking() {
       }
 
       try {
+        const provider = institution.api_type === 'yapily' ? 'yapily' : 'gocardless';
         await initiateConnection({
           institutionId: institution.id,
           institutionName: institution.name,
           country: selectedCountry,
           returnPath: '/app/embedded-banking',
+          provider,
         });
         return { success: true };
       } catch (err) {

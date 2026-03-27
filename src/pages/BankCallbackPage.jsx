@@ -57,7 +57,12 @@ const BankCallbackPage = () => {
       }
 
       try {
-        const result = await completeConnection(pendingConnection.requisitionId, pendingConnection.companyId || null);
+        const provider = pendingConnection.provider || 'gocardless';
+        const result = await completeConnection(
+          pendingConnection.requisitionId,
+          pendingConnection.companyId || null,
+          { provider, consentToken: pendingConnection.consentToken || searchParams.get('consent') || null }
+        );
         clearPendingBankConnection();
 
         if (!active) {
