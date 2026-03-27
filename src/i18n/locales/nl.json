@@ -1497,6 +1497,78 @@
     "create_entries": "Boekingen hebt aangemaakt (handmatig of automatisch)",
     "balanced_sheet": "Een gebalanceerde balans hebt met consistente gegevens"
   },
+  "cfo": {
+    "page": {
+      "title": "AI CFO-agent (Financieel Directeur)",
+      "description": "Uw virtuele financieel directeur ondersteund door AI",
+      "acronymDefinition": "CFO = Chief Financial Officer"
+    },
+    "chat": {
+      "title": "AI CFO-agent (Financieel Directeur)",
+      "subtitle": "Uw virtuele financieel directeur",
+      "welcome": "Welkom",
+      "welcomeMessage": "Stel vragen over de financiële gezondheid van uw bedrijf.",
+      "placeholder": "Stel uw CFO een vraag...",
+      "thinking": "Analyseren..."
+    },
+    "suggestions": {
+      "health": "Wat is mijn financiële gezondheid?",
+      "risk": "Welke klanten lopen risico?",
+      "forecast": "Kasstroomprognose voor 30 dagen?"
+    },
+    "insights": {
+      "title": "Financiële gezondheid",
+      "noData": "Stuur een bericht naar de CFO om uw score te berekenen.",
+      "excellent": "Uitstekend",
+      "moderate": "Aandacht nodig",
+      "critical": "Kritiek",
+      "factors": "Belangrijkste factoren"
+    },
+    "alerts": {
+      "title": "CFO-waarschuwingen",
+      "empty": "Geen waarschuwingen. Klik op de knop om te analyseren.",
+      "analyzing": "Analyseren...",
+      "markRead": "Markeren als gelezen",
+      "dismiss": "Verwijderen"
+    },
+    "guidedActions": {
+      "title": "CFO-geleide acties",
+      "subtitle": "Start de meest nuttige financiële acties in één klik binnen de actieve bedrijfsscope.",
+      "scopeHint": "Company-scoped",
+      "loading": "Bezig...",
+      "states": {
+        "idle": "Klaar",
+        "loading": "Uitvoeren",
+        "success": "Klaar",
+        "error": "Fout"
+      },
+      "relance": {
+        "title": "Aanmaning",
+        "description": "Voer AI-aanmaning uit op de oudste achterstallige onbetaalde factuur van uw bedrijf.",
+        "cta": "Aanmaning starten",
+        "defaultName": "Begeleide CFO-scenario",
+        "defaultDescription": "Werkscenario aangemaakt vanuit de CFO-geleide acties.",
+        "success": "Aanmaning uitgevoerd op de oudste achterstallige factuur: {{invoiceNumber}}",
+        "error": "{{reason}}"
+      },
+      "scenario": {
+        "title": "Scenario",
+        "description": "Maak een bedrijfsspecifiek conceptscenario aan en open de eigen werkruimte.",
+        "cta": "Scenario maken",
+        "defaultName": "Begeleide CFO-scenario",
+        "defaultDescription": "Werkscenario aangemaakt vanuit de CFO-geleide acties.",
+        "success": "Scenario aangemaakt en geopend: {{scenarioName}}",
+        "error": "{{reason}}"
+      },
+      "audit": {
+        "title": "Audit",
+        "description": "Open de boekhoudkundige audit met automatische uitvoering voor de huidige periode.",
+        "cta": "Audit openen",
+        "success": "Audit geopend met automatische uitvoering voor de huidige periode.",
+        "error": "{{reason}}"
+      }
+    }
+  },
   "auth": {
     "welcomeBack": "Welkom terug, Piloot!",
     "signIn": "Inloggen",
@@ -3000,6 +3072,62 @@
         "openFinancialPilotage": "Financiële sturing openen",
         "openAccountingPilotage": "Boekhoudkundige sturing openen",
         "openPilotage": "Sturing openen"
+      }
+    },
+    "alertSubscriptions": {
+      "manage": "Drempels beheren",
+      "title": "Abonnementen op KPI-waarschuwingen",
+      "description": "Activeer, deactiveer en pas drempels per waarschuwingstype aan voor dit bedrijf.",
+      "threshold": "Drempel",
+      "currentValue": "Huidige waarde",
+      "enabled": "Actief",
+      "disabled": "Inactief",
+      "save": "Opslaan",
+      "saving": "Opslaan...",
+      "reset": "Opnieuw instellen",
+      "types": {
+        "negative_equity": {
+          "label": "Negatief eigen vermogen",
+          "description": "Geeft een waarschuwing wanneer het eigen vermogen onder de ingestelde drempel komt."
+        },
+        "low_interest_coverage": {
+          "label": "Lage rentedekking",
+          "description": "Geeft een waarschuwing wanneer de rentedekking onder de drempel komt."
+        },
+        "low_dscr": {
+          "label": "Lage DSCR",
+          "description": "Geeft een waarschuwing wanneer de DSCR onder de drempel komt."
+        },
+        "bfr_drift": {
+          "label": "Werkkapitaalafwijking",
+          "description": "Geeft een waarschuwing wanneer werkkapitaal / omzet boven de drempel komt."
+        },
+        "negative_operating_cashflow": {
+          "label": "Negatieve operationele kasstroom",
+          "description": "Geeft een waarschuwing wanneer de operationele kasstroom onder de drempel komt."
+        },
+        "high_gearing": {
+          "label": "Hoge hefboomwerking",
+          "description": "Geeft een waarschuwing wanneer de gearing boven de drempel komt."
+        },
+        "negative_net_income": {
+          "label": "Negatief nettoresultaat",
+          "description": "Geeft een waarschuwing wanneer het nettoresultaat onder de drempel komt."
+        },
+        "negative_working_capital": {
+          "label": "Negatief werkkapitaal",
+          "description": "Geeft een waarschuwing wanneer het werkkapitaal onder de drempel komt."
+        }
+      },
+      "messages": {
+        "negative_equity": "Negatief eigen vermogen: mogelijke insolventie",
+        "low_interest_coverage": "Onvoldoende rentedekking (ICR onder drempel)",
+        "low_dscr": "Kwetsbare debt-service coverage (DSCR onder drempel)",
+        "bfr_drift": "Buitensporig werkkapitaal ten opzichte van omzet",
+        "negative_operating_cashflow": "Negatieve operationele kasstroom",
+        "high_gearing": "Nettoschuld ligt boven het eigen vermogen",
+        "negative_net_income": "Negatief nettoresultaat over de periode",
+        "negative_working_capital": "Negatief werkkapitaal"
       }
     },
     "benchmark": {

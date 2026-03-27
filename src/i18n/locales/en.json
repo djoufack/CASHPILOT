@@ -2732,6 +2732,62 @@
         "openPilotage": "Open steering"
       }
     },
+    "alertSubscriptions": {
+      "manage": "Manage thresholds",
+      "title": "KPI alert subscriptions",
+      "description": "Enable, disable and adjust thresholds by alert type for this company.",
+      "threshold": "Threshold",
+      "currentValue": "Current value",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "save": "Save",
+      "saving": "Saving...",
+      "reset": "Reset",
+      "types": {
+        "negative_equity": {
+          "label": "Negative equity",
+          "description": "Triggers an alert when equity falls below the configured threshold."
+        },
+        "low_interest_coverage": {
+          "label": "Low interest coverage",
+          "description": "Triggers an alert when interest coverage falls below the threshold."
+        },
+        "low_dscr": {
+          "label": "Low DSCR",
+          "description": "Triggers an alert when DSCR falls below the threshold."
+        },
+        "bfr_drift": {
+          "label": "Working capital drift",
+          "description": "Triggers an alert when working capital / revenue exceeds the threshold."
+        },
+        "negative_operating_cashflow": {
+          "label": "Negative operating cash flow",
+          "description": "Triggers an alert when operating cash flow falls below the threshold."
+        },
+        "high_gearing": {
+          "label": "High gearing",
+          "description": "Triggers an alert when gearing exceeds the threshold."
+        },
+        "negative_net_income": {
+          "label": "Negative net income",
+          "description": "Triggers an alert when net income falls below the threshold."
+        },
+        "negative_working_capital": {
+          "label": "Negative working capital",
+          "description": "Triggers an alert when working capital falls below the threshold."
+        }
+      },
+      "messages": {
+        "negative_equity": "Negative equity: potential insolvency situation",
+        "low_interest_coverage": "Insufficient interest coverage (ICR below threshold)",
+        "low_dscr": "Fragile debt service coverage (DSCR below threshold)",
+        "bfr_drift": "Excessive working capital compared to revenue",
+        "negative_operating_cashflow": "Negative operating cash flow",
+        "high_gearing": "Net debt is above equity",
+        "negative_net_income": "Negative net income for the period",
+        "negative_working_capital": "Negative working capital"
+      }
+    },
     "benchmark": {
       "title": "Sector Benchmarking",
       "ratio": "Ratio",
@@ -3957,6 +4013,43 @@
       "analyzing": "Analyzing...",
       "markRead": "Mark as read",
       "dismiss": "Dismiss"
+    },
+    "guidedActions": {
+      "title": "CFO guided actions",
+      "subtitle": "Trigger the most useful financial actions in one click, within the scope of your active company.",
+      "scopeHint": "Company-scoped",
+      "loading": "Working...",
+      "states": {
+        "idle": "Ready",
+        "loading": "Running",
+        "success": "Done",
+        "error": "Error"
+      },
+      "relance": {
+        "title": "Dunning",
+        "description": "Run AI dunning on the oldest overdue unpaid invoice for your company.",
+        "cta": "Run dunning",
+        "defaultName": "Guided CFO scenario",
+        "defaultDescription": "Working scenario created from the CFO guided actions.",
+        "success": "Dunning executed on the oldest overdue invoice: {{invoiceNumber}}",
+        "error": "{{reason}}"
+      },
+      "scenario": {
+        "title": "Scenario",
+        "description": "Create a company-scoped draft scenario and open its dedicated workspace.",
+        "cta": "Create scenario",
+        "defaultName": "Guided CFO scenario",
+        "defaultDescription": "Working scenario created from the CFO guided actions.",
+        "success": "Scenario created and opened: {{scenarioName}}",
+        "error": "{{reason}}"
+      },
+      "audit": {
+        "title": "Audit",
+        "description": "Open accounting audit with autorun for the current period.",
+        "cta": "Open audit",
+        "success": "Audit opened with automatic run for the current period.",
+        "error": "{{reason}}"
+      }
     }
   },
   "mobileMoney": {

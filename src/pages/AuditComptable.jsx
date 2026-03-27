@@ -1,22 +1,28 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { AUTO_FIXABLE_AUDIT_CHECK_IDS, useAuditComptable } from '@/hooks/useAuditComptable';
 import { motion } from 'framer-motion';
 import {
-  ShieldCheck, Loader2, Play, Download, CheckCircle, AlertTriangle, XCircle,
-  ChevronDown, ChevronUp, Calendar, Wand2, Wrench, Info
+  ShieldCheck,
+  Loader2,
+  Play,
+  Download,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  Wand2,
+  Wrench,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatDateInput } from '@/utils/dateFormatting';
 
 const getPeriodPresets = () => {
@@ -149,8 +155,10 @@ const CheckRow = ({ check }) => {
   const [expanded, setExpanded] = useState(false);
   return (
     <div className="border border-white/5 rounded-lg overflow-hidden">
-      <button onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors text-left">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors text-left"
+      >
         <StatusIcon status={check.status} />
         <div className="flex-1">
           <p className="text-sm font-medium text-white">{check.name}</p>
@@ -159,15 +167,24 @@ const CheckRow = ({ check }) => {
         {check.status === 'pass' ? (
           <span className="text-xs px-2 py-0.5 rounded bg-green-400/10 text-green-400">ok</span>
         ) : (
-          <span className={`text-xs px-2 py-0.5 rounded ${
-            check.severity === 'error' ? 'bg-red-400/10 text-red-400' :
-            check.severity === 'warning' ? 'bg-yellow-400/10 text-yellow-400' :
-            'bg-blue-400/10 text-blue-400'
-          }`}>{check.severity === 'error' ? 'erreur' : check.severity === 'warning' ? 'alerte' : 'info'}</span>
+          <span
+            className={`text-xs px-2 py-0.5 rounded ${
+              check.severity === 'error'
+                ? 'bg-red-400/10 text-red-400'
+                : check.severity === 'warning'
+                  ? 'bg-yellow-400/10 text-yellow-400'
+                  : 'bg-blue-400/10 text-blue-400'
+            }`}
+          >
+            {check.severity === 'error' ? 'erreur' : check.severity === 'warning' ? 'alerte' : 'info'}
+          </span>
         )}
-        {(check.recommendation || check.items) && (
-          expanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />
-        )}
+        {(check.recommendation || check.items) &&
+          (expanded ? (
+            <ChevronUp className="w-4 h-4 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-gray-500" />
+          ))}
       </button>
       {expanded && (check.recommendation || check.items) && (
         <div className="px-4 pb-4 border-t border-white/5 pt-3">
@@ -188,7 +205,8 @@ const CheckRow = ({ check }) => {
 
 const CategoryContent = ({ category }) => {
   if (!category) return null;
-  const scoreColor = category.score >= 85 ? 'text-green-400' : category.score >= 70 ? 'text-yellow-400' : 'text-red-400';
+  const scoreColor =
+    category.score >= 85 ? 'text-green-400' : category.score >= 70 ? 'text-yellow-400' : 'text-red-400';
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -196,7 +214,9 @@ const CategoryContent = ({ category }) => {
         <span className={`text-2xl font-bold ${scoreColor}`}>{category.score}%</span>
       </div>
       <div className="space-y-2">
-        {category.checks.map((check) => <CheckRow key={check.id} check={check} />)}
+        {category.checks.map((check) => (
+          <CheckRow key={check.id} check={check} />
+        ))}
       </div>
     </div>
   );
@@ -204,37 +224,43 @@ const CategoryContent = ({ category }) => {
 
 const AuditComptable = () => {
   const { t } = useTranslation();
+  const location = useLocation();
   const { toast } = useToast();
-  const {
-    auditResult,
-    loading,
-    error,
-    runAudit,
-    applyAutoFixes,
-    fixing,
-    fixReport,
-  } = useAuditComptable(false);
+  const { auditResult, loading, error, runAudit, applyAutoFixes, fixing, fixReport } = useAuditComptable(false);
   const presets = useMemo(() => getPeriodPresets(), []);
   const [periodStart, setPeriodStart] = useState(presets[0].start);
   const [periodEnd, setPeriodEnd] = useState(presets[0].end);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const autoRunRef = useRef(false);
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const shouldAutoRun = searchParams.get('autoRun') === '1' || searchParams.get('autoRun') === 'true';
+  const autoRunStart = searchParams.get('start') || presets[0].start;
+  const autoRunEnd = searchParams.get('end') || presets[0].end;
 
   const handleRunAudit = () => runAudit(periodStart, periodEnd);
 
   const allOpenIssues = useMemo(() => collectOpenIssues(auditResult), [auditResult]);
   const autoFixableIssues = useMemo(
     () => allOpenIssues.filter((issue) => AUTO_FIXABLE_CHECKS.has(issue.id)),
-    [allOpenIssues],
+    [allOpenIssues]
   );
   const manualIssues = useMemo(
     () => allOpenIssues.filter((issue) => !AUTO_FIXABLE_CHECKS.has(issue.id)),
-    [allOpenIssues],
+    [allOpenIssues]
   );
 
   const handlePreset = (preset) => {
     setPeriodStart(preset.start);
     setPeriodEnd(preset.end);
   };
+
+  useEffect(() => {
+    if (!shouldAutoRun || autoRunRef.current) return;
+    autoRunRef.current = true;
+    setPeriodStart(autoRunStart);
+    setPeriodEnd(autoRunEnd);
+    runAudit(autoRunStart, autoRunEnd);
+  }, [autoRunEnd, autoRunStart, runAudit, shouldAutoRun]);
 
   const handleDownload = () => {
     if (!auditResult) return;
@@ -271,8 +297,9 @@ const AuditComptable = () => {
       description: `${response.report.totals.affected_records} element(s) corrige(s) automatiquement.`,
     });
 
-    const refreshedManualCount = collectOpenIssues(response.refreshedAudit)
-      .filter((issue) => !AUTO_FIXABLE_CHECKS.has(issue.id)).length;
+    const refreshedManualCount = collectOpenIssues(response.refreshedAudit).filter(
+      (issue) => !AUTO_FIXABLE_CHECKS.has(issue.id)
+    ).length;
     if (refreshedManualCount > 0) {
       setManualDialogOpen(true);
     }
@@ -280,7 +307,9 @@ const AuditComptable = () => {
 
   return (
     <>
-      <Helmet><title>Audit Comptable - {t('app.name')}</title></Helmet>
+      <Helmet>
+        <title>Audit Comptable - {t('app.name')}</title>
+      </Helmet>
       <div className="container mx-auto p-6">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center gap-3 mb-1">
@@ -290,32 +319,53 @@ const AuditComptable = () => {
           <p className="text-gray-500 text-sm">Verification et validation automatisee de votre comptabilite</p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="glass-card rounded-2xl p-6 border border-white/5 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card rounded-2xl p-6 border border-white/5 mb-6"
+        >
           <div className="flex flex-wrap items-end gap-4">
             <div className="flex gap-2 flex-wrap">
               {presets.map((preset) => (
-                <Button key={preset.label} size="sm" variant="outline"
+                <Button
+                  key={preset.label}
+                  size="sm"
+                  variant="outline"
                   onClick={() => handlePreset(preset)}
                   className={`border-gray-600 text-xs ${
                     periodStart === preset.start && periodEnd === preset.end
                       ? 'bg-orange-500/20 border-orange-500 text-orange-400'
                       : 'hover:bg-gray-700 text-gray-400'
-                  }`}>{preset.label}</Button>
+                  }`}
+                >
+                  {preset.label}
+                </Button>
               ))}
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-gray-500" />
-              <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)}
-                className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-white" />
+              <input
+                type="date"
+                value={periodStart}
+                onChange={(e) => setPeriodStart(e.target.value)}
+                className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-white"
+              />
               <span className="text-gray-500">-</span>
-              <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)}
-                className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-white" />
+              <input
+                type="date"
+                value={periodEnd}
+                onChange={(e) => setPeriodEnd(e.target.value)}
+                className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-white"
+              />
             </div>
             <div className="flex flex-wrap gap-2 ml-auto w-full sm:w-auto">
               {auditResult && (
-                <Button size="sm" variant="outline" onClick={handleDownload}
-                  className="border-gray-600 hover:bg-gray-700 text-gray-300">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownload}
+                  className="border-gray-600 hover:bg-gray-700 text-gray-300"
+                >
                   <Download className="w-4 h-4 mr-2" /> Telecharger
                 </Button>
               )}
@@ -328,13 +378,15 @@ const AuditComptable = () => {
                   className="border-gray-600 hover:bg-gray-700 text-gray-300"
                 >
                   <Info className="w-4 h-4 mr-2" />
-                  {manualIssues.length > 0
-                    ? `Actions manuelles (${manualIssues.length})`
-                    : 'Actions manuelles'}
+                  {manualIssues.length > 0 ? `Actions manuelles (${manualIssues.length})` : 'Actions manuelles'}
                 </Button>
               )}
-              <Button size="sm" onClick={handleRunAudit} disabled={loading}
-                className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button
+                size="sm"
+                onClick={handleRunAudit}
+                disabled={loading}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
                 {loading ? 'Audit en cours...' : "Lancer l'audit"}
               </Button>
@@ -355,23 +407,49 @@ const AuditComptable = () => {
                 <div>
                   <p className="text-gray-400 text-sm">Score global</p>
                   <div className="flex items-baseline gap-3 mt-1">
-                    <span className={`text-5xl font-bold ${
-                      auditResult.score >= 85 ? 'text-green-400' : auditResult.score >= 70 ? 'text-yellow-400' : 'text-red-400'
-                    }`}>{auditResult.score}</span>
+                    <span
+                      className={`text-5xl font-bold ${
+                        auditResult.score >= 85
+                          ? 'text-green-400'
+                          : auditResult.score >= 70
+                            ? 'text-yellow-400'
+                            : 'text-red-400'
+                      }`}
+                    >
+                      {auditResult.score}
+                    </span>
                     <span className="text-2xl text-gray-500">/100</span>
-                    <span className={`text-xl font-semibold ml-2 ${
-                      auditResult.score >= 85 ? 'text-green-400' : auditResult.score >= 70 ? 'text-yellow-400' : 'text-red-400'
-                    }`}>{auditResult.grade}</span>
+                    <span
+                      className={`text-xl font-semibold ml-2 ${
+                        auditResult.score >= 85
+                          ? 'text-green-400'
+                          : auditResult.score >= 70
+                            ? 'text-yellow-400'
+                            : 'text-red-400'
+                      }`}
+                    >
+                      {auditResult.grade}
+                    </span>
                   </div>
                 </div>
                 <div className="flex gap-6 text-center">
-                  <div><p className="text-2xl font-bold text-green-400">{auditResult.summary.passed}</p><p className="text-xs text-gray-500">Passes</p></div>
-                  <div><p className="text-2xl font-bold text-yellow-400">{auditResult.summary.warnings}</p><p className="text-xs text-gray-500">Alertes</p></div>
-                  <div><p className="text-2xl font-bold text-red-400">{auditResult.summary.errors}</p><p className="text-xs text-gray-500">Erreurs</p></div>
+                  <div>
+                    <p className="text-2xl font-bold text-green-400">{auditResult.summary.passed}</p>
+                    <p className="text-xs text-gray-500">Passes</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-yellow-400">{auditResult.summary.warnings}</p>
+                    <p className="text-xs text-gray-500">Alertes</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-red-400">{auditResult.summary.errors}</p>
+                    <p className="text-xs text-gray-500">Erreurs</p>
+                  </div>
                 </div>
               </div>
               <div className="mt-3 text-xs text-gray-500">
-                Periode: {auditResult.period.start} - {auditResult.period.end} | Pays: {auditResult.country} | {auditResult.data_summary.entries_count} ecritures, {auditResult.data_summary.invoices_count} factures
+                Periode: {auditResult.period.start} - {auditResult.period.end} | Pays: {auditResult.country} |{' '}
+                {auditResult.data_summary.entries_count} ecritures, {auditResult.data_summary.invoices_count} factures
               </div>
             </div>
 
@@ -415,9 +493,7 @@ const AuditComptable = () => {
               <div className="glass-card rounded-2xl p-4 sm:p-5 border border-white/5 mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                   <h3 className="text-base sm:text-lg font-semibold text-white">Derniere correction automatique</h3>
-                  <span className="text-xs text-gray-500">
-                    {fixReport.totals.affected_records} element(s) ajustes
-                  </span>
+                  <span className="text-xs text-gray-500">{fixReport.totals.affected_records} element(s) ajustes</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   {fixReport.steps.map((step) => (
@@ -442,13 +518,40 @@ const AuditComptable = () => {
             <div className="glass-card rounded-2xl p-6 border border-white/5">
               <Tabs defaultValue="balance">
                 <TabsList className="bg-gray-800/50 mb-6">
-                  {auditResult.categories.balance && <TabsTrigger value="balance" className="data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400">Equilibre ({auditResult.categories.balance.score}%)</TabsTrigger>}
-                  {auditResult.categories.fiscal && <TabsTrigger value="fiscal" className="data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400">Fiscal ({auditResult.categories.fiscal.score}%)</TabsTrigger>}
-                  {auditResult.categories.anomalies && <TabsTrigger value="anomalies" className="data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400">Anomalies ({auditResult.categories.anomalies.score}%)</TabsTrigger>}
+                  {auditResult.categories.balance && (
+                    <TabsTrigger
+                      value="balance"
+                      className="data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400"
+                    >
+                      Equilibre ({auditResult.categories.balance.score}%)
+                    </TabsTrigger>
+                  )}
+                  {auditResult.categories.fiscal && (
+                    <TabsTrigger
+                      value="fiscal"
+                      className="data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400"
+                    >
+                      Fiscal ({auditResult.categories.fiscal.score}%)
+                    </TabsTrigger>
+                  )}
+                  {auditResult.categories.anomalies && (
+                    <TabsTrigger
+                      value="anomalies"
+                      className="data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400"
+                    >
+                      Anomalies ({auditResult.categories.anomalies.score}%)
+                    </TabsTrigger>
+                  )}
                 </TabsList>
-                <TabsContent value="balance"><CategoryContent category={auditResult.categories.balance} /></TabsContent>
-                <TabsContent value="fiscal"><CategoryContent category={auditResult.categories.fiscal} /></TabsContent>
-                <TabsContent value="anomalies"><CategoryContent category={auditResult.categories.anomalies} /></TabsContent>
+                <TabsContent value="balance">
+                  <CategoryContent category={auditResult.categories.balance} />
+                </TabsContent>
+                <TabsContent value="fiscal">
+                  <CategoryContent category={auditResult.categories.fiscal} />
+                </TabsContent>
+                <TabsContent value="anomalies">
+                  <CategoryContent category={auditResult.categories.anomalies} />
+                </TabsContent>
               </Tabs>
             </div>
 
@@ -457,12 +560,27 @@ const AuditComptable = () => {
                 <h3 className="text-lg font-semibold text-white mb-4">Recommandations</h3>
                 <div className="space-y-3">
                   {auditResult.recommendations.map((rec, i) => (
-                    <div key={i} className={`flex items-start gap-3 p-3 rounded-lg ${
-                      rec.priority === 'high' ? 'bg-red-400/10' : rec.priority === 'medium' ? 'bg-yellow-400/10' : 'bg-blue-400/10'
-                    }`}>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded mt-0.5 ${
-                        rec.priority === 'high' ? 'bg-red-400/20 text-red-400' : rec.priority === 'medium' ? 'bg-yellow-400/20 text-yellow-400' : 'bg-blue-400/20 text-blue-400'
-                      }`}>{rec.priority === 'high' ? 'URGENT' : rec.priority === 'medium' ? 'MOYEN' : 'INFO'}</span>
+                    <div
+                      key={i}
+                      className={`flex items-start gap-3 p-3 rounded-lg ${
+                        rec.priority === 'high'
+                          ? 'bg-red-400/10'
+                          : rec.priority === 'medium'
+                            ? 'bg-yellow-400/10'
+                            : 'bg-blue-400/10'
+                      }`}
+                    >
+                      <span
+                        className={`text-xs font-semibold px-2 py-0.5 rounded mt-0.5 ${
+                          rec.priority === 'high'
+                            ? 'bg-red-400/20 text-red-400'
+                            : rec.priority === 'medium'
+                              ? 'bg-yellow-400/20 text-yellow-400'
+                              : 'bg-blue-400/20 text-blue-400'
+                        }`}
+                      >
+                        {rec.priority === 'high' ? 'URGENT' : rec.priority === 'medium' ? 'MOYEN' : 'INFO'}
+                      </span>
                       <p className="text-sm text-gray-300">{rec.message}</p>
                     </div>
                   ))}
@@ -476,16 +594,16 @@ const AuditComptable = () => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
             <ShieldCheck className="w-16 h-16 text-gray-600 mx-auto mb-4" />
             <h3 className="text-xl text-gray-400 mb-2">Aucun audit lance</h3>
-            <p className="text-gray-500 text-sm mb-6">Selectionnez une periode et lancez l'audit pour verifier votre comptabilite.</p>
+            <p className="text-gray-500 text-sm mb-6">
+              Selectionnez une periode et lancez l'audit pour verifier votre comptabilite.
+            </p>
           </motion.div>
         )}
 
         <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
           <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-[95vw] sm:max-w-4xl max-h-[85vh] overflow-y-auto p-4 sm:p-6">
             <DialogHeader className="text-left">
-              <DialogTitle className="text-xl text-white">
-                Corrections manuelles recommandees
-              </DialogTitle>
+              <DialogTitle className="text-xl text-white">Corrections manuelles recommandees</DialogTitle>
               <DialogDescription className="text-gray-400">
                 Points detectes non corriges automatiquement, avec explications sur le pourquoi et le comment.
               </DialogDescription>
@@ -502,20 +620,25 @@ const AuditComptable = () => {
                 {manualIssues.map((issue) => {
                   const guidance = MANUAL_GUIDANCE[issue.id] || DEFAULT_GUIDANCE;
                   return (
-                    <div key={`${issue.category_key}-${issue.id}`} className="rounded-lg border border-white/10 bg-gray-800/40 p-3">
+                    <div
+                      key={`${issue.category_key}-${issue.id}`}
+                      className="rounded-lg border border-white/10 bg-gray-800/40 p-3"
+                    >
                       <div className="flex items-start gap-2">
                         <StatusIcon status={issue.status} className="w-4 h-4 mt-0.5" />
                         <div className="flex-1">
                           <p className="text-sm font-semibold text-white">{issue.name}</p>
                           <p className="text-xs text-gray-500 mt-0.5">{issue.category_label}</p>
                         </div>
-                        <span className={`text-[10px] px-2 py-0.5 rounded ${
-                          issue.severity === 'error'
-                            ? 'bg-red-400/20 text-red-300'
-                            : issue.severity === 'warning'
-                              ? 'bg-yellow-400/20 text-yellow-300'
-                              : 'bg-blue-400/20 text-blue-300'
-                        }`}>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded ${
+                            issue.severity === 'error'
+                              ? 'bg-red-400/20 text-red-300'
+                              : issue.severity === 'warning'
+                                ? 'bg-yellow-400/20 text-yellow-300'
+                                : 'bg-blue-400/20 text-blue-300'
+                          }`}
+                        >
                           {issue.severity}
                         </span>
                       </div>
@@ -538,9 +661,7 @@ const AuditComptable = () => {
                       </div>
 
                       {issue.recommendation && (
-                        <p className="text-xs text-orange-300 mt-3">
-                          Recommandation audit: {issue.recommendation}
-                        </p>
+                        <p className="text-xs text-orange-300 mt-3">Recommandation audit: {issue.recommendation}</p>
                       )}
                     </div>
                   );
