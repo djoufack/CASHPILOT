@@ -2719,6 +2719,62 @@
         "openPilotage": "Ouvrir le pilotage"
       }
     },
+    "alertSubscriptions": {
+      "manage": "Gérer les seuils",
+      "title": "Abonnements aux alertes KPI",
+      "description": "Activez, désactivez et ajustez les seuils par type d'alerte pour cette société.",
+      "threshold": "Seuil",
+      "currentValue": "Valeur courante",
+      "enabled": "Actif",
+      "disabled": "Inactif",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "reset": "Réinitialiser",
+      "types": {
+        "negative_equity": {
+          "label": "Capitaux propres négatifs",
+          "description": "Déclenche une alerte si les capitaux propres passent sous le seuil défini."
+        },
+        "low_interest_coverage": {
+          "label": "Couverture des intérêts insuffisante",
+          "description": "Déclenche une alerte si la couverture des intérêts est inférieure au seuil."
+        },
+        "low_dscr": {
+          "label": "DSCR faible",
+          "description": "Déclenche une alerte si le DSCR passe sous le seuil."
+        },
+        "bfr_drift": {
+          "label": "Dérive du BFR",
+          "description": "Déclenche une alerte si le BFR / CA dépasse le seuil."
+        },
+        "negative_operating_cashflow": {
+          "label": "Cash-flow opérationnel négatif",
+          "description": "Déclenche une alerte si le cash-flow opérationnel passe sous le seuil."
+        },
+        "high_gearing": {
+          "label": "Endettement élevé",
+          "description": "Déclenche une alerte si le gearing dépasse le seuil."
+        },
+        "negative_net_income": {
+          "label": "Résultat net négatif",
+          "description": "Déclenche une alerte si le résultat net passe sous le seuil."
+        },
+        "negative_working_capital": {
+          "label": "Fonds de roulement négatif",
+          "description": "Déclenche une alerte si le fonds de roulement passe sous le seuil."
+        }
+      },
+      "messages": {
+        "negative_equity": "Capitaux propres négatifs : situation de faillite potentielle",
+        "low_interest_coverage": "Couverture des intérêts insuffisante (ICR sous le seuil)",
+        "low_dscr": "Couverture du service de la dette fragile (DSCR sous le seuil)",
+        "bfr_drift": "BFR excessif par rapport au chiffre d'affaires",
+        "negative_operating_cashflow": "Flux de trésorerie opérationnel négatif",
+        "high_gearing": "Endettement net supérieur aux capitaux propres",
+        "negative_net_income": "Résultat net négatif sur la période",
+        "negative_working_capital": "Fonds de roulement négatif"
+      }
+    },
     "benchmark": {
       "title": "Benchmarking Sectoriel",
       "ratio": "Ratio",
@@ -3944,6 +4000,43 @@
       "analyzing": "Analyse en cours...",
       "markRead": "Marquer comme lu",
       "dismiss": "Supprimer"
+    },
+    "guidedActions": {
+      "title": "Actions guidées CFO",
+      "subtitle": "Déclenchez les actions financières les plus utiles en un clic, dans le périmètre de votre société active.",
+      "scopeHint": "Company-scoped",
+      "loading": "Traitement...",
+      "states": {
+        "idle": "Disponible",
+        "loading": "En cours",
+        "success": "Réussi",
+        "error": "Erreur"
+      },
+      "relance": {
+        "title": "Relance",
+        "description": "Exécuter une relance IA sur la facture impayée la plus en retard de votre société.",
+        "cta": "Lancer la relance",
+        "defaultName": "Scénario CFO guidé",
+        "defaultDescription": "Scénario de travail créé depuis les actions guidées du CFO.",
+        "success": "Relance exécutée sur la facture la plus en retard : {{invoiceNumber}}",
+        "error": "{{reason}}"
+      },
+      "scenario": {
+        "title": "Scenario",
+        "description": "Créer un scénario brouillon company-scoped puis ouvrir son espace dédié.",
+        "cta": "Créer le scénario",
+        "defaultName": "Scénario CFO guidé",
+        "defaultDescription": "Scénario de travail créé depuis les actions guidées du CFO.",
+        "success": "Scénario créé et ouvert : {{scenarioName}}",
+        "error": "{{reason}}"
+      },
+      "audit": {
+        "title": "Audit",
+        "description": "Ouvrir l’audit comptable avec autorun sur la période en cours.",
+        "cta": "Ouvrir l’audit",
+        "success": "Audit ouvert avec lancement automatique sur la période en cours.",
+        "error": "{{reason}}"
+      }
     }
   },
   "mobileMoney": {

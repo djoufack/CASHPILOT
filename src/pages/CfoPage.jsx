@@ -4,6 +4,7 @@ import { Brain } from 'lucide-react';
 import CfoChatPanel from '@/components/cfo/CfoChatPanel';
 import CfoInsightsCard from '@/components/cfo/CfoInsightsCard';
 import CfoAlertsList from '@/components/cfo/CfoAlertsList';
+import CfoGuidedActionsPanel from '@/components/cfo/CfoGuidedActionsPanel';
 
 const CfoPage = () => {
   const { t } = useTranslation();
@@ -32,6 +33,8 @@ const CfoPage = () => {
             </p>
           </div>
         </div>
+
+        <CfoGuidedActionsPanel />
 
         {/* Layout: 2 columns on desktop, 1 on mobile */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ minHeight: 'calc(100vh - 200px)' }}>
