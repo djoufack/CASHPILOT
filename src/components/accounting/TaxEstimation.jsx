@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,8 +8,61 @@ import { Download, FileText, Calculator, TrendingUp, Banknote, Calendar, Chevron
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatCurrency } from '@/utils/calculations';
 import { estimateTax, DEFAULT_TAX_BRACKETS } from '@/utils/accountingCalculations';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 const COLORS = ['#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'];
+
+const TAX_PANEL_INFO = {
+  taxableIncome: {
+    title: 'Benefice imposable',
+    definition: "Resultat net soumis au calcul d'impot sur la periode selectionnee.",
+    dataSource: 'Valeur `netIncome` issue des aggregats comptables SQL (`useAccountingData`).',
+    formula: 'Benefice imposable = Resultat net comptable retenu pour la fiscalite',
+    calculationMethod:
+      "Le montant provient du compte de resultat; s il est negatif ou nul, l assiette fiscale est ramenee a 0.",
+  },
+  estimatedTax: {
+    title: 'Impot estime',
+    definition: "Montant total d'impot calcule selon les tranches actives.",
+    dataSource: 'Objet `taxEstimate` calcule par `estimateTax(netIncome, brackets)`.',
+    formula: 'Impot estime = Somme des impots de chaque tranche appliquee',
+    calculationMethod:
+      'Le calcul applique les tranches par seuil, puis somme les contributions de chaque tranche imposable.',
+  },
+  netAfterTax: {
+    title: 'Revenu net apres impot',
+    definition: "Montant restant apres deduction de l impot estime.",
+    dataSource: 'Valeurs `netIncome` et `taxEstimate.totalTax` du composant.',
+    formula: 'Net apres impot = max(Benefice imposable - Impot estime, 0)',
+    calculationMethod:
+      'Le composant soustrait le total d impot au benefice et borne le resultat a zero.',
+  },
+  bracketDetail: {
+    title: 'Detail par tranche',
+    definition: "Ventilation de l impot calcule par tranche fiscale.",
+    dataSource: 'Tableau `taxEstimate.details` retourne par `estimateTax`.',
+    formula: 'Impot tranche = Base taxable tranche x taux tranche',
+    calculationMethod:
+      'Chaque ligne affiche la base de tranche, le taux et le montant d impot correspondant.',
+    notes: "Le mode personnalisation permet d editer les bornes et taux avant recalcul.",
+  },
+  bracketDistribution: {
+    title: 'Repartition par tranche',
+    definition: "Part relative de chaque tranche dans l impot total.",
+    dataSource: 'Donnees derivees de `taxEstimate.details` (tax > 0).',
+    formula: 'Part tranche = Impot tranche / Impot total',
+    calculationMethod:
+      'Le donut affiche les montants d impot par tranche pour visualiser la concentration fiscale.',
+  },
+  quarterlySchedule: {
+    title: 'Echeancier de paiement trimestriel',
+    definition: "Projection de paiement trimestriel de l impot annuel estime.",
+    dataSource: 'Valeur `taxEstimate.quarterlyPayment` derivee du calcul fiscal.',
+    formula: 'Paiement trimestriel = Impot total / 4',
+    calculationMethod:
+      'Le composant repartit le total annuel en quatre acomptes trimestriels avec dates d echeance.',
+  },
+};
 
 const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExportPDF, onExportHTML, currency }) => {
   const [brackets, setBrackets] = useState(DEFAULT_TAX_BRACKETS);
@@ -73,6 +125,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
           <CardContent className="p-5">
             <div className="flex items-center gap-2 text-gray-400 mb-2">
               <TrendingUp className="w-4 h-4" />
+              <PanelInfoPopover {...TAX_PANEL_INFO.taxableIncome} />
               <span className="text-sm font-medium">Benefice imposable</span>
             </div>
             <p className={`text-2xl font-bold ${netIncome >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -85,6 +138,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
           <CardContent className="p-5">
             <div className="flex items-center gap-2 text-orange-400 mb-2">
               <Banknote className="w-4 h-4" />
+              <PanelInfoPopover {...TAX_PANEL_INFO.estimatedTax} />
               <span className="text-sm font-medium">Impot estime</span>
             </div>
             <p className="text-2xl font-bold text-gradient">{formatCurrency(taxEstimate?.totalTax || 0, currency)}</p>
@@ -108,6 +162,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
           <CardContent className="p-5">
             <div className="flex items-center gap-2 text-blue-400 mb-2">
               <Calculator className="w-4 h-4" />
+              <PanelInfoPopover {...TAX_PANEL_INFO.netAfterTax} />
               <span className="text-sm font-medium">Revenu net apres impot</span>
             </div>
             <p className="text-2xl font-bold text-blue-400">
@@ -124,7 +179,10 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
         <Card className="bg-gray-900 border-gray-800 lg:col-span-2">
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
-              <CardTitle className="text-sm text-gray-400">Detail par tranche</CardTitle>
+              <CardTitle className="text-sm text-gray-400 inline-flex items-center gap-1.5">
+                <PanelInfoPopover {...TAX_PANEL_INFO.bracketDetail} />
+                <span>Detail par tranche</span>
+              </CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
@@ -190,7 +248,10 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
         {/* Donut - 1/3 */}
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-400">Repartition par tranche</CardTitle>
+            <CardTitle className="text-sm text-gray-400 inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...TAX_PANEL_INFO.bracketDistribution} />
+              <span>Repartition par tranche</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[200px]">
@@ -238,6 +299,7 @@ const TaxEstimation = ({ netIncome, taxEstimate: initialEstimate, period, onExpo
       <Card className="bg-gray-900 border-gray-800">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
+            <PanelInfoPopover {...TAX_PANEL_INFO.quarterlySchedule} />
             <Calendar className="w-4 h-4" /> Echeancier de paiement trimestriel
           </CardTitle>
         </CardHeader>

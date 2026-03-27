@@ -12,6 +12,14 @@ describe('supabaseCompatibility helpers', () => {
     expect(isMissingColumnError(error, 'subtasks_1.due_date')).toBe(true);
   });
 
+  it('detects missing column errors from PostgREST schema cache (PGRST204)', () => {
+    const error = {
+      code: 'PGRST204',
+      message: "Could not find the 'company_id' column of 'accounting_mappings' in the schema cache",
+    };
+    expect(isMissingColumnError(error, 'company_id')).toBe(true);
+  });
+
   it('detects missing relation errors (42P01)', () => {
     const error = { code: '42P01', message: 'relation "public.dunning_history" does not exist' };
     expect(isMissingRelationError(error, 'public.dunning_history')).toBe(true);

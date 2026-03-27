@@ -4,12 +4,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { validateChartOfAccountsImport } from '@/utils/accountingQualityChecks';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { isMissingColumnError } from '@/lib/supabaseCompatibility';
 
 export const useAccounting = () => {
   const { user } = useAuth();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+
+  const stripCompanyId = useCallback((payload = {}) => {
+    const { company_id: _ignoredCompanyId, ...withoutCompany } = payload;
+    return withoutCompany;
+  }, []);
 
   // --- Chart of Accounts ---
   const [accounts, setAccounts] = useState([]);
@@ -157,9 +163,17 @@ export const useAccounting = () => {
   const fetchMappings = useCallback(async () => {
     if (!user) return;
     try {
-      let query = supabase.from('accounting_mappings').select('*').order('created_at', { ascending: false });
+      const buildBaseQuery = () =>
+        supabase.from('accounting_mappings').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+
+      let query = buildBaseQuery();
       query = applyCompanyScope(query, { includeUnassigned: true });
-      const { data, error } = await query;
+      let { data, error } = await query;
+
+      if (error && isMissingColumnError(error, 'company_id')) {
+        ({ data, error } = await buildBaseQuery());
+      }
+
       if (error) throw error;
       setMappings(data || []);
     } catch (err) {
@@ -170,11 +184,21 @@ export const useAccounting = () => {
   const createMapping = async (mappingData) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const scopedPayload = withCompanyScope({ ...mappingData, user_id: user.id });
+      let { data, error } = await supabase
         .from('accounting_mappings')
-        .insert([withCompanyScope({ ...mappingData, user_id: user.id })])
+        .insert([scopedPayload])
         .select()
         .single();
+
+      if (error && scopedPayload.company_id && isMissingColumnError(error, 'company_id')) {
+        ({ data, error } = await supabase
+          .from('accounting_mappings')
+          .insert([stripCompanyId(scopedPayload)])
+          .select()
+          .single());
+      }
+
       if (error) throw error;
       setMappings((prev) => [data, ...prev]);
       toast({ title: 'Success', description: 'Mapping created' });
@@ -212,10 +236,20 @@ export const useAccounting = () => {
         })
       );
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('accounting_mappings')
-        .upsert(payload, { onConflict: 'user_id,source_type,source_category', ignoreDuplicates: false })
+        .upsert(payload, { onConflict: 'company_id,user_id,source_type,source_category', ignoreDuplicates: false })
         .select();
+
+      if (error && payload.some((item) => item.company_id) && isMissingColumnError(error, 'company_id')) {
+        ({ data, error } = await supabase
+          .from('accounting_mappings')
+          .upsert(payload.map((item) => stripCompanyId(item)), {
+            onConflict: 'user_id,source_type,source_category',
+            ignoreDuplicates: false,
+          })
+          .select());
+      }
 
       if (error) throw error;
       await fetchMappings();
@@ -246,9 +280,17 @@ export const useAccounting = () => {
   const fetchTaxRates = useCallback(async () => {
     if (!user) return;
     try {
-      let query = supabase.from('accounting_tax_rates').select('*').order('created_at', { ascending: false });
+      const buildBaseQuery = () =>
+        supabase.from('accounting_tax_rates').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+
+      let query = buildBaseQuery();
       query = applyCompanyScope(query, { includeUnassigned: true });
-      const { data, error } = await query;
+      let { data, error } = await query;
+
+      if (error && isMissingColumnError(error, 'company_id')) {
+        ({ data, error } = await buildBaseQuery());
+      }
+
       if (error) throw error;
       setTaxRates(data || []);
     } catch (err) {
@@ -259,11 +301,21 @@ export const useAccounting = () => {
   const createTaxRate = async (taxData) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const scopedPayload = withCompanyScope({ ...taxData, user_id: user.id });
+      let { data, error } = await supabase
         .from('accounting_tax_rates')
-        .insert([withCompanyScope({ ...taxData, user_id: user.id })])
+        .insert([scopedPayload])
         .select()
         .single();
+
+      if (error && scopedPayload.company_id && isMissingColumnError(error, 'company_id')) {
+        ({ data, error } = await supabase
+          .from('accounting_tax_rates')
+          .insert([stripCompanyId(scopedPayload)])
+          .select()
+          .single());
+      }
+
       if (error) throw error;
       setTaxRates((prev) => [data, ...prev]);
       toast({ title: 'Success', description: 'Tax Rate created' });

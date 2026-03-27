@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAccounting } from '@/hooks/useAccounting';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,12 +7,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Upload, Search, FileText, BookOpen, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Upload, Search, BookOpen, Loader2, AlertTriangle } from 'lucide-react';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
 import { Card, CardContent } from '@/components/ui/card';
 import CSVImportModal from './CSVImportModal';
 import { getGlobalAccountingPlanAccounts } from '@/services/referenceDataService';
 import { validateChartOfAccountsImport } from '@/utils/accountingQualityChecks';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
+import { useToast } from '@/components/ui/use-toast';
 
 const TYPE_LABELS = {
   asset: { label: 'Actif', color: 'bg-blue-500/20 text-blue-400' },
@@ -24,6 +26,7 @@ const TYPE_LABELS = {
 
 const ChartOfAccounts = () => {
   const { accounts, fetchAccounts, createAccount, bulkCreateAccounts, deleteAccount, loading } = useAccounting();
+  const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showPresetConfirm, setShowPresetConfirm] = useState(false);
@@ -37,6 +40,18 @@ const ChartOfAccounts = () => {
     account_category: '',
     description: ''
   });
+
+  const chartInfo = {
+    title: 'Plan comptable',
+    definition:
+      'Référentiel des comptes comptables de la société active, utilisé pour la saisie, les mappings et les états financiers.',
+    dataSource: 'Table `accounting_chart_of_accounts` filtrée par `company_id` actif via `useCompanyScope`.',
+    formula: 'Aucune formule: référentiel de structure comptable.',
+    calculationMethod:
+      'Charge les comptes triés par code, puis applique les filtres de recherche et de type avant affichage.',
+    notes:
+      'Le bouton "Plan comptable belge" charge un référentiel de base depuis `accounting_plan_accounts` global.',
+  };
 
   useEffect(() => {
     fetchAccounts();
@@ -73,9 +88,20 @@ const ChartOfAccounts = () => {
         throw new Error(validation.blockingIssues[0]?.message || 'Le plan comptable belge Supabase a échoué au contrôle de cohérence');
       }
       await bulkCreateAccounts(presetAccounts);
+      toast({
+        title: 'Plan comptable chargé',
+        description: `${presetAccounts.length} comptes de référence ont été appliqués à la société active.`,
+      });
       setShowPresetConfirm(false);
     } catch (err) {
       console.error('Erreur chargement plan comptable:', err);
+      toast({
+        title: 'Chargement impossible',
+        description:
+          err?.message ||
+          'Le plan comptable belge de référence est introuvable ou indisponible pour la société active.',
+        variant: 'destructive',
+      });
     } finally {
       setPresetLoading(false);
     }
@@ -124,7 +150,10 @@ const ChartOfAccounts = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gradient">Plan comptable</h2>
+          <h2 className="text-xl font-bold text-gradient inline-flex items-center gap-1.5">
+            <PanelInfoPopover {...chartInfo} />
+            <span>Plan comptable</span>
+          </h2>
           <p className="text-gray-400 text-sm">
             {accounts.length} compte{accounts.length > 1 ? 's' : ''} enregistré{accounts.length > 1 ? 's' : ''}
           </p>
@@ -232,6 +261,19 @@ const ChartOfAccounts = () => {
           {filteredAccounts.length} résultat{filteredAccounts.length > 1 ? 's' : ''} sur {accounts.length}
         </p>
       ) : null}
+
+      {!loading && accounts.length === 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-amber-300 font-medium text-sm">Aucun compte pour la société active</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Le plan comptable est filtré par société (`company_id`). Si vous avez changé de société, chargez le
+              plan de base via "Plan comptable belge" ou importez un CSV pour cette société.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <ResponsiveTable

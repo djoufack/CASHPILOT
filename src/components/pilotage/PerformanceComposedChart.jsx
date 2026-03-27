@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatCurrency } from '@/utils/currencyService';
 import { BarChart3 } from 'lucide-react';
@@ -27,6 +28,15 @@ const TOOLTIP_LABEL_STYLE = {
   color: '#d1d5db',
   fontWeight: 600,
   marginBottom: 4,
+};
+
+const PERFORMANCE_INFO = {
+  title: 'Performance globale',
+  definition: 'Vue synthétique de l’évolution mensuelle du chiffre d’affaires, du résultat net et du flux net de trésorerie.',
+  dataSource: 'Série mensuelle `data.monthlyData` fournie par le hook pilotage pour la société et la période sélectionnées.',
+  formula: 'Le graphique combine trois séries: chiffre d’affaires, résultat net et flux net de trésorerie.',
+  calculationMethod: 'Chaque série est calculée en amont dans le moteur pilotage, puis affichée par mois avec la devise de la société.',
+  notes: 'Les valeurs sont masquées lorsqu’aucune disponibilité de cash n’est confirmée pour une période donnée.',
 };
 
 const CustomTooltip = ({ active, payload, label, currency }) => {
@@ -64,11 +74,19 @@ const PerformanceComposedChart = ({ data }) => {
   const hasData = chartData.length > 0;
 
   return (
-    <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
+      <Card className="bg-gray-900/50 border border-gray-800/50 rounded-xl">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold text-gray-200 flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-orange-400" />
-          {t('pilotage.performanceChart')}
+          <PanelInfoPopover
+            title={PERFORMANCE_INFO.title}
+            definition={PERFORMANCE_INFO.definition}
+            dataSource={PERFORMANCE_INFO.dataSource}
+            formula={PERFORMANCE_INFO.formula}
+            calculationMethod={PERFORMANCE_INFO.calculationMethod}
+            notes={PERFORMANCE_INFO.notes}
+          />
+          <span>{t('pilotage.performanceChart')}</span>
         </CardTitle>
       </CardHeader>
       <CardContent>

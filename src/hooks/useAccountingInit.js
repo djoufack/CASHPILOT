@@ -24,7 +24,7 @@ export const useAccountingInit = () => {
   const checkInit = useCallback(async () => {
     if (!user) return;
     try {
-      const result = await checkAccountingInitialized(user.id);
+      const result = await checkAccountingInitialized(user.id, activeCompanyId);
       setIsInitialized(result.isInitialized);
       setCountry(result.country);
       setSettings(result.settings);
@@ -32,7 +32,7 @@ export const useAccountingInit = () => {
       console.error('Error checking accounting init:', err);
       setIsInitialized(false);
     }
-  }, [user]);
+  }, [user, activeCompanyId]);
 
   useEffect(() => {
     checkInit();

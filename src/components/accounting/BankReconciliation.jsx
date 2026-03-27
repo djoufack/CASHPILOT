@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +17,56 @@ import { useCompany } from '@/hooks/useCompany';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
 import CreditsGuardModal from '@/components/CreditsGuardModal';
 import BankStatementUploadModal from './BankStatementUploadModal';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
+
+const RECON_INFO = {
+  mainPanel: {
+    title: 'Rapprochement bancaire',
+    definition:
+      'Module de rapprochement entre lignes de releves bancaires et transactions comptables (factures, depenses, fournisseurs).',
+    dataSource:
+      'Tables `bank_statements`, `bank_statement_lines` et transactions de `useAccountingData` sur la periode active.',
+    formula: 'Taux rapprochement = (lignes rapprochees / total lignes) x 100',
+    calculationMethod:
+      'Les lignes sont normalisees puis matchees automatiquement ou manuellement selon montant, date et description.',
+  },
+  totalLines: {
+    title: 'Total lignes',
+    definition: 'Nombre total de lignes presentes dans le releve selectionne.',
+    dataSource: 'Table `bank_statement_lines` pour le releve courant.',
+    formula: 'Total lignes = count(lignes releve)',
+    calculationMethod: 'Comptage direct des lignes importees pour le releve actif.',
+  },
+  matchedLines: {
+    title: 'Lignes rapprochees',
+    definition: 'Nombre de lignes associees a une transaction comptable.',
+    dataSource: "Champ `reconciliation_status = 'matched'` des lignes de releve.",
+    formula: 'Rapprochees = count(status = matched)',
+    calculationMethod: 'Comptage des lignes marquees matched, manuellement ou automatiquement.',
+  },
+  unmatchedLines: {
+    title: 'Lignes non rapprochees',
+    definition: "Nombre de lignes encore sans correspondance comptable validee.",
+    dataSource: "Champ `reconciliation_status = 'unmatched'` des lignes de releve.",
+    formula: 'Non rapprochees = count(status = unmatched)',
+    calculationMethod: 'Comptage des lignes qui restent a traiter ou a ignorer.',
+  },
+  ignoredLines: {
+    title: 'Lignes ignorees',
+    definition: 'Nombre de lignes explicitement sorties du rapprochement.',
+    dataSource: "Champ `reconciliation_status = 'ignored'` des lignes de releve.",
+    formula: 'Ignorees = count(status = ignored)',
+    calculationMethod: 'Comptage des lignes marquees ignorees par action utilisateur.',
+  },
+  searchPanel: {
+    title: 'Recherche de correspondance',
+    definition: 'Panneau de recherche manuelle des transactions candidates pour une ligne de releve.',
+    dataSource: 'Ligne courante + transactions normalisees (factures, depenses, fournisseurs).',
+    formula: 'Score matching = score texte + score montant + score date (pondere)',
+    calculationMethod:
+      'Le moteur compare les candidates puis ordonne les resultats selon le score de pertinence.',
+  },
+};
 
 const BankReconciliation = ({ period }) => {
   const [view, setView] = useState('list'); // list, workspace
@@ -32,10 +81,10 @@ const BankReconciliation = ({ period }) => {
   const { guardedAction, modalProps } = useCreditsGuard();
 
   const {
-    statements, lines, loading, uploading,
-    fetchStatements, uploadStatement, deleteStatement,
+    statements, lines, loading,
+    uploadStatement, deleteStatement,
     fetchLines, importParsedLines,
-    runAutoMatch, matchLine, unmatchLine, ignoreLine, bulkIgnoreLines
+    runAutoMatch, matchLine, unmatchLine, ignoreLine
   } = useBankReconciliation();
 
   const {
@@ -160,7 +209,9 @@ const BankReconciliation = ({ period }) => {
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-xl font-bold text-gradient flex items-center gap-2">
-              <Landmark className="w-5 h-5" /> Rapprochement Bancaire
+              <Landmark className="w-5 h-5" />
+              <PanelInfoPopover {...RECON_INFO.mainPanel} />
+              <span>Rapprochement Bancaire</span>
             </h2>
             <p className="text-sm text-gray-400 mt-1">
               Importez vos relevés bancaires et rapprochez-les avec vos transactions.
@@ -270,7 +321,10 @@ const BankReconciliation = ({ period }) => {
           </Button>
           <div>
             <h2 className="text-lg font-bold text-gradient">
-              {selectedStatement?.bank_name || 'Relevé bancaire'}
+              <span className="inline-flex items-center gap-1.5">
+                <PanelInfoPopover {...RECON_INFO.mainPanel} />
+                <span>{selectedStatement?.bank_name || 'Relevé bancaire'}</span>
+              </span>
             </h2>
             {selectedStatement?.period_start && (
               <p className="text-xs text-gray-500">
@@ -294,26 +348,38 @@ const BankReconciliation = ({ period }) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="bg-gray-900 border-gray-800">
           <CardContent className="p-3 text-center">
-            <p className="text-xs text-gray-500">Total lignes</p>
+            <div className="inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...RECON_INFO.totalLines} />
+              <p className="text-xs text-gray-500">Total lignes</p>
+            </div>
             <p className="text-xl font-bold text-white">{summary.totalLines}</p>
           </CardContent>
         </Card>
         <Card className="bg-green-500/5 border-green-500/30">
           <CardContent className="p-3 text-center">
-            <p className="text-xs text-green-400">Rapprochées</p>
+            <div className="inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...RECON_INFO.matchedLines} />
+              <p className="text-xs text-green-400">Rapprochées</p>
+            </div>
             <p className="text-xl font-bold text-green-400">{summary.matchedLines}</p>
             <p className="text-xs text-gray-500">{summary.matchRate}%</p>
           </CardContent>
         </Card>
         <Card className="bg-amber-500/5 border-amber-500/30">
           <CardContent className="p-3 text-center">
-            <p className="text-xs text-amber-400">Non rapprochées</p>
+            <div className="inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...RECON_INFO.unmatchedLines} />
+              <p className="text-xs text-amber-400">Non rapprochées</p>
+            </div>
             <p className="text-xl font-bold text-amber-400">{summary.unmatchedLines}</p>
           </CardContent>
         </Card>
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-3 text-center">
-            <p className="text-xs text-gray-500">Ignorées</p>
+            <div className="inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...RECON_INFO.ignoredLines} />
+              <p className="text-xs text-gray-500">Ignorées</p>
+            </div>
             <p className="text-xl font-bold text-gray-500">{summary.ignoredLines}</p>
           </CardContent>
         </Card>
@@ -448,6 +514,7 @@ const BankReconciliation = ({ period }) => {
         <Card className="bg-gray-900 border-orange-500/30">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-orange-400 flex items-center gap-2">
+              <PanelInfoPopover {...RECON_INFO.searchPanel} />
               <Search className="w-4 h-4" />
               Rechercher une correspondance
             </CardTitle>

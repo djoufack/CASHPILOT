@@ -5047,7 +5047,7 @@ async function applyDataset(client, dataset, options) {
   await upsertRows(client, 'dashboard_snapshots', effectiveDataset.dashboardSnapshotRows || [], 'id');
   await upsertRows(client, 'payment_terms', effectiveDataset.paymentTermRows, 'id');
   await upsertRows(client, 'accounting_chart_of_accounts', effectiveDataset.chartRows, 'company_id,account_code');
-  await upsertRows(client, 'accounting_mappings', effectiveDataset.mappingRows, 'user_id,source_type,source_category');
+  await upsertRows(client, 'accounting_mappings', effectiveDataset.mappingRows, 'company_id,user_id,source_type,source_category');
   await upsertRows(client, 'accounting_tax_rates', effectiveDataset.taxRateRows, 'id');
   await upsertRows(
     client,

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/utils/calculations';
 import { AlertTriangle, TrendingUp, Calendar, ShieldAlert, Loader2 } from 'lucide-react';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 const ALERT_CONFIG = {
   overdraft_risk: {
@@ -40,6 +41,14 @@ const ALERT_CONFIG = {
  */
 const CashFlowAlerts = ({ alerts = [], loading = false }) => {
   const { t } = useTranslation();
+  const alertsInfo = {
+    title: t('cashflow.alerts.title', 'Alertes de Tresorerie'),
+    definition: 'Alertes de risque et opportunités détectées à partir des projections de trésorerie.',
+    dataSource: 'Liste `alerts` générée par le moteur de prévision IA.',
+    formula: 'Aucune formule unique: chaque alerte suit sa règle de déclenchement.',
+    calculationMethod:
+      'Trie les alertes par sévérité (critical, warning, info) puis affiche message, date, horizon et solde projeté.',
+  };
 
   if (loading) {
     return (
@@ -58,7 +67,10 @@ const CashFlowAlerts = ({ alerts = [], loading = false }) => {
           <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
             <TrendingUp className="w-4 h-4 text-emerald-400" />
           </div>
-          <h3 className="text-lg font-bold text-white">{t('cashflow.alerts.title', 'Alertes de Tresorerie')}</h3>
+          <h3 className="text-lg font-bold text-white inline-flex items-center gap-1.5">
+            <PanelInfoPopover {...alertsInfo} />
+            <span>{t('cashflow.alerts.title', 'Alertes de Tresorerie')}</span>
+          </h3>
         </div>
         <div className="text-center py-6">
           <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
@@ -103,7 +115,10 @@ const CashFlowAlerts = ({ alerts = [], loading = false }) => {
           <AlertTriangle className="w-4 h-4 text-amber-400" />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-white">{t('cashflow.alerts.title', 'Alertes de Tresorerie')}</h3>
+          <h3 className="text-lg font-bold text-white inline-flex items-center gap-1.5">
+            <PanelInfoPopover {...alertsInfo} />
+            <span>{t('cashflow.alerts.title', 'Alertes de Tresorerie')}</span>
+          </h3>
           <p className="text-xs text-gray-500">
             {t('cashflow.alerts.count', '{{count}} alerte(s) detectee(s)', { count: alerts.length })}
           </p>

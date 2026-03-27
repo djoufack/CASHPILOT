@@ -3,12 +3,17 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
+import { isMissingColumnError } from '@/lib/supabaseCompatibility';
 import { autoMatchLines, normalizeTransactions, getReconciliationSummary } from '@/utils/reconciliationMatcher';
 
 export const useBankReconciliation = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const stripCompanyId = useCallback((payload = {}) => {
+    const { company_id: _ignoredCompanyId, ...withoutCompany } = payload;
+    return withoutCompany;
+  }, []);
 
   const [statements, setStatements] = useState([]);
   const [lines, setLines] = useState([]);
@@ -24,9 +29,16 @@ export const useBankReconciliation = () => {
     if (!user || !supabase) return;
     try {
       setLoading(true);
-      let query = supabase.from('bank_statements').select('*').order('created_at', { ascending: false });
+      const buildBaseQuery = () =>
+        supabase.from('bank_statements').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+
+      let query = buildBaseQuery();
       query = applyCompanyScope(query);
-      const { data, error } = await query;
+      let { data, error } = await query;
+
+      if (error && isMissingColumnError(error, 'company_id')) {
+        ({ data, error } = await buildBaseQuery());
+      }
 
       if (error) throw error;
       setStatements(data || []);
@@ -59,27 +71,35 @@ export const useBankReconciliation = () => {
         if (uploadError) throw uploadError;
 
         // Create DB record
-        const { data, error } = await supabase
+        const scopedPayload = withCompanyScope({
+          user_id: user.id,
+          file_name: file.name,
+          file_path: filePath,
+          file_type: ext,
+          file_size: file.size,
+          bank_name: metadata.bankName || null,
+          account_number: metadata.accountNumber || null,
+          period_start: metadata.periodStart || null,
+          period_end: metadata.periodEnd || null,
+          opening_balance: metadata.openingBalance || null,
+          closing_balance: metadata.closingBalance || null,
+          parse_status: 'pending',
+          line_count: 0,
+        });
+
+        let { data, error } = await supabase
           .from('bank_statements')
-          .insert([
-            withCompanyScope({
-              user_id: user.id,
-              file_name: file.name,
-              file_path: filePath,
-              file_type: ext,
-              file_size: file.size,
-              bank_name: metadata.bankName || null,
-              account_number: metadata.accountNumber || null,
-              period_start: metadata.periodStart || null,
-              period_end: metadata.periodEnd || null,
-              opening_balance: metadata.openingBalance || null,
-              closing_balance: metadata.closingBalance || null,
-              parse_status: 'pending',
-              line_count: 0,
-            }),
-          ])
+          .insert([scopedPayload])
           .select()
           .single();
+
+        if (error && scopedPayload.company_id && isMissingColumnError(error, 'company_id')) {
+          ({ data, error } = await supabase
+            .from('bank_statements')
+            .insert([stripCompanyId(scopedPayload)])
+            .select()
+            .single());
+        }
 
         if (error) throw error;
 
@@ -94,7 +114,7 @@ export const useBankReconciliation = () => {
         setUploading(false);
       }
     },
-    [user, toast, withCompanyScope]
+    [user, toast, withCompanyScope, stripCompanyId]
   );
 
   const deleteStatement = useCallback(
@@ -132,13 +152,21 @@ export const useBankReconciliation = () => {
       if (!user || !supabase || !statementId) return;
       try {
         setLoading(true);
-        let query = supabase
-          .from('bank_statement_lines')
-          .select('*')
-          .eq('statement_id', statementId)
-          .order('line_number', { ascending: true });
+        const buildBaseQuery = () =>
+          supabase
+            .from('bank_statement_lines')
+            .select('*')
+            .eq('statement_id', statementId)
+            .eq('user_id', user.id)
+            .order('line_number', { ascending: true });
+
+        let query = buildBaseQuery();
         query = applyCompanyScope(query);
-        const { data, error } = await query;
+        let { data, error } = await query;
+
+        if (error && isMissingColumnError(error, 'company_id')) {
+          ({ data, error } = await buildBaseQuery());
+        }
 
         if (error) throw error;
         setLines(data || []);
@@ -176,7 +204,13 @@ export const useBankReconciliation = () => {
           })
         );
 
-        const { error: insertError } = await supabase.from('bank_statement_lines').insert(records);
+        let { error: insertError } = await supabase.from('bank_statement_lines').insert(records);
+
+        if (insertError && records.some((record) => record.company_id) && isMissingColumnError(insertError, 'company_id')) {
+          ({ error: insertError } = await supabase
+            .from('bank_statement_lines')
+            .insert(records.map((record) => stripCompanyId(record))));
+        }
 
         if (insertError) throw insertError;
 
@@ -206,7 +240,7 @@ export const useBankReconciliation = () => {
         setLoading(false);
       }
     },
-    [user, toast, fetchLines, fetchStatements, withCompanyScope]
+    [user, toast, fetchLines, fetchStatements, withCompanyScope, stripCompanyId]
   );
 
   // ========================================================================
@@ -438,18 +472,26 @@ export const useBankReconciliation = () => {
       if (!user || !supabase) return null;
       try {
         const summary = getReconciliationSummary(lines);
-        const { data, error } = await supabase
+        const scopedPayload = withCompanyScope({
+          user_id: user.id,
+          statement_id: statementId,
+          status: 'in_progress',
+          ...summary,
+        });
+
+        let { data, error } = await supabase
           .from('bank_reconciliation_sessions')
-          .insert([
-            withCompanyScope({
-              user_id: user.id,
-              statement_id: statementId,
-              status: 'in_progress',
-              ...summary,
-            }),
-          ])
+          .insert([scopedPayload])
           .select()
           .single();
+
+        if (error && scopedPayload.company_id && isMissingColumnError(error, 'company_id')) {
+          ({ data, error } = await supabase
+            .from('bank_reconciliation_sessions')
+            .insert([stripCompanyId(scopedPayload)])
+            .select()
+            .single());
+        }
 
         if (error) throw error;
         setSessions((prev) => [data, ...prev]);
@@ -459,7 +501,7 @@ export const useBankReconciliation = () => {
         return null;
       }
     },
-    [user, lines, withCompanyScope]
+    [user, lines, withCompanyScope, stripCompanyId]
   );
 
   const completeSession = useCallback(

@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import {
   Plus,
   RefreshCw,
@@ -106,6 +107,40 @@ export default function AnalyticalAccounting() {
   const [budgets, setBudgets] = useState([]);
   const [variances, setVariances] = useState([]);
   const [kpis, setKpis] = useState(null);
+  const reportingInfo = useMemo(
+    () => ({
+      reportingPanel: {
+        title: 'KPI analytiques (DB-first)',
+        definition: 'Synthèse analytique basée uniquement sur les calculs SQL de la comptabilité analytique.',
+        dataSource: "Fonctions RPC `f_analytical_kpis` et `f_analytical_budget_variances` filtrées par société active.",
+        formula: 'MCV = marge sur coûts variables; Seuil rentabilité = point mort; Résultat analytique = produits analytiques - charges analytiques.',
+        calculationMethod:
+          'Les KPI et écarts budgétaires sont calculés en base puis affichés sans recalcul front-end.',
+      },
+      mcv: {
+        title: 'MCV',
+        definition: 'Marge sur coûts variables sur la période analytique.',
+        dataSource: "Champ `kpis.mcv` retourné par `f_analytical_kpis`.",
+        formula: 'MCV = Chiffre d affaires analytique - Coûts variables analytiques',
+        calculationMethod: 'Valeur calculée côté SQL et affichée telle quelle.',
+      },
+      seuilRentabilite: {
+        title: 'Seuil rentabilité',
+        definition: 'Niveau d activité nécessaire pour couvrir les charges.',
+        dataSource: "Champ `kpis.seuil_rentabilite` retourné par `f_analytical_kpis`.",
+        formula: 'Seuil = Charges fixes / Taux de marge sur coûts variables',
+        calculationMethod: 'Calcul SQL via la fonction analytique puis restitution dans la carte KPI.',
+      },
+      resultatAnalytique: {
+        title: 'Résultat analytique',
+        definition: 'Résultat agrégé sur le périmètre analytique sélectionné.',
+        dataSource: "Champ `kpis.resultat_analytique` retourné par `f_analytical_kpis`.",
+        formula: 'Résultat analytique = Produits analytiques - Charges analytiques',
+        calculationMethod: 'Calcul SQL puis affichage direct dans la carte KPI.',
+      },
+    }),
+    []
+  );
 
   const [axisDialogOpen, setAxisDialogOpen] = useState(false);
   const [objectDialogOpen, setObjectDialogOpen] = useState(false);
@@ -2340,26 +2375,36 @@ export default function AnalyticalAccounting() {
             <CardHeader>
               <CardTitle className="text-white text-sm flex items-center gap-2">
                 <BarChart2 className="w-4 h-4" />
-                KPI analytiques (DB-first)
+                <PanelInfoPopover {...reportingInfo.reportingPanel} />
+                <span>KPI analytiques (DB-first)</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-3 gap-3">
                 <Card className="bg-[#10192d] border-white/10">
                   <CardContent className="p-3">
-                    <p className="text-xs text-gray-400">MCV</p>
+                    <p className="text-xs text-gray-400 inline-flex items-center gap-1.5">
+                      <PanelInfoPopover {...reportingInfo.mcv} />
+                      <span>MCV</span>
+                    </p>
                     <p className="text-xl text-white font-semibold">{formatMoney(kpis?.mcv)} €</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-[#10192d] border-white/10">
                   <CardContent className="p-3">
-                    <p className="text-xs text-gray-400">Seuil rentabilité</p>
+                    <p className="text-xs text-gray-400 inline-flex items-center gap-1.5">
+                      <PanelInfoPopover {...reportingInfo.seuilRentabilite} />
+                      <span>Seuil rentabilité</span>
+                    </p>
                     <p className="text-xl text-orange-300 font-semibold">{formatMoney(kpis?.seuil_rentabilite)} €</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-[#10192d] border-white/10">
                   <CardContent className="p-3">
-                    <p className="text-xs text-gray-400">Résultat analytique</p>
+                    <p className="text-xs text-gray-400 inline-flex items-center gap-1.5">
+                      <PanelInfoPopover {...reportingInfo.resultatAnalytique} />
+                      <span>Résultat analytique</span>
+                    </p>
                     <p className="text-xl text-emerald-300 font-semibold">{formatMoney(kpis?.resultat_analytique)} €</p>
                   </CardContent>
                 </Card>

@@ -14,6 +14,7 @@ import {
   ComposedChart,
 } from 'recharts';
 import { Loader2, TrendingUp } from 'lucide-react';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 /**
  * Cash Flow Forecast Chart.
@@ -23,6 +24,16 @@ import { Loader2, TrendingUp } from 'lucide-react';
  */
 const CashFlowChart = ({ dailyProjections = [], scenarios = null, loading = false, periodDays = 90 }) => {
   const { t } = useTranslation();
+  const chartInfo = {
+    title: t('cashflow.chart.title', 'Projection de Tresorerie'),
+    definition: 'Projection quotidienne de trésorerie avec scénarios optimiste, base et pessimiste.',
+    dataSource: 'Données `dailyProjections` et paramètres `scenarios` fournis par `useCashFlowForecast`.',
+    formula:
+      'Solde scénario jour n = Solde jour n-1 + (inflow × multiplicateur entrées) - (outflow × multiplicateur sorties).',
+    calculationMethod:
+      'Échantillonne les jours pour le rendu, recalcule des soldes cumulés optimiste/pessimiste, et conserve la base fournie.',
+    filters: `Horizon actif: ${periodDays} jours.`,
+  };
 
   // Build chart data from daily projections with scenario variants
   const chartData = useMemo(() => {
@@ -141,7 +152,10 @@ const CashFlowChart = ({ dailyProjections = [], scenarios = null, loading = fals
           <TrendingUp className="w-4 h-4 text-blue-400" />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-white">{t('cashflow.chart.title', 'Projection de Tresorerie')}</h3>
+          <h3 className="text-lg font-bold text-white inline-flex items-center gap-1.5">
+            <PanelInfoPopover {...chartInfo} />
+            <span>{t('cashflow.chart.title', 'Projection de Tresorerie')}</span>
+          </h3>
           <p className="text-xs text-gray-500">
             {t('cashflow.chart.subtitle', '3 scenarios sur {{days}} jours', { days: periodDays })}
           </p>

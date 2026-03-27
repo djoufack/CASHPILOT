@@ -1,15 +1,63 @@
-
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { DollarSign, TrendingUp, TrendingDown, Receipt, AlertTriangle, FileText } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 
 const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, monthlyData, accounts, mappings, currency }) => {
   const isProfit = netIncome >= 0;
   const hasAccounts = accounts && accounts.length > 0;
   const hasMappings = mappings && mappings.length > 0;
+  const dashboardInfo = {
+    revenue: {
+      title: "Chiffre d'affaires HT",
+      definition: "Montant des produits hors TVA sur la période sélectionnée.",
+      dataSource: 'Agrégat `revenue` issu des fonctions SQL comptables via `useAccountingData`.',
+      formula: "CA HT = Somme des comptes de produits (classe 7) retenus sur la période.",
+      calculationMethod:
+        "La valeur est calculée côté base par les RPC comptables puis affichée dans la devise de la société.",
+    },
+    expenses: {
+      title: 'Total des charges',
+      definition: 'Montant total des charges comptabilisées sur la période.',
+      dataSource: 'Agrégat `totalExpenses` issu des fonctions SQL comptables via `useAccountingData`.',
+      formula: 'Total charges = Somme des comptes de charges (classe 6) sur la période.',
+      calculationMethod:
+        'La valeur est calculée côté base via les fonctions comptables puis exposée au dashboard.',
+    },
+    netIncome: {
+      title: 'Résultat net',
+      definition: 'Résultat de la période après prise en compte des produits et charges.',
+      dataSource: 'Agrégat `netIncome` issu de la fonction SQL de compte de résultat.',
+      formula: 'Résultat net = Produits - Charges',
+      calculationMethod: 'Différence entre total produits et total charges calculés côté base.',
+    },
+    vatPayable: {
+      title: 'TVA à payer',
+      definition: 'Position TVA nette due sur la période.',
+      dataSource: 'Agrégat `vatPayable` issu du résumé TVA SQL.',
+      formula: 'TVA à payer = TVA collectée - TVA déductible',
+      calculationMethod:
+        'Calcule séparément les bases collectées et déductibles puis affiche le solde net.',
+    },
+    revenueVsExpenses: {
+      title: 'Revenus vs Charges',
+      definition: 'Comparaison mensuelle des produits et charges.',
+      dataSource: 'Série `monthlyData` issue de la fonction SQL `f_monthly_chart_data`.',
+      formula: 'Par mois: produits et charges agrégés séparément.',
+      calculationMethod:
+        'Agrége les montants par période mensuelle et trace les deux séries dans un histogramme.',
+    },
+    netTrend: {
+      title: 'Tendance Résultat Net',
+      definition: 'Évolution mensuelle du résultat net sur la période.',
+      dataSource: 'Série `monthlyData` transformée localement en `net = revenue - expense`.',
+      formula: 'Net mensuel = revenue - expense',
+      calculationMethod:
+        'Calcule le net pour chaque mois puis affiche une courbe de tendance.',
+    },
+  };
 
   return (
     <div className="space-y-6">
@@ -42,7 +90,10 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Chiffre d'affaires HT</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-400 inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...dashboardInfo.revenue} />
+              <span>Chiffre d'affaires HT</span>
+            </CardTitle>
             <DollarSign className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -53,7 +104,10 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
 
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Total des charges</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-400 inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...dashboardInfo.expenses} />
+              <span>Total des charges</span>
+            </CardTitle>
             <TrendingDown className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
@@ -64,7 +118,10 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
 
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Résultat net</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-400 inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...dashboardInfo.netIncome} />
+              <span>Résultat net</span>
+            </CardTitle>
             {isProfit ? <TrendingUp className="h-4 w-4 text-green-400" /> : <TrendingDown className="h-4 w-4 text-red-400" />}
           </CardHeader>
           <CardContent>
@@ -79,7 +136,10 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
 
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">TVA à payer</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-400 inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...dashboardInfo.vatPayable} />
+              <span>TVA à payer</span>
+            </CardTitle>
             <Receipt className="h-4 w-4 text-orange-400" />
           </CardHeader>
           <CardContent>
@@ -94,7 +154,10 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
         {/* Revenue vs Expenses Bar Chart */}
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-400">Revenus vs Charges</CardTitle>
+            <CardTitle className="text-sm text-gray-400 inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...dashboardInfo.revenueVsExpenses} />
+              <span>Revenus vs Charges</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[280px]">
@@ -136,7 +199,10 @@ const AccountingDashboard = ({ revenue, totalExpenses, netIncome, vatPayable, mo
         {/* Net Income Trend Area Chart */}
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-400">Tendance Résultat Net</CardTitle>
+            <CardTitle className="text-sm text-gray-400 inline-flex items-center gap-1.5">
+              <PanelInfoPopover {...dashboardInfo.netTrend} />
+              <span>Tendance Résultat Net</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[280px]">

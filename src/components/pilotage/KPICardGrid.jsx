@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
+import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { formatCurrency } from '@/utils/currencyService';
 import {
@@ -77,7 +78,48 @@ const COLOR_MAP = {
   },
 };
 
-const KPICard = ({ icon: Icon, label, value, color, currency }) => {
+const KPI_INFO = {
+  revenue: {
+    title: 'Chiffre d’affaires',
+    definition: 'Montant total du chiffre d’affaires consolidé pour la période sélectionnée.',
+    dataSource: 'Données pilotage issues des revenus consolidés et des factures prises en compte par le module pilotage.',
+    formula: 'Chiffre d’affaires = somme des revenus comptabilisés sur la période.',
+    calculationMethod: 'Agrége les revenus disponibles pour la période courante et les formate dans la devise de la société.',
+    notes: 'Le détail des règles de consolidation est calculé en amont dans les hooks pilotage.',
+  },
+  ebitda: {
+    title: 'EBITDA',
+    definition: 'Résultat opérationnel avant intérêts, impôts, dépréciations et amortissements.',
+    dataSource: 'Diagnostic financier pilotage, basé sur les agrégats comptables calculés par le module financier.',
+    formula: 'EBITDA = résultat opérationnel + dotations aux amortissements + dotations aux provisions.',
+    calculationMethod: 'Utilise la valeur EBITDA exposée par `financialDiagnostic.margins.ebitda` pour la société et la période active.',
+    notes: 'Lorsque certaines données sont absentes, la valeur peut être affichée comme non disponible.',
+  },
+  netResult: {
+    title: 'Résultat net',
+    definition: 'Bénéfice ou perte nette après prise en compte de l’ensemble des charges et produits.',
+    dataSource: 'Calcul pilotage provenant du résultat net consolidé de la période.',
+    formula: 'Résultat net = produits - charges - impôts - éléments exceptionnels.',
+    calculationMethod: 'S’appuie sur `data.netIncome`, calculé en amont à partir des données comptables du périmètre actif.',
+  },
+  freeCashFlow: {
+    title: 'Free cash flow',
+    definition: 'Trésorerie libre générée après investissements nécessaires au maintien de l’activité.',
+    dataSource: 'Flux de trésorerie pilotage calculés à partir des mouvements de cash et des investissements.',
+    formula: 'FCF = cash flow opérationnel - investissements nets.',
+    calculationMethod: 'Extrait la valeur `data.pilotageRatios.cashFlow.freeCashFlow` calculée sur la période sélectionnée.',
+  },
+  valuation: {
+    title: 'Valorisation',
+    definition: 'Estimation de la valeur de l’entreprise à partir des multiples appliqués au périmètre pilotage.',
+    dataSource: 'Module de valorisation pilotage, basé sur les multiples financiers calculés en amont.',
+    formula: 'Valorisation = multiple retenu × base de référence économique.',
+    calculationMethod: 'Utilise la valeur médiane de `data.valuation.multiples.midValue` exposée par le moteur de valorisation.',
+    notes: 'La valorisation dépend des hypothèses de marché et du périmètre analysé.',
+  },
+};
+
+const KPICard = ({ icon: Icon, label, info, value, color, currency }) => {
   const colors = COLOR_MAP[color];
   const formattedValue =
     value != null ? formatCurrency(value, currency) : '--';
@@ -92,9 +134,19 @@ const KPICard = ({ icon: Icon, label, value, color, currency }) => {
             <Icon className={`w-5 h-5 ${colors.text}`} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-gray-400 truncate">
-              {label}
-            </p>
+            <div className="flex items-center gap-1 min-w-0">
+              <PanelInfoPopover
+                title={info?.title || label}
+                definition={info?.definition}
+                dataSource={info?.dataSource}
+                formula={info?.formula}
+                calculationMethod={info?.calculationMethod}
+                notes={info?.notes}
+              />
+              <p className="text-xs font-medium text-gray-400 truncate">
+                {label}
+              </p>
+            </div>
             <p className={`text-lg font-bold text-gray-100 mt-0.5 truncate`}>
               {formattedValue}
             </p>
@@ -114,6 +166,7 @@ const KPICardGrid = ({ data }) => {
       KPI_CONFIG.map((cfg) => ({
         ...cfg,
         label: t(cfg.labelKey),
+        info: KPI_INFO[cfg.key],
         value: cfg.getValue(data),
       })),
     [data, t]
@@ -126,6 +179,7 @@ const KPICardGrid = ({ data }) => {
           key={kpi.key}
           icon={kpi.icon}
           label={kpi.label}
+          info={kpi.info}
           value={kpi.value}
           color={kpi.color}
           currency={currency}
