@@ -327,6 +327,11 @@ serve(async (req) => {
             applicationUserId: user.id,
             institutionId,
             callback: callbackUrl,
+            accountRequest: {
+              transactionFrom: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+              expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+              featureScope: ['ACCOUNTS', 'ACCOUNT_TRANSACTIONS', 'ACCOUNT_BALANCES'],
+            },
           }),
         });
 
