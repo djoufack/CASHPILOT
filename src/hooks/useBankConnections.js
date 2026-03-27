@@ -276,13 +276,14 @@ export const useBankConnections = () => {
   );
 
   const completeConnection = useCallback(
-    async (requisitionId, companyId = null, { provider = 'gocardless', consentToken = null } = {}) => {
+    async (requisitionId, companyId = null, { provider = 'gocardless', consentToken = null, oneTimeToken = null } = {}) => {
       try {
         const data = await callBankApi({
           action: 'complete-requisition',
           userId: user?.id,
           requisitionId,
           consentToken,
+          oneTimeToken,
           companyId: companyId || activeCompanyId,
         }, provider);
         await fetchConnections();
