@@ -112,6 +112,15 @@ async function yapilyFetchWithConsent(
   }
 }
 
+// Exchange a one-time-token for a consent token
+async function exchangeOneTimeToken(appId: string, appSecret: string, oneTimeToken: string) {
+  const result = await yapilyFetch(appId, appSecret, '/consent-one-time-token', {
+    method: 'POST',
+    body: JSON.stringify({ oneTimeToken }),
+  });
+  return result?.data?.consentToken || result?.consentToken || null;
+}
+
 async function authenticateUser(req: Request) {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -174,11 +183,16 @@ async function resolveTargetCompanyId(
   return (fallback?.id as string | null) || null;
 }
 
-function resolveBalance(balances: any[]) {
+function resolveBalanceFromAccount(account: any) {
+  // Yapily returns balance info directly in the account object
+  if (account?.balance != null) {
+    return Number(account.balance) || 0;
+  }
+  const balances = account?.accountBalances || [];
   const preferred =
-    balances?.find((b: any) => b.type === 'INTERIM_BOOKED') ||
-    balances?.find((b: any) => b.type === 'CLOSING_BOOKED') ||
-    balances?.[0];
+    balances.find((b: any) => b.type === 'INTERIM_BOOKED' || b.type === 'INTERIM_AVAILABLE') ||
+    balances.find((b: any) => b.type === 'CLOSING_BOOKED') ||
+    balances[0];
   return Number(preferred?.balanceAmount?.amount || 0) || 0;
 }
 
@@ -221,6 +235,7 @@ serve(async (req) => {
       institutionName,
       redirectUrl,
       consentToken,
+      oneTimeToken,
       connectionId,
       country,
     } = body;
@@ -347,8 +362,18 @@ serve(async (req) => {
       // Complete requisition — fetch accounts after user authorizes
       case 'complete-requisition': {
         const requisitionId = body.requisitionId;
-        if (!consentToken && !requisitionId) {
-          return json(req, { error: 'Missing consentToken or requisitionId' }, 400);
+        const oneTimeToken = body.oneTimeToken;
+        if (!consentToken && !requisitionId && !oneTimeToken) {
+          return json(req, { error: 'Missing consentToken, oneTimeToken, or requisitionId' }, 400);
+        }
+
+        // Exchange one-time-token for consent token if provided
+        let resolvedConsent = consentToken;
+        if (!resolvedConsent && oneTimeToken) {
+          resolvedConsent = await exchangeOneTimeToken(appId, appSecret, oneTimeToken);
+          if (!resolvedConsent) {
+            return json(req, { error: 'Failed to exchange one-time-token for consent' }, 422);
+          }
         }
 
         const resolvedCompanyId = await resolveTargetCompanyId(supabase, user.id, companyId);
@@ -375,7 +400,7 @@ serve(async (req) => {
 
         // Use consent token from the connection or from the request
         const effectiveConsent =
-          consentToken || seedConnection?.agreement_id || requisitionId;
+          resolvedConsent || seedConnection?.agreement_id || requisitionId;
         if (!effectiveConsent) {
           return json(req, { error: 'No consent token available' }, 422);
         }
@@ -411,18 +436,8 @@ serve(async (req) => {
           const accountId = account.id;
 
           // Get balance
-          let accountBalance = 0;
-          try {
-            const balanceData = await yapilyFetchWithConsent(
-              appId,
-              appSecret,
-              effectiveConsent,
-              `/accounts/${accountId}/balances`
-            );
-            accountBalance = resolveBalance(balanceData?.data?.balances || []);
-          } catch {
-            // Balance fetch may fail on some institutions
-          }
+          // Extract balance from the account object (Yapily includes it in /accounts response)
+          const accountBalance = resolveBalanceFromAccount(account);
 
           const basePayload = {
             institution_id: account.institutionId || seedConnection?.institution_id || '',
@@ -584,14 +599,13 @@ serve(async (req) => {
         try {
           // Fetch balance
           let balance = connection.account_balance;
+          // Fetch fresh account data to get updated balance
           try {
-            const balanceData = await yapilyFetchWithConsent(
-              appId,
-              appSecret,
-              effectiveConsent,
-              `/accounts/${connection.account_id}/balances`
+            const accountsData = await yapilyFetchWithConsent(
+              appId, appSecret, effectiveConsent,
+              `/accounts/${connection.account_id}`
             );
-            balance = resolveBalance(balanceData?.data?.balances || []);
+            balance = resolveBalanceFromAccount(accountsData?.data);
           } catch {}
 
           // Fetch transactions
