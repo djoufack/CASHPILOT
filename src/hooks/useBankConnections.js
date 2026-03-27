@@ -9,6 +9,11 @@ import { buildCanonicalOperationsSnapshot } from '@/shared/canonicalOperationsSn
 const DEFAULT_BANK_COUNTRY = 'BE';
 const BANK_API_TIMEOUT_MS = 20000;
 
+const PROVIDER_ENDPOINTS = {
+  gocardless: 'gocardless-auth',
+  yapily: 'yapily-auth',
+};
+
 function normalizeCountryCode(value) {
   return (
     String(value || DEFAULT_BANK_COUNTRY)
@@ -34,6 +39,13 @@ export const useBankConnections = () => {
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [integrationHealth, setIntegrationHealth] = useState({
+    ready: false,
+    credentialsConfigured: false,
+    providerReachable: false,
+    message: null,
+    checkedAt: null,
+  });
+  const [yapilyHealth, setYapilyHealth] = useState({
     ready: false,
     credentialsConfigured: false,
     providerReachable: false,
@@ -70,7 +82,7 @@ export const useBankConnections = () => {
   }, []);
 
   const callBankApi = useCallback(
-    async (payload) => {
+    async (payload, provider = 'gocardless') => {
       if (!supabase) {
         throw new Error('Supabase not configured');
       }
@@ -80,12 +92,14 @@ export const useBankConnections = () => {
         throw new Error('Authentication required');
       }
 
+      const endpoint = PROVIDER_ENDPOINTS[provider] || PROVIDER_ENDPOINTS.gocardless;
+
       const executeRequest = async (token) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), BANK_API_TIMEOUT_MS);
 
         try {
-          return await fetch(`${supabaseUrl}/functions/v1/gocardless-auth`, {
+          return await fetch(`${supabaseUrl}/functions/v1/${endpoint}`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${token}`,
@@ -153,26 +167,34 @@ export const useBankConnections = () => {
     if (!user) return;
     setIntegrationHealthLoading(true);
 
-    try {
-      const data = await callBankApi({ action: 'health' });
-      setIntegrationHealth({
-        ready: Boolean(data?.ready),
-        credentialsConfigured: Boolean(data?.credentialsConfigured),
-        providerReachable: Boolean(data?.providerReachable),
-        message: data?.message || null,
-        checkedAt: data?.checkedAt || new Date().toISOString(),
-      });
-    } catch (err) {
-      setIntegrationHealth({
-        ready: false,
-        credentialsConfigured: false,
-        providerReachable: false,
-        message: err instanceof Error ? err.message : 'Bank integration health check failed',
-        checkedAt: new Date().toISOString(),
-      });
-    } finally {
-      setIntegrationHealthLoading(false);
-    }
+    const checkProvider = async (provider) => {
+      try {
+        const data = await callBankApi({ action: 'health' }, provider);
+        return {
+          ready: Boolean(data?.ready),
+          credentialsConfigured: Boolean(data?.credentialsConfigured),
+          providerReachable: Boolean(data?.providerReachable),
+          message: data?.message || null,
+          checkedAt: data?.checkedAt || new Date().toISOString(),
+        };
+      } catch (err) {
+        return {
+          ready: false,
+          credentialsConfigured: false,
+          providerReachable: false,
+          message: err instanceof Error ? err.message : 'Health check failed',
+          checkedAt: new Date().toISOString(),
+        };
+      }
+    };
+
+    const [gcHealth, ypHealth] = await Promise.all([
+      checkProvider('gocardless'),
+      checkProvider('yapily'),
+    ]);
+    setIntegrationHealth(gcHealth);
+    setYapilyHealth(ypHealth);
+    setIntegrationHealthLoading(false);
   }, [callBankApi, user]);
 
   useEffect(() => {
@@ -180,24 +202,25 @@ export const useBankConnections = () => {
   }, [refreshIntegrationHealth]);
 
   const listInstitutions = useCallback(
-    async (countryCode = DEFAULT_BANK_COUNTRY, { force = false } = {}) => {
+    async (countryCode = DEFAULT_BANK_COUNTRY, { force = false, provider = 'gocardless' } = {}) => {
       const normalizedCountry = normalizeCountryCode(countryCode);
-      if (!force && institutionsCacheRef.current.has(normalizedCountry)) {
-        return institutionsCacheRef.current.get(normalizedCountry);
+      const cacheKey = `${provider}:${normalizedCountry}`;
+      if (!force && institutionsCacheRef.current.has(cacheKey)) {
+        return institutionsCacheRef.current.get(cacheKey);
       }
 
       try {
         const data = await callBankApi({
           action: 'list-institutions',
           country: normalizedCountry,
-        });
+        }, provider);
 
         const institutions = (data?.institutions || [])
           .map(normalizeInstitution)
           .filter((institution) => institution.id)
           .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
 
-        institutionsCacheRef.current.set(normalizedCountry, institutions);
+        institutionsCacheRef.current.set(cacheKey, institutions);
         return institutions;
       } catch (err) {
         console.error('listInstitutions error:', err);
@@ -208,7 +231,7 @@ export const useBankConnections = () => {
   );
 
   const initiateConnection = useCallback(
-    async ({ institutionId, institutionName, country, returnPath = '/app/bank-connections' }) => {
+    async ({ institutionId, institutionName, country, returnPath = '/app/bank-connections', provider = 'gocardless' }) => {
       if (!user) {
         throw new Error('Authentication required');
       }
@@ -224,7 +247,7 @@ export const useBankConnections = () => {
           institutionName,
           country: normalizedCountry,
           redirectUrl,
-        });
+        }, provider);
 
         if (!data?.link || !data?.requisition_id) {
           throw new Error('Unable to start bank authorization');
@@ -232,11 +255,13 @@ export const useBankConnections = () => {
 
         storePendingBankConnection({
           requisitionId: data.requisition_id,
+          consentToken: data.consent_token || null,
           institutionId,
           institutionName,
           country: normalizedCountry,
           companyId: activeCompanyId,
           returnPath,
+          provider,
         });
 
         window.location.assign(data.link);
@@ -251,14 +276,15 @@ export const useBankConnections = () => {
   );
 
   const completeConnection = useCallback(
-    async (requisitionId, companyId = null) => {
+    async (requisitionId, companyId = null, { provider = 'gocardless', consentToken = null } = {}) => {
       try {
         const data = await callBankApi({
           action: 'complete-requisition',
           userId: user?.id,
           requisitionId,
+          consentToken,
           companyId: companyId || activeCompanyId,
-        });
+        }, provider);
         await fetchConnections();
         return data;
       } catch (err) {
@@ -270,14 +296,15 @@ export const useBankConnections = () => {
   );
 
   const syncConnection = useCallback(
-    async (connectionId, companyId = null) => {
+    async (connectionId, companyId = null, provider = null) => {
       try {
+        const resolvedProvider = provider || 'gocardless';
         const data = await callBankApi({
           action: 'sync-transactions',
           userId: user?.id,
           connectionId,
           companyId: companyId || activeCompanyId,
-        });
+        }, resolvedProvider);
         await fetchConnections();
         return data;
       } catch (err) {
@@ -313,6 +340,7 @@ export const useBankConnections = () => {
     connections,
     loading,
     integrationHealth,
+    yapilyHealth,
     integrationHealthLoading,
     refreshIntegrationHealth,
     listInstitutions,
