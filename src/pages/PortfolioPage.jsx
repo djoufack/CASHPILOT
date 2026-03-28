@@ -23,6 +23,7 @@ import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/utils/calculations';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
+import { usePortfolioStressTests } from '@/hooks/usePortfolioStressTests';
 
 const CLOSED_INVOICE_STATUSES = new Set(['paid', 'cancelled']);
 const CLOSED_PAYMENT_STATUSES = new Set(['paid']);
@@ -137,66 +138,75 @@ const PortfolioPage = () => {
   const [watchlist, setWatchlist] = useState([]);
   const locale = i18n.resolvedLanguage || i18n.language || 'en';
 
-  const panelInfo = useMemo(() => ({
-    summary: {
-      companiesTracked: {
-        title: t('portfolio.summary.companiesTracked'),
-        definition: 'Nombre total de societes visibles dans le portefeuille actif.',
-        dataSource: 'Table company et agregations portefeuille calculees depuis les RPC Supabase.',
-        formula: 'Nombre de societes = total des societes presentes dans le portefeuille courant.',
-        calculationMethod: 'On compte les societes chargees dans l etat portefeuille, puis on applique le tri de priorite de la societe active et du revenu facture.',
-        notes: 'Le sous-indicateur de retard correspond au nombre de societes ayant au moins une facture en retard.',
+  const panelInfo = useMemo(
+    () => ({
+      summary: {
+        companiesTracked: {
+          title: t('portfolio.summary.companiesTracked'),
+          definition: 'Nombre total de societes visibles dans le portefeuille actif.',
+          dataSource: 'Table company et agregations portefeuille calculees depuis les RPC Supabase.',
+          formula: 'Nombre de societes = total des societes presentes dans le portefeuille courant.',
+          calculationMethod:
+            'On compte les societes chargees dans l etat portefeuille, puis on applique le tri de priorite de la societe active et du revenu facture.',
+          notes: 'Le sous-indicateur de retard correspond au nombre de societes ayant au moins une facture en retard.',
+        },
+        bookedRevenue: {
+          title: t('portfolio.summary.bookedRevenue'),
+          definition: 'Revenu facture cumule par societe sur le perimetre du portefeuille.',
+          dataSource: 'Factures retournees par `get_portfolio_invoices` via Supabase.',
+          formula: 'Somme des montants TTC des factures non annulees.',
+          calculationMethod: 'Pour chaque facture, on ajoute `total_ttc` si le statut est different de cancelled.',
+          notes: 'Les montants sont regroupes par devise lorsqu il existe plusieurs monnaies.',
+        },
+        collectedCash: {
+          title: t('portfolio.summary.collectedCash'),
+          definition: 'Encaissements cumules observes dans le portefeuille.',
+          dataSource: 'Paiements retournes par `get_portfolio_payments` via Supabase.',
+          formula: 'Somme des montants de paiement.',
+          calculationMethod: 'On additionne `amount` pour tous les paiements recus sur les societes du portefeuille.',
+          notes: 'Les valeurs sont agregees par devise si necessaire.',
+        },
+        outstandingReceivables: {
+          title: t('portfolio.summary.outstandingReceivables'),
+          definition: 'Creances clients encore dues sur les factures ouvertes.',
+          dataSource: 'Factures retournees par `get_portfolio_invoices` via Supabase.',
+          formula: 'Somme des soldes dus des factures non closes et non annulees.',
+          calculationMethod:
+            'On conserve les factures non reglees, on ecarte les factures annulees, puis on additionne `balance_due`.',
+          notes: 'Le sous-indicateur de pipeline reprend la valeur des devis ouverts.',
+        },
       },
-      bookedRevenue: {
-        title: t('portfolio.summary.bookedRevenue'),
-        definition: 'Revenu facture cumule par societe sur le perimetre du portefeuille.',
-        dataSource: 'Factures retournees par `get_portfolio_invoices` via Supabase.',
-        formula: 'Somme des montants TTC des factures non annulees.',
-        calculationMethod: 'Pour chaque facture, on ajoute `total_ttc` si le statut est different de cancelled.',
-        notes: 'Les montants sont regroupes par devise lorsqu il existe plusieurs monnaies.',
+      sections: {
+        companiesAndPriorities: {
+          title: t('portfolio.sections.companiesAndPriorities'),
+          definition: 'Bloc principal de pilotage qui classe les societes du portefeuille par priorite operationnelle.',
+          dataSource:
+            'Vue portefeuille consolidee construite a partir des factures, paiements, projets et devis des RPC Supabase.',
+          calculationMethod:
+            'Les societes sont triees en priorite sur la societe active, puis par revenu facture decroissant.',
+          notes: 'Ce panneau sert a acceder rapidement a une societe ou a ses parametres.',
+        },
+        watchlist: {
+          title: t('portfolio.sections.watchlist'),
+          definition: 'Liste des factures clients en retard de paiement detectees dans le portefeuille.',
+          dataSource: 'Factures retournees par `get_portfolio_invoices` via Supabase.',
+          formula: 'Nombre d elements = nombre de factures en retard; montant = somme des soldes dus en retard.',
+          calculationMethod:
+            'Une facture est retenue si elle est ouverte, non annulee et avec une date d echeance anterieure a la date du jour.',
+          notes: 'Le badge de retard affiche le nombre de jours ecoules depuis l echeance.',
+        },
+        quickRead: {
+          title: t('portfolio.sections.quickRead'),
+          definition: 'Resume de lecture rapide des signaux cles du portefeuille.',
+          dataSource: 'Agregats calcules localement a partir des societes, projets, devis et retards consolides.',
+          calculationMethod:
+            'Les metriques affichees dans ce bloc synthetisent la charge projet, le pipeline de devis et l action recommandee.',
+          notes: 'Ce panneau ne modifie aucune donnee; il restitue uniquement une synthese de pilotage.',
+        },
       },
-      collectedCash: {
-        title: t('portfolio.summary.collectedCash'),
-        definition: 'Encaissements cumules observes dans le portefeuille.',
-        dataSource: 'Paiements retournes par `get_portfolio_payments` via Supabase.',
-        formula: 'Somme des montants de paiement.',
-        calculationMethod: 'On additionne `amount` pour tous les paiements recus sur les societes du portefeuille.',
-        notes: 'Les valeurs sont agregees par devise si necessaire.',
-      },
-      outstandingReceivables: {
-        title: t('portfolio.summary.outstandingReceivables'),
-        definition: 'Creances clients encore dues sur les factures ouvertes.',
-        dataSource: 'Factures retournees par `get_portfolio_invoices` via Supabase.',
-        formula: 'Somme des soldes dus des factures non closes et non annulees.',
-        calculationMethod: 'On conserve les factures non reglees, on ecarte les factures annulees, puis on additionne `balance_due`.',
-        notes: 'Le sous-indicateur de pipeline reprend la valeur des devis ouverts.',
-      },
-    },
-    sections: {
-      companiesAndPriorities: {
-        title: t('portfolio.sections.companiesAndPriorities'),
-        definition: 'Bloc principal de pilotage qui classe les societes du portefeuille par priorite operationnelle.',
-        dataSource: 'Vue portefeuille consolidee construite a partir des factures, paiements, projets et devis des RPC Supabase.',
-        calculationMethod: 'Les societes sont triees en priorite sur la societe active, puis par revenu facture decroissant.',
-        notes: 'Ce panneau sert a acceder rapidement a une societe ou a ses parametres.',
-      },
-      watchlist: {
-        title: t('portfolio.sections.watchlist'),
-        definition: 'Liste des factures clients en retard de paiement detectees dans le portefeuille.',
-        dataSource: 'Factures retournees par `get_portfolio_invoices` via Supabase.',
-        formula: 'Nombre d elements = nombre de factures en retard; montant = somme des soldes dus en retard.',
-        calculationMethod: 'Une facture est retenue si elle est ouverte, non annulee et avec une date d echeance anterieure a la date du jour.',
-        notes: 'Le badge de retard affiche le nombre de jours ecoules depuis l echeance.',
-      },
-      quickRead: {
-        title: t('portfolio.sections.quickRead'),
-        definition: 'Resume de lecture rapide des signaux cles du portefeuille.',
-        dataSource: 'Agregats calcules localement a partir des societes, projets, devis et retards consolides.',
-        calculationMethod: 'Les metriques affichees dans ce bloc synthetisent la charge projet, le pipeline de devis et l action recommandee.',
-        notes: 'Ce panneau ne modifie aucune donnee; il restitue uniquement une synthese de pilotage.',
-      },
-    },
-  }), [t]);
+    }),
+    [t]
+  );
 
   const loadPortfolio = useCallback(async () => {
     if (!user || companyLoading) {
@@ -341,6 +351,7 @@ const PortfolioPage = () => {
     }),
     [portfolio]
   );
+  const stressTests = usePortfolioStressTests(portfolioTotals);
 
   const openCompanyWorkspace = async (companyId) => {
     await switchCompany(companyId);
@@ -452,6 +463,122 @@ const PortfolioPage = () => {
               </Card>
             );
           })}
+        </section>
+
+        <section
+          data-testid="portfolio-stress-tests"
+          className="rounded-3xl border border-white/10 bg-slate-950/70 backdrop-blur"
+        >
+          <Card className="border-0 bg-transparent shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-white">
+                <PanelInfoPopover
+                  title={t('portfolio.stressTests.sectionTitle', 'Stress-tests du portefeuille')}
+                  definition={t(
+                    'portfolio.stressTests.sectionDescription',
+                    'Scénarios de choc calculés à partir des totaux portefeuille chargés depuis Supabase.'
+                  )}
+                  dataSource={t(
+                    'portfolio.stressTests.sectionDataSource',
+                    'Totaux portefeuille calculés à partir des RPC Supabase en temps réel.'
+                  )}
+                  formula={t(
+                    'portfolio.stressTests.sectionFormula',
+                    'Les chocs appliquent des scénarios proportionnels aux agrégats réels du portefeuille.'
+                  )}
+                  calculationMethod={t(
+                    'portfolio.stressTests.sectionCalculationMethod',
+                    'Les calculs s’appuient sur les totaux agrégés chargés dans la page portefeuille.'
+                  )}
+                  notes={t(
+                    'portfolio.stressTests.sectionNotes',
+                    'Les pourcentages de stress sont des hypothèses d’analyse, pas des données métier.'
+                  )}
+                />
+                <span>{t('portfolio.stressTests.sectionTitle', 'Stress-tests du portefeuille')}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 xl:grid-cols-3">
+                {stressTests.map((scenario) => (
+                  <div
+                    key={scenario.key}
+                    data-testid={`portfolio-stress-test-card-${scenario.key}`}
+                    className="rounded-2xl border border-white/10 bg-slate-900/80 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                          {t('portfolio.stressTests.scenarioLabel', 'Scénario')}
+                        </p>
+                        <h3 className="mt-1 text-base font-semibold text-white">
+                          {t(scenario.titleKey, scenario.titleKey)}
+                        </h3>
+                        <p className="mt-2 text-sm text-slate-400">
+                          {t(scenario.descriptionKey, scenario.descriptionKey)}
+                        </p>
+                      </div>
+                      <Badge
+                        className={
+                          scenario.severity === 'danger'
+                            ? 'border-rose-400/30 bg-rose-500/15 text-rose-200'
+                            : 'border-amber-400/30 bg-amber-500/15 text-amber-200'
+                        }
+                      >
+                        {t(`portfolio.stressTests.severity.${scenario.severity}`, scenario.severity)}
+                      </Badge>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      {scenario.metrics.map((metric) => (
+                        <div key={metric.key} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-white">{t(metric.labelKey, metric.labelKey)}</p>
+                              <p className="text-xs text-slate-500">
+                                {t('portfolio.stressTests.impact', 'Impact')}{' '}
+                                <span className={metric.deltaPercent >= 0 ? 'text-emerald-300' : 'text-rose-300'}>
+                                  {metric.deltaPercent > 0 ? '+' : ''}
+                                  {metric.deltaPercent}%
+                                </span>
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                                {t('portfolio.stressTests.baseline', 'Base')}
+                              </p>
+                              <p className="text-sm font-semibold text-white">
+                                {metric.kind === 'money' ? formatMoneyGroups(metric.baseline) : metric.baseline}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            <div className="rounded-lg border border-white/10 bg-slate-950/70 p-2">
+                              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                                {t('portfolio.stressTests.stressed', 'Sous stress')}
+                              </p>
+                              <p className="mt-1 text-sm font-semibold text-orange-200">
+                                {metric.kind === 'money' ? formatMoneyGroups(metric.stressed) : metric.stressed}
+                              </p>
+                            </div>
+                            <div className="rounded-lg border border-white/10 bg-slate-950/70 p-2">
+                              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                                {t('portfolio.stressTests.deltaLabel', 'Variation')}
+                              </p>
+                              <p className="mt-1 text-sm font-semibold text-white">
+                                {metric.deltaPercent > 0 ? '+' : ''}
+                                {metric.deltaPercent}%
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1.6fr_0.95fr]">

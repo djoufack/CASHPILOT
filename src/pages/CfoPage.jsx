@@ -5,9 +5,12 @@ import CfoChatPanel from '@/components/cfo/CfoChatPanel';
 import CfoInsightsCard from '@/components/cfo/CfoInsightsCard';
 import CfoAlertsList from '@/components/cfo/CfoAlertsList';
 import CfoGuidedActionsPanel from '@/components/cfo/CfoGuidedActionsPanel';
+import CfoWeeklyBriefingCard from '@/components/cfo/CfoWeeklyBriefingCard';
+import { useCfoWeeklyBriefing } from '@/hooks/useCfoWeeklyBriefing';
 
 const CfoPage = () => {
   const { t } = useTranslation();
+  const { briefing, loading, error, generatedNow, refreshBriefing } = useCfoWeeklyBriefing();
 
   return (
     <>
@@ -33,6 +36,14 @@ const CfoPage = () => {
             </p>
           </div>
         </div>
+
+        <CfoWeeklyBriefingCard
+          briefing={briefing}
+          loading={loading}
+          error={error}
+          generatedNow={generatedNow}
+          onRefresh={refreshBriefing}
+        />
 
         <CfoGuidedActionsPanel />
 

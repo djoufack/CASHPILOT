@@ -6,6 +6,23 @@ import { useCompany } from '@/hooks/useCompany';
 import { useInvoiceSettings } from '@/hooks/useInvoiceSettings';
 import { setStoredActiveCompanyId } from '@/utils/activeCompanyStorage';
 import {
+  buildGedDocumentVersionIndex,
+  buildGedVersionStoragePath,
+  computeBlobSha256Hex,
+  enrichDocumentsWithGedVersionInfo,
+} from '@/services/gedVersioning';
+import {
+  computeRetentionUntilFromDays,
+  enrichGedDocumentsWithRetentionInfo,
+  normalizeGedRetentionPolicyPayload,
+  resolveGedRetentionPolicy,
+} from '@/services/gedRetentionPolicies';
+import {
+  enrichGedDocumentsWithWorkflowInfo,
+  normalizeGedWorkflowComment,
+  normalizeGedWorkflowPayload,
+} from '@/services/gedWorkflow';
+import {
   exportCreditNotePDF,
   exportDeliveryNotePDF,
   exportInvoicePDF,
@@ -56,6 +73,7 @@ const normalizeCompanyId = (value) =>
     .toLowerCase();
 const ACCOUNTING_SOURCE_TABLES = new Set(['invoices', 'supplier_invoices']);
 const SCANNABLE_ACCOUNTING_MIME_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']);
+const GED_VERSION_TABLE = 'document_hub_versions';
 const sanitizeFileName = (value) =>
   String(value || 'document')
     .replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -160,6 +178,10 @@ export const useGedHub = (options = {}) => {
   const [clients, setClients] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [counterpartiesLoading, setCounterpartiesLoading] = useState(false);
+  const [retentionPolicies, setRetentionPolicies] = useState([]);
+  const [retentionPoliciesLoading, setRetentionPoliciesLoading] = useState(false);
+  const [workflowRows, setWorkflowRows] = useState([]);
+  const [workflowLoading, setWorkflowLoading] = useState(false);
 
   const applyEffectiveCompanyScope = useCallback(
     (query, options = {}) => {
@@ -289,6 +311,52 @@ export const useGedHub = (options = {}) => {
         metadataError = metadataResult.error || null;
       }
 
+      setRetentionPoliciesLoading(true);
+      let retentionPolicyRows = [];
+      let retentionPolicyError = null;
+      try {
+        let retentionPolicyQuery = supabase.from('document_hub_retention_policies').select('*');
+        retentionPolicyQuery = applyEffectiveCompanyScope(retentionPolicyQuery);
+        const retentionPolicyResult = await retentionPolicyQuery;
+        if (retentionPolicyResult.error?.code === 'PGRST205') {
+          retentionPolicyRows = [];
+        } else {
+          retentionPolicyRows = retentionPolicyResult.data || [];
+          retentionPolicyError = retentionPolicyResult.error || null;
+        }
+      } finally {
+        setRetentionPoliciesLoading(false);
+      }
+
+      setWorkflowLoading(true);
+      let workflowRowsData = [];
+      let workflowError = null;
+      try {
+        let workflowQuery = supabase.from('document_hub_workflows').select('*');
+        workflowQuery = applyEffectiveCompanyScope(workflowQuery);
+        const workflowResult = await workflowQuery;
+        if (workflowResult.error?.code === 'PGRST205') {
+          workflowRowsData = [];
+        } else {
+          workflowRowsData = workflowResult.data || [];
+          workflowError = workflowResult.error || null;
+        }
+      } finally {
+        setWorkflowLoading(false);
+      }
+
+      let versionRows = [];
+      let versionError = null;
+      let versionQuery = supabase.from(GED_VERSION_TABLE).select('*').order('version', { ascending: false });
+      versionQuery = applyEffectiveCompanyScope(versionQuery);
+      const versionResult = await versionQuery;
+      if (versionResult.error?.code === 'PGRST205') {
+        versionRows = [];
+      } else {
+        versionRows = versionResult.data || [];
+        versionError = versionResult.error || null;
+      }
+
       const firstError =
         invoicesError ||
         quotesError ||
@@ -296,7 +364,10 @@ export const useGedHub = (options = {}) => {
         deliveryNotesError ||
         purchaseOrdersError ||
         supplierInvoicesError ||
-        metadataError;
+        metadataError ||
+        retentionPolicyError ||
+        workflowError ||
+        versionError;
 
       if (firstError) {
         throw firstError;
@@ -327,6 +398,9 @@ export const useGedHub = (options = {}) => {
       const metadataMap = new Map(
         (metadataRows || []).map((row) => [makeMetadataKey(row.source_table, row.source_id), row])
       );
+      const retentionPolicyIndex = Array.isArray(retentionPolicyRows) ? retentionPolicyRows : [];
+      const workflowIndex = Array.isArray(workflowRowsData) ? workflowRowsData : [];
+      const versionIndex = buildGedDocumentVersionIndex(versionRows || []);
 
       const unified = [
         ...mapRowsToDocuments('invoices', invoices),
@@ -335,23 +409,71 @@ export const useGedHub = (options = {}) => {
         ...mapRowsToDocuments('delivery_notes', deliveryNotes),
         ...mapRowsToDocuments('purchase_orders', purchaseOrders),
         ...mapRowsToDocuments('supplier_invoices', supplierInvoices),
-      ]
+      ].map((doc) => {
+        const metadata = metadataMap.get(makeMetadataKey(doc.sourceTable, doc.sourceId));
+        return {
+          ...doc,
+          metadata: metadata || null,
+          tags: metadata?.tags || [],
+          docCategory: metadata?.doc_category || 'general',
+          confidentialityLevel: metadata?.confidentiality_level || 'internal',
+          retentionUntil: metadata?.retention_until || null,
+          isStarred: metadata?.is_starred || false,
+          notes: metadata?.notes || '',
+        };
+      });
+
+      const retentionBackfillPayload = unified
         .map((doc) => {
-          const metadata = metadataMap.get(makeMetadataKey(doc.sourceTable, doc.sourceId));
+          if (doc.retentionUntil) {
+            return null;
+          }
+
+          const retentionPolicy = resolveGedRetentionPolicy(retentionPolicyIndex, {
+            sourceTable: doc.sourceTable,
+            docCategory: doc.docCategory,
+          });
+          const automaticRetentionUntil = computeRetentionUntilFromDays(
+            doc.createdAt || doc.raw?.created_at || new Date().toISOString(),
+            retentionPolicy?.retention_days
+          );
+
+          if (!automaticRetentionUntil) {
+            return null;
+          }
+
           return {
-            ...doc,
-            metadata: metadata || null,
-            tags: metadata?.tags || [],
-            docCategory: metadata?.doc_category || 'general',
-            confidentialityLevel: metadata?.confidentiality_level || 'internal',
-            retentionUntil: metadata?.retention_until || null,
-            isStarred: metadata?.is_starred || false,
-            notes: metadata?.notes || '',
+            company_id: doc.raw?.company_id || effectiveCompanyId,
+            source_table: doc.sourceTable,
+            source_id: doc.sourceId,
+            doc_category: doc.docCategory || 'general',
+            retention_until: automaticRetentionUntil,
           };
         })
-        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        .filter(Boolean);
 
-      setDocuments(unified);
+      if (retentionBackfillPayload.length > 0) {
+        const { error: retentionBackfillError } = await supabase
+          .from('document_hub_metadata')
+          .upsert(retentionBackfillPayload, {
+            onConflict: 'company_id,source_table,source_id',
+          });
+        if (retentionBackfillError && retentionBackfillError.code !== 'PGRST205') {
+          throw retentionBackfillError;
+        }
+      }
+
+      const unifiedWithVersions = enrichGedDocumentsWithWorkflowInfo(
+        enrichGedDocumentsWithRetentionInfo(
+          enrichDocumentsWithGedVersionInfo(unified, versionIndex),
+          retentionPolicyIndex
+        ),
+        workflowIndex
+      ).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      setDocuments(unifiedWithVersions);
+      setRetentionPolicies(retentionPolicyRows || []);
+      setWorkflowRows(workflowRowsData || []);
     } catch (error) {
       console.error('GED HUB fetch error', error);
       toast({
@@ -784,6 +906,7 @@ export const useGedHub = (options = {}) => {
     }
 
     setMutating(true);
+    let uploadedPath = null;
     try {
       const { data: sessionResult, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
@@ -798,13 +921,90 @@ export const useGedHub = (options = {}) => {
           .split('.')
           .pop() || 'pdf';
       const baseName = sanitizeFileName(String(file.name || `document.${extension}`));
-      const storagePath = `${userId}/${document.sourceTable}/${document.sourceId}/${Date.now()}-${baseName}`;
+      const contentHash = await computeBlobSha256Hex(file);
+
+      const resolveCurrentDocumentHash = async (bucketName, fileUrl) => {
+        if (!fileUrl) return null;
+        try {
+          let binaryData = null;
+          if (/^https?:\/\//i.test(String(fileUrl))) {
+            const response = await fetch(fileUrl);
+            if (!response.ok) return null;
+            binaryData = await response.blob();
+          } else {
+            const { data, error } = await supabase.storage.from(bucketName).download(fileUrl);
+            if (error || !data) return null;
+            binaryData = data;
+          }
+
+          return await computeBlobSha256Hex(binaryData);
+        } catch (compareError) {
+          console.warn('GED HUB version compare skipped', compareError);
+          return null;
+        }
+      };
+
+      let versioningAvailable = true;
+      let latestVersion = null;
+      const { data: latestVersionResult, error: latestVersionError } = await supabase
+        .from(GED_VERSION_TABLE)
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('source_table', document.sourceTable)
+        .eq('source_id', document.sourceId)
+        .order('version', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestVersionError) {
+        if (latestVersionError.code === 'PGRST205') {
+          versioningAvailable = false;
+        } else {
+          throw latestVersionError;
+        }
+      } else {
+        latestVersion = latestVersionResult || null;
+      }
+
+      if (latestVersion?.content_hash && latestVersion.content_hash === contentHash) {
+        return {
+          duplicated: true,
+          version: Number(latestVersion.version) || 1,
+          contentHash,
+          storagePath: latestVersion.storage_path || latestVersion.file_url || document.fileUrl || null,
+          latestVersion,
+        };
+      }
+
+      if (!latestVersion && document.fileUrl) {
+        const currentHash = await resolveCurrentDocumentHash(bucket, document.fileUrl);
+        if (currentHash && currentHash === contentHash) {
+          return {
+            duplicated: true,
+            version: Number(document.currentVersion) || 1,
+            contentHash,
+            storagePath: document.fileUrl,
+            latestVersion: null,
+          };
+        }
+      }
+
+      const nextVersion = Math.max(Number(latestVersion?.version) || Number(document.currentVersion) || 0, 0) + 1;
+      const storagePath = buildGedVersionStoragePath({
+        userId,
+        sourceTable: document.sourceTable,
+        sourceId: document.sourceId,
+        version: nextVersion,
+        contentHash,
+        fileName: baseName,
+      });
 
       const { error: uploadError } = await supabase.storage.from(bucket).upload(storagePath, file, {
-        upsert: true,
+        upsert: false,
         contentType: file.type || undefined,
       });
       if (uploadError) throw uploadError;
+      uploadedPath = storagePath;
 
       const extractionResult = await processAccountingDocumentUpload({
         document,
@@ -814,6 +1014,33 @@ export const useGedHub = (options = {}) => {
         userId,
         accessToken,
       });
+
+      const versionPayload = {
+        company_id: companyId,
+        source_table: document.sourceTable,
+        source_id: document.sourceId,
+        version: nextVersion,
+        content_hash: contentHash,
+        file_name: baseName,
+        file_size: file.size ?? null,
+        mime_type: file.type || null,
+        storage_bucket: bucket,
+        storage_path: storagePath,
+        file_url: storagePath,
+        created_by: userId,
+      };
+
+      if (versioningAvailable) {
+        const { error: versionInsertError } = await supabase.from(GED_VERSION_TABLE).insert(versionPayload);
+        if (versionInsertError) {
+          if (versionInsertError.code === 'PGRST205') {
+            versioningAvailable = false;
+          } else {
+            throw versionInsertError;
+          }
+        }
+      }
+
       await persistDocumentFileUrl(document, companyId, storagePath);
 
       if (!skipRefresh) {
@@ -823,7 +1050,19 @@ export const useGedHub = (options = {}) => {
       return {
         storagePath,
         accountingExtraction: extractionResult,
+        duplicated: false,
+        version: nextVersion,
+        contentHash,
+        versionRow: versionPayload,
       };
+    } catch (error) {
+      if (uploadedPath) {
+        await supabase.storage
+          .from(bucket)
+          .remove([uploadedPath])
+          .catch(() => {});
+      }
+      throw error;
     } finally {
       setMutating(false);
     }
@@ -846,14 +1085,29 @@ export const useGedHub = (options = {}) => {
       throw new Error('Aucune societe active detectee pour la mise a jour des metadonnees.');
     }
 
+    const resolvedDocCategory = patch.doc_category ?? document.docCategory ?? 'general';
+    const retentionPolicy = resolveGedRetentionPolicy(retentionPolicies, {
+      sourceTable: document.sourceTable,
+      docCategory: resolvedDocCategory,
+    });
+    const patchHasRetention = Object.prototype.hasOwnProperty.call(patch, 'retention_until');
+    const explicitRetention = patchHasRetention ? String(patch.retention_until || '').trim() || null : undefined;
+    const automaticRetentionUntil = computeRetentionUntilFromDays(
+      document.createdAt || document.raw?.created_at || new Date().toISOString(),
+      retentionPolicy?.retention_days
+    );
+    const resolvedRetentionUntil =
+      explicitRetention ??
+      (patchHasRetention ? automaticRetentionUntil : document.retentionUntil || automaticRetentionUntil || null);
+
     const payload = {
       company_id: resolvedCompanyId,
       source_table: document.sourceTable,
       source_id: document.sourceId,
-      doc_category: patch.doc_category ?? document.docCategory ?? 'general',
+      doc_category: resolvedDocCategory,
       confidentiality_level: patch.confidentiality_level ?? document.confidentialityLevel ?? 'internal',
       tags: Array.isArray(patch.tags) ? patch.tags : document.tags || [],
-      retention_until: patch.retention_until ?? document.retentionUntil ?? null,
+      retention_until: resolvedRetentionUntil,
       is_starred: patch.is_starred ?? document.isStarred ?? false,
       notes: patch.notes ?? document.notes ?? null,
     };
@@ -877,6 +1131,162 @@ export const useGedHub = (options = {}) => {
 
     await fetchDocuments();
   };
+
+  const saveRetentionPolicy = async (payload = {}) => {
+    const resolvedCompanyId = effectiveCompanyId;
+    if (!resolvedCompanyId) {
+      throw new Error('Aucune societe active detectee pour les politiques de retention.');
+    }
+
+    const normalizedPayload = normalizeGedRetentionPolicyPayload(payload);
+    const record = {
+      company_id: resolvedCompanyId,
+      ...normalizedPayload,
+      updated_by: (await supabase.auth.getUser()).data?.user?.id || null,
+    };
+
+    const { data, error } = await supabase.from('document_hub_retention_policies').upsert(record, {
+      onConflict: 'company_id,source_table,doc_category',
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    await fetchDocuments();
+    return data;
+  };
+
+  const refreshRetentionPolicies = async () => {
+    await fetchDocuments();
+  };
+
+  const persistWorkflowState = async ({ document, workflowStatus, comment }) => {
+    const resolvedCompanyId = effectiveCompanyId;
+    if (!resolvedCompanyId) {
+      throw new Error('Aucune societe active detectee pour le workflow GED.');
+    }
+
+    const normalizedPayload = normalizeGedWorkflowPayload({
+      sourceTable: document?.sourceTable,
+      sourceId: document?.sourceId,
+      workflowStatus,
+      comment,
+    });
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError) throw userError;
+
+    const now = new Date().toISOString();
+    const cleanedComment = normalizeGedWorkflowComment(comment) || document?.workflowComment || null;
+    const basePayload = {
+      company_id: resolvedCompanyId,
+      ...normalizedPayload,
+      comment: cleanedComment,
+      updated_by: user?.id || null,
+    };
+
+    let payload = { ...basePayload };
+    if (normalizedPayload.workflow_status === 'pending_review') {
+      payload = {
+        ...payload,
+        requested_by: user?.id || null,
+        requested_at: now,
+        approved_by: null,
+        approved_at: null,
+        rejected_by: null,
+        rejected_at: null,
+        signed_by: null,
+        signed_at: null,
+      };
+    } else if (normalizedPayload.workflow_status === 'approved') {
+      payload = {
+        ...payload,
+        requested_by: document?.workflowRequestedBy || user?.id || null,
+        requested_at: document?.workflowRequestedAt || now,
+        approved_by: user?.id || null,
+        approved_at: now,
+        rejected_by: null,
+        rejected_at: null,
+        signed_by: null,
+        signed_at: null,
+      };
+    } else if (normalizedPayload.workflow_status === 'rejected') {
+      payload = {
+        ...payload,
+        requested_by: document?.workflowRequestedBy || user?.id || null,
+        requested_at: document?.workflowRequestedAt || now,
+        approved_by: null,
+        approved_at: null,
+        rejected_by: user?.id || null,
+        rejected_at: now,
+        signed_by: null,
+        signed_at: null,
+      };
+    } else if (normalizedPayload.workflow_status === 'signed') {
+      payload = {
+        ...payload,
+        requested_by: document?.workflowRequestedBy || user?.id || null,
+        requested_at: document?.workflowRequestedAt || now,
+        approved_by: document?.workflowApprovedBy || user?.id || null,
+        approved_at: document?.workflowApprovedAt || now,
+        rejected_by: null,
+        rejected_at: null,
+        signed_by: user?.id || null,
+        signed_at: now,
+      };
+    }
+
+    const { data, error } = await supabase.from('document_hub_workflows').upsert(payload, {
+      onConflict: 'company_id,source_table,source_id',
+    });
+
+    if (error?.code === 'PGRST205') {
+      toast({
+        title: 'Workflow GED indisponible',
+        description: 'La table document_hub_workflows nest pas encore deployee sur cet environnement.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+
+    if (error) {
+      throw error;
+    }
+
+    await fetchDocuments();
+    return data;
+  };
+
+  const requestDocumentWorkflow = async (document, payload = {}) =>
+    persistWorkflowState({
+      document,
+      workflowStatus: 'pending_review',
+      comment: payload.comment,
+    });
+
+  const approveDocumentWorkflow = async (document, payload = {}) =>
+    persistWorkflowState({
+      document,
+      workflowStatus: 'approved',
+      comment: payload.comment,
+    });
+
+  const rejectDocumentWorkflow = async (document, payload = {}) =>
+    persistWorkflowState({
+      document,
+      workflowStatus: 'rejected',
+      comment: payload.comment,
+    });
+
+  const signDocumentWorkflow = async (document, payload = {}) =>
+    persistWorkflowState({
+      document,
+      workflowStatus: 'signed',
+      comment: payload.comment,
+    });
 
   const getDocumentAccessUrl = async (document) => {
     if (!document.fileUrl) return null;
@@ -1026,6 +1436,16 @@ export const useGedHub = (options = {}) => {
     createAndUploadDocument,
     uploadDocumentFile,
     upsertMetadata,
+    retentionPolicies,
+    retentionPoliciesLoading,
+    saveRetentionPolicy,
+    refreshRetentionPolicies,
+    workflowRows,
+    workflowLoading,
+    requestDocumentWorkflow,
+    approveDocumentWorkflow,
+    rejectDocumentWorkflow,
+    signDocumentWorkflow,
     getDocumentAccessUrl,
     generatePdf,
     sourceConfig: SOURCE_CONFIG,

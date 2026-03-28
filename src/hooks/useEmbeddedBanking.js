@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { useBankConnections } from '@/hooks/useBankConnections';
 
 const DEFAULT_COUNTRY = 'BE';
+const TRANSFER_ELIGIBLE_STATUSES = new Set(['active', 'connected']);
 
 function normalizeCountryCode(value) {
   return (
@@ -29,20 +30,34 @@ function mapInstitutionToProvider(institution, fallbackCountry, apiType = 'gocar
 }
 
 function mapBankConnectionToEmbeddedShape(connection) {
+  const normalizedBalance = connection.account_balance ?? connection.balance ?? null;
+  const normalizedCurrency = connection.account_currency || connection.currency || 'EUR';
+  const normalizedIban = connection.account_iban || connection.iban || null;
+  const normalizedStatus = String(connection.status || connection.connection_status || '')
+    .trim()
+    .toLowerCase();
+
   return {
     ...connection,
-    balance: connection.account_balance ?? null,
-    currency: connection.account_currency || 'EUR',
-    balance_updated_at: connection.last_sync_at || null,
+    status: normalizedStatus || 'inactive',
+    balance: normalizedBalance,
+    currency: normalizedCurrency,
+    balance_updated_at: connection.balance_updated_at || connection.last_sync_at || null,
     consent_expires_at: connection.expires_at || null,
-    iban: connection.account_iban || null,
-    account_number_masked: connection.account_iban
-      ? `${connection.account_iban.slice(0, 4)} **** ${connection.account_iban.slice(-4)}`
-      : null,
+    iban: normalizedIban,
+    account_number_masked: normalizedIban ? `${normalizedIban.slice(0, 4)} **** ${normalizedIban.slice(-4)}` : null,
     bank_providers: {
       logo_url: connection.institution_logo || null,
     },
   };
+}
+
+function isTransferEligibleConnection(connection) {
+  return TRANSFER_ELIGIBLE_STATUSES.has(
+    String(connection?.status || '')
+      .trim()
+      .toLowerCase()
+  );
 }
 
 export function useEmbeddedBanking() {
@@ -75,6 +90,7 @@ export function useEmbeddedBanking() {
   const selectedCountry = normalizeCountryCode(company?.country);
 
   const connections = useMemo(() => (baseConnections || []).map(mapBankConnectionToEmbeddedShape), [baseConnections]);
+  const activeConnections = useMemo(() => connections.filter(isTransferEligibleConnection), [connections]);
 
   const fetchProviders = useCallback(async () => {
     if (!user) return;
@@ -223,16 +239,67 @@ export function useEmbeddedBanking() {
     [connections]
   );
 
-  const initiateTransfer = useCallback(async () => {
-    toast({
-      variant: 'destructive',
-      title: t('common.error'),
-      description: t('banking.transfersUnavailable', {
-        defaultValue: 'Les virements bancaires directs sont temporairement indisponibles sur ce connecteur.',
-      }),
-    });
-    return null;
-  }, [t, toast]);
+  const initiateTransfer = useCallback(
+    async (payload) => {
+      if (!user) {
+        toast({ variant: 'destructive', title: t('common.error'), description: t('banking.authRequired') });
+        return null;
+      }
+
+      if (activeConnections.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: t('common.error'),
+          description: t('banking.transfersUnavailable', {
+            defaultValue: 'Les virements bancaires directs sont temporairement indisponibles sur ce connecteur.',
+          }),
+        });
+        return null;
+      }
+
+      if (payload?.connection_id && !activeConnections.some((connection) => connection.id === payload.connection_id)) {
+        toast({
+          variant: 'destructive',
+          title: t('common.error'),
+          description: t('banking.transferSourceUnavailable', {
+            defaultValue: 'Le compte source selectionne est indisponible pour les virements.',
+          }),
+        });
+        return null;
+      }
+
+      try {
+        const { data, error: invokeError } = await supabase.functions.invoke('bank-transfer', {
+          body: payload,
+        });
+
+        if (invokeError) {
+          throw new Error(invokeError.message || t('common.error'));
+        }
+
+        if (!data?.success) {
+          throw new Error(data?.error || t('common.error'));
+        }
+
+        await Promise.allSettled([fetchConnections(), fetchTransfers()]);
+
+        toast({
+          title: t('common.success'),
+          description: t('banking.transferCompleted'),
+        });
+
+        return data.transfer || data;
+      } catch (err) {
+        toast({
+          variant: 'destructive',
+          title: t('common.error'),
+          description: err instanceof Error ? err.message : t('common.error'),
+        });
+        return null;
+      }
+    },
+    [activeConnections, fetchConnections, fetchTransfers, t, toast, user]
+  );
 
   const disconnectAccount = useCallback(
     async (connectionId) => {
@@ -275,7 +342,7 @@ export function useEmbeddedBanking() {
     fetchTransfers,
     fetchSyncLogs,
     fetchProviders,
-    bankTransfersEnabled: false,
+    bankTransfersEnabled: activeConnections.length > 0,
     integrationHealth,
     integrationHealthLoading,
     refreshIntegrationHealth,

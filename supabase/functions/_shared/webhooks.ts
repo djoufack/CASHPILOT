@@ -13,6 +13,11 @@ export const SUPPORTED_WEBHOOK_EVENTS = [
   'quote.accepted',
   'quote.declined',
   'quote.signed',
+  'contract.created',
+  'contract.sent',
+  'contract.accepted',
+  'contract.declined',
+  'contract.signed',
   'client.created',
   'client.updated',
   'client.deleted',
@@ -37,7 +42,7 @@ async function deliverWebhook(
   endpoint: { id: string; url: string; secret: string; failure_count: number },
   event: string,
   payload: unknown,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createClient>
 ): Promise<{ delivered: boolean; status_code?: number; error?: string; attempts: number }> {
   const encoder = new TextEncoder();
   const keyData = encoder.encode(endpoint.secret);
@@ -45,7 +50,9 @@ async function deliverWebhook(
   const timestamp = new Date().toISOString();
   const payloadStr = JSON.stringify({ event, data: payload, timestamp });
   const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payloadStr));
-  const signatureHex = Array.from(new Uint8Array(signature)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  const signatureHex = Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 
   let lastStatusCode: number | undefined;
   let lastError: string | undefined;
@@ -82,10 +89,13 @@ async function deliverWebhook(
           attempts: attempt,
         });
 
-        await supabase.from('webhook_endpoints').update({
-          last_triggered_at: new Date().toISOString(),
-          failure_count: 0,
-        }).eq('id', endpoint.id);
+        await supabase
+          .from('webhook_endpoints')
+          .update({
+            last_triggered_at: new Date().toISOString(),
+            failure_count: 0,
+          })
+          .eq('id', endpoint.id);
 
         return { delivered: true, status_code: res.status, attempts: attempt };
       }
@@ -136,7 +146,7 @@ export async function deliverWebhookEvent(
   supabase: ReturnType<typeof createClient>,
   userId: string,
   event: string,
-  payload: unknown,
+  payload: unknown
 ) {
   if (!SUPPORTED_WEBHOOK_EVENTS.includes(event)) {
     throw new Error(`Unsupported event: ${event}`);

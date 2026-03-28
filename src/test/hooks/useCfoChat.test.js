@@ -134,6 +134,13 @@ describe('useCfoChat', () => {
         status: 200,
         json: vi.fn().mockResolvedValue({
           answer: 'Voici votre analyse CFO.',
+          tool_calls: [
+            {
+              type: 'source_evidence',
+              tables_used: ['invoices', 'expenses'],
+              metrics: { totalRevenue: 1000 },
+            },
+          ],
           suggestions: ['Previsions de tresorerie a 30 jours ?'],
           health_score: { score: 72, factors: {} },
         }),
@@ -147,6 +154,9 @@ describe('useCfoChat', () => {
     });
     expect(result.current.loading).toBe(false);
     expect(result.current.messages.some((m) => m.role === 'assistant' && m.content.includes('analyse CFO'))).toBe(true);
+    expect(result.current.messages.find((m) => m.role === 'assistant')?.toolCalls).toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: 'source_evidence' })])
+    );
     expect(result.current.suggestions).toEqual(['Previsions de tresorerie a 30 jours ?']);
     expect(result.current.healthScore).toEqual({ score: 72, factors: {} });
   });

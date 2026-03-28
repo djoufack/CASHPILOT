@@ -119,6 +119,7 @@
     "seedData": "Testgegevens",
     "pilotage": "Sturing",
     "sales": "Verkoop",
+    "companyComplianceCockpit": "Compliance & Groep Cockpit",
     "companyPortfolio": "Bedrijfsportefeuille",
     "integrations": "Integraties",
     "apiWebhooks": "API & webhooks",
@@ -224,8 +225,10 @@
     "mixed": "Gemengd",
     "itemDescriptionPlaceholder": "Dienst of product",
     "notesPlaceholder": "Betalingsvoorwaarden, notities...",
+    "paymentLinkSection": "Directe betaling",
     "generatePaymentLink": "Betaallink genereren",
     "copyPaymentLink": "Link kopiëren",
+    "openPaymentLink": "Link openen",
     "paymentLinkCopied": "Link gekopieerd!",
     "paymentLinkGenerated": "Betaallink aangemaakt",
     "exportFacturXXml": "XML exporteren (Factur-X)",
@@ -251,6 +254,12 @@
     "exportExcel": "Exporteer Excel",
     "exportPdfTitle": "Exporteer PDF ({{credits}} credits)",
     "exportHtmlTitle": "Exporteer HTML ({{credits}} credits)",
+    "documentType": "Documenttype",
+    "documentTypeQuote": "Offerte",
+    "documentTypeContract": "Contract",
+    "convertToContract": "Omzetten naar contract",
+    "convertToContractTitle": "Offerte {{number}} omzetten naar contract",
+    "convertToContractAria": "Offerte {{number}} omzetten naar contract",
     "quoteNumber": "Offertenummer",
     "client": "Klant",
     "date": "Datum",
@@ -272,7 +281,36 @@
     "documents": "Documenten",
     "signatureStatus": "Handtekening",
     "signatureUnsigned": "Niet ondertekend",
-    "quoteDetails": "Offertedetails"
+    "quoteDetails": "Offertedetails",
+    "markAsLost": "Markeren als verloren",
+    "captureLossReason": "Verliesreden vastleggen",
+    "lossReason": "Verliesreden",
+    "lossReasonCategory": "Verliescategorie",
+    "lossReasonDetails": "Details verliesreden",
+    "lossReasonRequired": "Selecteer een verliesreden.",
+    "lossReasonNotProvided": "Niet ingevuld",
+    "nextBestAction": "Next best action",
+    "lossReasonCategories": {
+      "budget": "Budgetbeperking",
+      "timing": "Timing mismatch",
+      "competition": "Concurrentie gewonnen",
+      "scope": "Scope mismatch",
+      "no_response": "Geen reactie",
+      "other": "Overig"
+    },
+    "nextBestActions": {
+      "send_quote": "Offerte versturen",
+      "request_signature": "Handtekening opvolgen",
+      "extend_validity": "Geldigheid verlengen",
+      "convert_to_contract": "Omzetten naar contract",
+      "offer_discount": "Gerichte korting voorstellen",
+      "schedule_follow_up": "Follow-up plannen",
+      "differentiate_offer": "Waardepropositie versterken",
+      "revise_scope": "Scope van aanbod herzien",
+      "multi_channel_relaunch": "Via meerdere kanalen herlanceren",
+      "capture_loss_reason": "Verliesreden nauwkeurig kwalificeren",
+      "monitor_quote": "Offerte opvolgen"
+    }
   },
   "timesheets": {
     "title": "Urenstaten",
@@ -636,6 +674,20 @@
     "lateLabel": "Laat",
     "noOrderData": "Geen bestelgegevens beschikbaar.",
     "noDeliveryData": "Geen leveringsgegevens beschikbaar.",
+    "supplierScores": "Leveranciersscores",
+    "averageSupplierScore": "Gemiddelde leveranciersscore",
+    "scoreBySupplier": "Globale score per leverancier",
+    "scoreOverview": "Score-overzicht",
+    "scoreTable": "Details leveranciersscores",
+    "globalScore": "Globale score",
+    "qualityScore": "Kwaliteit",
+    "deliveryScore": "Levering",
+    "costScore": "Kost",
+    "scoreBand": "Klasse",
+    "lastEvaluation": "Laatste evaluatie",
+    "notEvaluated": "Niet geëvalueerd",
+    "noSupplierScoreData": "Geen leveranciersscores beschikbaar.",
+    "scoreBandLegend": "Klasse A: uitstekend, B: sterk, C: aanvaardbaar, D: opletten, E: kritiek.",
     "status": {
       "pending": "In afwachting",
       "confirmed": "Bevestigd",
@@ -1023,6 +1075,27 @@
       "statusActive": "Actief",
       "statusDisposed": "Afgestoten",
       "statusFullyDepreciated": "Volledig afgeschreven"
+    },
+    "closingAssistant": {
+      "tabLabel": "Begeleide afsluiting",
+      "title": "Begeleide afsluiting",
+      "description": "Assistent voor periodeafsluiting: afschrijvingsboekingen, balanscontrole en historiek.",
+      "period": "Periode",
+      "run": "Start begeleide afsluiting",
+      "lastCloseDate": "Laatste afsluiting",
+      "statusDraft": "Voor te bereiden",
+      "statusClosed": "Afgesloten",
+      "statusBlocked": "Geblokkeerd",
+      "checkDepreciation": "Afschrijvingsboekingen",
+      "checkDepreciationOk": "Alle afschrijvingslijnen zijn geboekt.",
+      "checkDepreciationPending": "{{count}} niet-geboekte lijn(en).",
+      "checkJournal": "Debet / credit in balans",
+      "checkJournalOk": "Geen journaalverschil gedetecteerd.",
+      "checkJournalGap": "Huidig verschil: {{value}}",
+      "successTitle": "Begeleide afsluiting voltooid",
+      "successDescription": "Periode afgesloten met afschrijvingsgeneratie en consistentiecontroles.",
+      "blockedTitle": "Begeleide afsluiting geblokkeerd",
+      "blockedDescription": "Periode blijft geblokkeerd: controleer niet-geboekte afschrijvingen of journaalverschil."
     },
     "analytique": {
       "title": "Analytische boekhouding",
@@ -1549,6 +1622,8 @@
         "defaultName": "Begeleide CFO-scenario",
         "defaultDescription": "Werkscenario aangemaakt vanuit de CFO-geleide acties.",
         "success": "Aanmaning uitgevoerd op de oudste achterstallige factuur: {{invoiceNumber}}",
+        "noop": "Geen achterstallige onbetaalde factuur gevonden: geen aanmaning nodig.",
+        "fallback": "Automatische aanmaning niet beschikbaar: module Slimme Aanmaningen wordt geopend.",
         "error": "{{reason}}"
       },
       "scenario": {
@@ -1567,6 +1642,20 @@
         "success": "Audit geopend met automatische uitvoering voor de huidige periode.",
         "error": "{{reason}}"
       }
+    },
+    "weeklyBriefing": {
+      "title": "Wekelijkse CFO-briefing",
+      "subtitle": "Automatische wekelijkse samenvatting voor het actieve bedrijf.",
+      "loading": "Wekelijkse briefing laden...",
+      "generatedNow": "Net gegenereerd",
+      "cached": "In cache",
+      "refresh": "Vernieuwen",
+      "lastGenerated": "Laatst gegenereerd",
+      "healthScore": "Gezondheidsscore",
+      "highlights": "Belangrijke punten",
+      "actions": "Aanbevolen acties",
+      "emptyResponse": "Geen wekelijkse briefing beschikbaar.",
+      "loadError": "Wekelijkse briefing kon niet worden geladen."
     }
   },
   "auth": {
@@ -2030,6 +2119,7 @@
     },
     "sections": {
       "companiesAndPriorities": "Bedrijven en prioriteiten",
+      "stressTests": "Portefeuille stress-tests",
       "watchlist": "Watchlist achterstallige klanten",
       "quickRead": "Snelle portefeuillelezing"
     },
@@ -2052,6 +2142,95 @@
       "quotePipelineText": "{{quotes}} open offertes voor {{amount}}.",
       "recommendedActionTitle": "Aanbevolen actie",
       "recommendedActionText": "Pak eerst de bedrijven met klantachterstanden aan voordat u van operationele context wisselt."
+    },
+    "stressTests": {
+      "sectionTitle": "Portefeuille stress-tests",
+      "sectionDescription": "Schokscenario's berekend op basis van de portefeuille-totalen geladen uit Supabase.",
+      "sectionDataSource": "Portefeuille-totalen berekend uit live Supabase RPC's.",
+      "sectionFormula": "Schokken passen proportionele scenario's toe op de echte portefeuille-aggregaten.",
+      "sectionCalculationMethod": "De berekeningen steunen op de geaggregeerde totalen die al in de portefeuillepagina zijn geladen.",
+      "sectionNotes": "Stresspercentages zijn analytische aannames, geen bedrijfsgegevens.",
+      "scenarioLabel": "Scenario",
+      "severity": {
+        "warning": "Waarschuwing",
+        "danger": "Kritiek"
+      },
+      "baseline": "Basis",
+      "stressed": "Onder stress",
+      "deltaLabel": "Verandering",
+      "impact": "Impact",
+      "revenueShockTitle": "Omzetshock",
+      "revenueShockDescription": "Impact van een daling van 10% in gefactureerde omzet.",
+      "collectionShockTitle": "Vertraging in inning",
+      "collectionShockDescription": "Impact van een vertraging van 15% in ontvangsten en een stijging van de openstaande posten.",
+      "pipelineShockTitle": "Krimp van pipeline",
+      "pipelineShockDescription": "Impact van een daling van 20% in de offertepipeline.",
+      "metrics": {
+        "bookedRevenue": "Gefactureerde omzet",
+        "collectedCash": "Ontvangen cash",
+        "outstandingReceivables": "Openstaande vorderingen",
+        "quotePipeline": "Offertepipeline",
+        "openQuotes": "Open offertes",
+        "activeProjects": "Actieve projecten"
+      }
+    }
+  },
+  "companyCockpit": {
+    "pageTitle": "Compliance & Groep Cockpit",
+    "badge": "Mijn bedrijf",
+    "title": "Compliance & Groep Cockpit",
+    "subtitle": "Geünificeerde weergave van Portfolio, Peppol, PDP, Intercompany, Consolidatie en Regelgevende monitoring.",
+    "refresh": "Vernieuwen",
+    "riskBanner": "Er zijn signalen die actie vereisen (compliance, intercompany of regelgeving).",
+    "dataWarningsTitle": "Waarschuwing bij laden",
+    "openModule": "Module openen",
+    "orchestrationTitle": "Groepsorkestratie",
+    "orchestrationDescription": "Gebruik dit cockpit als centraal startpunt voor compliance en governance over meerdere bedrijven.",
+    "summary": {
+      "companies": "Opgevolgde bedrijven",
+      "peppolReadyHint": "{{count}} / {{total}} Peppol-klaar",
+      "portfolios": "Portefeuilles",
+      "portfolioCompaniesHint": "{{count}} gekoppelde bedrijven",
+      "certifications": "PDP-certificeringen",
+      "certificationsAtRiskHint": "{{count}} met vervalrisico",
+      "intercompany": "Intercompany-eliminaties in wachtrij",
+      "eliminationAmountHint": "Geëlimineerd bedrag: {{amount}}",
+      "regulatory": "Kritieke regelgevende alerts",
+      "upcomingUpdatesHint": "{{count}} updates in de komende 30 dagen",
+      "lastSync": "Laatste intercompany-afsluiting",
+      "lastSyncHint": "Tijdstip van de laatst geregistreerde eliminatie"
+    },
+    "modules": {
+      "portfolio": {
+        "title": "Bedrijfsportefeuille",
+        "description": "Volg bedrijven, openstaande posten en actieprioriteiten op groepsniveau.",
+        "metric": "{{companies}} bedrijven · {{portfolios}} portefeuilles"
+      },
+      "peppol": {
+        "title": "Peppol",
+        "description": "Controleer de e-facturatiegereedheid van uw bedrijven.",
+        "metric": "{{ready}} / {{total}} bedrijven geconfigureerd"
+      },
+      "pdp": {
+        "title": "PDP / Certificering",
+        "description": "Centraliseer status van certificeringen en fiscale audits.",
+        "metric": "{{certified}} / {{total}} certificeringen gevalideerd"
+      },
+      "interCompany": {
+        "title": "Intercompany",
+        "description": "Stuur spiegeltransacties en eliminatieboekingen aan.",
+        "metric": "{{count}} eliminaties in wachtrij"
+      },
+      "consolidation": {
+        "title": "Consolidatie",
+        "description": "Ga naar de geconsolideerde P&L-, balans- en cashweergave.",
+        "metric": "{{count}} consolideerbare portefeuilles"
+      },
+      "regulatory": {
+        "title": "Regelgevende monitoring",
+        "description": "Prioriteer kritieke open regelgevingswijzigingen.",
+        "metric": "{{count}} open kritieke alerts"
+      }
     }
   },
   "topNav": {
@@ -2267,6 +2446,15 @@
     "successDescription": "{{name}}, uw handtekening is succesvol geregistreerd.",
     "rejectedTitle": "Offerte geweigerd",
     "rejectedDescription": "Deze offerte werd geweigerd.",
+    "contractTitle": "Contract ondertekenen",
+    "contractNumber": "Contract {{number}}",
+    "contractSummaryTitle": "Samenvatting contract",
+    "contractSignatureTitle": "Contractondertekening",
+    "contractContext": "Contractdocument.",
+    "rejectContract": "Contract weigeren",
+    "signAndAcceptContract": "Contract ondertekenen en accepteren",
+    "contractSuccessTitle": "Contract ondertekend",
+    "contractRejectedTitle": "Contract geweigerd",
     "title": "Offerte ondertekenen",
     "quoteNumber": "Offerte {{number}}",
     "summaryTitle": "Samenvatting offerte",

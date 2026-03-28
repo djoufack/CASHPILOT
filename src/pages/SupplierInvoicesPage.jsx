@@ -18,6 +18,8 @@ import { formatCurrency } from '@/utils/calculations';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import { linkLineItemsToProducts } from '@/services/supplierInvoiceLineItemLinking';
 import { buildCanonicalOperationsSnapshot } from '@/shared/canonicalOperationsSnapshot';
+import { getApprovalWorkflowSummary } from '@/services/supplierApprovalWorkflow';
+import { getThreeWayMatchPresentation, normalizeThreeWayMatchStatus } from '@/services/supplierThreeWayMatch';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
 import { Button } from '@/components/ui/button';
@@ -52,6 +54,7 @@ import {
   CheckCircle,
   Receipt,
   ShieldCheck,
+  RefreshCw,
 } from 'lucide-react';
 
 const SupplierInvoicesPage = () => {
@@ -65,6 +68,8 @@ const SupplierInvoicesPage = () => {
   // Data state
   const [invoices, setInvoices] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [supplierOrders, setSupplierOrders] = useState([]);
+  const [threeWayMatches, setThreeWayMatches] = useState({});
   const [loading, setLoading] = useState(true);
 
   // Filter state
@@ -73,6 +78,7 @@ const SupplierInvoicesPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [supplierFilter, setSupplierFilter] = useState('all');
   const [approvalFilter, setApprovalFilter] = useState('all');
+  const [matchFilter, setMatchFilter] = useState('all');
 
   // Upload flow state
   const [isSupplierSelectOpen, setIsSupplierSelectOpen] = useState(false);
@@ -85,6 +91,7 @@ const SupplierInvoicesPage = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState([]);
   const [historyInvoice, setHistoryInvoice] = useState(null);
+  const [runningMatchInvoiceId, setRunningMatchInvoiceId] = useState(null);
 
   // Pagination
   const pagination = usePagination({ pageSize: 25 });
@@ -102,7 +109,8 @@ const SupplierInvoicesPage = () => {
         .select(
           `
           *,
-          supplier:suppliers!supplier_invoices_supplier_id_fkey(id, company_name)
+          supplier:suppliers!supplier_invoices_supplier_id_fkey(id, company_name),
+          approval_steps:supplier_invoice_approval_steps(id, level, required_role, status, approver_id, decided_at, comment)
         `
         )
         .order('created_at', { ascending: false });
@@ -140,12 +148,67 @@ const SupplierInvoicesPage = () => {
     }
   }, [applyCompanyScope, user]);
 
+  const fetchSupplierOrders = useCallback(async () => {
+    if (!user) return;
+    try {
+      let query = supabase
+        .from('supplier_orders')
+        .select(
+          'id, supplier_id, order_number, order_status, total_amount, order_date, expected_delivery_date, actual_delivery_date'
+        )
+        .order('created_at', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setSupplierOrders(data || []);
+    } catch (err) {
+      console.error('Error fetching supplier orders:', err);
+    }
+  }, [applyCompanyScope, user]);
+
+  const fetchThreeWayMatches = useCallback(async () => {
+    if (!user) return;
+    try {
+      let query = supabase
+        .from('supplier_invoice_three_way_matches')
+        .select(
+          'supplier_invoice_id, supplier_order_id, match_status, match_score, amount_variance, quantity_variance, received_total_amount, invoiced_total_amount, updated_at'
+        )
+        .order('updated_at', { ascending: false });
+
+      query = applyCompanyScope(query);
+
+      const { data, error } = await query;
+
+      if (error) {
+        if (error.code === '42P01') {
+          setThreeWayMatches({});
+          return;
+        }
+        throw error;
+      }
+
+      const byInvoice = {};
+      for (const row of data || []) {
+        byInvoice[row.supplier_invoice_id] = row;
+      }
+      setThreeWayMatches(byInvoice);
+    } catch (err) {
+      console.error('Error fetching supplier invoice 3-way matches:', err);
+    }
+  }, [applyCompanyScope, user]);
+
   useEffect(() => {
     if (user) {
       fetchAllInvoices();
       fetchSuppliers();
+      fetchSupplierOrders();
+      fetchThreeWayMatches();
     }
-  }, [user, fetchAllInvoices, fetchSuppliers]);
+  }, [user, fetchAllInvoices, fetchSuppliers, fetchSupplierOrders, fetchThreeWayMatches]);
 
   // ---------- FILTERING ----------
 
@@ -164,7 +227,12 @@ const SupplierInvoicesPage = () => {
     const currentApproval = inv.approval_status || 'pending';
     const matchesApproval = approvalFilter === 'all' || currentApproval === approvalFilter;
 
-    return matchesSearch && matchesStatus && matchesSupplier && matchesApproval;
+    const currentMatchStatus = normalizeThreeWayMatchStatus(
+      threeWayMatches[inv.id]?.match_status || inv.three_way_match_status
+    );
+    const matchesThreeWay = matchFilter === 'all' || currentMatchStatus === matchFilter;
+
+    return matchesSearch && matchesStatus && matchesSupplier && matchesApproval && matchesThreeWay;
   });
 
   // Pagination sync
@@ -228,6 +296,12 @@ const SupplierInvoicesPage = () => {
   const approvedCount = filteredInvoices.filter(
     (invoice) => (invoice.approval_status || 'pending') === 'approved'
   ).length;
+  const threeWayMatchedCount = filteredInvoices.filter((invoice) => {
+    const status = normalizeThreeWayMatchStatus(
+      threeWayMatches[invoice.id]?.match_status || invoice.three_way_match_status
+    );
+    return status === 'matched';
+  }).length;
 
   // ---------- ACTIONS ----------
 
@@ -254,24 +328,59 @@ const SupplierInvoicesPage = () => {
     }
   };
 
-  const buildApprovalPayload = (approvalStatus, rejectedReasonValue = null) => {
-    const payload = { approval_status: approvalStatus };
+  const runThreeWayMatch = useCallback(
+    async (invoiceId, supplierOrderId = null, successMessage = null) => {
+      setRunningMatchInvoiceId(invoiceId);
+      try {
+        const { error } = await supabase.rpc('supplier_invoice_run_three_way_match', {
+          p_invoice_id: invoiceId,
+          p_supplier_order_id: supplierOrderId,
+        });
 
-    if (approvalStatus === 'approved') {
-      payload.approved_by = user?.id || null;
-      payload.approved_at = new Date().toISOString();
-      payload.rejected_reason = null;
-    } else if (approvalStatus === 'rejected') {
-      payload.approved_by = null;
-      payload.approved_at = null;
-      payload.rejected_reason = rejectedReasonValue || null;
-    } else {
-      payload.approved_by = null;
-      payload.approved_at = null;
-      payload.rejected_reason = null;
+        if (error) throw error;
+
+        await Promise.all([fetchAllInvoices(), fetchThreeWayMatches()]);
+        toast({
+          title: t('supplierInvoices.threeWayMatchUpdated', '3-way match mis a jour'),
+          description: successMessage || null,
+          className: 'bg-green-600 border-none text-white',
+        });
+      } catch (err) {
+        toast({
+          title: t('common.error', 'Erreur'),
+          description: err.message,
+          variant: 'destructive',
+        });
+      } finally {
+        setRunningMatchInvoiceId(null);
+      }
+    },
+    [fetchAllInvoices, fetchThreeWayMatches, t, toast]
+  );
+
+  const handleSupplierOrderLinkChange = async (invoiceId, nextValue) => {
+    const nextSupplierOrderId = nextValue === 'auto' ? null : nextValue;
+
+    try {
+      const { error } = await supabase
+        .from('supplier_invoices')
+        .update({ supplier_order_id: nextSupplierOrderId })
+        .eq('id', invoiceId);
+
+      if (error) throw error;
+
+      await runThreeWayMatch(
+        invoiceId,
+        nextSupplierOrderId,
+        t('supplierInvoices.threeWayOrderLinked', 'Commande liée et match recalculé.')
+      );
+    } catch (err) {
+      toast({
+        title: t('common.error', 'Erreur'),
+        description: err.message,
+        variant: 'destructive',
+      });
     }
-
-    return payload;
   };
 
   const notifyPendingApproval = useCallback(async (invoiceId, actionLabel) => {
@@ -285,23 +394,58 @@ const SupplierInvoicesPage = () => {
     }
   }, []);
 
-  const handleUpdateApproval = async (invoiceId, approvalStatus, rejectedReasonValue = null) => {
+  const handleAdvanceApproval = async (invoiceId) => {
     try {
-      const payload = buildApprovalPayload(approvalStatus, rejectedReasonValue);
-
-      const { error } = await supabase.from('supplier_invoices').update(payload).eq('id', invoiceId);
-
+      const { error } = await supabase.rpc('supplier_invoice_approve_step', {
+        p_invoice_id: invoiceId,
+      });
       if (error) throw error;
 
-      setInvoices((prev) => prev.map((inv) => (inv.id === invoiceId ? { ...inv, ...payload } : inv)));
-
+      await fetchAllInvoices();
       toast({
         title: t('supplierInvoices.approvalUpdated', 'Approbation mise a jour'),
         className: 'bg-green-600 border-none text-white',
       });
+    } catch (err) {
+      toast({
+        title: t('common.error', 'Erreur'),
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  };
 
-      if (approvalStatus === 'pending') {
-        notifyPendingApproval(invoiceId, 'pending_updated');
+  const handleRejectApproval = async (invoiceId, rejectedReasonValue = null) => {
+    try {
+      const { error } = await supabase.rpc('supplier_invoice_reject_step', {
+        p_invoice_id: invoiceId,
+        p_reason: rejectedReasonValue || null,
+      });
+      if (error) throw error;
+
+      await fetchAllInvoices();
+      toast({
+        title: t('supplierInvoices.approvalUpdated', 'Approbation mise a jour'),
+        className: 'bg-green-600 border-none text-white',
+      });
+    } catch (err) {
+      toast({
+        title: t('common.error', 'Erreur'),
+        description: err.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleResetApproval = async (invoiceId, notifyAction = null) => {
+    try {
+      const { error } = await supabase.rpc('supplier_invoice_reset_approval_workflow', {
+        p_invoice_id: invoiceId,
+      });
+      if (error) throw error;
+
+      if (notifyAction) {
+        await notifyPendingApproval(invoiceId, notifyAction);
       }
     } catch (err) {
       toast({
@@ -309,6 +453,7 @@ const SupplierInvoicesPage = () => {
         description: err.message,
         variant: 'destructive',
       });
+      throw err;
     }
   };
 
@@ -320,26 +465,29 @@ const SupplierInvoicesPage = () => {
       });
       return;
     }
-
-    const payload = buildApprovalPayload(approvalStatus);
     try {
-      const { error } = await supabase.from('supplier_invoices').update(payload).in('id', selectedInvoiceIds);
+      const tasks = selectedInvoiceIds.map((id) => {
+        if (approvalStatus === 'approved') {
+          return supabase.rpc('supplier_invoice_approve_step', { p_invoice_id: id });
+        }
+        return supabase.rpc('supplier_invoice_reset_approval_workflow', { p_invoice_id: id });
+      });
 
-      if (error) throw error;
-
-      const selectedSet = new Set(selectedInvoiceIds);
-      setInvoices((prev) =>
-        prev.map((invoice) => (selectedSet.has(invoice.id) ? { ...invoice, ...payload } : invoice))
-      );
+      const results = await Promise.allSettled(tasks);
+      const failed =
+        results.filter((result) => result.status === 'fulfilled' && result.value?.error).length +
+        results.filter((result) => result.status === 'rejected').length;
 
       if (approvalStatus === 'pending') {
         await Promise.allSettled(selectedInvoiceIds.map((id) => notifyPendingApproval(id, 'pending_bulk')));
       }
 
+      await fetchAllInvoices();
+
       toast({
         title: t('supplierInvoices.bulk.updated', 'Mise à jour groupée effectuée'),
         description: t('supplierInvoices.bulk.updatedDesc', '{{count}} facture(s) mises à jour.', {
-          count: selectedInvoiceIds.length,
+          count: selectedInvoiceIds.length - failed,
         }),
         className: 'bg-green-600 border-none text-white',
       });
@@ -354,18 +502,31 @@ const SupplierInvoicesPage = () => {
   };
 
   const handleApprovalSelect = (invoice, nextStatus) => {
+    if (nextStatus === 'approved') {
+      handleAdvanceApproval(invoice.id);
+      return;
+    }
+
     if (nextStatus === 'rejected') {
       setRejectTargetInvoice(invoice);
       setRejectReason(invoice?.rejected_reason || '');
       return;
     }
 
-    handleUpdateApproval(invoice.id, nextStatus);
+    handleResetApproval(invoice.id, 'pending_updated')
+      .then(() => fetchAllInvoices())
+      .then(() => {
+        toast({
+          title: t('supplierInvoices.approvalUpdated', 'Approbation mise a jour'),
+          className: 'bg-green-600 border-none text-white',
+        });
+      })
+      .catch(() => {});
   };
 
   const handleConfirmReject = async () => {
     if (!rejectTargetInvoice) return;
-    await handleUpdateApproval(rejectTargetInvoice.id, 'rejected', rejectReason);
+    await handleRejectApproval(rejectTargetInvoice.id, rejectReason);
     setRejectTargetInvoice(null);
     setRejectReason('');
   };
@@ -479,7 +640,8 @@ const SupplierInvoicesPage = () => {
         .select(
           `
           *,
-          supplier:suppliers!supplier_invoices_supplier_id_fkey(id, company_name)
+          supplier:suppliers!supplier_invoices_supplier_id_fkey(id, company_name),
+          approval_steps:supplier_invoice_approval_steps(id, level, required_role, status, approver_id, decided_at, comment)
         `
         )
         .single();
@@ -518,6 +680,7 @@ const SupplierInvoicesPage = () => {
       }
 
       setInvoices((prev) => [newInvoice, ...prev]);
+      await fetchThreeWayMatches();
       if ((newInvoice.approval_status || 'pending') === 'pending') {
         notifyPendingApproval(newInvoice.id, 'pending_created');
       }
@@ -559,6 +722,36 @@ const SupplierInvoicesPage = () => {
     return <Badge className={item.className}>{item.label}</Badge>;
   };
 
+  const getThreeWayMatchBadge = (status) => {
+    const { tone } = getThreeWayMatchPresentation(status);
+
+    const toneConfig = {
+      success: {
+        className: 'bg-emerald-500/20 text-emerald-300 border-0',
+        label: t('supplierInvoices.threeWayMatched', '3-way OK'),
+      },
+      danger: {
+        className: 'bg-rose-500/20 text-rose-300 border-0',
+        label: t('supplierInvoices.threeWayMismatch', 'Ecart'),
+      },
+      warning: {
+        className: 'bg-amber-500/20 text-amber-300 border-0',
+        label: t('supplierInvoices.threeWayPartial', 'Partiel'),
+      },
+      info: {
+        className: 'bg-blue-500/20 text-blue-300 border-0',
+        label: t('supplierInvoices.threeWayPending', 'En attente'),
+      },
+      muted: {
+        className: 'bg-gray-500/20 text-gray-300 border-0',
+        label: t('supplierInvoices.threeWayUnmatched', 'Non lie'),
+      },
+    };
+
+    const config = toneConfig[tone] || toneConfig.muted;
+    return <Badge className={config.className}>{config.label}</Badge>;
+  };
+
   // ---------- KPI CARDS ----------
 
   const kpiCards = [
@@ -597,6 +790,15 @@ const SupplierInvoicesPage = () => {
       icon: <ShieldCheck className="w-5 h-5 text-amber-300" />,
       bg: 'bg-amber-500/10',
     },
+    {
+      label: t('supplierInvoices.threeWayMatchedShort', '3-way OK'),
+      value: threeWayMatchedCount,
+      sub: t('supplierInvoices.threeWayMatchedSub', '{{count}} rapprochement(s) complets', {
+        count: threeWayMatchedCount,
+      }),
+      icon: <RefreshCw className="w-5 h-5 text-emerald-300" />,
+      bg: 'bg-emerald-500/10',
+    },
   ];
 
   // ---------- RENDER ----------
@@ -634,7 +836,7 @@ const SupplierInvoicesPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-2 md:grid-cols-5 gap-4"
+          className="grid grid-cols-2 md:grid-cols-6 gap-4"
         >
           {kpiCards.map((kpi, idx) => (
             <div key={idx} className="bg-[#0f1528]/80 border border-white/10 backdrop-blur rounded-xl p-4">
@@ -715,6 +917,31 @@ const SupplierInvoicesPage = () => {
                 </SelectItem>
                 <SelectItem value="rejected" className="text-white hover:bg-gray-800">
                   {t('supplierInvoices.approvalRejected', 'Rejetee')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={matchFilter} onValueChange={setMatchFilter}>
+              <SelectTrigger className="w-full md:w-[220px] bg-gray-900 border-gray-800 text-white">
+                <SelectValue placeholder={t('supplierInvoices.filterThreeWay', '3-way match')} />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-900 border-gray-800">
+                <SelectItem value="all" className="text-white hover:bg-gray-800">
+                  {t('supplierInvoices.threeWayAll', 'Tous les statuts 3-way')}
+                </SelectItem>
+                <SelectItem value="matched" className="text-white hover:bg-gray-800">
+                  {t('supplierInvoices.threeWayMatched', '3-way OK')}
+                </SelectItem>
+                <SelectItem value="mismatch" className="text-white hover:bg-gray-800">
+                  {t('supplierInvoices.threeWayMismatch', 'Ecart')}
+                </SelectItem>
+                <SelectItem value="partial" className="text-white hover:bg-gray-800">
+                  {t('supplierInvoices.threeWayPartial', 'Partiel')}
+                </SelectItem>
+                <SelectItem value="pending" className="text-white hover:bg-gray-800">
+                  {t('supplierInvoices.threeWayPending', 'En attente')}
+                </SelectItem>
+                <SelectItem value="unmatched" className="text-white hover:bg-gray-800">
+                  {t('supplierInvoices.threeWayUnmatched', 'Non lie')}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -825,6 +1052,9 @@ const SupplierInvoicesPage = () => {
                       {t('supplierInvoices.colApproval', 'Approbation')}
                     </TableHead>
                     <TableHead className="text-gray-400 text-center">
+                      {t('supplierInvoices.colThreeWayMatch', '3-way')}
+                    </TableHead>
+                    <TableHead className="text-gray-400 text-center">
                       {t('supplierInvoices.colSource', 'Source')}
                     </TableHead>
                     <TableHead className="text-gray-400 text-center">{t('supplierInvoices.colDoc', 'Doc')}</TableHead>
@@ -834,6 +1064,19 @@ const SupplierInvoicesPage = () => {
                 <TableBody>
                   {paginatedInvoices.map((inv) => {
                     const amount = parseFloat(inv.total_amount) || parseFloat(inv.total_ttc) || 0;
+                    const workflowSummary = getApprovalWorkflowSummary(inv.approval_steps, inv.approval_stage);
+                    const threeWayMatch = threeWayMatches[inv.id] || null;
+                    const threeWayStatus = normalizeThreeWayMatchStatus(
+                      threeWayMatch?.match_status || inv.three_way_match_status
+                    );
+                    const threeWayScore = Number(threeWayMatch?.match_score ?? inv.three_way_match_score ?? 0);
+                    const threeWayAmountVariance = Number(threeWayMatch?.amount_variance ?? 0);
+                    const threeWayQuantityVariance = Number(threeWayMatch?.quantity_variance ?? 0);
+                    const linkedSupplierOrderId = threeWayMatch?.supplier_order_id || inv.supplier_order_id || null;
+                    const supplierOrderOptions = supplierOrders.filter(
+                      (order) => order.supplier_id === inv.supplier_id
+                    );
+                    const selectedSupplierOrderValue = linkedSupplierOrderId || 'auto';
 
                     return (
                       <TableRow key={inv.id} className="border-white/5 hover:bg-white/5">
@@ -920,6 +1163,37 @@ const SupplierInvoicesPage = () => {
                                 </SelectItem>
                               </SelectContent>
                             </Select>
+                            <p className="text-[10px] text-gray-400">
+                              {t('supplierInvoices.approvalLevelLabel', {
+                                defaultValue: 'Niveau {{current}} / {{required}}',
+                                current: workflowSummary.currentLevel,
+                                required: workflowSummary.requiredLevels,
+                              })}
+                            </p>
+                            {workflowSummary.status === 'pending' ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleAdvanceApproval(inv.id)}
+                                className="h-6 px-2 text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/10"
+                                title={t('supplierInvoices.approveCurrentLevel', {
+                                  defaultValue: 'Valider niveau {{level}}',
+                                  level: workflowSummary.currentLevel,
+                                })}
+                                aria-label={t('supplierInvoices.approveCurrentLevel', {
+                                  defaultValue: 'Valider niveau {{level}}',
+                                  level: workflowSummary.currentLevel,
+                                })}
+                              >
+                                <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                                <span className="text-[10px] leading-none">
+                                  {t('supplierInvoices.approveLevelShort', {
+                                    defaultValue: 'N{{level}}',
+                                    level: workflowSummary.currentLevel,
+                                  })}
+                                </span>
+                              </Button>
+                            ) : null}
                             <div className="flex items-center gap-1">
                               {getApprovalBadge(inv.approval_status || 'pending')}
                               <button
@@ -935,6 +1209,72 @@ const SupplierInvoicesPage = () => {
                                 {inv.rejected_reason}
                               </p>
                             ) : null}
+                          </div>
+                        </TableCell>
+
+                        {/* 3-way match */}
+                        <TableCell className="text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            {getThreeWayMatchBadge(threeWayStatus)}
+                            <p className="text-[10px] text-gray-400">
+                              {t('supplierInvoices.threeWayScore', {
+                                defaultValue: 'Score {{score}}%',
+                                score: Math.round(threeWayScore),
+                              })}
+                            </p>
+                            <p className="text-[10px] text-gray-500">
+                              {t('supplierInvoices.threeWayVarianceCompact', {
+                                defaultValue: 'Δ {{amount}} / Qté {{quantity}}',
+                                amount: formatCurrency(threeWayAmountVariance, inv.currency || currency),
+                                quantity: threeWayQuantityVariance.toFixed(2),
+                              })}
+                            </p>
+                            <Select
+                              value={selectedSupplierOrderValue}
+                              onValueChange={(value) => handleSupplierOrderLinkChange(inv.id, value)}
+                            >
+                              <SelectTrigger className="h-7 w-44 bg-transparent border-gray-700 text-xs mx-auto">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                                <SelectItem value="auto">
+                                  {t('supplierInvoices.threeWayAutoOrder', 'Auto (commande la plus proche)')}
+                                </SelectItem>
+                                {supplierOrderOptions.map((order) => (
+                                  <SelectItem key={order.id} value={order.id}>
+                                    {`${order.order_number || order.id.slice(0, 8)} • ${order.order_status || 'draft'}`}
+                                  </SelectItem>
+                                ))}
+                                {linkedSupplierOrderId &&
+                                !supplierOrderOptions.some((order) => order.id === linkedSupplierOrderId) ? (
+                                  <SelectItem value={linkedSupplierOrderId}>
+                                    {t('supplierInvoices.threeWayLinkedOrder', {
+                                      defaultValue: 'Commande liée ({{id}})',
+                                      id: linkedSupplierOrderId.slice(0, 8),
+                                    })}
+                                  </SelectItem>
+                                ) : null}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => runThreeWayMatch(inv.id, linkedSupplierOrderId)}
+                              className="h-6 px-2 text-blue-300 hover:text-blue-200 hover:bg-blue-500/10"
+                              title={t('supplierInvoices.runThreeWayMatch', 'Recalculer le 3-way match')}
+                              disabled={runningMatchInvoiceId === inv.id}
+                            >
+                              {runningMatchInvoiceId === inv.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                                  <span className="text-[10px] leading-none">
+                                    {t('supplierInvoices.runThreeWayShort', 'Recalc.')}
+                                  </span>
+                                </>
+                              )}
+                            </Button>
                           </div>
                         </TableCell>
 

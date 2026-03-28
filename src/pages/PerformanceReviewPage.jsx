@@ -4,17 +4,21 @@ import {
   Award,
   Calendar,
   CheckCircle2,
+  Clock3,
   ClipboardList,
   Edit3,
   FileSignature,
   MessageSquare,
   Plus,
+  Send,
   Star,
   Target,
   Trash2,
   Users,
+  Workflow,
 } from 'lucide-react';
 import { usePerformance } from '@/hooks/usePerformance';
+import { buildHrManagerWorkflowInsights } from '@/services/hrManagerWorkflowInsights';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -49,6 +53,20 @@ const STATUS_COLORS = {
   manager_review: 'bg-blue-500/20 text-blue-300 border-blue-400/30',
   hr_review: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
   completed: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+};
+
+const WORKFLOW_STATUS_LABELS = {
+  no_data: 'A demarrer',
+  healthy: 'Fluide',
+  watch: 'Surveille',
+  critical: 'Bloque',
+};
+
+const WORKFLOW_STATUS_CLASSES = {
+  no_data: 'bg-gray-500/20 text-gray-300 border-gray-400/30',
+  healthy: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+  watch: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
+  critical: 'bg-red-500/20 text-red-300 border-red-400/30',
 };
 
 const _PERFORMANCE_LABELS = ['Insuffisant', 'A ameliorer', 'Conforme', 'Superieur', 'Exceptionnel'];
@@ -189,6 +207,7 @@ export default function PerformanceReviewPage() {
   const [saving, setSaving] = useState(false);
 
   const campaigns = useMemo(() => groupByCampaign(reviews), [reviews]);
+  const managerWorkflow = useMemo(() => buildHrManagerWorkflowInsights({ reviews, employees }), [reviews, employees]);
 
   /* ---------- form handlers ---------- */
 
@@ -291,6 +310,21 @@ export default function PerformanceReviewPage() {
     [signReview, toast]
   );
 
+  const handleAdvanceWorkflow = useCallback(
+    async (reviewId, nextStatus, successTitle) => {
+      setSaving(true);
+      try {
+        await updateReview(reviewId, { status: nextStatus });
+        toast({ title: successTitle });
+      } catch (err) {
+        toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [toast, updateReview]
+  );
+
   /* ---------- detail view ---------- */
 
   const detailReview = useMemo(
@@ -338,6 +372,13 @@ export default function PerformanceReviewPage() {
             >
               <Users className="h-4 w-4 mr-1.5" />
               Entretiens
+            </TabsTrigger>
+            <TabsTrigger
+              value="manager-workflow"
+              className="data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400"
+            >
+              <Workflow className="h-4 w-4 mr-1.5" />
+              Workflow managers
             </TabsTrigger>
             {showForm && (
               <TabsTrigger
@@ -403,6 +444,140 @@ export default function PerformanceReviewPage() {
                 );
               })}
             </div>
+          </TabsContent>
+
+          {/* ===== TAB: Workflow Managers ===== */}
+          <TabsContent value="manager-workflow" className="space-y-4 mt-4">
+            {loading && <p className="text-gray-400 text-sm">Chargement...</p>}
+
+            <Card className="bg-white/5 border-white/10" data-testid="hr-manager-workflow-panel">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2">
+                    <Workflow className="h-4 w-4 text-orange-400" />
+                    Workflow managers avance
+                  </span>
+                  <Badge
+                    className={`${WORKFLOW_STATUS_CLASSES[managerWorkflow.workflowStatus] || WORKFLOW_STATUS_CLASSES.watch}`}
+                  >
+                    {WORKFLOW_STATUS_LABELS[managerWorkflow.workflowStatus] || managerWorkflow.workflowStatus}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-gray-400">A traiter manager</p>
+                    <p className="text-xl font-semibold text-blue-300 mt-1">
+                      {managerWorkflow.totals.managerQueueCount}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-gray-400">Retards manager</p>
+                    <p className="text-xl font-semibold text-red-300 mt-1">
+                      {managerWorkflow.totals.overdueManagerCount}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-gray-400">En attente RH</p>
+                    <p className="text-xl font-semibold text-amber-300 mt-1">{managerWorkflow.totals.hrQueueCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-gray-400">Brouillons employe</p>
+                    <p className="text-xl font-semibold text-gray-200 mt-1">{managerWorkflow.totals.draftCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-gray-400">Entretiens signes</p>
+                    <p className="text-xl font-semibold text-emerald-300 mt-1">
+                      {managerWorkflow.totals.completedCount}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Actions prioritaires managers</p>
+                  <ul className="space-y-1.5">
+                    {managerWorkflow.recommendations.slice(0, 3).map((recommendation) => (
+                      <li key={recommendation} className="text-xs text-gray-300">
+                        {recommendation}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-white/10 text-left text-gray-400">
+                          <th className="px-4 py-3 font-medium">Collaborateur</th>
+                          <th className="px-4 py-3 font-medium">Evaluateur</th>
+                          <th className="px-4 py-3 font-medium">File</th>
+                          <th className="px-4 py-3 font-medium">Age dossier</th>
+                          <th className="px-4 py-3 font-medium text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {managerWorkflow.priorityReviews.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                              Aucun dossier manager/RH en file active.
+                            </td>
+                          </tr>
+                        ) : (
+                          managerWorkflow.priorityReviews.map((review) => (
+                            <tr key={review.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td className="px-4 py-3 font-medium text-white">{review.employeeName}</td>
+                              <td className="px-4 py-3 text-gray-300">{review.reviewerName}</td>
+                              <td className="px-4 py-3">
+                                <StatusBadge status={review.status} />
+                              </td>
+                              <td className="px-4 py-3">
+                                <span
+                                  className={`inline-flex items-center gap-1 text-xs ${
+                                    review.isOverdue ? 'text-red-300' : 'text-gray-400'
+                                  }`}
+                                >
+                                  <Clock3 className="h-3.5 w-3.5" />
+                                  {review.daysOpen} jours
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <div className="inline-flex items-center gap-2">
+                                  {review.status === 'manager_review' && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleAdvanceWorkflow(review.id, 'hr_review', 'Envoye en file RH')}
+                                      disabled={saving}
+                                      className="border-blue-500/40 text-blue-300 hover:bg-blue-500/10"
+                                    >
+                                      <Send className="h-3.5 w-3.5 mr-1" />
+                                      Passer RH
+                                    </Button>
+                                  )}
+                                  {review.status === 'hr_review' && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleSign(review.id)}
+                                      disabled={saving}
+                                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    >
+                                      <FileSignature className="h-3.5 w-3.5 mr-1" />
+                                      Signer
+                                    </Button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* ===== TAB: Entretiens ===== */}

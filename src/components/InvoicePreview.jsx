@@ -1,9 +1,8 @@
-
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { exportInvoiceToPDF } from '@/services/exportPDF';
-import { Download, FileArchive, FileCode, Send } from 'lucide-react';
+import { Copy, Download, ExternalLink, FileArchive, FileCode, Loader2, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/components/ui/use-toast';
 import { useCompany } from '@/hooks/useCompany';
@@ -34,7 +33,14 @@ const templateComponents = {
   professional: ProfessionalTemplate,
 };
 
-const InvoicePreview = ({ invoice, client, items }) => {
+const InvoicePreview = ({
+  invoice,
+  client,
+  items,
+  onGeneratePaymentLink,
+  onCopyPaymentLink,
+  paymentLinkLoading = {},
+}) => {
   const { t } = useTranslation();
   const invoiceRef = useRef();
   const { toast } = useToast();
@@ -67,62 +73,53 @@ const InvoicePreview = ({ invoice, client, items }) => {
   };
 
   const handleExportPDF = async () => {
-    await guardedAction(
-      CREDIT_COSTS.PDF_INVOICE,
-      t('credits.costPdfExport'),
-      async () => {
-        try {
-          await exportInvoiceToPDF(invoiceRef.current, invoice.invoice_number || invoice.invoiceNumber);
-          toast({
-            title: t('common.success'),
-            description: t('messages.success.pdfExported')
-          });
-        } catch (error) {
-          toast({
-            title: t('common.error'),
-            description: t('messages.error.pdfExportFailed'),
-            variant: "destructive"
-          });
-        }
+    await guardedAction(CREDIT_COSTS.PDF_INVOICE, t('credits.costPdfExport'), async () => {
+      try {
+        await exportInvoiceToPDF(invoiceRef.current, invoice.invoice_number || invoice.invoiceNumber);
+        toast({
+          title: t('common.success'),
+          description: t('messages.success.pdfExported'),
+        });
+      } catch (error) {
+        toast({
+          title: t('common.error'),
+          description: t('messages.error.pdfExportFailed'),
+          variant: 'destructive',
+        });
       }
-    );
+    });
   };
 
   const handleExportFacturXXml = async () => {
-    await guardedAction(
-      CREDIT_COSTS.PDF_INVOICE,
-      t('credits.costPdfExport'),
-      async () => {
-        try {
-          const validation = validateForFacturX(invoice, company, client);
-          if (!validation.isValid) {
-            throw new Error(validation.errors.join(', '));
-          }
-
-          const pdfBytes = await saveElementAsPdfBytes(invoiceRef.current);
-          const { blob, filename } = await exportFacturXPdf(pdfBytes, invoice, company, client, 'EN16931', items);
-          downloadBlob(blob, filename);
-
-          toast({
-            title: t('common.success'),
-            description: t(
-              'invoices.facturxPdfExported',
-              'Factur-X PDF exported.'
-            ),
-          });
-        } catch (error) {
-          toast({
-            title: t('common.error'),
-            description: error.message || t('messages.error.pdfExportFailed'),
-            variant: 'destructive',
-          });
+    await guardedAction(CREDIT_COSTS.PDF_INVOICE, t('credits.costPdfExport'), async () => {
+      try {
+        const validation = validateForFacturX(invoice, company, client);
+        if (!validation.isValid) {
+          throw new Error(validation.errors.join(', '));
         }
+
+        const pdfBytes = await saveElementAsPdfBytes(invoiceRef.current);
+        const { blob, filename } = await exportFacturXPdf(pdfBytes, invoice, company, client, 'EN16931', items);
+        downloadBlob(blob, filename);
+
+        toast({
+          title: t('common.success'),
+          description: t('invoices.facturxPdfExported', 'Factur-X PDF exported.'),
+        });
+      } catch (error) {
+        toast({
+          title: t('common.error'),
+          description: error.message || t('messages.error.pdfExportFailed'),
+          variant: 'destructive',
+        });
       }
-    );
+    });
   };
 
   const theme = getTheme(settings.color_theme);
   const TemplateComponent = templateComponents[settings.template_id] || templateComponents[DEFAULT_INVOICE_TEMPLATE_ID];
+  const hasPaymentLink = !!invoice?.stripe_payment_link_url;
+  const isPaymentLinkBusy = !!paymentLinkLoading?.[invoice.id];
 
   return (
     <div className="space-y-4">
@@ -130,10 +127,7 @@ const InvoicePreview = ({ invoice, client, items }) => {
       <CreditsGuardModal {...creditsModalProps} />
       <div className="flex justify-end gap-2 flex-wrap">
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button
-            onClick={handleExportPDF}
-            className="bg-orange-500 hover:bg-orange-600"
-          >
+          <Button onClick={handleExportPDF} className="bg-orange-500 hover:bg-orange-600">
             <Download className="w-4 h-4 mr-2" />
             {t('invoices.exportPDF')} ({CREDIT_COSTS.PDF_INVOICE} {t('credits.creditsLabel')})
           </Button>
@@ -146,15 +140,17 @@ const InvoicePreview = ({ invoice, client, items }) => {
             className="border-teal-500/30 text-teal-300 hover:bg-teal-500/10"
           >
             <FileArchive className="w-4 h-4 mr-2" />
-            {t(
-              'invoices.exportFacturXPdf',
-              'Export PDF (Factur-X)'
-            )} ({CREDIT_COSTS.PDF_INVOICE} {t('credits.creditsLabel')})
+            {t('invoices.exportFacturXPdf', 'Export PDF (Factur-X)')} ({CREDIT_COSTS.PDF_INVOICE}{' '}
+            {t('credits.creditsLabel')})
           </Button>
         </motion.div>
 
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button onClick={handleExportUBL} variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
+          <Button
+            onClick={handleExportUBL}
+            variant="outline"
+            className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+          >
             <FileCode className="w-4 h-4 mr-2" />
             {t('peppol.exportUBL')}
           </Button>
@@ -171,10 +167,10 @@ const InvoicePreview = ({ invoice, client, items }) => {
               {sending
                 ? t('peppol.sending')
                 : t('peppolPage.creditPolicy.tableSendLabel', {
-                  credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
-                  unit: t('credits.creditsLabel'),
-                  defaultValue: `${t('peppol.sendViaPeppol')} (${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${t('credits.creditsLabel')})`,
-                })}
+                    credits: CREDIT_COSTS.PEPPOL_SEND_INVOICE,
+                    unit: t('credits.creditsLabel'),
+                    defaultValue: `${t('peppol.sendViaPeppol')} (${CREDIT_COSTS.PEPPOL_SEND_INVOICE} ${t('credits.creditsLabel')})`,
+                  })}
             </Button>
           </motion.div>
         )}
@@ -183,6 +179,68 @@ const InvoicePreview = ({ invoice, client, items }) => {
           <PeppolStatusBadge status={invoice.peppol_status} errorMessage={invoice.peppol_error_message} />
         )}
       </div>
+
+      {invoice.status !== 'paid' && (
+        <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-violet-200">
+                {t('invoices.paymentLinkSection', 'Paiement direct')}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {hasPaymentLink ? t('invoices.paymentLinkGenerated') : t('invoices.generatePaymentLink')}
+              </p>
+            </div>
+
+            {hasPaymentLink ? (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onCopyPaymentLink?.(invoice.stripe_payment_link_url)}
+                  className="border-violet-500/30 text-violet-200 hover:bg-violet-500/10"
+                  aria-label={t('invoices.copyPaymentLink')}
+                  title={t('invoices.copyPaymentLink')}
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  {t('invoices.copyPaymentLink')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => window.open(invoice.stripe_payment_link_url, '_blank', 'noopener,noreferrer')}
+                  className="border-violet-500/30 text-violet-200 hover:bg-violet-500/10"
+                  aria-label={t('invoices.openPaymentLink')}
+                  title={t('invoices.openPaymentLink')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  {t('invoices.openPaymentLink')}
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                onClick={() => onGeneratePaymentLink?.(invoice)}
+                disabled={isPaymentLinkBusy}
+                className="bg-violet-600 hover:bg-violet-700 text-white"
+                aria-label={t('invoices.generatePaymentLink')}
+              >
+                {isPaymentLinkBusy ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {t('common.loading')}
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    {t('invoices.generatePaymentLink')}
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div ref={invoiceRef} className="rounded-lg shadow-xl overflow-hidden">
         <TemplateComponent

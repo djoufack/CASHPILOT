@@ -95,8 +95,10 @@ const PilotagePage = lazyRetry(() => import('./pages/PilotagePage'));
 const QuoteSignPage = lazyRetry(() => import('./pages/QuoteSignPage'));
 const PaymentSuccessPage = lazyRetry(() => import('./pages/PaymentSuccessPage'));
 const PortfolioPage = lazyRetry(() => import('./pages/PortfolioPage'));
+const CompanyComplianceCockpitPage = lazyRetry(() => import('./pages/CompanyComplianceCockpitPage'));
 const FinancialInstrumentsPage = lazyRetry(() => import('./pages/FinancialInstrumentsPage'));
 const IntegrationsHubPage = lazyRetry(() => import('./pages/IntegrationsHubPage'));
+const AdminOperationsPage = lazyRetry(() => import('./pages/AdminOperationsPage'));
 const SharedSnapshotPage = lazyRetry(() => import('./pages/SharedSnapshotPage'));
 const CRMPage = lazyRetry(() => import('./pages/CRMPage'));
 const GedHubPage = lazyRetry(() => import('./pages/GedHubPage'));
@@ -341,8 +343,10 @@ const AppRoutes = () => {
         <Route path="pilotage" element={page(PilotagePage)} />
         <Route path="bank-connections" element={page(BankConnectionsPage)} />
         <Route path="financial-instruments" element={page(FinancialInstrumentsPage)} />
+        <Route path="company-compliance-cockpit" element={page(CompanyComplianceCockpitPage)} />
         <Route path="portfolio" element={page(PortfolioPage)} />
         <Route path="integrations" element={page(IntegrationsHubPage)} />
+        <Route path="admin-ops" element={page(AdminOperationsPage)} />
         <Route path="bank-callback" element={page(BankCallbackPage)} />
         <Route path="gocardless-callback" element={page(GoCardlessCallbackPage)} />
 

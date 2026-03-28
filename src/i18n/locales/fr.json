@@ -121,6 +121,7 @@
     "seedData": "Données de test",
     "pilotage": "Pilotage",
     "sales": "Ventes",
+    "companyComplianceCockpit": "Cockpit Conformité & Groupe",
     "companyPortfolio": "Portefeuille sociétés",
     "integrations": "Intégrations",
     "apiWebhooks": "API & Webhooks",
@@ -262,8 +263,10 @@
     "overdueWarning": "Cette facture est en retard de paiement",
     "itemDescriptionPlaceholder": "Service ou produit",
     "notesPlaceholder": "Conditions de paiement, notes...",
+    "paymentLinkSection": "Paiement direct",
     "generatePaymentLink": "Générer lien de paiement",
     "copyPaymentLink": "Copier le lien",
+    "openPaymentLink": "Ouvrir le lien",
     "paymentLinkCopied": "Lien copié !",
     "paymentLinkGenerated": "Lien de paiement créé",
     "exportFacturXXml": "Exporter XML (Factur-X)",
@@ -406,6 +409,12 @@
     "exportExcel": "Exporter Excel",
     "exportPdfTitle": "Exporter en PDF ({{credits}} crédits)",
     "exportHtmlTitle": "Exporter en HTML ({{credits}} crédits)",
+    "documentType": "Type de document",
+    "documentTypeQuote": "Devis",
+    "documentTypeContract": "Contrat",
+    "convertToContract": "Convertir en contrat",
+    "convertToContractTitle": "Convertir le devis {{number}} en contrat",
+    "convertToContractAria": "Convertir le devis {{number}} en contrat",
     "quoteNumber": "Numéro de devis",
     "client": "Client",
     "date": "Date",
@@ -427,7 +436,36 @@
     "documents": "Documents",
     "signatureStatus": "Signature",
     "signatureUnsigned": "Non signé",
-    "quoteDetails": "Détails du devis"
+    "quoteDetails": "Détails du devis",
+    "markAsLost": "Marquer perdu",
+    "captureLossReason": "Capturer le motif de perte",
+    "lossReason": "Motif de perte",
+    "lossReasonCategory": "Catégorie de perte",
+    "lossReasonDetails": "Détail du motif",
+    "lossReasonRequired": "Veuillez sélectionner un motif de perte.",
+    "lossReasonNotProvided": "Non renseigné",
+    "nextBestAction": "Next best action",
+    "lossReasonCategories": {
+      "budget": "Budget insuffisant",
+      "timing": "Mauvais timing",
+      "competition": "Concurrence",
+      "scope": "Périmètre inadapté",
+      "no_response": "Aucune réponse",
+      "other": "Autre"
+    },
+    "nextBestActions": {
+      "send_quote": "Envoyer le devis",
+      "request_signature": "Relancer la signature",
+      "extend_validity": "Prolonger la validité",
+      "convert_to_contract": "Convertir en contrat",
+      "offer_discount": "Proposer une remise ciblée",
+      "schedule_follow_up": "Planifier une relance",
+      "differentiate_offer": "Renforcer la différenciation de l'offre",
+      "revise_scope": "Réviser le périmètre de l'offre",
+      "multi_channel_relaunch": "Relancer en multi-canal",
+      "capture_loss_reason": "Qualifier précisément le motif de perte",
+      "monitor_quote": "Suivre le devis"
+    }
   },
   "purchaseOrdersPage": {
     "title": "Bons de commande",
@@ -695,6 +733,20 @@
     "lateLabel": "En retard",
     "noOrderData": "Aucune donnée de commandes disponible.",
     "noDeliveryData": "Aucune donnée de livraison disponible.",
+    "supplierScores": "Scores fournisseurs",
+    "averageSupplierScore": "Score fournisseur moyen",
+    "scoreBySupplier": "Scores globaux par fournisseur",
+    "scoreOverview": "Vue d'ensemble des scores",
+    "scoreTable": "Détail des scores fournisseurs",
+    "globalScore": "Score global",
+    "qualityScore": "Qualité",
+    "deliveryScore": "Délai",
+    "costScore": "Coût",
+    "scoreBand": "Classe",
+    "lastEvaluation": "Dernière évaluation",
+    "notEvaluated": "Non évalué",
+    "noSupplierScoreData": "Aucun score fournisseur disponible.",
+    "scoreBandLegend": "Classe A: excellent, B: solide, C: acceptable, D: à surveiller, E: critique.",
     "status": {
       "pending": "En attente",
       "confirmed": "Confirmée",
@@ -1032,6 +1084,27 @@
       "statusActive": "Actif",
       "statusDisposed": "Cédé",
       "statusFullyDepreciated": "Amorti"
+    },
+    "closingAssistant": {
+      "tabLabel": "Clôture assistée",
+      "title": "Clôture assistée",
+      "description": "Assistant de clôture de période: génération des dotations, contrôle d'équilibre et historisation.",
+      "period": "Période",
+      "run": "Lancer la clôture assistée",
+      "lastCloseDate": "Dernière clôture",
+      "statusDraft": "À préparer",
+      "statusClosed": "Clôturée",
+      "statusBlocked": "Bloquée",
+      "checkDepreciation": "Dotations aux amortissements",
+      "checkDepreciationOk": "Toutes les lignes sont comptabilisées.",
+      "checkDepreciationPending": "{{count}} ligne(s) non comptabilisée(s).",
+      "checkJournal": "Équilibre débit / crédit",
+      "checkJournalOk": "Aucun écart de journal détecté.",
+      "checkJournalGap": "Écart courant: {{value}}",
+      "successTitle": "Clôture assistée terminée",
+      "successDescription": "La période a été clôturée avec génération des dotations et contrôle de cohérence.",
+      "blockedTitle": "Clôture assistée bloquée",
+      "blockedDescription": "La période reste bloquée: vérifiez les dotations non postées ou l'écart de journal."
     },
     "analytique": {
       "title": "Comptabilité analytique",
@@ -3196,6 +3269,7 @@
     },
     "sections": {
       "companiesAndPriorities": "Sociétés et priorités",
+      "stressTests": "Stress-tests du portefeuille",
       "watchlist": "Watchlist retards clients",
       "quickRead": "Lecture rapide du portefeuille"
     },
@@ -3218,6 +3292,95 @@
       "quotePipelineText": "{{quotes}} devis ouverts pour {{amount}}.",
       "recommendedActionTitle": "Action recommandée",
       "recommendedActionText": "Traiter en priorité les sociétés avec retards clients avant de changer de contexte opérationnel."
+    },
+    "stressTests": {
+      "sectionTitle": "Stress-tests du portefeuille",
+      "sectionDescription": "Scénarios de choc calculés à partir des totaux portefeuille chargés depuis Supabase.",
+      "sectionDataSource": "Totaux portefeuille calculés à partir des RPC Supabase en temps réel.",
+      "sectionFormula": "Les chocs appliquent des scénarios proportionnels aux agrégats réels du portefeuille.",
+      "sectionCalculationMethod": "Les calculs s’appuient sur les totaux agrégés chargés dans la page portefeuille.",
+      "sectionNotes": "Les pourcentages de stress sont des hypothèses d’analyse, pas des données métier.",
+      "scenarioLabel": "Scénario",
+      "severity": {
+        "warning": "Alerte",
+        "danger": "Critique"
+      },
+      "baseline": "Base",
+      "stressed": "Sous stress",
+      "deltaLabel": "Variation",
+      "impact": "Impact",
+      "revenueShockTitle": "Choc de revenu",
+      "revenueShockDescription": "Impact d’une baisse de 10 % du CA facturé.",
+      "collectionShockTitle": "Retard d’encaissement",
+      "collectionShockDescription": "Impact d’un ralentissement de 15 % des encaissements et d’une hausse de l’encours.",
+      "pipelineShockTitle": "Contraction du pipeline",
+      "pipelineShockDescription": "Impact d’une baisse de 20 % du pipeline devis.",
+      "metrics": {
+        "bookedRevenue": "CA facturé",
+        "collectedCash": "Encaissements",
+        "outstandingReceivables": "Encours client",
+        "quotePipeline": "Pipeline devis",
+        "openQuotes": "Devis ouverts",
+        "activeProjects": "Projets actifs"
+      }
+    }
+  },
+  "companyCockpit": {
+    "pageTitle": "Cockpit Conformité & Groupe",
+    "badge": "Mon Entreprise",
+    "title": "Cockpit Conformité & Groupe",
+    "subtitle": "Vue unifiée des modules Portfolio, Peppol, PDP, Inter-sociétés, Consolidation et Veille réglementaire.",
+    "refresh": "Actualiser",
+    "riskBanner": "Des signaux nécessitent une action (conformité, interco ou veille réglementaire).",
+    "dataWarningsTitle": "Avertissement de chargement",
+    "openModule": "Ouvrir le module",
+    "orchestrationTitle": "Orchestration groupe",
+    "orchestrationDescription": "Utilisez ce cockpit comme point d'entrée unique pour piloter la conformité et la gouvernance multi-sociétés.",
+    "summary": {
+      "companies": "Sociétés suivies",
+      "peppolReadyHint": "{{count}} / {{total}} prêtes Peppol",
+      "portfolios": "Portefeuilles",
+      "portfolioCompaniesHint": "{{count}} sociétés rattachées",
+      "certifications": "Certifications PDP",
+      "certificationsAtRiskHint": "{{count}} en risque d'expiration",
+      "intercompany": "Éliminations interco en attente",
+      "eliminationAmountHint": "Montant éliminé: {{amount}}",
+      "regulatory": "Alertes réglementaires critiques",
+      "upcomingUpdatesHint": "{{count}} mises à jour à venir (30 jours)",
+      "lastSync": "Dernière clôture interco",
+      "lastSyncHint": "Date de la dernière élimination enregistrée"
+    },
+    "modules": {
+      "portfolio": {
+        "title": "Portfolio sociétés",
+        "description": "Suivez les sociétés, encours et priorités d'action au niveau groupe.",
+        "metric": "{{companies}} sociétés · {{portfolios}} portefeuilles"
+      },
+      "peppol": {
+        "title": "Peppol",
+        "description": "Contrôlez la capacité d'émission électronique de vos sociétés.",
+        "metric": "{{ready}} / {{total}} sociétés configurées"
+      },
+      "pdp": {
+        "title": "PDP / Certification",
+        "description": "Centralisez l'état des certifications et audits fiscaux.",
+        "metric": "{{certified}} / {{total}} certifications validées"
+      },
+      "interCompany": {
+        "title": "Inter-sociétés",
+        "description": "Pilotez les transactions miroir et les écritures d'élimination.",
+        "metric": "{{count}} éliminations en attente"
+      },
+      "consolidation": {
+        "title": "Consolidation",
+        "description": "Accédez à la vue consolidée P&L, bilan et trésorerie.",
+        "metric": "{{count}} portefeuilles consolidables"
+      },
+      "regulatory": {
+        "title": "Veille réglementaire",
+        "description": "Priorisez les changements réglementaires critiques à traiter.",
+        "metric": "{{count}} alertes critiques ouvertes"
+      }
     }
   },
   "topNav": {
@@ -3433,6 +3596,15 @@
     "successDescription": "{{name}}, votre signature a bien été enregistrée.",
     "rejectedTitle": "Devis refusé",
     "rejectedDescription": "Ce devis a été refusé.",
+    "contractTitle": "Signer le contrat",
+    "contractNumber": "Contrat {{number}}",
+    "contractSummaryTitle": "Résumé du contrat",
+    "contractSignatureTitle": "Signature du contrat",
+    "contractContext": "Document contractuel.",
+    "rejectContract": "Refuser le contrat",
+    "signAndAcceptContract": "Signer et accepter le contrat",
+    "contractSuccessTitle": "Contrat signé",
+    "contractRejectedTitle": "Contrat refusé",
     "title": "Signer le devis",
     "quoteNumber": "Devis {{number}}",
     "summaryTitle": "Résumé du devis",
@@ -4019,6 +4191,8 @@
         "defaultName": "Scénario CFO guidé",
         "defaultDescription": "Scénario de travail créé depuis les actions guidées du CFO.",
         "success": "Relance exécutée sur la facture la plus en retard : {{invoiceNumber}}",
+        "noop": "Aucune facture impayée en retard : aucune relance nécessaire.",
+        "fallback": "Relance automatique indisponible : ouverture du module Relances IA.",
         "error": "{{reason}}"
       },
       "scenario": {
@@ -4037,6 +4211,20 @@
         "success": "Audit ouvert avec lancement automatique sur la période en cours.",
         "error": "{{reason}}"
       }
+    },
+    "weeklyBriefing": {
+      "title": "Briefing hebdomadaire CFO",
+      "subtitle": "Résumé automatique de la semaine courante pour la société active.",
+      "loading": "Chargement du briefing hebdomadaire...",
+      "generatedNow": "Généré maintenant",
+      "cached": "En cache",
+      "refresh": "Rafraîchir",
+      "lastGenerated": "Dernière génération",
+      "healthScore": "Score santé",
+      "highlights": "Points clés",
+      "actions": "Actions recommandées",
+      "emptyResponse": "Aucun briefing hebdomadaire disponible.",
+      "loadError": "Impossible de charger le briefing hebdomadaire."
     }
   },
   "mobileMoney": {
@@ -4187,7 +4375,26 @@
     "periodQ3": "T3",
     "periodQ4": "T4",
     "periodLast12m": "12 derniers mois",
-    "periodCustom": "Personnalise"
+    "periodCustom": "Personnalise",
+    "tabEntities": "Entites",
+    "entitiesTitle": "Entites consolidees",
+    "entitiesDescription": "Controlez la couverture multi-entites, les societes en risque et les eliminations en attente.",
+    "entitiesDefinition": "Vision transversale par societe pour piloter la consolidation multi-entites.",
+    "entitiesDataSource": "Agregation des flux P&L, bilan, tresorerie et transactions inter-societes de la consolidation.",
+    "entitiesFormula": "Statut = attention si eliminations en attente, sinon active si activite detectee, sinon inactive.",
+    "entitiesCalculation": "Croisement des indicateurs par societe puis classement des entites selon le risque et le niveau d activite.",
+    "scopeAll": "Toutes les entites",
+    "scopeActive": "Entites actives",
+    "scopeAttention": "Entites en attention",
+    "entitiesTotalCount": "{{count}} entites",
+    "entitiesActiveCount": "{{count}} actives",
+    "entitiesAttentionCount": "{{count}} en attention",
+    "entityStatusAttention": "Attention",
+    "entityStatusActive": "Active",
+    "entityStatusInactive": "Inactive",
+    "pendingEliminations": "Eliminations en attente",
+    "company": "Societe",
+    "noEntitiesForScope": "Aucune entite a afficher pour ce filtre."
   },
   "cashflow": {
     "page": {

@@ -4,6 +4,21 @@ import { Send, Trash2, Loader2, Bot, User, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCfoChat } from '@/hooks/useCfoChat';
 
+const SOURCE_EVIDENCE_TYPE = 'source_evidence';
+
+const formatMoney = (value) =>
+  new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+
+const formatCount = (value) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(value || 0));
+
+const getSourceEvidence = (toolCalls) => {
+  if (!Array.isArray(toolCalls)) return null;
+  return toolCalls.find((toolCall) => toolCall?.type === SOURCE_EVIDENCE_TYPE) || null;
+};
+
 const CfoChatPanel = () => {
   const { t } = useTranslation();
   const { messages, loading, suggestions, sendMessage, clearHistory } = useCfoChat();
@@ -12,7 +27,7 @@ const CfoChatPanel = () => {
   const inputRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSend = () => {
@@ -111,6 +126,67 @@ const CfoChatPanel = () => {
               }`}
             >
               <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+              {msg.role === 'assistant' &&
+                !msg.isError &&
+                (() => {
+                  const sourceEvidence = getSourceEvidence(msg.toolCalls);
+                  if (!sourceEvidence) return null;
+
+                  const metricRows = [
+                    ['CA total', sourceEvidence.metrics?.totalRevenue, 'EUR'],
+                    ['Dépenses', sourceEvidence.metrics?.totalExpenses, 'EUR'],
+                    ['Résultat net', sourceEvidence.metrics?.netResult, 'EUR'],
+                    ['Encaissements', sourceEvidence.metrics?.totalPaid, 'EUR'],
+                    ['Impayés', sourceEvidence.metrics?.unpaidTotal, 'EUR'],
+                    ['Factures en retard', sourceEvidence.metrics?.overdueCount, ''],
+                    ['Clients', sourceEvidence.metrics?.clientCount, ''],
+                    ['Factures', sourceEvidence.metrics?.invoiceCount, ''],
+                  ];
+
+                  return (
+                    <div className="mt-3 rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-3">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200">
+                        Preuves source
+                      </div>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <div className="text-[11px] font-medium text-cyan-100/80">Tables utilisées</div>
+                          <div className="mt-1 text-[11px] text-cyan-50/90">
+                            {(sourceEvidence.tables_used || []).join(', ')}
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {(sourceEvidence.tables_used || []).map((table) => (
+                              <span
+                                key={table}
+                                className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2 py-0.5 text-[11px] text-cyan-50"
+                              >
+                                {table}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-medium text-cyan-100/80">Chiffres clés</div>
+                          <dl className="mt-2 space-y-1.5">
+                            {metricRows.map(([label, value, unit]) => (
+                              <div key={label} className="flex items-center justify-between gap-3 text-[11px]">
+                                <dt className="text-cyan-50/80">{label}</dt>
+                                <dd className="font-medium text-cyan-50">
+                                  {unit === 'EUR' ? `${formatMoney(value)} EUR` : formatCount(value)}
+                                </dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </div>
+                      </div>
+                      {sourceEvidence.generated_at && (
+                        <div className="mt-2 text-[10px] text-cyan-100/60">
+                          Généré le {new Date(sourceEvidence.generated_at).toLocaleString('fr-FR')}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               {msg.timestamp && (
                 <div className="text-xs text-gray-500 mt-2">
                   {new Date(msg.timestamp).toLocaleTimeString('fr-FR', {

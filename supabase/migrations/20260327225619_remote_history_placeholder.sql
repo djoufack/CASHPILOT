@@ -1,0 +1,2 @@
+-- Placeholder migration to align local filesystem with remote migration history.
+-- This file intentionally contains no-op SQL statements.

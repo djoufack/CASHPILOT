@@ -218,6 +218,7 @@ const InvoiceGalleryView = ({ data, actions, ui }) => {
                         size="sm"
                         onClick={() => onCopyPaymentLink(invoice.stripe_payment_link_url)}
                         className="text-violet-400 hover:text-violet-300 hover:bg-violet-900/20 h-8 w-8 p-0"
+                        aria-label={t('invoices.copyPaymentLink')}
                         title={t('invoices.copyPaymentLink')}
                       >
                         <Copy className="w-4 h-4" />
@@ -227,7 +228,8 @@ const InvoiceGalleryView = ({ data, actions, ui }) => {
                         size="sm"
                         onClick={() => window.open(invoice.stripe_payment_link_url, '_blank')}
                         className="text-violet-400 hover:text-violet-300 hover:bg-violet-900/20 h-8 w-8 p-0"
-                        title={t('invoices.copyPaymentLink')}
+                        aria-label={t('invoices.openPaymentLink')}
+                        title={t('invoices.openPaymentLink')}
                       >
                         <Link className="w-4 h-4" />
                       </Button>
@@ -239,6 +241,7 @@ const InvoiceGalleryView = ({ data, actions, ui }) => {
                       onClick={() => onGeneratePaymentLink(invoice)}
                       disabled={!!paymentLinkLoading[invoice.id]}
                       className="text-violet-400 hover:text-violet-300 hover:bg-violet-900/20 h-8 w-8 p-0"
+                      aria-label={t('invoices.generatePaymentLink')}
                       title={t('invoices.generatePaymentLink')}
                     >
                       {paymentLinkLoading[invoice.id] ? (

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowUpRight,
+  CalendarClock,
   Download,
   FileText,
   FileUp,
@@ -12,16 +13,20 @@ import {
   ShieldCheck,
   Star,
   Tags,
+  PencilLine,
+  Workflow,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import GedWorkflowDialog from '@/components/ged/GedWorkflowDialog';
 import { useGedHub } from '@/hooks/useGedHub';
+import { computeRetentionUntilFromDays } from '@/services/gedRetentionPolicies';
 
 const SOURCE_FILTERS = [
   { value: 'all', label: 'Tous les modules' },
@@ -33,6 +38,14 @@ const SOURCE_FILTERS = [
   { value: 'supplier_invoices', label: 'Factures fournisseurs' },
 ];
 const CREATE_SOURCE_OPTIONS = SOURCE_FILTERS.filter((entry) => entry.value !== 'all');
+
+const RETENTION_POLICY_SOURCE_OPTIONS = SOURCE_FILTERS.filter((entry) => entry.value !== 'all');
+const DEFAULT_RETENTION_POLICY_FORM = {
+  sourceTable: 'invoices',
+  docCategory: 'all',
+  retentionDays: '',
+  isActive: true,
+};
 
 const CONFIDENTIALITY_OPTIONS = [
   { value: 'public', label: 'Public' },
@@ -63,6 +76,15 @@ const isSupplierDocumentType = (value) => value === 'supplier_invoices';
 const isAccountingDocumentType = (value) => value === 'invoices' || value === 'supplier_invoices';
 const ACCOUNTING_UPLOAD_ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp';
 const GENERIC_UPLOAD_ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.csv,.xml,.txt';
+const formatRetentionCategory = (value) => (value === 'all' ? 'Tous' : value || '-');
+const WORKFLOW_STATUS_META = {
+  pending_review: { label: 'En attente', className: 'border-amber-500/30 text-amber-300 bg-amber-500/20' },
+  approved: { label: 'Approuvé', className: 'border-emerald-500/30 text-emerald-300 bg-emerald-500/20' },
+  rejected: { label: 'Rejeté', className: 'border-red-500/30 text-red-300 bg-red-500/20' },
+  signed: { label: 'Signé', className: 'border-sky-500/30 text-sky-300 bg-sky-500/20' },
+  none: { label: 'Aucun', className: 'border-gray-700 text-gray-300 bg-gray-800' },
+};
+const formatWorkflowStatus = (value) => WORKFLOW_STATUS_META[value] || WORKFLOW_STATUS_META.none;
 
 const GedHubPage = () => {
   const { t } = useTranslation();
@@ -84,6 +106,14 @@ const GedHubPage = () => {
     getDocumentAccessUrl,
     generatePdf,
     sourceConfig,
+    retentionPolicies,
+    retentionPoliciesLoading,
+    workflowRows,
+    saveRetentionPolicy,
+    requestDocumentWorkflow,
+    approveDocumentWorkflow,
+    rejectDocumentWorkflow,
+    signDocumentWorkflow,
   } = useGedHub();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,6 +122,11 @@ const GedHubPage = () => {
   const [fileFilter, setFileFilter] = useState('all');
   const [editingDocument, setEditingDocument] = useState(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showRetentionDialog, setShowRetentionDialog] = useState(false);
+  const [editingRetentionPolicy, setEditingRetentionPolicy] = useState(null);
+  const [editingWorkflowDocument, setEditingWorkflowDocument] = useState(null);
+  const [workflowComment, setWorkflowComment] = useState('');
+  const [workflowActionLoading, setWorkflowActionLoading] = useState(null);
   const [metadataForm, setMetadataForm] = useState({
     doc_category: 'general',
     confidentiality_level: 'internal',
@@ -99,6 +134,7 @@ const GedHubPage = () => {
     retention_until: '',
     notes: '',
   });
+  const [retentionPolicyForm, setRetentionPolicyForm] = useState(DEFAULT_RETENTION_POLICY_FORM);
   const [createForm, setCreateForm] = useState({
     mode: 'draft',
     sourceTable: 'invoices',
@@ -152,8 +188,111 @@ const GedHubPage = () => {
       total: documents.length,
       withFile,
       starred,
+      workflows: workflowRows.length,
     };
-  }, [documents]);
+  }, [documents, workflowRows]);
+
+  const sortedRetentionPolicies = useMemo(() => {
+    return [...(retentionPolicies || [])].sort((left, right) => {
+      const leftKey = `${left.source_table || ''}:${left.doc_category || ''}`;
+      const rightKey = `${right.source_table || ''}:${right.doc_category || ''}`;
+      return leftKey.localeCompare(rightKey);
+    });
+  }, [retentionPolicies]);
+
+  const retentionPolicyPreview = useMemo(() => {
+    const retentionDays = Number(retentionPolicyForm.retentionDays);
+    if (!Number.isFinite(retentionDays) || retentionDays <= 0) {
+      return null;
+    }
+
+    return computeRetentionUntilFromDays(new Date().toISOString(), retentionDays);
+  }, [retentionPolicyForm.retentionDays]);
+
+  const openRetentionPolicyDialog = (policy = null) => {
+    setEditingRetentionPolicy(policy);
+    setRetentionPolicyForm(
+      policy
+        ? {
+            sourceTable: policy.source_table || 'invoices',
+            docCategory: policy.doc_category || 'all',
+            retentionDays: String(policy.retention_days || ''),
+            isActive: policy.is_active ?? true,
+          }
+        : DEFAULT_RETENTION_POLICY_FORM
+    );
+    setShowRetentionDialog(true);
+  };
+
+  const closeRetentionPolicyDialog = () => {
+    setShowRetentionDialog(false);
+    setEditingRetentionPolicy(null);
+    setRetentionPolicyForm(DEFAULT_RETENTION_POLICY_FORM);
+  };
+
+  const openWorkflowDialog = (document) => {
+    setEditingWorkflowDocument(document);
+    setWorkflowComment(document?.workflowComment || '');
+  };
+
+  const closeWorkflowDialog = () => {
+    setEditingWorkflowDocument(null);
+    setWorkflowComment('');
+    setWorkflowActionLoading(null);
+  };
+
+  const handleWorkflowAction = async (action) => {
+    if (!editingWorkflowDocument) return;
+
+    const workflowActionMap = {
+      request: requestDocumentWorkflow,
+      approve: approveDocumentWorkflow,
+      reject: rejectDocumentWorkflow,
+      sign: signDocumentWorkflow,
+    };
+    const workflowAction = workflowActionMap[action];
+    if (!workflowAction) return;
+
+    setWorkflowActionLoading(action);
+    try {
+      await workflowAction(editingWorkflowDocument, { comment: workflowComment });
+      toast({
+        title: 'Workflow GED mis à jour',
+        description: 'Le statut du document a été enregistré dans Supabase.',
+      });
+      closeWorkflowDialog();
+    } catch (error) {
+      toast({
+        title: 'Erreur workflow GED',
+        description: error?.message || 'Mise à jour impossible.',
+        variant: 'destructive',
+      });
+    } finally {
+      setWorkflowActionLoading(null);
+    }
+  };
+
+  const handleSaveRetentionPolicy = async () => {
+    try {
+      await saveRetentionPolicy({
+        sourceTable: retentionPolicyForm.sourceTable,
+        docCategory: retentionPolicyForm.docCategory || 'all',
+        retentionDays: retentionPolicyForm.retentionDays,
+        is_active: retentionPolicyForm.isActive,
+      });
+      toast({
+        title: 'Politique de retention enregistree',
+        description: 'Les documents sans date explicite utiliseront cette retention automatiquement.',
+      });
+      closeRetentionPolicyDialog();
+    } catch (error) {
+      toast({
+        title: 'Erreur politique de retention',
+        description: error?.message || 'Enregistrement impossible.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleOpenDocument = async (document) => {
     try {
@@ -251,6 +390,13 @@ const GedHubPage = () => {
       if (!file) return;
       try {
         const result = await uploadDocumentFile(doc, file);
+        if (result?.duplicated) {
+          toast({
+            title: 'Fichier identique detecte',
+            description: `Aucune nouvelle version n'a ete creee. Version actuelle: v${result.version || doc.currentVersion || 1}.`,
+          });
+          return;
+        }
         toast({
           title: 'Fichier televerse',
           description:
@@ -335,7 +481,7 @@ const GedHubPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-4">
           <p className="text-xs uppercase tracking-wide text-gray-500">Documents</p>
           <p className="text-2xl font-semibold text-white mt-1">{stats.total}</p>
@@ -347,6 +493,120 @@ const GedHubPage = () => {
         <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-4">
           <p className="text-xs uppercase tracking-wide text-gray-500">Favoris</p>
           <p className="text-2xl font-semibold text-white mt-1">{stats.starred}</p>
+        </div>
+        <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-4">
+          <p className="text-xs uppercase tracking-wide text-gray-500">Politiques</p>
+          <p className="text-2xl font-semibold text-white mt-1">{sortedRetentionPolicies.length}</p>
+        </div>
+        <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-4">
+          <p className="text-xs uppercase tracking-wide text-gray-500">Workflows</p>
+          <p className="text-2xl font-semibold text-white mt-1">{stats.workflows}</p>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-gray-800 bg-gray-900/60 p-4 space-y-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-orange-400" />
+              Politiques de retention automatiques
+            </h2>
+            <p className="text-sm text-gray-400">
+              Les documents sans valeur explicite de retention heredent de la regle correspondant a leur module et
+              categorie GED.
+            </p>
+          </div>
+
+          <Button
+            variant="upload3d"
+            onClick={() => openRetentionPolicyDialog()}
+            className="font-semibold"
+            disabled={retentionPoliciesLoading}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvelle politique
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Regles actives</p>
+            <p className="text-2xl font-semibold text-white mt-1">
+              {sortedRetentionPolicies.filter((policy) => policy.is_active !== false).length}
+            </p>
+          </div>
+          <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Types couverts</p>
+            <p className="text-2xl font-semibold text-white mt-1">
+              {new Set(sortedRetentionPolicies.map((policy) => policy.source_table)).size}
+            </p>
+          </div>
+          <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Apercu</p>
+            <p className="text-sm text-gray-200 mt-2">
+              {retentionPolicyPreview ? `Nouvelle regle => ${retentionPolicyPreview}` : 'Saisissez une duree en jours.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto rounded-lg border border-gray-800">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-950/60 border-b border-gray-800 text-gray-400">
+              <tr>
+                <th className="text-left py-3 px-3">Module</th>
+                <th className="text-left py-3 px-3">Categorie GED</th>
+                <th className="text-left py-3 px-3">Jours</th>
+                <th className="text-left py-3 px-3">Etat</th>
+                <th className="text-left py-3 px-3">Expiration auto</th>
+                <th className="text-right py-3 px-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedRetentionPolicies.map((policy) => (
+                <tr key={`${policy.source_table}:${policy.doc_category}`} className="border-b border-gray-800/70">
+                  <td className="py-3 px-3 text-gray-100">
+                    {SOURCE_FILTERS.find((entry) => entry.value === policy.source_table)?.label || policy.source_table}
+                  </td>
+                  <td className="py-3 px-3 text-gray-200">{formatRetentionCategory(policy.doc_category)}</td>
+                  <td className="py-3 px-3 text-gray-200">{policy.retention_days || '-'}</td>
+                  <td className="py-3 px-3">
+                    <Badge
+                      variant="outline"
+                      className={
+                        policy.is_active === false
+                          ? 'border-gray-700 text-gray-400'
+                          : 'border-emerald-500/30 text-emerald-300'
+                      }
+                    >
+                      {policy.is_active === false ? 'Inactif' : 'Actif'}
+                    </Badge>
+                  </td>
+                  <td className="py-3 px-3 text-gray-300">
+                    {computeRetentionUntilFromDays(new Date().toISOString(), policy.retention_days) || '-'}
+                  </td>
+                  <td className="py-3 px-3 text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-orange-400 hover:text-orange-300 h-8 px-2"
+                      onClick={() => openRetentionPolicyDialog(policy)}
+                    >
+                      <PencilLine className="h-4 w-4 mr-2" />
+                      Modifier
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+
+              {!retentionPoliciesLoading && sortedRetentionPolicies.length === 0 && (
+                <tr>
+                  <td className="py-8 px-3 text-center text-gray-400" colSpan={6}>
+                    Aucune politique de retention automatique n est encore definie.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -429,6 +689,9 @@ const GedHubPage = () => {
               <tr>
                 <th className="text-left py-3 px-3">Document</th>
                 <th className="text-left py-3 px-3">Module</th>
+                <th className="text-left py-3 px-3">Version</th>
+                <th className="text-left py-3 px-3">Rétention</th>
+                <th className="text-left py-3 px-3">Workflow</th>
                 <th className="text-left py-3 px-3">Tiers</th>
                 <th className="text-left py-3 px-3">Statut</th>
                 <th className="text-right py-3 px-3">Montant</th>
@@ -465,6 +728,56 @@ const GedHubPage = () => {
                         <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30">
                           {doc.sourceLabel}
                         </Badge>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex flex-col gap-1">
+                          <Badge className="w-fit bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            {doc.currentVersion ? `v${doc.currentVersion}` : '—'}
+                          </Badge>
+                          <span className="text-xs text-gray-500">
+                            {doc.versionCount > 1
+                              ? `${doc.versionCount} versions`
+                              : doc.currentVersion
+                                ? 'Version actuelle'
+                                : 'Brouillon'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex flex-col gap-1">
+                          <Badge
+                            className={`w-fit border ${
+                              doc.isRetentionAutomatic
+                                ? 'bg-sky-500/20 text-sky-300 border-sky-500/30'
+                                : doc.retentionUntil
+                                  ? 'bg-violet-500/20 text-violet-300 border-violet-500/30'
+                                  : 'bg-gray-800 text-gray-300 border-gray-700'
+                            }`}
+                          >
+                            {doc.effectiveRetentionUntil || doc.retentionUntil || '—'}
+                          </Badge>
+                          <span className="text-xs text-gray-500">
+                            {doc.isRetentionAutomatic ? 'Automatique' : doc.retentionUntil ? 'Manuel' : 'Aucune regle'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex flex-col gap-1">
+                          <Badge className={`w-fit border ${formatWorkflowStatus(doc.workflowStatus).className}`}>
+                            {formatWorkflowStatus(doc.workflowStatus).label}
+                          </Badge>
+                          <span className="text-xs text-gray-500">
+                            {doc.workflowSignedAt
+                              ? `Signé le ${toDate(doc.workflowSignedAt)}`
+                              : doc.workflowApprovedAt
+                                ? `Validé le ${toDate(doc.workflowApprovedAt)}`
+                                : doc.workflowRejectedAt
+                                  ? `Rejeté le ${toDate(doc.workflowRejectedAt)}`
+                                  : doc.workflowRequestedAt
+                                    ? `Demandé le ${toDate(doc.workflowRequestedAt)}`
+                                    : 'Aucune action'}
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3 px-3 text-gray-200">{doc.counterpartyName || '-'}</td>
                       <td className="py-3 px-3">
@@ -533,6 +846,16 @@ const GedHubPage = () => {
                           >
                             <Tags className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openWorkflowDialog(doc)}
+                            className="text-emerald-400 hover:text-emerald-300 h-8 px-2"
+                            title="Workflow GED"
+                          >
+                            <Workflow className="h-4 w-4 mr-1" />
+                            Workflow
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -562,9 +885,10 @@ const GedHubPage = () => {
         }}
       >
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Creer ou televerser un document</DialogTitle>
-          </DialogHeader>
+          <DialogTitle>Creer ou televerser un document</DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Rattachez un document GED au bon module, puis ajoutez son fichier et ses metadonnees.
+          </DialogDescription>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
@@ -744,9 +1068,10 @@ const GedHubPage = () => {
 
       <Dialog open={!!editingDocument} onOpenChange={(open) => !open && setEditingDocument(null)}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Metadata GED - {editingDocument?.number}</DialogTitle>
-          </DialogHeader>
+          <DialogTitle>Metadata GED - {editingDocument?.number}</DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Editez la categorie, la retention, les tags et les notes associes a ce document.
+          </DialogDescription>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
@@ -822,6 +1147,114 @@ const GedHubPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog
+        open={showRetentionDialog}
+        onOpenChange={(open) => (!open ? closeRetentionPolicyDialog() : setShowRetentionDialog(true))}
+      >
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
+          <DialogTitle>
+            {editingRetentionPolicy ? 'Modifier une politique de retention' : 'Nouvelle politique de retention'}
+          </DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Configurez la duree appliquee automatiquement aux documents GED sans date de retention explicite.
+          </DialogDescription>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Module GED</Label>
+              <Select
+                value={retentionPolicyForm.sourceTable}
+                onValueChange={(value) => setRetentionPolicyForm((prev) => ({ ...prev, sourceTable: value }))}
+              >
+                <SelectTrigger className="bg-gray-950/70 border-gray-700 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                  {RETENTION_POLICY_SOURCE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Categorie GED</Label>
+              <Input
+                value={retentionPolicyForm.docCategory}
+                onChange={(event) =>
+                  setRetentionPolicyForm((prev) => ({ ...prev, docCategory: event.target.value.trimStart() }))
+                }
+                placeholder="all"
+                className="bg-gray-950/70 border-gray-700 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Retention en jours</Label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                value={retentionPolicyForm.retentionDays}
+                onChange={(event) => setRetentionPolicyForm((prev) => ({ ...prev, retentionDays: event.target.value }))}
+                className="bg-gray-950/70 border-gray-700 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Etat</Label>
+              <Select
+                value={String(retentionPolicyForm.isActive)}
+                onValueChange={(value) => setRetentionPolicyForm((prev) => ({ ...prev, isActive: value === 'true' }))}
+              >
+                <SelectTrigger className="bg-gray-950/70 border-gray-700 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                  <SelectItem value="true">Actif</SelectItem>
+                  <SelectItem value="false">Inactif</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <p className="text-xs text-gray-400">
+                La categorie <span className="font-semibold text-gray-200">all</span> s applique a tous les documents du
+                module. Les documents avec une date de retention explicite gardent leur valeur manuelle.
+              </p>
+              <p className="text-xs text-gray-400">
+                Apercu automatique: {retentionPolicyPreview || 'saisissez une duree valide'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" className="border-gray-700 text-gray-300" onClick={closeRetentionPolicyDialog}>
+              Annuler
+            </Button>
+            <Button onClick={handleSaveRetentionPolicy} className="bg-orange-500 hover:bg-orange-600 text-white">
+              <CalendarClock className="h-4 w-4 mr-2" />
+              Enregistrer
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <GedWorkflowDialog
+        open={!!editingWorkflowDocument}
+        document={editingWorkflowDocument}
+        comment={workflowComment}
+        onCommentChange={setWorkflowComment}
+        loadingAction={workflowActionLoading}
+        onClose={closeWorkflowDialog}
+        onRequest={(value) => handleWorkflowAction('request', value)}
+        onApprove={(value) => handleWorkflowAction('approve', value)}
+        onReject={(value) => handleWorkflowAction('reject', value)}
+        onSign={(value) => handleWorkflowAction('sign', value)}
+      />
     </div>
   );
 };

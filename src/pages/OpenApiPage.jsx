@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useOpenApi } from '@/hooks/useOpenApi';
 import { useMarketplace } from '@/hooks/useMarketplace';
+import { useApiKeySecurityPolicy } from '@/hooks/useApiKeySecurityPolicy';
+import { buildApiKeySecurityInsights } from '@/services/apiKeySecurityInsights';
 import ApiKeyCard from '@/components/api/ApiKeyCard';
 import ApiUsageChart from '@/components/api/ApiUsageChart';
 import AppCard from '@/components/marketplace/AppCard';
@@ -30,6 +32,14 @@ const OpenApiPage = () => {
   } = useOpenApi();
 
   const { apps, installedApps, loading: marketplaceLoading, installApp, uninstallApp } = useMarketplace();
+  const {
+    policy,
+    loading: policyLoading,
+    error: policyError,
+    refresh: refreshPolicy,
+    updatePolicy,
+    defaultPolicy,
+  } = useApiKeySecurityPolicy();
 
   const loading = apiLoading || marketplaceLoading;
   const [activeTab, setActiveTab] = useState('keys');
@@ -40,10 +50,53 @@ const OpenApiPage = () => {
   const [plainKeys, setPlainKeys] = useState({});
   const [copiedKeyId, setCopiedKeyId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [savingPolicy, setSavingPolicy] = useState(false);
+  const [policyDraft, setPolicyDraft] = useState({
+    allowed_scopes: defaultPolicy.allowed_scopes,
+    rotation_days: defaultPolicy.rotation_days,
+    anomaly_hourly_call_threshold: defaultPolicy.anomaly_hourly_call_threshold,
+    anomaly_error_rate_threshold: defaultPolicy.anomaly_error_rate_threshold,
+    notify_on_anomaly: defaultPolicy.notify_on_anomaly,
+  });
+
+  useEffect(() => {
+    setPolicyDraft({
+      allowed_scopes: Array.isArray(policy.allowed_scopes) ? policy.allowed_scopes : [...defaultPolicy.allowed_scopes],
+      rotation_days: policy.rotation_days ?? defaultPolicy.rotation_days,
+      anomaly_hourly_call_threshold:
+        policy.anomaly_hourly_call_threshold ?? defaultPolicy.anomaly_hourly_call_threshold,
+      anomaly_error_rate_threshold: policy.anomaly_error_rate_threshold ?? defaultPolicy.anomaly_error_rate_threshold,
+      notify_on_anomaly: policy.notify_on_anomaly ?? defaultPolicy.notify_on_anomaly,
+    });
+  }, [defaultPolicy, policy]);
+
+  const securityInsights = useMemo(
+    () =>
+      buildApiKeySecurityInsights({
+        apiKeys,
+        usageLogs,
+        policy,
+      }),
+    [apiKeys, usageLogs, policy]
+  );
 
   const handleRefresh = useCallback(async () => {
     await fetchUsage();
-  }, [fetchUsage]);
+    await refreshPolicy();
+  }, [fetchUsage, refreshPolicy]);
+
+  const allowedScopes = useMemo(
+    () => (Array.isArray(policy.allowed_scopes) && policy.allowed_scopes.length ? policy.allowed_scopes : ['read']),
+    [policy.allowed_scopes]
+  );
+
+  useEffect(() => {
+    setNewKeyScopes((previous) => {
+      const filtered = previous.filter((scope) => allowedScopes.includes(scope));
+      if (filtered.length === previous.length) return previous;
+      return filtered.length > 0 ? filtered : ['read'].filter((scope) => allowedScopes.includes(scope));
+    });
+  }, [allowedScopes]);
 
   const handleCreateKey = useCallback(async () => {
     if (!newKeyName.trim()) return;
@@ -73,6 +126,39 @@ const OpenApiPage = () => {
     setCopiedKeyId(keyId);
     setTimeout(() => setCopiedKeyId(null), 3000);
   }, []);
+
+  const handlePolicyScopeToggle = useCallback((scope) => {
+    setPolicyDraft((previous) => {
+      const currentlyEnabled = previous.allowed_scopes.includes(scope);
+      const nextScopes = currentlyEnabled
+        ? previous.allowed_scopes.filter((item) => item !== scope)
+        : [...previous.allowed_scopes, scope];
+
+      if (!nextScopes.includes('read')) {
+        nextScopes.push('read');
+      }
+
+      return {
+        ...previous,
+        allowed_scopes: Array.from(new Set(nextScopes)),
+      };
+    });
+  }, []);
+
+  const handleSavePolicy = useCallback(async () => {
+    setSavingPolicy(true);
+    try {
+      await updatePolicy({
+        allowed_scopes: policyDraft.allowed_scopes,
+        rotation_days: Number(policyDraft.rotation_days),
+        anomaly_hourly_call_threshold: Number(policyDraft.anomaly_hourly_call_threshold),
+        anomaly_error_rate_threshold: Number(policyDraft.anomaly_error_rate_threshold),
+        notify_on_anomaly: Boolean(policyDraft.notify_on_anomaly),
+      });
+    } finally {
+      setSavingPolicy(false);
+    }
+  }, [policyDraft, updatePolicy]);
 
   const installedAppIds = new Set((installedApps || []).map((ia) => ia.app_id));
   const filteredApps = (apps || []).filter(
@@ -201,6 +287,182 @@ const OpenApiPage = () => {
             {/* Usage Chart */}
             <ApiUsageChart usageLogs={usageLogs} loading={loading} />
 
+            <div
+              className="rounded-xl border border-white/10 bg-[#0f1528]/80 backdrop-blur-sm p-6 space-y-5"
+              data-testid="api-key-security-policy-panel"
+            >
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Politique de securite API</h3>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Scope whitelist, rotation des cles et detection d anomalies de trafic.
+                  </p>
+                </div>
+                <div
+                  className={`text-xs px-2.5 py-1 rounded-full border w-fit ${
+                    securityInsights.status === 'ready'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : securityInsights.status === 'attention'
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                        : 'bg-red-500/20 text-red-300 border-red-500/30'
+                  }`}
+                >
+                  {securityInsights.status}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Cles a rotation</p>
+                  <p className="text-xl font-semibold text-white mt-1">{securityInsights.rotationDueCount}</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Anomalies detectees</p>
+                  <p className="text-xl font-semibold text-white mt-1">{securityInsights.anomalyCount}</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Scopes autorises</p>
+                  <p className="text-xl font-semibold text-white mt-1">{allowedScopes.join(', ')}</p>
+                </div>
+              </div>
+
+              {securityInsights.recommendations.length > 0 && (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-amber-100 text-sm">
+                  <p className="font-medium mb-1">Recommandations</p>
+                  <ul className="space-y-1 text-xs">
+                    {securityInsights.recommendations.map((recommendation) => (
+                      <li key={recommendation}>• {recommendation}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {policyError && (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+                  {policyError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <label className="block text-sm text-gray-300">Scopes autorises</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {scopeOptions.map((scope) => {
+                      const enabled = policyDraft.allowed_scopes.includes(scope);
+                      const locked = scope === 'read';
+                      return (
+                        <button
+                          key={`policy-scope-${scope}`}
+                          type="button"
+                          disabled={locked}
+                          onClick={() => handlePolicyScopeToggle(scope)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            enabled
+                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                              : 'bg-white/5 text-gray-500 border border-white/10'
+                          } ${locked ? 'opacity-80 cursor-not-allowed' : ''}`}
+                        >
+                          {scope}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <label className="flex items-center gap-2 text-sm text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(policyDraft.notify_on_anomaly)}
+                      onChange={(event) =>
+                        setPolicyDraft((previous) => ({ ...previous, notify_on_anomaly: event.target.checked }))
+                      }
+                      className="rounded border-white/20 bg-[#0a0e1a]"
+                    />
+                    Notifier en cas d anomalie
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Rotation (jours)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={3650}
+                      value={policyDraft.rotation_days}
+                      onChange={(event) =>
+                        setPolicyDraft((previous) => ({ ...previous, rotation_days: event.target.value }))
+                      }
+                      className="w-full bg-[#0a0e1a] border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Seuil appels/h</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={policyDraft.anomaly_hourly_call_threshold}
+                      onChange={(event) =>
+                        setPolicyDraft((previous) => ({
+                          ...previous,
+                          anomaly_hourly_call_threshold: event.target.value,
+                        }))
+                      }
+                      className="w-full bg-[#0a0e1a] border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Seuil erreur (%)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={policyDraft.anomaly_error_rate_threshold}
+                      onChange={(event) =>
+                        setPolicyDraft((previous) => ({
+                          ...previous,
+                          anomaly_error_rate_threshold: event.target.value,
+                        }))
+                      }
+                      className="w-full bg-[#0a0e1a] border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={handleSavePolicy}
+                  disabled={savingPolicy || policyLoading}
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white"
+                >
+                  {savingPolicy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Enregistrer la politique
+                </Button>
+              </div>
+
+              <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                <p className="text-sm font-medium text-white mb-2">Anomalies detectees (1h)</p>
+                {securityInsights.anomalies.length === 0 ? (
+                  <p className="text-xs text-gray-500">Aucune anomalie detectee sur la fenetre recente.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {securityInsights.anomalies.map((anomaly) => (
+                      <div
+                        key={`${anomaly.apiKeyId}-${anomaly.reason}`}
+                        className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-100"
+                      >
+                        <p className="font-medium">
+                          {anomaly.keyName} ({anomaly.keyPrefix || anomaly.apiKeyId})
+                        </p>
+                        <p className="mt-1 opacity-90">{anomaly.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* API Keys List */}
             <div className="rounded-xl border border-white/10 bg-[#0f1528]/80 backdrop-blur-sm p-6">
               <h3 className="text-lg font-semibold text-white mb-4">{t('api.keys.title', 'Vos clés API')}</h3>
@@ -300,6 +562,8 @@ const OpenApiPage = () => {
                     {scopeOptions.map((scope) => (
                       <button
                         key={scope}
+                        type="button"
+                        disabled={!allowedScopes.includes(scope)}
                         onClick={() =>
                           setNewKeyScopes((prev) =>
                             prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope]
@@ -309,7 +573,7 @@ const OpenApiPage = () => {
                           newKeyScopes.includes(scope)
                             ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                             : 'bg-white/5 text-gray-400 border border-white/10'
-                        }`}
+                        } ${!allowedScopes.includes(scope) ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
                         {scope}
                       </button>
@@ -319,7 +583,7 @@ const OpenApiPage = () => {
 
                 <Button
                   onClick={handleCreateKey}
-                  disabled={creating || !newKeyName.trim()}
+                  disabled={creating || !newKeyName.trim() || newKeyScopes.length === 0}
                   className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0"
                 >
                   {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}

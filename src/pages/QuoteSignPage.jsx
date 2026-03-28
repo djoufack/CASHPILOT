@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,16 @@ export default function QuoteSignPage() {
   const [done, setDone] = useState(null); // 'signed' | 'rejected'
   const locale = i18n.resolvedLanguage || i18n.language || 'en';
   const currency = quote?.currency || 'EUR';
+  const documentType = quote?.document_type === 'contract' ? 'contract' : 'quote';
+  const isContract = documentType === 'contract';
+  const titleKey = isContract ? 'quoteSignPage.contractTitle' : 'quoteSignPage.title';
+  const summaryTitleKey = isContract ? 'quoteSignPage.contractSummaryTitle' : 'quoteSignPage.summaryTitle';
+  const signatureTitleKey = isContract ? 'quoteSignPage.contractSignatureTitle' : 'quoteSignPage.signatureTitle';
+  const rejectLabelKey = isContract ? 'quoteSignPage.rejectContract' : 'quoteSignPage.reject';
+  const signLabelKey = isContract ? 'quoteSignPage.signAndAcceptContract' : 'quoteSignPage.signAndAccept';
+  const successTitleKey = isContract ? 'quoteSignPage.contractSuccessTitle' : 'quoteSignPage.successTitle';
+  const rejectedTitleKey = isContract ? 'quoteSignPage.contractRejectedTitle' : 'quoteSignPage.rejectedTitle';
+  const pageTitle = isContract ? 'Sign Contract' : 'Sign Quote';
 
   const formatAmount = (value) => {
     try {
@@ -38,12 +48,7 @@ export default function QuoteSignPage() {
     }
   };
 
-  useEffect(() => {
-    if (!token) return;
-    fetchQuote();
-  }, [token]);
-
-  const fetchQuote = async () => {
+  const fetchQuote = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error: fetchError } = await supabase.functions.invoke('quote-sign-get', {
@@ -57,7 +62,12 @@ export default function QuoteSignPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    fetchQuote();
+  }, [fetchQuote, token]);
 
   const handleSign = async () => {
     if (!signatureData || !signerName.trim()) return;
@@ -102,9 +112,7 @@ export default function QuoteSignPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center text-white">
-        {t('loading.page')}
-      </div>
+      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center text-white">{t('loading.page')}</div>
     );
   }
 
@@ -126,7 +134,7 @@ export default function QuoteSignPage() {
         <Card className="bg-[#0f1528] border-white/10 text-white max-w-md w-full">
           <CardContent className="pt-6 text-center space-y-3">
             <p className="text-2xl">✅</p>
-            <p className="text-green-400 font-semibold">{t('quoteSignPage.successTitle')}</p>
+            <p className="text-green-400 font-semibold">{t(successTitleKey)}</p>
             <p className="text-gray-400 text-sm">{t('quoteSignPage.successDescription', { name: signerName })}</p>
           </CardContent>
         </Card>
@@ -140,7 +148,7 @@ export default function QuoteSignPage() {
         <Card className="bg-[#0f1528] border-white/10 text-white max-w-md w-full">
           <CardContent className="pt-6 text-center space-y-3">
             <p className="text-2xl">❌</p>
-            <p className="text-red-400 font-semibold">{t('quoteSignPage.rejectedTitle')}</p>
+            <p className="text-red-400 font-semibold">{t(rejectedTitleKey)}</p>
             <p className="text-gray-400 text-sm">{t('quoteSignPage.rejectedDescription')}</p>
           </CardContent>
         </Card>
@@ -150,18 +158,29 @@ export default function QuoteSignPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] p-4 md:p-8">
-      <Helmet><title>{t('pages.signQuote', 'Sign Quote')} | CashPilot</title></Helmet>
+      <Helmet>
+        <title>{pageTitle} | CashPilot</title>
+      </Helmet>
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white">{t('quoteSignPage.title')}</h1>
-          <p className="text-gray-400 mt-1">{t('quoteSignPage.quoteNumber', { number: quote.quote_number })}</p>
+          <h1 className="text-2xl font-bold text-white">{t(titleKey)}</h1>
+          <p className="text-gray-400 mt-1">
+            {isContract
+              ? t('quoteSignPage.contractNumber', { number: quote.quote_number })
+              : t('quoteSignPage.quoteNumber', { number: quote.quote_number })}
+          </p>
         </div>
 
         <Card className="bg-[#0f1528] border-white/10 text-white">
           <CardHeader>
-            <CardTitle className="text-lg">{t('quoteSignPage.summaryTitle')}</CardTitle>
+            <CardTitle className="text-lg">{t(summaryTitleKey)}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
+            {isContract && (
+              <p className="text-emerald-300 text-xs uppercase tracking-[0.2em]">
+                {t('quoteSignPage.contractContext')}
+              </p>
+            )}
             <div className="flex justify-between">
               <span className="text-gray-400">{t('quoteSignPage.client')}</span>
               <span>{quote.clients?.company_name || quote.clients?.contact_name || '—'}</span>
@@ -188,7 +207,7 @@ export default function QuoteSignPage() {
 
         <Card className="bg-[#0f1528] border-white/10 text-white">
           <CardHeader>
-            <CardTitle className="text-lg">{t('quoteSignPage.signatureTitle')}</CardTitle>
+            <CardTitle className="text-lg">{t(signatureTitleKey)}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -203,13 +222,8 @@ export default function QuoteSignPage() {
             </div>
             <div className="space-y-2">
               <Label>{t('quoteSignPage.signature')}</Label>
-              <SignaturePad
-                onSave={(data) => setSignatureData(data)}
-                onClear={() => setSignatureData(null)}
-              />
-              {signatureData && (
-                <p className="text-green-400 text-xs">{t('quoteSignPage.signatureCaptured')}</p>
-              )}
+              <SignaturePad onSave={(data) => setSignatureData(data)} onClear={() => setSignatureData(null)} />
+              {signatureData && <p className="text-green-400 text-xs">{t('quoteSignPage.signatureCaptured')}</p>}
             </div>
             <div className="flex gap-3 pt-2">
               <Button
@@ -218,14 +232,14 @@ export default function QuoteSignPage() {
                 onClick={handleReject}
                 disabled={submitting}
               >
-                {t('quoteSignPage.reject')}
+                {t(rejectLabelKey)}
               </Button>
               <Button
                 className="flex-1"
                 onClick={handleSign}
                 disabled={submitting || !signatureData || !signerName.trim()}
               >
-                {submitting ? t('quoteSignPage.submitting') : t('quoteSignPage.signAndAccept')}
+                {submitting ? t('quoteSignPage.submitting') : t(signLabelKey)}
               </Button>
             </div>
           </CardContent>

@@ -1,9 +1,30 @@
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Loader2, BarChart3, FileText, Scale, TrendingUp, Receipt, Calculator, Settings, Percent, Landmark, Book, BookOpen, Zap, Activity, Settings2, AlertTriangle, ClipboardList, RefreshCw, Building2, BarChart2 } from 'lucide-react';
+import {
+  Loader2,
+  BarChart3,
+  FileText,
+  Scale,
+  TrendingUp,
+  Receipt,
+  Calculator,
+  Settings,
+  Percent,
+  Landmark,
+  Book,
+  BookOpen,
+  Zap,
+  Activity,
+  Settings2,
+  AlertTriangle,
+  ClipboardList,
+  RefreshCw,
+  Building2,
+  BarChart2,
+  CalendarCheck2,
+} from 'lucide-react';
 import { useAccountingData } from '@/hooks/useAccountingData';
 import { useAccountingInit } from '@/hooks/useAccountingInit';
 import { useCompany } from '@/hooks/useCompany';
@@ -24,6 +45,7 @@ import FinancialDiagnostic from '@/components/accounting/FinancialDiagnostic';
 import FinancialAnnexes from '@/components/accounting/FinancialAnnexes';
 import BalanceSheetInitializer from '@/components/accounting/BalanceSheetInitializer';
 import FixedAssets from '@/components/accounting/FixedAssets';
+import ClosingAssistant from '@/components/accounting/ClosingAssistant';
 import AnalyticalAccounting from '@/components/accounting/AnalyticalAccounting';
 import {
   exportBalanceSheetPDF,
@@ -31,14 +53,14 @@ import {
   exportVATDeclarationPDF,
   exportTaxEstimationPDF,
   exportFinancialDiagnosticPDF,
-  exportFinancialAnnexesPDF
+  exportFinancialAnnexesPDF,
 } from '@/services/exportAccountingPDF';
 import {
   exportBalanceSheetHTML,
   exportIncomeStatementHTML,
   exportVATDeclarationHTML,
   exportTaxEstimationHTML,
-  exportFinancialDiagnosticHTML
+  exportFinancialDiagnosticHTML,
 } from '@/services/exportHTML';
 import { refreshUserMappings } from '@/services/accountingInitService';
 import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
@@ -59,12 +81,13 @@ const AccountingIntegration = () => {
 
   const [period, setPeriod] = useState({
     startDate: `${year}-01-01`,
-    endDate: `${year}-12-31`
+    endDate: `${year}-12-31`,
   });
   const [diagnosticViewSnapshot, setDiagnosticViewSnapshot] = useState(null);
 
   const { company } = useCompany();
-  const { isInitialized, isInitializing, country, settings, initializeForCountry, toggleAutoJournal } = useAccountingInit();
+  const { isInitialized, isInitializing, country, settings, initializeForCountry, toggleAutoJournal } =
+    useAccountingInit();
 
   const {
     loading,
@@ -72,9 +95,6 @@ const AccountingIntegration = () => {
     // Raw data
     accounts,
     mappings,
-    taxRates,
-    entries,
-    hasAutoEntries,
     trialBalance,
     cumulativeTrialBalance,
     generalLedger,
@@ -94,7 +114,7 @@ const AccountingIntegration = () => {
     financialDiagnostic,
     financialDiagnosticComparatives,
     consistencyWarnings,
-    refresh
+    refresh,
   } = useAccountingData(period.startDate, period.endDate);
 
   const { guardedAction, modalProps } = useCreditsGuard();
@@ -102,19 +122,21 @@ const AccountingIntegration = () => {
 
   const companyCurrency = resolveAccountingCurrency(company);
 
-  const companyInfo = company ? {
-    company_name: company.company_name || company.name || 'Ma Société',
-    address: company.address,
-    city: company.city,
-    postal_code: company.postal_code,
-    country: company.country,
-    registration_number: company.registration_number || company.siret,
-    siret: company.siret,
-    vat_number: company.vat_number,
-    phone: company.phone,
-    email: company.email,
-    currency: companyCurrency,
-  } : { company_name: 'Ma Société', currency: 'EUR' };
+  const companyInfo = company
+    ? {
+        company_name: company.company_name || company.name || 'Ma Société',
+        address: company.address,
+        city: company.city,
+        postal_code: company.postal_code,
+        country: company.country,
+        registration_number: company.registration_number || company.siret,
+        siret: company.siret,
+        vat_number: company.vat_number,
+        phone: company.phone,
+        email: company.email,
+        currency: companyCurrency,
+      }
+    : { company_name: 'Ma Société', currency: 'EUR' };
 
   // PDF export handlers — credit-guarded (5 crédits pour génération états comptables)
   const handleExportBalanceSheetPDF = () => {
@@ -162,7 +184,11 @@ const AccountingIntegration = () => {
 
   const handleExportVATHTML = () => {
     guardedAction(CREDIT_COSTS.EXPORT_HTML, 'VAT Declaration HTML', () =>
-      exportVATDeclarationHTML({ outputVAT, inputVAT, vatPayable }, companyInfo, `${period.startDate} - ${period.endDate}`)
+      exportVATDeclarationHTML(
+        { outputVAT, inputVAT, vatPayable },
+        companyInfo,
+        `${period.startDate} - ${period.endDate}`
+      )
     );
   };
 
@@ -174,7 +200,12 @@ const AccountingIntegration = () => {
 
   const handleExportDiagnosticHTML = () => {
     guardedAction(CREDIT_COSTS.EXPORT_HTML, 'Financial Diagnostic HTML', () =>
-      exportFinancialDiagnosticHTML(financialDiagnostic, companyInfo, `${period.startDate} - ${period.endDate}`, diagnosticViewSnapshot)
+      exportFinancialDiagnosticHTML(
+        financialDiagnostic,
+        companyInfo,
+        `${period.startDate} - ${period.endDate}`,
+        diagnosticViewSnapshot
+      )
     );
   };
 
@@ -195,10 +226,17 @@ const AccountingIntegration = () => {
     try {
       const result = await refreshUserMappings(user.id);
       if (result.success) {
-        toast({ title: 'Mappings mis a jour', description: `${result.mappingsCount} mappings synchronises (${result.country})` });
+        toast({
+          title: 'Mappings mis a jour',
+          description: `${result.mappingsCount} mappings synchronises (${result.country})`,
+        });
         refresh();
       } else {
-        toast({ title: 'Erreur', description: result.error || 'Impossible de rafraichir les mappings', variant: 'destructive' });
+        toast({
+          title: 'Erreur',
+          description: result.error || 'Impossible de rafraichir les mappings',
+          variant: 'destructive',
+        });
       }
     } catch (err) {
       toast({ title: 'Erreur', description: err.message, variant: 'destructive' });
@@ -218,8 +256,14 @@ const AccountingIntegration = () => {
     { value: 'tax', label: 'Estimation impôt', icon: Calculator },
     { value: 'mappings', label: 'Mappings', icon: Settings },
     { value: 'rates', label: 'Taux de TVA', icon: Percent },
-    { value: 'reconciliation', label: 'Rapprochement', icon: Landmark, featureKey: ENTITLEMENT_KEYS.BANK_RECONCILIATION },
+    {
+      value: 'reconciliation',
+      label: 'Rapprochement',
+      icon: Landmark,
+      featureKey: ENTITLEMENT_KEYS.BANK_RECONCILIATION,
+    },
     { value: 'fixedAssets', label: t('accounting.fixedAssets.title'), icon: Building2 },
+    { value: 'closing', label: t('accounting.closingAssistant.tabLabel', 'Clôture assistée'), icon: CalendarCheck2 },
     { value: 'analytique', label: t('accounting.analytique.title'), icon: BarChart2 },
     { value: 'init', label: 'Initialisation', icon: Settings2 },
   ];
@@ -247,11 +291,13 @@ const AccountingIntegration = () => {
               >
                 {/* Belgium Flag SVG */}
                 <svg className="w-16 h-12 mb-4 mx-auto rounded shadow-lg" viewBox="0 0 3 2">
-                  <rect width="1" height="2" x="0" fill="#000000"/>
-                  <rect width="1" height="2" x="1" fill="#FDDA24"/>
-                  <rect width="1" height="2" x="2" fill="#EF3340"/>
+                  <rect width="1" height="2" x="0" fill="#000000" />
+                  <rect width="1" height="2" x="1" fill="#FDDA24" />
+                  <rect width="1" height="2" x="2" fill="#EF3340" />
                 </svg>
-                <h3 className="text-lg font-bold text-white group-hover:text-orange-400">{t('accounting.belgiumPreset')}</h3>
+                <h3 className="text-lg font-bold text-white group-hover:text-orange-400">
+                  {t('accounting.belgiumPreset')}
+                </h3>
                 <p className="text-sm text-gray-500 mt-2">PCG belge · TVA 21%, 12%, 6%</p>
               </button>
               <button
@@ -260,11 +306,13 @@ const AccountingIntegration = () => {
               >
                 {/* France Flag SVG */}
                 <svg className="w-16 h-12 mb-4 mx-auto rounded shadow-lg" viewBox="0 0 3 2">
-                  <rect width="1" height="2" x="0" fill="#002654"/>
-                  <rect width="1" height="2" x="1" fill="#FFFFFF"/>
-                  <rect width="1" height="2" x="2" fill="#CE1126"/>
+                  <rect width="1" height="2" x="0" fill="#002654" />
+                  <rect width="1" height="2" x="1" fill="#FFFFFF" />
+                  <rect width="1" height="2" x="2" fill="#CE1126" />
                 </svg>
-                <h3 className="text-lg font-bold text-white group-hover:text-orange-400">{t('accounting.francePreset')}</h3>
+                <h3 className="text-lg font-bold text-white group-hover:text-orange-400">
+                  {t('accounting.francePreset')}
+                </h3>
                 <p className="text-sm text-gray-500 mt-2">PCG français · TVA 20%, 10%, 5.5%</p>
               </button>
               <button
@@ -272,11 +320,22 @@ const AccountingIntegration = () => {
                 className="bg-gray-800 border-2 border-gray-700 hover:border-orange-500 rounded-xl p-8 transition-all group"
               >
                 {/* OHADA Globe SVG */}
-                <svg className="w-16 h-16 mb-4 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="12" cy="12" r="10" className="stroke-emerald-400"/>
-                  <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" className="stroke-emerald-400"/>
+                <svg
+                  className="w-16 h-16 mb-4 mx-auto"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <circle cx="12" cy="12" r="10" className="stroke-emerald-400" />
+                  <path
+                    d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                    className="stroke-emerald-400"
+                  />
                 </svg>
-                <h3 className="text-lg font-bold text-white group-hover:text-orange-400">{t('accounting.ohadaPreset')}</h3>
+                <h3 className="text-lg font-bold text-white group-hover:text-orange-400">
+                  {t('accounting.ohadaPreset')}
+                </h3>
                 <p className="text-sm text-gray-500 mt-2">SYSCOHADA révisé · TVA 18%</p>
               </button>
             </div>
@@ -288,13 +347,13 @@ const AccountingIntegration = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
-      <Helmet><title>{t('pages.accounting', 'Accounting Integration')} | CashPilot</title></Helmet>
+      <Helmet>
+        <title>{t('pages.accounting', 'Accounting Integration')} | CashPilot</title>
+      </Helmet>
       <CreditsGuardModal {...modalProps} />
       {/* Header */}
       <div className="mb-2">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gradient">
-          Comptabilité
-        </h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gradient">Comptabilité</h1>
         <p className="text-gray-400 mt-1 text-sm sm:text-base">
           Plan comptable, rapports financiers, TVA et estimation d'impôt.
         </p>
@@ -310,13 +369,18 @@ const AccountingIntegration = () => {
                 {t('auto_journal.auto_journal_label', 'Écritures automatiques')}
               </Label>
               <p className="text-xs text-gray-400 mt-0.5">
-                {t('auto_journal.auto_journal_description', 'Génère automatiquement les écritures comptables pour factures, paiements, dépenses, achats et avoirs')}
+                {t(
+                  'auto_journal.auto_journal_description',
+                  'Génère automatiquement les écritures comptables pour factures, paiements, dépenses, achats et avoirs'
+                )}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {settings?.auto_journal_enabled && (
-              <span className="text-xs text-gray-500">({country === 'BE' ? 'Belgique' : country === 'OHADA' ? 'OHADA' : 'France'})</span>
+              <span className="text-xs text-gray-500">
+                ({country === 'BE' ? 'Belgique' : country === 'OHADA' ? 'OHADA' : 'France'})
+              </span>
             )}
             <Switch
               id="auto-journal-toggle"
@@ -328,11 +392,7 @@ const AccountingIntegration = () => {
       )}
 
       {/* Period Selector — global */}
-      <PeriodSelector
-        startDate={period.startDate}
-        endDate={period.endDate}
-        onChange={setPeriod}
-      />
+      <PeriodSelector startDate={period.startDate} endDate={period.endDate} onChange={setPeriod} />
 
       {/* Loading state */}
       {loading && (
@@ -357,7 +417,9 @@ const AccountingIntegration = () => {
             <div>
               <p className="text-red-400 font-medium text-sm">Incohérence comptable détectée</p>
               {consistencyWarnings.map((w, i) => (
-                <p key={i} className="text-xs text-red-300 mt-1">{w.message}</p>
+                <p key={i} className="text-xs text-red-300 mt-1">
+                  {w.message}
+                </p>
               ))}
             </div>
           </div>
@@ -371,7 +433,7 @@ const AccountingIntegration = () => {
             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-gray-950 to-transparent" />
             <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-gray-950 to-transparent" />
             <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-[#10192d]/95 p-2">
-              {visibleTabs.map(tab => (
+              {visibleTabs.map((tab) => (
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
@@ -528,6 +590,11 @@ const AccountingIntegration = () => {
             <FixedAssets />
           </TabsContent>
 
+          {/* Assisted Closing */}
+          <TabsContent value="closing" className="mt-6">
+            <ClosingAssistant period={period} />
+          </TabsContent>
+
           {/* Analytical Accounting */}
           <TabsContent value="analytique" className="mt-6">
             <AnalyticalAccounting />
@@ -548,17 +615,26 @@ const AccountingIntegration = () => {
               {generalLedger.length === 0 ? (
                 <div className="text-center py-16 text-gray-500">{t('accounting.noEntries')}</div>
               ) : (
-                generalLedger.map(account => (
-                  <div key={account.account_code} className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+                generalLedger.map((account) => (
+                  <div
+                    key={account.account_code}
+                    className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden"
+                  >
                     <div className="bg-gray-750 p-3 flex justify-between items-center border-b border-gray-700">
                       <div>
                         <span className="font-mono text-orange-400 mr-3">{account.account_code}</span>
                         <span className="text-white font-medium">{account.account_name}</span>
                       </div>
                       <div className="text-sm">
-                        <span className="text-green-400 mr-4">D: {formatNumber(account.totalDebit)} {companyCurrency}</span>
-                        <span className="text-red-400 mr-4">C: {formatNumber(account.totalCredit)} {companyCurrency}</span>
-                        <span className="text-orange-400 font-bold">Solde: {formatNumber(account.balance)} {companyCurrency}</span>
+                        <span className="text-green-400 mr-4">
+                          D: {formatNumber(account.totalDebit)} {companyCurrency}
+                        </span>
+                        <span className="text-red-400 mr-4">
+                          C: {formatNumber(account.totalCredit)} {companyCurrency}
+                        </span>
+                        <span className="text-orange-400 font-bold">
+                          Solde: {formatNumber(account.balance)} {companyCurrency}
+                        </span>
                       </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -575,11 +651,17 @@ const AccountingIntegration = () => {
                         <tbody>
                           {account.entries.map((e, i) => (
                             <tr key={e.id || i} className="border-b border-gray-700/30 hover:bg-gray-700/20">
-                              <td className="p-2 pl-4 text-gray-400">{e.transaction_date ? format(new Date(e.transaction_date), 'dd/MM/yyyy') : '-'}</td>
+                              <td className="p-2 pl-4 text-gray-400">
+                                {e.transaction_date ? format(new Date(e.transaction_date), 'dd/MM/yyyy') : '-'}
+                              </td>
                               <td className="p-2 font-mono text-xs text-gray-500">{e.entry_ref || '-'}</td>
                               <td className="p-2 text-gray-300">{e.description || '-'}</td>
-                              <td className="p-2 text-right text-green-400">{parseFloat(e.debit) > 0 ? parseFloat(e.debit).toFixed(2) : ''}</td>
-                              <td className="p-2 pr-4 text-right text-red-400">{parseFloat(e.credit) > 0 ? parseFloat(e.credit).toFixed(2) : ''}</td>
+                              <td className="p-2 text-right text-green-400">
+                                {parseFloat(e.debit) > 0 ? parseFloat(e.debit).toFixed(2) : ''}
+                              </td>
+                              <td className="p-2 pr-4 text-right text-red-400">
+                                {parseFloat(e.credit) > 0 ? parseFloat(e.credit).toFixed(2) : ''}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -617,30 +699,47 @@ const AccountingIntegration = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {journalBook.map((group, gi) => (
+                        {journalBook.map((group, gi) =>
                           group.lines.map((line, li) => (
-                            <tr key={`${gi}-${li}`} className={`border-b border-gray-700/30 hover:bg-gray-700/20 ${li === 0 ? 'border-t border-gray-600/50' : ''}`}>
+                            <tr
+                              key={`${gi}-${li}`}
+                              className={`border-b border-gray-700/30 hover:bg-gray-700/20 ${li === 0 ? 'border-t border-gray-600/50' : ''}`}
+                            >
                               {li === 0 ? (
                                 <>
-                                  <td className="p-2 pl-3 text-gray-400" rowSpan={group.lines.length}>{group.date ? format(new Date(group.date), 'dd/MM/yyyy') : '-'}</td>
-                                  <td className="p-2 font-mono text-xs text-orange-400" rowSpan={group.lines.length}>{group.entry_ref}</td>
+                                  <td className="p-2 pl-3 text-gray-400" rowSpan={group.lines.length}>
+                                    {group.date ? format(new Date(group.date), 'dd/MM/yyyy') : '-'}
+                                  </td>
+                                  <td className="p-2 font-mono text-xs text-orange-400" rowSpan={group.lines.length}>
+                                    {group.entry_ref}
+                                  </td>
                                   <td className="p-2" rowSpan={group.lines.length}>
-                                    <span className="px-1.5 py-0.5 bg-gray-700 rounded text-xs text-gray-300">{group.journal}</span>
+                                    <span className="px-1.5 py-0.5 bg-gray-700 rounded text-xs text-gray-300">
+                                      {group.journal}
+                                    </span>
                                   </td>
                                 </>
                               ) : null}
                               <td className="p-2 font-mono text-xs text-gray-400">{line.account_code}</td>
                               <td className="p-2 text-gray-300">{line.description || '-'}</td>
-                              <td className="p-2 text-right text-green-400">{parseFloat(line.debit) > 0 ? parseFloat(line.debit).toFixed(2) : ''}</td>
-                              <td className="p-2 text-right text-red-400">{parseFloat(line.credit) > 0 ? parseFloat(line.credit).toFixed(2) : ''}</td>
+                              <td className="p-2 text-right text-green-400">
+                                {parseFloat(line.debit) > 0 ? parseFloat(line.debit).toFixed(2) : ''}
+                              </td>
+                              <td className="p-2 text-right text-red-400">
+                                {parseFloat(line.credit) > 0 ? parseFloat(line.credit).toFixed(2) : ''}
+                              </td>
                               {li === 0 ? (
                                 <td className="p-2 text-center" rowSpan={group.lines.length}>
-                                  {group.is_auto ? <Zap className="w-3.5 h-3.5 text-yellow-400 inline" /> : <span className="text-gray-600">—</span>}
+                                  {group.is_auto ? (
+                                    <Zap className="w-3.5 h-3.5 text-yellow-400 inline" />
+                                  ) : (
+                                    <span className="text-gray-600">—</span>
+                                  )}
                                 </td>
                               ) : null}
                             </tr>
                           ))
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -655,4 +754,3 @@ const AccountingIntegration = () => {
 };
 
 export default AccountingIntegration;
-

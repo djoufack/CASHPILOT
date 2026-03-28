@@ -5,8 +5,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAccountantPortal } from '@/hooks/useAccountantPortal';
+import { useAccountantCollaborationTasks } from '@/hooks/useAccountantCollaborationTasks';
 import AccountantInviteDialog from '@/components/accountant/AccountantInviteDialog';
 import AccountantAccessList from '@/components/accountant/AccountantAccessList';
+import AccountantCollaborationWorkspace from '@/components/accountant/AccountantCollaborationWorkspace';
 
 export default function AccountantPortalPage() {
   const { t } = useTranslation();
@@ -24,6 +26,15 @@ export default function AccountantPortalPage() {
     refetchInvitations,
     refetchAccess,
   } = useAccountantPortal();
+  const {
+    tasks,
+    loading: tasksLoading,
+    actionLoading: tasksActionLoading,
+    createTask,
+    updateTaskStatus,
+    deleteTask,
+    refetchTasks,
+  } = useAccountantCollaborationTasks();
 
   const pendingCount = invitations.filter((inv) => inv.status === 'pending').length;
   const activeCount = accessList.length;
@@ -93,11 +104,12 @@ export default function AccountantPortalPage() {
           onClick={() => {
             refetchInvitations();
             refetchAccess();
+            refetchTasks();
           }}
-          disabled={invitationsLoading || accessLoading}
+          disabled={invitationsLoading || accessLoading || tasksLoading}
           className="text-slate-400 hover:text-white hover:bg-white/10"
         >
-          {invitationsLoading || accessLoading ? (
+          {invitationsLoading || accessLoading || tasksLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <RefreshCw className="mr-2 h-4 w-4" />
@@ -123,6 +135,17 @@ export default function AccountantPortalPage() {
         onRevokeInvitation={revokeInvitation}
         loading={actionLoading}
       />
+
+      <div className="mt-8">
+        <AccountantCollaborationWorkspace
+          tasks={tasks}
+          loading={tasksLoading || tasksActionLoading}
+          onRefresh={refetchTasks}
+          onCreateTask={createTask}
+          onUpdateTaskStatus={updateTaskStatus}
+          onDeleteTask={deleteTask}
+        />
+      </div>
 
       {/* Invite dialog */}
       <AccountantInviteDialog
