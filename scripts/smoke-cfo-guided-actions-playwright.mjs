@@ -109,6 +109,10 @@ async function openCfoPage(page) {
   await page.locator('body').waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
 }
 
+function isScenarioDetailPath(pathname) {
+  return /^\/app\/scenarios\/[0-9a-f-]{8,}$/i.test(pathname);
+}
+
 async function runAccount(page, account) {
   const result = {
     key: account.key,
@@ -135,7 +139,36 @@ async function runAccount(page, account) {
     await auditButton.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
     result.checks.push('buttons-visible');
 
-    await auditButton.click();
+    await scenarioButton.click();
+    await page.waitForURL((url) => isScenarioDetailPath(url.pathname), { timeout: DEFAULT_TIMEOUT });
+    result.checks.push('scenario-created-and-opened');
+
+    await openCfoPage(page);
+    const relanceCard = page.locator('article').filter({ hasText: /Relance|Dunning|Aanmaning/i }).first();
+    const relanceButtonRefreshed = relanceCard
+      .getByRole('button', { name: /Lancer la relance|Run dunning|Aanmaning starten/i })
+      .first();
+    await relanceButtonRefreshed.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
+    await relanceButtonRefreshed.click();
+
+    const relanceSuccess = relanceCard
+      .getByText(
+        /Relance exécutée|Aucune facture impayée en retard|Relance automatique indisponible|Dunning executed|No overdue unpaid invoice found|Automatic dunning unavailable|Aanmaning uitgevoerd|Geen achterstallige onbetaalde factuur gevonden|Automatische aanmaning niet beschikbaar/i
+      )
+      .first();
+
+    const relanceOutcome = await Promise.race([
+      relanceSuccess.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT }).then(() => 'executed-or-noop'),
+      page
+        .waitForURL((url) => url.pathname === '/app/smart-dunning', { timeout: DEFAULT_TIMEOUT })
+        .then(() => 'fallback-smart-dunning'),
+    ]);
+    result.checks.push(`relance-${relanceOutcome}`);
+
+    await openCfoPage(page);
+    const auditButtonRefreshed = page.getByRole('button', { name: /Ouvrir l’audit|Open audit|Audit openen/i }).first();
+    await auditButtonRefreshed.waitFor({ state: 'visible', timeout: DEFAULT_TIMEOUT });
+    await auditButtonRefreshed.click();
     await page.waitForURL(
       (url) => url.pathname === '/app/audit-comptable' && url.searchParams.get('autoRun') === '1',
       { timeout: DEFAULT_TIMEOUT }

@@ -1,11 +1,24 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminDashboard from './AdminDashboard';
 import UserManagement from './UserManagement';
-import { Shield, Users, LayoutDashboard, Key, Building2, Wallet } from 'lucide-react';
+import {
+  Shield,
+  Users,
+  LayoutDashboard,
+  Key,
+  Building2,
+  Wallet,
+  SlidersHorizontal,
+  Activity,
+  Fingerprint,
+} from 'lucide-react';
 import AdminClientManager from '@/components/admin/AdminClientManager';
 import AdminRoleManager from '@/components/admin/AdminRoleManager';
 import AdminAuditTrail from '@/components/admin/AdminAuditTrail';
 import AdminBillingManager from '@/components/admin/AdminBillingManager';
+import AdminFeatureFlagsPanel from '@/components/admin/AdminFeatureFlagsPanel';
+import AdminOperationalHealthPanel from '@/components/admin/AdminOperationalHealthPanel';
+import AdminTraceabilityPanel from '@/components/admin/AdminTraceabilityPanel';
 import { useTranslation } from 'react-i18next';
 
 const AdminPage = () => {
@@ -51,6 +64,24 @@ const AdminPage = () => {
             <Wallet className="w-4 h-4 mr-2" /> Abonnements & Credits
           </TabsTrigger>
           <TabsTrigger
+            value="feature-flags"
+            className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
+          >
+            <SlidersHorizontal className="w-4 h-4 mr-2" /> Feature flags
+          </TabsTrigger>
+          <TabsTrigger
+            value="ops-health"
+            className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
+          >
+            <Activity className="w-4 h-4 mr-2" /> Ops health
+          </TabsTrigger>
+          <TabsTrigger
+            value="traceability"
+            className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
+          >
+            <Fingerprint className="w-4 h-4 mr-2" /> Traceability
+          </TabsTrigger>
+          <TabsTrigger
             value="audit"
             className="data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400"
           >
@@ -76,6 +107,18 @@ const AdminPage = () => {
 
         <TabsContent value="billing" className="mt-6">
           <AdminBillingManager />
+        </TabsContent>
+
+        <TabsContent value="feature-flags" className="mt-6">
+          <AdminFeatureFlagsPanel />
+        </TabsContent>
+
+        <TabsContent value="ops-health" className="mt-6">
+          <AdminOperationalHealthPanel />
+        </TabsContent>
+
+        <TabsContent value="traceability" className="mt-6">
+          <AdminTraceabilityPanel />
         </TabsContent>
 
         <TabsContent value="audit" className="mt-6">

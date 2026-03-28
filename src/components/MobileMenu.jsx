@@ -134,6 +134,11 @@ const MobileMenu = ({ isOpen, onClose }) => {
         icon: Building2,
         type: 'category',
         items: [
+          {
+            path: '/app/company-compliance-cockpit',
+            label: t('nav.companyComplianceCockpit', 'Cockpit Conformité & Groupe'),
+            icon: ShieldCheck,
+          },
           { path: '/app/portfolio', label: t('nav.companyPortfolio', 'Portfolio sociétés'), icon: Building2 },
           { path: '/app/peppol', label: t('nav.peppolEInvoicing'), icon: Globe },
           { path: '/app/pdp-compliance', label: t('nav.pdpCompliance', 'PDP / Certification'), icon: FileCheck },

@@ -1,7 +1,7 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2, FileText, Download, FileSignature, Copy, Loader2 } from 'lucide-react';
+import { Eye, Trash2, FileText, Download, FileSignature, Copy, Loader2, CircleOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/utils/calculations';
 import { CREDIT_COSTS } from '@/hooks/useCreditsGuard';
@@ -19,6 +19,7 @@ const QuoteGalleryView = ({
   onDelete,
   onRequestSignature,
   onCopySignatureLink,
+  onMarkAsLost,
   onOpenDialog,
 }) => {
   const { t } = useTranslation();
@@ -78,13 +79,22 @@ const QuoteGalleryView = ({
     rejected: t('quotesPage.signatureRejected'),
     unsigned: t('quotesPage.signatureUnsigned') || 'Non signe',
   };
+  const lossReasonLabels = {
+    budget: t('quotesPage.lossReasonCategories.budget'),
+    timing: t('quotesPage.lossReasonCategories.timing'),
+    competition: t('quotesPage.lossReasonCategories.competition'),
+    scope: t('quotesPage.lossReasonCategories.scope'),
+    no_response: t('quotesPage.lossReasonCategories.no_response'),
+    other: t('quotesPage.lossReasonCategories.other'),
+  };
+  const getNextBestActionLabel = (actionCode) => {
+    if (!actionCode) return t('quotesPage.nextBestActions.monitor_quote');
+    const translated = t(`quotesPage.nextBestActions.${actionCode}`);
+    return translated === `quotesPage.nextBestActions.${actionCode}` ? actionCode : translated;
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
-    >
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {paginatedQuotes.map((quote) => {
           const client = getQuoteClient(quote);
@@ -101,10 +111,14 @@ const QuoteGalleryView = ({
                   <p className="text-xs text-gray-400 mt-1">{client?.company_name || t('timesheets.noClient')}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[quote.status] || statusColors.draft}`}>
+                  <span
+                    className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[quote.status] || statusColors.draft}`}
+                  >
                     {statusLabels[quote.status] || quote.status || '-'}
                   </span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${signatureColors[signatureStatus] || signatureColors.unsigned}`}>
+                  <span
+                    className={`px-2 py-0.5 rounded text-xs font-medium ${signatureColors[signatureStatus] || signatureColors.unsigned}`}
+                  >
                     {signatureLabels[signatureStatus] || signatureLabels.unsigned}
                   </span>
                 </div>
@@ -113,17 +127,36 @@ const QuoteGalleryView = ({
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
                   <p className="text-gray-400">{t('quotesPage.date')}</p>
-                  <p className="text-gray-200 mt-1">{quote.date ? new Date(quote.date).toLocaleDateString('fr-FR') : '-'}</p>
+                  <p className="text-gray-200 mt-1">
+                    {quote.date ? new Date(quote.date).toLocaleDateString('fr-FR') : '-'}
+                  </p>
                 </div>
                 <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
                   <p className="text-gray-400">{t('invoices.dueDate')}</p>
-                  <p className="text-gray-200 mt-1">{quote.due_date ? new Date(quote.due_date).toLocaleDateString('fr-FR') : '-'}</p>
+                  <p className="text-gray-200 mt-1">
+                    {quote.due_date ? new Date(quote.due_date).toLocaleDateString('fr-FR') : '-'}
+                  </p>
                 </div>
               </div>
 
               <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
                 <p className="text-gray-400 text-xs">{t('invoices.total')}</p>
                 <p className="text-gray-100 font-semibold mt-1">{formatCurrency(quote.total_ttc || 0)}</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 text-xs">
+                <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
+                  <p className="text-gray-400">{t('quotesPage.lossReason')}</p>
+                  <p className="text-gray-200 mt-1">
+                    {quote.loss_reason_category
+                      ? lossReasonLabels[quote.loss_reason_category] || quote.loss_reason_category
+                      : t('quotesPage.lossReasonNotProvided')}
+                  </p>
+                </div>
+                <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-2">
+                  <p className="text-gray-400">{t('quotesPage.nextBestAction')}</p>
+                  <p className="text-blue-300 mt-1 font-medium">{getNextBestActionLabel(quote.next_best_action)}</p>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 pt-1">
@@ -177,6 +210,18 @@ const QuoteGalleryView = ({
                     title={t('quotesPage.copySignatureLink')}
                   >
                     <Copy className="w-4 h-4" />
+                  </Button>
+                )}
+                {onMarkAsLost && !['accepted', 'rejected', 'expired'].includes(quote.status) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onMarkAsLost(quote)}
+                    className="text-amber-400 hover:text-amber-300 hover:bg-amber-900/20 h-8 w-8 p-0"
+                    title={t('quotesPage.markAsLost')}
+                    aria-label={t('quotesPage.markAsLost')}
+                  >
+                    <CircleOff className="w-4 h-4" />
                   </Button>
                 )}
                 <Button

@@ -13,6 +13,8 @@ function jsonResponse(body: unknown, corsHeaders: Record<string, string>, status
   });
 }
 
+const getDocumentEventPrefix = (documentType?: string | null) => (documentType === 'contract' ? 'contract' : 'quote');
+
 Deno.serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req);
   if (req.method === 'OPTIONS') {
@@ -31,7 +33,7 @@ Deno.serve(async (req) => {
     const { data: quote, error } = await supabase
       .from('quotes')
       .select(
-        'id, quote_number, total_ht, total_ttc, tax_rate, notes, signature_status, signature_token_expires_at, clients(company_name, contact_name, email)'
+        'id, quote_number, total_ht, total_ttc, tax_rate, notes, signature_status, signature_token_expires_at, document_type, clients(company_name, contact_name, email)'
       )
       .eq('signature_token', token)
       .eq('signature_status', 'pending')
@@ -52,6 +54,7 @@ Deno.serve(async (req) => {
         quote: {
           id: quote.id,
           quote_number: quote.quote_number,
+          document_type: getDocumentEventPrefix(quote.document_type),
           total_ht: quote.total_ht,
           total_ttc: quote.total_ttc,
           tax_rate: quote.tax_rate,

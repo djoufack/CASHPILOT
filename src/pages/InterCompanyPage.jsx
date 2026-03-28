@@ -6,7 +6,7 @@ import InterCompanyLinksList from '@/components/intercompany/InterCompanyLinksLi
 import TransferPricingPanel from '@/components/intercompany/TransferPricingPanel';
 import EliminationSummary from '@/components/intercompany/EliminationSummary';
 import { Button } from '@/components/ui/button';
-import { Building2, ArrowLeftRight, RefreshCw, Loader2, Link2, Receipt, Scale, Scissors } from 'lucide-react';
+import { Building2, ArrowLeftRight, RefreshCw, Loader2, Link2, Receipt, Scale, Scissors, Sparkles } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 
 const TAB_KEYS = ['links', 'transactions', 'pricing', 'eliminations'];
@@ -33,10 +33,12 @@ const InterCompanyPage = () => {
     updatePricingRule,
     deletePricingRule,
     computeEliminations,
+    autoComputeEliminations,
   } = useInterCompany();
 
   const [activeTab, setActiveTab] = useState('links');
   const [computing, setComputing] = useState(false);
+  const [autoComputing, setAutoComputing] = useState(false);
 
   // KPIs
   const linkedCompanies = links.filter((l) => l.is_active).length;
@@ -57,11 +59,20 @@ const InterCompanyPage = () => {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-      await computeEliminations(startOfMonth, endOfMonth);
+      await computeEliminations(startOfMonth, endOfMonth, null, { status: 'applied' });
     } finally {
       setComputing(false);
     }
   }, [computeEliminations]);
+
+  const handleAutoComputeEliminations = useCallback(async () => {
+    setAutoComputing(true);
+    try {
+      await autoComputeEliminations();
+    } finally {
+      setAutoComputing(false);
+    }
+  }, [autoComputeEliminations]);
 
   const kpis = [
     {
@@ -130,13 +141,30 @@ const InterCompanyPage = () => {
             <Button
               size="sm"
               onClick={handleComputeEliminations}
-              disabled={computing || loading}
+              disabled={computing || autoComputing || loading}
               className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white border-0"
             >
               {computing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Scissors className="w-4 h-4 mr-2" />}
               {computing
                 ? t('intercompany.computing', 'Calcul en cours...')
                 : t('intercompany.computeEliminations', 'Calculer les éliminations')}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAutoComputeEliminations}
+              disabled={computing || autoComputing || loading}
+              className="border-cyan-500/50 text-cyan-100 hover:bg-cyan-500/10"
+              data-testid="intercompany-auto-elimination-button"
+            >
+              {autoComputing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              {autoComputing
+                ? t('intercompany.autoComputing', 'Automatisation...')
+                : t('intercompany.autoComputeEliminations', 'Auto-appliquer les éliminations')}
             </Button>
           </div>
         </div>

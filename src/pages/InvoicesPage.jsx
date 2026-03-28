@@ -692,6 +692,9 @@ const InvoicesPage = () => {
         handleConfirmDelete={handleConfirmDelete}
         emailSending={emailSending}
         handleConfirmSendEmail={handleConfirmSendEmail}
+        handleGeneratePaymentLink={handleGeneratePaymentLink}
+        handleCopyPaymentLink={handleCopyPaymentLink}
+        paymentLinkLoading={paymentLinkLoading}
         company={company}
       />
     </>

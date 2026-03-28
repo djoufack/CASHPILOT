@@ -1,11 +1,5 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Clock, XCircle, AlertTriangle } from 'lucide-react';
 
@@ -32,7 +26,16 @@ const ApprovalHistoryDialog = ({ open, onOpenChange, invoice }) => {
   const status = invoice.approval_status || 'pending';
   const config = statusConfig[status] || statusConfig.pending;
   const StatusIcon = config.icon;
-  const hasTakenAction = status !== 'pending' || invoice.approved_at;
+  const approvalSteps = (Array.isArray(invoice.approval_steps) ? invoice.approval_steps : [])
+    .filter((step) => step && Number.isFinite(Number(step.level)))
+    .map((step) => ({
+      ...step,
+      level: Number(step.level),
+      status: step.status || 'pending',
+    }))
+    .sort((left, right) => left.level - right.level);
+  const hasTakenAction =
+    status !== 'pending' || invoice.approved_at || approvalSteps.some((step) => step.status !== 'pending');
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
@@ -61,9 +64,7 @@ const ApprovalHistoryDialog = ({ open, onOpenChange, invoice }) => {
 
         <div className="space-y-4 pt-2">
           {/* Invoice reference */}
-          <div className="text-sm text-gray-400">
-            {invoice.invoice_number || '—'}
-          </div>
+          <div className="text-sm text-gray-400">{invoice.invoice_number || '—'}</div>
 
           {hasTakenAction ? (
             <div className="space-y-4">
@@ -79,15 +80,42 @@ const ApprovalHistoryDialog = ({ open, onOpenChange, invoice }) => {
                 </Badge>
               </div>
 
+              {approvalSteps.length > 0 && (
+                <div className="rounded-lg bg-gray-800/60 border border-gray-700/40 p-3 space-y-2">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider">
+                    {t('supplierInvoices.approvalWorkflowLevels', 'Workflow levels')}
+                  </p>
+                  <div className="space-y-2">
+                    {approvalSteps.map((step) => {
+                      const stepConfig = statusConfig[step.status] || statusConfig.pending;
+                      const StepIcon = stepConfig.icon;
+                      return (
+                        <div key={step.id || step.level} className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <Badge className={`${stepConfig.color} border text-xs px-2 py-0.5`}>
+                              <StepIcon className="h-3 w-3 mr-1" />
+                              {t('supplierInvoices.approvalLevelShort', {
+                                defaultValue: 'N{{level}}',
+                                level: step.level,
+                              })}
+                            </Badge>
+                            <span className="text-xs text-gray-300 capitalize">{step.status}</span>
+                          </div>
+                          <span className="text-[11px] text-gray-500">{formatDate(step.decided_at)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Approved by */}
               {invoice.approved_by && (
                 <div className="rounded-lg bg-gray-800/60 border border-gray-700/40 p-3 space-y-1">
                   <p className="text-xs text-gray-500 uppercase tracking-wider">
                     {t('supplierInvoices.approvedBy', 'Approved by')}
                   </p>
-                  <p className="text-sm text-gray-200 font-mono">
-                    {invoice.approved_by}
-                  </p>
+                  <p className="text-sm text-gray-200 font-mono">{invoice.approved_by}</p>
                 </div>
               )}
 
@@ -97,9 +125,7 @@ const ApprovalHistoryDialog = ({ open, onOpenChange, invoice }) => {
                   <p className="text-xs text-gray-500 uppercase tracking-wider">
                     {t('supplierInvoices.approvedAt', 'Approved on')}
                   </p>
-                  <p className="text-sm text-gray-200">
-                    {formatDate(invoice.approved_at)}
-                  </p>
+                  <p className="text-sm text-gray-200">{formatDate(invoice.approved_at)}</p>
                 </div>
               )}
 
@@ -110,18 +136,14 @@ const ApprovalHistoryDialog = ({ open, onOpenChange, invoice }) => {
                     <AlertTriangle className="h-3 w-3" />
                     {t('supplierInvoices.rejectedReason', 'Rejection reason')}
                   </p>
-                  <p className="text-sm text-rose-200">
-                    {invoice.rejected_reason}
-                  </p>
+                  <p className="text-sm text-rose-200">{invoice.rejected_reason}</p>
                 </div>
               )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-gray-500">
               <Clock className="h-8 w-8 mb-3 opacity-40" />
-              <p className="text-sm">
-                {t('supplierInvoices.noApprovalHistory', 'No approval action yet')}
-              </p>
+              <p className="text-sm">{t('supplierInvoices.noApprovalHistory', 'No approval action yet')}</p>
             </div>
           )}
         </div>

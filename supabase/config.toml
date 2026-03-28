@@ -231,6 +231,9 @@ verify_jwt = true
 [functions.cfo-agent]
 verify_jwt = false
 
+[functions.cfo-weekly-briefing]
+verify_jwt = false
+
 [functions.cfo-alerts]
 verify_jwt = false
 

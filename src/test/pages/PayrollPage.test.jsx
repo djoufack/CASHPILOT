@@ -87,6 +87,29 @@ vi.mock('@/hooks/useCompany', () => ({
   }),
 }));
 
+vi.mock('@/hooks/usePayrollCountryConnectors', () => ({
+  usePayrollCountryConnectors: () => ({
+    countryCode: 'FR',
+    connectors: [
+      {
+        id: 'connector-1',
+        connector_name: 'PayFit DSN',
+        connector_code: 'payfit',
+        provider_category: 'payroll',
+        status: 'connected',
+        compliance_status: 'compliant',
+        requirements: ['DSN mensuelle'],
+      },
+    ],
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+    markConnectorConnected: vi.fn(),
+    setConnectorStatus: vi.fn(),
+    setConnectorComplianceStatus: vi.fn(),
+  }),
+}));
+
 vi.mock('@/config/statusMappings', () => ({
   PAYROLL_STATUSES: {
     draft: {
@@ -173,12 +196,13 @@ describe('PayrollPage', () => {
     expect(screen.getByText('Gestion de la paie, calcul des bulletins et suivi historique')).toBeTruthy();
   });
 
-  it('displays the four navigation tabs', () => {
+  it('displays the navigation tabs including country connectors', () => {
     render(<PayrollPage />);
     expect(screen.getByText('Periodes')).toBeTruthy();
     expect(screen.getByText('Calcul')).toBeTruthy();
     expect(screen.getByText('Bulletins')).toBeTruthy();
     expect(screen.getByText('Historique')).toBeTruthy();
+    expect(screen.getByText('Connecteurs pays')).toBeTruthy();
   });
 
   it('displays the Actualiser (refresh) button', () => {

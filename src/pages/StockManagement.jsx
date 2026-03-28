@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useStockAlerts, useStockHistory } from '@/hooks/useStockHistory';
 import { useProducts, useProductCategories } from '@/hooks/useProducts';
 import { useSuppliers } from '@/hooks/useSuppliers';
+import { useInventoryWarehouses, useInventoryLots } from '@/hooks/useInventoryWarehouses';
 import { useCompany } from '@/hooks/useCompany';
 import { getCurrencySymbol } from '@/utils/currencyService';
 import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
@@ -38,6 +39,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { exportStockListPDF, exportStockListHTML } from '@/services/exportListsPDF';
+import { buildStockValuationDashboard } from '@/services/stockValuationAnalytics';
+import { buildWarehouseLotSummary } from '@/services/inventoryWarehouseLotInsights';
+import { buildReplenishmentRecommendations } from '@/services/stockReplenishmentRecommendations';
 import ExportButton from '@/components/ExportButton';
 import { usePagination } from '@/hooks/usePagination';
 import PaginationControls from '@/components/PaginationControls';
@@ -78,6 +82,24 @@ const DEFAULT_PRODUCT_PRICING_FORM = {
   inventory_tracking_enabled: true,
 };
 
+const DEFAULT_WAREHOUSE_FORM = {
+  warehouse_code: '',
+  warehouse_name: '',
+  description: '',
+  is_default: false,
+};
+
+const DEFAULT_LOT_FORM = {
+  product_id: '',
+  warehouse_id: '',
+  lot_number: '',
+  serial_number: '',
+  quantity: '',
+  received_at: '',
+  expiry_date: '',
+  notes: '',
+};
+
 const buildProductEditForm = (product) => ({
   product_name: product?.product_name || '',
   sku: product?.sku || '',
@@ -108,8 +130,10 @@ const parseNumericField = (value, fallback = 0) => {
 const StockManagement = () => {
   const { t } = useTranslation();
   const { alerts, fetchAlerts, resolveAlert } = useStockAlerts();
-  const { getProductHistory, addHistoryEntry, loading: historyLoading } = useStockHistory();
+  const { getProductHistory, addHistoryEntry, getStockValuationContext, loading: historyLoading } = useStockHistory();
   const { products, loading, createProduct, updateProduct, deleteProduct, fetchProducts } = useProducts();
+  const { warehouses, loading: warehousesLoading, createWarehouse, updateWarehouse } = useInventoryWarehouses();
+  const { lots, loading: lotsLoading, createLot } = useInventoryLots();
   const { categories } = useProductCategories();
   const { suppliers } = useSuppliers();
   const { company } = useCompany();
@@ -132,6 +156,13 @@ const StockManagement = () => {
   const [adjReason, setAdjReason] = useState('adjustment');
   const [adjNotes, setAdjNotes] = useState('');
   const [valuationMode, setValuationMode] = useState('cost');
+  const [valuationContextLoading, setValuationContextLoading] = useState(false);
+  const [stockValuationContext, setStockValuationContext] = useState({
+    historyEntries: [],
+    supplierOrderItems: [],
+  });
+  const [warehouseForm, setWarehouseForm] = useState(DEFAULT_WAREHOUSE_FORM);
+  const [lotForm, setLotForm] = useState(DEFAULT_LOT_FORM);
 
   // Add product dialog state
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -146,6 +177,44 @@ const StockManagement = () => {
   useEffect(() => {
     fetchAlerts();
   }, [fetchAlerts]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadValuationContext = async () => {
+      const trackedProductIds = products
+        .filter((product) => product.inventory_tracking_enabled !== false)
+        .map((product) => product.id)
+        .filter(Boolean);
+
+      if (trackedProductIds.length === 0) {
+        if (isActive) {
+          setStockValuationContext({
+            historyEntries: [],
+            supplierOrderItems: [],
+          });
+          setValuationContextLoading(false);
+        }
+        return;
+      }
+
+      setValuationContextLoading(true);
+      const context = await getStockValuationContext(trackedProductIds);
+      if (isActive) {
+        setStockValuationContext({
+          historyEntries: Array.isArray(context?.historyEntries) ? context.historyEntries : [],
+          supplierOrderItems: Array.isArray(context?.supplierOrderItems) ? context.supplierOrderItems : [],
+        });
+        setValuationContextLoading(false);
+      }
+    };
+
+    loadValuationContext();
+
+    return () => {
+      isActive = false;
+    };
+  }, [getStockValuationContext, products]);
 
   const pagination = usePagination({ pageSize: 25 });
   const { setTotalCount } = pagination;
@@ -260,16 +329,6 @@ const StockManagement = () => {
     (product) => product.stockQuantity > 0 && product.unitPrice > 0 && product.potentialMargin < 0
   ).length;
 
-  const reorderPriorities = useMemo(() => {
-    return strategicStock
-      .filter((product) => product.reorderUnits > 0)
-      .sort((a, b) => {
-        if (b.reorderCost !== a.reorderCost) return b.reorderCost - a.reorderCost;
-        return b.reorderUnits - a.reorderUnits;
-      })
-      .slice(0, 8);
-  }, [strategicStock]);
-
   const highValueProducts = useMemo(() => {
     const metricKey = selectedValuation.metricKey;
     return [...strategicStock].sort((a, b) => Number(b[metricKey] || 0) - Number(a[metricKey] || 0)).slice(0, 8);
@@ -287,6 +346,29 @@ const StockManagement = () => {
       };
     });
   }, [inventoryValueAtCost, strategicStock]);
+
+  const stockValuationDashboard = useMemo(() => {
+    return buildStockValuationDashboard({
+      products: trackedFilteredProducts,
+      historyEntries: stockValuationContext.historyEntries,
+      supplierOrderItems: stockValuationContext.supplierOrderItems,
+    });
+  }, [stockValuationContext.historyEntries, stockValuationContext.supplierOrderItems, trackedFilteredProducts]);
+  const stockValuationRows = stockValuationDashboard.rows;
+  const stockValuationSummary = stockValuationDashboard.summary;
+  const replenishmentDashboard = useMemo(() => {
+    return buildReplenishmentRecommendations({
+      products: strategicStock,
+      historyEntries: stockValuationContext.historyEntries,
+      supplierOrderItems: stockValuationContext.supplierOrderItems,
+    });
+  }, [stockValuationContext.historyEntries, stockValuationContext.supplierOrderItems, strategicStock]);
+  const replenishmentRecommendations = replenishmentDashboard.recommendations;
+  const replenishmentSummary = replenishmentDashboard.summary;
+
+  const warehouseLotSummary = useMemo(() => {
+    return buildWarehouseLotSummary({ warehouses, lots });
+  }, [lots, warehouses]);
 
   // Load history for selected product
   const loadHistory = async (productId) => {
@@ -417,6 +499,42 @@ const StockManagement = () => {
     }
   };
 
+  const handleCreateWarehouse = async () => {
+    if (!warehouseForm.warehouse_code || !warehouseForm.warehouse_name) return;
+
+    try {
+      await createWarehouse({
+        warehouse_code: warehouseForm.warehouse_code,
+        warehouse_name: warehouseForm.warehouse_name,
+        description: warehouseForm.description,
+        is_default: warehouseForm.is_default,
+      });
+      setWarehouseForm(DEFAULT_WAREHOUSE_FORM);
+    } catch (err) {
+      console.error('Failed to create warehouse:', err);
+    }
+  };
+
+  const handleCreateLot = async () => {
+    if (!lotForm.product_id || !lotForm.warehouse_id || !lotForm.lot_number || lotForm.quantity === '') return;
+
+    try {
+      await createLot({
+        product_id: lotForm.product_id,
+        warehouse_id: lotForm.warehouse_id,
+        lot_number: lotForm.lot_number,
+        serial_number: lotForm.serial_number || null,
+        quantity: parseNumericField(lotForm.quantity),
+        received_at: lotForm.received_at || null,
+        expiry_date: lotForm.expiry_date || null,
+        notes: lotForm.notes || null,
+      });
+      setLotForm(DEFAULT_LOT_FORM);
+    } catch (err) {
+      console.error('Failed to create lot:', err);
+    }
+  };
+
   const getStockBadge = (product) => {
     if (product.inventory_tracking_enabled === false) {
       return <Badge className="bg-slate-500/20 text-slate-300 border-slate-500/30">Non stocké</Badge>;
@@ -435,6 +553,16 @@ const StockManagement = () => {
       return <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/20">B piloté</Badge>;
     }
     return <Badge className="bg-blue-500/15 text-blue-300 border border-blue-500/20">C long tail</Badge>;
+  };
+
+  const getReplenishmentPriorityBadge = (priority) => {
+    if (priority === 'critical') {
+      return <Badge className="bg-red-500/15 text-red-300 border border-red-500/20">Critique</Badge>;
+    }
+    if (priority === 'high') {
+      return <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/20">Élevée</Badge>;
+    }
+    return <Badge className="bg-blue-500/15 text-blue-300 border border-blue-500/20">Planifiée</Badge>;
   };
 
   const handleExportPDF = () => {
@@ -532,8 +660,9 @@ const StockManagement = () => {
                 </Button>
               </div>
 
-              <TabsList className="bg-gray-900 border border-gray-800 w-full h-auto p-1 grid grid-cols-2 md:grid-cols-4 gap-1">
+              <TabsList className="bg-gray-900 border border-gray-800 w-full h-auto p-1 grid grid-cols-2 md:grid-cols-5 gap-1">
                 <TabsTrigger value="cockpit">{t('stockManagement.tabs.cockpit', 'Stock Cockpit')}</TabsTrigger>
+                <TabsTrigger value="warehouses">Entrepôts & lots</TabsTrigger>
                 <TabsTrigger value="inventory">{t('stockManagement.tabs.inventory', 'Inventory')}</TabsTrigger>
                 <TabsTrigger value="history">{t('stockManagement.tabs.history', 'History')}</TabsTrigger>
                 <TabsTrigger value="adjustments">
@@ -542,6 +671,334 @@ const StockManagement = () => {
               </TabsList>
             </div>
           </div>
+
+          <TabsContent value="warehouses" className="mt-4 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-400">Entrepôts actifs</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-blue-300">{warehouseLotSummary.totalWarehouses}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-400">Lots / séries</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-indigo-300">{warehouseLotSummary.totalLots}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-400">Lots serialisés</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-emerald-300">{warehouseLotSummary.totalSerialTrackedLots}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-400">Quantité tracée</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-orange-300">
+                    {formatNumber(warehouseLotSummary.totalQuantity)}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-white">Entrepôts multi-sites</CardTitle>
+                  <p className="text-sm text-gray-400">
+                    Gérez vos sites de stockage et activez/désactivez rapidement les entrepôts secondaires.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Code entrepôt</Label>
+                      <Input
+                        className="bg-gray-800 border-gray-700"
+                        placeholder="MAIN"
+                        value={warehouseForm.warehouse_code}
+                        onChange={(event) =>
+                          setWarehouseForm((current) => ({
+                            ...current,
+                            warehouse_code: event.target.value.toUpperCase(),
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nom</Label>
+                      <Input
+                        className="bg-gray-800 border-gray-700"
+                        placeholder="Entrepôt principal"
+                        value={warehouseForm.warehouse_name}
+                        onChange={(event) =>
+                          setWarehouseForm((current) => ({ ...current, warehouse_name: event.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Input
+                      className="bg-gray-800 border-gray-700"
+                      placeholder="Zone de stockage, ville, consignes..."
+                      value={warehouseForm.description}
+                      onChange={(event) =>
+                        setWarehouseForm((current) => ({ ...current, description: event.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded border border-gray-800 bg-gray-950/50 px-3 py-2">
+                    <p className="text-sm text-gray-300">Définir comme entrepôt par défaut</p>
+                    <Switch
+                      checked={warehouseForm.is_default}
+                      onCheckedChange={(checked) =>
+                        setWarehouseForm((current) => ({ ...current, is_default: checked }))
+                      }
+                    />
+                  </div>
+                  <Button
+                    className="w-full bg-orange-500 hover:bg-orange-600"
+                    onClick={handleCreateWarehouse}
+                    disabled={warehousesLoading || !warehouseForm.warehouse_code || !warehouseForm.warehouse_name}
+                  >
+                    Créer l'entrepôt
+                  </Button>
+
+                  <div className="space-y-2 pt-2">
+                    {warehouses.length === 0 ? (
+                      <p className="text-sm text-gray-500">Aucun entrepôt configuré pour l'instant.</p>
+                    ) : (
+                      warehouses.map((warehouse) => (
+                        <div
+                          key={warehouse.id}
+                          className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-950/40 px-3 py-2"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-white">
+                              {warehouse.warehouse_code} - {warehouse.warehouse_name}
+                            </p>
+                            <p className="text-xs text-gray-500">{warehouse.description || 'Sans description'}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {warehouse.is_default ? (
+                              <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">Défaut</Badge>
+                            ) : null}
+                            <Badge
+                              className={
+                                warehouse.is_active !== false
+                                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                                  : 'bg-gray-500/20 text-gray-300 border-gray-500/30'
+                              }
+                            >
+                              {warehouse.is_active !== false ? 'Actif' : 'Inactif'}
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                updateWarehouse(warehouse.id, { is_active: warehouse.is_active === false })
+                              }
+                              disabled={warehousesLoading}
+                            >
+                              {warehouse.is_active !== false ? 'Désactiver' : 'Activer'}
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-white">Lots / séries</CardTitle>
+                  <p className="text-sm text-gray-400">
+                    Enregistrez les lots et numéros de série pour tracer la disponibilité par entrepôt.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Produit</Label>
+                      <Select
+                        value={lotForm.product_id || 'none'}
+                        onValueChange={(value) =>
+                          setLotForm((current) => ({ ...current, product_id: value === 'none' ? '' : value }))
+                        }
+                      >
+                        <SelectTrigger className="bg-gray-800 border-gray-700">
+                          <SelectValue placeholder="Sélectionner..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          <SelectItem value="none">Sélectionner...</SelectItem>
+                          {trackedProducts.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.product_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Entrepôt</Label>
+                      <Select
+                        value={lotForm.warehouse_id || 'none'}
+                        onValueChange={(value) =>
+                          setLotForm((current) => ({ ...current, warehouse_id: value === 'none' ? '' : value }))
+                        }
+                      >
+                        <SelectTrigger className="bg-gray-800 border-gray-700">
+                          <SelectValue placeholder="Sélectionner..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          <SelectItem value="none">Sélectionner...</SelectItem>
+                          {warehouses.map((warehouse) => (
+                            <SelectItem key={warehouse.id} value={warehouse.id}>
+                              {warehouse.warehouse_code} - {warehouse.warehouse_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <Label>N° lot</Label>
+                      <Input
+                        className="bg-gray-800 border-gray-700"
+                        placeholder="LOT-2026-0001"
+                        value={lotForm.lot_number}
+                        onChange={(event) => setLotForm((current) => ({ ...current, lot_number: event.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>N° série (optionnel)</Label>
+                      <Input
+                        className="bg-gray-800 border-gray-700"
+                        placeholder="SN-00001"
+                        value={lotForm.serial_number}
+                        onChange={(event) =>
+                          setLotForm((current) => ({ ...current, serial_number: event.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Quantité</Label>
+                      <Input
+                        type="number"
+                        className="bg-gray-800 border-gray-700"
+                        value={lotForm.quantity}
+                        onChange={(event) => setLotForm((current) => ({ ...current, quantity: event.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Date réception</Label>
+                      <Input
+                        type="date"
+                        className="bg-gray-800 border-gray-700"
+                        value={lotForm.received_at}
+                        onChange={(event) => setLotForm((current) => ({ ...current, received_at: event.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Date péremption</Label>
+                      <Input
+                        type="date"
+                        className="bg-gray-800 border-gray-700"
+                        value={lotForm.expiry_date}
+                        onChange={(event) => setLotForm((current) => ({ ...current, expiry_date: event.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Notes</Label>
+                    <Input
+                      className="bg-gray-800 border-gray-700"
+                      placeholder="Observation lot/série..."
+                      value={lotForm.notes}
+                      onChange={(event) => setLotForm((current) => ({ ...current, notes: event.target.value }))}
+                    />
+                  </div>
+                  <Button
+                    className="w-full bg-orange-500 hover:bg-orange-600"
+                    onClick={handleCreateLot}
+                    disabled={
+                      !lotForm.product_id ||
+                      !lotForm.warehouse_id ||
+                      !lotForm.lot_number ||
+                      lotForm.quantity === '' ||
+                      lotsLoading
+                    }
+                  >
+                    Enregistrer le lot / série
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white">Registre lot / série par entrepôt</CardTitle>
+                <p className="text-sm text-gray-400">Traçabilité consolidée des lots et numéros de série.</p>
+              </CardHeader>
+              <CardContent>
+                {lots.length === 0 ? (
+                  <p className="text-sm text-gray-500">Aucun lot enregistré pour le moment.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-800 hover:bg-transparent">
+                          <TableHead className="text-gray-400">Produit</TableHead>
+                          <TableHead className="text-gray-400">Entrepôt</TableHead>
+                          <TableHead className="text-gray-400">Lot</TableHead>
+                          <TableHead className="text-gray-400">Série</TableHead>
+                          <TableHead className="text-gray-400 text-right">Quantité</TableHead>
+                          <TableHead className="text-gray-400">Statut</TableHead>
+                          <TableHead className="text-gray-400">Réception</TableHead>
+                          <TableHead className="text-gray-400">Péremption</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {lots.slice(0, 50).map((lot) => (
+                          <TableRow key={lot.id} className="border-gray-800">
+                            <TableCell>
+                              <div>
+                                <p className="font-medium text-white">{lot.product?.product_name || 'Produit'}</p>
+                                <p className="text-xs text-gray-500">{lot.product?.sku || 'Sans SKU'}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-gray-300">
+                              {lot.warehouse?.warehouse_code || '--'} - {lot.warehouse?.warehouse_name || '--'}
+                            </TableCell>
+                            <TableCell className="text-gray-300">{lot.lot_number}</TableCell>
+                            <TableCell className="text-gray-300">{lot.serial_number || '--'}</TableCell>
+                            <TableCell className="text-right text-white">{formatNumber(lot.quantity || 0)}</TableCell>
+                            <TableCell className="text-gray-300">{lot.status || 'active'}</TableCell>
+                            <TableCell className="text-gray-300">{lot.received_at || '--'}</TableCell>
+                            <TableCell className="text-gray-300">{lot.expiry_date || '--'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Adjustments Tab */}
           <TabsContent value="adjustments" className="mt-4">
@@ -877,45 +1334,174 @@ const StockManagement = () => {
               </Card>
             </div>
 
-            <Card className="bg-gray-900 border-gray-800">
+            <Card className="bg-gray-900 border-gray-800" data-testid="stock-valuation-panel">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white">Priorités de réapprovisionnement</CardTitle>
-                <p className="text-sm text-gray-400">Articles sous le seuil minimum, triés par impact d'achat.</p>
+                <CardTitle className="text-white">Valorisation FIFO / CMUP et COGS</CardTitle>
+                <p className="text-sm text-gray-400">
+                  Comparaison des deux méthodes de valorisation et estimation du coût des ventes selon vos mouvements de
+                  stock.
+                </p>
               </CardHeader>
-              <CardContent>
-                {reorderPriorities.length === 0 ? (
-                  <p className="text-sm text-gray-500">Aucune priorité de réappro sur le filtre courant.</p>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                  <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+                    <p className="text-xs uppercase tracking-wider text-gray-500">Stock valorisé FIFO</p>
+                    <p className="text-xl font-semibold text-blue-400 mt-2">
+                      {formatNumber(stockValuationSummary.totalInventoryFifo)} {currencySymbol}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+                    <p className="text-xs uppercase tracking-wider text-gray-500">Stock valorisé CMUP</p>
+                    <p className="text-xl font-semibold text-indigo-300 mt-2">
+                      {formatNumber(stockValuationSummary.totalInventoryCmup)} {currencySymbol}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+                    <p className="text-xs uppercase tracking-wider text-gray-500">COGS FIFO</p>
+                    <p className="text-xl font-semibold text-rose-300 mt-2">
+                      {formatNumber(stockValuationSummary.totalFifoCogs)} {currencySymbol}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+                    <p className="text-xs uppercase tracking-wider text-gray-500">COGS CMUP</p>
+                    <p className="text-xl font-semibold text-orange-300 mt-2">
+                      {formatNumber(stockValuationSummary.totalCmupCogs)} {currencySymbol}
+                    </p>
+                  </div>
+                </div>
+
+                {valuationContextLoading ? (
+                  <p className="text-sm text-gray-500">Calcul des couches de valorisation en cours...</p>
+                ) : stockValuationRows.length === 0 ? (
+                  <p className="text-sm text-gray-500">Aucun article stocké ne correspond au filtre courant.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-gray-800 hover:bg-transparent">
                           <TableHead className="text-gray-400">Produit</TableHead>
-                          <TableHead className="text-gray-400">Classe</TableHead>
                           <TableHead className="text-gray-400 text-right">Stock</TableHead>
-                          <TableHead className="text-gray-400 text-right">Min</TableHead>
+                          <TableHead className="text-gray-400 text-right">FIFO</TableHead>
+                          <TableHead className="text-gray-400 text-right">CMUP</TableHead>
                           <TableHead className="text-gray-400 text-right">Écart</TableHead>
-                          <TableHead className="text-gray-400 text-right">Budget achat</TableHead>
+                          <TableHead className="text-gray-400 text-right">COGS FIFO</TableHead>
+                          <TableHead className="text-gray-400 text-right">COGS CMUP</TableHead>
+                          <TableHead className="text-gray-400 text-right">Qté vendue</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {reorderPriorities.map((product) => (
-                          <TableRow key={product.id} className="border-gray-800">
+                        {stockValuationRows.slice(0, 12).map((row) => (
+                          <TableRow key={row.productId} className="border-gray-800">
                             <TableCell>
                               <div>
-                                <p className="font-medium text-white">{product.product_name}</p>
-                                <p className="text-xs text-gray-500">{product.sku || 'Sans SKU'}</p>
+                                <p className="font-medium text-white">{row.productName}</p>
+                                <p className="text-xs text-gray-500">{row.sku || 'Sans SKU'}</p>
                               </div>
                             </TableCell>
-                            <TableCell>{getAbcBadge(product.abcClass)}</TableCell>
-                            <TableCell className="text-right text-white">{product.stockQuantity}</TableCell>
-                            <TableCell className="text-right text-gray-400">{product.minStockLevel}</TableCell>
+                            <TableCell className="text-right text-white">{formatNumber(row.stockQuantity)}</TableCell>
+                            <TableCell className="text-right text-blue-300">
+                              {formatNumber(row.fifoInventoryValue)} {currencySymbol}
+                            </TableCell>
+                            <TableCell className="text-right text-indigo-200">
+                              {formatNumber(row.cmupInventoryValue)} {currencySymbol}
+                            </TableCell>
+                            <TableCell
+                              className={`text-right font-medium ${row.valuationGap >= 0 ? 'text-emerald-300' : 'text-red-300'}`}
+                            >
+                              {formatNumber(row.valuationGap)} {currencySymbol}
+                            </TableCell>
+                            <TableCell className="text-right text-rose-200">
+                              {formatNumber(row.fifoCogs)} {currencySymbol}
+                            </TableCell>
+                            <TableCell className="text-right text-orange-200">
+                              {formatNumber(row.cmupCogs)} {currencySymbol}
+                            </TableCell>
+                            <TableCell className="text-right text-gray-300">{formatNumber(row.soldQuantity)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white">Recommandations de réapprovisionnement intelligentes</CardTitle>
+                <p className="text-sm text-gray-400">
+                  Suggestions calculées selon la vélocité de sortie, la couverture cible ABC et le lead time d'achat.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-3">
+                    <p className="text-xs uppercase tracking-wider text-gray-500">Articles à commander</p>
+                    <p className="text-xl font-semibold text-white mt-1">{replenishmentSummary.totalRecommendations}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-3">
+                    <p className="text-xs uppercase tracking-wider text-gray-500">Alertes critiques</p>
+                    <p className="text-xl font-semibold text-red-300 mt-1">{replenishmentSummary.criticalCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-3">
+                    <p className="text-xs uppercase tracking-wider text-gray-500">Budget recommandé</p>
+                    <p className="text-xl font-semibold text-orange-300 mt-1">
+                      {formatNumber(replenishmentSummary.totalOrderValue)} {currencySymbol}
+                    </p>
+                  </div>
+                </div>
+
+                {replenishmentRecommendations.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    Aucune recommandation de réapprovisionnement sur le filtre courant.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-800 hover:bg-transparent">
+                          <TableHead className="text-gray-400">Produit</TableHead>
+                          <TableHead className="text-gray-400">Priorité</TableHead>
+                          <TableHead className="text-gray-400 text-right">Stock</TableHead>
+                          <TableHead className="text-gray-400 text-right">Conso / jour</TableHead>
+                          <TableHead className="text-gray-400 text-right">Couverture (j)</TableHead>
+                          <TableHead className="text-gray-400 text-right">Qté conseillée</TableHead>
+                          <TableHead className="text-gray-400 text-right">Date commande</TableHead>
+                          <TableHead className="text-gray-400 text-right">Budget achat</TableHead>
+                          <TableHead className="text-gray-400">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {replenishmentRecommendations.slice(0, 12).map((recommendation) => (
+                          <TableRow key={recommendation.productId} className="border-gray-800">
+                            <TableCell>
+                              <div>
+                                <p className="font-medium text-white">{recommendation.productName}</p>
+                                <p className="text-xs text-gray-500">{recommendation.sku || 'Sans SKU'}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>{getReplenishmentPriorityBadge(recommendation.priority)}</TableCell>
+                            <TableCell className="text-right text-white">
+                              {formatNumber(recommendation.stockQuantity)}
+                            </TableCell>
+                            <TableCell className="text-right text-gray-300">
+                              {formatNumber(recommendation.dailyDemand)}
+                            </TableCell>
+                            <TableCell className="text-right text-gray-300">
+                              {Number.isFinite(recommendation.daysOfCover)
+                                ? formatNumber(recommendation.daysOfCover)
+                                : '∞'}
+                            </TableCell>
                             <TableCell className="text-right text-yellow-400 font-medium">
-                              {product.reorderUnits}
+                              {formatNumber(recommendation.reorderQuantity)}
+                            </TableCell>
+                            <TableCell className="text-right text-gray-300">
+                              {recommendation.suggestedOrderDate}
                             </TableCell>
                             <TableCell className="text-right text-white font-medium">
-                              {formatNumber(product.reorderCost)} {currencySymbol}
+                              {formatNumber(recommendation.recommendedOrderValue)} {currencySymbol}
                             </TableCell>
+                            <TableCell className="text-gray-300">{recommendation.nextAction}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

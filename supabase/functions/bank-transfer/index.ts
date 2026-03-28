@@ -82,7 +82,7 @@ serve(async (req) => {
 
     // Fetch the connection and verify ownership
     const { data: connection, error: connError } = await supabase
-      .from('bank_account_connections')
+      .from('bank_connections')
       .select('*')
       .eq('id', connection_id)
       .eq('user_id', authUser.id)
@@ -98,7 +98,7 @@ serve(async (req) => {
 
     // Check sufficient balance (simulation)
     const numericAmount = Number(amount);
-    const currentBalance = Number(connection.balance || 0);
+    const currentBalance = Number(connection.account_balance || 0);
     if (numericAmount > currentBalance) {
       return jsonResponse(
         {
@@ -131,7 +131,8 @@ serve(async (req) => {
       .insert({
         user_id: authUser.id,
         company_id: connection.company_id,
-        connection_id: connection.id,
+        connection_id: null,
+        source_bank_connection_id: connection.id,
         recipient_name: recipient_name.trim(),
         recipient_iban: recipient_iban.replace(/\s+/g, '').toUpperCase(),
         amount: numericAmount,
@@ -163,10 +164,10 @@ serve(async (req) => {
 
     // Deduct from connection balance
     await supabase
-      .from('bank_account_connections')
+      .from('bank_connections')
       .update({
-        balance: newBalance,
-        balance_updated_at: new Date().toISOString(),
+        account_balance: newBalance,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', connection.id);
 

@@ -9,10 +9,17 @@ const mockFetchAlerts = vi.fn();
 const mockResolveAlert = vi.fn();
 const mockGetProductHistory = vi.fn().mockResolvedValue([]);
 const mockAddHistoryEntry = vi.fn().mockResolvedValue(true);
+const mockGetStockValuationContext = vi.fn().mockResolvedValue({
+  historyEntries: [],
+  supplierOrderItems: [],
+});
 const mockCreateProduct = vi.fn();
 const mockUpdateProduct = vi.fn();
 const mockDeleteProduct = vi.fn();
 const mockFetchProducts = vi.fn();
+const mockCreateWarehouse = vi.fn();
+const mockUpdateWarehouse = vi.fn();
+const mockCreateLot = vi.fn();
 
 vi.mock('@/hooks/useStockHistory', () => ({
   useStockAlerts: () => ({
@@ -30,6 +37,7 @@ vi.mock('@/hooks/useStockHistory', () => ({
   useStockHistory: () => ({
     getProductHistory: mockGetProductHistory,
     addHistoryEntry: mockAddHistoryEntry,
+    getStockValuationContext: mockGetStockValuationContext,
     loading: false,
   }),
 }));
@@ -101,6 +109,41 @@ vi.mock('@/hooks/useSuppliers', () => ({
       { id: 'sup-1', company_name: 'WidgetCo' },
       { id: 'sup-2', company_name: 'GadgetInc' },
     ],
+  }),
+}));
+
+vi.mock('@/hooks/useInventoryWarehouses', () => ({
+  useInventoryWarehouses: () => ({
+    warehouses: [
+      {
+        id: 'wh-1',
+        warehouse_code: 'MAIN',
+        warehouse_name: 'Entrepot principal',
+        description: 'Site central',
+        is_default: true,
+        is_active: true,
+      },
+    ],
+    loading: false,
+    createWarehouse: mockCreateWarehouse,
+    updateWarehouse: mockUpdateWarehouse,
+  }),
+  useInventoryLots: () => ({
+    lots: [
+      {
+        id: 'lot-1',
+        lot_number: 'LOT-001',
+        serial_number: 'SN-001',
+        quantity: 3,
+        status: 'active',
+        received_at: '2026-03-01',
+        expiry_date: null,
+        product: { id: 'prod-1', product_name: 'Widget A', sku: 'WID-001' },
+        warehouse: { id: 'wh-1', warehouse_code: 'MAIN', warehouse_name: 'Entrepot principal' },
+      },
+    ],
+    loading: false,
+    createLot: mockCreateLot,
   }),
 }));
 
@@ -311,5 +354,20 @@ describe('StockManagement', () => {
     // Category and supplier names appear in inventory table rows and category filter
     expect(screen.getAllByText('Widgets').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Gadgets').length).toBeGreaterThan(0);
+  });
+
+  it('renders FIFO/CMUP/COGS valuation panel', () => {
+    render(<StockManagement />);
+    expect(screen.getByText(/Valorisation FIFO \/ CMUP et COGS/i)).toBeTruthy();
+  });
+
+  it('renders multi-warehouse and lot/serial tab content', () => {
+    render(<StockManagement />);
+    expect(screen.getByText(/Entrepôts & lots/i)).toBeTruthy();
+  });
+
+  it('renders smart replenishment recommendation panel', () => {
+    render(<StockManagement />);
+    expect(screen.getByText(/Recommandations de réapprovisionnement intelligentes/i)).toBeTruthy();
   });
 });

@@ -56,7 +56,7 @@ const EmbeddedBankingPage = () => {
   );
 
   const activeConnections = useMemo(() => {
-    return connections.filter((c) => c.status === 'active');
+    return connections.filter((c) => ['active', 'connected'].includes(String(c.status || '').toLowerCase()));
   }, [connections]);
 
   const handleSyncAll = async () => {

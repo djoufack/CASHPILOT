@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -42,10 +42,8 @@ import GenericKanbanView from '@/components/GenericKanbanView';
 import GenericCalendarView from '@/components/GenericCalendarView';
 import GenericAgendaView from '@/components/GenericAgendaView';
 import { useToast } from '@/components/ui/use-toast';
-import {
-  exportCrmSupportTicketHTML,
-  exportCrmSupportTicketPDF,
-} from '@/services/exportCrmSupportRecords';
+import { exportCrmSupportTicketHTML, exportCrmSupportTicketPDF } from '@/services/exportCrmSupportRecords';
+import { buildCrmPipelineForecastInsights } from '@/services/crmPipelineForecastInsights';
 
 const sectionConfig = [
   { key: 'overview', label: 'Vue CRM', icon: BarChart3 },
@@ -208,23 +206,23 @@ const CRMPage = () => {
 
   const scopedClients = useMemo(
     () => (clients || []).filter((client) => client?.company_id === activeCompanyId),
-    [activeCompanyId, clients],
+    [activeCompanyId, clients]
   );
   const scopedQuotes = useMemo(
     () => (quotes || []).filter((quote) => quote?.company_id === activeCompanyId),
-    [activeCompanyId, quotes],
+    [activeCompanyId, quotes]
   );
   const scopedInvoices = useMemo(
     () => (invoices || []).filter((invoice) => invoice?.company_id === activeCompanyId),
-    [activeCompanyId, invoices],
+    [activeCompanyId, invoices]
   );
   const scopedProjects = useMemo(
     () => (projects || []).filter((project) => project?.company_id === activeCompanyId),
-    [activeCompanyId, projects],
+    [activeCompanyId, projects]
   );
   const scopedProjectIds = useMemo(
     () => scopedProjects.map((project) => project?.id).filter(Boolean),
-    [scopedProjects],
+    [scopedProjects]
   );
 
   useEffect(() => {
@@ -270,7 +268,9 @@ const CRMPage = () => {
 
         let timesheetQuery = supabase
           .from('timesheets')
-          .select('id, date, duration_minutes, status, created_at, project:projects!fk_timesheets_project_scope(name), client:clients!fk_timesheets_client_scope(company_name)')
+          .select(
+            'id, date, duration_minutes, status, created_at, project:projects!fk_timesheets_project_scope(name), client:clients!fk_timesheets_client_scope(company_name)'
+          )
           .in('project_id', scopedProjectIds)
           .order('date', { ascending: false })
           .limit(8);
@@ -301,17 +301,23 @@ const CRMPage = () => {
 
   const quoteClientIds = useMemo(
     () => new Set((scopedQuotes || []).map((quote) => quote.client_id).filter(Boolean)),
-    [scopedQuotes],
+    [scopedQuotes]
   );
   const invoicedClientIds = useMemo(
     () => new Set((scopedInvoices || []).map((invoice) => invoice.client_id).filter(Boolean)),
-    [scopedInvoices],
+    [scopedInvoices]
   );
 
   const kpis = useMemo(() => {
-    const openQuotes = (scopedQuotes || []).filter((quote) => openOpportunityStatuses.has(String(quote.status || '').toLowerCase()));
-    const wonQuotes = (scopedQuotes || []).filter((quote) => closedWonQuoteStatuses.has(String(quote.status || '').toLowerCase()));
-    const paidInvoices = (scopedInvoices || []).filter((invoice) => String(invoice.payment_status || '').toLowerCase() === 'paid');
+    const openQuotes = (scopedQuotes || []).filter((quote) =>
+      openOpportunityStatuses.has(String(quote.status || '').toLowerCase())
+    );
+    const wonQuotes = (scopedQuotes || []).filter((quote) =>
+      closedWonQuoteStatuses.has(String(quote.status || '').toLowerCase())
+    );
+    const paidInvoices = (scopedInvoices || []).filter(
+      (invoice) => String(invoice.payment_status || '').toLowerCase() === 'paid'
+    );
     const activeProjects = (scopedProjects || []).filter((project) => {
       const status = String(project.status || '').toLowerCase();
       return status !== 'completed' && status !== 'cancelled';
@@ -332,14 +338,8 @@ const CRMPage = () => {
     };
   }, [invoicedClientIds, quoteClientIds, scopedClients, scopedInvoices, scopedProjects, scopedQuotes]);
 
-  const recentQuotes = useMemo(
-    () => [...(scopedQuotes || [])].slice(0, 8),
-    [scopedQuotes],
-  );
-  const recentInvoices = useMemo(
-    () => [...(scopedInvoices || [])].slice(0, 8),
-    [scopedInvoices],
-  );
+  const recentQuotes = useMemo(() => [...(scopedQuotes || [])].slice(0, 8), [scopedQuotes]);
+  const recentInvoices = useMemo(() => [...(scopedInvoices || [])].slice(0, 8), [scopedInvoices]);
 
   const accountsRows = useMemo(() => {
     const quoteMap = new Map();
@@ -359,8 +359,10 @@ const CRMPage = () => {
 
   const opportunitiesRows = useMemo(
     () => (scopedQuotes || []).filter((quote) => openOpportunityStatuses.has(String(quote.status || '').toLowerCase())),
-    [scopedQuotes],
+    [scopedQuotes]
   );
+
+  const pipelineForecast = useMemo(() => buildCrmPipelineForecastInsights(opportunitiesRows), [opportunitiesRows]);
 
   const toDateTimeLocalValue = (rawValue) => {
     if (!rawValue) return '';
@@ -396,43 +398,53 @@ const CRMPage = () => {
     return scopedProjects.filter((project) => project.client_id === editTicketDraft.client_id);
   }, [editTicketDraft.client_id, scopedProjects]);
 
-  const supportCalendarStatusColors = useMemo(() => ({
-    open: { bg: '#1d4ed8', border: '#1e40af', text: '#dbeafe' },
-    in_progress: { bg: '#ea580c', border: '#c2410c', text: '#ffedd5' },
-    waiting_customer: { bg: '#7c3aed', border: '#6d28d9', text: '#ede9fe' },
-    resolved: { bg: '#059669', border: '#047857', text: '#d1fae5' },
-    closed: { bg: '#475569', border: '#334155', text: '#e2e8f0' },
-  }), []);
+  const supportCalendarStatusColors = useMemo(
+    () => ({
+      open: { bg: '#1d4ed8', border: '#1e40af', text: '#dbeafe' },
+      in_progress: { bg: '#ea580c', border: '#c2410c', text: '#ffedd5' },
+      waiting_customer: { bg: '#7c3aed', border: '#6d28d9', text: '#ede9fe' },
+      resolved: { bg: '#059669', border: '#047857', text: '#d1fae5' },
+      closed: { bg: '#475569', border: '#334155', text: '#e2e8f0' },
+    }),
+    []
+  );
 
-  const supportCalendarLegend = useMemo(() => ([
-    { label: 'Ouvert', color: '#1d4ed8' },
-    { label: 'En cours', color: '#ea580c' },
-    { label: 'Attente client', color: '#7c3aed' },
-    { label: 'Résolu', color: '#059669' },
-    { label: 'Clôturé', color: '#475569' },
-  ]), []);
+  const supportCalendarLegend = useMemo(
+    () => [
+      { label: 'Ouvert', color: '#1d4ed8' },
+      { label: 'En cours', color: '#ea580c' },
+      { label: 'Attente client', color: '#7c3aed' },
+      { label: 'Résolu', color: '#059669' },
+      { label: 'Clôturé', color: '#475569' },
+    ],
+    []
+  );
 
-  const supportKanbanColumns = useMemo(() => ([
-    { id: 'open', title: 'Ouvert', color: 'text-blue-300 bg-blue-500/10' },
-    { id: 'in_progress', title: 'En cours', color: 'text-orange-300 bg-orange-500/10' },
-    { id: 'waiting_customer', title: 'Attente client', color: 'text-violet-300 bg-violet-500/10' },
-    { id: 'resolved', title: 'Résolu', color: 'text-emerald-300 bg-emerald-500/10' },
-    { id: 'closed', title: 'Clôturé', color: 'text-slate-300 bg-slate-500/10' },
-  ]), []);
+  const supportKanbanColumns = useMemo(
+    () => [
+      { id: 'open', title: 'Ouvert', color: 'text-blue-300 bg-blue-500/10' },
+      { id: 'in_progress', title: 'En cours', color: 'text-orange-300 bg-orange-500/10' },
+      { id: 'waiting_customer', title: 'Attente client', color: 'text-violet-300 bg-violet-500/10' },
+      { id: 'resolved', title: 'Résolu', color: 'text-emerald-300 bg-emerald-500/10' },
+      { id: 'closed', title: 'Clôturé', color: 'text-slate-300 bg-slate-500/10' },
+    ],
+    []
+  );
 
   const supportViewItems = useMemo(
-    () => supportTickets.map((ticket) => ({
-      id: ticket.id,
-      title: ticket.title,
-      subtitle: `${ticket.ticket_number || '-'} • ${ticket.client?.company_name || 'Client inconnu'}`,
-      amount: `${ticket.priority || 'medium'} • SLA ${ticket.sla_level || 'standard'}`,
-      date: ticket.due_at || ticket.created_at,
-      status: ticket.status || 'open',
-      statusLabel: ticketStatusLabel(ticket.status),
-      statusColor: statusBadgeClass(ticket.status),
-      raw: ticket,
-    })),
-    [supportTickets],
+    () =>
+      supportTickets.map((ticket) => ({
+        id: ticket.id,
+        title: ticket.title,
+        subtitle: `${ticket.ticket_number || '-'} • ${ticket.client?.company_name || 'Client inconnu'}`,
+        amount: `${ticket.priority || 'medium'} • SLA ${ticket.sla_level || 'standard'}`,
+        date: ticket.due_at || ticket.created_at,
+        status: ticket.status || 'open',
+        statusLabel: ticketStatusLabel(ticket.status),
+        statusColor: statusBadgeClass(ticket.status),
+        raw: ticket,
+      })),
+    [supportTickets]
   );
 
   const handleCreateTicket = async (event) => {
@@ -668,28 +680,36 @@ const CRMPage = () => {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card className="bg-white/5 border-white/10">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-gray-400">Comptes actifs</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-400">Comptes actifs</CardTitle>
+          </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-white">{kpis.accounts}</p>
             <p className="text-xs text-gray-500 mt-1">Clients rattachés à la société active.</p>
           </CardContent>
         </Card>
         <Card className="bg-white/5 border-white/10">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-gray-400">Leads qualifiables</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-400">Leads qualifiables</CardTitle>
+          </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-white">{kpis.leads}</p>
             <p className="text-xs text-gray-500 mt-1">Comptes sans devis ni factures.</p>
           </CardContent>
         </Card>
         <Card className="bg-white/5 border-white/10">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-gray-400">Pipeline opportunités</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-400">Pipeline opportunités</CardTitle>
+          </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-orange-400">{formatMoney(kpis.pipelineAmount, currency)}</p>
             <p className="text-xs text-gray-500 mt-1">{kpis.opportunities} opportunité(s) ouverte(s).</p>
           </CardContent>
         </Card>
         <Card className="bg-white/5 border-white/10">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-gray-400">CA encaissé</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-400">CA encaissé</CardTitle>
+          </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-emerald-400">{formatMoney(kpis.paidRevenue, currency)}</p>
             <p className="text-xs text-gray-500 mt-1">Factures marquées payées.</p>
@@ -697,35 +717,110 @@ const CRMPage = () => {
         </Card>
       </div>
 
+      {renderPipelineForecastPanel()}
+
       <Card className="bg-white/5 border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Modules CRM par société</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {sectionConfig.filter((item) => item.key !== 'overview').map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.key}
-                to={`/app/crm/${item.key}`}
-                className="rounded-lg border border-gray-800 bg-gray-900/40 p-4 hover:border-orange-500/40 hover:bg-gray-900/80 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-4 h-4 text-orange-400" />
-                    <span className="text-sm font-semibold text-white">{item.label}</span>
+          {sectionConfig
+            .filter((item) => item.key !== 'overview')
+            .map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.key}
+                  to={`/app/crm/${item.key}`}
+                  className="rounded-lg border border-gray-800 bg-gray-900/40 p-4 hover:border-orange-500/40 hover:bg-gray-900/80 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-4 h-4 text-orange-400" />
+                      <span className="text-sm font-semibold text-white">{item.label}</span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-500" />
                   </div>
-                  <ArrowRight className="w-4 h-4 text-gray-500" />
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Scopé automatiquement sur la société active ({activeCompany?.company_name || 'Société non définie'}).
-                </p>
-              </Link>
-            );
-          })}
+                  <p className="text-xs text-gray-500 mt-2">
+                    Scopé automatiquement sur la société active ({activeCompany?.company_name || 'Société non définie'}
+                    ).
+                  </p>
+                </Link>
+              );
+            })}
         </CardContent>
       </Card>
     </div>
+  );
+
+  const renderPipelineForecastPanel = () => (
+    <Card className="bg-white/5 border-white/10" data-testid="crm-pipeline-forecast-panel">
+      <CardHeader>
+        <CardTitle className="text-white">Prévision pipeline commerciale robuste</CardTitle>
+        <p className="text-sm text-gray-400">
+          Projection pondérée par statut, fraîcheur du devis et proximité d'expiration.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="rounded-lg border border-gray-800 bg-gray-900/40 p-3">
+            <p className="text-xs uppercase tracking-wider text-gray-500">Pipeline ouvert</p>
+            <p className="mt-1 text-lg font-semibold text-white">
+              {formatMoney(pipelineForecast.summary.openPipeline, currency)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-gray-800 bg-gray-900/40 p-3">
+            <p className="text-xs uppercase tracking-wider text-gray-500">Forecast prudent</p>
+            <p className="mt-1 text-lg font-semibold text-blue-300">
+              {formatMoney(pipelineForecast.summary.conservativeForecast, currency)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-gray-800 bg-gray-900/40 p-3">
+            <p className="text-xs uppercase tracking-wider text-gray-500">Forecast base</p>
+            <p className="mt-1 text-lg font-semibold text-orange-300">
+              {formatMoney(pipelineForecast.summary.baseForecast, currency)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-gray-800 bg-gray-900/40 p-3">
+            <p className="text-xs uppercase tracking-wider text-gray-500">Forecast agressif</p>
+            <p className="mt-1 text-lg font-semibold text-emerald-300">
+              {formatMoney(pipelineForecast.summary.aggressiveForecast, currency)}
+            </p>
+          </div>
+        </div>
+
+        {pipelineForecast.summary.opportunities === 0 ? (
+          <p className="text-sm text-gray-500">Aucune opportunité ouverte pour générer une projection fiable.</p>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-gray-400">
+              <span>Risque de concentration</span>
+              <span>{pipelineForecast.summary.concentrationRiskPct}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
+              <div
+                className="h-full bg-orange-500 transition-all"
+                style={{ width: `${Math.min(100, pipelineForecast.summary.concentrationRiskPct)}%` }}
+              />
+            </div>
+
+            <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-3">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Top opportunités pondérées</p>
+              <div className="space-y-1.5">
+                {pipelineForecast.rows.slice(0, 5).map((row) => (
+                  <div key={row.id} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-300">{row.quoteNumber}</span>
+                    <span className="text-white font-medium">
+                      {formatMoney(row.weightedAmount, currency)} ({row.weightedProbability}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 
   const renderAccounts = () => (
@@ -751,7 +846,9 @@ const CRMPage = () => {
           <tbody>
             {accountsRows.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-4 text-gray-500">Aucun compte client pour la société active.</td>
+                <td colSpan={6} className="py-4 text-gray-500">
+                  Aucun compte client pour la société active.
+                </td>
               </tr>
             )}
             {accountsRows.slice(0, 20).map((row) => (
@@ -760,9 +857,20 @@ const CRMPage = () => {
                 <td className="py-2 text-gray-300">{row.contact_name || '-'}</td>
                 <td className="py-2 text-gray-300">{row.email || '-'}</td>
                 <td className="py-2 text-gray-300">{row.phone || '-'}</td>
-                <td className="py-2 text-gray-300">{row.latest_quote ? `${row.latest_quote.quote_number} (${formatDate(row.latest_quote.created_at)})` : '-'}</td>
+                <td className="py-2 text-gray-300">
+                  {row.latest_quote
+                    ? `${row.latest_quote.quote_number} (${formatDate(row.latest_quote.created_at)})`
+                    : '-'}
+                </td>
                 <td className="py-2 text-right">
-                  <Badge variant="outline" className={row.is_lead ? 'bg-blue-500/20 text-blue-300 border-blue-700' : 'bg-emerald-500/20 text-emerald-300 border-emerald-700'}>
+                  <Badge
+                    variant="outline"
+                    className={
+                      row.is_lead
+                        ? 'bg-blue-500/20 text-blue-300 border-blue-700'
+                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-700'
+                    }
+                  >
                     {row.is_lead ? 'Lead' : 'Compte actif'}
                   </Badge>
                 </td>
@@ -793,12 +901,19 @@ const CRMPage = () => {
           ) : (
             <div className="space-y-2">
               {leads.slice(0, 20).map((lead) => (
-                <div key={lead.id} className="rounded-lg border border-gray-800 bg-gray-900/40 p-3 flex items-center justify-between">
+                <div
+                  key={lead.id}
+                  className="rounded-lg border border-gray-800 bg-gray-900/40 p-3 flex items-center justify-between"
+                >
                   <div>
                     <p className="text-white font-medium">{lead.company_name}</p>
-                    <p className="text-xs text-gray-500">{lead.contact_name || 'Contact à qualifier'} • {lead.email || 'email manquant'}</p>
+                    <p className="text-xs text-gray-500">
+                      {lead.contact_name || 'Contact à qualifier'} • {lead.email || 'email manquant'}
+                    </p>
                   </div>
-                  <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-700">À qualifier</Badge>
+                  <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-700">
+                    À qualifier
+                  </Badge>
                 </div>
               ))}
             </div>
@@ -830,7 +945,9 @@ const CRMPage = () => {
           <tbody>
             {opportunitiesRows.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-4 text-gray-500">Aucune opportunité ouverte pour la société active.</td>
+                <td colSpan={5} className="py-4 text-gray-500">
+                  Aucune opportunité ouverte pour la société active.
+                </td>
               </tr>
             )}
             {opportunitiesRows.slice(0, 20).map((quote) => (
@@ -840,7 +957,9 @@ const CRMPage = () => {
                 <td className="py-2 text-gray-300">{formatDate(quote.date || quote.created_at)}</td>
                 <td className="py-2 text-gray-300">{formatMoney(quote.total_ttc || quote.total_ht || 0, currency)}</td>
                 <td className="py-2 text-right">
-                  <Badge variant="outline" className={statusBadgeClass(quote.status)}>{quote.status || 'draft'}</Badge>
+                  <Badge variant="outline" className={statusBadgeClass(quote.status)}>
+                    {quote.status || 'draft'}
+                  </Badge>
                 </td>
               </tr>
             ))}
@@ -855,7 +974,9 @@ const CRMPage = () => {
       <Card className="bg-white/5 border-white/10">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-white">Activités projet (tâches)</CardTitle>
-          <Button asChild variant="outline"><Link to="/app/projects">Ouvrir projets</Link></Button>
+          <Button asChild variant="outline">
+            <Link to="/app/projects">Ouvrir projets</Link>
+          </Button>
         </CardHeader>
         <CardContent className="space-y-2">
           {taskActivities.length === 0 ? (
@@ -865,9 +986,13 @@ const CRMPage = () => {
               <div key={task.id} className="rounded-lg border border-gray-800 bg-gray-900/40 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-white text-sm font-medium">{task.title || 'Tâche sans titre'}</p>
-                  <Badge variant="outline" className={statusBadgeClass(task.status)}>{task.status || 'pending'}</Badge>
+                  <Badge variant="outline" className={statusBadgeClass(task.status)}>
+                    {task.status || 'pending'}
+                  </Badge>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">{task.project?.name || 'Projet non lié'} • Échéance: {formatDate(task.due_date)}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {task.project?.name || 'Projet non lié'} • Échéance: {formatDate(task.due_date)}
+                </p>
               </div>
             ))
           )}
@@ -877,7 +1002,9 @@ const CRMPage = () => {
       <Card className="bg-white/5 border-white/10">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-white">Activités d'exécution (timesheets)</CardTitle>
-          <Button asChild variant="outline"><Link to="/app/timesheets">Ouvrir timesheets</Link></Button>
+          <Button asChild variant="outline">
+            <Link to="/app/timesheets">Ouvrir timesheets</Link>
+          </Button>
         </CardHeader>
         <CardContent className="space-y-2">
           {timesheetActivities.length === 0 ? (
@@ -887,10 +1014,13 @@ const CRMPage = () => {
               <div key={timesheet.id} className="rounded-lg border border-gray-800 bg-gray-900/40 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-white text-sm font-medium">{timesheet.project?.name || 'Projet non lié'}</p>
-                  <Badge variant="outline" className={statusBadgeClass(timesheet.status)}>{timesheet.status || 'draft'}</Badge>
+                  <Badge variant="outline" className={statusBadgeClass(timesheet.status)}>
+                    {timesheet.status || 'draft'}
+                  </Badge>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  {formatDate(timesheet.date)} • {Math.round(Number(timesheet.duration_minutes || 0) / 60 * 10) / 10}h • {timesheet.client?.company_name || 'Client N/A'}
+                  {formatDate(timesheet.date)} • {Math.round((Number(timesheet.duration_minutes || 0) / 60) * 10) / 10}h
+                  • {timesheet.client?.company_name || 'Client N/A'}
                 </p>
               </div>
             ))
@@ -905,48 +1035,68 @@ const CRMPage = () => {
       <Card className="bg-white/5 border-white/10">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-white">Devis récents</CardTitle>
-          <Button asChild variant="outline"><Link to="/app/quotes">Ouvrir devis</Link></Button>
+          <Button asChild variant="outline">
+            <Link to="/app/quotes">Ouvrir devis</Link>
+          </Button>
         </CardHeader>
         <CardContent className="space-y-2">
           {recentQuotes.length === 0 ? (
             <p className="text-sm text-gray-500">Aucun devis pour la société active.</p>
-          ) : recentQuotes.map((quote) => (
-            <div key={quote.id} className="rounded-lg border border-gray-800 bg-gray-900/40 p-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-white text-sm font-medium">{quote.quote_number || quote.id}</p>
-                <p className="text-xs text-gray-500">{quote.client?.company_name || '-'} • {formatDate(quote.date || quote.created_at)}</p>
+          ) : (
+            recentQuotes.map((quote) => (
+              <div
+                key={quote.id}
+                className="rounded-lg border border-gray-800 bg-gray-900/40 p-3 flex items-center justify-between gap-3"
+              >
+                <div>
+                  <p className="text-white text-sm font-medium">{quote.quote_number || quote.id}</p>
+                  <p className="text-xs text-gray-500">
+                    {quote.client?.company_name || '-'} • {formatDate(quote.date || quote.created_at)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-white">{formatMoney(quote.total_ttc || quote.total_ht || 0, currency)}</p>
+                  <Badge variant="outline" className={statusBadgeClass(quote.status)}>
+                    {quote.status || 'draft'}
+                  </Badge>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-white">{formatMoney(quote.total_ttc || quote.total_ht || 0, currency)}</p>
-                <Badge variant="outline" className={statusBadgeClass(quote.status)}>{quote.status || 'draft'}</Badge>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </CardContent>
       </Card>
 
       <Card className="bg-white/5 border-white/10">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-white">Contrats / Revenus (factures)</CardTitle>
-          <Button asChild variant="outline"><Link to="/app/invoices">Ouvrir factures</Link></Button>
+          <Button asChild variant="outline">
+            <Link to="/app/invoices">Ouvrir factures</Link>
+          </Button>
         </CardHeader>
         <CardContent className="space-y-2">
           {recentInvoices.length === 0 ? (
             <p className="text-sm text-gray-500">Aucune facture pour la société active.</p>
-          ) : recentInvoices.map((invoice) => (
-            <div key={invoice.id} className="rounded-lg border border-gray-800 bg-gray-900/40 p-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-white text-sm font-medium">{invoice.invoice_number || invoice.id}</p>
-                <p className="text-xs text-gray-500">{invoice.client?.company_name || '-'} • {formatDate(invoice.date || invoice.created_at)}</p>
+          ) : (
+            recentInvoices.map((invoice) => (
+              <div
+                key={invoice.id}
+                className="rounded-lg border border-gray-800 bg-gray-900/40 p-3 flex items-center justify-between gap-3"
+              >
+                <div>
+                  <p className="text-white text-sm font-medium">{invoice.invoice_number || invoice.id}</p>
+                  <p className="text-xs text-gray-500">
+                    {invoice.client?.company_name || '-'} • {formatDate(invoice.date || invoice.created_at)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-white">{formatMoney(invoice.total_ttc || 0, currency)}</p>
+                  <Badge variant="outline" className={statusBadgeClass(invoice.payment_status || invoice.status)}>
+                    {invoice.payment_status || invoice.status || 'draft'}
+                  </Badge>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-white">{formatMoney(invoice.total_ttc || 0, currency)}</p>
-                <Badge variant="outline" className={statusBadgeClass(invoice.payment_status || invoice.status)}>
-                  {invoice.payment_status || invoice.status || 'draft'}
-                </Badge>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </CardContent>
       </Card>
     </div>
@@ -971,7 +1121,10 @@ const CRMPage = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         {showTicketForm && (
-          <form onSubmit={handleCreateTicket} className="rounded-lg border border-gray-800 bg-gray-900/40 p-4 space-y-3">
+          <form
+            onSubmit={handleCreateTicket}
+            className="rounded-lg border border-gray-800 bg-gray-900/40 p-4 space-y-3"
+          >
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
               <div>
                 <p className="text-xs text-gray-400 mb-1">Titre du ticket *</p>
@@ -1061,7 +1214,11 @@ const CRMPage = () => {
             </div>
 
             <div className="flex justify-end">
-              <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={ticketSaving || !ticketDraft.title || !ticketDraft.client_id}>
+              <Button
+                type="submit"
+                className="bg-orange-500 hover:bg-orange-600"
+                disabled={ticketSaving || !ticketDraft.title || !ticketDraft.client_id}
+              >
                 {ticketSaving ? 'Création...' : 'Créer le ticket'}
               </Button>
             </div>
@@ -1097,7 +1254,8 @@ const CRMPage = () => {
             <div className="flex flex-wrap gap-2">
               {slaPolicies.map((policy) => (
                 <Badge key={policy.id} variant="outline" className="bg-blue-500/10 text-blue-300 border-blue-800">
-                  {policy.policy_name}: {policy.target_first_response_minutes} min / {policy.target_resolution_minutes} min
+                  {policy.policy_name}: {policy.target_first_response_minutes} min / {policy.target_resolution_minutes}{' '}
+                  min
                 </Badge>
               ))}
             </div>
@@ -1112,7 +1270,9 @@ const CRMPage = () => {
               <Button
                 key={mode.key}
                 variant={isActiveMode ? 'default' : 'outline'}
-                className={isActiveMode ? 'bg-orange-500 hover:bg-orange-600' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}
+                className={
+                  isActiveMode ? 'bg-orange-500 hover:bg-orange-600' : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                }
                 onClick={() => setSupportViewMode(mode.key)}
               >
                 <Icon className="w-4 h-4 mr-2" />
@@ -1149,7 +1309,9 @@ const CRMPage = () => {
                   <tr key={ticket.id} className="border-b border-gray-900/70">
                     <td className="py-2 px-3">
                       <p className="text-white font-medium">{ticket.title}</p>
-                      <p className="text-xs text-gray-500">{ticket.ticket_number} • {formatDateTime(ticket.created_at)}</p>
+                      <p className="text-xs text-gray-500">
+                        {ticket.ticket_number} • {formatDateTime(ticket.created_at)}
+                      </p>
                     </td>
                     <td className="py-2 px-3 text-gray-300">{ticket.client?.company_name || '-'}</td>
                     <td className="py-2 px-3 text-gray-300">{ticket.project?.name || '-'}</td>
@@ -1192,40 +1354,52 @@ const CRMPage = () => {
               <div className="col-span-full rounded-lg border border-gray-800 bg-gray-900/40 p-4 text-sm text-gray-500">
                 {supportLoading ? 'Chargement des tickets...' : 'Aucun ticket pour la société active.'}
               </div>
-            ) : supportTickets.map((ticket) => (
-              <div key={ticket.id} className="rounded-lg border border-gray-800 bg-gray-900/40 p-4 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-white font-semibold">{ticket.title}</p>
-                    <p className="text-xs text-gray-500">{ticket.ticket_number}</p>
+            ) : (
+              supportTickets.map((ticket) => (
+                <div key={ticket.id} className="rounded-lg border border-gray-800 bg-gray-900/40 p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-white font-semibold">{ticket.title}</p>
+                      <p className="text-xs text-gray-500">{ticket.ticket_number}</p>
+                    </div>
+                    <Badge variant="outline" className={statusBadgeClass(ticket.status)}>
+                      {ticketStatusLabel(ticket.status)}
+                    </Badge>
                   </div>
-                  <Badge variant="outline" className={statusBadgeClass(ticket.status)}>
-                    {ticketStatusLabel(ticket.status)}
-                  </Badge>
+                  <div className="text-sm text-gray-300 space-y-1">
+                    <p>
+                      <span className="text-gray-500">Client:</span> {ticket.client?.company_name || '-'}
+                    </p>
+                    <p>
+                      <span className="text-gray-500">Projet:</span> {ticket.project?.name || '-'}
+                    </p>
+                    <p>
+                      <span className="text-gray-500">Priorité:</span> {ticket.priority || 'medium'}
+                    </p>
+                    <p>
+                      <span className="text-gray-500">SLA:</span> {ticket.sla_level || 'standard'}
+                    </p>
+                    <p>
+                      <span className="text-gray-500">Échéance:</span> {formatDateTime(ticket.due_at)}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <select
+                      value={ticket.status || 'open'}
+                      onChange={(event) => handleTicketStatusChange(ticket, event.target.value)}
+                      className="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-white"
+                    >
+                      {supportStatusOptions.map((statusOption) => (
+                        <option key={statusOption.value} value={statusOption.value}>
+                          {statusOption.label}
+                        </option>
+                      ))}
+                    </select>
+                    {renderSupportActions(ticket, false)}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-300 space-y-1">
-                  <p><span className="text-gray-500">Client:</span> {ticket.client?.company_name || '-'}</p>
-                  <p><span className="text-gray-500">Projet:</span> {ticket.project?.name || '-'}</p>
-                  <p><span className="text-gray-500">Priorité:</span> {ticket.priority || 'medium'}</p>
-                  <p><span className="text-gray-500">SLA:</span> {ticket.sla_level || 'standard'}</p>
-                  <p><span className="text-gray-500">Échéance:</span> {formatDateTime(ticket.due_at)}</p>
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <select
-                    value={ticket.status || 'open'}
-                    onChange={(event) => handleTicketStatusChange(ticket, event.target.value)}
-                    className="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-white"
-                  >
-                    {supportStatusOptions.map((statusOption) => (
-                      <option key={statusOption.value} value={statusOption.value}>
-                        {statusOption.label}
-                      </option>
-                    ))}
-                  </select>
-                  {renderSupportActions(ticket, false)}
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         )}
 
@@ -1311,7 +1485,9 @@ const CRMPage = () => {
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-3">
                     <p className="text-gray-400">Priorité / SLA</p>
-                    <p className="text-white font-semibold">{viewingTicket.priority || 'medium'} / {viewingTicket.sla_level || 'standard'}</p>
+                    <p className="text-white font-semibold">
+                      {viewingTicket.priority || 'medium'} / {viewingTicket.sla_level || 'standard'}
+                    </p>
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-3">
                     <p className="text-gray-400">Échéance SLA</p>
@@ -1323,13 +1499,25 @@ const CRMPage = () => {
                   <p className="text-white whitespace-pre-wrap">{viewingTicket.description || 'Aucune description'}</p>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" className="border-gray-700" onClick={() => handleSupportExportPdf(viewingTicket)}>
+                  <Button
+                    variant="outline"
+                    className="border-gray-700"
+                    onClick={() => handleSupportExportPdf(viewingTicket)}
+                  >
                     <Download className="w-4 h-4 mr-2" /> PDF
                   </Button>
-                  <Button variant="outline" className="border-gray-700" onClick={() => handleSupportExportHtml(viewingTicket)}>
+                  <Button
+                    variant="outline"
+                    className="border-gray-700"
+                    onClick={() => handleSupportExportHtml(viewingTicket)}
+                  >
                     <FileText className="w-4 h-4 mr-2" /> HTML
                   </Button>
-                  <Button variant="outline" className="border-gray-700 text-orange-300 hover:text-orange-200" onClick={() => openEditTicketModal(viewingTicket)}>
+                  <Button
+                    variant="outline"
+                    className="border-gray-700 text-orange-300 hover:text-orange-200"
+                    onClick={() => openEditTicketModal(viewingTicket)}
+                  >
                     <Pencil className="w-4 h-4 mr-2" /> Éditer
                   </Button>
                 </div>
@@ -1447,10 +1635,19 @@ const CRMPage = () => {
                 />
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" className="border-gray-700" onClick={() => setEditingTicket(null)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-gray-700"
+                  onClick={() => setEditingTicket(null)}
+                >
                   Annuler
                 </Button>
-                <Button type="submit" className="bg-orange-500 hover:bg-orange-600" disabled={editTicketSaving || !editTicketDraft.title || !editTicketDraft.client_id}>
+                <Button
+                  type="submit"
+                  className="bg-orange-500 hover:bg-orange-600"
+                  disabled={editTicketSaving || !editTicketDraft.title || !editTicketDraft.client_id}
+                >
                   {editTicketSaving ? 'Enregistrement...' : 'Enregistrer'}
                 </Button>
               </DialogFooter>
@@ -1498,7 +1695,8 @@ const CRMPage = () => {
         <CardHeader>
           <CardTitle className="text-white">Automatisation CRM</CardTitle>
           <p className="text-sm text-gray-400">
-            Cette section sert de centre de pilotage pour brancher et exécuter les automatisations CRM de la société active.
+            Cette section sert de centre de pilotage pour brancher et exécuter les automatisations CRM de la société
+            active.
           </p>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -1521,23 +1719,48 @@ const CRMPage = () => {
   const renderReports = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Card className="bg-white/5 border-white/10">
-        <CardHeader><CardTitle className="text-white">KPI CRM</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-white">KPI CRM</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <div className="flex items-center justify-between"><span className="text-gray-400">Pipeline ouvert</span><span className="text-white">{formatMoney(kpis.pipelineAmount, currency)}</span></div>
-          <div className="flex items-center justify-between"><span className="text-gray-400">Opportunités ouvertes</span><span className="text-white">{kpis.opportunities}</span></div>
-          <div className="flex items-center justify-between"><span className="text-gray-400">Deals gagnés</span><span className="text-white">{kpis.wonDeals}</span></div>
-          <div className="flex items-center justify-between"><span className="text-gray-400">Projets actifs</span><span className="text-white">{kpis.activeProjects}</span></div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400">Pipeline ouvert</span>
+            <span className="text-white">{formatMoney(kpis.pipelineAmount, currency)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400">Opportunités ouvertes</span>
+            <span className="text-white">{kpis.opportunities}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400">Deals gagnés</span>
+            <span className="text-white">{kpis.wonDeals}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400">Projets actifs</span>
+            <span className="text-white">{kpis.activeProjects}</span>
+          </div>
         </CardContent>
       </Card>
       <Card className="bg-white/5 border-white/10">
-        <CardHeader><CardTitle className="text-white">Exports et pilotage</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-white">Exports et pilotage</CardTitle>
+        </CardHeader>
         <CardContent className="grid grid-cols-1 gap-2">
-          <Button asChild variant="outline"><Link to="/app/quotes">Pipeline devis</Link></Button>
-          <Button asChild variant="outline"><Link to="/app/invoices">Suivi facturation</Link></Button>
-          <Button asChild variant="outline"><Link to="/app/projects">Pilotage projets</Link></Button>
-          <Button asChild variant="outline"><Link to="/app/timesheets">Activités & charge</Link></Button>
+          <Button asChild variant="outline">
+            <Link to="/app/quotes">Pipeline devis</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/app/invoices">Suivi facturation</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/app/projects">Pilotage projets</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/app/timesheets">Activités & charge</Link>
+          </Button>
         </CardContent>
       </Card>
+      <div className="md:col-span-2">{renderPipelineForecastPanel()}</div>
     </div>
   );
 
@@ -1550,7 +1773,8 @@ const CRMPage = () => {
           </CardHeader>
           <CardContent>
             <div className="rounded-lg border border-yellow-900/60 bg-yellow-950/20 p-4 text-sm text-yellow-100">
-              Le CRM est strictement isolé par société. Sélectionnez d'abord une société dans le sélecteur en haut de l'écran.
+              Le CRM est strictement isolé par société. Sélectionnez d'abord une société dans le sélecteur en haut de
+              l'écran.
             </div>
           </CardContent>
         </Card>
@@ -1584,7 +1808,8 @@ const CRMPage = () => {
       <div className="mb-6">
         <h1 className="text-3xl md:text-4xl font-bold text-gradient">CRM Pro</h1>
         <p className="text-gray-400 mt-2 text-sm">
-          CRM scoppé par société active avec priorité à l'intégrité référentielle et à la journalisation comptable temps réel.
+          CRM scoppé par société active avec priorité à l'intégrité référentielle et à la journalisation comptable temps
+          réel.
         </p>
       </div>
 
@@ -1615,7 +1840,9 @@ const CRMPage = () => {
               key={entry.key}
               asChild
               variant={isActive ? 'default' : 'outline'}
-              className={isActive ? 'bg-orange-500 hover:bg-orange-600' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}
+              className={
+                isActive ? 'bg-orange-500 hover:bg-orange-600' : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+              }
             >
               <Link to={entry.key === 'overview' ? '/app/crm' : `/app/crm/${entry.key}`}>
                 <Icon className="w-4 h-4 mr-2" />

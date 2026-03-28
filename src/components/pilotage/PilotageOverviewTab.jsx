@@ -1,10 +1,8 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import KPICardGrid from './KPICardGrid';
 import PerformanceComposedChart from './PerformanceComposedChart';
 import RatioStatusGrid from './RatioStatusGrid';
 import AlertsPanel from './AlertsPanel';
-import PilotageUnavailableState from './PilotageUnavailableState';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -27,42 +25,21 @@ const PilotageOverviewTab = ({ data }) => {
   const availability = data?.analysisAvailability?.overview;
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-6"
-    >
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
       <motion.div variants={itemVariants}>
-        {availability?.kpis?.status === 'unavailable' ? (
-          null
-        ) : (
-          <KPICardGrid data={data} />
-        )}
+        {availability?.kpis?.status === 'unavailable' ? null : <KPICardGrid data={data} />}
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        {availability?.performanceChart?.status === 'unavailable' ? (
-          null
-        ) : (
-          <PerformanceComposedChart data={data} />
-        )}
+        {availability?.performanceChart?.status === 'unavailable' ? null : <PerformanceComposedChart data={data} />}
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div variants={itemVariants}>
-          {availability?.ratioStatus?.status === 'unavailable' ? (
-            null
-          ) : (
-            <RatioStatusGrid data={data} />
-          )}
+          {availability?.ratioStatus?.status === 'unavailable' ? null : <RatioStatusGrid data={data} />}
         </motion.div>
         <motion.div variants={itemVariants}>
-          {availability?.alerts?.status === 'unavailable' ? (
-            null
-          ) : (
-            <AlertsPanel alerts={data.alerts} />
-          )}
+          {availability?.alerts?.status === 'unavailable' ? null : <AlertsPanel data={data} />}
         </motion.div>
       </div>
     </motion.div>

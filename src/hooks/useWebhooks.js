@@ -19,6 +19,11 @@ export const WEBHOOK_EVENTS = [
   'quote.accepted',
   'quote.declined',
   'quote.signed',
+  'contract.created',
+  'contract.sent',
+  'contract.accepted',
+  'contract.declined',
+  'contract.signed',
   // Clients
   'client.created',
   'client.updated',
@@ -134,18 +139,10 @@ export const useWebhooks = () => {
   const deleteWebhook = async (id) => {
     if (!userId) return null;
 
-    const { error: deleteError } = await supabase
-      .from('webhook_endpoints')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', userId);
+    const { error: deleteError } = await supabase.from('webhook_endpoints').delete().eq('id', id).eq('user_id', userId);
 
     if (deleteError) throw deleteError;
     return true;
-  };
-
-  const toggleWebhook = async (id, isActive) => {
-    return updateWebhook(id, { is_active: isActive });
   };
 
   const testWebhook = async (id) => {
@@ -201,15 +198,20 @@ export const useWebhooks = () => {
     await Promise.all([webhooksQuery.refetch(), webhookLogsQuery.refetch()]);
   }, [webhooksQuery, webhookLogsQuery]);
 
-  const error = webhooksQuery.error || webhookLogsQuery.error
-    || addWebhookMutation.error || updateWebhookMutation.error
-    || deleteWebhookMutation.error || testWebhookMutation.error;
+  const error =
+    webhooksQuery.error ||
+    webhookLogsQuery.error ||
+    addWebhookMutation.error ||
+    updateWebhookMutation.error ||
+    deleteWebhookMutation.error ||
+    testWebhookMutation.error;
 
-  const loading = webhooksQuery.isLoading
-    || webhookLogsQuery.isLoading
-    || addWebhookMutation.isPending
-    || updateWebhookMutation.isPending
-    || deleteWebhookMutation.isPending;
+  const loading =
+    webhooksQuery.isLoading ||
+    webhookLogsQuery.isLoading ||
+    addWebhookMutation.isPending ||
+    updateWebhookMutation.isPending ||
+    deleteWebhookMutation.isPending;
 
   return {
     webhooks: webhooksQuery.data || [],

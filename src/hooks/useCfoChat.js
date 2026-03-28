@@ -149,6 +149,7 @@ export const useCfoChat = () => {
               role: 'assistant',
               content: data.answer,
               timestamp: new Date().toISOString(),
+              toolCalls: Array.isArray(data.tool_calls) ? data.tool_calls : [],
             },
           ]);
         }

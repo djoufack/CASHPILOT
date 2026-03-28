@@ -10,6 +10,8 @@ const corsHeaders = {
   ...SECURITY_HEADERS,
 };
 
+const getDocumentEventPrefix = (documentType?: string | null) => (documentType === 'contract' ? 'contract' : 'quote');
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -29,7 +31,10 @@ function decodeDataUrl(dataUrl: string) {
   return { contentType, bytes };
 }
 
-const toHex = (bytes: Uint8Array) => Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+const toHex = (bytes: Uint8Array) =>
+  Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 
 const sha256Hex = async (bytes: Uint8Array) => {
   const digest = await crypto.subtle.digest('SHA-256', bytes);
@@ -44,7 +49,8 @@ Deno.serve(async (req) => {
   try {
     const supabase = createServiceClient();
     const { token, signerName, signatureDataUrl, action } = await req.json();
-    const clientIp = (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '').split(',')[0].trim() || null;
+    const clientIp =
+      (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '').split(',')[0].trim() || null;
     const userAgent = req.headers.get('user-agent') || null;
     const acceptLanguage = req.headers.get('accept-language') || null;
     const requestId = req.headers.get('x-request-id') || null;
@@ -57,13 +63,16 @@ Deno.serve(async (req) => {
 
     const { data: quote, error: quoteError } = await supabase
       .from('quotes')
-      .select('id, user_id, company_id, quote_number, signer_email, status, signature_status, signature_token_expires_at')
+      .select(
+        'id, user_id, company_id, quote_number, signer_email, status, signature_status, signature_token_expires_at, document_type'
+      )
       .eq('signature_token', token)
       .maybeSingle();
 
     if (quoteError) throw quoteError;
     if (!quote) return jsonResponse({ error: 'Invalid token' }, 404);
-    if (quote.signature_status !== 'pending') return jsonResponse({ error: 'Signature request is no longer pending' }, 400);
+    if (quote.signature_status !== 'pending')
+      return jsonResponse({ error: 'Signature request is no longer pending' }, 400);
     if (!quote.signature_token_expires_at || new Date(quote.signature_token_expires_at) <= new Date()) {
       return jsonResponse({ error: 'Signature link expired' }, 410);
     }
@@ -75,6 +84,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const provider = esignSettings?.provider || 'native';
+    const documentType = getDocumentEventPrefix(quote.document_type);
 
     if (normalizedAction === 'reject') {
       const { error: rejectError } = await supabase
@@ -88,28 +98,27 @@ Deno.serve(async (req) => {
 
       if (rejectError) throw rejectError;
 
-      await supabase
-        .from('quote_signature_evidence')
-        .insert({
-          quote_id: quote.id,
-          user_id: quote.user_id,
-          company_id: quote.company_id,
-          provider,
-          action: 'rejected',
-          signer_email: quote.signer_email || null,
-          ip_address: clientIp,
-          user_agent: userAgent,
-          accept_language: acceptLanguage,
-          request_id: requestId,
-          metadata: {
-            mode: esignSettings?.mode || 'redirect',
-          },
-          signed_at: new Date().toISOString(),
-        });
+      await supabase.from('quote_signature_evidence').insert({
+        quote_id: quote.id,
+        user_id: quote.user_id,
+        company_id: quote.company_id,
+        provider,
+        action: 'rejected',
+        signer_email: quote.signer_email || null,
+        ip_address: clientIp,
+        user_agent: userAgent,
+        accept_language: acceptLanguage,
+        request_id: requestId,
+        metadata: {
+          mode: esignSettings?.mode || 'redirect',
+        },
+        signed_at: new Date().toISOString(),
+      });
 
-      await deliverWebhookEvent(supabase, quote.user_id, 'quote.declined', {
+      await deliverWebhookEvent(supabase, quote.user_id, `${documentType}.declined`, {
         id: quote.id,
         quote_number: quote.quote_number,
+        document_type: documentType,
         status: 'rejected',
         signature_status: 'rejected',
       });
@@ -129,12 +138,10 @@ Deno.serve(async (req) => {
     const { contentType, bytes } = decodeDataUrl(signatureDataUrl);
     const signatureSha256 = await sha256Hex(bytes);
     const filePath = `${quote.user_id}/${quote.id}/signature-${Date.now()}.png`;
-    const { error: uploadError } = await supabase.storage
-      .from('signatures')
-      .upload(filePath, bytes, {
-        contentType,
-        upsert: true,
-      });
+    const { error: uploadError } = await supabase.storage.from('signatures').upload(filePath, bytes, {
+      contentType,
+      upsert: true,
+    });
 
     if (uploadError) throw uploadError;
 
@@ -150,9 +157,7 @@ Deno.serve(async (req) => {
       normalizedSignerName,
     ].join('|');
     const evidenceSecret = (Deno.env.get('SIGNATURE_EVIDENCE_SECRET') || '').trim();
-    const proofToken = evidenceSecret
-      ? await computeProofHmac(evidenceSecret, proofMaterial)
-      : signatureSha256;
+    const proofToken = evidenceSecret ? await computeProofHmac(evidenceSecret, proofMaterial) : signatureSha256;
 
     const { error: signError } = await supabase
       .from('quotes')
@@ -168,43 +173,43 @@ Deno.serve(async (req) => {
 
     if (signError) throw signError;
 
-    await supabase
-      .from('quote_signature_evidence')
-      .insert({
-        quote_id: quote.id,
-        user_id: quote.user_id,
-        company_id: quote.company_id,
+    await supabase.from('quote_signature_evidence').insert({
+      quote_id: quote.id,
+      user_id: quote.user_id,
+      company_id: quote.company_id,
+      provider,
+      action: 'signed',
+      signer_name: normalizedSignerName,
+      signer_email: quote.signer_email || null,
+      signature_sha256: signatureSha256,
+      signature_storage_url: signatureUrl,
+      ip_address: clientIp,
+      user_agent: userAgent,
+      accept_language: acceptLanguage,
+      request_id: requestId,
+      proof_token: proofToken,
+      metadata: {
+        mode: esignSettings?.mode || 'redirect',
         provider,
-        action: 'signed',
-        signer_name: normalizedSignerName,
-        signer_email: quote.signer_email || null,
-        signature_sha256: signatureSha256,
-        signature_storage_url: signatureUrl,
-        ip_address: clientIp,
-        user_agent: userAgent,
-        accept_language: acceptLanguage,
-        request_id: requestId,
-        proof_token: proofToken,
-        metadata: {
-          mode: esignSettings?.mode || 'redirect',
-          provider,
-        },
-        signed_at: signedAt,
-      });
+      },
+      signed_at: signedAt,
+    });
 
     await Promise.all([
-      deliverWebhookEvent(supabase, quote.user_id, 'quote.signed', {
+      deliverWebhookEvent(supabase, quote.user_id, `${documentType}.signed`, {
         id: quote.id,
         quote_number: quote.quote_number,
+        document_type: documentType,
         status: 'accepted',
         signature_status: 'signed',
         signed_by: normalizedSignerName,
         signature_sha256: signatureSha256,
         signature_provider: provider,
       }),
-      deliverWebhookEvent(supabase, quote.user_id, 'quote.accepted', {
+      deliverWebhookEvent(supabase, quote.user_id, `${documentType}.accepted`, {
         id: quote.id,
         quote_number: quote.quote_number,
+        document_type: documentType,
         status: 'accepted',
         signature_status: 'signed',
         signed_by: normalizedSignerName,

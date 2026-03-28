@@ -33,7 +33,8 @@ const INTERCOMPANY_INFO = {
   definition: 'Tableau des flux entre sociétés du portefeuille consolidé.',
   dataSource: 'Liste `intercompanyTransactions` issue du hook `useConsolidation`.',
   formula: 'Total éliminations = somme des montants avec statut `confirmed` ou `eliminated`.',
-  calculationMethod: 'Affiche chaque flux source/cible avec type, statut et montant, puis calcule les totaux en pied de tableau.',
+  calculationMethod:
+    'Affiche chaque flux source/cible avec type, statut et montant, puis calcule les totaux en pied de tableau.',
   notes: 'Les statuts permettent de distinguer les transactions en attente, confirmées et éliminées.',
 };
 
@@ -96,13 +97,13 @@ export default function IntercompanyTable({ transactions = [], currency = 'EUR' 
               return (
                 <TableRow key={tx.id} className="border-white/5 hover:bg-white/5 transition-colors">
                   <TableCell className="text-white text-sm font-medium">
-                    {tx.source_company?.name || tx.source_company_id?.slice(0, 8)}
+                    {tx.source_company?.company_name || tx.source_company?.name || tx.source_company_id?.slice(0, 8)}
                   </TableCell>
                   <TableCell className="text-center">
                     <ArrowRight className="h-3.5 w-3.5 text-slate-500 mx-auto" />
                   </TableCell>
                   <TableCell className="text-white text-sm font-medium">
-                    {tx.target_company?.name || tx.target_company_id?.slice(0, 8)}
+                    {tx.target_company?.company_name || tx.target_company?.name || tx.target_company_id?.slice(0, 8)}
                   </TableCell>
                   <TableCell className="text-right text-white text-sm tabular-nums">
                     {formatCurrency(parseFloat(tx.amount) || 0, tx.currency || currency)}

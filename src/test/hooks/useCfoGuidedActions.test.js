@@ -1,13 +1,12 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockUseAuth, mockUseCompanyScope, mockNavigate, mockGetSession, mockFrom, mockFetch } = vi.hoisted(() => ({
+const { mockUseAuth, mockUseCompanyScope, mockNavigate, mockFrom, mockInvoke } = vi.hoisted(() => ({
   mockUseAuth: vi.fn(),
   mockUseCompanyScope: vi.fn(),
   mockNavigate: vi.fn(),
-  mockGetSession: vi.fn(),
   mockFrom: vi.fn(),
-  mockFetch: vi.fn(),
+  mockInvoke: vi.fn(),
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
@@ -35,21 +34,14 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('@/lib/customSupabaseClient', () => ({
-  supabaseUrl: 'https://cashpilot.example.supabase.co',
-  supabaseAnonKey: 'test-anon-key',
-}));
-
 vi.mock('@/lib/supabase', () => ({
   supabase: {
-    auth: {
-      getSession: mockGetSession,
-    },
     from: mockFrom,
+    functions: {
+      invoke: mockInvoke,
+    },
   },
 }));
-
-vi.stubGlobal('fetch', mockFetch);
 
 import { buildCfoAuditAutorunUrl, useCfoGuidedActions } from '@/hooks/useCfoGuidedActions';
 
@@ -85,18 +77,12 @@ describe('useCfoGuidedActions', () => {
       activeCompanyId: 'company-1',
       withCompanyScope: (payload) => ({ ...payload, company_id: 'company-1' }),
     });
-    mockGetSession.mockResolvedValue({
-      data: { session: { access_token: 'access-token-1' } },
-      error: null,
-    });
-    mockFetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: vi.fn().mockResolvedValue({
+    mockInvoke.mockResolvedValue({
+      data: {
         success: true,
         execution_id: 'exec-1',
-      }),
-      text: vi.fn().mockResolvedValue(''),
+      },
+      error: null,
     });
   });
 
@@ -132,10 +118,13 @@ describe('useCfoGuidedActions', () => {
       await result.current.guidedActions.find((action) => action.key === 'relance').run();
     });
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/functions/v1/dunning-execute'),
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'dunning-execute',
       expect.objectContaining({
-        method: 'POST',
+        body: expect.objectContaining({
+          company_id: 'company-1',
+          invoice_id: 'inv-1',
+        }),
       })
     );
     expect(result.current.guidedActions.find((action) => action.key === 'relance').state).toBe('success');
@@ -161,11 +150,11 @@ describe('useCfoGuidedActions', () => {
       if (table === 'invoices') return invoiceQuery;
       return createQueryChain({ data: [], error: null });
     });
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: vi.fn().mockResolvedValue({ error: 'boom' }),
-      text: vi.fn().mockResolvedValue('boom'),
+    mockInvoke.mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: 'boom',
+      },
     });
 
     const { result } = renderHook(() => useCfoGuidedActions());
@@ -176,6 +165,68 @@ describe('useCfoGuidedActions', () => {
 
     expect(result.current.guidedActions.find((action) => action.key === 'relance').state).toBe('error');
     expect(result.current.guidedActions.find((action) => action.key === 'relance').message).toContain('boom');
+  });
+
+  it('falls back to smart dunning when edge execution is unavailable', async () => {
+    const invoiceQuery = createQueryChain({
+      data: [
+        {
+          id: 'inv-1',
+          invoice_number: 'INV-003',
+          total_ttc: 250,
+          balance_due: 250,
+          due_date: '2026-03-01',
+          client_id: 'client-1',
+          clients: { company_name: 'Acme', email: 'acme@example.com', phone: '+32123456' },
+        },
+      ],
+      error: null,
+    });
+    mockFrom.mockImplementation((table) => {
+      if (table === 'invoices') return invoiceQuery;
+      return createQueryChain({ data: [], error: null });
+    });
+    mockInvoke.mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: 'Failed to send a request to the Edge Function',
+      },
+    });
+
+    const { result } = renderHook(() => useCfoGuidedActions());
+
+    await act(async () => {
+      await result.current.guidedActions.find((action) => action.key === 'relance').run();
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith('/app/smart-dunning');
+    expect(result.current.guidedActions.find((action) => action.key === 'relance').state).toBe('success');
+    expect(result.current.guidedActions.find((action) => action.key === 'relance').message).toContain(
+      'Relance automatique indisponible'
+    );
+  });
+
+  it('returns a success noop when no overdue unpaid invoice exists', async () => {
+    const invoiceQuery = createQueryChain({
+      data: [],
+      error: null,
+    });
+    mockFrom.mockImplementation((table) => {
+      if (table === 'invoices') return invoiceQuery;
+      return createQueryChain({ data: [], error: null });
+    });
+
+    const { result } = renderHook(() => useCfoGuidedActions());
+
+    await act(async () => {
+      await result.current.guidedActions.find((action) => action.key === 'relance').run();
+    });
+
+    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(result.current.guidedActions.find((action) => action.key === 'relance').state).toBe('success');
+    expect(result.current.guidedActions.find((action) => action.key === 'relance').message).toContain(
+      'Aucune facture impayée en retard'
+    );
   });
 
   it('creates a draft scenario and navigates to it', async () => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useSupplierReports } from '@/hooks/useSupplierReports';
@@ -8,6 +8,7 @@ import CreditsGuardModal from '@/components/CreditsGuardModal';
 import { exportSupplierReportPDF, exportSupplierReportHTML } from '@/services/exportReports';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import {
   BarChart,
   Bar,
@@ -20,9 +21,9 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
+  Cell,
 } from 'recharts';
-import { Loader2, DollarSign, Package, Truck, Download, FileText } from 'lucide-react';
+import { Loader2, DollarSign, Package, Truck, Download, FileText, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/utils/calculations';
 
@@ -39,6 +40,13 @@ const DELIVERY_COLORS = {
   onTime: '#22c55e',
   early: '#3b82f6',
   late: '#f97316',
+};
+const SCORE_BAND_STYLES = {
+  A: 'bg-emerald-950/50 text-emerald-300 border-emerald-700/40',
+  B: 'bg-lime-950/50 text-lime-300 border-lime-700/40',
+  C: 'bg-yellow-950/50 text-yellow-300 border-yellow-700/40',
+  D: 'bg-orange-950/50 text-orange-300 border-orange-700/40',
+  E: 'bg-red-950/50 text-red-300 border-red-700/40',
 };
 
 const toDateOnly = (value) => {
@@ -74,8 +82,37 @@ const SupplierReports = () => {
         month: 'short',
         year: '2-digit',
       }),
-    [chartLocale],
+    [chartLocale]
   );
+  const scoreDateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(chartLocale, {
+        dateStyle: 'medium',
+      }),
+    [chartLocale]
+  );
+
+  const supplierScoreSummary = useMemo(() => {
+    const rows = reportData.supplierScores || [];
+    const averageGlobal =
+      rows.length > 0
+        ? Math.round((rows.reduce((sum, row) => sum + Number(row.globalScore || 0), 0) / rows.length) * 10) / 10
+        : 0;
+
+    const chartData = rows.slice(0, 12).map((row) => ({
+      supplierName: row.supplierName,
+      globalScore: Number(row.globalScore || 0),
+      qualityScore: Number(row.qualityScore || 0),
+      deliveryScore: Number(row.deliveryScore || 0),
+      costScore: Number(row.costScore || 0),
+    }));
+
+    return {
+      rows,
+      chartData,
+      averageGlobal,
+    };
+  }, [reportData.supplierScores]);
 
   const orderVolumeData = useMemo(() => {
     const monthMap = new Map();
@@ -154,35 +191,27 @@ const SupplierReports = () => {
   }, [reportData.delivery, reportData.onTimeRate, t]);
 
   const handleExportPDF = () => {
-    guardedAction(
-      CREDIT_COSTS.PDF_SUPPLIER_REPORT,
-      t('supplierReports.title'),
-      async () => {
-        await exportSupplierReportPDF(
-          {
-            ...reportData,
-            onTimeRate: deliverySummary.onTimeRate,
-          },
-          company,
-        );
-      }
-    );
+    guardedAction(CREDIT_COSTS.PDF_SUPPLIER_REPORT, t('supplierReports.title'), async () => {
+      await exportSupplierReportPDF(
+        {
+          ...reportData,
+          onTimeRate: deliverySummary.onTimeRate,
+        },
+        company
+      );
+    });
   };
 
   const handleExportHTML = () => {
-    guardedAction(
-      CREDIT_COSTS.EXPORT_HTML,
-      t('supplierReports.title'),
-      () => {
-        exportSupplierReportHTML(
-          {
-            ...reportData,
-            onTimeRate: deliverySummary.onTimeRate,
-          },
-          company,
-        );
-      }
-    );
+    guardedAction(CREDIT_COSTS.EXPORT_HTML, t('supplierReports.title'), () => {
+      exportSupplierReportHTML(
+        {
+          ...reportData,
+          onTimeRate: deliverySummary.onTimeRate,
+        },
+        company
+      );
+    });
   };
 
   if (loading) {
@@ -195,14 +224,14 @@ const SupplierReports = () => {
 
   return (
     <>
-      <Helmet><title>{t('pages.supplierReports', 'Supplier Reports')} | CashPilot</title></Helmet>
+      <Helmet>
+        <title>{t('pages.supplierReports', 'Supplier Reports')} | CashPilot</title>
+      </Helmet>
       <CreditsGuardModal {...modalProps} />
       <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gradient">
-              {t('supplierReports.title')}
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gradient">{t('supplierReports.title')}</h1>
             <p className="text-gray-400 mt-2 text-sm">{t('supplierReports.subtitle')}</p>
           </div>
           <div className="flex gap-2">
@@ -215,7 +244,7 @@ const SupplierReports = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           <Card className="bg-gray-900 border-gray-800">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-400">{t('supplierReports.totalSpent')}</CardTitle>
@@ -243,13 +272,25 @@ const SupplierReports = () => {
               <div className="text-2xl font-bold text-gradient">{deliverySummary.onTimeRate}%</div>
             </CardContent>
           </Card>
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">
+                {t('supplierReports.averageSupplierScore')}
+              </CardTitle>
+              <Award className="w-4 h-4 text-emerald-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gradient">
+                {supplierScoreSummary.averageGlobal}
+                <span className="ml-1 text-base text-gray-400">/100</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {error && (
           <Card className="bg-red-950/30 border-red-900/50">
-            <CardContent className="py-4 text-sm text-red-200">
-              {error}
-            </CardContent>
+            <CardContent className="py-4 text-sm text-red-200">{error}</CardContent>
           </Card>
         )}
 
@@ -263,6 +304,9 @@ const SupplierReports = () => {
             </TabsTrigger>
             <TabsTrigger value="delivery" className="flex-1 min-w-[100px]">
               {t('supplierReports.delivery')}
+            </TabsTrigger>
+            <TabsTrigger value="scores" className="flex-1 min-w-[100px]">
+              {t('supplierReports.supplierScores')}
             </TabsTrigger>
           </TabsList>
 
@@ -372,7 +416,9 @@ const SupplierReports = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-400">{t('supplierReports.deliveredOrders')}</CardTitle>
+                  <CardTitle className="text-sm font-medium text-gray-400">
+                    {t('supplierReports.deliveredOrders')}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gradient">{deliverySummary.deliveredCount}</div>
@@ -450,7 +496,10 @@ const SupplierReports = () => {
                           <YAxis stroke="#9CA3AF" />
                           <Tooltip
                             contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
-                            formatter={(value, _name, context) => [context?.payload?.varianceLabel || value, t('supplierReports.deliveryVariance')]}
+                            formatter={(value, _name, context) => [
+                              context?.payload?.varianceLabel || value,
+                              t('supplierReports.deliveryVariance'),
+                            ]}
                           />
                           <Bar dataKey="varianceDays" radius={[6, 6, 0, 0]}>
                             {deliverySummary.variance.map((entry) => (
@@ -465,6 +514,166 @@ const SupplierReports = () => {
               </div>
             ) : (
               <EmptyChartState message={t('supplierReports.noDeliveryData')} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="scores" className="mt-6 space-y-6">
+            {supplierScoreSummary.rows.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  <Card className="bg-gray-900 border-gray-800">
+                    <CardHeader>
+                      <CardTitle>{t('supplierReports.scoreBySupplier')}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[320px] sm:h-[380px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={supplierScoreSummary.chartData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                            <XAxis
+                              dataKey="supplierName"
+                              stroke="#9CA3AF"
+                              interval={0}
+                              angle={-20}
+                              textAnchor="end"
+                              height={80}
+                            />
+                            <YAxis stroke="#9CA3AF" domain={[0, 100]} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: '#fff' }}
+                              formatter={(value, name) => {
+                                const safeValue = `${Math.round(Number(value || 0) * 10) / 10}/100`;
+
+                                switch (name) {
+                                  case 'globalScore':
+                                    return [safeValue, t('supplierReports.globalScore')];
+                                  case 'qualityScore':
+                                    return [safeValue, t('supplierReports.qualityScore')];
+                                  case 'deliveryScore':
+                                    return [safeValue, t('supplierReports.deliveryScore')];
+                                  case 'costScore':
+                                    return [safeValue, t('supplierReports.costScore')];
+                                  default:
+                                    return [safeValue, name];
+                                }
+                              }}
+                            />
+                            <Bar dataKey="globalScore" radius={[6, 6, 0, 0]} fill="#22c55e" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gray-900 border-gray-800">
+                    <CardHeader>
+                      <CardTitle>{t('supplierReports.scoreOverview')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                          <p className="text-xs text-gray-500">{t('supplierReports.globalScore')}</p>
+                          <p className="text-xl font-semibold text-emerald-300">
+                            {supplierScoreSummary.averageGlobal}/100
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                          <p className="text-xs text-gray-500">{t('supplierReports.qualityScore')}</p>
+                          <p className="text-xl font-semibold text-sky-300">
+                            {Math.round(
+                              (supplierScoreSummary.rows.reduce((sum, row) => sum + Number(row.qualityScore || 0), 0) /
+                                supplierScoreSummary.rows.length) *
+                                10
+                            ) / 10}
+                            /100
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                          <p className="text-xs text-gray-500">{t('supplierReports.deliveryScore')}</p>
+                          <p className="text-xl font-semibold text-blue-300">
+                            {Math.round(
+                              (supplierScoreSummary.rows.reduce((sum, row) => sum + Number(row.deliveryScore || 0), 0) /
+                                supplierScoreSummary.rows.length) *
+                                10
+                            ) / 10}
+                            /100
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                          <p className="text-xs text-gray-500">{t('supplierReports.costScore')}</p>
+                          <p className="text-xl font-semibold text-orange-300">
+                            {Math.round(
+                              (supplierScoreSummary.rows.reduce((sum, row) => sum + Number(row.costScore || 0), 0) /
+                                supplierScoreSummary.rows.length) *
+                                10
+                            ) / 10}
+                            /100
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500">{t('supplierReports.scoreBandLegend')}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card className="bg-gray-900 border-gray-800">
+                  <CardHeader>
+                    <CardTitle>{t('supplierReports.scoreTable')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[760px] text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-800 text-left text-gray-400">
+                            <th className="py-2 pr-3 font-medium">{t('common.supplier', 'Supplier')}</th>
+                            <th className="py-2 pr-3 font-medium">{t('supplierReports.globalScore')}</th>
+                            <th className="py-2 pr-3 font-medium">{t('supplierReports.qualityScore')}</th>
+                            <th className="py-2 pr-3 font-medium">{t('supplierReports.deliveryScore')}</th>
+                            <th className="py-2 pr-3 font-medium">{t('supplierReports.costScore')}</th>
+                            <th className="py-2 pr-3 font-medium">{t('supplierReports.scoreBand')}</th>
+                            <th className="py-2 pr-3 font-medium">{t('supplierReports.lastEvaluation')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {supplierScoreSummary.rows.map((row) => {
+                            const scoreBand = String(row.scoreBand || 'E').toUpperCase();
+                            const parsedEvaluationDate = row.evaluatedAt ? new Date(row.evaluatedAt) : null;
+                            const hasValidEvaluationDate =
+                              parsedEvaluationDate && !Number.isNaN(parsedEvaluationDate.getTime());
+
+                            return (
+                              <tr key={row.supplierId} className="border-b border-gray-900/80 text-gray-200">
+                                <td className="py-3 pr-3 font-medium text-white">{row.supplierName}</td>
+                                <td className="py-3 pr-3">{Math.round(Number(row.globalScore || 0) * 10) / 10}/100</td>
+                                <td className="py-3 pr-3">{Math.round(Number(row.qualityScore || 0) * 10) / 10}/100</td>
+                                <td className="py-3 pr-3">
+                                  {Math.round(Number(row.deliveryScore || 0) * 10) / 10}/100
+                                </td>
+                                <td className="py-3 pr-3">{Math.round(Number(row.costScore || 0) * 10) / 10}/100</td>
+                                <td className="py-3 pr-3">
+                                  <Badge
+                                    variant="outline"
+                                    className={SCORE_BAND_STYLES[scoreBand] || SCORE_BAND_STYLES.E}
+                                  >
+                                    {scoreBand}
+                                  </Badge>
+                                </td>
+                                <td className="py-3 pr-3 text-gray-400">
+                                  {hasValidEvaluationDate
+                                    ? scoreDateFormatter.format(parsedEvaluationDate)
+                                    : t('supplierReports.notEvaluated')}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <EmptyChartState message={t('supplierReports.noSupplierScoreData')} />
             )}
           </TabsContent>
         </Tabs>

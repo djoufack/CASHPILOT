@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
-import { supabaseAnonKey, supabaseUrl } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { formatDateInput, formatStartOfYearInput } from '@/utils/dateFormatting';
@@ -17,6 +16,8 @@ const DEFAULT_ACTION_STATE = {
 const DEFAULT_DUNNING_TONE = 'professional';
 const DEFAULT_DUNNING_CHANNEL = 'email';
 const DEFAULT_DUNNING_STEP = 1;
+const RELANCE_FALLBACK_ERROR_PATTERN =
+  /(invalid jwt|http\s*401|failed to send a request to the edge function|failed to fetch|network request failed)/i;
 
 const normalizeDate = (value, fallback) => {
   if (!value) return fallback;
@@ -114,38 +115,58 @@ export function useCfoGuidedActions() {
 
       const overdueInvoice = Array.isArray(data) ? data[0] : data;
       if (!overdueInvoice) {
-        throw new Error('Aucune facture impayée en retard n’a été trouvée pour votre société.');
+        updateActionState(actionKey, {
+          state: 'success',
+          message: buildActionMessage(
+            t,
+            actionKey,
+            'noop',
+            'Aucune facture impayée en retard: aucune relance nécessaire.'
+          ),
+          error: null,
+        });
+        return {
+          skipped: true,
+          reason: 'no_overdue_invoice',
+        };
       }
 
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError) throw sessionError;
-      const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) {
-        throw new Error('Session expirée. Veuillez vous reconnecter.');
-      }
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/dunning-execute`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          apikey: supabaseAnonKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data: executionPayload, error: executionError } = await supabase.functions.invoke('dunning-execute', {
+        body: {
           company_id: activeCompanyId,
           invoice_id: overdueInvoice.id,
           client_id: overdueInvoice.client_id || overdueInvoice.clients?.id || null,
           channel: DEFAULT_DUNNING_CHANNEL,
           tone: DEFAULT_DUNNING_TONE,
           step_number: DEFAULT_DUNNING_STEP,
-        }),
+        },
       });
 
-      const payload = await response.json().catch(() => ({}));
+      if (executionError) {
+        let reason = executionError.message || 'Erreur inconnue';
+        const response = executionError.context;
 
-      if (!response.ok) {
-        throw new Error(payload?.error || `HTTP ${response.status}`);
+        if (response && typeof response.clone === 'function') {
+          const parsedPayload = await response
+            .clone()
+            .json()
+            .catch(async () => {
+              const fallbackText = await response
+                .clone()
+                .text()
+                .catch(() => null);
+              return fallbackText ? { error: fallbackText } : null;
+            });
+
+          reason =
+            parsedPayload?.error ||
+            parsedPayload?.message ||
+            parsedPayload?.error_description ||
+            parsedPayload?.code ||
+            reason;
+        }
+
+        throw new Error(reason);
       }
 
       updateActionState(actionKey, {
@@ -164,10 +185,30 @@ export function useCfoGuidedActions() {
 
       return {
         invoice: overdueInvoice,
-        execution: payload,
+        execution: executionPayload,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue';
+
+      if (RELANCE_FALLBACK_ERROR_PATTERN.test(message)) {
+        navigate('/app/smart-dunning');
+        updateActionState(actionKey, {
+          state: 'success',
+          message: buildActionMessage(
+            t,
+            actionKey,
+            'fallback',
+            'Relance automatique indisponible: ouverture du module Relances IA.'
+          ),
+          error: null,
+        });
+        return {
+          skipped: true,
+          reason: 'edge_function_unavailable',
+          details: message,
+        };
+      }
+
       updateActionState(actionKey, {
         state: 'error',
         message: buildActionMessage(t, actionKey, 'error', message, {
@@ -177,7 +218,7 @@ export function useCfoGuidedActions() {
       });
       return null;
     }
-  }, [activeCompanyId, buildActionError, resetActionState, t, updateActionState, user?.id]);
+  }, [activeCompanyId, buildActionError, navigate, resetActionState, t, updateActionState, user?.id]);
 
   const executeScenario = useCallback(async () => {
     const actionKey = 'scenario';

@@ -104,9 +104,72 @@ export const useStockHistory = () => {
     }
   };
 
+  const getStockValuationContext = async (productIds = []) => {
+    if (!user) {
+      return {
+        historyEntries: [],
+        supplierOrderItems: [],
+      };
+    }
+
+    try {
+      let historyQuery = supabase
+        .from('product_stock_history')
+        .select('id, product_id, user_product_id, change_quantity, reason, order_id, created_at')
+        .order('created_at', { ascending: true });
+      historyQuery = applyCompanyScope(historyQuery);
+
+      const { data: historyRows, error: historyError } = await historyQuery;
+      if (historyError) throw historyError;
+
+      const normalizedProductIds = Array.isArray(productIds) ? productIds.filter(Boolean) : [];
+      const historyEntries =
+        normalizedProductIds.length === 0
+          ? historyRows || []
+          : (historyRows || []).filter((entry) => {
+              const productRef = entry.product_id || entry.user_product_id;
+              return normalizedProductIds.includes(productRef);
+            });
+
+      const orderIds = Array.from(new Set(historyEntries.map((entry) => entry.order_id).filter(Boolean)));
+      if (orderIds.length === 0) {
+        return {
+          historyEntries,
+          supplierOrderItems: [],
+        };
+      }
+
+      let orderItemsQuery = supabase
+        .from('supplier_order_items')
+        .select('order_id, user_product_id, quantity, unit_price');
+      orderItemsQuery = applyCompanyScope(orderItemsQuery).in('order_id', orderIds);
+
+      const { data: orderItems, error: orderItemsError } = await orderItemsQuery;
+      if (orderItemsError) {
+        console.error(orderItemsError);
+        return {
+          historyEntries,
+          supplierOrderItems: [],
+        };
+      }
+
+      return {
+        historyEntries,
+        supplierOrderItems: orderItems || [],
+      };
+    } catch (err) {
+      console.error(err);
+      return {
+        historyEntries: [],
+        supplierOrderItems: [],
+      };
+    }
+  };
+
   return {
     getProductHistory,
     addHistoryEntry,
+    getStockValuationContext,
     loading,
     error,
   };

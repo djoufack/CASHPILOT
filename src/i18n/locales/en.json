@@ -121,6 +121,7 @@
     "seedData": "Seed Data",
     "pilotage": "Business Steering",
     "sales": "Sales",
+    "companyComplianceCockpit": "Compliance & Group Cockpit",
     "companyPortfolio": "Company Portfolio",
     "integrations": "Integrations",
     "apiWebhooks": "API & Webhooks",
@@ -275,8 +276,10 @@
     "mixed": "Mixed",
     "itemDescriptionPlaceholder": "Service or product",
     "notesPlaceholder": "Payment terms, notes...",
+    "paymentLinkSection": "Direct payment",
     "generatePaymentLink": "Generate payment link",
     "copyPaymentLink": "Copy link",
+    "openPaymentLink": "Open link",
     "paymentLinkCopied": "Link copied!",
     "paymentLinkGenerated": "Payment link created",
     "exportFacturXXml": "Export XML (Factur-X)",
@@ -419,6 +422,12 @@
     "exportExcel": "Export Excel",
     "exportPdfTitle": "Export PDF ({{credits}} credits)",
     "exportHtmlTitle": "Export HTML ({{credits}} credits)",
+    "documentType": "Document type",
+    "documentTypeQuote": "Quote",
+    "documentTypeContract": "Contract",
+    "convertToContract": "Convert to contract",
+    "convertToContractTitle": "Convert quote {{number}} to a contract",
+    "convertToContractAria": "Convert quote {{number}} to a contract",
     "quoteNumber": "Quote Number",
     "client": "Client",
     "date": "Date",
@@ -440,7 +449,36 @@
     "documents": "Documents",
     "signatureStatus": "Signature",
     "signatureUnsigned": "Unsigned",
-    "quoteDetails": "Quote details"
+    "quoteDetails": "Quote details",
+    "markAsLost": "Mark as lost",
+    "captureLossReason": "Capture loss reason",
+    "lossReason": "Loss reason",
+    "lossReasonCategory": "Loss category",
+    "lossReasonDetails": "Loss details",
+    "lossReasonRequired": "Please select a loss reason.",
+    "lossReasonNotProvided": "Not provided",
+    "nextBestAction": "Next best action",
+    "lossReasonCategories": {
+      "budget": "Budget constraints",
+      "timing": "Timing mismatch",
+      "competition": "Competition won",
+      "scope": "Scope mismatch",
+      "no_response": "No response",
+      "other": "Other"
+    },
+    "nextBestActions": {
+      "send_quote": "Send the quote",
+      "request_signature": "Follow up on signature",
+      "extend_validity": "Extend validity",
+      "convert_to_contract": "Convert to contract",
+      "offer_discount": "Offer a targeted discount",
+      "schedule_follow_up": "Schedule a follow-up",
+      "differentiate_offer": "Strengthen value differentiation",
+      "revise_scope": "Revise offer scope",
+      "multi_channel_relaunch": "Relaunch through multiple channels",
+      "capture_loss_reason": "Qualify the loss reason in detail",
+      "monitor_quote": "Monitor the quote"
+    }
   },
   "purchaseOrdersPage": {
     "title": "Purchase Orders",
@@ -708,6 +746,20 @@
     "lateLabel": "Late",
     "noOrderData": "No order data available.",
     "noDeliveryData": "No delivery data available.",
+    "supplierScores": "Supplier Scores",
+    "averageSupplierScore": "Average Supplier Score",
+    "scoreBySupplier": "Global score by supplier",
+    "scoreOverview": "Score overview",
+    "scoreTable": "Supplier score details",
+    "globalScore": "Global score",
+    "qualityScore": "Quality",
+    "deliveryScore": "Delivery",
+    "costScore": "Cost",
+    "scoreBand": "Band",
+    "lastEvaluation": "Last evaluation",
+    "notEvaluated": "Not evaluated",
+    "noSupplierScoreData": "No supplier score data available.",
+    "scoreBandLegend": "Band A: excellent, B: strong, C: acceptable, D: watchlist, E: critical.",
     "status": {
       "pending": "Pending",
       "confirmed": "Confirmed",
@@ -1045,6 +1097,27 @@
       "statusActive": "Active",
       "statusDisposed": "Disposed",
       "statusFullyDepreciated": "Fully Depreciated"
+    },
+    "closingAssistant": {
+      "tabLabel": "Assisted Closing",
+      "title": "Assisted Closing",
+      "description": "Period closing assistant: depreciation posting, journal balance controls, and closing history.",
+      "period": "Period",
+      "run": "Run Assisted Closing",
+      "lastCloseDate": "Last closing date",
+      "statusDraft": "To prepare",
+      "statusClosed": "Closed",
+      "statusBlocked": "Blocked",
+      "checkDepreciation": "Depreciation postings",
+      "checkDepreciationOk": "All depreciation lines are posted.",
+      "checkDepreciationPending": "{{count}} unposted line(s).",
+      "checkJournal": "Debit / credit balance",
+      "checkJournalOk": "No journal gap detected.",
+      "checkJournalGap": "Current gap: {{value}}",
+      "successTitle": "Assisted closing completed",
+      "successDescription": "Period closed with depreciation generation and consistency checks.",
+      "blockedTitle": "Assisted closing blocked",
+      "blockedDescription": "Period remains blocked: review unposted depreciation or journal imbalance."
     },
     "analytique": {
       "title": "Analytical Accounting",
@@ -3209,6 +3282,7 @@
     },
     "sections": {
       "companiesAndPriorities": "Companies and priorities",
+      "stressTests": "Portfolio stress tests",
       "watchlist": "Overdue receivables watchlist",
       "quickRead": "Quick portfolio read"
     },
@@ -3231,6 +3305,95 @@
       "quotePipelineText": "{{quotes}} open quotes for {{amount}}.",
       "recommendedActionTitle": "Recommended action",
       "recommendedActionText": "Handle companies with overdue receivables first before switching operational context."
+    },
+    "stressTests": {
+      "sectionTitle": "Portfolio stress tests",
+      "sectionDescription": "Shock scenarios calculated from portfolio totals loaded from Supabase.",
+      "sectionDataSource": "Portfolio totals computed from live Supabase RPCs.",
+      "sectionFormula": "Shocks apply proportional scenarios to the real portfolio aggregates.",
+      "sectionCalculationMethod": "Calculations rely on the aggregated totals already loaded in the portfolio page.",
+      "sectionNotes": "Stress percentages are analytical assumptions, not business data.",
+      "scenarioLabel": "Scenario",
+      "severity": {
+        "warning": "Alert",
+        "danger": "Critical"
+      },
+      "baseline": "Baseline",
+      "stressed": "Under stress",
+      "deltaLabel": "Change",
+      "impact": "Impact",
+      "revenueShockTitle": "Revenue shock",
+      "revenueShockDescription": "Impact of a 10% drop in billed revenue.",
+      "collectionShockTitle": "Collection delay",
+      "collectionShockDescription": "Impact of a 15% slowdown in collections and a rise in outstanding receivables.",
+      "pipelineShockTitle": "Pipeline contraction",
+      "pipelineShockDescription": "Impact of a 20% drop in quote pipeline.",
+      "metrics": {
+        "bookedRevenue": "Billed revenue",
+        "collectedCash": "Cash collected",
+        "outstandingReceivables": "Outstanding receivables",
+        "quotePipeline": "Quote pipeline",
+        "openQuotes": "Open quotes",
+        "activeProjects": "Active projects"
+      }
+    }
+  },
+  "companyCockpit": {
+    "pageTitle": "Compliance & Group Cockpit",
+    "badge": "My Company",
+    "title": "Compliance & Group Cockpit",
+    "subtitle": "Unified view across Portfolio, Peppol, PDP, Inter-company, Consolidation, and Regulatory Intelligence modules.",
+    "refresh": "Refresh",
+    "riskBanner": "Some signals require action (compliance, inter-company, or regulatory monitoring).",
+    "dataWarningsTitle": "Data loading warning",
+    "openModule": "Open module",
+    "orchestrationTitle": "Group orchestration",
+    "orchestrationDescription": "Use this cockpit as the single operational entrypoint for compliance and multi-company governance.",
+    "summary": {
+      "companies": "Tracked companies",
+      "peppolReadyHint": "{{count}} / {{total}} Peppol-ready",
+      "portfolios": "Portfolios",
+      "portfolioCompaniesHint": "{{count}} linked companies",
+      "certifications": "PDP certifications",
+      "certificationsAtRiskHint": "{{count}} at expiration risk",
+      "intercompany": "Pending inter-company eliminations",
+      "eliminationAmountHint": "Eliminated amount: {{amount}}",
+      "regulatory": "Critical regulatory alerts",
+      "upcomingUpdatesHint": "{{count}} upcoming updates (30 days)",
+      "lastSync": "Latest inter-company close",
+      "lastSyncHint": "Timestamp of the latest recorded elimination"
+    },
+    "modules": {
+      "portfolio": {
+        "title": "Company portfolio",
+        "description": "Track companies, receivables exposure, and action priorities at group level.",
+        "metric": "{{companies}} companies · {{portfolios}} portfolios"
+      },
+      "peppol": {
+        "title": "Peppol",
+        "description": "Monitor electronic invoicing readiness across your companies.",
+        "metric": "{{ready}} / {{total}} companies configured"
+      },
+      "pdp": {
+        "title": "PDP / Certification",
+        "description": "Centralize certification and fiscal audit progress.",
+        "metric": "{{certified}} / {{total}} certifications validated"
+      },
+      "interCompany": {
+        "title": "Inter-company",
+        "description": "Steer mirrored flows and elimination entries.",
+        "metric": "{{count}} pending eliminations"
+      },
+      "consolidation": {
+        "title": "Consolidation",
+        "description": "Access consolidated P&L, balance sheet, and cash view.",
+        "metric": "{{count}} consolidatable portfolios"
+      },
+      "regulatory": {
+        "title": "Regulatory intelligence",
+        "description": "Prioritize critical regulatory changes that remain open.",
+        "metric": "{{count}} open critical alerts"
+      }
     }
   },
   "topNav": {
@@ -3446,6 +3609,15 @@
     "successDescription": "{{name}}, your signature has been recorded successfully.",
     "rejectedTitle": "Quote rejected",
     "rejectedDescription": "This quote has been rejected.",
+    "contractTitle": "Sign contract",
+    "contractNumber": "Contract {{number}}",
+    "contractSummaryTitle": "Contract summary",
+    "contractSignatureTitle": "Contract signature",
+    "contractContext": "Contract document.",
+    "rejectContract": "Reject contract",
+    "signAndAcceptContract": "Sign and accept contract",
+    "contractSuccessTitle": "Contract signed",
+    "contractRejectedTitle": "Contract rejected",
     "title": "Sign quote",
     "quoteNumber": "Quote {{number}}",
     "summaryTitle": "Quote summary",
@@ -4032,6 +4204,8 @@
         "defaultName": "Guided CFO scenario",
         "defaultDescription": "Working scenario created from the CFO guided actions.",
         "success": "Dunning executed on the oldest overdue invoice: {{invoiceNumber}}",
+        "noop": "No overdue unpaid invoice found: no dunning needed.",
+        "fallback": "Automatic dunning unavailable: opening the Smart Dunning module.",
         "error": "{{reason}}"
       },
       "scenario": {
@@ -4050,6 +4224,20 @@
         "success": "Audit opened with automatic run for the current period.",
         "error": "{{reason}}"
       }
+    },
+    "weeklyBriefing": {
+      "title": "Weekly CFO briefing",
+      "subtitle": "Automatic weekly summary for the active company.",
+      "loading": "Loading weekly briefing...",
+      "generatedNow": "Generated now",
+      "cached": "Cached",
+      "refresh": "Refresh",
+      "lastGenerated": "Last generated",
+      "healthScore": "Health score",
+      "highlights": "Highlights",
+      "actions": "Recommended actions",
+      "emptyResponse": "No weekly briefing available.",
+      "loadError": "Unable to load weekly briefing."
     }
   },
   "mobileMoney": {
@@ -4200,7 +4388,26 @@
     "periodQ3": "Q3",
     "periodQ4": "Q4",
     "periodLast12m": "Last 12 Months",
-    "periodCustom": "Custom"
+    "periodCustom": "Custom",
+    "tabEntities": "Entities",
+    "entitiesTitle": "Consolidated entities",
+    "entitiesDescription": "Monitor multi-entity coverage, at-risk companies, and pending eliminations.",
+    "entitiesDefinition": "Cross-entity view to steer multi-entity consolidation.",
+    "entitiesDataSource": "Aggregation of P&L, balance sheet, cash, and intercompany transactions from consolidation.",
+    "entitiesFormula": "Status = attention when pending eliminations exist, otherwise active if activity exists, otherwise inactive.",
+    "entitiesCalculation": "Company-level metrics are merged then ranked by risk and activity level.",
+    "scopeAll": "All entities",
+    "scopeActive": "Active entities",
+    "scopeAttention": "Attention entities",
+    "entitiesTotalCount": "{{count}} entities",
+    "entitiesActiveCount": "{{count}} active",
+    "entitiesAttentionCount": "{{count}} attention",
+    "entityStatusAttention": "Attention",
+    "entityStatusActive": "Active",
+    "entityStatusInactive": "Inactive",
+    "pendingEliminations": "Pending eliminations",
+    "company": "Company",
+    "noEntitiesForScope": "No entities available for this scope."
   },
   "cashflow": {
     "page": {

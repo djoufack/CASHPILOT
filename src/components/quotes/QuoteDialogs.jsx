@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,20 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, Loader2, Download, FileText, FileSignature, Copy } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 import { CREDIT_COSTS } from '@/hooks/useCreditsGuard';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const QuoteDialogs = ({
   // Preview
@@ -53,6 +40,15 @@ const QuoteDialogs = ({
   signatureSubmitting,
   handleSendSignatureRequest,
   handleCopyGeneratedLink,
+  // Loss reason
+  lossDialogOpen,
+  setLossDialogOpen,
+  lossReasonCategory,
+  setLossReasonCategory,
+  lossReasonDetails,
+  setLossReasonDetails,
+  lossSubmitting,
+  handleSaveLossReason,
 }) => {
   const { t } = useTranslation();
 
@@ -118,7 +114,7 @@ const QuoteDialogs = ({
                   <SelectValue placeholder={t('invoices.selectClient')} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700">
-                  {clients.map(client => (
+                  {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id} className="text-white hover:bg-gray-700">
                       {client.company_name}
                     </SelectItem>
@@ -208,7 +204,13 @@ const QuoteDialogs = ({
                   </div>
                 ))}
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={addItem} className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addItem}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 w-full"
+              >
                 <Plus className="w-4 h-4 mr-2" /> {t('quotesPage.addLine')}
               </Button>
             </div>
@@ -241,10 +243,19 @@ const QuoteDialogs = ({
             </div>
 
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
                 {t('common.cancel')}
               </Button>
-              <Button type="submit" disabled={submitting || !formData.client_id} className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button
+                type="submit"
+                disabled={submitting || !formData.client_id}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
                 {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                 {t('quotesPage.create')}
               </Button>
@@ -254,7 +265,16 @@ const QuoteDialogs = ({
       </Dialog>
 
       {/* Request Signature Dialog */}
-      <Dialog open={signatureDialogOpen} onOpenChange={(open) => { setSignatureDialogOpen(open); if (!open) { setSignatureLink(''); setSignerEmail(''); } }}>
+      <Dialog
+        open={signatureDialogOpen}
+        onOpenChange={(open) => {
+          setSignatureDialogOpen(open);
+          if (!open) {
+            setSignatureLink('');
+            setSignerEmail('');
+          }
+        }}
+      >
         <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle className="text-gradient text-xl">{t('quotesPage.requestSignature')}</DialogTitle>
@@ -274,11 +294,7 @@ const QuoteDialogs = ({
               <div className="space-y-2">
                 <Label className="text-gray-300">{t('quotesPage.signatureLink')}</Label>
                 <div className="flex gap-2">
-                  <Input
-                    value={signatureLink}
-                    readOnly
-                    className="bg-gray-800 border-gray-700 text-gray-300 text-xs"
-                  />
+                  <Input value={signatureLink} readOnly className="bg-gray-800 border-gray-700 text-gray-300 text-xs" />
                   <Button
                     variant="outline"
                     size="sm"
@@ -292,7 +308,12 @@ const QuoteDialogs = ({
             )}
           </div>
           <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={() => setSignatureDialogOpen(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSignatureDialogOpen(false)}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
               {t('common.cancel')}
             </Button>
             <Button
@@ -301,8 +322,88 @@ const QuoteDialogs = ({
               onClick={handleSendSignatureRequest}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {signatureSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileSignature className="w-4 h-4 mr-2" />}
+              {signatureSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FileSignature className="w-4 h-4 mr-2" />
+              )}
               {t('quotesPage.sendSignatureRequest')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Loss Reason Dialog */}
+      <Dialog
+        open={lossDialogOpen}
+        onOpenChange={(open) => {
+          setLossDialogOpen(open);
+          if (!open) {
+            setLossReasonCategory('');
+            setLossReasonDetails('');
+          }
+        }}
+      >
+        <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle className="text-gradient text-xl">{t('quotesPage.captureLossReason')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-gray-300">{t('quotesPage.lossReasonCategory')} *</Label>
+              <Select value={lossReasonCategory} onValueChange={setLossReasonCategory}>
+                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                  <SelectValue placeholder={t('quotesPage.lossReasonCategory')} />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  <SelectItem value="budget" className="text-white hover:bg-gray-700">
+                    {t('quotesPage.lossReasonCategories.budget')}
+                  </SelectItem>
+                  <SelectItem value="timing" className="text-white hover:bg-gray-700">
+                    {t('quotesPage.lossReasonCategories.timing')}
+                  </SelectItem>
+                  <SelectItem value="competition" className="text-white hover:bg-gray-700">
+                    {t('quotesPage.lossReasonCategories.competition')}
+                  </SelectItem>
+                  <SelectItem value="scope" className="text-white hover:bg-gray-700">
+                    {t('quotesPage.lossReasonCategories.scope')}
+                  </SelectItem>
+                  <SelectItem value="no_response" className="text-white hover:bg-gray-700">
+                    {t('quotesPage.lossReasonCategories.no_response')}
+                  </SelectItem>
+                  <SelectItem value="other" className="text-white hover:bg-gray-700">
+                    {t('quotesPage.lossReasonCategories.other')}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300">{t('quotesPage.lossReasonDetails')}</Label>
+              <Textarea
+                value={lossReasonDetails}
+                onChange={(event) => setLossReasonDetails(event.target.value)}
+                placeholder={t('quotesPage.notesPlaceholder')}
+                className="bg-gray-800 border-gray-700 text-white min-h-[80px]"
+              />
+            </div>
+          </div>
+          <DialogFooter className="pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLossDialogOpen(false)}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="button"
+              disabled={lossSubmitting}
+              onClick={handleSaveLossReason}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {lossSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

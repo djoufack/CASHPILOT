@@ -5,6 +5,7 @@ import {
   Calculator,
   FileText,
   History,
+  Link2,
   Plus,
   Download,
   CheckCircle2,
@@ -17,6 +18,8 @@ import {
 } from 'lucide-react';
 import { usePayroll } from '@/hooks/usePayroll';
 import { useCompany } from '@/hooks/useCompany';
+import { usePayrollCountryConnectors } from '@/hooks/usePayrollCountryConnectors';
+import { buildPayrollCountryConnectorInsights } from '@/services/hrPayrollCountryConnectorInsights';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -64,6 +67,37 @@ const SEVERITY = {
     border: 'border-amber-500/30',
   },
   info: { label: 'Info', icon: Info, bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30' },
+};
+
+const CONNECTOR_CATEGORY_LABEL = {
+  payroll: 'Paie',
+  compliance: 'Conformite',
+};
+
+const CONNECTOR_STATUS_OPTIONS = [
+  ['not_connected', 'Non connecte'],
+  ['attention', 'Attention'],
+  ['connected', 'Connecte'],
+];
+
+const CONNECTOR_STATUS_STYLE = {
+  not_connected: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+  attention: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+  connected: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+};
+
+const CONNECTOR_COMPLIANCE_OPTIONS = [
+  ['unknown', 'Inconnu'],
+  ['compliant', 'Conforme'],
+  ['warning', 'A surveiller'],
+  ['non_compliant', 'Non conforme'],
+];
+
+const CONNECTOR_COMPLIANCE_STYLE = {
+  unknown: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+  compliant: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  warning: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+  non_compliant: 'bg-red-500/20 text-red-300 border-red-500/30',
 };
 
 const StatusBadge = ({ status }) => {
@@ -939,6 +973,237 @@ const HistoriqueTab = ({ periods, employees, currency }) => {
   );
 };
 
+/* ---- Tab 5 : Connecteurs pays ---- */
+
+const ConnecteursPaysTab = ({
+  countryCode,
+  connectors,
+  loading,
+  error,
+  insights,
+  onRefresh,
+  onMarkConnected,
+  onSetStatus,
+  onSetComplianceStatus,
+}) => {
+  const [pendingConnectorId, setPendingConnectorId] = useState(null);
+
+  const statusTone =
+    insights.status === 'ready'
+      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-200'
+      : insights.status === 'attention'
+        ? 'bg-amber-500/10 border-amber-500/20 text-amber-200'
+        : 'bg-red-500/10 border-red-500/20 text-red-200';
+
+  const runConnectorAction = async (connectorId, action) => {
+    setPendingConnectorId(connectorId);
+    try {
+      await action();
+    } finally {
+      setPendingConnectorId(null);
+    }
+  };
+
+  if (loading && connectors.length === 0) {
+    return (
+      <Card className="bg-white/5 border-white/10">
+        <CardContent className="py-16 text-center">
+          <RefreshCw className="w-8 h-8 text-gray-600 mx-auto mb-4 animate-spin" />
+          <p className="text-gray-400 text-sm">Chargement des connecteurs pays...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6" data-testid="hr-country-connectors-panel">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-100">Connecteurs pays</h2>
+          <p className="text-sm text-gray-400 mt-0.5">
+            Pays actif : <span className="text-gray-200 font-medium">{countryCode}</span> · {insights.totalCount}{' '}
+            connecteur{insights.totalCount !== 1 ? 's' : ''}
+          </p>
+        </div>
+        <Button onClick={onRefresh} variant="outline" className="border-white/10 text-gray-300 hover:bg-white/5">
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Actualiser
+        </Button>
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-3 rounded-xl bg-red-500/10 border border-red-500/20 p-4">
+          <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-red-300">Erreur de synchronisation</p>
+            <p className="text-xs text-red-400/70 mt-0.5">{error}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="py-4 px-5">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Couverture</p>
+            <p className="text-xl font-bold mt-1 text-gray-100">{insights.coveragePct.toFixed(2)}%</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {insights.connectedCount}/{insights.totalCount} connectes
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="py-4 px-5">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Conformite</p>
+            <p className="text-xl font-bold mt-1 text-gray-100">{insights.compliancePct.toFixed(2)}%</p>
+            <p className="text-xs text-gray-500 mt-1">{insights.complianceRiskCount} risque(s)</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="py-4 px-5">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Paie</p>
+            <p className="text-xl font-bold mt-1 text-gray-100">{insights.payrollConnectorCount}</p>
+            <p className="text-xs text-gray-500 mt-1">Connecteurs moteur paie</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-white/5 border-white/10">
+          <CardContent className="py-4 px-5">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Conformite legale</p>
+            <p className="text-xl font-bold mt-1 text-gray-100">{insights.complianceConnectorCount}</p>
+            <p className="text-xs text-gray-500 mt-1">Connecteurs declaratifs</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className={`rounded-xl border p-4 ${statusTone}`}>
+        <p className="text-sm font-semibold">
+          Statut global:{' '}
+          {insights.status === 'ready' ? 'Pret' : insights.status === 'attention' ? 'Attention' : 'Critique'}
+        </p>
+        {insights.recommendations.length > 0 && (
+          <ul className="mt-2 space-y-1 text-xs opacity-90">
+            {insights.recommendations.map((recommendation) => (
+              <li key={recommendation}>• {recommendation}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <Card className="bg-white/5 border-white/10">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold text-gray-200">Registre des connecteurs</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10">
+                  {['Connecteur', 'Categorie', 'Statut', 'Conformite', 'Exigences', 'Actions'].map((header, index) => (
+                    <th
+                      key={header}
+                      className={`py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wide ${index === 5 ? 'text-right' : 'text-left'}`}
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {connectors.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-gray-500 text-sm">
+                      Aucun connecteur pour ce pays.
+                    </td>
+                  </tr>
+                ) : (
+                  connectors.map((connector) => {
+                    const isPending = pendingConnectorId === connector.id;
+                    const statusClass =
+                      CONNECTOR_STATUS_STYLE[connector.status] || CONNECTOR_STATUS_STYLE.not_connected;
+                    const complianceClass =
+                      CONNECTOR_COMPLIANCE_STYLE[connector.compliance_status] || CONNECTOR_COMPLIANCE_STYLE.unknown;
+                    return (
+                      <tr key={connector.id} className="hover:bg-white/[0.03]">
+                        <td className="py-3 px-4">
+                          <p className="text-sm font-medium text-gray-100">{connector.connector_name}</p>
+                          <p className="text-xs text-gray-500">{connector.connector_code}</p>
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs">
+                            {CONNECTOR_CATEGORY_LABEL[connector.provider_category] || connector.provider_category}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4">
+                          <select
+                            value={connector.status}
+                            onChange={(event) =>
+                              runConnectorAction(connector.id, () => onSetStatus(connector.id, event.target.value))
+                            }
+                            disabled={isPending}
+                            className={`rounded-md border px-2 py-1 text-xs bg-transparent ${statusClass}`}
+                          >
+                            {CONNECTOR_STATUS_OPTIONS.map(([value, label]) => (
+                              <option key={value} value={value} className="bg-[#141c33] text-gray-100">
+                                {label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="py-3 px-4">
+                          <select
+                            value={connector.compliance_status}
+                            onChange={(event) =>
+                              runConnectorAction(connector.id, () =>
+                                onSetComplianceStatus(connector.id, event.target.value)
+                              )
+                            }
+                            disabled={isPending}
+                            className={`rounded-md border px-2 py-1 text-xs bg-transparent ${complianceClass}`}
+                          >
+                            {CONNECTOR_COMPLIANCE_OPTIONS.map(([value, label]) => (
+                              <option key={value} value={value} className="bg-[#141c33] text-gray-100">
+                                {label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex flex-wrap gap-1.5">
+                            {(connector.requirements || []).map((requirement) => (
+                              <Badge
+                                key={requirement}
+                                variant="outline"
+                                className="border-white/10 text-gray-400 text-[11px]"
+                              >
+                                {requirement}
+                              </Badge>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isPending}
+                            className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+                            onClick={() => runConnectorAction(connector.id, () => onMarkConnected(connector.id))}
+                          >
+                            <Link2 className="w-3.5 h-3.5 mr-1.5" />
+                            {isPending ? '...' : connector.status === 'connected' ? 'Resynchroniser' : 'Connecter'}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 /* ---- Main Page ---- */
 
 const PayrollPage = () => {
@@ -959,6 +1224,16 @@ const PayrollPage = () => {
     validatePayroll,
     exportPayroll,
   } = usePayroll();
+  const {
+    countryCode: connectorCountryCode,
+    connectors: payrollCountryConnectors,
+    loading: payrollCountryConnectorsLoading,
+    error: payrollCountryConnectorsError,
+    refresh: refreshPayrollCountryConnectors,
+    markConnectorConnected,
+    setConnectorStatus,
+    setConnectorComplianceStatus,
+  } = usePayrollCountryConnectors(company?.country);
 
   const currency = company?.currency || 'EUR';
   const [activeTab, setActiveTab] = useState('periodes');
@@ -966,6 +1241,10 @@ const PayrollPage = () => {
   const selectedPeriod = useMemo(
     () => periods.find((p) => p.id === selectedPeriodId) || null,
     [periods, selectedPeriodId]
+  );
+  const payrollCountryConnectorInsights = useMemo(
+    () => buildPayrollCountryConnectorInsights(payrollCountryConnectors),
+    [payrollCountryConnectors]
   );
 
   const handleSelectPeriod = useCallback(
@@ -975,6 +1254,11 @@ const PayrollPage = () => {
     },
     [activeTab]
   );
+
+  const handleRefresh = useCallback(() => {
+    fetchData();
+    refreshPayrollCountryConnectors();
+  }, [fetchData, refreshPayrollCountryConnectors]);
 
   return (
     <>
@@ -989,7 +1273,7 @@ const PayrollPage = () => {
             <p className="text-gray-500 mt-1 text-sm">Gestion de la paie, calcul des bulletins et suivi historique</p>
           </div>
           <Button
-            onClick={fetchData}
+            onClick={handleRefresh}
             disabled={loading}
             variant="outline"
             className="border-white/10 text-gray-300 hover:bg-white/5"
@@ -1026,6 +1310,7 @@ const PayrollPage = () => {
                 ['calcul', Calculator, 'Calcul'],
                 ['bulletins', FileText, 'Bulletins'],
                 ['historique', History, 'Historique'],
+                ['connecteurs-pays', Link2, 'Connecteurs pays'],
               ].map(([val, Icon, label]) => (
                 <TabsTrigger
                   key={val}
@@ -1070,6 +1355,19 @@ const PayrollPage = () => {
             </TabsContent>
             <TabsContent value="historique">
               <HistoriqueTab periods={periods} employees={employees} currency={currency} />
+            </TabsContent>
+            <TabsContent value="connecteurs-pays">
+              <ConnecteursPaysTab
+                countryCode={connectorCountryCode}
+                connectors={payrollCountryConnectors}
+                loading={payrollCountryConnectorsLoading}
+                error={payrollCountryConnectorsError}
+                insights={payrollCountryConnectorInsights}
+                onRefresh={refreshPayrollCountryConnectors}
+                onMarkConnected={markConnectorConnected}
+                onSetStatus={setConnectorStatus}
+                onSetComplianceStatus={setConnectorComplianceStatus}
+              />
             </TabsContent>
           </Tabs>
         )}

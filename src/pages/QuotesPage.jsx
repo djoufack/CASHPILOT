@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useQuotes } from '@/hooks/useQuotes';
@@ -11,7 +10,7 @@ import { exportQuotePDF, exportQuoteHTML, generateQuoteHTML } from '@/services/e
 import { exportToCSV, exportToExcel } from '@/utils/exportService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, FileSignature, Loader2, Search, List, CalendarDays, CalendarClock, Download, Kanban, LayoutGrid } from 'lucide-react';
+import { Plus, Search, List, CalendarDays, CalendarClock, Download, Kanban, LayoutGrid } from 'lucide-react';
 import { formatCurrency } from '@/utils/calculations';
 import { usePagination } from '@/hooks/usePagination';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -28,7 +27,12 @@ import QuoteGalleryView from '@/components/quotes/QuoteGalleryView';
 import QuoteDialogs from '@/components/quotes/QuoteDialogs';
 
 const DEFAULT_TAX_RATE_FALLBACK = 20;
-const createEmptyItem = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({ description: '', quantity: 1, unit_price: 0, tax_rate: taxRate });
+const createEmptyItem = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({
+  description: '',
+  quantity: 1,
+  unit_price: 0,
+  tax_rate: taxRate,
+});
 
 const createInitialFormData = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({
   client_id: '',
@@ -42,7 +46,7 @@ const createInitialFormData = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({
 const QuotesPage = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const { quotes, loading, createQuote, updateQuote, deleteQuote } = useQuotes();
+  const { quotes, loading, createQuote, updateQuote, convertQuoteToContract, deleteQuote } = useQuotes();
   const { clients } = useClients();
   const { company } = useCompany();
   const { guardedAction, modalProps } = useCreditsGuard();
@@ -61,6 +65,11 @@ const QuotesPage = () => {
   const [signerEmail, setSignerEmail] = useState('');
   const [signatureLink, setSignatureLink] = useState('');
   const [signatureSubmitting, setSignatureSubmitting] = useState(false);
+  const [lossDialogOpen, setLossDialogOpen] = useState(false);
+  const [lossQuote, setLossQuote] = useState(null);
+  const [lossReasonCategory, setLossReasonCategory] = useState('');
+  const [lossReasonDetails, setLossReasonDetails] = useState('');
+  const [lossSubmitting, setLossSubmitting] = useState(false);
 
   // Calendar/Agenda/Kanban data
   const quoteCalendarStatusColors = {
@@ -79,7 +88,7 @@ const QuotesPage = () => {
     { label: t('quotesPage.statusExpired'), color: '#eab308' },
   ];
 
-  const quoteCalendarEvents = quotes.map(q => ({
+  const quoteCalendarEvents = quotes.map((q) => ({
     id: q.id,
     title: `${q.quote_number || ''} - ${q.client?.company_name || t('timesheets.noClient')}`,
     date: q.date,
@@ -87,7 +96,7 @@ const QuotesPage = () => {
     resource: q,
   }));
 
-  const quoteAgendaItems = quotes.map(q => {
+  const quoteAgendaItems = quotes.map((q) => {
     const statusColorMap = {
       draft: 'bg-gray-500/20 text-gray-400',
       sent: 'bg-blue-500/20 text-blue-400',
@@ -101,7 +110,9 @@ const QuotesPage = () => {
       subtitle: q.client?.company_name || t('timesheets.noClient'),
       date: q.date,
       status: q.status || 'draft',
-      statusLabel: t(`quotesPage.status${(q.status || 'draft').charAt(0).toUpperCase()}${(q.status || 'draft').slice(1)}`),
+      statusLabel: t(
+        `quotesPage.status${(q.status || 'draft').charAt(0).toUpperCase()}${(q.status || 'draft').slice(1)}`
+      ),
       statusColor: statusColorMap[q.status] || 'bg-gray-500/20 text-gray-400',
       amount: formatCurrency(q.total_ttc || 0),
     };
@@ -115,7 +126,7 @@ const QuotesPage = () => {
     { id: 'expired', title: t('quotesPage.statusExpired'), color: 'bg-yellow-500/20 text-yellow-400' },
   ];
 
-  const filteredQuotes = quotes.filter(q => {
+  const filteredQuotes = quotes.filter((q) => {
     const matchesSearch =
       q.quote_number?.toLowerCase().includes(search.toLowerCase()) ||
       q.client?.company_name?.toLowerCase().includes(search.toLowerCase());
@@ -156,7 +167,7 @@ const QuotesPage = () => {
   const calculateTotals = () => {
     let totalHT = 0;
     let totalTax = 0;
-    formData.items.forEach(item => {
+    formData.items.forEach((item) => {
       const lineHT = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
       totalHT += lineHT;
       totalTax += lineHT * ((parseFloat(item.tax_rate) || 0) / 100);
@@ -169,7 +180,7 @@ const QuotesPage = () => {
     if (!formData.client_id) return;
 
     setSubmitting(true);
-    const { totalHT, totalTax, totalTTC } = calculateTotals();
+    const { totalHT, totalTTC } = calculateTotals();
     try {
       await createQuote({
         client_id: formData.client_id,
@@ -177,7 +188,7 @@ const QuotesPage = () => {
         due_date: formData.due_date || null,
         notes: formData.notes.trim() || null,
         status: formData.status,
-        items: formData.items.map(item => ({
+        items: formData.items.map((item) => ({
           description: item.description,
           quantity: parseFloat(item.quantity) || 0,
           unit_price: parseFloat(item.unit_price) || 0,
@@ -204,7 +215,15 @@ const QuotesPage = () => {
     }
   };
 
-  const getQuoteClient = (quote) => clients.find(c => c.id === quote.client_id) || quote.client || null;
+  const handleConvertToContract = async (id) => {
+    try {
+      await convertQuoteToContract(id);
+    } catch {
+      // Error handled by hook toast
+    }
+  };
+
+  const getQuoteClient = (quote) => clients.find((c) => c.id === quote.client_id) || quote.client || null;
   const getEnrichedQuote = (quote) => ({ ...quote, client: getQuoteClient(quote) });
 
   const handleExportQuotePDF = (quote) => {
@@ -259,6 +278,41 @@ const QuotesPage = () => {
     });
   };
 
+  const handleMarkAsLost = (quote) => {
+    setLossQuote(quote);
+    setLossReasonCategory(quote.loss_reason_category || '');
+    setLossReasonDetails(quote.loss_reason_details || '');
+    setLossDialogOpen(true);
+  };
+
+  const handleSaveLossReason = async () => {
+    if (!lossQuote || !lossReasonCategory) {
+      toast({
+        title: t('common.error'),
+        description: t('quotesPage.lossReasonRequired'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLossSubmitting(true);
+    try {
+      await updateQuote(lossQuote.id, {
+        status: 'rejected',
+        loss_reason_category: lossReasonCategory,
+        loss_reason_details: lossReasonDetails.trim() || null,
+      });
+      setLossDialogOpen(false);
+      setLossQuote(null);
+      setLossReasonCategory('');
+      setLossReasonDetails('');
+    } catch {
+      // Error toast handled by hook.
+    } finally {
+      setLossSubmitting(false);
+    }
+  };
+
   const quotePreviewDocument = (quote) => `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -283,7 +337,7 @@ const QuotesPage = () => {
       rejected: t('quotesPage.statusRejected'),
       expired: t('quotesPage.statusExpired'),
     };
-    const exportData = quotes.map(q => ({
+    const exportData = quotes.map((q) => ({
       [t('quotesPage.quoteNumber')]: q.quote_number || '',
       [t('quotesPage.client')]: q.client?.company_name || '',
       [t('invoices.totalTTC')]: q.total_ttc || '',
@@ -312,6 +366,8 @@ const QuotesPage = () => {
     onDelete: handleDelete,
     onRequestSignature: handleRequestSignature,
     onCopySignatureLink: handleCopySignatureLink,
+    onConvertToContract: handleConvertToContract,
+    onMarkAsLost: handleMarkAsLost,
     onOpenDialog: handleOpenDialog,
   };
 
@@ -319,15 +375,15 @@ const QuotesPage = () => {
     <>
       <CreditsGuardModal {...modalProps} />
       <Helmet>
-        <title>{t('quotesPage.title')} - {t('app.name')}</title>
+        <title>
+          {t('quotesPage.title')} - {t('app.name')}
+        </title>
       </Helmet>
 
       <div className="container mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">
-              {t('quotesPage.title')}
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-2">{t('quotesPage.title')}</h1>
             <p className="text-gray-400 text-sm md:text-base">{t('quotesPage.subtitle')}</p>
           </div>
           <div className="flex gap-2 w-full md:w-auto">
@@ -355,7 +411,10 @@ const QuotesPage = () => {
                 </Button>
               </>
             )}
-            <Button onClick={handleOpenDialog} className="flex-1 md:flex-none bg-orange-500 hover:bg-orange-600 text-white">
+            <Button
+              onClick={handleOpenDialog}
+              className="flex-1 md:flex-none bg-orange-500 hover:bg-orange-600 text-white"
+            >
               <Plus className="mr-2 h-4 w-4" /> {t('quotesPage.create')}
             </Button>
           </div>
@@ -395,19 +454,34 @@ const QuotesPage = () => {
 
         <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
           <TabsList className="bg-gray-800 border border-gray-700 mb-4">
-            <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <TabsTrigger
+              value="list"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
               <List className="w-4 h-4 mr-2" /> {t('common.list') || 'List'}
             </TabsTrigger>
-            <TabsTrigger value="gallery" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <TabsTrigger
+              value="gallery"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
               <LayoutGrid className="w-4 h-4 mr-2" /> {t('common.gallery') || 'Galerie'}
             </TabsTrigger>
-            <TabsTrigger value="calendar" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <TabsTrigger
+              value="calendar"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
               <CalendarDays className="w-4 h-4 mr-2" /> {t('common.calendar') || 'Calendar'}
             </TabsTrigger>
-            <TabsTrigger value="agenda" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <TabsTrigger
+              value="agenda"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
               <CalendarClock className="w-4 h-4 mr-2" /> {t('common.agenda') || 'Agenda'}
             </TabsTrigger>
-            <TabsTrigger value="kanban" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+            <TabsTrigger
+              value="kanban"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+            >
               <Kanban className="w-4 h-4 mr-2" /> {t('common.kanban') || 'Kanban'}
             </TabsTrigger>
           </TabsList>
@@ -433,7 +507,7 @@ const QuotesPage = () => {
             <GenericAgendaView
               items={quoteAgendaItems}
               dateField="date"
-              onView={(item) => handleViewQuote(quotes.find(q => q.id === item.id))}
+              onView={(item) => handleViewQuote(quotes.find((q) => q.id === item.id))}
               onDelete={(item) => handleDelete(item.id)}
               paidStatuses={['accepted', 'rejected', 'expired', 'cancelled']}
             />
@@ -444,7 +518,7 @@ const QuotesPage = () => {
               columns={quoteKanbanColumns}
               items={quoteAgendaItems}
               onStatusChange={async (id, status) => await updateQuote(id, { status })}
-              onView={(item) => handleViewQuote(quotes.find(q => q.id === item.id))}
+              onView={(item) => handleViewQuote(quotes.find((q) => q.id === item.id))}
               onDelete={(item) => handleDelete(item.id)}
             />
           </TabsContent>
@@ -479,6 +553,14 @@ const QuotesPage = () => {
         signatureSubmitting={signatureSubmitting}
         handleSendSignatureRequest={handleSendSignatureRequest}
         handleCopyGeneratedLink={handleCopyGeneratedLink}
+        lossDialogOpen={lossDialogOpen}
+        setLossDialogOpen={setLossDialogOpen}
+        lossReasonCategory={lossReasonCategory}
+        setLossReasonCategory={setLossReasonCategory}
+        lossReasonDetails={lossReasonDetails}
+        setLossReasonDetails={setLossReasonDetails}
+        lossSubmitting={lossSubmitting}
+        handleSaveLossReason={handleSaveLossReason}
       />
     </>
   );

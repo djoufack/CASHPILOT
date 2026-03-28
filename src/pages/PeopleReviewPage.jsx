@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import {
+  AlertTriangle,
   ArrowRightLeft,
   BarChart3,
   Building2,
@@ -15,8 +16,10 @@ import {
   Sparkles,
   TrendingUp,
   User,
+  UserCheck,
 } from 'lucide-react';
 import { usePerformance } from '@/hooks/usePerformance';
+import { buildTalentSuccessionCalibrationInsights } from '@/services/hrTalentSuccessionCalibration';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -93,6 +96,20 @@ const RISK_LABELS = {
   low: 'Faible',
   medium: 'Moyen',
   high: 'Eleve',
+};
+
+const CALIBRATION_STATUS_LABELS = {
+  no_data: 'A calibrer',
+  aligned: 'Aligne',
+  watch: 'Sous surveillance',
+  critical: 'Critique',
+};
+
+const CALIBRATION_STATUS_CLASSES = {
+  no_data: 'bg-gray-500/20 text-gray-300 border-gray-400/30',
+  aligned: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+  watch: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
+  critical: 'bg-red-500/20 text-red-300 border-red-400/30',
 };
 
 /* ---------- helpers ---------- */
@@ -193,6 +210,10 @@ export default function PeopleReviewPage() {
   /* computed data */
   const nineBox = useMemo(() => build9Box(reviews, employees), [reviews, employees]);
   const highPotentials = useMemo(() => getHighPotentials(reviews, employees), [reviews, employees]);
+  const successionCalibration = useMemo(
+    () => buildTalentSuccessionCalibrationInsights({ reviews, successionPlans, employees }),
+    [reviews, successionPlans, employees]
+  );
 
   const totalEmployeesInGrid = useMemo(() => {
     let count = 0;
@@ -529,6 +550,107 @@ export default function PeopleReviewPage() {
             </div>
 
             {loading && <p className="text-gray-400 text-sm">Chargement...</p>}
+
+            <Card className="bg-white/5 border-white/10" data-testid="hr-talent-succession-calibration-panel">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4 text-orange-400" />
+                    Calibration talent/succession
+                  </span>
+                  <Badge
+                    className={`${CALIBRATION_STATUS_CLASSES[successionCalibration.calibrationStatus] || CALIBRATION_STATUS_CLASSES.watch}`}
+                  >
+                    {CALIBRATION_STATUS_LABELS[successionCalibration.calibrationStatus] ||
+                      successionCalibration.calibrationStatus}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-gray-400">Postes critiques couverts</p>
+                    <p className="text-xl font-semibold text-white mt-1">
+                      {successionCalibration.coverage.criticalCoveragePct}%
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-gray-400">Postes critiques ready-now</p>
+                    <p className="text-xl font-semibold text-emerald-300 mt-1">
+                      {successionCalibration.coverage.criticalReadyNowPct}%
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-gray-400">Hauts potentiels mobilises</p>
+                    <p className="text-xl font-semibold text-blue-300 mt-1">
+                      {successionCalibration.coverage.highPotentialUsagePct}%
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-gray-400">Plans critiques a risque</p>
+                    <p className="text-xl font-semibold text-red-300 mt-1">{successionCalibration.plansAtRiskCount}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 space-y-2">
+                    <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-1.5">
+                      <AlertTriangle className="h-4 w-4 text-amber-400" />
+                      Gaps succession critiques
+                    </h3>
+                    {successionCalibration.gaps.criticalWithoutReadyNow.length === 0 ? (
+                      <p className="text-xs text-gray-400">Aucun poste critique sans successeur pret maintenant.</p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {successionCalibration.gaps.criticalWithoutReadyNow.slice(0, 4).map((gap) => (
+                          <li key={gap.planId} className="text-xs text-gray-300">
+                            <span className="font-medium text-white">{gap.positionTitle}</span>
+                            <span className="text-gray-500">
+                              {' '}
+                              · risque {RISK_LABELS[gap.riskOfLoss] || gap.riskOfLoss}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 space-y-2">
+                    <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-emerald-400" />
+                      Hauts potentiels non affectes
+                    </h3>
+                    {successionCalibration.gaps.unassignedHighPotential.length === 0 ? (
+                      <p className="text-xs text-gray-400">
+                        Tous les hauts potentiels identifies sont integres aux plans.
+                      </p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {successionCalibration.gaps.unassignedHighPotential.slice(0, 4).map((candidate) => (
+                          <li key={candidate.employeeId} className="text-xs text-gray-300">
+                            <span className="font-medium text-white">{candidate.name}</span>
+                            <span className="text-gray-500">
+                              {candidate.jobTitle ? ` · ${candidate.jobTitle}` : ''}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Actions prioritaires</p>
+                  <ul className="space-y-1.5">
+                    {successionCalibration.recommendations.slice(0, 3).map((recommendation) => (
+                      <li key={recommendation} className="text-xs text-gray-300">
+                        {recommendation}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
 
             <Card className="bg-white/5 border-white/10 overflow-hidden">
               <div className="overflow-x-auto">

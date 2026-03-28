@@ -41,7 +41,7 @@ export default function BankTransferForm({ open, onOpenChange, connections, onSu
   const [errors, setErrors] = useState({});
 
   const activeConnections = useMemo(() => {
-    return (connections || []).filter((c) => c.status === 'active');
+    return (connections || []).filter((c) => ['active', 'connected'].includes(String(c.status || '').toLowerCase()));
   }, [connections]);
 
   const selectedConnection = useMemo(() => {

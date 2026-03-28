@@ -10,6 +10,12 @@ import { useConsolidation } from '@/hooks/useConsolidation';
 import ConsolidationKpiCards from '@/components/consolidation/ConsolidationKpiCards';
 import CompanyBreakdownChart from '@/components/consolidation/CompanyBreakdownChart';
 import IntercompanyTable from '@/components/consolidation/IntercompanyTable';
+import ConsolidatedEntitiesTable from '@/components/consolidation/ConsolidatedEntitiesTable';
+import {
+  buildConsolidatedEntityRows,
+  filterConsolidatedEntityRows,
+  summarizeConsolidatedEntities,
+} from '@/services/consolidationEntityInsights';
 
 function getDefaultPeriod() {
   const now = new Date();
@@ -93,6 +99,7 @@ export default function ConsolidationDashboardPage() {
   const [previousBalance, setPreviousBalance] = useState(null);
   const [previousCash, setPreviousCash] = useState(null);
   const [activeTab, setActiveTab] = useState('pnl');
+  const [entityScope, setEntityScope] = useState('all');
 
   // Load portfolios on mount
   useEffect(() => {
@@ -163,12 +170,74 @@ export default function ConsolidationDashboardPage() {
   const selectedPortfolio = portfolios.find((p) => p.id === selectedPortfolioId);
   const currency = selectedPortfolio?.base_currency || 'EUR';
 
-  const _breakdownData = useMemo(() => {
-    if (activeTab === 'pnl') return consolidatedPnl?.by_company || [];
-    if (activeTab === 'balance') return consolidatedBalance?.by_company || [];
-    if (activeTab === 'cash') return cashPosition?.by_company || [];
-    return [];
-  }, [activeTab, consolidatedPnl, consolidatedBalance, cashPosition]);
+  const entityRows = useMemo(
+    () =>
+      buildConsolidatedEntityRows({
+        pnlByCompany: consolidatedPnl?.by_company || [],
+        balanceByCompany: consolidatedBalance?.by_company || [],
+        cashByCompany: cashPosition?.by_company || [],
+        intercompanyTransactions: intercompanyTransactions || [],
+      }),
+    [consolidatedPnl?.by_company, consolidatedBalance?.by_company, cashPosition?.by_company, intercompanyTransactions]
+  );
+
+  const visibleEntityRows = useMemo(
+    () => filterConsolidatedEntityRows(entityRows, entityScope),
+    [entityRows, entityScope]
+  );
+  const entitySummary = useMemo(() => summarizeConsolidatedEntities(entityRows), [entityRows]);
+  const scopedCompanyIds = useMemo(
+    () => new Set(visibleEntityRows.map((row) => String(row.companyId))),
+    [visibleEntityRows]
+  );
+
+  const filterRowsByScope = useCallback(
+    (rows = []) => {
+      if (entityScope === 'all') return rows;
+      return (rows || []).filter((row, index) => {
+        const companyId = String(
+          row?.company_id ||
+            row?.companyId ||
+            row?.id ||
+            row?.company_name ||
+            row?.companyName ||
+            `company-${index + 1}`
+        );
+        return scopedCompanyIds.has(companyId);
+      });
+    },
+    [entityScope, scopedCompanyIds]
+  );
+
+  const scopedPnlByCompany = useMemo(
+    () => filterRowsByScope(consolidatedPnl?.by_company || []),
+    [consolidatedPnl?.by_company, filterRowsByScope]
+  );
+  const scopedBalanceByCompany = useMemo(
+    () => filterRowsByScope(consolidatedBalance?.by_company || []),
+    [consolidatedBalance?.by_company, filterRowsByScope]
+  );
+  const scopedCashByCompany = useMemo(
+    () => filterRowsByScope(cashPosition?.by_company || []),
+    [cashPosition?.by_company, filterRowsByScope]
+  );
+  const scopedIntercompanyTransactions = useMemo(() => {
+    if (entityScope === 'all') return intercompanyTransactions || [];
+
+    return (intercompanyTransactions || []).filter((transaction) => {
+      const sourceId = String(
+        transaction?.company_id ||
+          transaction?.companyId ||
+          transaction?.source_company_id ||
+          transaction?.source_company?.id ||
+          ''
+      );
+      const targetId = String(
+        transaction?.linked_company_id || transaction?.target_company_id || transaction?.target_company?.id || ''
+      );
+      return scopedCompanyIds.has(sourceId) || scopedCompanyIds.has(targetId);
+    });
+  }, [entityScope, intercompanyTransactions, scopedCompanyIds]);
 
   return (
     <>
@@ -320,11 +389,17 @@ export default function ConsolidationDashboardPage() {
                 >
                   {t('consolidation.tabIntercompany')}
                 </TabsTrigger>
+                <TabsTrigger
+                  value="entities"
+                  className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400"
+                >
+                  {t('consolidation.tabEntities', 'Entites')}
+                </TabsTrigger>
               </TabsList>
 
               {/* P&L Tab */}
               <TabsContent value="pnl" className="space-y-4">
-                <CompanyBreakdownChart data={consolidatedPnl?.by_company || []} mode="pnl" currency={currency} />
+                <CompanyBreakdownChart data={scopedPnlByCompany} mode="pnl" currency={currency} />
                 {consolidatedPnl?.eliminations > 0 && (
                   <Card className="bg-[#0f1528]/80 border-white/10 backdrop-blur-sm">
                     <CardContent className="p-4 flex items-center justify-between">
@@ -339,21 +414,28 @@ export default function ConsolidationDashboardPage() {
 
               {/* Balance Sheet Tab */}
               <TabsContent value="balance" className="space-y-4">
-                <CompanyBreakdownChart
-                  data={consolidatedBalance?.by_company || []}
-                  mode="balance"
-                  currency={currency}
-                />
+                <CompanyBreakdownChart data={scopedBalanceByCompany} mode="balance" currency={currency} />
               </TabsContent>
 
               {/* Cash Tab */}
               <TabsContent value="cash" className="space-y-4">
-                <CompanyBreakdownChart data={cashPosition?.by_company || []} mode="cash" currency={currency} />
+                <CompanyBreakdownChart data={scopedCashByCompany} mode="cash" currency={currency} />
               </TabsContent>
 
               {/* Intercompany Tab */}
               <TabsContent value="intercompany">
-                <IntercompanyTable transactions={intercompanyTransactions} currency={currency} />
+                <IntercompanyTable transactions={scopedIntercompanyTransactions} currency={currency} />
+              </TabsContent>
+
+              {/* Consolidated entities tab */}
+              <TabsContent value="entities">
+                <ConsolidatedEntitiesTable
+                  rows={visibleEntityRows}
+                  scope={entityScope}
+                  summary={entitySummary}
+                  onScopeChange={setEntityScope}
+                  currency={currency}
+                />
               </TabsContent>
             </Tabs>
           </>
