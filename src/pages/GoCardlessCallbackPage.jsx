@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import {
@@ -44,20 +44,14 @@ export default function GoCardlessCallbackPage() {
           setState({
             status: 'error',
             title: t('gocardless.callback.noPending', 'Aucune demande en attente'),
-            subtitle: t(
-              'gocardless.callback.noPendingDesc',
-              'Session expirée ou demande déjà traitée.'
-            ),
+            subtitle: t('gocardless.callback.noPendingDesc', 'Session expirée ou demande déjà traitée.'),
           });
         }
         return;
       }
 
       try {
-        const mandate = await completeMandateSetup(
-          pending.billingRequestId,
-          pending.companyId
-        );
+        const mandate = await completeMandateSetup(pending.billingRequestId, pending.companyId);
         clearPendingBillingRequest();
 
         if (active) {
@@ -71,10 +65,7 @@ export default function GoCardlessCallbackPage() {
 
           setTimeout(() => {
             if (active) {
-              navigate(
-                `${pending.returnPath || '/app/financial-instruments'}?mandate=created`,
-                { replace: true }
-              );
+              navigate(`${pending.returnPath || '/app/financial-instruments'}?mandate=created`, { replace: true });
             }
           }, 1500);
         }
