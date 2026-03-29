@@ -298,7 +298,7 @@ const AccountingIntegration = () => {
                 <h3 className="text-lg font-bold text-white group-hover:text-orange-400">
                   {t('accounting.belgiumPreset')}
                 </h3>
-                <p className="text-sm text-gray-500 mt-2">PCG belge · TVA 21%, 12%, 6%</p>
+                <p className="text-sm text-gray-500 mt-2">PCMN belge · TVA 21%, 12%, 6%</p>
               </button>
               <button
                 onClick={() => initializeForCountry('FR')}

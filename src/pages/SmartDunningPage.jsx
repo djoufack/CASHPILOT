@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useSmartDunning } from '@/hooks/useSmartDunning';
+import { useCompany } from '@/hooks/useCompany';
+import { resolveAccountingCurrency } from '@/services/databaseCurrencyService';
 import DunningPipeline from '@/components/dunning/DunningPipeline';
 import DunningScoreCard from '@/components/dunning/DunningScoreCard';
 import DunningCampaignCard from '@/components/dunning/DunningCampaignCard';
@@ -53,6 +55,9 @@ const SmartDunningPage = () => {
     launchDunning,
     toggleCampaign,
   } = useSmartDunning();
+  // BUG-003 fix: resolve currency dynamically from company data (not hardcoded EUR)
+  const { company } = useCompany();
+  const companyCurrency = resolveAccountingCurrency(company);
 
   const [activeTab, setActiveTab] = useState('pipeline');
   const [showCampaignForm, setShowCampaignForm] = useState(false);
@@ -168,7 +173,7 @@ const SmartDunningPage = () => {
                   <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
                 </span>
               ) : (
-                `${formatMoney(stats.totalOverdue)} EUR`
+                `${formatMoney(stats.totalOverdue)} ${companyCurrency}`
               )}
             </p>
           </div>
@@ -187,7 +192,7 @@ const SmartDunningPage = () => {
                   <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
                 </span>
               ) : (
-                `${formatMoney(stats.recoveredAmount)} EUR`
+                `${formatMoney(stats.recoveredAmount)} ${companyCurrency}`
               )}
             </p>
           </div>

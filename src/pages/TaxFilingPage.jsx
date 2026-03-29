@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
 import { useTaxFiling } from '@/hooks/useTaxFiling';
+import { useAccountingInit } from '@/hooks/useAccountingInit';
 import VatDeclarationForm from '@/components/tax/VatDeclarationForm';
 import CorporateTaxForm from '@/components/tax/CorporateTaxForm';
 import TaxDeclarationHistory from '@/components/tax/TaxDeclarationHistory';
@@ -37,6 +38,7 @@ const TaxFilingPage = () => {
     submitDeclaration,
     refetchDeclarations: _refetchDeclarations,
   } = useTaxFiling();
+  const { country: accountingCountry } = useAccountingInit();
 
   const [activeTab, setActiveTab] = useState('vat');
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -91,6 +93,8 @@ const TaxFilingPage = () => {
   const handleCreateNew = useCallback(async () => {
     const now = new Date();
     const year = now.getFullYear();
+    // BUG-002 fix: use the company's accounting country instead of hardcoded 'FR'
+    const countryCode = accountingCountry || 'FR';
 
     let payload;
     if (newDeclType === 'vat') {
@@ -98,7 +102,7 @@ const TaxFilingPage = () => {
       const quarterStart = new Date(quarterEnd.getFullYear(), quarterEnd.getMonth() - 2, 1);
       payload = {
         declaration_type: 'vat',
-        country_code: 'FR',
+        country_code: countryCode,
         period_start: quarterStart.toISOString().split('T')[0],
         period_end: quarterEnd.toISOString().split('T')[0],
         status: 'draft',
@@ -110,7 +114,7 @@ const TaxFilingPage = () => {
     } else {
       payload = {
         declaration_type: 'corporate_tax',
-        country_code: 'FR',
+        country_code: countryCode,
         period_start: `${year - 1}-01-01`,
         period_end: `${year - 1}-12-31`,
         status: 'draft',
@@ -127,7 +131,7 @@ const TaxFilingPage = () => {
       setActiveTab(newDeclType === 'vat' ? 'vat' : 'corporate');
       setShowNewDialog(false);
     }
-  }, [newDeclType, createDeclaration]);
+  }, [newDeclType, createDeclaration, accountingCountry]);
 
   const handleSelectFromHistory = useCallback((decl) => {
     setSelectedDeclaration(decl);
