@@ -64,6 +64,15 @@ const CreditNotesPage = () => {
   const taxAmount = totalHT * (Number(formData.tax_rate) / 100);
   const totalTTC = totalHT + taxAmount;
 
+  // Resolve form currency from selected client or fallback to EUR
+  const formCurrency = (() => {
+    if (formData.client_id) {
+      const selectedClient = clients.find((c) => c.id === formData.client_id);
+      return selectedClient?.preferred_currency || 'EUR';
+    }
+    return 'EUR';
+  })();
+
   const handleCreate = async () => {
     try {
       await createCreditNote(
@@ -561,17 +570,17 @@ const CreditNotesPage = () => {
               <div className="bg-gray-700/30 p-4 rounded space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">{t('invoices.totalHT')}</span>
-                  <span>{formatCurrency(totalHT, 'EUR')}</span>
+                  <span>{formatCurrency(totalHT, formCurrency)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">
                     {t('invoices.taxAmount')} ({formData.tax_rate}%)
                   </span>
-                  <span>{formatCurrency(taxAmount, 'EUR')}</span>
+                  <span>{formatCurrency(taxAmount, formCurrency)}</span>
                 </div>
                 <div className="flex justify-between text-lg font-bold border-t border-gray-600 pt-2">
                   <span className="text-gradient">{t('invoices.totalTTC')}</span>
-                  <span className="text-gradient">{formatCurrency(totalTTC, 'EUR')}</span>
+                  <span className="text-gradient">{formatCurrency(totalTTC, formCurrency)}</span>
                 </div>
               </div>
 
