@@ -159,13 +159,13 @@ DECLARE
   v_total_ttc NUMERIC;
 BEGIN
   FOR inv IN
-    SELECT *
-    FROM supplier_invoices
-    WHERE payment_status = 'paid'
+    SELECT sinv.*
+    FROM supplier_invoices sinv
+    WHERE sinv.payment_status = 'paid'
       AND NOT EXISTS (
         SELECT 1 FROM accounting_entries ae
         WHERE ae.source_type = 'supplier_invoice_payment'
-          AND ae.source_id = inv.id
+          AND ae.source_id = sinv.id
       )
   LOOP
     v_total_ttc := COALESCE(inv.total_ttc, inv.total_amount, 0);
