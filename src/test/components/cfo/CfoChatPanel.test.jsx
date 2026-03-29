@@ -7,6 +7,14 @@ vi.mock('@/hooks/useCfoChat', () => ({
   useCfoChat: mockUseCfoChat,
 }));
 
+vi.mock('@/i18n/config', () => ({
+  default: {
+    resolvedLanguage: 'fr',
+    language: 'fr',
+    on: vi.fn(),
+  },
+}));
+
 import CfoChatPanel from '@/components/cfo/CfoChatPanel';
 
 describe('CfoChatPanel', () => {
