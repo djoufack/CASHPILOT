@@ -501,7 +501,7 @@ export function useFinancialScenarios() {
       const comparison = simulationEngine.compareScenarios(results1, results2);
 
       // Save comparison to database
-      const { data, error } = await supabase
+      const { _data, error } = await supabase
         .from('scenario_comparisons')
         .insert([{
           ...withCompanyScope({ user_id: user.id }),

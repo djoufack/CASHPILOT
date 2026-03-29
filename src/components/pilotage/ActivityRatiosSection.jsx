@@ -54,7 +54,7 @@ const ActivityRatioCard = ({ label, value, suffix, benchmark, evaluation, info }
   );
 };
 
-const ActivityRatiosSection = ({ data, sector }) => {
+const ActivityRatiosSection = ({ data, _sector }) => {
   const { t } = useTranslation();
 
   const activity = data?.pilotageRatios?.activity;

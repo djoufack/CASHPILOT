@@ -64,7 +64,7 @@ const ScenarioDetail = () => {
     getScenarioWithAssumptions,
     runSimulation,
     getScenarioResults,
-    updateScenario,
+    _updateScenario,
     loading,
   } = useFinancialScenarios();
 

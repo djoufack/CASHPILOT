@@ -21,9 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DollarSign, CreditCard, Banknote, Landmark, Globe, MoreHorizontal } from 'lucide-react';
-import { format } from 'date-fns';
 import { formatDateInput } from '@/utils/dateFormatting';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 
@@ -48,7 +46,7 @@ const PaymentRecorder = ({
   const { t } = useTranslation();
   const paymentMethods = usePaymentMethods();
   const { createPayment, createLumpSumPayment } = usePayments();
-  const { invoices, getPendingInvoicesByClient, fetchInvoices } = useInvoices();
+  const { _invoices, getPendingInvoicesByClient, fetchInvoices } = useInvoices();
 
   const [amount, setAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(formatDateInput());

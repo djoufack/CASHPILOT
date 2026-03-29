@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { motion } from 'framer-motion';
 import { calculateDuration } from '@/utils/calculations';
-import { validateTimeFormat, validateTimeRange } from '@/utils/validation';
+import { validateTimeFormat } from '@/utils/validation';
 import { Clock, Loader2 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { formatDateInput } from '@/utils/dateFormatting';
@@ -33,7 +33,7 @@ const TimesheetForm = ({ onSuccess, onCancel, defaultDate }) => {
   const { toast } = useToast();
   const { services } = useServices();
   const [projectTasks, setProjectTasks] = useState([]);
-  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [_loadingTasks, setLoadingTasks] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({

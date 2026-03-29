@@ -21,7 +21,6 @@ import MarginAnalysisSection from '@/components/accounting/MarginAnalysisSection
 import FinancingAnalysisSection from '@/components/accounting/FinancingAnalysisSection';
 import RatioGauge from '@/components/accounting/RatioGauge';
 import RatioInfoPopover from '@/components/accounting/RatioInfoPopover';
-import PilotageUnavailableState from './PilotageUnavailableState';
 
 const containerVariants = {
   hidden: { opacity: 0 },

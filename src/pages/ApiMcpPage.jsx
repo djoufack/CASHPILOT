@@ -8,7 +8,7 @@ import ConnectionSettings from '@/components/settings/ConnectionSettings';
 import McpServicesCatalog from '@/components/settings/McpServicesCatalog';
 
 const ApiMcpPage = () => {
-  const { t } = useTranslation();
+  const { _t } = useTranslation();
   const [activeTab, setActiveTab] = useState('api');
 
   return (

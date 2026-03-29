@@ -8,7 +8,7 @@ import { useSuppliers } from '@/hooks/useSuppliers';
 import { useProducts } from '@/hooks/useProducts';
 import { useStockAlerts } from '@/hooks/useStockHistory';
 import { useCompany } from '@/hooks/useCompany';
-import { useCreditsGuard, CREDIT_COSTS } from '@/hooks/useCreditsGuard';
+import { useCreditsGuard } from '@/hooks/useCreditsGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePagination } from '@/hooks/usePagination';
 import { useCompanyScope } from '@/hooks/useCompanyScope';
@@ -84,7 +84,7 @@ const PurchasesPage = () => {
   const { products, fetchProducts } = useProducts();
   const { alerts, fetchAlerts } = useStockAlerts();
   const { company } = useCompany();
-  const { guardedAction, modalProps } = useCreditsGuard();
+  const { _guardedAction, modalProps } = useCreditsGuard();
   const { toast } = useToast();
   const { applyCompanyScope, withCompanyScope } = useCompanyScope();
   const companyCurrency = resolveAccountingCurrency(company);

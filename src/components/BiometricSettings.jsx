@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 const BiometricSettings = () => {
   const { isAvailable, register, loading } = useBiometric();
   const [available, setAvailable] = React.useState(false);
-  const { toast } = useToast();
+  const { toast: _toast } = useToast();
 
   React.useEffect(() => {
     isAvailable().then(setAvailable);

@@ -4,7 +4,7 @@ import { formatCurrency, calculateItemDiscount } from '@/utils/calculations';
 import { format } from 'date-fns';
 import {
   EnhancedHeaderNote, EnhancedFooterNote, EnhancedTerms,
-  EnhancedCustomFields, EnhancedShippingTotalRow, EnhancedAdjustmentTotalRow,
+  EnhancedCustomFields,
   hasHsnCodes
 } from './TemplateEnhancedSections';
 

@@ -24,7 +24,7 @@ export const createScradaAdapter = ({ apiKey, password, companyId, baseUrl, useT
      * Send UBL XML via Peppol.
      * POST /v1/company/{companyID}/peppolOutbound/sendSalesInvoice
      */
-    async sendDocument(ublXml, senderEndpoint, receiverEndpoint, documentType = 'invoice') {
+    async sendDocument(ublXml, senderEndpoint, receiverEndpoint, _documentType = 'invoice') {
       const response = await fetch(`${companyUrl}/peppolOutbound/sendSalesInvoice`, {
         method: 'POST',
         headers: { ...authHeaders(), 'Content-Type': 'application/xml' },

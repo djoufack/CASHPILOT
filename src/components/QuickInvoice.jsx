@@ -182,7 +182,7 @@ const QuickInvoice = ({ onSuccess }) => {
     if (!items || items.length === 0) {
       missingFields.push(t('invoices.items', 'Articles'));
     } else {
-      const invalidItems = items.filter((item, i) => !item.description?.trim());
+      const invalidItems = items.filter((item, _i) => !item.description?.trim());
       if (invalidItems.length > 0) missingFields.push(t('invoices.itemDescription', 'Description des articles'));
       const zeroQty = items.filter(item => !item.quantity || Number(item.quantity) <= 0);
       if (zeroQty.length > 0) missingFields.push(t('invoices.itemQuantity', 'Quantite des articles'));

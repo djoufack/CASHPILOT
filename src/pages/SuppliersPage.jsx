@@ -15,7 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Eye, Edit, Trash2, Building2, User, Mail, Phone, MapPin, Globe, CreditCard, FileText } from 'lucide-react';
+import { Plus, Search, Eye, Trash2, Building2, MapPin, CreditCard, FileText } from 'lucide-react';
 import ExportButton from '@/components/ExportButton';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';

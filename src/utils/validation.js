@@ -99,8 +99,8 @@ export const validateTimeRange = (startTime, endTime) => {
   const [startHour, startMin] = startTime.split(':').map(Number);
   const [endHour, endMin] = endTime.split(':').map(Number);
   
-  const startMinutes = startHour * 60 + startMin;
-  const endMinutes = endHour * 60 + endMin;
+  const _startMinutes = startHour * 60 + startMin;
+  const _endMinutes = endHour * 60 + endMin;
   
   // Allow overnight shifts
   return true;

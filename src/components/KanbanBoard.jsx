@@ -10,7 +10,6 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -19,8 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useTaskStatus } from '@/hooks/useTaskStatus';
 import TaskCard from './TaskCard';
-import { Loader2, Plus, GripVertical } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { GripVertical } from 'lucide-react';
 
 const COLUMNS = [
   { id: 'pending', title: 'Pending', color: 'bg-gray-500/20 text-gray-400' },

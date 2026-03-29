@@ -78,7 +78,7 @@ export function useEmbeddedBanking() {
     syncConnection,
     disconnectBank,
     refresh,
-    yapilyHealth,
+    _yapilyHealth,
   } = useBankConnections();
 
   const [providers, setProviders] = useState([]);

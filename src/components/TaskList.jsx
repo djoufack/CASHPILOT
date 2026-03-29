@@ -1,7 +1,6 @@
 
 import TaskCard from './TaskCard';
-import { Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 
 const TaskList = ({ tasks, loading, onEdit, onDelete, onStatusChange, onOpenTask }) => {
   if (loading && tasks.length === 0) {

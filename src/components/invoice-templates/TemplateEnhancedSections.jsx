@@ -89,8 +89,8 @@ export const EnhancedAdjustmentTotalRow = ({ invoice, currency, theme, style }) 
 // Compute grand total (call in each template)
 export const getGrandTotal = (invoice) => {
   const ttc = Number(invoice.total_ttc || invoice.total || 0);
-  const shipping = Number(invoice.shipping_fee || 0);
-  const adj = Number(invoice.adjustment || 0);
+  const _shipping = Number(invoice.shipping_fee || 0);
+  const _adj = Number(invoice.adjustment || 0);
   // If the total_ttc already includes shipping/adjustment (set at creation), just use it
   // Otherwise if stored separately, add them
   return ttc;

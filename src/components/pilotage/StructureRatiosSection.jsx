@@ -2,7 +2,7 @@
 import { useTranslation } from 'react-i18next';
 import RatioGauge from '@/components/accounting/RatioGauge';
 
-const StructureRatiosSection = ({ data, sector }) => {
+const StructureRatiosSection = ({ data, _sector }) => {
   const { t } = useTranslation();
 
   const structure = data?.pilotageRatios?.structure;

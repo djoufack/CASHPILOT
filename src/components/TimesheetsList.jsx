@@ -6,16 +6,12 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CalendarDays,
-  Briefcase,
   CheckSquare,
   Clock,
-  DollarSign,
   Edit,
   FileText,
   Loader2,
   Square,
-  Trash2,
-  User,
 } from 'lucide-react';
 import TimesheetEditModal from './TimesheetEditModal';
 
@@ -26,7 +22,7 @@ const STATUS_COLORS = {
   invoiced: 'bg-purple-500/20 text-purple-400 border-purple-600',
 };
 
-const TimesheetsList = ({ timesheets, loading, onEdit, onDelete, onGenerateInvoice }) => {
+const TimesheetsList = ({ timesheets, loading, onEdit: _onEdit, onDelete: _onDelete, onGenerateInvoice }) => {
   const { t, i18n } = useTranslation();
   const [selectedTimesheet, setSelectedTimesheet] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

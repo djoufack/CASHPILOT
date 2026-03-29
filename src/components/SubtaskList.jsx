@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSubtasks } from '@/hooks/useSubtasks';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Loader2, Plus, GripVertical } from 'lucide-react';
+import { Trash2, Loader2, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 

@@ -18,7 +18,7 @@ const CreditsPurchase = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { credits, availableCredits, packages, transactions, fetchTransactions, loading, unlimitedAccess, unlimitedAccessLabel } = useCredits();
+  const { credits, availableCredits, packages, transactions, fetchTransactions, _loading, unlimitedAccess, unlimitedAccessLabel } = useCredits();
   const { currentPlan, subscriptionStatus, subscriptionCredits, currentPeriodEnd } = useSubscription();
   const { toast } = useToast();
   const [purchasing, setPurchasing] = useState(null);

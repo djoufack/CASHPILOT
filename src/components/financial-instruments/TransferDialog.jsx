@@ -59,7 +59,7 @@ export function TransferDialog({ open, onOpenChange, instruments = [], onSubmit 
   };
 
   const fromInstrument = activeInstruments.find((i) => i.id === form.from_instrument_id);
-  const toInstrument = activeInstruments.find((i) => i.id === form.to_instrument_id);
+  const _toInstrument = activeInstruments.find((i) => i.id === form.to_instrument_id);
   const isValid =
     form.from_instrument_id &&
     form.to_instrument_id &&

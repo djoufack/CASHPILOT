@@ -280,7 +280,7 @@ export function getReconciliationSummary(lines = []) {
  * Returns candidates sorted by score.
  */
 export function searchMatches(bankLine, transactions, options = {}) {
-  const { amountTolerance = 0.1, dateTolerance = 7, textFilter = '' } = options;
+  const { _amountTolerance = 0.1, _dateTolerance = 7, textFilter = '' } = options;
 
   let candidates = transactions;
 

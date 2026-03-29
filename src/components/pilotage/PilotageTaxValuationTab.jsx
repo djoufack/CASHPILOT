@@ -5,7 +5,6 @@ import TaxSynthesisCard from './TaxSynthesisCard';
 import ValuationCard from './ValuationCard';
 import WACCSensitivityChart from './WACCSensitivityChart';
 import SectorBenchmark from './SectorBenchmark';
-import PilotageUnavailableState from './PilotageUnavailableState';
 
 const containerVariants = {
   hidden: { opacity: 0 },

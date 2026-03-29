@@ -1,6 +1,5 @@
 
 import { useMemo } from 'react';
-import { differenceInDays, parseISO } from 'date-fns';
 
 export const useProjectStatistics = (tasks = []) => {
   return useMemo(() => {

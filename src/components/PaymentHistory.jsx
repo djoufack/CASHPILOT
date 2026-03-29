@@ -4,7 +4,7 @@ import { usePayments } from '@/hooks/usePayments';
 import { useClients } from '@/hooks/useClients';
 import { formatCurrency } from '@/utils/calculations';
 import { Button } from '@/components/ui/button';
-import { Trash2, Receipt, Eye } from 'lucide-react';
+import { Trash2, Receipt } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   Dialog,

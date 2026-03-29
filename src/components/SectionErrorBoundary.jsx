@@ -6,7 +6,7 @@ import { captureError } from '@/services/errorTracking';
  * Inline fallback UI for a section-level error.
  * Compact card styled with dark glassmorphism, matching the app theme.
  */
-function SectionErrorFallback({ error, section, onRetry, fallback }) {
+function SectionErrorFallback({ error: _error, section, onRetry, fallback }) {
   const { t } = useTranslation();
 
   if (fallback) return fallback;

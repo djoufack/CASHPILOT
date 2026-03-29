@@ -286,7 +286,7 @@ export class FinancialSimulationEngine {
   /**
    * Calculate all financial metrics for current state
    */
-  calculateMetrics(state, currentDate) {
+  calculateMetrics(state, _currentDate) {
     const monthlyRevenue = state.monthlyRevenue || 0;
     const monthlyVariableExpenses = this.calculateMonthlyVariableExpenses(state);
     const monthlyExpenses =

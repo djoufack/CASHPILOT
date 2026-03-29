@@ -127,7 +127,7 @@ export const useSupplierOrders = () => {
         updatePayload.commitment_date = new Date().toISOString();
       }
 
-      const { data, error } = await supabase
+      const { _data, error } = await supabase
         .from('supplier_orders')
         .update(updatePayload)
         .eq('id', id)
@@ -137,6 +137,7 @@ export const useSupplierOrders = () => {
       if (error) throw error;
 
       if (isCommitment) {
+        // eslint-disable-next-line no-console
         console.info(`Supplier order ${id} marked as financial commitment (status: ${status})`);
       }
 

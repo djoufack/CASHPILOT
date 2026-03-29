@@ -87,7 +87,7 @@ const FinancialInstrumentsPage = () => {
     setEditingInstrument(null);
   };
 
-  const handleTransferSubmit = async (transferData) => {
+  const handleTransferSubmit = async (_transferData) => {
     // Transfer is a debit on source + credit on destination via createInstrument-level logic
     // For now we delegate to the hook's transfer method or handle inline
     setTransferOpen(false);

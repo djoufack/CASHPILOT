@@ -48,7 +48,7 @@ export const checkSupabaseConnection = async () => {
     // Attempt a lightweight query to check connectivity
     // Using 'count' on a public table or just checking health if possible
     // We use 'profiles' as it's a core table, but handle RLS errors as "connected"
-    const { data, error, status, statusText } = await supabase
+    const { _data, error, status, statusText } = await supabase
       .from('profiles')
       .select('count', { count: 'exact', head: true });
 

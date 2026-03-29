@@ -2,7 +2,7 @@
 import { useTranslation } from 'react-i18next';
 import { useBackupSettings } from '@/hooks/useBackupSettings';
 import { Button } from '@/components/ui/button';
-import { HardDrive, Cloud, Download, RefreshCw, CheckCircle, XCircle, Clock, Unplug } from 'lucide-react';
+import { HardDrive, Cloud, Download, RefreshCw, CheckCircle, XCircle, Unplug } from 'lucide-react';
 import { format } from 'date-fns';
 
 const PROVIDERS = [

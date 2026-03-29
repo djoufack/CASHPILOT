@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 const ProjectStatistics = ({ tasks }) => {
   const stats = useProjectStatistics(tasks);
   
-  const COLORS = ['#10b981', '#3b82f6', '#9ca3af']; // Completed, In Progress, Pending
+  const _COLORS = ['#10b981', '#3b82f6', '#9ca3af']; // Completed, In Progress, Pending
 
   if (!tasks) return <div className="p-8 text-center"><Loader2 className="animate-spin mx-auto" /></div>;
 

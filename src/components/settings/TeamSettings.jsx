@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import ResponsiveTable from '@/components/ui/ResponsiveTable';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Trash2, UserPlus, Shield, Mail } from 'lucide-react';
+import { Trash2, UserPlus, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 
