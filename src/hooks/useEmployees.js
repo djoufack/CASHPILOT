@@ -61,9 +61,9 @@ export function useEmployees() {
       setEmployees(employeesResult.data || []);
       setDepartments(departmentsResult.data || []);
     } catch (err) {
-      setError(err.message || 'Impossible de charger les employÃ©s');
+      setError(err.message || 'Impossible de charger les employés');
       toast({
-        title: 'Erreur EmployÃ©s',
+        title: 'Erreur Employés',
         description: err.message || 'Chargement impossible pour le moment.',
         variant: 'destructive',
       });

@@ -194,7 +194,7 @@ const Dashboard = () => {
   const { company } = useCompany();
   const { expenses, fetchExpenses, loading: expensesLoading } = useExpenses();
   const [cfGranularity, setCfGranularity] = useState('month');
-  const { cashFlowData, loading: cashFlowLoading } = useCashFlow(6, cfGranularity);
+  const { cashFlowData, summary: cashFlowSummary, loading: cashFlowLoading } = useCashFlow(6, cfGranularity);
   const { guardedAction, modalProps } = useCreditsGuard();
   const companyCurrency = resolveAccountingCurrency(company);
   const dashboardRoleConfig = DASHBOARD_ROLE_VIEWS[dashboardRoleView] || DASHBOARD_ROLE_VIEWS.dg;
@@ -247,7 +247,7 @@ const Dashboard = () => {
   }, [user]);
 
   const {
-    metrics,
+    metrics: _metrics,
     revenueData,
     clientRevenueData,
     revenueByType,
@@ -293,6 +293,16 @@ const Dashboard = () => {
       recentTimesheets: [...timesheets].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5),
     };
   }, [invoices, timesheets, projects, expenses]);
+
+  // Override netCashFlow with the accounting-entries-based value from useCashFlow
+  // so the dashboard KPI is coherent with CashFlowPage (same data source, same period).
+  const metrics = useMemo(
+    () => ({
+      ..._metrics,
+      netCashFlow: cashFlowSummary?.net ?? _metrics.netCashFlow,
+    }),
+    [_metrics, cashFlowSummary]
+  );
 
   const handleExportPDF = () => {
     guardedAction(CREDIT_COSTS.PDF_REPORT, 'Dashboard Report PDF', async () => {
@@ -487,12 +497,12 @@ const Dashboard = () => {
       },
       profitMargin: {
         title: t('dashboard.profitMargin'),
-        definition: 'Part du chiffre d’affaires conservée après prise en compte des dépenses.',
-        dataSource: 'Même snapshot canonique que le chiffre d’affaires et les dépenses.',
-        formula: '(Chiffre d’affaires - Dépenses totales) / Chiffre d’affaires × 100',
+        definition: "Part du chiffre d'affaires conservée après prise en compte des dépenses.",
+        dataSource: "Même snapshot canonique que le chiffre d'affaires et les dépenses.",
+        formula: "(Chiffre d'affaires - Dépenses totales) / Chiffre d'affaires × 100",
         calculationMethod:
           'Calcule le revenu total et les dépenses totales, puis applique `calculateProfitMargin()` sur ces deux agrégats.',
-        notes: 'Le résultat est arrondi à l’unité pour l’affichage du KPI.',
+        notes: "Le résultat est arrondi à l'unité pour l'affichage du KPI.",
       },
       occupancyRate: {
         title: t('dashboard.occupancyRate'),
@@ -502,7 +512,7 @@ const Dashboard = () => {
         calculationMethod:
           'Additionne `timesheets.duration_minutes`, convertit les budgets projet en minutes via `budget_hours × 60`, puis calcule le ratio.',
         notes:
-          'Si aucun budget n’est disponible mais des temps existent, le snapshot canonique peut afficher 100% lorsqu’au moins un projet existe.',
+          "Si aucun budget n'est disponible mais des temps existent, le snapshot canonique peut afficher 100% lorsqu'au moins un projet existe.",
       },
       productRevenue: {
         title: t('dashboard.productRevenue'),
@@ -529,11 +539,12 @@ const Dashboard = () => {
       },
       netCashFlow: {
         title: t('dashboard.netCashFlow'),
-        definition: 'Solde net généré par l’activité sur la période.',
-        dataSource: 'Revenu total et dépenses totales du snapshot canonique.',
-        formula: 'Chiffre d’affaires - Dépenses totales',
+        definition: 'Solde net de trésorerie sur les 6 derniers mois (encaissements - décaissements).',
+        dataSource:
+          'Hook `useCashFlow(6)` — écritures comptables sur comptes de trésorerie (classe 5 / banque / caisse).',
+        formula: 'Net Cash Flow = Somme(encaissements) - Somme(décaissements) sur 6 mois',
         calculationMethod:
-          'Reprend le revenu total calculé à partir des factures facturables, soustrait les dépenses totales et affiche le résultat brut.',
+          'Agrège les mouvements nets sur les comptes de trésorerie via `accounting_entries` filtrés par société et période. Identique à la valeur affichée dans la page Cash Flow.',
       },
       revenueBreakdown: {
         title: t('dashboard.revenueBreakdown'),
@@ -541,7 +552,7 @@ const Dashboard = () => {
         dataSource: 'Factures facturables et leurs lignes, consolidées dans `revenueBreakdownData`.',
         formula: 'Pour chaque mois, somme des montants des lignes produits, services et autres.',
         calculationMethod:
-          'Regroupe les factures par mois puis calcule chaque ligne avec `item.total` ou `quantity × unit_price`, avant d’agréger par catégorie.',
+          "Regroupe les factures par mois puis calcule chaque ligne avec `item.total` ou `quantity × unit_price`, avant d'agréger par catégorie.",
         notes: 'Le graphique affiche la ventilation mensuelle et non un cumul global.',
       },
       revenueOverview: {
@@ -572,7 +583,7 @@ const Dashboard = () => {
         definition: 'Raccourcis opérationnels vers les actions principales du dashboard.',
         dataSource: 'Configuration locale `quickActions` (routes applicatives).',
         formula: 'Sans formule.',
-        calculationMethod: 'Affiche une carte d’action par entrée définie dans `quickActions`.',
+        calculationMethod: "Affiche une carte d'action par entrée définie dans `quickActions`.",
       },
       recentInvoices: {
         title: t('dashboard.recentInvoices'),
