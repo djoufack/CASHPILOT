@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">6.66% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>1/15</span>
+                <span class='fraction'>15/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">62.5% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/120</span>
+                <span class='fraction'>75/120</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">7.14% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>1/14</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -260,19 +260,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">110x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -350,10 +350,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -447,20 +447,20 @@ import {
   hasHsnCodes
 } from './TemplateEnhancedSections';
 &nbsp;
-const BoldTemplate = React.memo(<span class="fstat-no" title="function not covered" >({</span> invoice, client, items, company, theme, settings }) =&gt; {
-  const { t <span class="cstat-no" title="statement not covered" >} = useTranslation();</span>
-  const getLabel = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(k</span>ey, def) =&gt; <span class="cstat-no" title="statement not covered" >settings?.custom_labels?.[key] || def;</span></span>
+const BoldTemplate = React.memo(({ invoice, client, items, company, theme, settings }) =&gt; {
+  const { t } = useTranslation();
+  const getLabel = (key, def) =&gt; settings?.custom_labels?.[key] || def;
 &nbsp;
-  const hasItemDiscounts = <span class="cstat-no" title="statement not covered" >items?.some(<span class="fstat-no" title="function not covered" >item =&gt;</span></span>
-<span class="cstat-no" title="statement not covered" >    item.discount_type &amp;&amp; item.discount_type !== 'none' &amp;&amp; Number(item.discount_value) &gt; 0</span>
+  const hasItemDiscounts = items?.some(item =&gt;
+    item.discount_type &amp;&amp; item.discount_type !== 'none' &amp;&amp; Number(item.discount_value) &gt; 0
   );
-  const hasGlobalDiscount = <span class="cstat-no" title="statement not covered" >invoice.discount_type &amp;&amp; invoice.discount_type !== 'none' &amp;&amp; Number(invoice.discount_amount) &gt; 0;</span>
-  const hasPayments = <span class="cstat-no" title="statement not covered" >Number(invoice.amount_paid) &gt; 0;</span>
-  const currency = <span class="cstat-no" title="statement not covered" >client?.preferredCurrency || client?.preferred_currency || 'EUR';</span>
-  const <span class="cstat-no" title="statement not covered" >showHsn = hasHsnCodes(items);</span>
+  const hasGlobalDiscount = invoice.discount_type &amp;&amp; invoice.discount_type !== 'none' &amp;&amp; Number(invoice.discount_amount) &gt; 0;
+  const hasPayments = Number(invoice.amount_paid) &gt; 0;
+  const currency = client?.preferredCurrency || client?.preferred_currency || <span class="branch-2 cbranch-no" title="branch not covered" >'EUR';</span>
+  const showHsn = hasHsnCodes(items);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  return (</span>
-    &lt;div className="bg-white text-black" style={{ fontFamily: settings?.font_family || 'Inter', color: theme.text }}&gt;
+  return (
+    &lt;div className="bg-white text-black" style={{ fontFamily: settings?.font_family || <span class="branch-1 cbranch-no" title="branch not covered" >'Inter', c</span>olor: theme.text }}&gt;
       {/* Bold colored header */}
       &lt;div className="p-8 md:p-10" style={{ backgroundColor: theme.primary, color: 'white' }}&gt;
         &lt;div className="flex flex-col sm:flex-row justify-between items-start gap-4"&gt;
@@ -475,15 +475,15 @@ const BoldTemplate = React.memo(<span class="fstat-no" title="function not cover
             &lt;/div&gt;
             &lt;div className="text-sm opacity-80 mt-2"&gt;
               {company?.address &amp;&amp; &lt;span&gt;{company.address} | &lt;/span&gt;}
-              {company?.email &amp;&amp; &lt;span&gt;{company.email} | &lt;/span&gt;}
-              {company?.phone &amp;&amp; &lt;span&gt;{company.phone}&lt;/span&gt;}
+              {company?.email &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;span&gt;{company.email} | &lt;/span&gt;}</span>
+              {company?.phone &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;span&gt;{company.phone}&lt;/span&gt;}</span>
             &lt;/div&gt;
           &lt;/div&gt;
           &lt;div className="text-right"&gt;
             &lt;p className="text-5xl font-black"&gt;{getLabel('invoiceTitle', 'INVOICE')}&lt;/p&gt;
-            &lt;p className="text-lg mt-2 font-mono opacity-80"&gt;{invoice.invoice_number || invoice.invoiceNumber}&lt;/p&gt;
+            &lt;p className="text-lg mt-2 font-mono opacity-80"&gt;{invoice.invoice_number || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.invoiceNumber}&lt;</span>/p&gt;
             {invoice.reference &amp;&amp; (
-              &lt;p className="text-sm mt-1 opacity-70"&gt;Ref: {invoice.reference}&lt;/p&gt;
+<span class="branch-1 cbranch-no" title="branch not covered" >              &lt;p className="text-sm mt-1 opacity-70"&gt;Ref: {invoice.reference}&lt;/p&gt;</span>
             )}
           &lt;/div&gt;
         &lt;/div&gt;
@@ -492,14 +492,14 @@ const BoldTemplate = React.memo(<span class="fstat-no" title="function not cover
       {/* Status + dates bar */}
       &lt;div className="flex flex-wrap gap-4 items-center justify-between px-8 py-4" style={{ backgroundColor: theme.accent, color: 'white' }}&gt;
         &lt;div className="flex gap-4 text-sm font-semibold"&gt;
-          &lt;span&gt;{getLabel('issueDate', t('invoices.issueDate'))}: {invoice.date || invoice.issueDate ? format(new Date(invoice.date || invoice.issueDate), 'MMM dd, yyyy') : '-'}&lt;/span&gt;
+          &lt;span&gt;{getLabel('issueDate', t('invoices.issueDate'))}: {invoice.date || invoice.<span class="branch-0 cbranch-no" title="branch not covered" >issueDate ? format(new Date(invoice.date || invoice.issueDate), 'MMM dd, yyyy') : '</span>-'}&lt;/span&gt;
           &lt;span&gt;|&lt;/span&gt;
-          &lt;span&gt;{getLabel('dueDate', t('invoices.dueDate'))}: {invoice.due_date || invoice.dueDate ? format(new Date(invoice.due_date || invoice.dueDate), 'MMM dd, yyyy') : '-'}&lt;/span&gt;
+          &lt;span&gt;{getLabel('dueDate', t('invoices.dueDate'))}: {invoice.due_date || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.dueDate ? f</span>ormat(new Date(invoice.due_date || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.dueDate)</span>, 'MMM dd, yyyy') : <span class="branch-1 cbranch-no" title="branch not covered" >'-'}&lt;</span>/span&gt;
         &lt;/div&gt;
         &lt;div className="flex gap-2"&gt;
           &lt;span className="px-3 py-1 rounded-full text-xs font-bold bg-white/20"&gt;{t(`status.${invoice.status}`)}&lt;/span&gt;
-          {invoice.payment_status &amp;&amp; invoice.payment_status !== 'unpaid' &amp;&amp; (
-            &lt;span className="px-3 py-1 rounded-full text-xs font-bold bg-white/20"&gt;{t(`payments.${invoice.payment_status}`)}&lt;/span&gt;
+          {invoice.payment_status &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >invoice.payment_status !== 'unpaid' &amp;&amp; (</span>
+<span class="branch-2 cbranch-no" title="branch not covered" >            &lt;span className="px-3 py-1 rounded-full text-xs font-bold bg-white/20"&gt;{t(`payments.${invoice.payment_status}`)}&lt;/span&gt;</span>
           )}
         &lt;/div&gt;
       &lt;/div&gt;
@@ -514,8 +514,8 @@ const BoldTemplate = React.memo(<span class="fstat-no" title="function not cover
           &lt;p className="text-xl font-bold"&gt;{client?.companyName || client?.company_name}&lt;/p&gt;
           &lt;p&gt;{client?.contactName || client?.contact_name}&lt;/p&gt;
           &lt;p className="whitespace-pre-line text-sm mt-1" style={{ color: theme.textLight }}&gt;{client?.address}&lt;/p&gt;
-          {(client?.postal_code || client?.city) &amp;&amp; &lt;p className="text-sm" style={{ color: theme.textLight }}&gt;{client?.postal_code} {client?.city}&lt;/p&gt;}
-          {(client?.vatNumber || client?.vat_number) &amp;&amp; &lt;p className="text-sm mt-1"&gt;TVA: {client.vatNumber || client.vat_number}&lt;/p&gt;}
+          {(client?.postal_code || <span class="branch-1 cbranch-no" title="branch not covered" >client?.city) &amp;&amp; &lt;</span>p className="text-sm" style={{ color: theme.textLight }}&gt;{client?.postal_code} {client?.city}&lt;/p&gt;}
+          {(client?.vatNumber || client?.vat_number) &amp;&amp; <span class="branch-2 cbranch-no" title="branch not covered" >&lt;p className="text-sm mt-1"&gt;TVA: {client.vatNumber || client.vat_number}&lt;/p&gt;}</span>
           &lt;p className="text-sm"&gt;{client?.email}&lt;/p&gt;
         &lt;/div&gt;
 &nbsp;
@@ -536,16 +536,16 @@ const BoldTemplate = React.memo(<span class="fstat-no" title="function not cover
               &lt;/tr&gt;
             &lt;/thead&gt;
             &lt;tbody&gt;
-              {items?.map(<span class="fstat-no" title="function not covered" >(i</span>tem, index) =&gt; {
-                const lineTotal = <span class="cstat-no" title="statement not covered" >Number(item.quantity) * Number(item.unit_price || item.unitPrice || 0);</span>
-                const <span class="cstat-no" title="statement not covered" >itemDiscount = calculateItemDiscount(item);</span>
-                const netAmount = <span class="cstat-no" title="statement not covered" >lineTotal - itemDiscount;</span>
-<span class="cstat-no" title="statement not covered" >                return (</span>
+              {items?.map((item, index) =&gt; {
+                const lineTotal = Number(item.quantity) * Number(item.unit_price || <span class="branch-1 cbranch-no" title="branch not covered" >item.unitPrice || <span class="branch-2 cbranch-no" title="branch not covered" >0</span>)</span>;
+                const itemDiscount = calculateItemDiscount(item);
+                const netAmount = lineTotal - itemDiscount;
+                return (
                   &lt;tr key={index} style={{ borderBottom: `1px solid ${theme.border}` }}&gt;
                     &lt;td className="py-4 px-4 font-medium"&gt;{item.description}&lt;/td&gt;
-                    {showHsn &amp;&amp; &lt;td className="py-4 px-4 text-xs" style={{ color: theme.textLight }}&gt;{item.hsn_code || ''}&lt;/td&gt;}
+                    {showHsn &amp;&amp; &lt;td className="py-4 px-4 text-xs" style={{ color: theme.textLight }}&gt;{item.hsn_code || <span class="branch-1 cbranch-no" title="branch not covered" >''}&lt;</span>/td&gt;}
                     &lt;td className="text-right py-4 px-4"&gt;{Number(item.quantity).toFixed(2)}&lt;/td&gt;
-                    &lt;td className="text-right py-4 px-4"&gt;{formatCurrency(Number(item.unit_price || item.unitPrice || 0), currency)}&lt;/td&gt;
+                    &lt;td className="text-right py-4 px-4"&gt;{formatCurrency(Number(item.unit_price || <span class="branch-1 cbranch-no" title="branch not covered" >item.unitPrice || <span class="branch-2 cbranch-no" title="branch not covered" >0</span>)</span>, currency)}&lt;/td&gt;
                     {hasItemDiscounts &amp;&amp; (
                       &lt;td className="text-right py-4 px-4" style={{ color: theme.accent }}&gt;
                         {itemDiscount &gt; 0 ? `-${formatCurrency(itemDiscount, currency)}` : '-'}
@@ -563,18 +563,18 @@ const BoldTemplate = React.memo(<span class="fstat-no" title="function not cover
         &lt;div className="flex justify-end mb-8"&gt;
           &lt;div className="w-80"&gt;
             &lt;div className="space-y-2 mb-3"&gt;
-              &lt;div className="flex justify-between py-1"&gt;&lt;span style={{ color: theme.textLight }}&gt;{getLabel('totalHT', t('invoices.totalHT'))}&lt;/span&gt;&lt;span className="font-semibold"&gt;{formatCurrency(Number(invoice.total_ht || invoice.subtotal || 0), currency)}&lt;/span&gt;&lt;/div&gt;
+              &lt;div className="flex justify-between py-1"&gt;&lt;span style={{ color: theme.textLight }}&gt;{getLabel('totalHT', t('invoices.totalHT'))}&lt;/span&gt;&lt;span className="font-semibold"&gt;{formatCurrency(Number(invoice.total_ht || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.subtotal || <span class="branch-2 cbranch-no" title="branch not covered" >0</span>)</span>, currency)}&lt;/span&gt;&lt;/div&gt;
               {hasGlobalDiscount &amp;&amp; (
                 &lt;div className="flex justify-between py-1" style={{ color: theme.accent }}&gt;&lt;span&gt;Discount&lt;/span&gt;&lt;span&gt;-{formatCurrency(Number(invoice.discount_amount), currency)}&lt;/span&gt;&lt;/div&gt;
               )}
-              &lt;div className="flex justify-between py-1"&gt;&lt;span style={{ color: theme.textLight }}&gt;Tax ({Number(invoice.tax_rate || invoice.taxRate || 0)}%)&lt;/span&gt;&lt;span&gt;{formatCurrency(Number(invoice.total_ttc || invoice.total || 0) - Number(invoice.total_ht || invoice.subtotal || 0) - Number(invoice.shipping_fee || 0) - Number(invoice.adjustment || 0), currency)}&lt;/span&gt;&lt;/div&gt;
+              &lt;div className="flex justify-between py-1"&gt;&lt;span style={{ color: theme.textLight }}&gt;Tax ({Number(invoice.tax_rate || invoice.taxRate || 0)}%)&lt;/span&gt;&lt;span&gt;{formatCurrency(Number(invoice.total_ttc || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.total || <span class="branch-2 cbranch-no" title="branch not covered" >0</span>)</span> - Number(invoice.total_ht || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.subtotal || <span class="branch-2 cbranch-no" title="branch not covered" >0</span>)</span> - Number(invoice.shipping_fee || 0) - Number(invoice.adjustment || 0), currency)}&lt;/span&gt;&lt;/div&gt;
               &lt;EnhancedShippingTotalRow invoice={invoice} currency={currency} theme={theme} /&gt;
               &lt;EnhancedAdjustmentTotalRow invoice={invoice} currency={currency} theme={theme} /&gt;
             &lt;/div&gt;
             &lt;div className="p-4 rounded-lg" style={{ backgroundColor: theme.primary, color: 'white' }}&gt;
               &lt;div className="flex justify-between text-2xl font-black"&gt;
                 &lt;span&gt;{getLabel('totalTTC', 'TOTAL')}&lt;/span&gt;
-                &lt;span&gt;{formatCurrency(Number(invoice.total_ttc || invoice.total || 0), currency)}&lt;/span&gt;
+                &lt;span&gt;{formatCurrency(Number(invoice.total_ttc || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.total || <span class="branch-2 cbranch-no" title="branch not covered" >0</span>)</span>, currency)}&lt;/span&gt;
               &lt;/div&gt;
             &lt;/div&gt;
             {hasPayments &amp;&amp; (
@@ -582,7 +582,7 @@ const BoldTemplate = React.memo(<span class="fstat-no" title="function not cover
                 &lt;div className="flex justify-between text-green-600"&gt;&lt;span&gt;{t('payments.amountPaid')}&lt;/span&gt;&lt;span&gt;-{formatCurrency(Number(invoice.amount_paid), currency)}&lt;/span&gt;&lt;/div&gt;
                 &lt;div className="flex justify-between font-bold text-lg p-3 rounded" style={{ backgroundColor: theme.secondary }}&gt;
                   &lt;span&gt;{t('payments.balanceDue')}&lt;/span&gt;
-                  &lt;span style={{ color: Number(invoice.balance_due) &gt; 0 ? '#dc2626' : '#16a34a' }}&gt;{formatCurrency(Number(invoice.balance_due || 0), currency)}&lt;/span&gt;
+                  &lt;span style={{ color: Number(invoice.balance_due) &gt; 0 ? <span class="branch-0 cbranch-no" title="branch not covered" >'#dc2626' : '</span>#16a34a' }}&gt;{formatCurrency(Number(invoice.balance_due || 0), currency)}&lt;/span&gt;
                 &lt;/div&gt;
               &lt;/div&gt;
             )}
@@ -604,8 +604,8 @@ const BoldTemplate = React.memo(<span class="fstat-no" title="function not cover
         &lt;EnhancedFooterNote invoice={invoice} theme={theme} className="mb-6" /&gt;
 &nbsp;
         {/* Bank */}
-        {settings?.show_bank_details &amp;&amp; company &amp;&amp; (company.iban || company.bank_name) &amp;&amp; (
-          &lt;div className="text-xs mb-6" style={{ color: theme.textLight }}&gt;
+        {settings?.show_bank_details &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >company &amp;&amp; (<span class="branch-2 cbranch-no" title="branch not covered" >c</span>ompany.iban || <span class="branch-3 cbranch-no" title="branch not covered" >c</span>ompany.bank_name) &amp;&amp; (</span>
+<span class="branch-4 cbranch-no" title="branch not covered" >          &lt;div className="text-xs mb-6" style={{ color: theme.textLight }}&gt;</span>
             &lt;p className="font-bold mb-1" style={{ color: theme.primary }}&gt;{getLabel('bankDetails', 'Coordonnées bancaires')}&lt;/p&gt;
             {company.bank_name &amp;&amp; &lt;span&gt;Banque: {company.bank_name} &lt;/span&gt;}
             {company.iban &amp;&amp; &lt;span&gt;| IBAN: {company.iban} &lt;/span&gt;}
@@ -616,7 +616,7 @@ const BoldTemplate = React.memo(<span class="fstat-no" title="function not cover
         {/* Footer */}
         &lt;div className="text-center text-xs pt-4" style={{ borderTop: `3px solid ${theme.accent}`, color: theme.textLight }}&gt;
           &lt;p className="font-bold" style={{ color: theme.primary }}&gt;{settings?.footer_text || company?.company_name || t('app.name')}&lt;/p&gt;
-          {company?.registration_number &amp;&amp; &lt;p className="mt-1"&gt;SIRET: {company.registration_number} {company.tax_id ? `| TVA: ${company.tax_id}` : ''}&lt;/p&gt;}
+          {company?.registration_number &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;p className="mt-1"&gt;SIRET: {company.registration_number} {company.tax_id ? `| TVA: ${company.tax_id}` : ''}&lt;/p&gt;}</span>
         &lt;/div&gt;
       &lt;/div&gt;
     &lt;/div&gt;
@@ -631,7 +631,7 @@ export default BoldTemplate;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-03-29T23:05:22.111Z
+                at 2026-03-29T23:56:44.229Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

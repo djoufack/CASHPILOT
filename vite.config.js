@@ -20,20 +20,24 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    // Acknowledged large chunks (all lazy-loaded on demand):
-    //   exceljs (~936kB) — dynamic import, only on export actions
-    //   three  (~492kB)  — LandingPage 3D animation only
-    //   gsap   (~varies) — LandingPage animations only
-    //   i18n   (~628kB)  — translations, loaded once at startup
-    //   jspdf  (~385kB)  — PDF export, dynamic import
-    chunkSizeWarningLimit: 1000,
+    // Large chunks that are genuinely lazy-loaded (only on user action):
+    //   exceljs (~936kB) — dynamic import() inside export handlers only
+    //   xlsx    (~487kB) — dynamic import() for spreadsheet parsing only
+    //   three   (~480kB) — LandingPage 3D animation, code-split route
+    //   pdf-lib (~424kB) — PDF export, dynamic import
+    //   pdfViewer (~398kB) — PDF viewer, code-split route
+    //   jspdf   (~376kB) — PDF export, dynamic import
+    // i18n locales (~235KB each) are now properly lazy-split chunks (fixed)
+    chunkSizeWarningLimit: 960, // only suppress the exceljs chunk; all others are below 500KB
     rollupOptions: {
       output: {
         manualChunks(id) {
           // Vite virtual helpers → keep in entry chunk (no circular deps)
           if (!id.includes('node_modules/') && !id.includes('/src/i18n/')) return undefined;
-          // Move i18n config + locale JSON into the i18n chunk to avoid inlining translations in entry
-          if (id.includes('/src/i18n/') || id.includes('/src/i18n/locales/')) return 'i18n';
+          // Move i18n config into the i18n chunk — locale JSON files must stay as separate chunks
+          // so their dynamic import() calls actually produce lazy-loaded bundles
+          if (id.includes('/src/i18n/locales/')) return undefined; // en/fr/nl → own lazy chunks
+          if (id.includes('/src/i18n/')) return 'i18n';
           if (
             id.includes('node_modules/react/') ||
             id.includes('node_modules/react-dom/') ||

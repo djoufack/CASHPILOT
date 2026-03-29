@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">6.66% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>1/15</span>
+                <span class='fraction'>15/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">57.81% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/128</span>
+                <span class='fraction'>74/128</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">7.14% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>1/14</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -274,19 +274,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">36x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -378,10 +378,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -475,20 +475,20 @@ import {
   hasHsnCodes
 } from './TemplateEnhancedSections';
 &nbsp;
-const ModernTemplate = React.memo(<span class="fstat-no" title="function not covered" >({</span> invoice, client, items, company, theme, settings }) =&gt; {
-  const { t <span class="cstat-no" title="statement not covered" >} = useTranslation();</span>
-  const getLabel = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(k</span>ey, def) =&gt; <span class="cstat-no" title="statement not covered" >settings?.custom_labels?.[key] || def;</span></span>
+const ModernTemplate = React.memo(({ invoice, client, items, company, theme, settings }) =&gt; {
+  const { t } = useTranslation();
+  const getLabel = (key, def) =&gt; settings?.custom_labels?.[key] || def;
 &nbsp;
-  const hasItemDiscounts = <span class="cstat-no" title="statement not covered" >items?.some(<span class="fstat-no" title="function not covered" >item =&gt;</span></span>
-<span class="cstat-no" title="statement not covered" >    item.discount_type &amp;&amp; item.discount_type !== 'none' &amp;&amp; Number(item.discount_value) &gt; 0</span>
+  const hasItemDiscounts = items?.some(item =&gt;
+    item.discount_type &amp;&amp; item.discount_type !== 'none' &amp;&amp; Number(item.discount_value) &gt; 0
   );
-  const hasGlobalDiscount = <span class="cstat-no" title="statement not covered" >invoice.discount_type &amp;&amp; invoice.discount_type !== 'none' &amp;&amp; Number(invoice.discount_amount) &gt; 0;</span>
-  const hasPayments = <span class="cstat-no" title="statement not covered" >Number(invoice.amount_paid) &gt; 0;</span>
-  const currency = <span class="cstat-no" title="statement not covered" >client?.preferredCurrency || client?.preferred_currency || 'EUR';</span>
-  const <span class="cstat-no" title="statement not covered" >showHsn = hasHsnCodes(items);</span>
+  const hasGlobalDiscount = invoice.discount_type &amp;&amp; invoice.discount_type !== 'none' &amp;&amp; Number(invoice.discount_amount) &gt; 0;
+  const hasPayments = Number(invoice.amount_paid) &gt; 0;
+  const currency = client?.preferredCurrency || client?.preferred_currency || <span class="branch-2 cbranch-no" title="branch not covered" >'EUR';</span>
+  const showHsn = hasHsnCodes(items);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  return (</span>
-    &lt;div className="bg-white text-black flex" style={{ fontFamily: settings?.font_family || 'Inter', color: theme.text }}&gt;
+  return (
+    &lt;div className="bg-white text-black flex" style={{ fontFamily: settings?.font_family || <span class="branch-1 cbranch-no" title="branch not covered" >'Inter', c</span>olor: theme.text }}&gt;
       {/* Accent sidebar */}
       &lt;div className="w-2 min-h-full flex-shrink-0" style={{ backgroundColor: theme.accent }} /&gt;
 &nbsp;
@@ -503,22 +503,22 @@ const ModernTemplate = React.memo(<span class="fstat-no" title="function not cov
               {getLabel('invoiceTitle', 'INVOICE')}
             &lt;/h1&gt;
             &lt;p className="text-lg font-semibold mt-1" style={{ color: theme.accent }}&gt;
-              {invoice.invoice_number || invoice.invoiceNumber}
+              {invoice.invoice_number || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.invoiceNumber}</span>
             &lt;/p&gt;
             {invoice.reference &amp;&amp; (
-              &lt;p className="text-sm mt-1" style={{ color: theme.textLight }}&gt;Ref: {invoice.reference}&lt;/p&gt;
+<span class="branch-1 cbranch-no" title="branch not covered" >              &lt;p className="text-sm mt-1" style={{ color: theme.textLight }}&gt;Ref: {invoice.reference}&lt;/p&gt;</span>
             )}
           &lt;/div&gt;
           &lt;div className="text-right"&gt;
             &lt;h2 className="text-xl font-bold" style={{ color: theme.primary }}&gt;
-              {company?.company_name || t('app.name')}
+              {company?.company_name || <span class="branch-1 cbranch-no" title="branch not covered" >t('app.name')}</span>
             &lt;/h2&gt;
             {company &amp;&amp; (
               &lt;div className="text-sm mt-1 space-y-0.5" style={{ color: theme.textLight }}&gt;
                 {company.address &amp;&amp; &lt;p&gt;{company.address}&lt;/p&gt;}
                 {(company.postal_code || company.city) &amp;&amp; &lt;p&gt;{company.postal_code} {company.city}&lt;/p&gt;}
-                {company.email &amp;&amp; &lt;p&gt;{company.email}&lt;/p&gt;}
-                {company.phone &amp;&amp; &lt;p&gt;{company.phone}&lt;/p&gt;}
+                {company.email &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;p&gt;{company.email}&lt;/p&gt;}</span>
+                {company.phone &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;p&gt;{company.phone}&lt;/p&gt;}</span>
               &lt;/div&gt;
             )}
           &lt;/div&gt;
@@ -539,23 +539,23 @@ const ModernTemplate = React.memo(<span class="fstat-no" title="function not cov
             &lt;p className="font-bold text-lg"&gt;{client?.companyName || client?.company_name}&lt;/p&gt;
             &lt;p&gt;{client?.contactName || client?.contact_name}&lt;/p&gt;
             &lt;p className="whitespace-pre-line"&gt;{client?.address}&lt;/p&gt;
-            {(client?.postal_code || client?.city) &amp;&amp; &lt;p&gt;{client?.postal_code} {client?.city}&lt;/p&gt;}
-            {(client?.vatNumber || client?.vat_number) &amp;&amp; &lt;p className="text-sm mt-1"&gt;TVA: {client.vatNumber || client.vat_number}&lt;/p&gt;}
+            {(client?.postal_code || <span class="branch-1 cbranch-no" title="branch not covered" >client?.city) &amp;&amp; &lt;</span>p&gt;{client?.postal_code} {client?.city}&lt;/p&gt;}
+            {(client?.vatNumber || client?.vat_number) &amp;&amp; <span class="branch-2 cbranch-no" title="branch not covered" >&lt;p className="text-sm mt-1"&gt;TVA: {client.vatNumber || client.vat_number}&lt;/p&gt;}</span>
             &lt;p className="text-sm"&gt;{client?.email}&lt;/p&gt;
           &lt;/div&gt;
           &lt;div className="space-y-3"&gt;
             &lt;div className="p-3 rounded-lg" style={{ backgroundColor: theme.secondary }}&gt;
               &lt;p className="text-xs uppercase tracking-wide font-semibold" style={{ color: theme.accent }}&gt;{getLabel('issueDate', t('invoices.issueDate'))}&lt;/p&gt;
-              &lt;p className="font-semibold mt-1"&gt;{invoice.date || invoice.issueDate ? format(new Date(invoice.date || invoice.issueDate), 'MMM dd, yyyy') : '-'}&lt;/p&gt;
+              &lt;p className="font-semibold mt-1"&gt;{invoice.date || invoice.<span class="branch-0 cbranch-no" title="branch not covered" >issueDate ? format(new Date(invoice.date || invoice.issueDate), 'MMM dd, yyyy') : '</span>-'}&lt;/p&gt;
             &lt;/div&gt;
             &lt;div className="p-3 rounded-lg" style={{ backgroundColor: theme.secondary }}&gt;
               &lt;p className="text-xs uppercase tracking-wide font-semibold" style={{ color: theme.accent }}&gt;{getLabel('dueDate', t('invoices.dueDate'))}&lt;/p&gt;
-              &lt;p className="font-semibold mt-1"&gt;{invoice.due_date || invoice.dueDate ? format(new Date(invoice.due_date || invoice.dueDate), 'MMM dd, yyyy') : '-'}&lt;/p&gt;
+              &lt;p className="font-semibold mt-1"&gt;{invoice.due_date || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.dueDate ? f</span>ormat(new Date(invoice.due_date || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.dueDate)</span>, 'MMM dd, yyyy') : <span class="branch-1 cbranch-no" title="branch not covered" >'-'}&lt;</span>/p&gt;
             &lt;/div&gt;
             &lt;div className="flex gap-2"&gt;
               &lt;span className="px-3 py-1 rounded text-white text-xs" style={{ backgroundColor: theme.accent }}&gt;{t(`status.${invoice.status}`)}&lt;/span&gt;
-              {invoice.payment_status &amp;&amp; invoice.payment_status !== 'unpaid' &amp;&amp; (
-                &lt;span className="px-3 py-1 rounded text-white text-xs" style={{ backgroundColor: theme.primary }}&gt;{t(`payments.${invoice.payment_status}`)}&lt;/span&gt;
+              {invoice.payment_status &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >invoice.payment_status !== 'unpaid' &amp;&amp; (</span>
+<span class="branch-2 cbranch-no" title="branch not covered" >                &lt;span className="px-3 py-1 rounded text-white text-xs" style={{ backgroundColor: theme.primary }}&gt;{t(`payments.${invoice.payment_status}`)}&lt;/span&gt;</span>
               )}
             &lt;/div&gt;
           &lt;/div&gt;
@@ -570,7 +570,7 @@ const ModernTemplate = React.memo(<span class="fstat-no" title="function not cov
             &lt;thead&gt;
               &lt;tr style={{ backgroundColor: theme.primary }}&gt;
                 &lt;th className="text-left py-3 px-4 text-white text-sm"&gt;{getLabel('description', t('invoices.description'))}&lt;/th&gt;
-                {showHsn &amp;&amp; &lt;th className="text-left py-3 px-4 text-white text-xs"&gt;HSN&lt;/th&gt;}
+                {showHsn &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;th className="text-left py-3 px-4 text-white text-xs"&gt;HSN&lt;/th&gt;}</span>
                 &lt;th className="text-right py-3 px-4 text-white text-sm"&gt;{getLabel('quantity', t('invoices.quantity'))}&lt;/th&gt;
                 &lt;th className="text-right py-3 px-4 text-white text-sm"&gt;{getLabel('unitPrice', t('invoices.unitPrice'))}&lt;/th&gt;
                 {hasItemDiscounts &amp;&amp; &lt;th className="text-right py-3 px-4 text-white text-sm"&gt;{t('discounts.discount')}&lt;/th&gt;}
@@ -578,16 +578,16 @@ const ModernTemplate = React.memo(<span class="fstat-no" title="function not cov
               &lt;/tr&gt;
             &lt;/thead&gt;
             &lt;tbody&gt;
-              {items?.map(<span class="fstat-no" title="function not covered" >(i</span>tem, index) =&gt; {
-                const lineTotal = <span class="cstat-no" title="statement not covered" >Number(item.quantity) * Number(item.unit_price || item.unitPrice || 0);</span>
-                const <span class="cstat-no" title="statement not covered" >itemDiscount = calculateItemDiscount(item);</span>
-                const netAmount = <span class="cstat-no" title="statement not covered" >lineTotal - itemDiscount;</span>
-<span class="cstat-no" title="statement not covered" >                return (</span>
+              {items?.map((item, index) =&gt; {
+                const lineTotal = Number(item.quantity) * Number(item.unit_price || <span class="branch-1 cbranch-no" title="branch not covered" >item.unitPrice || <span class="branch-2 cbranch-no" title="branch not covered" >0</span>)</span>;
+                const itemDiscount = calculateItemDiscount(item);
+                const netAmount = lineTotal - itemDiscount;
+                return (
                   &lt;tr key={index} style={{ borderBottom: `1px solid ${theme.border}`, backgroundColor: index % 2 === 1 ? theme.secondary : 'transparent' }}&gt;
                     &lt;td className="py-3 px-4"&gt;{item.description}&lt;/td&gt;
-                    {showHsn &amp;&amp; &lt;td className="py-3 px-4 text-xs" style={{ color: theme.textLight }}&gt;{item.hsn_code || ''}&lt;/td&gt;}
+                    {showHsn &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;td className="py-3 px-4 text-xs" style={{ color: theme.textLight }}&gt;{item.hsn_code || ''}&lt;/td&gt;}</span>
                     &lt;td className="text-right py-3 px-4"&gt;{Number(item.quantity).toFixed(2)}&lt;/td&gt;
-                    &lt;td className="text-right py-3 px-4"&gt;{formatCurrency(Number(item.unit_price || item.unitPrice || 0), currency)}&lt;/td&gt;
+                    &lt;td className="text-right py-3 px-4"&gt;{formatCurrency(Number(item.unit_price || <span class="branch-1 cbranch-no" title="branch not covered" >item.unitPrice || <span class="branch-2 cbranch-no" title="branch not covered" >0</span>)</span>, currency)}&lt;/td&gt;
                     {hasItemDiscounts &amp;&amp; (
                       &lt;td className="text-right py-3 px-4" style={{ color: theme.accent }}&gt;
                         {itemDiscount &gt; 0 ? `-${formatCurrency(itemDiscount, currency)}` : '-'}
@@ -604,21 +604,21 @@ const ModernTemplate = React.memo(<span class="fstat-no" title="function not cov
         {/* Totals */}
         &lt;div className="flex justify-end mb-8"&gt;
           &lt;div className="w-80 space-y-2"&gt;
-            &lt;div className="flex justify-between py-1"&gt;&lt;span style={{ color: theme.textLight }}&gt;{getLabel('totalHT', t('invoices.totalHT'))}:&lt;/span&gt;&lt;span className="font-semibold"&gt;{formatCurrency(Number(invoice.total_ht || invoice.subtotal || 0), currency)}&lt;/span&gt;&lt;/div&gt;
+            &lt;div className="flex justify-between py-1"&gt;&lt;span style={{ color: theme.textLight }}&gt;{getLabel('totalHT', t('invoices.totalHT'))}:&lt;/span&gt;&lt;span className="font-semibold"&gt;{formatCurrency(Number(invoice.total_ht || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.subtotal || <span class="branch-2 cbranch-no" title="branch not covered" >0</span>)</span>, currency)}&lt;/span&gt;&lt;/div&gt;
             {hasGlobalDiscount &amp;&amp; (
               &lt;div className="flex justify-between py-1" style={{ color: theme.accent }}&gt;
                 &lt;span&gt;{t('discounts.global')}:&lt;/span&gt;&lt;span&gt;-{formatCurrency(Number(invoice.discount_amount), currency)}&lt;/span&gt;
               &lt;/div&gt;
             )}
-            &lt;div className="flex justify-between py-1"&gt;&lt;span style={{ color: theme.textLight }}&gt;{getLabel('taxAmount', t('invoices.taxAmount'))} ({Number(invoice.tax_rate || invoice.taxRate || 0)}%):&lt;/span&gt;&lt;span&gt;{formatCurrency(Number(invoice.total_ttc || invoice.total || 0) - Number(invoice.total_ht || invoice.subtotal || 0) - Number(invoice.shipping_fee || 0) - Number(invoice.adjustment || 0), currency)}&lt;/span&gt;&lt;/div&gt;
+            &lt;div className="flex justify-between py-1"&gt;&lt;span style={{ color: theme.textLight }}&gt;{getLabel('taxAmount', t('invoices.taxAmount'))} ({Number(invoice.tax_rate || invoice.taxRate || 0)}%):&lt;/span&gt;&lt;span&gt;{formatCurrency(Number(invoice.total_ttc || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.total || <span class="branch-2 cbranch-no" title="branch not covered" >0</span>)</span> - Number(invoice.total_ht || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.subtotal || <span class="branch-2 cbranch-no" title="branch not covered" >0</span>)</span> - Number(invoice.shipping_fee || 0) - Number(invoice.adjustment || 0), currency)}&lt;/span&gt;&lt;/div&gt;
             &lt;EnhancedShippingTotalRow invoice={invoice} currency={currency} theme={theme} /&gt;
             &lt;EnhancedAdjustmentTotalRow invoice={invoice} currency={currency} theme={theme} /&gt;
             &lt;div className="flex justify-between text-xl font-bold py-3 px-4 rounded" style={{ backgroundColor: theme.accent, color: 'white' }}&gt;
               &lt;span&gt;{getLabel('totalTTC', t('invoices.totalTTC'))}:&lt;/span&gt;
-              &lt;span&gt;{formatCurrency(Number(invoice.total_ttc || invoice.total || 0), currency)}&lt;/span&gt;
+              &lt;span&gt;{formatCurrency(Number(invoice.total_ttc || <span class="branch-1 cbranch-no" title="branch not covered" >invoice.total || <span class="branch-2 cbranch-no" title="branch not covered" >0</span>)</span>, currency)}&lt;/span&gt;
             &lt;/div&gt;
             {hasPayments &amp;&amp; (
-              &lt;&gt;
+<span class="branch-1 cbranch-no" title="branch not covered" >              &lt;&gt;</span>
                 &lt;div className="flex justify-between py-1 text-green-600"&gt;&lt;span&gt;{t('payments.amountPaid')}:&lt;/span&gt;&lt;span&gt;-{formatCurrency(Number(invoice.amount_paid), currency)}&lt;/span&gt;&lt;/div&gt;
                 &lt;div className="flex justify-between py-2 font-bold text-lg" style={{ borderTop: `2px solid ${theme.border}` }}&gt;
                   &lt;span&gt;{t('payments.balanceDue')}:&lt;/span&gt;
@@ -644,8 +644,8 @@ const ModernTemplate = React.memo(<span class="fstat-no" title="function not cov
         &lt;EnhancedFooterNote invoice={invoice} theme={theme} className="mb-6" /&gt;
 &nbsp;
         {/* Bank Details */}
-        {settings?.show_bank_details &amp;&amp; company &amp;&amp; (company.iban || company.bank_name) &amp;&amp; (
-          &lt;div className="p-4 rounded-lg mb-6" style={{ backgroundColor: theme.secondary }}&gt;
+        {settings?.show_bank_details &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >company &amp;&amp; (<span class="branch-2 cbranch-no" title="branch not covered" >c</span>ompany.iban || <span class="branch-3 cbranch-no" title="branch not covered" >c</span>ompany.bank_name) &amp;&amp; (</span>
+<span class="branch-4 cbranch-no" title="branch not covered" >          &lt;div className="p-4 rounded-lg mb-6" style={{ backgroundColor: theme.secondary }}&gt;</span>
             &lt;h3 className="font-semibold text-sm mb-2" style={{ color: theme.accent }}&gt;{getLabel('bankDetails', 'Coordonnées bancaires')}&lt;/h3&gt;
             &lt;div className="text-sm grid grid-cols-2 gap-x-4 gap-y-1" style={{ color: theme.textLight }}&gt;
               {company.bank_name &amp;&amp; &lt;p&gt;Banque: &lt;span style={{ color: theme.text }}&gt;{company.bank_name}&lt;/span&gt;&lt;/p&gt;}
@@ -657,8 +657,8 @@ const ModernTemplate = React.memo(<span class="fstat-no" title="function not cov
 &nbsp;
         {/* Footer */}
         &lt;div className="text-center text-sm pt-4" style={{ borderTop: `1px solid ${theme.border}`, color: theme.textLight }}&gt;
-          &lt;p&gt;{settings?.footer_text || `${company?.company_name || t('app.name')} — Merci pour votre confiance !`}&lt;/p&gt;
-          {company?.registration_number &amp;&amp; &lt;p className="text-xs mt-1"&gt;SIRET: {company.registration_number} {company.tax_id ? `- TVA: ${company.tax_id}` : ''}&lt;/p&gt;}
+          &lt;p&gt;{settings?.footer_text || `${company?.company_name || <span class="branch-1 cbranch-no" title="branch not covered" >t('app.name')}</span> — Merci pour votre confiance !`}&lt;/p&gt;
+          {company?.registration_number &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >&lt;p className="text-xs mt-1"&gt;SIRET: {company.registration_number} {company.tax_id ? `- TVA: ${company.tax_id}` : ''}&lt;/p&gt;}</span>
         &lt;/div&gt;
       &lt;/div&gt;
     &lt;/div&gt;
@@ -673,7 +673,7 @@ export default ModernTemplate;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-03-29T23:05:22.328Z
+                at 2026-03-29T23:56:44.432Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
