@@ -1,6 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
+const { mockUseCashFlow } = vi.hoisted(() => ({
+  mockUseCashFlow: vi.fn(),
+}));
+
 // ---------------------------------------------------------------------------
 // Mocks – hooks
 // ---------------------------------------------------------------------------
@@ -118,11 +122,7 @@ vi.mock('@/hooks/useExpenses', () => ({
 }));
 
 vi.mock('@/hooks/useCashFlow', () => ({
-  useCashFlow: () => ({
-    cashFlowData: [],
-    summary: { totalIncome: 4200, totalExpenses: 200, net: 4000 },
-    loading: false,
-  }),
+  useCashFlow: (...args) => mockUseCashFlow(...args),
 }));
 
 vi.mock('@/hooks/useCreditsGuard', () => ({
@@ -262,6 +262,11 @@ describe('Dashboard', () => {
     dashboardSnapshot = defaultDashboardSnapshot;
     localStorage.clear();
     vi.clearAllMocks();
+    mockUseCashFlow.mockReturnValue({
+      cashFlowData: [],
+      summary: { totalIncome: 4200, totalExpenses: 200, net: 4000 },
+      loading: false,
+    });
   });
 
   it('renders without crashing and displays the dashboard title', () => {
@@ -386,6 +391,12 @@ describe('Dashboard', () => {
         totalExpenses: 1800,
       },
     };
+
+    mockUseCashFlow.mockReturnValue({
+      cashFlowData: [],
+      summary: { totalIncome: 500, totalExpenses: 1800, net: 150 },
+      loading: false,
+    });
 
     render(<Dashboard />);
 

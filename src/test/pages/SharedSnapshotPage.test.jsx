@@ -49,6 +49,7 @@ vi.mock('react-i18next', () => ({
     },
     i18n: { resolvedLanguage: 'fr', language: 'fr' },
   }),
+  initReactI18next: { type: '3rdParty', init: vi.fn() },
 }));
 
 vi.mock('@/lib/supabase', () => ({
