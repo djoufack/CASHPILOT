@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,6 +7,7 @@ import { useCompanyScope } from '@/hooks/useCompanyScope';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
 
 export const useRecruitment = () => {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
   const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
@@ -158,10 +160,10 @@ export const useRecruitment = () => {
         .single();
       if (error) throw error;
       setPositions((prev) => [data, ...prev]);
-      toast({ title: 'Poste cree', description: data.title });
+      toast({ title: t('recruitment.toast.positionCreated'), description: data.title });
       return data;
     },
-    [withCompanyScope, toast, setPositions]
+    [withCompanyScope, toast, setPositions, t]
   );
   const updatePosition = useCallback(
     async (id, positionData) => {
@@ -174,10 +176,10 @@ export const useRecruitment = () => {
         .single();
       if (error) throw error;
       setPositions((prev) => prev.map((p) => (p.id === id ? data : p)));
-      toast({ title: 'Poste mis a jour' });
+      toast({ title: t('recruitment.toast.positionUpdated') });
       return data;
     },
-    [withCompanyScope, toast, setPositions]
+    [withCompanyScope, toast, setPositions, t]
   );
   const createCandidate = useCallback(
     async (candidateData) => {
@@ -189,10 +191,10 @@ export const useRecruitment = () => {
         .single();
       if (error) throw error;
       setCandidates((prev) => [data, ...prev]);
-      toast({ title: 'Candidat ajoute', description: `${data.first_name} ${data.last_name}` });
+      toast({ title: t('recruitment.toast.candidateAdded'), description: `${data.first_name} ${data.last_name}` });
       return data;
     },
-    [withCompanyScope, toast, setCandidates]
+    [withCompanyScope, toast, setCandidates, t]
   );
   const createApplication = useCallback(
     async (applicationData) => {
@@ -210,10 +212,10 @@ export const useRecruitment = () => {
         .single();
       if (error) throw error;
       setApplications((prev) => [data, ...prev]);
-      toast({ title: 'Candidature creee' });
+      toast({ title: t('recruitment.toast.applicationCreated') });
       return data;
     },
-    [withCompanyScope, toast, setApplications]
+    [withCompanyScope, toast, setApplications, t]
   );
   const moveApplication = useCallback(
     async (id, newStatus) => {
@@ -232,10 +234,10 @@ export const useRecruitment = () => {
         .single();
       if (error) throw error;
       setApplications((prev) => prev.map((a) => (a.id === id ? data : a)));
-      toast({ title: 'Candidature deplacee', description: newStatus });
+      toast({ title: t('recruitment.toast.applicationMoved'), description: newStatus });
       return data;
     },
-    [withCompanyScope, toast, setApplications]
+    [withCompanyScope, toast, setApplications, t]
   );
   const scheduleInterview = useCallback(
     async (interviewData) => {
@@ -256,10 +258,10 @@ export const useRecruitment = () => {
         .single();
       if (error) throw error;
       setInterviews((prev) => [data, ...prev]);
-      toast({ title: 'Entretien planifie' });
+      toast({ title: t('recruitment.toast.interviewScheduled') });
       return data;
     },
-    [withCompanyScope, toast, setInterviews]
+    [withCompanyScope, toast, setInterviews, t]
   );
   const createOnboardingPlan = useCallback(
     async (planData) => {
@@ -276,10 +278,10 @@ export const useRecruitment = () => {
         .single();
       if (error) throw error;
       setOnboardingPlans((prev) => [data, ...prev]);
-      toast({ title: "Plan d'onboarding cree" });
+      toast({ title: t('recruitment.toast.onboardingPlanCreated') });
       return data;
     },
-    [withCompanyScope, toast, setOnboardingPlans]
+    [withCompanyScope, toast, setOnboardingPlans, t]
   );
   const updateOnboardingTask = useCallback(
     async (planId, taskIndex, completed) => {
@@ -291,7 +293,7 @@ export const useRecruitment = () => {
       if (taskIndex < 0 || taskIndex >= checklist.length) throw new Error('Invalid task index');
 
       checklist[taskIndex] = { ...checklist[taskIndex], completed };
-      const completedCount = checklist.filter((t) => t.completed).length;
+      const completedCount = checklist.filter((item) => item.completed).length;
       const completion_pct = checklist.length > 0 ? Math.round((completedCount / checklist.length) * 100) : 0;
       const status = completion_pct === 100 ? 'completed' : 'active';
 
@@ -308,10 +310,10 @@ export const useRecruitment = () => {
         .single();
       if (error) throw error;
       setOnboardingPlans((prev) => prev.map((p) => (p.id === planId ? data : p)));
-      toast({ title: 'Tache mise a jour' });
+      toast({ title: t('recruitment.toast.taskUpdated') });
       return data;
     },
-    [withCompanyScope, toast, onboardingPlans, setOnboardingPlans]
+    [withCompanyScope, toast, onboardingPlans, setOnboardingPlans, t]
   );
   const loading =
     positionsLoading ||
