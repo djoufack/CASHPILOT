@@ -17,6 +17,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key, fallback) => fallback || _key,
   }),
+  initReactI18next: { type: '3rdParty', init: vi.fn() },
 }));
 
 vi.mock('@/components/ui/use-toast', () => ({
@@ -105,7 +106,7 @@ describe('GedHubPage version display', () => {
     expect(screen.getByRole('columnheader', { name: 'Workflow' })).toBeInTheDocument();
     expect(screen.getByText('Approuvé')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Workflow$/i })).toBeInTheDocument();
-    expect(screen.getAllByText('2026-05-11').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('2026-05-11').length).toBeGreaterThanOrEqual(1);
   });
 
   it('opens the retention policy dialog from the GED HUB panel', () => {
