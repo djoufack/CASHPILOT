@@ -51,19 +51,14 @@ function isCashAccount(account) {
   const accountType = account?.account_type;
   const accountText = `${account?.account_name || ''} ${account?.account_category || ''}`;
 
-  return (
-    accountType === 'asset' &&
-    (code.startsWith('5') || CASH_ACCOUNT_REGEX.test(accountText))
-  );
+  return accountType === 'asset' && (code.startsWith('5') || CASH_ACCOUNT_REGEX.test(accountText));
 }
 
 function isOpeningBalanceEntry(group) {
   const ref = String(group?.entry_ref || '').trim();
   if (OPENING_ENTRY_REGEX.test(ref)) return true;
 
-  return (group?.lines || []).every((line) =>
-    OPENING_ENTRY_REGEX.test(String(line?.description || '').trim())
-  );
+  return (group?.lines || []).every((line) => OPENING_ENTRY_REGEX.test(String(line?.description || '').trim()));
 }
 
 function aggregateCashEntryGroups(entries = [], accountMap = new Map()) {
@@ -98,10 +93,12 @@ function aggregateCashEntryGroups(entries = [], accountMap = new Map()) {
       return [];
     }
 
-    return [{
-      date: group.date,
-      delta: Math.round(cashDelta * 100) / 100,
-    }];
+    return [
+      {
+        date: group.date,
+        delta: Math.round(cashDelta * 100) / 100,
+      },
+    ];
   });
 }
 
@@ -157,11 +154,13 @@ export const useCashFlow = (optionsOrPeriod = 6, granularityArg = 'month') => {
     setError(null);
     try {
       const resolvedEndDate = endDate || toIsoDate(new Date());
-      const resolvedStartDate = startDate || (() => {
-        const value = new Date();
-        value.setMonth(value.getMonth() - periodMonths);
-        return toIsoDate(value);
-      })();
+      const resolvedStartDate =
+        startDate ||
+        (() => {
+          const value = new Date();
+          value.setMonth(value.getMonth() - periodMonths);
+          return toIsoDate(value);
+        })();
 
       let entriesQuery = supabase
         .from('accounting_entries')
@@ -175,10 +174,14 @@ export const useCashFlow = (optionsOrPeriod = 6, granularityArg = 'month') => {
 
       const [{ data: entries, error: entriesError }, { data: accounts, error: accountsError }] = await Promise.all([
         entriesQuery,
-        supabase
-          .from('accounting_chart_of_accounts')
-          .select('account_code, account_name, account_category, account_type')
-          .eq('user_id', user.id),
+        (() => {
+          let coaQuery = supabase
+            .from('accounting_chart_of_accounts')
+            .select('account_code, account_name, account_category, account_type')
+            .eq('user_id', user.id);
+          coaQuery = applyCompanyScope(coaQuery, { includeUnassigned: true });
+          return coaQuery;
+        })(),
       ]);
 
       if (entriesError) throw entriesError;
@@ -206,7 +209,7 @@ export const useCashFlow = (optionsOrPeriod = 6, granularityArg = 'month') => {
         }
       });
 
-      const data = Object.values(buckets).map(m => ({
+      const data = Object.values(buckets).map((m) => ({
         ...m,
         net: Math.round((m.income - m.expenses) * 100) / 100,
         income: Math.round(m.income * 100) / 100,
@@ -231,28 +234,32 @@ export const useCashFlow = (optionsOrPeriod = 6, granularityArg = 'month') => {
   }, [fetchCashFlow]);
 
   // Simple forecast: average of last 3 months projected forward
-  const forecast = useCallback((months = 3) => {
-    if (cashFlowData.length < 3) return [];
-    const recent = cashFlowData.slice(-3);
-    const avgIncome = recent.reduce((s, m) => s + m.income, 0) / 3;
-    const avgExpenses = recent.reduce((s, m) => s + m.expenses, 0) / 3;
+  const forecast = useCallback(
+    (months = 3) => {
+      if (cashFlowData.length < 3) return [];
+      const recent = cashFlowData.slice(-3);
+      const avgIncome = recent.reduce((s, m) => s + m.income, 0) / 3;
+      const avgExpenses = recent.reduce((s, m) => s + m.expenses, 0) / 3;
 
-    const projections = [];
-    const now = new Date();
-    for (let i = 1; i <= months; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      projections.push({
-        key,
-        label: key,
-        income: Math.round(avgIncome * 100) / 100,
-        expenses: Math.round(avgExpenses * 100) / 100,
-        net: Math.round((avgIncome - avgExpenses) * 100) / 100,
-        isForecast: true,
-      });
-    }
-    return projections;
-  }, [cashFlowData]);
+      const projections = [];
+      const now = new Date();
+      for (let i = 1; i <= months; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        projections.push({
+          key,
+          month: key,
+          label: key,
+          income: Math.round(avgIncome * 100) / 100,
+          expenses: Math.round(avgExpenses * 100) / 100,
+          net: Math.round((avgIncome - avgExpenses) * 100) / 100,
+          isForecast: true,
+        });
+      }
+      return projections;
+    },
+    [cashFlowData]
+  );
 
   return { cashFlowData, summary, loading, error, forecast, refresh: fetchCashFlow };
 };
