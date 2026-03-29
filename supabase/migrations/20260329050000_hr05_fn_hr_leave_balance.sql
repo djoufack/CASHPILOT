@@ -4,6 +4,8 @@
 -- This function was missing from the DB, causing a silent empty result.
 -- Returns one row per (employee, leave_type) for the current company of the caller.
 
+DROP FUNCTION IF EXISTS public.fn_hr_leave_balance(INTEGER);
+
 CREATE OR REPLACE FUNCTION public.fn_hr_leave_balance(
   p_year INTEGER DEFAULT EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER
 )
