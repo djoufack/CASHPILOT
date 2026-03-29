@@ -300,17 +300,17 @@ const StockManagement = () => {
 
   const valuationMap = {
     cost: {
-      label: 'Valeur de revient',
+      label: t('stockManagement.valuationModes.cost'),
       metricKey: 'costValue',
       accentClass: 'text-blue-400',
     },
     retail: {
-      label: 'Valeur de vente',
+      label: t('stockManagement.valuationModes.retail'),
       metricKey: 'retailValue',
       accentClass: 'text-emerald-400',
     },
     margin: {
-      label: 'Marge potentielle',
+      label: t('stockManagement.valuationModes.margin'),
       metricKey: 'potentialMargin',
       accentClass: 'text-orange-400',
     },
@@ -537,32 +537,67 @@ const StockManagement = () => {
 
   const getStockBadge = (product) => {
     if (product.inventory_tracking_enabled === false) {
-      return <Badge className="bg-slate-500/20 text-slate-300 border-slate-500/30">Non stocké</Badge>;
+      return (
+        <Badge className="bg-slate-500/20 text-slate-300 border-slate-500/30">
+          {t('stockManagement.badges.unstocked')}
+        </Badge>
+      );
     }
-    if (product.stock_quantity <= 0) return <Badge variant="destructive">Rupture</Badge>;
+    if (product.stock_quantity <= 0)
+      return <Badge variant="destructive">{t('stockManagement.badges.outOfStock')}</Badge>;
     if (product.stock_quantity <= product.min_stock_level)
-      return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Stock bas</Badge>;
-    return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">OK</Badge>;
+      return (
+        <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+          {t('stockManagement.badges.lowStock')}
+        </Badge>
+      );
+    return (
+      <Badge className="bg-green-500/20 text-green-400 border-green-500/30">{t('stockManagement.badges.ok')}</Badge>
+    );
   };
 
   const getAbcBadge = (abcClass) => {
     if (abcClass === 'A') {
-      return <Badge className="bg-red-500/15 text-red-300 border border-red-500/20">A stratégique</Badge>;
+      return (
+        <Badge className="bg-red-500/15 text-red-300 border border-red-500/20">
+          {t('stockManagement.badges.abcA')}
+        </Badge>
+      );
     }
     if (abcClass === 'B') {
-      return <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/20">B piloté</Badge>;
+      return (
+        <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/20">
+          {t('stockManagement.badges.abcB')}
+        </Badge>
+      );
     }
-    return <Badge className="bg-blue-500/15 text-blue-300 border border-blue-500/20">C long tail</Badge>;
+    return (
+      <Badge className="bg-blue-500/15 text-blue-300 border border-blue-500/20">
+        {t('stockManagement.badges.abcC')}
+      </Badge>
+    );
   };
 
   const getReplenishmentPriorityBadge = (priority) => {
     if (priority === 'critical') {
-      return <Badge className="bg-red-500/15 text-red-300 border border-red-500/20">Critique</Badge>;
+      return (
+        <Badge className="bg-red-500/15 text-red-300 border border-red-500/20">
+          {t('stockManagement.badges.priorityCritical')}
+        </Badge>
+      );
     }
     if (priority === 'high') {
-      return <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/20">Élevée</Badge>;
+      return (
+        <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/20">
+          {t('stockManagement.badges.priorityHigh')}
+        </Badge>
+      );
     }
-    return <Badge className="bg-blue-500/15 text-blue-300 border border-blue-500/20">Planifiée</Badge>;
+    return (
+      <Badge className="bg-blue-500/15 text-blue-300 border border-blue-500/20">
+        {t('stockManagement.badges.priorityPlanned')}
+      </Badge>
+    );
   };
 
   const handleExportPDF = () => {
@@ -578,15 +613,25 @@ const StockManagement = () => {
   };
 
   const productExportColumns = [
-    { key: 'product_name', header: 'Produit', width: 25 },
-    { key: 'sku', header: 'SKU', width: 15 },
-    { key: 'category_name', header: 'Categorie', width: 15, accessor: (p) => p.category?.name || '' },
-    { key: 'supplier_name', header: 'Fournisseur', width: 20, accessor: (p) => p.supplier?.company_name || '' },
-    { key: 'unit_price', header: 'Prix vente', type: 'currency', width: 14 },
-    { key: 'purchase_price', header: 'Prix achat', type: 'currency', width: 14 },
-    { key: 'stock_quantity', header: 'Quantite', type: 'number', width: 10 },
-    { key: 'min_stock_level', header: 'Min Stock', type: 'number', width: 10 },
-    { key: 'unit', header: 'Unite', width: 10 },
+    { key: 'product_name', header: t('stockManagement.exportColumns.product'), width: 25 },
+    { key: 'sku', header: t('stockManagement.exportColumns.sku'), width: 15 },
+    {
+      key: 'category_name',
+      header: t('stockManagement.exportColumns.category'),
+      width: 15,
+      accessor: (p) => p.category?.name || '',
+    },
+    {
+      key: 'supplier_name',
+      header: t('stockManagement.exportColumns.supplier'),
+      width: 20,
+      accessor: (p) => p.supplier?.company_name || '',
+    },
+    { key: 'unit_price', header: t('stockManagement.exportColumns.salePrice'), type: 'currency', width: 14 },
+    { key: 'purchase_price', header: t('stockManagement.exportColumns.purchasePrice'), type: 'currency', width: 14 },
+    { key: 'stock_quantity', header: t('stockManagement.exportColumns.quantity'), type: 'number', width: 10 },
+    { key: 'min_stock_level', header: t('stockManagement.exportColumns.minStock'), type: 'number', width: 10 },
+    { key: 'unit', header: t('stockManagement.exportColumns.unit'), width: 10 },
   ];
 
   return (
@@ -662,7 +707,7 @@ const StockManagement = () => {
 
               <TabsList className="bg-gray-900 border border-gray-800 w-full h-auto p-1 grid grid-cols-2 md:grid-cols-5 gap-1">
                 <TabsTrigger value="cockpit">{t('stockManagement.tabs.cockpit', 'Stock Cockpit')}</TabsTrigger>
-                <TabsTrigger value="warehouses">Entrepôts & lots</TabsTrigger>
+                <TabsTrigger value="warehouses">{t('stockManagement.tabs.warehouses')}</TabsTrigger>
                 <TabsTrigger value="inventory">{t('stockManagement.tabs.inventory', 'Inventory')}</TabsTrigger>
                 <TabsTrigger value="history">{t('stockManagement.tabs.history', 'History')}</TabsTrigger>
                 <TabsTrigger value="adjustments">
@@ -676,7 +721,9 @@ const StockManagement = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-400">Entrepôts actifs</CardTitle>
+                  <CardTitle className="text-sm font-medium text-gray-400">
+                    {t('stockManagement.warehouses.activeWarehouses')}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-blue-300">{warehouseLotSummary.totalWarehouses}</p>
@@ -684,7 +731,9 @@ const StockManagement = () => {
               </Card>
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-400">Lots / séries</CardTitle>
+                  <CardTitle className="text-sm font-medium text-gray-400">
+                    {t('stockManagement.warehouses.lots')}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-indigo-300">{warehouseLotSummary.totalLots}</p>
@@ -692,7 +741,9 @@ const StockManagement = () => {
               </Card>
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-400">Lots serialisés</CardTitle>
+                  <CardTitle className="text-sm font-medium text-gray-400">
+                    {t('stockManagement.warehouses.serializedLots')}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-emerald-300">{warehouseLotSummary.totalSerialTrackedLots}</p>
@@ -700,7 +751,9 @@ const StockManagement = () => {
               </Card>
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-400">Quantité tracée</CardTitle>
+                  <CardTitle className="text-sm font-medium text-gray-400">
+                    {t('stockManagement.warehouses.trackedQuantity')}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold text-orange-300">
@@ -713,15 +766,13 @@ const StockManagement = () => {
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-white">Entrepôts multi-sites</CardTitle>
-                  <p className="text-sm text-gray-400">
-                    Gérez vos sites de stockage et activez/désactivez rapidement les entrepôts secondaires.
-                  </p>
+                  <CardTitle className="text-white">{t('stockManagement.warehouses.title')}</CardTitle>
+                  <p className="text-sm text-gray-400">{t('stockManagement.warehouses.subtitle')}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label>Code entrepôt</Label>
+                      <Label>{t('stockManagement.warehouses.warehouseCode')}</Label>
                       <Input
                         className="bg-gray-800 border-gray-700"
                         placeholder="MAIN"
@@ -735,10 +786,10 @@ const StockManagement = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Nom</Label>
+                      <Label>{t('stockManagement.warehouses.warehouseName')}</Label>
                       <Input
                         className="bg-gray-800 border-gray-700"
-                        placeholder="Entrepôt principal"
+                        placeholder={t('stockManagement.warehouses.warehouseName')}
                         value={warehouseForm.warehouse_name}
                         onChange={(event) =>
                           setWarehouseForm((current) => ({ ...current, warehouse_name: event.target.value }))
@@ -747,10 +798,10 @@ const StockManagement = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Description</Label>
+                    <Label>{t('stockManagement.warehouses.description')}</Label>
                     <Input
                       className="bg-gray-800 border-gray-700"
-                      placeholder="Zone de stockage, ville, consignes..."
+                      placeholder={t('stockManagement.warehouses.descriptionPlaceholder')}
                       value={warehouseForm.description}
                       onChange={(event) =>
                         setWarehouseForm((current) => ({ ...current, description: event.target.value }))
@@ -758,7 +809,7 @@ const StockManagement = () => {
                     />
                   </div>
                   <div className="flex items-center justify-between rounded border border-gray-800 bg-gray-950/50 px-3 py-2">
-                    <p className="text-sm text-gray-300">Définir comme entrepôt par défaut</p>
+                    <p className="text-sm text-gray-300">{t('stockManagement.warehouses.setDefault')}</p>
                     <Switch
                       checked={warehouseForm.is_default}
                       onCheckedChange={(checked) =>
@@ -771,12 +822,12 @@ const StockManagement = () => {
                     onClick={handleCreateWarehouse}
                     disabled={warehousesLoading || !warehouseForm.warehouse_code || !warehouseForm.warehouse_name}
                   >
-                    Créer l'entrepôt
+                    {t('stockManagement.warehouses.createWarehouse')}
                   </Button>
 
                   <div className="space-y-2 pt-2">
                     {warehouses.length === 0 ? (
-                      <p className="text-sm text-gray-500">Aucun entrepôt configuré pour l'instant.</p>
+                      <p className="text-sm text-gray-500">{t('stockManagement.warehouses.noWarehouses')}</p>
                     ) : (
                       warehouses.map((warehouse) => (
                         <div
@@ -787,11 +838,15 @@ const StockManagement = () => {
                             <p className="text-sm font-medium text-white">
                               {warehouse.warehouse_code} - {warehouse.warehouse_name}
                             </p>
-                            <p className="text-xs text-gray-500">{warehouse.description || 'Sans description'}</p>
+                            <p className="text-xs text-gray-500">
+                              {warehouse.description || t('stockManagement.warehouses.noDescription')}
+                            </p>
                           </div>
                           <div className="flex items-center gap-2">
                             {warehouse.is_default ? (
-                              <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">Défaut</Badge>
+                              <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                                {t('stockManagement.warehouses.default')}
+                              </Badge>
                             ) : null}
                             <Badge
                               className={
@@ -800,7 +855,9 @@ const StockManagement = () => {
                                   : 'bg-gray-500/20 text-gray-300 border-gray-500/30'
                               }
                             >
-                              {warehouse.is_active !== false ? 'Actif' : 'Inactif'}
+                              {warehouse.is_active !== false
+                                ? t('stockManagement.warehouses.active')
+                                : t('stockManagement.warehouses.inactive')}
                             </Badge>
                             <Button
                               size="sm"
@@ -810,7 +867,9 @@ const StockManagement = () => {
                               }
                               disabled={warehousesLoading}
                             >
-                              {warehouse.is_active !== false ? 'Désactiver' : 'Activer'}
+                              {warehouse.is_active !== false
+                                ? t('stockManagement.warehouses.deactivate')
+                                : t('stockManagement.warehouses.activate')}
                             </Button>
                           </div>
                         </div>
@@ -822,15 +881,13 @@ const StockManagement = () => {
 
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-white">Lots / séries</CardTitle>
-                  <p className="text-sm text-gray-400">
-                    Enregistrez les lots et numéros de série pour tracer la disponibilité par entrepôt.
-                  </p>
+                  <CardTitle className="text-white">{t('stockManagement.warehouses.lotsTitle')}</CardTitle>
+                  <p className="text-sm text-gray-400">{t('stockManagement.warehouses.lotsSubtitle')}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label>Produit</Label>
+                      <Label>{t('stockManagement.warehouses.product')}</Label>
                       <Select
                         value={lotForm.product_id || 'none'}
                         onValueChange={(value) =>
@@ -838,10 +895,10 @@ const StockManagement = () => {
                         }
                       >
                         <SelectTrigger className="bg-gray-800 border-gray-700">
-                          <SelectValue placeholder="Sélectionner..." />
+                          <SelectValue placeholder={t('stockManagement.warehouses.selectProduct')} />
                         </SelectTrigger>
                         <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                          <SelectItem value="none">Sélectionner...</SelectItem>
+                          <SelectItem value="none">{t('stockManagement.warehouses.selectProduct')}</SelectItem>
                           {trackedProducts.map((product) => (
                             <SelectItem key={product.id} value={product.id}>
                               {product.product_name}
@@ -851,7 +908,7 @@ const StockManagement = () => {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Entrepôt</Label>
+                      <Label>{t('stockManagement.warehouses.warehouse')}</Label>
                       <Select
                         value={lotForm.warehouse_id || 'none'}
                         onValueChange={(value) =>
@@ -859,10 +916,10 @@ const StockManagement = () => {
                         }
                       >
                         <SelectTrigger className="bg-gray-800 border-gray-700">
-                          <SelectValue placeholder="Sélectionner..." />
+                          <SelectValue placeholder={t('stockManagement.warehouses.selectWarehouse')} />
                         </SelectTrigger>
                         <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                          <SelectItem value="none">Sélectionner...</SelectItem>
+                          <SelectItem value="none">{t('stockManagement.warehouses.selectWarehouse')}</SelectItem>
                           {warehouses.map((warehouse) => (
                             <SelectItem key={warehouse.id} value={warehouse.id}>
                               {warehouse.warehouse_code} - {warehouse.warehouse_name}
@@ -874,7 +931,7 @@ const StockManagement = () => {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="space-y-2">
-                      <Label>N° lot</Label>
+                      <Label>{t('stockManagement.warehouses.lotNumberLabel')}</Label>
                       <Input
                         className="bg-gray-800 border-gray-700"
                         placeholder="LOT-2026-0001"
@@ -883,7 +940,7 @@ const StockManagement = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>N° série (optionnel)</Label>
+                      <Label>{t('stockManagement.warehouses.serialNumberLabel')}</Label>
                       <Input
                         className="bg-gray-800 border-gray-700"
                         placeholder="SN-00001"
@@ -894,7 +951,7 @@ const StockManagement = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Quantité</Label>
+                      <Label>{t('stockManagement.warehouses.quantityLabel')}</Label>
                       <Input
                         type="number"
                         className="bg-gray-800 border-gray-700"
@@ -905,7 +962,7 @@ const StockManagement = () => {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label>Date réception</Label>
+                      <Label>{t('stockManagement.warehouses.receptionDate')}</Label>
                       <Input
                         type="date"
                         className="bg-gray-800 border-gray-700"
@@ -914,7 +971,7 @@ const StockManagement = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Date péremption</Label>
+                      <Label>{t('stockManagement.warehouses.expiryDate')}</Label>
                       <Input
                         type="date"
                         className="bg-gray-800 border-gray-700"
@@ -924,10 +981,10 @@ const StockManagement = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Notes</Label>
+                    <Label>{t('stockManagement.warehouses.notes')}</Label>
                     <Input
                       className="bg-gray-800 border-gray-700"
-                      placeholder="Observation lot/série..."
+                      placeholder={t('stockManagement.warehouses.notesTip')}
                       value={lotForm.notes}
                       onChange={(event) => setLotForm((current) => ({ ...current, notes: event.target.value }))}
                     />
@@ -943,7 +1000,7 @@ const StockManagement = () => {
                       lotsLoading
                     }
                   >
-                    Enregistrer le lot / série
+                    {t('stockManagement.warehouses.saveLot')}
                   </Button>
                 </CardContent>
               </Card>
@@ -951,25 +1008,29 @@ const StockManagement = () => {
 
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white">Registre lot / série par entrepôt</CardTitle>
-                <p className="text-sm text-gray-400">Traçabilité consolidée des lots et numéros de série.</p>
+                <CardTitle className="text-white">{t('stockManagement.warehouses.lotsRegistry')}</CardTitle>
+                <p className="text-sm text-gray-400">{t('stockManagement.warehouses.lotsRegistrySubtitle')}</p>
               </CardHeader>
               <CardContent>
                 {lots.length === 0 ? (
-                  <p className="text-sm text-gray-500">Aucun lot enregistré pour le moment.</p>
+                  <p className="text-sm text-gray-500">{t('stockManagement.warehouses.noLots')}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-gray-800 hover:bg-transparent">
-                          <TableHead className="text-gray-400">Produit</TableHead>
-                          <TableHead className="text-gray-400">Entrepôt</TableHead>
-                          <TableHead className="text-gray-400">Lot</TableHead>
-                          <TableHead className="text-gray-400">Série</TableHead>
-                          <TableHead className="text-gray-400 text-right">Quantité</TableHead>
-                          <TableHead className="text-gray-400">Statut</TableHead>
-                          <TableHead className="text-gray-400">Réception</TableHead>
-                          <TableHead className="text-gray-400">Péremption</TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.warehouses.product')}</TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.warehouses.warehouse')}</TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.warehouses.lotNumber')}</TableHead>
+                          <TableHead className="text-gray-400">
+                            {t('stockManagement.warehouses.serialNumber')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.warehouses.quantity')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.warehouses.status')}</TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.warehouses.reception')}</TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.warehouses.expiry')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -977,8 +1038,12 @@ const StockManagement = () => {
                           <TableRow key={lot.id} className="border-gray-800">
                             <TableCell>
                               <div>
-                                <p className="font-medium text-white">{lot.product?.product_name || 'Produit'}</p>
-                                <p className="text-xs text-gray-500">{lot.product?.sku || 'Sans SKU'}</p>
+                                <p className="font-medium text-white">
+                                  {lot.product?.product_name || t('stockManagement.warehouses.product')}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {lot.product?.sku || t('stockManagement.warehouses.noSku')}
+                                </p>
                               </div>
                             </TableCell>
                             <TableCell className="text-gray-300">
@@ -1008,15 +1073,15 @@ const StockManagement = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Produit</Label>
+                  <Label>{t('stockManagement.adjustments.product')}</Label>
                   <Select value={adjProductId} onValueChange={setAdjProductId}>
                     <SelectTrigger className="bg-gray-800 border-gray-700">
-                      <SelectValue placeholder="Sélectionnez un produit..." />
+                      <SelectValue placeholder={t('stockManagement.adjustments.selectProduct')} />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-gray-700 text-white">
                       {trackedProducts.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
-                          {p.product_name} (actuel : {p.stock_quantity})
+                          {p.product_name} ({t('stockManagement.adjustments.currentQty', { qty: p.stock_quantity })})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1024,7 +1089,7 @@ const StockManagement = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Nouvelle quantité</Label>
+                    <Label>{t('stockManagement.adjustments.newQuantity')}</Label>
                     <Input
                       type="number"
                       className="bg-gray-800 border-gray-700"
@@ -1033,27 +1098,29 @@ const StockManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Raison</Label>
+                    <Label>{t('stockManagement.adjustments.reason')}</Label>
                     <Select value={adjReason} onValueChange={setAdjReason}>
                       <SelectTrigger className="bg-gray-800 border-gray-700">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                        <SelectItem value="adjustment">Ajustement</SelectItem>
-                        <SelectItem value="reception">Réception</SelectItem>
-                        <SelectItem value="sale">Vente</SelectItem>
-                        <SelectItem value="damage">Perte/Casse</SelectItem>
-                        <SelectItem value="return">Retour</SelectItem>
-                        <SelectItem value="inventory">Inventaire</SelectItem>
+                        <SelectItem value="adjustment">
+                          {t('stockManagement.adjustments.reasons.adjustment')}
+                        </SelectItem>
+                        <SelectItem value="reception">{t('stockManagement.adjustments.reasons.reception')}</SelectItem>
+                        <SelectItem value="sale">{t('stockManagement.adjustments.reasons.sale')}</SelectItem>
+                        <SelectItem value="damage">{t('stockManagement.adjustments.reasons.damage')}</SelectItem>
+                        <SelectItem value="return">{t('stockManagement.adjustments.reasons.return')}</SelectItem>
+                        <SelectItem value="inventory">{t('stockManagement.adjustments.reasons.inventory')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Notes</Label>
+                  <Label>{t('stockManagement.adjustments.notes')}</Label>
                   <Input
                     className="bg-gray-800 border-gray-700"
-                    placeholder="Notes optionnelles..."
+                    placeholder={t('stockManagement.adjustments.notesPlaceholder')}
                     value={adjNotes}
                     onChange={(e) => setAdjNotes(e.target.value)}
                   />
@@ -1079,7 +1146,9 @@ const StockManagement = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gradient">{totalProducts}</div>
-                  <p className="text-xs text-gray-500 mt-2">{trackedProducts.length} avec suivi de stock</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {t('stockManagement.cockpit.trackedProductsCount', { count: trackedProducts.length })}
+                  </p>
                 </CardContent>
               </Card>
               <Card className="bg-gray-900 border-gray-800">
@@ -1132,7 +1201,8 @@ const StockManagement = () => {
                         <div>
                           <AlertTitle className="text-gradient">{alert.product?.product_name}</AlertTitle>
                           <AlertDescription className="text-gray-400">
-                            Actuel : {alert.product?.stock_quantity} | Min : {alert.product?.min_stock_level}
+                            {t('stockManagement.alerts.current', { qty: alert.product?.stock_quantity })} |{' '}
+                            {t('stockManagement.alerts.min', { min: alert.product?.min_stock_level })}
                           </AlertDescription>
                         </div>
                       </div>
@@ -1150,14 +1220,14 @@ const StockManagement = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                     <Wallet className="w-4 h-4 text-blue-400" />
-                    Valeur de revient
+                    {t('stockManagement.cockpit.costValue')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-400">
                     {formatNumber(inventoryValueAtCost)} {currencySymbol}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Base achats de votre stock filtré.</p>
+                  <p className="text-xs text-gray-500 mt-2">{t('stockManagement.cockpit.costValueSubtitle')}</p>
                 </CardContent>
               </Card>
 
@@ -1165,14 +1235,14 @@ const StockManagement = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-emerald-400" />
-                    Valeur de vente
+                    {t('stockManagement.cockpit.retailValue')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-emerald-400">
                     {formatNumber(inventoryValueAtRetail)} {currencySymbol}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Projection si tout le stock est vendu au tarif actuel.</p>
+                  <p className="text-xs text-gray-500 mt-2">{t('stockManagement.cockpit.retailValueSubtitle')}</p>
                 </CardContent>
               </Card>
 
@@ -1180,7 +1250,7 @@ const StockManagement = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                     <Target className="w-4 h-4 text-orange-400" />
-                    Marge potentielle
+                    {t('stockManagement.cockpit.potentialMargin')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1189,7 +1259,7 @@ const StockManagement = () => {
                   >
                     {formatNumber(potentialMarginValue)} {currencySymbol}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Ecart entre valeur de vente et valeur de revient.</p>
+                  <p className="text-xs text-gray-500 mt-2">{t('stockManagement.cockpit.potentialMarginSubtitle')}</p>
                 </CardContent>
               </Card>
 
@@ -1197,7 +1267,7 @@ const StockManagement = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                    Réappro prioritaire
+                    {t('stockManagement.cockpit.replenishmentBudget')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1205,7 +1275,7 @@ const StockManagement = () => {
                     {formatNumber(reorderExposure)} {currencySymbol}
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    Budget achat à prévoir pour remettre les articles sous seuil au niveau cible.
+                    {t('stockManagement.cockpit.replenishmentBudgetSubtitle')}
                   </p>
                 </CardContent>
               </Card>
@@ -1218,10 +1288,10 @@ const StockManagement = () => {
                     <div>
                       <CardTitle className="text-white flex items-center gap-2">
                         <BarChart3 className="w-4 h-4 text-orange-400" />
-                        Articles stratégiques
+                        {t('stockManagement.cockpit.strategicItems')}
                       </CardTitle>
                       <p className="text-sm text-gray-400 mt-1">
-                        Classement ABC et priorisation selon la valorisation choisie.
+                        {t('stockManagement.cockpit.strategicItemsSubtitle')}
                       </p>
                     </div>
                     <Select value={valuationMode} onValueChange={setValuationMode}>
@@ -1229,16 +1299,16 @@ const StockManagement = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                        <SelectItem value="cost">Valeur de revient</SelectItem>
-                        <SelectItem value="retail">Valeur de vente</SelectItem>
-                        <SelectItem value="margin">Marge potentielle</SelectItem>
+                        <SelectItem value="cost">{t('stockManagement.valuationModes.cost')}</SelectItem>
+                        <SelectItem value="retail">{t('stockManagement.valuationModes.retail')}</SelectItem>
+                        <SelectItem value="margin">{t('stockManagement.valuationModes.margin')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {highValueProducts.length === 0 ? (
-                    <p className="text-sm text-gray-500">Aucun produit ne correspond au filtre courant.</p>
+                    <p className="text-sm text-gray-500">{t('stockManagement.cockpit.noProductsFilter')}</p>
                   ) : (
                     highValueProducts.map((product) => (
                       <div key={product.id} className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
@@ -1250,8 +1320,11 @@ const StockManagement = () => {
                               {getStockBadge(product)}
                             </div>
                             <p className="text-xs text-gray-500">
-                              SKU: {product.sku || '—'} • Stock: {product.stockQuantity} • Seuil mini:{' '}
-                              {product.minStockLevel}
+                              {t('stockManagement.cockpit.skuStock', {
+                                sku: product.sku || '—',
+                                stock: product.stockQuantity,
+                                min: product.minStockLevel,
+                              })}
                             </p>
                           </div>
                           <div className="text-right">
@@ -1263,24 +1336,30 @@ const StockManagement = () => {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 text-sm">
                           <div className="bg-gray-900/60 rounded-md p-3">
-                            <p className="text-gray-500 text-xs uppercase tracking-wider">Coût unitaire</p>
+                            <p className="text-gray-500 text-xs uppercase tracking-wider">
+                              {t('stockManagement.cockpit.unitCost')}
+                            </p>
                             <p className="text-white font-medium mt-1">
                               {formatNumber(product.purchasePrice)} {currencySymbol}
                             </p>
                           </div>
                           <div className="bg-gray-900/60 rounded-md p-3">
-                            <p className="text-gray-500 text-xs uppercase tracking-wider">Prix de vente</p>
+                            <p className="text-gray-500 text-xs uppercase tracking-wider">
+                              {t('stockManagement.cockpit.salePrice')}
+                            </p>
                             <p className="text-white font-medium mt-1">
                               {formatNumber(product.unitPrice)} {currencySymbol}
                             </p>
                           </div>
                           <div className="bg-gray-900/60 rounded-md p-3">
-                            <p className="text-gray-500 text-xs uppercase tracking-wider">Marge brute unitaire</p>
+                            <p className="text-gray-500 text-xs uppercase tracking-wider">
+                              {t('stockManagement.cockpit.grossMargin')}
+                            </p>
                             <p
                               className={`font-medium mt-1 ${product.grossMarginPct != null && product.grossMarginPct < 0 ? 'text-red-400' : 'text-emerald-400'}`}
                             >
                               {product.grossMarginPct == null
-                                ? 'Non calculable'
+                                ? t('stockManagement.cockpit.notCalculable')
                                 : `${formatNumber(product.grossMarginPct, 1)} %`}
                             </p>
                           </div>
@@ -1293,31 +1372,34 @@ const StockManagement = () => {
 
               <Card className="bg-gray-900 border-gray-800">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-white">Qualité du portefeuille</CardTitle>
-                  <p className="text-sm text-gray-400">Points de vigilance sur vos articles filtrés.</p>
+                  <CardTitle className="text-white">{t('stockManagement.cockpit.portfolioQuality')}</CardTitle>
+                  <p className="text-sm text-gray-400">{t('stockManagement.cockpit.portfolioQualitySubtitle')}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                    <p className="text-sm text-gray-400">Coûts d'achat manquants</p>
+                    <p className="text-sm text-gray-400">{t('stockManagement.cockpit.missingPurchasePrice')}</p>
                     <p className="text-2xl font-bold text-white mt-1">{missingPurchasePriceCount}</p>
-                    <p className="text-xs text-gray-500 mt-2">Produits avec stock mais sans prix d'achat fiable.</p>
-                  </div>
-                  <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                    <p className="text-sm text-gray-400">Marges à risque</p>
-                    <p className="text-2xl font-bold text-red-400 mt-1">{negativeMarginCount}</p>
                     <p className="text-xs text-gray-500 mt-2">
-                      Articles avec valeur de vente inférieure au coût d'achat.
+                      {t('stockManagement.cockpit.missingPurchasePriceSubtitle')}
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                    <p className="text-sm text-gray-400 mb-3">Mix ABC par valeur</p>
+                    <p className="text-sm text-gray-400">{t('stockManagement.cockpit.riskMargins')}</p>
+                    <p className="text-2xl font-bold text-red-400 mt-1">{negativeMarginCount}</p>
+                    <p className="text-xs text-gray-500 mt-2">{t('stockManagement.cockpit.riskMarginsSubtitle')}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+                    <p className="text-sm text-gray-400 mb-3">{t('stockManagement.cockpit.abcMix')}</p>
                     <div className="space-y-3">
                       {abcSummary.map((row) => (
                         <div key={row.abcClass}>
                           <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-                            <span>Classe {row.abcClass}</span>
+                            <span>{t('stockManagement.cockpit.abcClass', { cls: row.abcClass })}</span>
                             <span>
-                              {row.count} produit(s) • {formatNumber(row.share, 1)} %
+                              {t('stockManagement.cockpit.abcProducts', {
+                                count: row.count,
+                                share: formatNumber(row.share, 1),
+                              })}
                             </span>
                           </div>
                           <div className="h-2 rounded-full bg-gray-800 overflow-hidden">
@@ -1336,34 +1418,39 @@ const StockManagement = () => {
 
             <Card className="bg-gray-900 border-gray-800" data-testid="stock-valuation-panel">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white">Valorisation FIFO / CMUP et COGS</CardTitle>
-                <p className="text-sm text-gray-400">
-                  Comparaison des deux méthodes de valorisation et estimation du coût des ventes selon vos mouvements de
-                  stock.
-                </p>
+                <CardTitle className="text-white">{t('stockManagement.cockpit.valuationTitle')}</CardTitle>
+                <p className="text-sm text-gray-400">{t('stockManagement.cockpit.valuationSubtitle')}</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                    <p className="text-xs uppercase tracking-wider text-gray-500">Stock valorisé FIFO</p>
+                    <p className="text-xs uppercase tracking-wider text-gray-500">
+                      {t('stockManagement.cockpit.fifoStock')}
+                    </p>
                     <p className="text-xl font-semibold text-blue-400 mt-2">
                       {formatNumber(stockValuationSummary.totalInventoryFifo)} {currencySymbol}
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                    <p className="text-xs uppercase tracking-wider text-gray-500">Stock valorisé CMUP</p>
+                    <p className="text-xs uppercase tracking-wider text-gray-500">
+                      {t('stockManagement.cockpit.cmupStock')}
+                    </p>
                     <p className="text-xl font-semibold text-indigo-300 mt-2">
                       {formatNumber(stockValuationSummary.totalInventoryCmup)} {currencySymbol}
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                    <p className="text-xs uppercase tracking-wider text-gray-500">COGS FIFO</p>
+                    <p className="text-xs uppercase tracking-wider text-gray-500">
+                      {t('stockManagement.cockpit.fifoCogs')}
+                    </p>
                     <p className="text-xl font-semibold text-rose-300 mt-2">
                       {formatNumber(stockValuationSummary.totalFifoCogs)} {currencySymbol}
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-4">
-                    <p className="text-xs uppercase tracking-wider text-gray-500">COGS CMUP</p>
+                    <p className="text-xs uppercase tracking-wider text-gray-500">
+                      {t('stockManagement.cockpit.cmupCogs')}
+                    </p>
                     <p className="text-xl font-semibold text-orange-300 mt-2">
                       {formatNumber(stockValuationSummary.totalCmupCogs)} {currencySymbol}
                     </p>
@@ -1371,22 +1458,36 @@ const StockManagement = () => {
                 </div>
 
                 {valuationContextLoading ? (
-                  <p className="text-sm text-gray-500">Calcul des couches de valorisation en cours...</p>
+                  <p className="text-sm text-gray-500">{t('stockManagement.cockpit.valuationLoading')}</p>
                 ) : stockValuationRows.length === 0 ? (
-                  <p className="text-sm text-gray-500">Aucun article stocké ne correspond au filtre courant.</p>
+                  <p className="text-sm text-gray-500">{t('stockManagement.cockpit.noTrackedFilter')}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-gray-800 hover:bg-transparent">
-                          <TableHead className="text-gray-400">Produit</TableHead>
-                          <TableHead className="text-gray-400 text-right">Stock</TableHead>
-                          <TableHead className="text-gray-400 text-right">FIFO</TableHead>
-                          <TableHead className="text-gray-400 text-right">CMUP</TableHead>
-                          <TableHead className="text-gray-400 text-right">Écart</TableHead>
-                          <TableHead className="text-gray-400 text-right">COGS FIFO</TableHead>
-                          <TableHead className="text-gray-400 text-right">COGS CMUP</TableHead>
-                          <TableHead className="text-gray-400 text-right">Qté vendue</TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.valuationTable.product')}</TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.valuationTable.stock')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.valuationTable.fifo')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.valuationTable.cmup')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.valuationTable.gap')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.valuationTable.fifoCogs')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.valuationTable.cmupCogs')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.valuationTable.soldQty')}
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1395,7 +1496,9 @@ const StockManagement = () => {
                             <TableCell>
                               <div>
                                 <p className="font-medium text-white">{row.productName}</p>
-                                <p className="text-xs text-gray-500">{row.sku || 'Sans SKU'}</p>
+                                <p className="text-xs text-gray-500">
+                                  {row.sku || t('stockManagement.valuationTable.noSku')}
+                                </p>
                               </div>
                             </TableCell>
                             <TableCell className="text-right text-white">{formatNumber(row.stockQuantity)}</TableCell>
@@ -1428,23 +1531,27 @@ const StockManagement = () => {
 
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white">Recommandations de réapprovisionnement intelligentes</CardTitle>
-                <p className="text-sm text-gray-400">
-                  Suggestions calculées selon la vélocité de sortie, la couverture cible ABC et le lead time d'achat.
-                </p>
+                <CardTitle className="text-white">{t('stockManagement.cockpit.replenishmentTitle')}</CardTitle>
+                <p className="text-sm text-gray-400">{t('stockManagement.cockpit.replenishmentSubtitle')}</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-3">
-                    <p className="text-xs uppercase tracking-wider text-gray-500">Articles à commander</p>
+                    <p className="text-xs uppercase tracking-wider text-gray-500">
+                      {t('stockManagement.cockpit.itemsToOrder')}
+                    </p>
                     <p className="text-xl font-semibold text-white mt-1">{replenishmentSummary.totalRecommendations}</p>
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-3">
-                    <p className="text-xs uppercase tracking-wider text-gray-500">Alertes critiques</p>
+                    <p className="text-xs uppercase tracking-wider text-gray-500">
+                      {t('stockManagement.cockpit.criticalAlerts')}
+                    </p>
                     <p className="text-xl font-semibold text-red-300 mt-1">{replenishmentSummary.criticalCount}</p>
                   </div>
                   <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-3">
-                    <p className="text-xs uppercase tracking-wider text-gray-500">Budget recommandé</p>
+                    <p className="text-xs uppercase tracking-wider text-gray-500">
+                      {t('stockManagement.cockpit.recommendedBudget')}
+                    </p>
                     <p className="text-xl font-semibold text-orange-300 mt-1">
                       {formatNumber(replenishmentSummary.totalOrderValue)} {currencySymbol}
                     </p>
@@ -1452,23 +1559,39 @@ const StockManagement = () => {
                 </div>
 
                 {replenishmentRecommendations.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    Aucune recommandation de réapprovisionnement sur le filtre courant.
-                  </p>
+                  <p className="text-sm text-gray-500">{t('stockManagement.cockpit.noReplenishment')}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-gray-800 hover:bg-transparent">
-                          <TableHead className="text-gray-400">Produit</TableHead>
-                          <TableHead className="text-gray-400">Priorité</TableHead>
-                          <TableHead className="text-gray-400 text-right">Stock</TableHead>
-                          <TableHead className="text-gray-400 text-right">Conso / jour</TableHead>
-                          <TableHead className="text-gray-400 text-right">Couverture (j)</TableHead>
-                          <TableHead className="text-gray-400 text-right">Qté conseillée</TableHead>
-                          <TableHead className="text-gray-400 text-right">Date commande</TableHead>
-                          <TableHead className="text-gray-400 text-right">Budget achat</TableHead>
-                          <TableHead className="text-gray-400">Action</TableHead>
+                          <TableHead className="text-gray-400">
+                            {t('stockManagement.replenishmentTable.product')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">
+                            {t('stockManagement.replenishmentTable.priority')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.replenishmentTable.stock')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.replenishmentTable.dailyConsumption')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.replenishmentTable.coverage')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.replenishmentTable.recommendedQty')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.replenishmentTable.orderDate')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.replenishmentTable.purchaseBudget')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">
+                            {t('stockManagement.replenishmentTable.action')}
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1477,7 +1600,9 @@ const StockManagement = () => {
                             <TableCell>
                               <div>
                                 <p className="font-medium text-white">{recommendation.productName}</p>
-                                <p className="text-xs text-gray-500">{recommendation.sku || 'Sans SKU'}</p>
+                                <p className="text-xs text-gray-500">
+                                  {recommendation.sku || t('stockManagement.replenishmentTable.noSku')}
+                                </p>
                               </div>
                             </TableCell>
                             <TableCell>{getReplenishmentPriorityBadge(recommendation.priority)}</TableCell>
@@ -1519,27 +1644,43 @@ const StockManagement = () => {
                 {filteredProducts.length === 0 ? (
                   <div className="p-8 text-center text-gray-500">
                     <Package className="h-12 w-12 mx-auto mb-3 text-gray-600" />
-                    <p>Aucun produit trouvé.</p>
-                    <p className="text-sm mt-1">
-                      Créez votre premier produit ou importez depuis un catalogue fournisseur.
-                    </p>
+                    <p>{t('stockManagement.inventory.noProducts')}</p>
+                    <p className="text-sm mt-1">{t('stockManagement.inventory.noProductsSubtitle')}</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-gray-800 hover:bg-transparent">
-                          <TableHead className="text-gray-400">Produit</TableHead>
-                          <TableHead className="text-gray-400">SKU</TableHead>
-                          <TableHead className="text-gray-400">Catégorie</TableHead>
-                          <TableHead className="text-gray-400">Fournisseur</TableHead>
-                          <TableHead className="text-gray-400 text-right">Prix vente</TableHead>
-                          <TableHead className="text-gray-400 text-right">Prix achat</TableHead>
-                          <TableHead className="text-gray-400 text-right">Stock</TableHead>
-                          <TableHead className="text-gray-400 text-right">Min</TableHead>
-                          <TableHead className="text-gray-400">Mode</TableHead>
-                          <TableHead className="text-gray-400">Statut</TableHead>
-                          <TableHead className="text-gray-400">Actions</TableHead>
+                          <TableHead className="text-gray-400">
+                            {t('stockManagement.inventory.columns.product')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.inventory.columns.sku')}</TableHead>
+                          <TableHead className="text-gray-400">
+                            {t('stockManagement.inventory.columns.category')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">
+                            {t('stockManagement.inventory.columns.supplier')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.inventory.columns.salePrice')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.inventory.columns.purchasePrice')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.inventory.columns.stock')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.inventory.columns.min')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.inventory.columns.mode')}</TableHead>
+                          <TableHead className="text-gray-400">
+                            {t('stockManagement.inventory.columns.status')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">
+                            {t('stockManagement.inventory.columns.actions')}
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1563,8 +1704,8 @@ const StockManagement = () => {
                             </TableCell>
                             <TableCell className="text-gray-400">
                               {product.inventory_tracking_enabled === false
-                                ? 'Prestation / non stocké'
-                                : 'Article stocké'}
+                                ? t('stockManagement.inventory.modeUnstocked')
+                                : t('stockManagement.inventory.modeStocked')}
                             </TableCell>
                             <TableCell>{getStockBadge(product)}</TableCell>
                             <TableCell>
@@ -1574,7 +1715,7 @@ const StockManagement = () => {
                                   size="icon"
                                   className="h-8 w-8 text-gray-300 hover:text-white"
                                   onClick={() => setViewProduct(product)}
-                                  title="Visualiser"
+                                  title={t('stockManagement.viewDialog.title')}
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
@@ -1583,7 +1724,7 @@ const StockManagement = () => {
                                   size="icon"
                                   className="h-8 w-8 text-blue-300 hover:text-blue-200"
                                   onClick={() => openEditProductDialog(product)}
-                                  title="Éditer"
+                                  title={t('stockManagement.viewDialog.edit')}
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
@@ -1592,7 +1733,7 @@ const StockManagement = () => {
                                   size="icon"
                                   className="h-8 w-8 text-amber-300 hover:text-amber-200"
                                   onClick={() => openPricingDialog(product)}
-                                  title="Modifier prix et quantités"
+                                  title={t('stockManagement.pricingDialog.title')}
                                 >
                                   <Wallet className="h-4 w-4" />
                                 </Button>
@@ -1601,7 +1742,7 @@ const StockManagement = () => {
                                   size="icon"
                                   className="h-8 w-8 text-red-400 hover:text-red-300"
                                   onClick={() => setDeleteTargetProduct(product)}
-                                  title="Supprimer"
+                                  title={t('stockManagement.deleteDialog.confirm')}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -1635,7 +1776,7 @@ const StockManagement = () => {
             <div className="flex items-center gap-4">
               <Select value={historyProductId || ''} onValueChange={(v) => loadHistory(v)}>
                 <SelectTrigger className="w-full sm:w-[300px] bg-gray-800 border-gray-700 text-white">
-                  <SelectValue placeholder="Sélectionnez un produit..." />
+                  <SelectValue placeholder={t('stockManagement.history.selectProduct')} />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700 text-white">
                   {trackedProducts.map((p) => (
@@ -1651,18 +1792,24 @@ const StockManagement = () => {
               <Card className="bg-gray-900 border-gray-800">
                 <CardContent className="p-0">
                   {history.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">Aucun historique pour ce produit.</div>
+                    <div className="p-8 text-center text-gray-500">{t('stockManagement.history.noHistory')}</div>
                   ) : (
                     <Table>
                       <TableHeader>
                         <TableRow className="border-gray-800 hover:bg-transparent">
-                          <TableHead className="text-gray-400">Date</TableHead>
-                          <TableHead className="text-gray-400 text-right">Avant</TableHead>
-                          <TableHead className="text-gray-400 text-right">Après</TableHead>
-                          <TableHead className="text-gray-400 text-right">Variation</TableHead>
-                          <TableHead className="text-gray-400">Raison</TableHead>
-                          <TableHead className="text-gray-400">Notes</TableHead>
-                          <TableHead className="text-gray-400">Par</TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.history.columns.date')}</TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.history.columns.before')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.history.columns.after')}
+                          </TableHead>
+                          <TableHead className="text-gray-400 text-right">
+                            {t('stockManagement.history.columns.change')}
+                          </TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.history.columns.reason')}</TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.history.columns.notes')}</TableHead>
+                          <TableHead className="text-gray-400">{t('stockManagement.history.columns.by')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1707,7 +1854,7 @@ const StockManagement = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nom du produit *</Label>
+                  <Label>{t('stockManagement.addDialog.productName')}</Label>
                   <Input
                     className="bg-gray-800 border-gray-700"
                     value={newProduct.product_name}
@@ -1715,7 +1862,7 @@ const StockManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>SKU</Label>
+                  <Label>{t('stockManagement.addDialog.sku')}</Label>
                   <Input
                     className="bg-gray-800 border-gray-700"
                     value={newProduct.sku}
@@ -1725,7 +1872,7 @@ const StockManagement = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Prix de vente ({currencySymbol})</Label>
+                  <Label>{t('stockManagement.addDialog.salePrice', { currency: currencySymbol })}</Label>
                   <Input
                     type="number"
                     className="bg-gray-800 border-gray-700"
@@ -1734,7 +1881,7 @@ const StockManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Prix d'achat ({currencySymbol})</Label>
+                  <Label>{t('stockManagement.addDialog.purchasePrice', { currency: currencySymbol })}</Label>
                   <Input
                     type="number"
                     className="bg-gray-800 border-gray-700"
@@ -1746,11 +1893,8 @@ const StockManagement = () => {
               <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <Label className="text-white">Suivi de stock comptable</Label>
-                    <p className="text-sm text-gray-400">
-                      Laissez activé pour un article réellement stocké. Désactivez pour une prestation, une licence, un
-                      abonnement ou toute offre non stockable afin d'éviter une variation de stock 603.
-                    </p>
+                    <Label className="text-white">{t('stockManagement.addDialog.inventoryTracking')}</Label>
+                    <p className="text-sm text-gray-400">{t('stockManagement.addDialog.inventoryTrackingHint')}</p>
                   </div>
                   <Switch
                     checked={newProduct.inventory_tracking_enabled !== false}
@@ -1767,7 +1911,7 @@ const StockManagement = () => {
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Unité</Label>
+                  <Label>{t('stockManagement.addDialog.unit')}</Label>
                   <Input
                     className="bg-gray-800 border-gray-700"
                     value={newProduct.unit}
@@ -1775,7 +1919,7 @@ const StockManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Stock initial</Label>
+                  <Label>{t('stockManagement.addDialog.initialStock')}</Label>
                   <Input
                     type="number"
                     className="bg-gray-800 border-gray-700 disabled:opacity-50"
@@ -1785,7 +1929,7 @@ const StockManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Stock min.</Label>
+                  <Label>{t('stockManagement.addDialog.minStock')}</Label>
                   <Input
                     type="number"
                     className="bg-gray-800 border-gray-700 disabled:opacity-50"
@@ -1796,13 +1940,13 @@ const StockManagement = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Catégorie</Label>
+                <Label>{t('stockManagement.addDialog.category')}</Label>
                 <Select
                   value={newProduct.category_id}
                   onValueChange={(v) => setNewProduct((p) => ({ ...p, category_id: v }))}
                 >
                   <SelectTrigger className="bg-gray-800 border-gray-700">
-                    <SelectValue placeholder="Aucune" />
+                    <SelectValue placeholder={t('stockManagement.addDialog.noneCategory')} />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white">
                     {categories.map((c) => (
@@ -1814,16 +1958,16 @@ const StockManagement = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Fournisseur</Label>
+                <Label>{t('stockManagement.addDialog.supplier')}</Label>
                 <Select
                   value={newProduct.supplier_id || 'none'}
                   onValueChange={(v) => setNewProduct((p) => ({ ...p, supplier_id: v === 'none' ? '' : v }))}
                 >
                   <SelectTrigger className="bg-gray-800 border-gray-700">
-                    <SelectValue placeholder="Aucun" />
+                    <SelectValue placeholder={t('stockManagement.addDialog.noneSupplier')} />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                    <SelectItem value="none">Aucun</SelectItem>
+                    <SelectItem value="none">{t('stockManagement.addDialog.noneSupplier')}</SelectItem>
                     {suppliers.map((supplier) => (
                       <SelectItem key={supplier.id} value={supplier.id}>
                         {supplier.company_name}
@@ -1832,14 +1976,11 @@ const StockManagement = () => {
                   </SelectContent>
                 </Select>
                 {newProduct.inventory_tracking_enabled !== false && !newProduct.supplier_id ? (
-                  <p className="text-xs text-amber-300">
-                    Recommandé pour la traçabilité achats. Obligatoire si vous voulez rattacher les futurs
-                    achats/factures à un fournisseur précis.
-                  </p>
+                  <p className="text-xs text-amber-300">{t('stockManagement.addDialog.supplierRecommended')}</p>
                 ) : null}
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
+                <Label>{t('stockManagement.addDialog.description')}</Label>
                 <Textarea
                   className="bg-gray-800 border-gray-700"
                   value={newProduct.description}
@@ -1869,61 +2010,61 @@ const StockManagement = () => {
         <Dialog open={Boolean(viewProduct)} onOpenChange={(open) => !open && setViewProduct(null)}>
           <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-xl">
             <DialogHeader>
-              <DialogTitle>Détails du produit</DialogTitle>
+              <DialogTitle>{t('stockManagement.viewDialog.title')}</DialogTitle>
             </DialogHeader>
             {viewProduct ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-gray-400">Nom</p>
+                    <p className="text-xs text-gray-400">{t('stockManagement.viewDialog.name')}</p>
                     <p className="font-medium">{viewProduct.product_name || '—'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">SKU</p>
+                    <p className="text-xs text-gray-400">{t('stockManagement.viewDialog.sku')}</p>
                     <p className="font-medium">{viewProduct.sku || '—'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Catégorie</p>
+                    <p className="text-xs text-gray-400">{t('stockManagement.viewDialog.category')}</p>
                     <p className="font-medium">{viewProduct.category?.name || '—'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Fournisseur</p>
+                    <p className="text-xs text-gray-400">{t('stockManagement.viewDialog.supplier')}</p>
                     <p className="font-medium">{viewProduct.supplier?.company_name || '—'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Prix de vente</p>
+                    <p className="text-xs text-gray-400">{t('stockManagement.viewDialog.salePrice')}</p>
                     <p className="font-medium">
                       {formatNumber(viewProduct.unit_price || 0)} {currencySymbol}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Prix d'achat</p>
+                    <p className="text-xs text-gray-400">{t('stockManagement.viewDialog.purchasePrice')}</p>
                     <p className="font-medium">
                       {formatNumber(viewProduct.purchase_price || 0)} {currencySymbol}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Stock</p>
+                    <p className="text-xs text-gray-400">{t('stockManagement.viewDialog.stock')}</p>
                     <p className="font-medium">
                       {viewProduct.inventory_tracking_enabled === false ? '—' : viewProduct.stock_quantity}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Stock min</p>
+                    <p className="text-xs text-gray-400">{t('stockManagement.viewDialog.minStock')}</p>
                     <p className="font-medium">
                       {viewProduct.inventory_tracking_enabled === false ? '—' : viewProduct.min_stock_level}
                     </p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-1">Description</p>
+                  <p className="text-xs text-gray-400 mb-1">{t('stockManagement.viewDialog.description')}</p>
                   <p className="text-sm text-gray-200 whitespace-pre-wrap">{viewProduct.description || '—'}</p>
                 </div>
               </div>
             ) : null}
             <DialogFooter>
               <Button variant="ghost" onClick={() => setViewProduct(null)}>
-                Fermer
+                {t('stockManagement.viewDialog.close')}
               </Button>
               <Button
                 variant="outline"
@@ -1934,7 +2075,7 @@ const StockManagement = () => {
                   setViewProduct(null);
                 }}
               >
-                <Pencil className="w-4 h-4 mr-2" /> Éditer
+                <Pencil className="w-4 h-4 mr-2" /> {t('stockManagement.viewDialog.edit')}
               </Button>
               <Button
                 variant="outline"
@@ -1945,7 +2086,7 @@ const StockManagement = () => {
                   setViewProduct(null);
                 }}
               >
-                <Wallet className="w-4 h-4 mr-2" /> Prix / Qté
+                <Wallet className="w-4 h-4 mr-2" /> {t('stockManagement.viewDialog.priceQty')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1962,12 +2103,12 @@ const StockManagement = () => {
         >
           <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg">
             <DialogHeader>
-              <DialogTitle>Modifier le produit</DialogTitle>
+              <DialogTitle>{t('stockManagement.editDialog.title')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nom du produit *</Label>
+                  <Label>{t('stockManagement.addDialog.productName')}</Label>
                   <Input
                     className="bg-gray-800 border-gray-700"
                     value={editProductForm.product_name}
@@ -1975,7 +2116,7 @@ const StockManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>SKU</Label>
+                  <Label>{t('stockManagement.addDialog.sku')}</Label>
                   <Input
                     className="bg-gray-800 border-gray-700"
                     value={editProductForm.sku}
@@ -1985,7 +2126,7 @@ const StockManagement = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Prix de vente ({currencySymbol})</Label>
+                  <Label>{t('stockManagement.addDialog.salePrice', { currency: currencySymbol })}</Label>
                   <Input
                     type="number"
                     className="bg-gray-800 border-gray-700"
@@ -1994,7 +2135,7 @@ const StockManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Prix d'achat ({currencySymbol})</Label>
+                  <Label>{t('stockManagement.addDialog.purchasePrice', { currency: currencySymbol })}</Label>
                   <Input
                     type="number"
                     className="bg-gray-800 border-gray-700"
@@ -2006,8 +2147,8 @@ const StockManagement = () => {
               <div className="rounded-lg border border-gray-800 bg-gray-900/80 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <Label className="text-white">Suivi de stock comptable</Label>
-                    <p className="text-sm text-gray-400">Désactivez pour les prestations non stockées.</p>
+                    <Label className="text-white">{t('stockManagement.editDialog.inventoryTracking')}</Label>
+                    <p className="text-sm text-gray-400">{t('stockManagement.editDialog.inventoryTrackingHint')}</p>
                   </div>
                   <Switch
                     checked={editProductForm.inventory_tracking_enabled !== false}
@@ -2024,7 +2165,7 @@ const StockManagement = () => {
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Unité</Label>
+                  <Label>{t('stockManagement.editDialog.unit')}</Label>
                   <Input
                     className="bg-gray-800 border-gray-700"
                     value={editProductForm.unit}
@@ -2032,7 +2173,7 @@ const StockManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Stock</Label>
+                  <Label>{t('stockManagement.editDialog.stock')}</Label>
                   <Input
                     type="number"
                     className="bg-gray-800 border-gray-700 disabled:opacity-50"
@@ -2042,7 +2183,7 @@ const StockManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Stock min.</Label>
+                  <Label>{t('stockManagement.editDialog.minStock')}</Label>
                   <Input
                     type="number"
                     className="bg-gray-800 border-gray-700 disabled:opacity-50"
@@ -2053,7 +2194,7 @@ const StockManagement = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Catégorie</Label>
+                <Label>{t('stockManagement.editDialog.category')}</Label>
                 <Select
                   value={editProductForm.category_id || 'none'}
                   onValueChange={(value) =>
@@ -2061,10 +2202,10 @@ const StockManagement = () => {
                   }
                 >
                   <SelectTrigger className="bg-gray-800 border-gray-700">
-                    <SelectValue placeholder="Aucune" />
+                    <SelectValue placeholder={t('stockManagement.addDialog.noneCategory')} />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                    <SelectItem value="none">Aucune</SelectItem>
+                    <SelectItem value="none">{t('stockManagement.addDialog.noneCategory')}</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -2074,7 +2215,7 @@ const StockManagement = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Fournisseur</Label>
+                <Label>{t('stockManagement.editDialog.supplier')}</Label>
                 <Select
                   value={editProductForm.supplier_id || 'none'}
                   onValueChange={(value) =>
@@ -2082,10 +2223,10 @@ const StockManagement = () => {
                   }
                 >
                   <SelectTrigger className="bg-gray-800 border-gray-700">
-                    <SelectValue placeholder="Aucun" />
+                    <SelectValue placeholder={t('stockManagement.addDialog.noneSupplier')} />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                    <SelectItem value="none">Aucun</SelectItem>
+                    <SelectItem value="none">{t('stockManagement.addDialog.noneSupplier')}</SelectItem>
                     {suppliers.map((supplier) => (
                       <SelectItem key={supplier.id} value={supplier.id}>
                         {supplier.company_name}
@@ -2095,7 +2236,7 @@ const StockManagement = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
+                <Label>{t('stockManagement.editDialog.description')}</Label>
                 <Textarea
                   className="bg-gray-800 border-gray-700"
                   value={editProductForm.description}
@@ -2111,14 +2252,14 @@ const StockManagement = () => {
                   setEditProductForm(DEFAULT_PRODUCT_EDIT_FORM);
                 }}
               >
-                Annuler
+                {t('stockManagement.editDialog.cancel')}
               </Button>
               <Button
                 className="bg-orange-500 hover:bg-orange-600"
                 onClick={handleUpdateProductDetails}
                 disabled={!editProductForm.product_name || loading}
               >
-                Enregistrer
+                {t('stockManagement.editDialog.save')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -2135,11 +2276,11 @@ const StockManagement = () => {
         >
           <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md">
             <DialogHeader>
-              <DialogTitle>Modifier prix et quantités</DialogTitle>
+              <DialogTitle>{t('stockManagement.pricingDialog.title')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Prix de vente ({currencySymbol})</Label>
+                <Label>{t('stockManagement.pricingDialog.salePrice', { currency: currencySymbol })}</Label>
                 <Input
                   type="number"
                   className="bg-gray-800 border-gray-700"
@@ -2148,7 +2289,7 @@ const StockManagement = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Prix d'achat ({currencySymbol})</Label>
+                <Label>{t('stockManagement.pricingDialog.purchasePrice', { currency: currencySymbol })}</Label>
                 <Input
                   type="number"
                   className="bg-gray-800 border-gray-700"
@@ -2157,7 +2298,7 @@ const StockManagement = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white">Suivi stock</Label>
+                <Label className="text-white">{t('stockManagement.pricingDialog.inventoryTracking')}</Label>
                 <div className="flex items-center gap-3 rounded border border-gray-800 bg-gray-900/70 px-3 py-2">
                   <Switch
                     checked={pricingForm.inventory_tracking_enabled !== false}
@@ -2171,13 +2312,15 @@ const StockManagement = () => {
                     }
                   />
                   <span className="text-sm text-gray-300">
-                    {pricingForm.inventory_tracking_enabled !== false ? 'Article stocké' : 'Prestation / non stocké'}
+                    {pricingForm.inventory_tracking_enabled !== false
+                      ? t('stockManagement.pricingDialog.stocked')
+                      : t('stockManagement.pricingDialog.unstocked')}
                   </span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Quantité stock</Label>
+                  <Label>{t('stockManagement.pricingDialog.stockQuantity')}</Label>
                   <Input
                     type="number"
                     className="bg-gray-800 border-gray-700 disabled:opacity-50"
@@ -2187,7 +2330,7 @@ const StockManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Seuil minimum</Label>
+                  <Label>{t('stockManagement.pricingDialog.minThreshold')}</Label>
                   <Input
                     type="number"
                     className="bg-gray-800 border-gray-700 disabled:opacity-50"
@@ -2206,10 +2349,10 @@ const StockManagement = () => {
                   setPricingForm(DEFAULT_PRODUCT_PRICING_FORM);
                 }}
               >
-                Annuler
+                {t('stockManagement.pricingDialog.cancel')}
               </Button>
               <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleUpdatePricing} disabled={loading}>
-                Enregistrer
+                {t('stockManagement.pricingDialog.save')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -2218,22 +2361,21 @@ const StockManagement = () => {
         <Dialog open={Boolean(deleteTargetProduct)} onOpenChange={(open) => !open && setDeleteTargetProduct(null)}>
           <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md">
             <DialogHeader>
-              <DialogTitle>Confirmer la suppression</DialogTitle>
+              <DialogTitle>{t('stockManagement.deleteDialog.title')}</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-gray-300">
-              Voulez-vous vraiment supprimer le produit{' '}
-              <span className="font-semibold text-white">{deleteTargetProduct?.product_name || '—'}</span> ?
+              {t('stockManagement.deleteDialog.message', { name: deleteTargetProduct?.product_name || '—' })}
             </p>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setDeleteTargetProduct(null)}>
-                Annuler
+                {t('stockManagement.deleteDialog.cancel')}
               </Button>
               <Button
                 className="bg-red-600 hover:bg-red-700 text-white"
                 onClick={handleDeleteProductConfirm}
                 disabled={loading}
               >
-                Supprimer
+                {t('stockManagement.deleteDialog.confirm')}
               </Button>
             </DialogFooter>
           </DialogContent>
