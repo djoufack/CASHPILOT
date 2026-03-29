@@ -26,7 +26,9 @@ import QuoteListTable from '@/components/quotes/QuoteListTable';
 import QuoteGalleryView from '@/components/quotes/QuoteGalleryView';
 import QuoteDialogs from '@/components/quotes/QuoteDialogs';
 
-const DEFAULT_TAX_RATE_FALLBACK = 20;
+// DB is the source of truth: rate comes from useDefaultTaxRate() → accounting_tax_rates.
+// 0 is used only as a safe neutral sentinel until DB data is loaded.
+const DEFAULT_TAX_RATE_FALLBACK = 0;
 const createEmptyItem = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({
   description: '',
   quantity: 1,

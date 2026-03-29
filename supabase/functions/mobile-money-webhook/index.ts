@@ -13,11 +13,21 @@ const buildCorsHeaders = (req: Request) => ({
   ...SECURITY_HEADERS,
 });
 
-function verifySignature(payload: string, signature: string | null, secret: string): boolean {
+async function verifySignature(payload: string, signature: string | null, secret: string): Promise<boolean> {
   if (!signature || !secret) return false;
-  // In production, use HMAC-SHA256 verification
-  // For simulation, accept all callbacks
-  return true;
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
+      'sign',
+    ]);
+    const computed = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+    const computedHex = Array.from(new Uint8Array(computed))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    return computedHex === signature.toLowerCase();
+  } catch {
+    return false;
+  }
 }
 
 serve(async (req) => {
@@ -29,12 +39,12 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const webhookSecret = Deno.env.get('MOBILE_MONEY_WEBHOOK_SECRET') ?? 'dev-secret';
+    const webhookSecret = Deno.env.get('MOBILE_MONEY_WEBHOOK_SECRET') ?? '';
 
     const rawBody = await req.text();
     const signature = req.headers.get('x-webhook-signature');
 
-    if (!verifySignature(rawBody, signature, webhookSecret)) {
+    if (!(await verifySignature(rawBody, signature, webhookSecret))) {
       return new Response(JSON.stringify({ error: 'Invalid signature' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

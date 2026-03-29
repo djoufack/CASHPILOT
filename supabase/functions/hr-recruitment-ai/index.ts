@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createServiceClient } from '../_shared/billing.ts';
+import { createServiceClient, requireAuthenticatedUser } from '../_shared/billing.ts';
 import { SECURITY_HEADERS } from '../_shared/securityHeaders.ts';
 
 const corsHeaders = {
@@ -218,6 +218,13 @@ Resume: ${JSON.stringify(cand.resume_parsed || {})}`;
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return errRes('Method not allowed', 405);
+
+  // ENF-2 / Security: require a valid authenticated user before any HR AI action.
+  try {
+    await requireAuthenticatedUser(req);
+  } catch {
+    return errRes('Unauthorized', 401);
+  }
 
   try {
     const apiKey = requireEnv('ANTHROPIC_API_KEY');
