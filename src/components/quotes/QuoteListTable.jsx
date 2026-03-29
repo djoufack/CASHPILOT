@@ -195,7 +195,7 @@ const QuoteListTable = ({
                       {documentTypeLabels[quote.document_type] || documentTypeLabels.quote}
                     </span>
                   </td>
-                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-amber-400">
                     {quote.quote_number}
                   </td>
                   <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">
