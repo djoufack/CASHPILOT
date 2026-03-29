@@ -137,15 +137,15 @@ END $$;
 -- ============================================================================
 DO $$
 DECLARE
-  si RECORD;
+  inv RECORD;
   v_supplier_code TEXT;
   v_bank_code TEXT;
   v_total_ttc NUMERIC;
 BEGIN
-  FOR si IN
+  FOR inv IN
     SELECT *
-    FROM supplier_invoices inv
-    WHERE inv.payment_status = 'paid'
+    FROM supplier_invoices
+    WHERE payment_status = 'paid'
       AND NOT EXISTS (
         SELECT 1 FROM accounting_entries ae
         WHERE ae.source_type = 'supplier_invoice_payment'
