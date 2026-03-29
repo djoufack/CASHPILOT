@@ -39,7 +39,7 @@ const createEmptyItem = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({
 const createInitialFormData = (taxRate = DEFAULT_TAX_RATE_FALLBACK) => ({
   client_id: '',
   date: formatDateInput(),
-  due_date: '',
+  valid_until: '',
   notes: '',
   status: 'draft',
   items: [createEmptyItem(taxRate)],
@@ -187,7 +187,7 @@ const QuotesPage = () => {
       await createQuote({
         client_id: formData.client_id,
         date: formData.date || formatDateInput(),
-        due_date: formData.due_date || null,
+        valid_until: formData.valid_until || null,
         notes: formData.notes.trim() || null,
         status: formData.status,
         items: formData.items.map((item) => ({

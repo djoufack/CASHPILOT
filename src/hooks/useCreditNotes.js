@@ -30,8 +30,9 @@ export const useCreditNotes = () => {
           items:credit_note_items(*)
         `
         )
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      // Use applyCompanyScope (company_id filter) only — RLS enforces user ownership.
+      // Removing the redundant .eq('user_id') keeps this consistent with useQuotes.
       query = applyCompanyScope(query);
 
       const { data, error } = await query;
@@ -68,6 +69,7 @@ export const useCreditNotes = () => {
       if (items.length > 0) {
         const itemsToInsert = items.map((item) => ({
           credit_note_id: data.id,
+          company_id: data.company_id, // ENF-2: propagate company_id to line items
           description: item.description,
           quantity: Number(item.quantity),
           unit_price: Number(item.unitPrice || item.unit_price),

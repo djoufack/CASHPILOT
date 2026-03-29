@@ -294,7 +294,7 @@ const DeliveryNotesPage = () => {
                     {loading ? (
                       <tr>
                         <td colSpan={8} className="text-center p-8 text-gray-400">
-                          Loading...
+                          {t('common.loading')}
                         </td>
                       </tr>
                     ) : filteredNotes.length === 0 ? (
@@ -359,7 +359,7 @@ const DeliveryNotesPage = () => {
                                 size="sm"
                                 variant="ghost"
                                 className="text-purple-400 hover:text-purple-300 h-8"
-                                title="Export PDF (2 crédits)"
+                                title={t('credits.costs.pdfDeliveryNote')}
                                 onClick={() => handleExportDeliveryNotePDF(dn)}
                               >
                                 <Download className="w-4 h-4" />
@@ -368,7 +368,7 @@ const DeliveryNotesPage = () => {
                                 size="sm"
                                 variant="ghost"
                                 className="text-cyan-400 hover:text-cyan-300 h-8"
-                                title="Export HTML (2 crédits)"
+                                title={t('credits.costs.exportHtml')}
                                 onClick={() => handleExportDeliveryNoteHTML(dn)}
                               >
                                 <FileText className="w-4 h-4" />

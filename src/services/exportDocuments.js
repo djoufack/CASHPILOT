@@ -2,10 +2,7 @@ import { saveElementAsPdf, saveElementAsPdfBytes } from '@/services/pdfExportRun
 import { formatDateInput } from '@/utils/dateFormatting';
 import DOMPurify from 'dompurify';
 import { uploadDocument } from '@/services/documentStorage';
-import {
-  renderInvoiceTemplateContent,
-  buildStandaloneTemplateHtml,
-} from '@/services/invoiceTemplateExport';
+import { renderInvoiceTemplateContent, buildStandaloneTemplateHtml } from '@/services/invoiceTemplateExport';
 
 const setSafeHtml = (element, html) => {
   element.innerHTML = DOMPurify.sanitize(String(html || ''));
@@ -54,7 +51,8 @@ const computeInvoiceTotals = (invoice) => {
   const fallbackSubtotal = toFiniteNumber(invoice?.total_ht ?? invoice?.subtotal);
   const fallbackTotalCandidate = toFiniteNumber(invoice?.total_ttc ?? invoice?.total);
   const fallbackTaxCandidate = toFiniteNumber(invoice?.tax_amount);
-  const fallbackTax = fallbackTaxCandidate > 0 ? fallbackTaxCandidate : Math.max(0, fallbackTotalCandidate - fallbackSubtotal);
+  const fallbackTax =
+    fallbackTaxCandidate > 0 ? fallbackTaxCandidate : Math.max(0, fallbackTotalCandidate - fallbackSubtotal);
   const fallbackTotal = fallbackTotalCandidate > 0 ? fallbackTotalCandidate : fallbackSubtotal + fallbackTax;
 
   return {
@@ -91,7 +89,9 @@ export const generateInvoiceHTML = (invoice, companyInfo) => {
   const issueDate = invoice.date || invoice.issueDate;
   const invoiceNumber = invoice.invoice_number || invoice.invoiceNumber || 'N/A';
   const taxRate = toFiniteNumber(invoice.tax_rate || invoice.taxRate);
-  const noteText = invoice.notes || 'Tous nos produits et services sont garantis 12 mois, à compter de la date de réception du paiement de la facture.';
+  const noteText =
+    invoice.notes ||
+    'Tous nos produits et services sont garantis 12 mois, à compter de la date de réception du paiement de la facture.';
 
   return `
     <div style="font-family: Arial, sans-serif; max-width: 860px; margin: 0 auto; padding: 20px; background:#f4f6f8; color:#1f2937;">
@@ -99,9 +99,11 @@ export const generateInvoiceHTML = (invoice, companyInfo) => {
         <section style="background:#ffffff; border:2px solid #21d4c8; border-radius:8px; padding:16px 18px;">
           <div style="display:flex; justify-content:space-between; gap:16px; align-items:flex-start;">
             <div style="width:86px; height:86px; border-radius:8px; background:#e9f2ff; border:1px solid #d2e6ff; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-              ${companyInfo?.logo_url
-                ? `<img src="${companyInfo.logo_url}" alt="Logo" style="width:100%;height:100%;object-fit:contain;" />`
-                : `<span style="font-size:28px; font-weight:800; color:#0f274f;">${String(companyName).slice(0, 3).toUpperCase()}</span>`}
+              ${
+                companyInfo?.logo_url
+                  ? `<img src="${companyInfo.logo_url}" alt="Logo" style="width:100%;height:100%;object-fit:contain;" />`
+                  : `<span style="font-size:28px; font-weight:800; color:#0f274f;">${String(companyName).slice(0, 3).toUpperCase()}</span>`
+              }
             </div>
             <div style="font-size:13px; line-height:1.45; text-align:right;">
               <p style="margin:0; font-weight:800; text-transform:uppercase; color:#0f172a;">${companyName}</p>
@@ -134,17 +136,25 @@ export const generateInvoiceHTML = (invoice, companyInfo) => {
               </tr>
             </thead>
             <tbody>
-              ${items.length === 0 ? `
+              ${
+                items.length === 0
+                  ? `
                 <tr style="border-top:1px solid #e5e7eb;">
                   <td style="padding:12px; color:#6b7280;" colspan="3">Aucune ligne détaillée disponible.</td>
                 </tr>
-              ` : items.map((item, index) => `
+              `
+                  : items
+                      .map(
+                        (item, index) => `
                 <tr style="border-top:1px solid #e5e7eb; background:${index % 2 === 0 ? '#f8fafc' : '#ffffff'};">
                   <td style="padding:10px 12px;">${item.description || ''}</td>
                   <td style="padding:10px 12px; text-align:right; white-space:nowrap;">${item.unit_price.toFixed(2)} €</td>
                   <td style="padding:10px 12px; text-align:right; white-space:nowrap; font-weight:600;">${item._lineSubtotal.toFixed(2)} €</td>
                 </tr>
-              `).join('')}
+              `
+                      )
+                      .join('')
+              }
             </tbody>
           </table>
         </section>
@@ -214,9 +224,15 @@ export const generateQuoteHTML = (quote, companyInfo) => {
 
   const quoteNumber = quote.quote_number || 'N/A';
   const issueDate = quote.date ? new Date(quote.date).toLocaleDateString('fr-FR') : 'N/A';
-  const validityDate = quote.due_date ? new Date(quote.due_date).toLocaleDateString('fr-FR') : 'N/A';
+  // quotes DB column is 'valid_until'; fall back to 'due_date' for legacy records
+  const validityDate =
+    quote.valid_until || quote.due_date
+      ? new Date(quote.valid_until || quote.due_date).toLocaleDateString('fr-FR')
+      : 'N/A';
   const taxRate = toFiniteNumber(quote.tax_rate || quote.taxRate);
-  const noteText = quote.notes || 'Ce devis est valable 30 jours. Toute commande implique l’acceptation des conditions générales de vente.';
+  const noteText =
+    quote.notes ||
+    'Ce devis est valable 30 jours. Toute commande implique l’acceptation des conditions générales de vente.';
   const statusLabels = {
     draft: 'Brouillon',
     sent: 'Envoyé',
@@ -231,9 +247,11 @@ export const generateQuoteHTML = (quote, companyInfo) => {
         <section style="background:#ffffff; border:2px solid #21d4c8; border-radius:8px; padding:16px 18px;">
           <div style="display:flex; justify-content:space-between; gap:16px; align-items:flex-start;">
             <div style="width:86px; height:86px; border-radius:8px; background:#e9f2ff; border:1px solid #d2e6ff; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-              ${companyInfo?.logo_url
-                ? `<img src="${companyInfo.logo_url}" alt="Logo" style="width:100%;height:100%;object-fit:contain;" />`
-                : `<span style="font-size:28px; font-weight:800; color:#0f274f;">${String(companyName).slice(0, 3).toUpperCase()}</span>`}
+              ${
+                companyInfo?.logo_url
+                  ? `<img src="${companyInfo.logo_url}" alt="Logo" style="width:100%;height:100%;object-fit:contain;" />`
+                  : `<span style="font-size:28px; font-weight:800; color:#0f274f;">${String(companyName).slice(0, 3).toUpperCase()}</span>`
+              }
             </div>
             <div style="font-size:13px; line-height:1.45; text-align:right;">
               <p style="margin:0; font-weight:800; text-transform:uppercase; color:#0f172a;">${companyName}</p>
@@ -268,17 +286,25 @@ export const generateQuoteHTML = (quote, companyInfo) => {
               </tr>
             </thead>
             <tbody>
-              ${items.length === 0 ? `
+              ${
+                items.length === 0
+                  ? `
                 <tr style="border-top:1px solid #e5e7eb;">
                   <td style="padding:12px; color:#6b7280;" colspan="3">Aucune ligne détaillée disponible.</td>
                 </tr>
-              ` : items.map((item, index) => `
+              `
+                  : items
+                      .map(
+                        (item, index) => `
                 <tr style="border-top:1px solid #e5e7eb; background:${index % 2 === 0 ? '#f8fafc' : '#ffffff'};">
                   <td style="padding:10px 12px;">${item.description || ''}</td>
                   <td style="padding:10px 12px; text-align:right; white-space:nowrap;">${item.unit_price.toFixed(2)} €</td>
                   <td style="padding:10px 12px; text-align:right; white-space:nowrap; font-weight:600;">${item._lineSubtotal.toFixed(2)} €</td>
                 </tr>
-              `).join('')}
+              `
+                      )
+                      .join('')
+              }
             </tbody>
           </table>
         </section>
@@ -369,22 +395,30 @@ const generateDeliveryNoteHTML = (deliveryNote, companyInfo) => {
           </tr>
         </thead>
         <tbody>
-          ${items.map(item => `
+          ${items
+            .map(
+              (item) => `
             <tr style="border-bottom: 1px solid #e5e7eb;">
               <td style="padding: 12px;">${item.description || ''}</td>
               <td style="padding: 12px; text-align: center; font-weight: 600;">${item.quantity || 0}</td>
               <td style="padding: 12px; text-align: center;">${item.unit || 'pcs'}</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
 
-      ${deliveryNote.notes ? `
+      ${
+        deliveryNote.notes
+          ? `
         <div style="margin-top: 30px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
           <p style="margin: 0; color: #92400e;"><strong>Notes:</strong></p>
           <p style="margin: 5px 0 0 0; color: #78350f;">${deliveryNote.notes}</p>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <div style="margin-top: 40px; padding: 20px; background: #f9fafb; border-radius: 8px;">
         <p style="margin: 0 0 20px 0; font-weight: 600;">Signature du destinataire:</p>
@@ -449,7 +483,9 @@ const generateCreditNoteHTML = (creditNote, companyInfo) => {
           </tr>
         </thead>
         <tbody>
-          ${items.map(item => `
+          ${items
+            .map(
+              (item) => `
             <tr style="border-bottom: 1px solid #e5e7eb;">
               <td style="padding: 12px;">${item.description || ''}</td>
               <td style="padding: 12px; text-align: center;">${item.quantity}</td>
@@ -457,7 +493,9 @@ const generateCreditNoteHTML = (creditNote, companyInfo) => {
               <td style="padding: 12px; text-align: right;">${item.tax_rate}%</td>
               <td style="padding: 12px; text-align: right; font-weight: 600;">${item._lineSubtotal.toFixed(2)} €</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
 
@@ -476,12 +514,16 @@ const generateCreditNoteHTML = (creditNote, companyInfo) => {
         </div>
       </div>
 
-      ${creditNote.notes ? `
+      ${
+        creditNote.notes
+          ? `
         <div style="margin-top: 30px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
           <p style="margin: 0; color: #92400e;"><strong>Notes:</strong></p>
           <p style="margin: 5px 0 0 0; color: #78350f;">${creditNote.notes}</p>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
         <p style="margin: 0;">Document généré par CashPilot - ${new Date().toLocaleString('fr-FR')}</p>
@@ -495,8 +537,8 @@ const generateCreditNoteHTML = (creditNote, companyInfo) => {
  */
 const generatePurchaseOrderHTML = (purchaseOrder, companyInfo) => {
   const items = purchaseOrder.items || [];
-  const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-  const totalTax = items.reduce((sum, item) => sum + (item.quantity * item.unit_price * (item.tax_rate || 0) / 100), 0);
+  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+  const totalTax = items.reduce((sum, item) => sum + (item.quantity * item.unit_price * (item.tax_rate || 0)) / 100, 0);
   const total = subtotal + totalTax;
 
   return `
@@ -543,7 +585,9 @@ const generatePurchaseOrderHTML = (purchaseOrder, companyInfo) => {
           </tr>
         </thead>
         <tbody>
-          ${items.map(item => `
+          ${items
+            .map(
+              (item) => `
             <tr style="border-bottom: 1px solid #e5e7eb;">
               <td style="padding: 12px;">${item.description || ''}</td>
               <td style="padding: 12px; text-align: center;">${item.quantity || 0}</td>
@@ -551,7 +595,9 @@ const generatePurchaseOrderHTML = (purchaseOrder, companyInfo) => {
               <td style="padding: 12px; text-align: right;">${item.tax_rate || 0}%</td>
               <td style="padding: 12px; text-align: right; font-weight: 600;">${((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)} €</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
 
@@ -570,12 +616,16 @@ const generatePurchaseOrderHTML = (purchaseOrder, companyInfo) => {
         </div>
       </div>
 
-      ${purchaseOrder.notes ? `
+      ${
+        purchaseOrder.notes
+          ? `
         <div style="margin-top: 30px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
           <p style="margin: 0; color: #92400e;"><strong>Notes:</strong></p>
           <p style="margin: 5px 0 0 0; color: #78350f;">${purchaseOrder.notes}</p>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
         <p style="margin: 0;">Document généré par CashPilot - ${new Date().toLocaleString('fr-FR')}</p>
@@ -605,7 +655,7 @@ export const exportInvoicePDF = async (invoice, companyInfo, invoiceSettings = n
     filename: `Facture_${invoiceNum}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
   };
 
   try {
@@ -624,8 +674,8 @@ export const exportInvoicePDF = async (invoice, companyInfo, invoiceSettings = n
         fileData: pdfBlob,
         contentType: 'application/pdf',
         table: 'invoices',
-        recordId: invoice.id
-      }).catch(err => console.warn('Document upload failed:', err));
+        recordId: invoice.id,
+      }).catch((err) => console.warn('Document upload failed:', err));
     }
 
     return true;
@@ -651,7 +701,7 @@ export const exportQuotePDF = async (quote, companyInfo) => {
     filename: `Devis_${quoteNum}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
   };
 
   try {
@@ -669,8 +719,8 @@ export const exportQuotePDF = async (quote, companyInfo) => {
         fileData: pdfBlob,
         contentType: 'application/pdf',
         table: 'quotes',
-        recordId: quote.id
-      }).catch(err => console.warn('Document upload failed:', err));
+        recordId: quote.id,
+      }).catch((err) => console.warn('Document upload failed:', err));
     }
 
     return true;
@@ -696,7 +746,7 @@ export const exportDeliveryNotePDF = async (deliveryNote, companyInfo) => {
     filename: `BonLivraison_${noteNum}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
   };
 
   try {
@@ -714,8 +764,8 @@ export const exportDeliveryNotePDF = async (deliveryNote, companyInfo) => {
         fileData: pdfBlob,
         contentType: 'application/pdf',
         table: 'delivery_notes',
-        recordId: deliveryNote.id
-      }).catch(err => console.warn('Document upload failed:', err));
+        recordId: deliveryNote.id,
+      }).catch((err) => console.warn('Document upload failed:', err));
     }
 
     return true;
@@ -741,7 +791,7 @@ export const exportCreditNotePDF = async (creditNote, companyInfo) => {
     filename: `Avoir_${noteNum}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
   };
 
   try {
@@ -759,8 +809,8 @@ export const exportCreditNotePDF = async (creditNote, companyInfo) => {
         fileData: pdfBlob,
         contentType: 'application/pdf',
         table: 'credit_notes',
-        recordId: creditNote.id
-      }).catch(err => console.warn('Document upload failed:', err));
+        recordId: creditNote.id,
+      }).catch((err) => console.warn('Document upload failed:', err));
     }
 
     return true;
@@ -786,7 +836,7 @@ export const exportPurchaseOrderPDF = async (purchaseOrder, companyInfo) => {
     filename: `BonCommande_${orderNum}_${formatDateInput()}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
   };
 
   try {
@@ -804,8 +854,8 @@ export const exportPurchaseOrderPDF = async (purchaseOrder, companyInfo) => {
         fileData: pdfBlob,
         contentType: 'application/pdf',
         table: 'purchase_orders',
-        recordId: purchaseOrder.id
-      }).catch(err => console.warn('Document upload failed:', err));
+        recordId: purchaseOrder.id,
+      }).catch((err) => console.warn('Document upload failed:', err));
     }
 
     return true;
@@ -827,7 +877,10 @@ export const exportInvoiceHTML = async (invoice, companyInfo, invoiceSettings = 
     company: companyInfo,
     settingsOverride: invoiceSettings,
   });
-  const html = buildStandaloneTemplateHtml(`Facture ${invoice.invoice_number || invoice.invoiceNumber || 'draft'}`, content);
+  const html = buildStandaloneTemplateHtml(
+    `Facture ${invoice.invoice_number || invoice.invoiceNumber || 'draft'}`,
+    content
+  );
   downloadHTML(html, `Facture_${invoice.invoice_number || invoice.invoiceNumber || 'draft'}_${formatDateInput()}`);
 };
 

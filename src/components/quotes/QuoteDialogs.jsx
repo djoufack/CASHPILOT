@@ -137,8 +137,8 @@ const QuoteDialogs = ({
                 <Label className="text-gray-300">{t('invoices.dueDate')}</Label>
                 <Input
                   type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  value={formData.valid_until}
+                  onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
                   className="bg-gray-800 border-gray-700 text-white"
                 />
               </div>
