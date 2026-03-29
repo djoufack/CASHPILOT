@@ -5,7 +5,7 @@ import { sanitizeText } from '../utils/sanitize.js';
 import { safeError } from '../utils/errors.js';
 
 const COLS_CLIENTS =
-  'id, company_name, contact_name, email, phone, address, city, postal_code, country, vat_number, preferred_currency, notes, payment_terms, bank_name, iban, bic_swift, tax_id, website, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled, deleted_at, created_at, updated_at';
+  'id, user_id, company_id, company_name, contact_name, email, phone, address, city, postal_code, country, vat_number, preferred_currency, notes, payment_terms, bank_name, iban, bic_swift, tax_id, website, peppol_endpoint_id, peppol_scheme_id, electronic_invoicing_enabled, deleted_at, created_at, updated_at';
 
 export function registerClientTools(server: McpServer) {
   server.tool(
