@@ -43,32 +43,32 @@ DECLARE
 BEGIN
   FOR si IN
     SELECT *
-    FROM supplier_invoices si
-    WHERE si.status = 'received'
+    FROM supplier_invoices inv
+    WHERE inv.status = 'received'
       AND NOT EXISTS (
         SELECT 1 FROM accounting_entries ae
         WHERE ae.source_type = 'supplier_invoice'
-          AND ae.source_id = si.id
+          AND ae.source_id = inv.id
       )
   LOOP
     -- Check if auto journal is enabled for this user
     SELECT auto_journal_enabled INTO v_enabled
     FROM user_accounting_settings
-    WHERE user_id = si.user_id;
+    WHERE user_id = inv.user_id;
 
     IF v_enabled IS NOT TRUE THEN
       CONTINUE;
     END IF;
 
-    v_ref := 'SINV-' || COALESCE(si.invoice_number, si.id::TEXT);
-    v_amount_ht := COALESCE(si.amount_ht, 0);
-    v_tva := COALESCE(si.tax_amount, 0);
-    v_total_ttc := COALESCE(si.total_ttc, v_amount_ht + v_tva, si.total_amount, 0);
+    v_ref := 'SINV-' || COALESCE(inv.invoice_number, inv.id::TEXT);
+    v_amount_ht := COALESCE(inv.amount_ht, 0);
+    v_tva := COALESCE(inv.tax_amount, 0);
+    v_total_ttc := COALESCE(inv.total_ttc, v_amount_ht + v_tva, inv.total_amount, 0);
 
     -- Get account codes
-    v_expense_code := get_user_account_code(si.user_id, 'expense.general');
-    v_vat_code := get_user_account_code(si.user_id, 'vat_input');
-    v_supplier_code := get_user_account_code(si.user_id, 'supplier');
+    v_expense_code := get_user_account_code(inv.user_id, 'expense.general');
+    v_vat_code := get_user_account_code(inv.user_id, 'vat_input');
+    v_supplier_code := get_user_account_code(inv.user_id, 'supplier');
 
     -- Insert charge entry (debit)
     IF v_amount_ht > 0 THEN
@@ -77,11 +77,11 @@ BEGIN
         debit, credit, source_type, source_id, journal,
         entry_ref, is_auto, description
       ) VALUES (
-        si.user_id, si.company_id,
-        COALESCE(si.invoice_date, CURRENT_DATE), v_expense_code,
-        v_amount_ht, 0, 'supplier_invoice', si.id, 'AC',
+        inv.user_id, inv.company_id,
+        COALESCE(inv.invoice_date, CURRENT_DATE), v_expense_code,
+        v_amount_ht, 0, 'supplier_invoice', inv.id, 'AC',
         v_ref, true,
-        'Facture fournisseur - ' || COALESCE(si.invoice_number, '')
+        'Facture fournisseur - ' || COALESCE(inv.invoice_number, '')
       );
     END IF;
 
@@ -92,11 +92,11 @@ BEGIN
         debit, credit, source_type, source_id, journal,
         entry_ref, is_auto, description
       ) VALUES (
-        si.user_id, si.company_id,
-        COALESCE(si.invoice_date, CURRENT_DATE), v_vat_code,
-        v_tva, 0, 'supplier_invoice', si.id, 'AC',
+        inv.user_id, inv.company_id,
+        COALESCE(inv.invoice_date, CURRENT_DATE), v_vat_code,
+        v_tva, 0, 'supplier_invoice', inv.id, 'AC',
         v_ref, true,
-        'TVA deductible - ' || COALESCE(si.invoice_number, '')
+        'TVA deductible - ' || COALESCE(inv.invoice_number, '')
       );
     END IF;
 
@@ -107,11 +107,11 @@ BEGIN
         debit, credit, source_type, source_id, journal,
         entry_ref, is_auto, description
       ) VALUES (
-        si.user_id, si.company_id,
-        COALESCE(si.invoice_date, CURRENT_DATE), v_supplier_code,
-        0, v_total_ttc, 'supplier_invoice', si.id, 'AC',
+        inv.user_id, inv.company_id,
+        COALESCE(inv.invoice_date, CURRENT_DATE), v_supplier_code,
+        0, v_total_ttc, 'supplier_invoice', inv.id, 'AC',
         v_ref, true,
-        'Dette fournisseur - ' || COALESCE(si.invoice_number, '')
+        'Dette fournisseur - ' || COALESCE(inv.invoice_number, '')
       );
     END IF;
 
@@ -120,11 +120,11 @@ BEGIN
       user_id, company_id, event_type, source_table, source_id,
       total_debit, total_credit, balance_ok, metadata
     ) VALUES (
-      si.user_id, si.company_id,
-      'auto_journal', 'supplier_invoices', si.id,
+      inv.user_id, inv.company_id,
+      'auto_journal', 'supplier_invoices', inv.id,
       v_amount_ht + v_tva, v_total_ttc,
       (v_amount_ht + v_tva) = v_total_ttc,
-      jsonb_build_object('backfill', true, 'migration', '20260329040000', 'invoice_number', si.invoice_number)
+      jsonb_build_object('backfill', true, 'migration', '20260329040000', 'invoice_number', inv.invoice_number)
     );
 
   END LOOP;
@@ -144,19 +144,19 @@ DECLARE
 BEGIN
   FOR si IN
     SELECT *
-    FROM supplier_invoices si
-    WHERE si.payment_status = 'paid'
+    FROM supplier_invoices inv
+    WHERE inv.payment_status = 'paid'
       AND NOT EXISTS (
         SELECT 1 FROM accounting_entries ae
         WHERE ae.source_type = 'supplier_invoice_payment'
-          AND ae.source_id = si.id
+          AND ae.source_id = inv.id
       )
   LOOP
-    v_total_ttc := COALESCE(si.total_ttc, si.total_amount, 0);
+    v_total_ttc := COALESCE(inv.total_ttc, inv.total_amount, 0);
     IF v_total_ttc <= 0 THEN CONTINUE; END IF;
 
-    v_supplier_code := get_user_account_code(si.user_id, 'supplier');
-    v_bank_code := get_user_account_code(si.user_id, 'bank');
+    v_supplier_code := get_user_account_code(inv.user_id, 'supplier');
+    v_bank_code := get_user_account_code(inv.user_id, 'bank');
 
     -- Debit supplier (cancel debt)
     INSERT INTO accounting_entries (
@@ -164,10 +164,10 @@ BEGIN
       debit, credit, source_type, source_id, journal,
       entry_ref, is_auto, description
     ) VALUES (
-      si.user_id, si.company_id, CURRENT_DATE, v_supplier_code,
-      v_total_ttc, 0, 'supplier_invoice_payment', si.id, 'BQ',
-      'SINV-PAY-' || COALESCE(si.invoice_number, si.id::TEXT), true,
-      'Reglement fournisseur - ' || COALESCE(si.invoice_number, '')
+      inv.user_id, inv.company_id, CURRENT_DATE, v_supplier_code,
+      v_total_ttc, 0, 'supplier_invoice_payment', inv.id, 'BQ',
+      'SINV-PAY-' || COALESCE(inv.invoice_number, inv.id::TEXT), true,
+      'Reglement fournisseur - ' || COALESCE(inv.invoice_number, '')
     );
 
     -- Credit bank
@@ -176,10 +176,10 @@ BEGIN
       debit, credit, source_type, source_id, journal,
       entry_ref, is_auto, description
     ) VALUES (
-      si.user_id, si.company_id, CURRENT_DATE, v_bank_code,
-      0, v_total_ttc, 'supplier_invoice_payment', si.id, 'BQ',
-      'SINV-PAY-' || COALESCE(si.invoice_number, si.id::TEXT), true,
-      'Sortie tresorerie fournisseur - ' || COALESCE(si.invoice_number, '')
+      inv.user_id, inv.company_id, CURRENT_DATE, v_bank_code,
+      0, v_total_ttc, 'supplier_invoice_payment', inv.id, 'BQ',
+      'SINV-PAY-' || COALESCE(inv.invoice_number, inv.id::TEXT), true,
+      'Sortie tresorerie fournisseur - ' || COALESCE(inv.invoice_number, '')
     );
   END LOOP;
 
