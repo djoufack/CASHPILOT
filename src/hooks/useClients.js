@@ -14,7 +14,7 @@ export const useClients = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
-  const { applyCompanyScope, withCompanyScope } = useCompanyScope();
+  const { activeCompanyId, applyCompanyScope, withCompanyScope } = useCompanyScope();
 
   const [totalCount, setTotalCount] = useState(0);
 
@@ -216,7 +216,12 @@ export const useClients = () => {
     setLoading(true);
     try {
       // Soft delete: set deleted_at instead of removing the row
-      const { error } = await supabase.from('clients').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+      // ENF-2: also filter by company_id to prevent cross-company soft-delete
+      let deleteQuery = supabase.from('clients').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+      if (activeCompanyId) {
+        deleteQuery = deleteQuery.eq('company_id', activeCompanyId);
+      }
+      const { error } = await deleteQuery;
 
       if (error) throw error;
 
@@ -253,12 +258,12 @@ export const useClients = () => {
     if (!supabase) throw new Error('Supabase not configured');
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .update({ deleted_at: null })
-        .eq('id', id)
-        .select()
-        .single();
+      // ENF-2: also filter by company_id to prevent cross-company restore
+      let restoreQuery = supabase.from('clients').update({ deleted_at: null }).eq('id', id);
+      if (activeCompanyId) {
+        restoreQuery = restoreQuery.eq('company_id', activeCompanyId);
+      }
+      const { data, error } = await restoreQuery.select().single();
 
       if (error) throw error;
 

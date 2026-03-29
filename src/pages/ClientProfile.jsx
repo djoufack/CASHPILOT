@@ -1,5 +1,3 @@
-
-import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -9,25 +7,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/calculations';
-import { ArrowLeft, Mail, Phone, Globe, MapPin, FileText, CreditCard, Building2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Globe, MapPin, FileText, CreditCard, Loader2 } from 'lucide-react';
 
 const ClientProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { clients, loading: clientsLoading } = useClients();
-  const { invoices, loading: invoicesLoading } = useInvoices();
+  const { invoices } = useInvoices();
 
-  const client = clients.find(c => c.id === id);
-  const clientInvoices = invoices.filter(inv => inv.client_id === id);
+  const client = clients.find((c) => c.id === id);
+  const clientInvoices = invoices.filter((inv) => inv.client_id === id);
 
   const totalRevenue = clientInvoices
-    .filter(inv => inv.status === 'paid')
-    .reduce((sum, inv) => sum + (inv.total || 0), 0);
+    .filter((inv) => inv.payment_status === 'paid' || inv.status === 'paid')
+    .reduce((sum, inv) => sum + (inv.total_ttc || 0), 0);
 
   const pendingAmount = clientInvoices
-    .filter(inv => inv.status !== 'paid' && inv.status !== 'cancelled')
-    .reduce((sum, inv) => sum + (inv.total || 0), 0);
+    .filter((inv) => inv.payment_status !== 'paid' && inv.status !== 'paid' && inv.status !== 'cancelled')
+    .reduce((sum, inv) => sum + (inv.total_ttc || 0), 0);
 
   if (clientsLoading) {
     return (
@@ -50,7 +48,9 @@ const ClientProfile = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-950 text-white space-y-6">
-      <Helmet><title>{t('clientProfile.pageTitle')} | CashPilot</title></Helmet>
+      <Helmet>
+        <title>{t('clientProfile.pageTitle')} | CashPilot</title>
+      </Helmet>
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate('/clients')} className="text-gray-400 hover:text-white">
@@ -89,12 +89,25 @@ const ClientProfile = () => {
               </h4>
               <div className="text-sm">
                 <p className="font-medium text-gradient">{client.contact_name || 'N/A'}</p>
-                <p className="flex items-center gap-2 text-gray-400 mt-1"><Mail className="h-3 w-3" /> {client.email || 'N/A'}</p>
-                {client.phone && <p className="flex items-center gap-2 text-gray-400 mt-1"><Phone className="h-3 w-3" /> {client.phone}</p>}
+                <p className="flex items-center gap-2 text-gray-400 mt-1">
+                  <Mail className="h-3 w-3" /> {client.email || 'N/A'}
+                </p>
+                {client.phone && (
+                  <p className="flex items-center gap-2 text-gray-400 mt-1">
+                    <Phone className="h-3 w-3" /> {client.phone}
+                  </p>
+                )}
                 {client.website && (
                   <p className="flex items-center gap-2 text-gray-400 mt-1">
                     <Globe className="h-3 w-3" />
-                    <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">{client.website}</a>
+                    <a
+                      href={client.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-orange-400 hover:underline"
+                    >
+                      {client.website}
+                    </a>
                   </p>
                 )}
               </div>
@@ -109,7 +122,11 @@ const ClientProfile = () => {
                 {client.address ? (
                   <>
                     <p>{client.address}</p>
-                    {(client.postal_code || client.city) && <p>{client.postal_code} {client.city}</p>}
+                    {(client.postal_code || client.city) && (
+                      <p>
+                        {client.postal_code} {client.city}
+                      </p>
+                    )}
                     {client.country && <p>{client.country}</p>}
                   </>
                 ) : (
@@ -124,10 +141,24 @@ const ClientProfile = () => {
                 <FileText className="h-3 w-3" /> {t('clientProfile.businessDetails')}
               </h4>
               <div className="text-sm text-gray-400">
-                <p>{t('clientProfile.vat')}: <span className="text-white">{client.vat_number || 'N/A'}</span></p>
-                {client.tax_id && <p>{t('clientProfile.siret')}: <span className="text-white">{client.tax_id}</span></p>}
-                <p>{t('clientProfile.currency')}: <span className="text-white">{client.preferred_currency || 'EUR'}</span></p>
-                {client.payment_terms && <p>{t('clientProfile.paymentTerms')}: <span className="text-white capitalize">{client.payment_terms.replace('_', ' ')}</span></p>}
+                <p>
+                  {t('clientProfile.vat')}: <span className="text-white">{client.vat_number || 'N/A'}</span>
+                </p>
+                {client.tax_id && (
+                  <p>
+                    {t('clientProfile.siret')}: <span className="text-white">{client.tax_id}</span>
+                  </p>
+                )}
+                <p>
+                  {t('clientProfile.currency')}:{' '}
+                  <span className="text-white">{client.preferred_currency || 'EUR'}</span>
+                </p>
+                {client.payment_terms && (
+                  <p>
+                    {t('clientProfile.paymentTerms')}:{' '}
+                    <span className="text-white capitalize">{client.payment_terms.replace('_', ' ')}</span>
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -141,9 +172,22 @@ const ClientProfile = () => {
               <div className="text-sm text-gray-400">
                 {client.bank_name || client.iban ? (
                   <>
-                    {client.bank_name && <p>{t('clientProfile.bank')}: <span className="text-white">{client.bank_name}</span></p>}
-                    {client.iban && <p>{t('clientProfile.iban')}: <span className="text-white font-mono text-xs">{client.iban}</span></p>}
-                    {client.bic_swift && <p>{t('clientProfile.bic')}: <span className="text-white font-mono text-xs">{client.bic_swift}</span></p>}
+                    {client.bank_name && (
+                      <p>
+                        {t('clientProfile.bank')}: <span className="text-white">{client.bank_name}</span>
+                      </p>
+                    )}
+                    {client.iban && (
+                      <p>
+                        {t('clientProfile.iban')}: <span className="text-white font-mono text-xs">{client.iban}</span>
+                      </p>
+                    )}
+                    {client.bic_swift && (
+                      <p>
+                        {t('clientProfile.bic')}:{' '}
+                        <span className="text-white font-mono text-xs">{client.bic_swift}</span>
+                      </p>
+                    )}
                   </>
                 ) : (
                   <p>{t('clientProfile.noBankData')}</p>
@@ -172,7 +216,7 @@ const ClientProfile = () => {
             <p className="text-gray-500 text-center py-8">{t('clientProfile.noInvoices')}</p>
           ) : (
             <div className="space-y-3">
-              {clientInvoices.slice(0, 10).map(inv => (
+              {clientInvoices.slice(0, 10).map((inv) => (
                 <div key={inv.id} className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
                   <div>
                     <p className="text-gradient font-medium text-sm">{inv.invoice_number}</p>
@@ -181,13 +225,19 @@ const ClientProfile = () => {
                     </p>
                   </div>
                   <div className="text-right flex items-center gap-3">
-                    <p className="text-gradient font-semibold text-sm">{formatCurrency(inv.total || 0)}</p>
-                    <Badge className={`text-xs ${
-                      inv.status === 'paid' ? 'bg-green-500/10 text-green-400' :
-                      inv.status === 'sent' ? 'bg-blue-500/10 text-blue-400' :
-                      'bg-gray-500/10 text-gray-400'
-                    }`}>
-                      {inv.status}
+                    <p className="text-gradient font-semibold text-sm">{formatCurrency(inv.total_ttc || 0)}</p>
+                    <Badge
+                      className={`text-xs ${
+                        inv.payment_status === 'paid' || inv.status === 'paid'
+                          ? 'bg-green-500/10 text-green-400'
+                          : inv.status === 'sent'
+                            ? 'bg-blue-500/10 text-blue-400'
+                            : inv.payment_status === 'overdue' || inv.status === 'overdue'
+                              ? 'bg-red-500/10 text-red-400'
+                              : 'bg-gray-500/10 text-gray-400'
+                      }`}
+                    >
+                      {inv.payment_status || inv.status}
                     </Badge>
                   </div>
                 </div>
