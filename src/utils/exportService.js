@@ -1,5 +1,3 @@
-import ExcelJS from 'exceljs';
-
 /**
  * Export data to CSV format and trigger download
  */
@@ -33,6 +31,7 @@ export const exportToCSV = (data, filename = 'export') => {
  * Export data to Excel (XLSX) format and trigger download
  */
 export const exportToExcel = async (data, filename = 'export', sheetName = 'Data') => {
+  const { default: ExcelJS } = await import('exceljs');
   if (!data || data.length === 0) return;
 
   const workbook = new ExcelJS.Workbook();

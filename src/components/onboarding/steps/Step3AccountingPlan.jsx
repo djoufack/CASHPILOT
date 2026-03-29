@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import * as XLSX from 'xlsx';
 import { ArrowLeft, ArrowRight, FileText, Upload, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const PLAN_META = {
@@ -74,7 +73,7 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
       setLoading(false);
     };
     fetchPlans();
-  }, [user]);
+  }, [user?.id]);
 
   const handleSelect = (plan) => {
     setSelectedPlanId(plan.id);
@@ -145,24 +144,20 @@ const Step3AccountingPlan = ({ onNext, onBack, wizardData, updateWizardData }) =
   };
 
   const parseExcelFile = async (file) => {
+    const XLSX = await import('xlsx');
     const buffer = await file.arrayBuffer();
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer);
-    const worksheet = workbook.worksheets[0];
+    const workbook = XLSX.read(buffer, { type: 'array', raw: false });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = firstSheetName ? workbook.Sheets[firstSheetName] : null;
 
     if (!worksheet) {
       throw new Error('Le fichier Excel ne contient aucune feuille exploitable.');
     }
 
-    const rows = [];
-    worksheet.eachRow({ includeEmpty: false }, (row) => {
-      const rowData = [];
-      row.eachCell({ includeEmpty: true }, (cell) => {
-        let val = cell.value;
-        if (val && typeof val === 'object' && val.result !== undefined) val = val.result;
-        rowData[cell.col - 1] = val ?? '';
-      });
-      if (rowData.some((v) => v !== '')) rows.push(rowData);
+    const rows = XLSX.utils.sheet_to_json(worksheet, {
+      header: 1,
+      defval: '',
+      raw: false,
     });
     return mapRowsToAccounts(rows);
   };

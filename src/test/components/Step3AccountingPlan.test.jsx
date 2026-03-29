@@ -35,12 +35,15 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
-vi.mock('xlsx', () => ({
+const buildXlsxMock = () => ({
   read: xlsxReadSpy,
   utils: {
     sheet_to_json: sheetToJsonSpy,
   },
-}));
+});
+
+vi.mock('xlsx', () => buildXlsxMock());
+vi.mock('@e965/xlsx', () => buildXlsxMock());
 
 vi.mock('lucide-react', () => ({
   ArrowLeft: () => null,

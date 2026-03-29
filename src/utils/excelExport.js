@@ -1,4 +1,3 @@
-import ExcelJS from 'exceljs';
 import { formatDate } from '@/utils/dateLocale';
 
 /**
@@ -79,6 +78,7 @@ export const formatDataForExport = (data, columns) => {
  * @param {string} [options.format='xlsx'] - 'xlsx' or 'csv'
  */
 export const exportToExcel = async (data, options = {}) => {
+  const { default: ExcelJS } = await import('exceljs');
   const { filename = 'export', sheetName = 'Data', columns } = options;
 
   if (!data || data.length === 0) return;

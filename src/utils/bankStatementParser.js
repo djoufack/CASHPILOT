@@ -4,7 +4,6 @@
  * Returns a uniform ParsedStatement structure regardless of input format.
  */
 
-import * as XLSX from 'xlsx';
 import { formatDateInput } from '@/utils/dateFormatting';
 
 // ============================================================================
@@ -252,27 +251,31 @@ export async function parseBankStatementExcel(file) {
   };
 
   try {
+    const XLSX = await import('xlsx');
     const buffer = await file.arrayBuffer();
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer);
+    const workbook = XLSX.read(buffer, {
+      type: 'array',
+      cellDates: true,
+      raw: false,
+    });
 
     // Pick best sheet
     const targetNames = ['opérations', 'operations', 'relevé', 'releve', 'mouvements', 'compte', 'extrait'];
-    let worksheet =
-      workbook.worksheets.find((ws) => targetNames.some((t) => ws.name.toLowerCase().includes(t))) ||
-      workbook.worksheets[0];
+    const preferredSheetName =
+      workbook.SheetNames.find((name) => targetNames.some((t) => name.toLowerCase().includes(t))) ||
+      workbook.SheetNames[0];
+    const worksheet = preferredSheetName ? workbook.Sheets[preferredSheetName] : null;
 
-    // Convert ExcelJS worksheet to array-of-arrays format
-    const rawRows = [];
-    worksheet.eachRow({ includeEmpty: true }, (row) => {
-      const rowData = [];
-      row.eachCell({ includeEmpty: true }, (cell) => {
-        let val = cell.value;
-        if (val && typeof val === 'object' && val.result !== undefined) val = val.result;
-        if (val instanceof Date) val = val;
-        rowData[cell.col - 1] = val ?? '';
-      });
-      rawRows.push(rowData);
+    if (!worksheet) {
+      errors.push({ line: 0, message: 'Le fichier semble vide ou ne contient pas de feuille exploitable.' });
+      return { lines, errors, metadata };
+    }
+
+    // Convert worksheet to array-of-arrays format
+    const rawRows = XLSX.utils.sheet_to_json(worksheet, {
+      header: 1,
+      defval: '',
+      raw: false,
     });
 
     if (rawRows.length < 2) {
