@@ -1,5 +1,3 @@
-
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -74,9 +72,7 @@ const ClientList = ({
     }
     if (archivedClients.length === 0) {
       return (
-        <div className="text-center py-8 text-gray-400">
-          {t('clients.noArchivedClients', 'Aucun client archivé')}
-        </div>
+        <div className="text-center py-8 text-gray-400">{t('clients.noArchivedClients', 'Aucun client archivé')}</div>
       );
     }
     return (
@@ -153,10 +149,16 @@ const ClientList = ({
   return (
     <Tabs value={viewMode} onValueChange={setViewMode} className="w-full">
       <TabsList className="bg-gray-800 border border-gray-700 mb-4">
-        <TabsTrigger value="list" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+        <TabsTrigger
+          value="list"
+          className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+        >
           <List className="w-4 h-4 mr-2" /> {t('common.list')}
         </TabsTrigger>
-        <TabsTrigger value="gallery" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400">
+        <TabsTrigger
+          value="gallery"
+          className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-400"
+        >
           <LayoutGrid className="w-4 h-4 mr-2" /> {t('common.gallery')}
         </TabsTrigger>
       </TabsList>
@@ -193,11 +195,9 @@ const ClientList = ({
                     className="hover:bg-gray-700/50 transition-colors cursor-pointer"
                     onClick={() => onOpenDialog(client)}
                   >
-                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
+                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-amber-400">
                       {client.company_name}
-                      <div className="md:hidden text-xs text-gray-400 mt-1">
-                        {client.contact_name}
-                      </div>
+                      <div className="md:hidden text-xs text-gray-400 mt-1">{client.contact_name}</div>
                     </td>
                     <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
                       {client.contact_name}
@@ -234,7 +234,9 @@ const ClientList = ({
                   <p className="text-sm text-gray-300 mt-1">{client.contact_name || '-'}</p>
                   <p className="text-xs text-gray-400 mt-1">{client.email || '-'}</p>
                 </div>
-                <span className="text-xs px-2 py-1 rounded bg-gray-700 text-gray-300">{client.preferred_currency || '-'}</span>
+                <span className="text-xs px-2 py-1 rounded bg-gray-700 text-gray-300">
+                  {client.preferred_currency || '-'}
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs mt-4">
                 <div className="bg-gray-900/50 rounded p-2">
@@ -246,9 +248,7 @@ const ClientList = ({
                   <p className="text-gray-300 mt-1">{client.phone || '-'}</p>
                 </div>
               </div>
-              <div className="pt-3 mt-3 border-t border-gray-700">
-                {renderClientActions(client)}
-              </div>
+              <div className="pt-3 mt-3 border-t border-gray-700">{renderClientActions(client)}</div>
             </motion.div>
           ))}
         </div>

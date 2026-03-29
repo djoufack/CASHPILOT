@@ -154,7 +154,7 @@ const InvoiceListTable = ({ data, actions, ui }) => {
                       </Button>
                     </div>
                   </td>
-                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-amber-400">
                     {invoice.invoice_number || invoice.invoiceNumber}
                   </td>
                   <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden sm:table-cell">

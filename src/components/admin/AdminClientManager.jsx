@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAdminClients } from '@/hooks/useAdminClients';
 import { Button } from '@/components/ui/button';
@@ -36,16 +35,17 @@ const AdminClientManager = () => {
 
   const currentList = showArchived ? archivedClients : clients;
 
-  const filteredClients = useMemo(() =>
-    currentList.filter((client) => {
-      const term = searchTerm.toLowerCase();
-      return (
-        (client.company_name || '').toLowerCase().includes(term) ||
-        (client.contact_name || '').toLowerCase().includes(term) ||
-        (client.email || '').toLowerCase().includes(term) ||
-        getOwnerDisplay(client).toLowerCase().includes(term)
-      );
-    }),
+  const filteredClients = useMemo(
+    () =>
+      currentList.filter((client) => {
+        const term = searchTerm.toLowerCase();
+        return (
+          (client.company_name || '').toLowerCase().includes(term) ||
+          (client.contact_name || '').toLowerCase().includes(term) ||
+          (client.email || '').toLowerCase().includes(term) ||
+          getOwnerDisplay(client).toLowerCase().includes(term)
+        );
+      }),
     [currentList, searchTerm]
   );
 
@@ -162,11 +162,9 @@ const AdminClientManager = () => {
                     animate={{ opacity: 1 }}
                     className={`hover:bg-gray-700/50 transition-colors ${showArchived ? 'opacity-60' : ''}`}
                   >
-                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gradient">
+                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-amber-400">
                       {client.company_name}
-                      <div className="md:hidden text-xs text-gray-400 mt-1">
-                        {client.contact_name}
-                      </div>
+                      <div className="md:hidden text-xs text-gray-400 mt-1">{client.contact_name}</div>
                     </td>
                     <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-300 hidden md:table-cell">
                       {client.contact_name}
@@ -225,7 +223,10 @@ const AdminClientManager = () => {
                 <>
                   <span className="font-medium text-white">{clientToArchive.company_name}</span>
                   {' — '}
-                  {t('admin.archiveClientDescription', 'Ce client sera archivé pour son propriétaire. Il pourra être restauré à tout moment. Les factures et documents associés seront conservés.')}
+                  {t(
+                    'admin.archiveClientDescription',
+                    'Ce client sera archivé pour son propriétaire. Il pourra être restauré à tout moment. Les factures et documents associés seront conservés.'
+                  )}
                   <br />
                   <span className="text-orange-400 text-xs mt-2 block">
                     {t('admin.ownerInfo', 'Propriétaire')} : {getOwnerDisplay(clientToArchive)}
