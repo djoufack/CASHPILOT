@@ -4,7 +4,7 @@
  * Returns a uniform ParsedStatement structure regardless of input format.
  */
 
-import ExcelJS from 'exceljs';
+import * as XLSX from 'xlsx';
 import { formatDateInput } from '@/utils/dateFormatting';
 
 // ============================================================================

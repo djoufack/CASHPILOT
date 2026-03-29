@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { parseCSV } from '@/utils/csvParser';
-import ExcelJS from 'exceljs';
+import * as XLSX from 'xlsx';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -25,22 +25,24 @@ const STANDARD_COLUMNS = [
 // Helper: parse Excel file to array of rows
 // ---------------------------------------------------------------------------
 
-async function parseExcelFile(file) {
-  const buffer = await file.arrayBuffer();
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer);
-  const worksheet = workbook.worksheets[0];
-  const rows = [];
-  worksheet.eachRow({ includeEmpty: true }, (row) => {
-    const rowData = [];
-    row.eachCell({ includeEmpty: true }, (cell) => {
-      let val = cell.value;
-      if (val && typeof val === 'object' && val.result !== undefined) val = val.result;
-      rowData[cell.col - 1] = val ?? '';
-    });
-    rows.push(rowData);
+function parseExcelFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheet];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        resolve(rows);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsArrayBuffer(file);
   });
-  return rows;
 }
 
 // ---------------------------------------------------------------------------
