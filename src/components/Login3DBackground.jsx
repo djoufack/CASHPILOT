@@ -5,16 +5,35 @@ import * as THREE from 'three';
  * Login3DBackground — Immersive constellation network with shooting stars.
  * Pure Three.js canvas, no React Three Fiber needed.
  * Renders behind login form as a fixed fullscreen layer.
+ * Falls back to a CSS gradient when WebGL is unavailable (headless, old devices).
  */
+
+const isWebGLAvailable = () => {
+  try {
+    const testCanvas = document.createElement('canvas');
+    return !!(testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl'));
+  } catch {
+    return false;
+  }
+};
+
 const Login3DBackground = () => {
   const canvasRef = useRef(null);
+  const webGLSupported = isWebGLAvailable();
 
   useEffect(() => {
+    if (!webGLSupported) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     // --- Renderer ---
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    } catch {
+      // WebGL init failed at runtime — nothing to render
+      return;
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
 
@@ -356,7 +375,7 @@ const Login3DBackground = () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('resize', onResize);
-      renderer.dispose();
+      renderer?.dispose();
       starGeo.dispose();
       starMaterial.dispose();
       lineGeo.dispose();
@@ -368,7 +387,19 @@ const Login3DBackground = () => {
         ss.mesh.material.dispose();
       });
     };
-  }, []);
+  }, [webGLSupported]);
+
+  if (!webGLSupported) {
+    return (
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 40%, rgba(123,97,255,0.18) 0%, rgba(10,10,30,0.95) 70%)',
+        }}
+      />
+    );
+  }
 
   return (
     <canvas
