@@ -25,7 +25,7 @@ export const useRecurringInvoices = () => {
         )
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-      query = applyCompanyScope(query, { includeUnassigned: true });
+      query = applyCompanyScope(query);
 
       const { data, error } = await query;
 

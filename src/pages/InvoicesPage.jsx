@@ -556,7 +556,7 @@ const InvoicesPage = () => {
                 className="flex-1 md:flex-none bg-orange-500 hover:bg-orange-600 text-white"
               >
                 <FileText className="w-4 h-4 mr-2" />
-                {showGenerator ? 'View Invoices' : t('invoices.generateInvoice')}
+                {showGenerator ? t('invoices.viewInvoices', 'View Invoices') : t('invoices.generateInvoice')}
               </Button>
               {showGenerator && (
                 <Button

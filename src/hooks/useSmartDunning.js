@@ -342,6 +342,7 @@ export const useSmartDunning = () => {
           .from('dunning_campaigns')
           .update(updates)
           .eq('id', campaignId)
+          .eq('company_id', activeCompanyId)
           .select()
           .single();
 
@@ -377,7 +378,11 @@ export const useSmartDunning = () => {
       setError(null);
 
       try {
-        const { error: deleteError } = await supabase.from('dunning_campaigns').delete().eq('id', campaignId);
+        const { error: deleteError } = await supabase
+          .from('dunning_campaigns')
+          .delete()
+          .eq('id', campaignId)
+          .eq('company_id', activeCompanyId);
 
         if (deleteError) throw deleteError;
 

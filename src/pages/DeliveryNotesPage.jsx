@@ -101,8 +101,8 @@ const DeliveryNotesPage = () => {
     guardedAction(CREDIT_COSTS.PDF_DELIVERY_NOTE, t('credits.costs.pdfDeliveryNote'), async () => {
       const enrichedDN = {
         ...dn,
-        items,
-        client: clients.find((c) => c.id === dn.client_id),
+        items: dn.items || [],
+        client: dn.client || clients.find((c) => c.id === dn.client_id),
       };
       await exportDeliveryNotePDF(enrichedDN, company);
     });
@@ -112,8 +112,8 @@ const DeliveryNotesPage = () => {
     guardedAction(CREDIT_COSTS.EXPORT_HTML, t('credits.costs.exportHtml'), () => {
       const enrichedDN = {
         ...dn,
-        items,
-        client: clients.find((c) => c.id === dn.client_id),
+        items: dn.items || [],
+        client: dn.client || clients.find((c) => c.id === dn.client_id),
       };
       exportDeliveryNoteHTML(enrichedDN, company);
     });
@@ -178,10 +178,10 @@ const DeliveryNotesPage = () => {
   };
 
   const dnCalendarLegend = [
-    { label: 'Pending', color: '#eab308' },
-    { label: 'Shipped', color: '#3b82f6' },
-    { label: 'Delivered', color: '#22c55e' },
-    { label: 'Cancelled', color: '#ef4444' },
+    { label: t('deliveryNotes.status.pending', 'Pending'), color: '#eab308' },
+    { label: t('deliveryNotes.status.shipped', 'Shipped'), color: '#3b82f6' },
+    { label: t('deliveryNotes.status.delivered', 'Delivered'), color: '#22c55e' },
+    { label: t('deliveryNotes.status.cancelled', 'Cancelled'), color: '#ef4444' },
   ];
 
   const dnCalendarEvents = deliveryNotes.map((dn) => ({
