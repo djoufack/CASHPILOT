@@ -5525,5 +5525,151 @@
       "initError": "Error initializing accounting",
       "autoToggleError": "Error updating setting"
     }
+  },
+  "recruitment": {
+    "helmetTitle": "Recruitment | CashPilot",
+    "pageTitle": "Recruitment",
+    "pageSubtitle": "Manage your open positions, candidates and interviews",
+    "loading": "Loading...",
+    "tabs": {
+      "positions": "Positions",
+      "pipeline": "Pipeline",
+      "candidates": "Candidates",
+      "interviews": "Interviews"
+    },
+    "kpi": {
+      "openPositions": "Open positions",
+      "candidates": "Candidates",
+      "inPipeline": "In pipeline",
+      "hired": "Hired"
+    },
+    "positions": {
+      "searchPlaceholder": "Search a position...",
+      "btnNew": "New position",
+      "btnApply": "Apply",
+      "noPositions": "No positions available.",
+      "candidateCount": "{{count}} candidate(s)",
+      "createdAt": "Created on {{date}}"
+    },
+    "positionStatus": {
+      "open": "Open",
+      "closed": "Closed",
+      "draft": "Draft",
+      "on_hold": "On hold"
+    },
+    "employmentType": {
+      "full_time": "Full time",
+      "part_time": "Part time",
+      "contract": "Contract",
+      "internship": "Internship",
+      "freelance": "Freelance"
+    },
+    "pipeline": {
+      "title": "Recruitment pipeline",
+      "total": "{{count}} application(s)",
+      "noApplication": "No applications",
+      "backward": "Previous stage",
+      "forward": "Next stage"
+    },
+    "stages": {
+      "new": "New",
+      "screening": "Screening",
+      "interview": "Interview",
+      "technical_test": "Technical test",
+      "offer": "Offer",
+      "hired": "Hired"
+    },
+    "candidates": {
+      "searchPlaceholder": "Search a candidate...",
+      "btnNew": "New candidate",
+      "noCandidates": "No candidates registered.",
+      "colName": "Name",
+      "colEmail": "Email",
+      "colPhone": "Phone",
+      "colSource": "Source",
+      "colApplications": "Applications",
+      "colAdded": "Added on",
+      "unknownCandidate": "Unknown candidate",
+      "unknownPosition": "Unknown position"
+    },
+    "candidateSource": {
+      "website": "Website",
+      "linkedin": "LinkedIn",
+      "referral": "Referral",
+      "job_board": "Job board",
+      "agency": "Agency",
+      "other": "Other"
+    },
+    "interviews": {
+      "searchPlaceholder": "Search an interview...",
+      "btnSchedule": "Schedule interview",
+      "noInterviews": "No interviews scheduled.",
+      "interviewer": "Interviewer:",
+      "unknownCandidate": "Unknown candidate",
+      "unknownPosition": "Unknown position"
+    },
+    "interviewType": {
+      "phone": "Phone",
+      "video": "Video",
+      "onsite": "On site",
+      "technical": "Technical"
+    },
+    "interviewStatus": {
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "no_show": "No show"
+    },
+    "dialogs": {
+      "newPosition": {
+        "title": "New position",
+        "labelTitle": "Job title *",
+        "placeholderTitle": "E.g. Senior React Developer",
+        "labelDepartment": "Department",
+        "labelLocation": "Location",
+        "placeholderLocation": "London, UK",
+        "labelSalaryMin": "Min salary (EUR)",
+        "labelSalaryMax": "Max salary (EUR)",
+        "labelEmploymentType": "Contract type",
+        "labelStatus": "Status",
+        "labelDescription": "Description",
+        "placeholderDescription": "Describe the position...",
+        "btnCancel": "Cancel",
+        "btnCreate": "Create"
+      },
+      "newCandidate": {
+        "title": "New candidate",
+        "labelFirstName": "First name",
+        "labelLastName": "Last name",
+        "labelEmail": "Email",
+        "labelPhone": "Phone",
+        "labelSource": "Source",
+        "labelNotes": "Notes",
+        "btnCancel": "Cancel",
+        "btnAdd": "Add"
+      },
+      "newApplication": {
+        "title": "New application",
+        "labelCandidate": "Candidate",
+        "placeholderCandidate": "Choose a candidate",
+        "labelPosition": "Position",
+        "placeholderPosition": "Choose a position",
+        "btnCancel": "Cancel",
+        "btnApply": "Apply"
+      },
+      "scheduleInterview": {
+        "title": "Schedule an interview",
+        "labelApplication": "Application",
+        "placeholderApplication": "Choose an application",
+        "labelType": "Type",
+        "labelDateTime": "Date and time",
+        "labelNotes": "Notes",
+        "btnCancel": "Cancel",
+        "btnSchedule": "Schedule"
+      }
+    },
+    "toast": {
+      "error": "Error"
+    }
   }
 }

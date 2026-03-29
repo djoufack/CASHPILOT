@@ -6464,5 +6464,151 @@
       "initError": "Fout bij initialiseren van boekhouding",
       "autoToggleError": "Fout bij bijwerken van instelling"
     }
+  },
+  "recruitment": {
+    "helmetTitle": "Werving | CashPilot",
+    "pageTitle": "Werving",
+    "pageSubtitle": "Beheer uw vacatures, kandidaten en sollicitatiegesprekken",
+    "loading": "Laden...",
+    "tabs": {
+      "positions": "Vacatures",
+      "pipeline": "Pijplijn",
+      "candidates": "Kandidaten",
+      "interviews": "Gesprekken"
+    },
+    "kpi": {
+      "openPositions": "Open vacatures",
+      "candidates": "Kandidaten",
+      "inPipeline": "In pijplijn",
+      "hired": "Aangenomen"
+    },
+    "positions": {
+      "searchPlaceholder": "Zoek een vacature...",
+      "btnNew": "Nieuwe vacature",
+      "btnApply": "Solliciteren",
+      "noPositions": "Geen vacatures beschikbaar.",
+      "candidateCount": "{{count}} kandidaat/kandidaten",
+      "createdAt": "Aangemaakt op {{date}}"
+    },
+    "positionStatus": {
+      "open": "Open",
+      "closed": "Gesloten",
+      "draft": "Concept",
+      "on_hold": "On hold"
+    },
+    "employmentType": {
+      "full_time": "Voltijds",
+      "part_time": "Deeltijds",
+      "contract": "Contract",
+      "internship": "Stage",
+      "freelance": "Freelance"
+    },
+    "pipeline": {
+      "title": "Wervingspijplijn",
+      "total": "{{count}} sollicitatie(s)",
+      "noApplication": "Geen sollicitaties",
+      "backward": "Vorige stap",
+      "forward": "Volgende stap"
+    },
+    "stages": {
+      "new": "Nieuw",
+      "screening": "Screening",
+      "interview": "Gesprek",
+      "technical_test": "Technische test",
+      "offer": "Aanbieding",
+      "hired": "Aangenomen"
+    },
+    "candidates": {
+      "searchPlaceholder": "Zoek een kandidaat...",
+      "btnNew": "Nieuwe kandidaat",
+      "noCandidates": "Geen kandidaten geregistreerd.",
+      "colName": "Naam",
+      "colEmail": "E-mail",
+      "colPhone": "Telefoon",
+      "colSource": "Bron",
+      "colApplications": "Sollicitaties",
+      "colAdded": "Toegevoegd op",
+      "unknownCandidate": "Onbekende kandidaat",
+      "unknownPosition": "Onbekende functie"
+    },
+    "candidateSource": {
+      "website": "Website",
+      "linkedin": "LinkedIn",
+      "referral": "Aanbeveling",
+      "job_board": "Jobboard",
+      "agency": "Uitzendbureau",
+      "other": "Overig"
+    },
+    "interviews": {
+      "searchPlaceholder": "Zoek een gesprek...",
+      "btnSchedule": "Gesprek plannen",
+      "noInterviews": "Geen gesprekken gepland.",
+      "interviewer": "Gespreksvoerder:",
+      "unknownCandidate": "Onbekende kandidaat",
+      "unknownPosition": "Onbekende functie"
+    },
+    "interviewType": {
+      "phone": "Telefonisch",
+      "video": "Videogesprek",
+      "onsite": "Op locatie",
+      "technical": "Technisch"
+    },
+    "interviewStatus": {
+      "scheduled": "Gepland",
+      "completed": "Afgerond",
+      "cancelled": "Geannuleerd",
+      "no_show": "Niet verschenen"
+    },
+    "dialogs": {
+      "newPosition": {
+        "title": "Nieuwe vacature",
+        "labelTitle": "Functietitel *",
+        "placeholderTitle": "Bijv. Senior React Ontwikkelaar",
+        "labelDepartment": "Afdeling",
+        "labelLocation": "Locatie",
+        "placeholderLocation": "Amsterdam, Nederland",
+        "labelSalaryMin": "Min. salaris (EUR)",
+        "labelSalaryMax": "Max. salaris (EUR)",
+        "labelEmploymentType": "Contracttype",
+        "labelStatus": "Status",
+        "labelDescription": "Omschrijving",
+        "placeholderDescription": "Omschrijf de functie...",
+        "btnCancel": "Annuleren",
+        "btnCreate": "Aanmaken"
+      },
+      "newCandidate": {
+        "title": "Nieuwe kandidaat",
+        "labelFirstName": "Voornaam",
+        "labelLastName": "Achternaam",
+        "labelEmail": "E-mail",
+        "labelPhone": "Telefoon",
+        "labelSource": "Bron",
+        "labelNotes": "Notities",
+        "btnCancel": "Annuleren",
+        "btnAdd": "Toevoegen"
+      },
+      "newApplication": {
+        "title": "Nieuwe sollicitatie",
+        "labelCandidate": "Kandidaat",
+        "placeholderCandidate": "Kies een kandidaat",
+        "labelPosition": "Vacature",
+        "placeholderPosition": "Kies een vacature",
+        "btnCancel": "Annuleren",
+        "btnApply": "Solliciteren"
+      },
+      "scheduleInterview": {
+        "title": "Gesprek plannen",
+        "labelApplication": "Sollicitatie",
+        "placeholderApplication": "Kies een sollicitatie",
+        "labelType": "Type",
+        "labelDateTime": "Datum en tijd",
+        "labelNotes": "Notities",
+        "btnCancel": "Annuleren",
+        "btnSchedule": "Plannen"
+      }
+    },
+    "toast": {
+      "error": "Fout"
+    }
   }
 }

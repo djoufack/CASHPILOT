@@ -5512,5 +5512,151 @@
       "initError": "Erreur d'initialisation de la comptabilité",
       "autoToggleError": "Erreur de mise à jour du paramètre"
     }
+  },
+  "recruitment": {
+    "helmetTitle": "Recrutement | CashPilot",
+    "pageTitle": "Recrutement",
+    "pageSubtitle": "Gerez vos postes ouverts, candidats et entretiens",
+    "loading": "Chargement...",
+    "tabs": {
+      "positions": "Postes",
+      "pipeline": "Pipeline",
+      "candidates": "Candidats",
+      "interviews": "Entretiens"
+    },
+    "kpi": {
+      "openPositions": "Postes ouverts",
+      "candidates": "Candidats",
+      "inPipeline": "En pipeline",
+      "hired": "Embauches"
+    },
+    "positions": {
+      "searchPlaceholder": "Rechercher un poste...",
+      "btnNew": "Nouveau poste",
+      "btnApply": "Candidater",
+      "noPositions": "Aucun poste disponible.",
+      "candidateCount": "{{count}} candidat(s)",
+      "createdAt": "Cree le {{date}}"
+    },
+    "positionStatus": {
+      "open": "Ouvert",
+      "closed": "Ferme",
+      "draft": "Brouillon",
+      "on_hold": "En pause"
+    },
+    "employmentType": {
+      "full_time": "Temps plein",
+      "part_time": "Temps partiel",
+      "contract": "CDD",
+      "internship": "Stage",
+      "freelance": "Freelance"
+    },
+    "pipeline": {
+      "title": "Pipeline de recrutement",
+      "total": "{{count}} candidature(s)",
+      "noApplication": "Aucune candidature",
+      "backward": "Etape precedente",
+      "forward": "Etape suivante"
+    },
+    "stages": {
+      "new": "Nouveau",
+      "screening": "Preselection",
+      "interview": "Entretien",
+      "technical_test": "Test technique",
+      "offer": "Offre",
+      "hired": "Embauche"
+    },
+    "candidates": {
+      "searchPlaceholder": "Rechercher un candidat...",
+      "btnNew": "Nouveau candidat",
+      "noCandidates": "Aucun candidat enregistre.",
+      "colName": "Nom",
+      "colEmail": "Email",
+      "colPhone": "Telephone",
+      "colSource": "Source",
+      "colApplications": "Candidatures",
+      "colAdded": "Ajoute le",
+      "unknownCandidate": "Candidat inconnu",
+      "unknownPosition": "Poste inconnu"
+    },
+    "candidateSource": {
+      "website": "Site web",
+      "linkedin": "LinkedIn",
+      "referral": "Recommandation",
+      "job_board": "Jobboard",
+      "agency": "Agence",
+      "other": "Autre"
+    },
+    "interviews": {
+      "searchPlaceholder": "Rechercher un entretien...",
+      "btnSchedule": "Planifier entretien",
+      "noInterviews": "Aucun entretien planifie.",
+      "interviewer": "Intervieweur :",
+      "unknownCandidate": "Candidat inconnu",
+      "unknownPosition": "Poste inconnu"
+    },
+    "interviewType": {
+      "phone": "Telephone",
+      "video": "Visio",
+      "onsite": "Sur site",
+      "technical": "Technique"
+    },
+    "interviewStatus": {
+      "scheduled": "Planifie",
+      "completed": "Termine",
+      "cancelled": "Annule",
+      "no_show": "Absent"
+    },
+    "dialogs": {
+      "newPosition": {
+        "title": "Nouveau poste",
+        "labelTitle": "Intitule du poste *",
+        "placeholderTitle": "Ex: Developpeur React Senior",
+        "labelDepartment": "Departement",
+        "labelLocation": "Localisation",
+        "placeholderLocation": "Paris, France",
+        "labelSalaryMin": "Salaire min (EUR)",
+        "labelSalaryMax": "Salaire max (EUR)",
+        "labelEmploymentType": "Type de contrat",
+        "labelStatus": "Statut",
+        "labelDescription": "Description",
+        "placeholderDescription": "Decrivez le poste...",
+        "btnCancel": "Annuler",
+        "btnCreate": "Creer"
+      },
+      "newCandidate": {
+        "title": "Nouveau candidat",
+        "labelFirstName": "Prenom",
+        "labelLastName": "Nom",
+        "labelEmail": "Email",
+        "labelPhone": "Telephone",
+        "labelSource": "Source",
+        "labelNotes": "Notes",
+        "btnCancel": "Annuler",
+        "btnAdd": "Ajouter"
+      },
+      "newApplication": {
+        "title": "Nouvelle candidature",
+        "labelCandidate": "Candidat",
+        "placeholderCandidate": "Choisir un candidat",
+        "labelPosition": "Poste",
+        "placeholderPosition": "Choisir un poste",
+        "btnCancel": "Annuler",
+        "btnApply": "Candidater"
+      },
+      "scheduleInterview": {
+        "title": "Planifier un entretien",
+        "labelApplication": "Candidature",
+        "placeholderApplication": "Choisir une candidature",
+        "labelType": "Type",
+        "labelDateTime": "Date et heure",
+        "labelNotes": "Notes",
+        "btnCancel": "Annuler",
+        "btnSchedule": "Planifier"
+      }
+    },
+    "toast": {
+      "error": "Erreur"
+    }
   }
 }
