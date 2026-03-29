@@ -1,12 +1,29 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
-  Landmark, Upload, ArrowLeft, Zap, Download, Trash2, Eye, Search,
-  CheckCircle, XCircle, MinusCircle, FileText, ShoppingCart, Receipt,
-  Loader2, AlertTriangle, ArrowUpRight, ArrowDownLeft, RotateCcw
+  Landmark,
+  Upload,
+  ArrowLeft,
+  Zap,
+  Download,
+  Trash2,
+  Eye,
+  Search,
+  CheckCircle,
+  XCircle,
+  MinusCircle,
+  FileText,
+  ShoppingCart,
+  Receipt,
+  Loader2,
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownLeft,
+  RotateCcw,
 } from 'lucide-react';
 import { useBankReconciliation } from '@/hooks/useBankReconciliation';
 import { useAccountingData } from '@/hooks/useAccountingData';
@@ -46,7 +63,7 @@ const RECON_INFO = {
   },
   unmatchedLines: {
     title: 'Lignes non rapprochees',
-    definition: "Nombre de lignes encore sans correspondance comptable validee.",
+    definition: 'Nombre de lignes encore sans correspondance comptable validee.',
     dataSource: "Champ `reconciliation_status = 'unmatched'` des lignes de releve.",
     formula: 'Non rapprochees = count(status = unmatched)',
     calculationMethod: 'Comptage des lignes qui restent a traiter ou a ignorer.',
@@ -63,12 +80,12 @@ const RECON_INFO = {
     definition: 'Panneau de recherche manuelle des transactions candidates pour une ligne de releve.',
     dataSource: 'Ligne courante + transactions normalisees (factures, depenses, fournisseurs).',
     formula: 'Score matching = score texte + score montant + score date (pondere)',
-    calculationMethod:
-      'Le moteur compare les candidates puis ordonne les resultats selon le score de pertinence.',
+    calculationMethod: 'Le moteur compare les candidates puis ordonne les resultats selon le score de pertinence.',
   },
 };
 
 const BankReconciliation = ({ period }) => {
+  const { t } = useTranslation();
   const [view, setView] = useState('list'); // list, workspace
   const [selectedStatement, setSelectedStatement] = useState(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -81,19 +98,24 @@ const BankReconciliation = ({ period }) => {
   const { guardedAction, modalProps } = useCreditsGuard();
 
   const {
-    statements, lines, loading,
-    uploadStatement, deleteStatement,
-    fetchLines, importParsedLines,
-    runAutoMatch, matchLine, unmatchLine, ignoreLine
+    statements,
+    lines,
+    loading,
+    uploadStatement,
+    deleteStatement,
+    fetchLines,
+    importParsedLines,
+    runAutoMatch,
+    matchLine,
+    unmatchLine,
+    ignoreLine,
   } = useBankReconciliation();
 
-  const {
-    invoices, expenses, supplierInvoices
-  } = useAccountingData(period?.startDate, period?.endDate);
+  const { invoices, expenses, supplierInvoices } = useAccountingData(period?.startDate, period?.endDate);
 
   // Normalized transactions for matching
-  const transactions = useMemo(() =>
-    normalizeTransactions(invoices, expenses, supplierInvoices),
+  const transactions = useMemo(
+    () => normalizeTransactions(invoices, expenses, supplierInvoices),
     [invoices, expenses, supplierInvoices]
   );
 
@@ -103,16 +125,17 @@ const BankReconciliation = ({ period }) => {
   // Filtered lines
   const filteredLines = useMemo(() => {
     let result = lines;
-    if (filter === 'matched') result = result.filter(l => l.reconciliation_status === 'matched');
-    else if (filter === 'unmatched') result = result.filter(l => l.reconciliation_status === 'unmatched');
-    else if (filter === 'ignored') result = result.filter(l => l.reconciliation_status === 'ignored');
+    if (filter === 'matched') result = result.filter((l) => l.reconciliation_status === 'matched');
+    else if (filter === 'unmatched') result = result.filter((l) => l.reconciliation_status === 'unmatched');
+    else if (filter === 'ignored') result = result.filter((l) => l.reconciliation_status === 'ignored');
 
     if (searchText) {
       const q = searchText.toLowerCase();
-      result = result.filter(l =>
-        (l.description || '').toLowerCase().includes(q) ||
-        (l.reference || '').toLowerCase().includes(q) ||
-        String(l.amount).includes(q)
+      result = result.filter(
+        (l) =>
+          (l.description || '').toLowerCase().includes(q) ||
+          (l.reference || '').toLowerCase().includes(q) ||
+          String(l.amount).includes(q)
       );
     }
     return result;
@@ -121,7 +144,7 @@ const BankReconciliation = ({ period }) => {
   // Search results for manual matching
   const searchResults = useMemo(() => {
     if (!searchingLineId) return [];
-    const line = lines.find(l => l.id === searchingLineId);
+    const line = lines.find((l) => l.id === searchingLineId);
     if (!line) return [];
     return searchMatches(line, transactions, { textFilter: searchQuery });
   }, [searchingLineId, searchQuery, lines, transactions]);
@@ -163,9 +186,11 @@ const BankReconciliation = ({ period }) => {
   const handleExportPDF = () => {
     if (!selectedStatement) return;
     guardedAction(CREDIT_COSTS.PDF_RECONCILIATION, 'Bank Reconciliation PDF', () => {
-      const companyInfo = company ? {
-        company_name: company.company_name || company.name || 'Ma Société'
-      } : { company_name: 'Ma Société' };
+      const companyInfo = company
+        ? {
+            company_name: company.company_name || company.name || 'Ma Société',
+          }
+        : { company_name: 'Ma Société' };
 
       const data = {
         bankName: selectedStatement.bank_name,
@@ -173,12 +198,12 @@ const BankReconciliation = ({ period }) => {
         openingBalance: selectedStatement.opening_balance,
         closingBalance: selectedStatement.closing_balance,
         ...summary,
-        unmatchedDetails: lines.filter(l => l.reconciliation_status === 'unmatched')
+        unmatchedDetails: lines.filter((l) => l.reconciliation_status === 'unmatched'),
       };
 
       exportReconciliationPDF(data, companyInfo, {
         startDate: selectedStatement.period_start,
-        endDate: selectedStatement.period_end
+        endDate: selectedStatement.period_end,
       });
     });
   };
@@ -233,8 +258,13 @@ const BankReconciliation = ({ period }) => {
             <CardContent className="py-12 text-center">
               <Landmark className="w-12 h-12 mx-auto mb-4 text-gray-600" />
               <h3 className="text-lg font-medium text-gray-400">Aucun relevé bancaire importé</h3>
-              <p className="text-sm text-gray-600 mt-2">Commencez par importer un relevé bancaire pour lancer le rapprochement.</p>
-              <Button onClick={() => setShowUploadModal(true)} className="mt-4 bg-orange-500 hover:bg-orange-600 text-white">
+              <p className="text-sm text-gray-600 mt-2">
+                Commencez par importer un relevé bancaire pour lancer le rapprochement.
+              </p>
+              <Button
+                onClick={() => setShowUploadModal(true)}
+                className="mt-4 bg-orange-500 hover:bg-orange-600 text-white"
+              >
                 <Upload className="w-4 h-4 mr-2" /> Importer un relevé
               </Button>
             </CardContent>
@@ -255,34 +285,53 @@ const BankReconciliation = ({ period }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {statements.map(stmt => (
+                    {statements.map((stmt) => (
                       <tr key={stmt.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                         <td className="py-3 px-4 font-medium">{stmt.bank_name || '—'}</td>
                         <td className="py-3 px-4 text-gray-400 text-xs">
-                          {stmt.period_start ? (
-                            `${new Date(stmt.period_start).toLocaleDateString('fr-FR')} → ${new Date(stmt.period_end).toLocaleDateString('fr-FR')}`
-                          ) : '—'}
+                          {stmt.period_start
+                            ? `${new Date(stmt.period_start).toLocaleDateString('fr-FR')} → ${new Date(stmt.period_end).toLocaleDateString('fr-FR')}`
+                            : '—'}
                         </td>
                         <td className="py-3 px-4 text-gray-400 text-xs max-w-[200px] truncate">{stmt.file_name}</td>
                         <td className="py-3 px-4 text-center">{stmt.line_count || 0}</td>
                         <td className="py-3 px-4 text-center">
-                          <Badge className={`text-xs ${
-                            stmt.parse_status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
-                            stmt.parse_status === 'parsed' ? 'bg-blue-500/20 text-blue-400' :
-                            stmt.parse_status === 'error' ? 'bg-red-500/20 text-red-400' :
-                            'bg-gray-500/20 text-gray-400'
-                          }`}>
-                            {stmt.parse_status === 'confirmed' ? 'Confirmé' :
-                             stmt.parse_status === 'parsed' ? 'Analysé' :
-                             stmt.parse_status === 'error' ? 'Erreur' : 'En attente'}
+                          <Badge
+                            className={`text-xs ${
+                              stmt.parse_status === 'confirmed'
+                                ? 'bg-green-500/20 text-green-400'
+                                : stmt.parse_status === 'parsed'
+                                  ? 'bg-blue-500/20 text-blue-400'
+                                  : stmt.parse_status === 'error'
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : 'bg-gray-500/20 text-gray-400'
+                            }`}
+                          >
+                            {stmt.parse_status === 'confirmed'
+                              ? 'Confirmé'
+                              : stmt.parse_status === 'parsed'
+                                ? 'Analysé'
+                                : stmt.parse_status === 'error'
+                                  ? 'Erreur'
+                                  : 'En attente'}
                           </Badge>
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex gap-1 justify-end">
-                            <Button variant="ghost" size="sm" onClick={() => openWorkspace(stmt)} className="text-orange-400 hover:text-orange-300">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openWorkspace(stmt)}
+                              className="text-orange-400 hover:text-orange-300"
+                            >
                               <Eye className="w-4 h-4 mr-1" /> Voir
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => deleteStatement(stmt.id)} className="text-red-400 hover:text-red-300">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteStatement(stmt.id)}
+                              className="text-red-400 hover:text-red-300"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -328,13 +377,20 @@ const BankReconciliation = ({ period }) => {
             </h2>
             {selectedStatement?.period_start && (
               <p className="text-xs text-gray-500">
-                {new Date(selectedStatement.period_start).toLocaleDateString('fr-FR')} au {new Date(selectedStatement.period_end).toLocaleDateString('fr-FR')}
+                {new Date(selectedStatement.period_start).toLocaleDateString('fr-FR')} au{' '}
+                {new Date(selectedStatement.period_end).toLocaleDateString('fr-FR')}
               </p>
             )}
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleAutoMatch} disabled={loading} className="border-gray-700 text-orange-400">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAutoMatch}
+            disabled={loading}
+            className="border-gray-700 text-orange-400"
+          >
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
             Rapprochement auto
           </Button>
@@ -393,7 +449,7 @@ const BankReconciliation = ({ period }) => {
             { key: 'matched', label: 'Rapprochées', count: summary.matchedLines },
             { key: 'unmatched', label: 'Non rapprochées', count: summary.unmatchedLines },
             { key: 'ignored', label: 'Ignorées', count: summary.ignoredLines },
-          ].map(f => (
+          ].map((f) => (
             <Button
               key={f.key}
               variant="ghost"
@@ -406,9 +462,9 @@ const BankReconciliation = ({ period }) => {
           ))}
         </div>
         <Input
-          placeholder="Rechercher..."
+          placeholder={t('bankReconciliation.searchPlaceholder', 'Rechercher...')}
           value={searchText}
-          onChange={e => setSearchText(e.target.value)}
+          onChange={(e) => setSearchText(e.target.value)}
           className="bg-gray-800 border-gray-700 text-white text-xs h-7 w-full sm:w-[200px]"
         />
       </div>
@@ -416,19 +472,17 @@ const BankReconciliation = ({ period }) => {
       {/* Lines list */}
       <div className="space-y-1.5">
         {filteredLines.length === 0 ? (
-          <div className="py-8 text-center text-gray-500 text-sm">
-            Aucune ligne correspondant aux filtres.
-          </div>
+          <div className="py-8 text-center text-gray-500 text-sm">Aucune ligne correspondant aux filtres.</div>
         ) : (
-          filteredLines.map(line => (
+          filteredLines.map((line) => (
             <div
               key={line.id}
               className={`flex items-center gap-3 p-3 rounded-lg border text-sm ${
                 line.reconciliation_status === 'matched'
                   ? 'bg-green-500/5 border-green-500/20'
                   : line.reconciliation_status === 'ignored'
-                  ? 'bg-gray-800/50 border-gray-800 opacity-60'
-                  : 'bg-amber-500/5 border-amber-500/20'
+                    ? 'bg-gray-800/50 border-gray-800 opacity-60'
+                    : 'bg-amber-500/5 border-amber-500/20'
               }`}
             >
               {/* Status icon */}
@@ -453,13 +507,12 @@ const BankReconciliation = ({ period }) => {
               </div>
 
               {/* Description */}
-              <div className="flex-1 min-w-0 truncate text-gray-300 text-xs">
-                {line.description || '—'}
-              </div>
+              <div className="flex-1 min-w-0 truncate text-gray-300 text-xs">{line.description || '—'}</div>
 
               {/* Amount */}
               <div className={`shrink-0 font-mono text-sm ${line.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {line.amount >= 0 ? '+' : ''}{formatCurrency(line.amount)}
+                {line.amount >= 0 ? '+' : ''}
+                {formatCurrency(line.amount)}
               </div>
 
               {/* Match info / actions */}
@@ -473,7 +526,13 @@ const BankReconciliation = ({ period }) => {
                         <Badge className="bg-blue-500/20 text-blue-400 text-[10px] ml-1">auto</Badge>
                       )}
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => unmatchLine(line.id)} className="h-6 w-6 p-0 text-gray-500 hover:text-red-400" title="Annuler le rapprochement">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => unmatchLine(line.id)}
+                      className="h-6 w-6 p-0 text-gray-500 hover:text-red-400"
+                      title={t('bankReconciliation.cancelMatch', 'Annuler le rapprochement')}
+                    >
                       <XCircle className="w-3.5 h-3.5" />
                     </Button>
                   </>
@@ -492,14 +551,24 @@ const BankReconciliation = ({ period }) => {
                     >
                       <Search className="w-3.5 h-3.5 mr-1" /> Chercher
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => ignoreLine(line.id)} className="h-7 text-xs text-gray-500 hover:text-gray-300">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => ignoreLine(line.id)}
+                      className="h-7 text-xs text-gray-500 hover:text-gray-300"
+                    >
                       Ignorer
                     </Button>
                   </>
                 )}
 
                 {line.reconciliation_status === 'ignored' && (
-                  <Button variant="ghost" size="sm" onClick={() => unmatchLine(line.id)} className="h-7 text-xs text-gray-500 hover:text-amber-400">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => unmatchLine(line.id)}
+                    className="h-7 text-xs text-gray-500 hover:text-amber-400"
+                  >
                     <RotateCcw className="w-3.5 h-3.5 mr-1" /> Restaurer
                   </Button>
                 )}
@@ -521,9 +590,9 @@ const BankReconciliation = ({ period }) => {
           </CardHeader>
           <CardContent className="space-y-3">
             <Input
-              placeholder="Filtrer par description, référence..."
+              placeholder={t('bankReconciliation.searchMatchPlaceholder', 'Filtrer par description, référence...')}
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-gray-800 border-gray-700 text-white text-sm"
               autoFocus
             />
@@ -534,8 +603,11 @@ const BankReconciliation = ({ period }) => {
               </p>
             ) : (
               <div className="space-y-1 max-h-[200px] overflow-y-auto">
-                {searchResults.slice(0, 10).map(txn => (
-                  <div key={txn.id} className="flex items-center gap-3 p-2 bg-gray-800 rounded hover:bg-gray-700 text-xs">
+                {searchResults.slice(0, 10).map((txn) => (
+                  <div
+                    key={txn.id}
+                    className="flex items-center gap-3 p-2 bg-gray-800 rounded hover:bg-gray-700 text-xs"
+                  >
                     <SourceIcon type={txn.source_type} />
                     <span className="text-gray-400 w-[60px] shrink-0">
                       {txn.date ? new Date(txn.date).toLocaleDateString('fr-FR') : '—'}
@@ -544,9 +616,7 @@ const BankReconciliation = ({ period }) => {
                     <span className={`font-mono shrink-0 ${txn.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                       {formatCurrency(txn.amount)}
                     </span>
-                    <Badge className="bg-orange-500/20 text-orange-400 text-[10px]">
-                      {Math.round(txn.score)}%
-                    </Badge>
+                    <Badge className="bg-orange-500/20 text-orange-400 text-[10px]">{Math.round(txn.score)}%</Badge>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -564,7 +634,12 @@ const BankReconciliation = ({ period }) => {
             )}
 
             <div className="flex justify-end">
-              <Button variant="ghost" size="sm" onClick={() => setSearchingLineId(null)} className="text-gray-400 text-xs">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSearchingLineId(null)}
+                className="text-gray-400 text-xs"
+              >
                 Fermer
               </Button>
             </div>

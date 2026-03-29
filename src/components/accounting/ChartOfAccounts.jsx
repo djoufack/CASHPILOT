@@ -1,5 +1,5 @@
-
 import { useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAccounting } from '@/hooks/useAccounting';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,15 +16,16 @@ import { validateChartOfAccountsImport } from '@/utils/accountingQualityChecks';
 import PanelInfoPopover from '@/components/ui/PanelInfoPopover';
 import { useToast } from '@/components/ui/use-toast';
 
-const TYPE_LABELS = {
-  asset: { label: 'Actif', color: 'bg-blue-500/20 text-blue-400' },
-  liability: { label: 'Passif', color: 'bg-red-500/20 text-red-400' },
-  equity: { label: 'Capitaux', color: 'bg-purple-500/20 text-purple-400' },
-  revenue: { label: 'Produit', color: 'bg-green-500/20 text-green-400' },
-  expense: { label: 'Charge', color: 'bg-orange-500/20 text-orange-400' }
+const TYPE_COLORS = {
+  asset: 'bg-blue-500/20 text-blue-400',
+  liability: 'bg-red-500/20 text-red-400',
+  equity: 'bg-purple-500/20 text-purple-400',
+  revenue: 'bg-green-500/20 text-green-400',
+  expense: 'bg-orange-500/20 text-orange-400',
 };
 
 const ChartOfAccounts = () => {
+  const { t } = useTranslation();
   const { accounts, fetchAccounts, createAccount, bulkCreateAccounts, deleteAccount, loading } = useAccounting();
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,7 +39,7 @@ const ChartOfAccounts = () => {
     account_name: '',
     account_type: 'asset',
     account_category: '',
-    description: ''
+    description: '',
   });
 
   const chartInfo = {
@@ -49,8 +50,7 @@ const ChartOfAccounts = () => {
     formula: 'Aucune formule: référentiel de structure comptable.',
     calculationMethod:
       'Charge les comptes triés par code, puis applique les filtres de recherche et de type avant affichage.',
-    notes:
-      'Le bouton "Plan comptable belge" charge un référentiel de base depuis `accounting_plan_accounts` global.',
+    notes: 'Le bouton "Plan comptable belge" charge un référentiel de base depuis `accounting_plan_accounts` global.',
   };
 
   useEffect(() => {
@@ -58,8 +58,9 @@ const ChartOfAccounts = () => {
   }, [fetchAccounts]);
 
   const filteredAccounts = useMemo(() => {
-    return accounts.filter(a => {
-      const matchSearch = !search ||
+    return accounts.filter((a) => {
+      const matchSearch =
+        !search ||
         a.account_code.toLowerCase().includes(search.toLowerCase()) ||
         a.account_name.toLowerCase().includes(search.toLowerCase());
       const matchType = typeFilter === 'all' || a.account_type === typeFilter;
@@ -83,9 +84,14 @@ const ChartOfAccounts = () => {
     setPresetLoading(true);
     try {
       const presetAccounts = await getGlobalAccountingPlanAccounts('BE');
-      const validation = validateChartOfAccountsImport(presetAccounts, { existingAccounts: accounts, regionHint: 'belgium' });
+      const validation = validateChartOfAccountsImport(presetAccounts, {
+        existingAccounts: accounts,
+        regionHint: 'belgium',
+      });
       if (!validation.canImport) {
-        throw new Error(validation.blockingIssues[0]?.message || 'Le plan comptable belge Supabase a échoué au contrôle de cohérence');
+        throw new Error(
+          validation.blockingIssues[0]?.message || 'Le plan comptable belge Supabase a échoué au contrôle de cohérence'
+        );
       }
       await bulkCreateAccounts(presetAccounts);
       toast({
@@ -107,19 +113,36 @@ const ChartOfAccounts = () => {
     }
   };
 
+  const getTypeLabel = (type) => t(`accounting.type.${type}`, type);
+  const getTypeColor = (type) => TYPE_COLORS[type] || 'bg-gray-500/20 text-gray-400';
+
   const columns = [
-    { header: 'Code', accessor: 'account_code', className: 'font-mono text-orange-400' },
-    { header: 'Nom', accessor: 'account_name', className: 'font-medium text-gradient' },
-    { header: 'Type', accessor: (row) => {
-      const info = TYPE_LABELS[row.account_type] || { label: row.account_type, color: 'bg-gray-500/20 text-gray-400' };
-      return <Badge className={`text-xs ${info.color}`}>{info.label}</Badge>;
-    }},
-    { header: 'Catégorie', accessor: (row) => row.account_category || '—' },
-    { header: 'Actions', accessor: (row) => (
-       <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); deleteAccount(row.id); }} className="text-red-400 hover:text-red-300">
-         <Trash2 className="h-4 w-4" />
-       </Button>
-    ), className: 'text-right' }
+    { header: t('accounting.columns.code', 'Code'), accessor: 'account_code', className: 'font-mono text-orange-400' },
+    { header: t('accounting.columns.name', 'Nom'), accessor: 'account_name', className: 'font-medium text-gradient' },
+    {
+      header: t('accounting.columns.type', 'Type'),
+      accessor: (row) => (
+        <Badge className={`text-xs ${getTypeColor(row.account_type)}`}>{getTypeLabel(row.account_type)}</Badge>
+      ),
+    },
+    { header: t('accounting.columns.category', 'Catégorie'), accessor: (row) => row.account_category || '—' },
+    {
+      header: t('accounting.columns.actions', 'Actions'),
+      accessor: (row) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            deleteAccount(row.id);
+          }}
+          className="text-red-400 hover:text-red-300"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      ),
+      className: 'text-right',
+    },
   ];
 
   const renderCard = (account) => (
@@ -127,7 +150,9 @@ const ChartOfAccounts = () => {
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <span className="font-mono text-xs text-orange-400 bg-orange-900/20 px-2 py-1 rounded">{account.account_code}</span>
+            <span className="font-mono text-xs text-orange-400 bg-orange-900/20 px-2 py-1 rounded">
+              {account.account_code}
+            </span>
             <h3 className="text-lg font-bold text-gradient mt-2">{account.account_name}</h3>
           </div>
           <Button variant="ghost" size="sm" onClick={() => deleteAccount(account.id)} className="text-red-400">
@@ -136,8 +161,11 @@ const ChartOfAccounts = () => {
         </div>
         <div className="flex items-center gap-2 mt-2">
           {(() => {
-            const info = TYPE_LABELS[account.account_type] || { label: account.account_type, color: 'bg-gray-500/20 text-gray-400' };
-            return <Badge className={`text-xs ${info.color}`}>{info.label}</Badge>;
+            return (
+              <Badge className={`text-xs ${getTypeColor(account.account_type)}`}>
+                {getTypeLabel(account.account_type)}
+              </Badge>
+            );
           })()}
           {account.account_category && <span className="text-xs text-gray-400">{account.account_category}</span>}
         </div>
@@ -159,10 +187,18 @@ const ChartOfAccounts = () => {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => setShowPresetConfirm(true)} className="border-gray-700 text-gray-300 hover:text-white hover:border-purple-500">
+          <Button
+            variant="outline"
+            onClick={() => setShowPresetConfirm(true)}
+            className="border-gray-700 text-gray-300 hover:text-white hover:border-purple-500"
+          >
             <BookOpen className="w-4 h-4 mr-2" /> Plan comptable belge
           </Button>
-          <Button variant="outline" onClick={() => setShowImport(true)} className="border-gray-700 text-gray-300 hover:text-white hover:border-orange-500">
+          <Button
+            variant="outline"
+            onClick={() => setShowImport(true)}
+            className="border-gray-700 text-gray-300 hover:text-white hover:border-orange-500"
+          >
             <Upload className="w-4 h-4 mr-2" /> Importer CSV
           </Button>
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -181,7 +217,7 @@ const ChartOfAccounts = () => {
                     <Label>Code</Label>
                     <Input
                       value={formData.account_code}
-                      onChange={(e) => setFormData({...formData, account_code: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, account_code: e.target.value })}
                       placeholder="ex: 411000"
                       className="bg-gray-700 border-gray-600 font-mono"
                       required
@@ -189,14 +225,19 @@ const ChartOfAccounts = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Type</Label>
-                    <Select value={formData.account_type} onValueChange={(val) => setFormData({...formData, account_type: val})}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600"><SelectValue /></SelectTrigger>
+                    <Select
+                      value={formData.account_type}
+                      onValueChange={(val) => setFormData({ ...formData, account_type: val })}
+                    >
+                      <SelectTrigger className="bg-gray-700 border-gray-600">
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                        <SelectItem value="asset">Actif</SelectItem>
-                        <SelectItem value="liability">Passif</SelectItem>
-                        <SelectItem value="equity">Capitaux propres</SelectItem>
-                        <SelectItem value="revenue">Produit</SelectItem>
-                        <SelectItem value="expense">Charge</SelectItem>
+                        <SelectItem value="asset">{t('accounting.type.asset', 'Actif')}</SelectItem>
+                        <SelectItem value="liability">{t('accounting.type.liability', 'Passif')}</SelectItem>
+                        <SelectItem value="equity">{t('accounting.type.equity', 'Capitaux propres')}</SelectItem>
+                        <SelectItem value="revenue">{t('accounting.type.revenue', 'Produit')}</SelectItem>
+                        <SelectItem value="expense">{t('accounting.type.expense', 'Charge')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -205,7 +246,7 @@ const ChartOfAccounts = () => {
                   <Label>Nom du compte</Label>
                   <Input
                     value={formData.account_name}
-                    onChange={(e) => setFormData({...formData, account_name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, account_name: e.target.value })}
                     placeholder="ex: Clients"
                     className="bg-gray-700 border-gray-600"
                     required
@@ -215,7 +256,7 @@ const ChartOfAccounts = () => {
                   <Label>Catégorie (optionnel)</Label>
                   <Input
                     value={formData.account_category}
-                    onChange={(e) => setFormData({...formData, account_category: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, account_category: e.target.value })}
                     placeholder="ex: Créances"
                     className="bg-gray-700 border-gray-600"
                   />
@@ -245,12 +286,12 @@ const ChartOfAccounts = () => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-gray-800 border-gray-700 text-white">
-            <SelectItem value="all">Tous les types</SelectItem>
-            <SelectItem value="asset">Actif</SelectItem>
-            <SelectItem value="liability">Passif</SelectItem>
-            <SelectItem value="equity">Capitaux propres</SelectItem>
-            <SelectItem value="revenue">Produit</SelectItem>
-            <SelectItem value="expense">Charge</SelectItem>
+            <SelectItem value="all">{t('accounting.filter.allTypes', 'Tous les types')}</SelectItem>
+            <SelectItem value="asset">{t('accounting.type.asset', 'Actif')}</SelectItem>
+            <SelectItem value="liability">{t('accounting.type.liability', 'Passif')}</SelectItem>
+            <SelectItem value="equity">{t('accounting.type.equity', 'Capitaux propres')}</SelectItem>
+            <SelectItem value="revenue">{t('accounting.type.revenue', 'Produit')}</SelectItem>
+            <SelectItem value="expense">{t('accounting.type.expense', 'Charge')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -268,20 +309,15 @@ const ChartOfAccounts = () => {
           <div>
             <p className="text-amber-300 font-medium text-sm">Aucun compte pour la société active</p>
             <p className="text-xs text-gray-400 mt-1">
-              Le plan comptable est filtré par société (`company_id`). Si vous avez changé de société, chargez le
-              plan de base via "Plan comptable belge" ou importez un CSV pour cette société.
+              Le plan comptable est filtré par société (`company_id`). Si vous avez changé de société, chargez le plan
+              de base via "Plan comptable belge" ou importez un CSV pour cette société.
             </p>
           </div>
         </div>
       )}
 
       {/* Table */}
-      <ResponsiveTable
-        data={filteredAccounts}
-        columns={columns}
-        renderCard={renderCard}
-        loading={loading}
-      />
+      <ResponsiveTable data={filteredAccounts} columns={columns} renderCard={renderCard} loading={loading} />
 
       {/* CSV Import Modal */}
       <CSVImportModal
@@ -302,7 +338,8 @@ const ChartOfAccounts = () => {
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <p className="text-gray-300 text-sm">
-              Vous allez charger le <strong>Plan Comptable Général Belge 2021</strong> contenant <strong>993 comptes</strong> répartis en 7 classes :
+              Vous allez charger le <strong>Plan Comptable Général Belge 2021</strong> contenant{' '}
+              <strong>993 comptes</strong> répartis en 7 classes :
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div className="flex items-center gap-2 bg-purple-500/10 px-3 py-2 rounded">
@@ -338,7 +375,11 @@ const ChartOfAccounts = () => {
               Les comptes existants avec le même code seront mis à jour. Les nouveaux comptes seront ajoutés.
             </p>
             <div className="flex justify-end gap-3 pt-2">
-              <Button variant="outline" onClick={() => setShowPresetConfirm(false)} className="border-gray-600 text-gray-300">
+              <Button
+                variant="outline"
+                onClick={() => setShowPresetConfirm(false)}
+                className="border-gray-600 text-gray-300"
+              >
                 Annuler
               </Button>
               <Button onClick={handleLoadPreset} disabled={presetLoading} className="bg-purple-600 hover:bg-purple-700">
